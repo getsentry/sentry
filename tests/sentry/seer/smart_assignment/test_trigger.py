@@ -435,7 +435,7 @@ class TriggerSmartAssignmentTest(TestCase):
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
 
-        record_prediction(self._mirrors()[0], [assignee.id])
+        record_prediction(self._mirrors()[0], [assignee.id], assignee.id)
 
         mock_metrics.incr.assert_any_call(
             "smart_assignment.scored",

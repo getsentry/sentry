@@ -292,7 +292,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
             else:
-                enable_code_mode_tools = "on"
+                # "only" rather than "on": running Code Mode alongside the classic tools
+                # gives the agent two ways to do everything and it mixes them, so the
+                # surface being dogfooded is never the one that ships. The frontend
+                # override still selects either mode for comparison.
+                enable_code_mode_tools = "only"
 
             client = SeerAgentClient(
                 organization,

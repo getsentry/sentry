@@ -181,10 +181,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
             substatus=GroupSubStatus.REGRESSED,
         )
         .annotate(recent_regressed_history=Subquery(latest_regressed_subquery))
-        .filter(
-            recent_regressed_history__lte=date_threshold,
-            recent_regressed_history__isnull=False,
-        )
+        .filter(recent_regressed_history__lte=date_threshold)
     )
 
     with start_span(name="iterate_chunked_group_ids"):
@@ -278,10 +275,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
             substatus=GroupSubStatus.ESCALATING,
         )
         .annotate(recent_escalating_history=Subquery(latest_escalating_subquery))
-        .filter(
-            recent_escalating_history__lte=date_threshold,
-            recent_escalating_history__isnull=False,
-        )
+        .filter(recent_escalating_history__lte=date_threshold)
     )
 
     with start_span(name="iterate_chunked_group_ids"):

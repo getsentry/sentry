@@ -57,8 +57,16 @@ def milestones_from_state(state: SeerRunState) -> dict[str, SeerRunMilestoneExtr
         result[SeerRunMilestoneType.SOLUTION] = (
             {"solution_artifact": {"one_line_summary": summary}} if isinstance(summary, str) else {}
         )
-    if state.get_diffs_by_repo():
-        result[SeerRunMilestoneType.CODE_CHANGES] = {}
+    diffs_by_repo = state.get_diffs_by_repo()
+    if diffs_by_repo:
+        result[SeerRunMilestoneType.CODE_CHANGES] = {
+            "code_changes_artifact": {
+                "diffs_by_repo": {
+                    repo_name: [patch.dict() for patch in patches]
+                    for repo_name, patches in diffs_by_repo.items()
+                }
+            }
+        }
     if _has_pull_request(state):
         result[SeerRunMilestoneType.HAS_PULL_REQUEST] = {}
     return result

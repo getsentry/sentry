@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -10,10 +11,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -24,6 +30,22 @@ function Wrapper({children}: {children: ReactNode}) {
       {children}
     </LogsQueryParamsProvider>
   );
+}
+
+function makeValidationBody(fields: EventValidationData['field']): EventValidationData {
+  return {
+    dataset: [],
+    environment: [],
+    field: fields,
+    orderby: [],
+    projects: [],
+    query: {
+      error: null,
+      fields: [],
+      valid: true,
+    },
+    valid: fields.every(field => field.valid),
+  };
 }
 
 describe('LogsToolbar', () => {
@@ -63,6 +85,10 @@ describe('LogsToolbar', () => {
           attributeSource: {source_type: 'custom'},
         },
       ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: makeValidationBody([]),
     });
   });
 
@@ -341,6 +367,219 @@ describe('LogsToolbar', () => {
 
       expect(mode).toEqual(Mode.SAMPLES);
       expect(within(section).queryByLabelText('Clear Group By')).not.toBeInTheDocument();
+    });
+
+    it('uses the validated field type for a selected group by', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        body: makeValidationBody([
+          {
+            attrType: 'number',
+            error: null,
+            name: 'custom.measurement',
+            valid: true,
+          },
+        ]),
+      });
+
+      render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_AGGREGATE_FIELD_KEY]: [
+                JSON.stringify({groupBy: 'custom.measurement'}),
+                JSON.stringify({yAxes: ['count(message)']}),
+              ],
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-group-by');
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(
+        await within(editorColumn).findByRole('button', {name: 'custom.measurement'})
+      );
+
+      const option = await within(section).findByRole('option', {
+        name: 'custom.measurement',
+      });
+      await waitFor(() => expect(option).toHaveTextContent('number'));
+    });
+
+    it('does not render an unvalidated selected group by while validation loads', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        asyncDelay: 100000,
+        body: makeValidationBody([
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ]),
+      });
+
+      render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_AGGREGATE_FIELD_KEY]: [
+                JSON.stringify({groupBy: 'invalid.attribute'}),
+                JSON.stringify({yAxes: ['count(message)']}),
+              ],
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-group-by');
+      await waitFor(() =>
+        expect(
+          within(section).queryByRole('button', {name: 'invalid.attribute'})
+        ).not.toBeInTheDocument()
+      );
+      await waitFor(() =>
+        expect(
+          within(section).getAllByRole('button', {name: '—'}).length
+        ).toBeGreaterThan(0)
+      );
+    });
+
+    it('does not remove selected group bys using placeholder validation data', async () => {
+      const delayedValidateMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        asyncDelay: 100000,
+        body: makeValidationBody([
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ]),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        match: [
+          (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
+        ],
+        body: makeValidationBody([
+          {
+            attrType: 'string',
+            error: null,
+            name: 'valid.first',
+            valid: true,
+          },
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ]),
+      });
+
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_AGGREGATE_FIELD_KEY]: [
+                JSON.stringify({groupBy: 'valid.first'}),
+                JSON.stringify({yAxes: ['count(message)']}),
+              ],
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-group-by');
+      await within(section).findAllByRole('button', {name: 'valid.first'});
+
+      const nextParams = new URLSearchParams();
+      nextParams.append(
+        LOGS_AGGREGATE_FIELD_KEY,
+        JSON.stringify({groupBy: 'invalid.attribute'})
+      );
+      nextParams.append(
+        LOGS_AGGREGATE_FIELD_KEY,
+        JSON.stringify({yAxes: ['count(message)']})
+      );
+      act(() => {
+        router.navigate(
+          `/organizations/${organization.slug}/explore/logs/?${nextParams}`
+        );
+      });
+
+      await waitFor(() => expect(delayedValidateMock).toHaveBeenCalled());
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: 'invalid.attribute'}),
+        JSON.stringify({yAxes: ['count(message)']}),
+      ]);
+    });
+
+    it('removes invalid selected group bys and preserves empty values', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/validate/`,
+        body: makeValidationBody([
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+          {
+            attrType: 'string',
+            error: null,
+            name: 'severity',
+            valid: true,
+          },
+        ]),
+      });
+
+      let groupBys: readonly string[] = [];
+      function Component() {
+        groupBys = useQueryParamsGroupBys();
+        return <LogsToolbar />;
+      }
+
+      const {router} = render(<Component />, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_AGGREGATE_FIELD_KEY]: [
+                JSON.stringify({groupBy: 'invalid.attribute'}),
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({groupBy: 'severity'}),
+                JSON.stringify({yAxes: ['count(message)']}),
+              ],
+            },
+          },
+        },
+      });
+
+      await waitFor(() => expect(groupBys).toEqual(['', 'severity']));
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: ''}),
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)']}),
+      ]);
+      expect(
+        screen.queryByRole('button', {name: 'invalid.attribute'})
+      ).not.toBeInTheDocument();
     });
   });
 

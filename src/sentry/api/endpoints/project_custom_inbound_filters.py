@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -17,15 +18,24 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.custominboundfilter import (
-    PRIMARY_CONDITION_TYPES,
+    DATA_TYPE_BY_CONDITION_TYPE,
     CustomInboundFilter,
     CustomInboundFilterConditionType,
+    CustomInboundFilterDataType,
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
+
+
+# Ingestion feature an organization needs before a filter can target a data type.
+# Errors need none.
+_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
+    CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
+    CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
+}
 
 
 class CustomInboundFilterCondition(TypedDict):
@@ -73,26 +83,27 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         organization = self.context["project"].organization
         request = self.context["request"]
-        condition_types = [condition["type"] for condition in conditions]
+        condition_types = {condition["type"] for condition in conditions}
 
-        primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
-        if CustomInboundFilterConditionType.LOG_MESSAGE in condition_types and not features.has(
-            "organizations:ourlogs-ingestion", organization, actor=request.user
-        ):
+        data_types = {
+            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
+            for condition_type in condition_types
+            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
+        }
+        if len(data_types) > 1:
             raise serializers.ValidationError(
-                "Log message filters are not enabled for this organization."
+                "A filter matches one data type, so error, log, and metric conditions "
+                "cannot be combined."
             )
 
-        if CustomInboundFilterConditionType.METRIC_NAME in condition_types and not features.has(
-            "organizations:tracemetrics-ingestion", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Metric name filters are not enabled for this organization."
-            )
-        if len(primary_condition_types) > 1:
-            raise serializers.ValidationError(
-                "Only one of error_message, log_message, or metric_name can be used in a filter."
-            )
+        for data_type in data_types:
+            required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(data_type)
+            if required_feature and not features.has(
+                required_feature, organization, actor=request.user
+            ):
+                raise serializers.ValidationError(
+                    f"{data_type.capitalize()} filters are not enabled for this organization."
+                )
 
         return conditions
 
