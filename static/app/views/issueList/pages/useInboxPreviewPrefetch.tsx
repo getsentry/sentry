@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -35,6 +35,10 @@ export function useInboxPreviewPrefetch(groupId: string) {
       clearTimeout(timeoutRef.current);
     },
   });
+
+  // Unmounting does not run onHoverEnd, so without this a card that unmounts
+  // while hovered still fires its prefetch.
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
 
   return hoverProps;
 }
