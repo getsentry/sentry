@@ -330,7 +330,7 @@ def test_synchronize_entry_populates_sync_chain() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1", None, None]]
+    assert doc["sync_chain"] == [["head1", "base1", None, None, "d1"]]
 
 
 def test_open_entry_populates_dedicated_open_head() -> None:
@@ -377,9 +377,29 @@ def test_sync_chain_dedupes_redelivery_but_retains_repeated_sha() -> None:
         before_sha="base1",
     )
     assert doc["sync_chain"] == [
-        ["head1", "base1", None, None],
-        ["head1", "base1", None, None],
+        ["head1", "base1", None, None, "d1"],
+        ["head1", "base1", None, None, "d2"],
     ]
+
+
+def test_sync_chain_dedupes_redelivery_past_the_events_cap() -> None:
+    # Past the events cap no entry — and so no webhook_id — is retained, leaving the
+    # entry-level dedup blind. The chain outlives the cap, so it must not: a
+    # redelivered synchronize is one push, not two head observations.
+    doc = new_document()
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(MAX_EVENTS):
+            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
+        for _ in range(2):
+            _entry(
+                doc,
+                event_type=PullRequestActivityType.SYNCHRONIZED,
+                webhook_id="sync-redelivered",
+                after_sha="head-final",
+                before_sha="base-final",
+            )
+
+    assert doc["sync_chain"] == [["head-final", "base-final", None, None, "sync-redelivered"]]
 
 
 def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
@@ -402,7 +422,7 @@ def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
     assert doc["events_dropped"] == 1
     assert len(doc["events"]) == MAX_EVENTS
     # ...but its before/after link survived for the chain walk.
-    assert doc["sync_chain"] == [["head-final", "base-final", None, None]]
+    assert doc["sync_chain"] == [["head-final", "base-final", None, None, "sync-final"]]
 
 
 def test_sync_chain_evicts_oldest_past_cap() -> None:
@@ -413,11 +433,14 @@ def test_sync_chain_evicts_oldest_past_cap() -> None:
         [f"sha{i:04d}", f"sha{i - 1:04d}" if i else None] for i in range(MAX_SYNC_CHAIN)
     ]
     with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
-        _fold_sync_chain(doc, {"after_sha": "sha-new", "before_sha": "sha-prev"})
+        _fold_sync_chain(
+            doc, {"after_sha": "sha-new", "before_sha": "sha-prev"}, webhook_id="d-new"
+        )
     chain = doc["sync_chain"]
     assert len(chain) == MAX_SYNC_CHAIN  # stays at the cap
     assert ["sha0000", None] not in chain  # oldest synchronize link evicted
-    assert chain[-1] == ["sha-new", "sha-prev", None, None]  # newest link retained
+    # newest link retained
+    assert chain[-1] == ["sha-new", "sha-prev", None, None, "d-new"]
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped")
     assert mock_logger.warning.call_count == 1
 
@@ -453,7 +476,7 @@ def test_synchronize_folds_into_pre_sync_chain_document() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1", None, None]]
+    assert doc["sync_chain"] == [["head1", "base1", None, None, "d1"]]
 
 
 # --- comments: participants only ------------------------------------------
@@ -1552,7 +1575,7 @@ def test_opening_head_is_stored_separately_from_sync_chain() -> None:
         "sender_login": "alice",
         "sender_type": "User",
     }
-    assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot"]]
+    assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot", "s1"]]
 
 
 def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:

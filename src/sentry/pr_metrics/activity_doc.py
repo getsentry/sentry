@@ -127,12 +127,16 @@ class ActivityDoc(TypedDict):
     # The head and sender from the pull request's opening event. Legacy documents
     # written before this field existed simply omit it.
     open_head: OpenHead | None
-    # A list of ``[after_sha, before_sha_or_null, sender_login, sender_type]`` entries
-    # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
-    # preserve object key order, and eviction at the cap must drop the OLDEST link,
-    # which needs insertion order. jsonb preserves array order, so a list keeps
-    # eviction correct. Entries written before the sender slots existed have
-    # length 2 and read as an unknown pusher.
+    # A list of ``[after_sha, before_sha_or_null, sender_login, sender_type,
+    # webhook_id]`` entries in arrival order, NOT an object keyed by after_sha:
+    # Postgres jsonb does not preserve object key order, and eviction at the cap must
+    # drop the OLDEST link, which needs insertion order. jsonb preserves array order,
+    # so a list keeps eviction correct. Slots were added over time and older entries
+    # are never backfilled, so one chain can hold several widths at once: entries
+    # written before the sender slots have length 2 and read as an unknown pusher,
+    # and anything shorter than 5 predates the delivery-id slot and dedupes against
+    # nothing (see :func:`_fold_sync_chain`). Every reader therefore guards on
+    # ``len(pair)`` rather than assuming a fixed width.
     sync_chain: list[list[str | None]]
 
 
@@ -285,6 +289,9 @@ def _apply_entry(
     capped event can't be deduped and increments ``counts`` a second time. Retaining
     the dropped ids would reintroduce exactly the unbounded per-event growth the cap
     exists to stop, so the rare over-count on a 500+-entry PR is accepted, not fixed.
+    ``sync_chain`` is deliberately outside that gap: it survives the cap, so it
+    carries its own copy of the delivery id and dedupes on it (see
+    :func:`_fold_sync_chain`) rather than inheriting this one's blind spot.
     """
     if webhook_id and _is_duplicate(doc, webhook_id):
         return
@@ -292,7 +299,7 @@ def _apply_entry(
     if event_type == PullRequestActivityType.OPENED:
         _fold_open_head(doc, payload)
     elif event_type == PullRequestActivityType.SYNCHRONIZED:
-        _fold_sync_chain(doc, payload)
+        _fold_sync_chain(doc, payload, webhook_id=webhook_id)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -336,7 +343,9 @@ def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     }
 
 
-def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
+def _fold_sync_chain(
+    doc: ActivityDoc, payload: Mapping[str, Any], *, webhook_id: str | None
+) -> None:
     """Record a synchronize's ``before_sha`` → ``after_sha`` link in ``sync_chain``.
 
     A reader chain-follows these links backward from the PR's current head to
@@ -344,18 +353,36 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     independent of the events cap: the newest links — the ones the head-anchored
     walk starts from — must survive even when the synchronize entry is dropped from
     ``events`` (an auto-rebase bot is exactly the synchronize-heavy pathology that
-    fills the cap). Exact webhook redeliveries are deduplicated by ``webhook_id``
-    before this function. Distinct synchronize events with the same ``after_sha``
-    are intentionally retained as separate head observations, such as when the head
+    fills the cap). Distinct synchronize events with the same ``after_sha`` are
+    intentionally retained as separate head observations, such as when the head
     returns to a prior SHA. At the cap the oldest pair is evicted (logged + metered,
     like every cap in this module). ``setdefault`` because a stored document written
     by a build predating this field lacks the key; the fold creates it in place.
+
+    Because repeated SHAs are legitimate, redelivery is caught by delivery id alone —
+    and the chain dedupes on its OWN stored ``webhook_id`` rather than relying on the
+    caller's ``events`` scan, which stops catching anything once the events cap is
+    reached and stored ids stop accruing. That is precisely the regime the chain is
+    built to outlive, so a redelivered synchronize past the cap would otherwise append
+    a second link for a push that happened once: a phantom head observation in
+    ``ci_head_results_from_doc`` and a wasted slot against ``MAX_SYNC_CHAIN``, which
+    pulls the commit-walk horizon in.
+
+    The dedup only covers links that carry an id, so a document open across the
+    deploy that added the slot keeps a blind prefix: a synchronize stored before the
+    deploy and redelivered after it matches nothing here. Below the events cap the
+    entry-level dedup still catches it (the pre-deploy entry kept its ``webhook_id``
+    in ``events``), so the exposure is a PR already at ``MAX_EVENTS`` when the deploy
+    lands, and it heals as soon as the next push writes a link with an id.
     """
     after = payload.get("after_sha") or ""
     if not after:
         return
 
     chain = doc.setdefault("sync_chain", [])
+    if webhook_id and any(len(pair) > 4 and pair[4] == webhook_id for pair in chain):
+        return
+
     if len(chain) >= MAX_SYNC_CHAIN:
         chain.pop(0)
         logger.warning(
@@ -370,6 +397,7 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             payload.get("before_sha") or None,
             payload.get("sender_login") or None,
             payload.get("sender_type") or None,
+            webhook_id or None,
         ]
     )
 
