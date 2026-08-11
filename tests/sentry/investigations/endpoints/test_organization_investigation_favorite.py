@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.investigations.models import (
-    InvestigationFavoriteUser,
-)
+from sentry.investigations.models import InvestigationFavoriteUser
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 

@@ -17,10 +17,6 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
-            kwargs={"organization_id_or_slug": self.organization.slug},
-        )
 
     def test_duplicate_copies_notebook_structure_without_collaboration_or_execution(self) -> None:
         source = self.create_investigation(

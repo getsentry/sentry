@@ -10,8 +10,8 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
-    accessible_project_ids,
     require_authenticated_user,
+    service_error,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
 from sentry.investigations.models import Investigation
@@ -28,13 +28,19 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
         viewer_id = require_authenticated_user(request)
-        duplicate = duplicate_investigation(investigation=investigation, user_id=viewer_id)
+        try:
+            duplicate = duplicate_investigation(investigation=investigation, user_id=viewer_id)
+        except Exception as error:
+            response = service_error(error)
+            if response is not None:
+                return response
+            raise
         return Response(
             serialize(
                 duplicate,
                 request.user,
                 InvestigationDetailsSerializer(
-                    accessible_project_ids=accessible_project_ids(self, request, organization)
+                    accessible_project_ids=request.access.accessible_project_ids
                 ),
             ),
             status=status.HTTP_201_CREATED,
