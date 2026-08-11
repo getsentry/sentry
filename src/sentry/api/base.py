@@ -46,6 +46,7 @@ from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestReso
 from sentry.middleware import is_frontend_request
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.audit import create_audit_entry
@@ -280,6 +281,38 @@ class Endpoint(APIView):
         the appropriate exception according to parent DRF function.
         """
         required_scopes = getattr(request, INSUFFICIENT_SCOPE_ATTR, None)
+
+        # TODO(jstanley): Temporary logging to explain agent-token 401s. A denial becomes a
+        # 403 insufficient_scope challenge only when required_scopes is set; otherwise DRF
+        # downgrades it to a bare 401 whenever no authenticator claimed the request. Since
+        # the write-approval flow keys on the 403, the downgrade silently forecloses it.
+        # Remove once the auth issue is resolved.
+        #
+        # Scoped to agent-authenticated requests, and free of request-derived strings.
+        # Every permission denial in the product passes through here, so logging them all
+        # would put a line carrying the org and project slugs -- `request.path` -- on
+        # ordinary customer traffic, for a question only agent tokens raise. The endpoint
+        # class names the route without naming the customer.
+        auth = getattr(request, "auth", None)
+        if agent_token.is_agent_auth(auth):
+            logger.warning(
+                "api.permission_denied",
+                extra={
+                    "endpoint": type(self).__name__,
+                    "method": request.method,
+                    "required_scopes": sorted(required_scopes) if required_scopes else None,
+                    "auth_kind": getattr(auth, "kind", None),
+                    "auth_scopes": sorted(getattr(auth, "scopes", None) or []),
+                    "successful_authenticator": (
+                        type(request.successful_authenticator).__name__
+                        if request.successful_authenticator
+                        else None
+                    ),
+                    "user_authenticated": request.user.is_authenticated,
+                    "permission_classes": [type(p).__name__ for p in self.get_permissions()],
+                },
+            )
+
         if required_scopes:
             # A token was denied for insufficient scope; surface the RFC 6750 challenge.
             raise InsufficientScope(required_scopes)

@@ -53,21 +53,14 @@ const inputStyles = ({
   trailingWidth,
   size = 'md',
   theme,
-}: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
-  ${leadingWidth &&
-  css`
-    padding-left: calc(
-      ${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px
-    );
-  `}
-
-  ${trailingWidth &&
-  css`
-    padding-right: calc(
-      ${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px
-    );
-  `}
-`;
+}: InputStyleProps & {theme: Theme}): StrictCSSObject => ({
+  ...(leadingWidth && {
+    paddingLeft: `calc(${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px)`,
+  }),
+  ...(trailingWidth && {
+    paddingRight: `calc(${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px)`,
+  }),
+});
 
 const StyledInput = styled(CoreInput)<InputStyleProps>`
   ${inputStyles}

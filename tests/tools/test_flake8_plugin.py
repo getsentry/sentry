@@ -413,3 +413,40 @@ logger.info("m", extra=other)
         "logging extra= raises KeyError at runtime",
     ]
     assert _run(src) == expected
+
+
+def test_S020() -> None:
+    from tools.flake8_plugin import S020_msg
+
+    eap_filename = "tests/snuba/api/endpoints/test_organization_events_x.py"
+    src = """\
+class OrganizationEventsEndpointTestBase:
+    def client_get(self):
+        return self.client.get("/ok")
+
+
+class MyTest(OrganizationEventsEndpointTestBase):
+    def test_bad(self):
+        return self.client.get("/bad")
+
+    def _do_request(self):
+        return self.client.get("/also-bad")
+
+    def client_get(self):
+        return self.client.get("/allowed")
+"""
+    assert _run(src, filename=eap_filename) == [
+        f"t.py:8:15: {S020_msg}",
+        f"t.py:11:15: {S020_msg}",
+    ]
+
+    # Non-EAP suites / other paths stay quiet.
+    assert _run(src, filename="tests/sentry/api/test_something.py") == []
+
+    # Unrelated classes in an EAP path file are ignored.
+    other = """\
+class OtherTest:
+    def test_ok(self):
+        return self.client.get("/ok")
+"""
+    assert _run(other, filename=eap_filename) == []

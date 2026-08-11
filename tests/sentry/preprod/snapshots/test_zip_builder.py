@@ -4,6 +4,7 @@ import zipfile
 from io import BytesIO
 from unittest.mock import MagicMock
 
+import orjson
 import pytest
 
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
@@ -33,22 +34,40 @@ def _session(data_by_key: dict[str, bytes]) -> MagicMock:
 
 
 def test_build_snapshot_zip_writes_all_images_and_dedupes() -> None:
-    manifest = SnapshotManifest(
-        images={
-            "a.png": _meta("hash_a"),
-            "b.png": _meta("hash_b"),
-            "c.png": _meta("hash_a"),  # shares hash_a -> dedup fetch, two filenames
+    manifest_bytes = orjson.dumps(
+        {
+            "images": {
+                "a.png": {
+                    "content_hash": "hash_a",
+                    "width": 10,
+                    "height": 10,
+                    "source_location": "tests/a.py",
+                },
+                "b.png": {"content_hash": "hash_b", "width": 10, "height": 10},
+                "c.png": {"content_hash": "hash_a", "width": 10, "height": 10},
+            },
+            "custom_top_level": "preserved",
         }
     )
+    manifest = SnapshotManifest(**orjson.loads(manifest_bytes))
     key_prefix = "1/2"
     session = _session({"1/2/hash_a": b"AAA", "1/2/hash_b": b"BBB"})
 
     out = BytesIO()
-    build_snapshot_zip(manifest, session, key_prefix, out, artifact_id=99)
+    build_snapshot_zip(
+        manifest,
+        session,
+        key_prefix,
+        out,
+        artifact_id=99,
+        manifest_bytes=manifest_bytes,
+    )
 
     out.seek(0)
     with zipfile.ZipFile(out) as zf:
-        assert sorted(zf.namelist()) == ["a.png", "b.png", "c.png"]
+        assert sorted(zf.namelist()) == ["a.png", "b.png", "c.png", "manifest.json"]
+        assert zf.namelist()[-1] == "manifest.json"
+        assert zf.read("manifest.json") == manifest_bytes
         assert zf.read("a.png") == b"AAA"
         assert zf.read("c.png") == b"AAA"
         assert zf.read("b.png") == b"BBB"
@@ -58,14 +77,23 @@ def test_build_snapshot_zip_writes_all_images_and_dedupes() -> None:
 
 def test_build_snapshot_zip_empty_manifest() -> None:
     manifest = SnapshotManifest(images={})
+    manifest_bytes = b'{"images":{}}'
     session = _session({})
 
     out = BytesIO()
-    build_snapshot_zip(manifest, session, "1/2", out, artifact_id=99)
+    build_snapshot_zip(
+        manifest,
+        session,
+        "1/2",
+        out,
+        artifact_id=99,
+        manifest_bytes=manifest_bytes,
+    )
 
     out.seek(0)
     with zipfile.ZipFile(out) as zf:
-        assert zf.namelist() == []
+        assert zf.namelist() == ["manifest.json"]
+        assert zf.read("manifest.json") == manifest_bytes
     assert session.get.call_count == 0
 
 
@@ -75,6 +103,20 @@ def test_build_snapshot_zip_raises_on_fetch_failure() -> None:
 
     with pytest.raises(SnapshotZipBuildError):
         build_snapshot_zip(manifest, session, "1/2", BytesIO(), artifact_id=99)
+
+
+def test_build_snapshot_zip_rejects_manifest_filename_collision() -> None:
+    manifest = SnapshotManifest(images={"manifest.json": _meta("hash_a")})
+
+    with pytest.raises(SnapshotZipBuildError, match="filename conflicts"):
+        build_snapshot_zip(
+            manifest,
+            _session({}),
+            "1/2",
+            BytesIO(),
+            artifact_id=99,
+            manifest_bytes=b'{"images":{}}',
+        )
 
 
 def test_archive_object_key_is_deterministic() -> None:

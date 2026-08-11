@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';

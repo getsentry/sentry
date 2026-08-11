@@ -143,18 +143,14 @@ export function TeamIssuesBreakdown({
   const allSeries = Object.keys(allReviewedByDay)
     // Hide projects with no results when there are other projects with results
     .filter(projectId => (hasResults ? projectTotals[projectId]!.total !== 0 : true))
-    .map(
-      (projectId, idx): BarChartSeries => ({
-        seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-        data: sortSeriesByDay(
-          convertDayValueObjectToSeries(allReviewedByDay[projectId]!)
-        ),
-        animationDuration: 500,
-        animationDelay: idx * 500,
-        silent: true,
-        barCategoryGap: '5%',
-      })
-    );
+    .map((projectId, idx): BarChartSeries => ({
+      seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+      data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId]!)),
+      animationDuration: 500,
+      animationDelay: idx * 500,
+      silent: true,
+      barCategoryGap: '5%',
+    }));
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;

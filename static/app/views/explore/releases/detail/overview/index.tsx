@@ -29,6 +29,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -63,11 +64,10 @@ import {ReleaseIssues} from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 
-export enum TransactionsListOption {
+enum TransactionsListOption {
   FAILURE_COUNT = 'failure_count',
   TPM = 'tpm',
   SLOW = 'slow',
-  SLOW_LCP = 'slow_lcp',
   REGRESSION = 'regression',
   IMPROVEMENT = 'improved',
 }
@@ -174,7 +174,7 @@ function ReleaseOverview() {
       id: undefined,
       version: 2,
       name: `Release ${formatVersion(version)}`,
-      query: `event.type:transaction ${searchReleaseVersion(version)}`,
+      query: `is_transaction:true ${searchReleaseVersion(version)}`,
       fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
       orderby: '-failure_count',
       range: statsPeriod || undefined,
@@ -182,25 +182,19 @@ function ReleaseOverview() {
       projects: [projectId],
       start: start ? getUtcDateString(start) : undefined,
       end: end ? getUtcDateString(end) : undefined,
+      dataset: DiscoverDatasets.SPANS,
     };
 
     switch (selectedSort.value) {
-      case TransactionsListOption.SLOW_LCP:
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          query: `event.type:transaction release:${version} epm():>0.01 has:measurements.lcp`,
-          fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
-          orderby: 'p75_measurements_lcp',
-        });
       case TransactionsListOption.SLOW:
         return EventView.fromSavedQuery({
           ...baseQuery,
-          query: `event.type:transaction release:${version} epm():>0.01`,
+          query: `is_transaction:true release:${version} epm():>0.01`,
         });
       case TransactionsListOption.FAILURE_COUNT:
         return EventView.fromSavedQuery({
           ...baseQuery,
-          query: `event.type:transaction release:${version} failure_count():>0`,
+          query: `is_transaction:true release:${version} failure_count():>0`,
         });
       default:
         return EventView.fromSavedQuery(baseQuery);
@@ -276,10 +270,7 @@ function ReleaseOverview() {
   const {environments} = selection;
   const {selectedSort, sortOptions} = getTransactionsListSort(location);
   const releaseEventView = getReleaseEventView(project.id, selectedSort);
-  const titles =
-    selectedSort.value === TransactionsListOption.SLOW_LCP
-      ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
-      : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
+  const titles = [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
   const releaseTrendView = getReleaseTrendView(project.id, releaseMeta.released);
 
   const generateLink = {
@@ -522,11 +513,6 @@ function getDropdownOptions(): DropdownOption[] {
       sort: {kind: 'desc', field: 'p50'},
       value: TransactionsListOption.SLOW,
       label: t('Slow Transactions'),
-    },
-    {
-      sort: {kind: 'desc', field: 'p75_measurements_lcp'},
-      value: TransactionsListOption.SLOW_LCP,
-      label: t('Slow LCP'),
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},

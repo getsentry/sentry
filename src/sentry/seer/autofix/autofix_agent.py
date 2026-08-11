@@ -8,7 +8,6 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sentry_sdk
-from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -35,6 +34,7 @@ from sentry.seer.autofix.artifact_schemas import (
     RootCauseArtifact,
     SolutionArtifact,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
@@ -48,12 +48,14 @@ from sentry.seer.autofix.prompts import (
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    is_free_cohort_org,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
     process_autofix_updates,
+    record_seer_activity,
 )
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
@@ -173,6 +175,7 @@ def build_step_prompt(
     group: Group,
     user_context: str | None = None,
     run_state: SeerRunState | None = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     """
     Build the prompt for a step using issue details.
@@ -181,6 +184,7 @@ def build_step_prompt(
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
         run_state: The current run state, used to surface PR links for iteration
+        enable_bash_tools: Whether bash tools are available to the run
 
     Returns:
         Formatted prompt string
@@ -192,6 +196,7 @@ def build_step_prompt(
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
         run_state=run_state,
+        enable_bash_tools=enable_bash_tools,
     )
 
     parts = [prompt]
@@ -234,7 +239,6 @@ def _handle_step_started_events(
     run_id: int,
     sentry_run_uuid: str,
     referrer: AutofixReferrer,
-    activity_datetime: str,
     iteration_index: int | None = None,
     actor_user_id: int | None = None,
 ) -> None:
@@ -266,17 +270,24 @@ def _handle_step_started_events(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
+            activity_attribution: SeerActivityAttribution | None = None
             task_kwargs: dict[str, Any] = {
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
-                "activity_datetime": activity_datetime,
+                "activity_already_recorded": True,
             }
             if step == AutofixStep.PR_ITERATION:
-                activity_attribution: SeerActivityAttribution = {"referrer": referrer}
+                activity_attribution = {"referrer": referrer}
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
                 task_kwargs["activity_attribution"] = activity_attribution
+            record_seer_activity(
+                group=group,
+                event_type=sentry_app_event_type,
+                event_payload=payload,
+                activity_attribution=activity_attribution,
+            )
             process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
@@ -494,6 +505,7 @@ def trigger_autofix_agent(
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
+    commit_author: SeerCommitAuthor | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -505,7 +517,9 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
     """
     # check billing quota for triggering a new autofix run
-    if run_id is None:
+    # Free cohort orgs have no Subscription so check_seer_quota returns False.
+    # Bypass the check for them — they get autofix without billing.
+    if run_id is None and not is_free_cohort_org(group.organization):
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
             data_category=DataCategory.SEER_AUTOFIX,
@@ -547,7 +561,6 @@ def trigger_autofix_agent(
             feature_run_id,
             str(feature_run.uuid),
             referrer,
-            activity_datetime=timezone.now().isoformat(),
         )
         return feature_run
 
@@ -586,7 +599,13 @@ def trigger_autofix_agent(
         else:
             iteration_index = get_latest_iteration_index(run_state) + 1
 
-    prompt = build_step_prompt(step, group, user_context, run_state=run_state)
+    prompt = build_step_prompt(
+        step,
+        group,
+        user_context,
+        run_state=run_state,
+        enable_bash_tools=client.enable_bash_tools,
+    )
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
@@ -596,6 +615,10 @@ def trigger_autofix_agent(
     feedback_items = list(feedback or [])
     if step == AutofixStep.PR_ITERATION and feedback_items:
         prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
+    # Read back in the completion hook, which pushes long after this request.
+    if is_iteration_step and commit_author is not None:
+        prompt_metadata["commit_author"] = json.dumps(commit_author)
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
@@ -639,15 +662,12 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
-    activity_datetime = timezone.now().isoformat()
-
     _handle_step_started_events(
         group,
         step,
         run_id,
         str(run.uuid),
         referrer,
-        activity_datetime,
         iteration_index,
         actor_user_id,
     )
@@ -902,6 +922,7 @@ def trigger_push_changes(
     state: SeerRunState | None = None,
     repo_name: str | None = None,
     verify_content: bool = False,
+    author: SeerCommitAuthor | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -933,6 +954,7 @@ def trigger_push_changes(
         ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
+        author=author,
     )
 
     metrics.incr(

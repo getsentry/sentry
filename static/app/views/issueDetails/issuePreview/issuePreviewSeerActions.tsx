@@ -231,7 +231,9 @@ function IssuePreviewSeerButton({
   }
 
   const analyticsParams = {
+    action: action.kind,
     group_id: group.id,
+    progress: group.derivedData?.progress,
     referrer: 'issue_inbox',
   };
 

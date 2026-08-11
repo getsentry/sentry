@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
@@ -11,18 +12,16 @@ import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issu
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 
 function InboxCountBadge() {
-  const count = useInboxIssueCount();
+  const {data: count} = useInboxIssueCount();
 
-  if (!count) {
-    return null;
-  }
-
-  return <IssueCount count={count} />;
+  return count === undefined ? null : <IssueCount count={count} />;
 }
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -38,7 +37,7 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('issue-stream-progress-ui') && (
+            {hasInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/inbox/`}
@@ -46,8 +45,8 @@ export function IssuesSecondaryNavigation() {
                   analyticsItemName="issues_inbox"
                   trailingItems={
                     <Fragment>
-                      <FeatureBadge type="experimental" />
                       <InboxCountBadge />
+                      <FeatureBadge type="new" />
                     </Fragment>
                   }
                 >
@@ -88,20 +87,24 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <SecondaryNavigation.Separator />
-        <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
-          <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/autofix/recent/`}
-                analyticsItemName="issues_autofix"
-                end
-              >
-                {t('Recently Run')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          </SecondaryNavigation.List>
-        </SecondaryNavigation.Section>
+        {!hasProgressUi && (
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="issues-autofix" title={t('Autofix')}>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/autofix/recent/`}
+                    analyticsItemName="issues_autofix"
+                    end
+                  >
+                    {t('Recently Run')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
+        )}
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
