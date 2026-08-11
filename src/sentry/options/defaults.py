@@ -1318,7 +1318,7 @@ register(
 register(
     "issues.auto_ongoing_issues.child_task_spread_seconds",
     type=Int,
-    default=120,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
