@@ -144,6 +144,24 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 503
         assert "Service temporarily unavailable" in response.data["detail"]
 
+    def test_short_event_id_returns_actionable_400(self) -> None:
+        organization = self.create_organization()
+        path = self._get_path("get_event_details")
+        data: dict[str, Any] = {
+            "args": {"organization_id": organization.id, "event_id": "deadbeef"},
+            "meta": {},
+        }
+
+        response = self.client.post(
+            path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == (
+            "event_id must be the full 32-character hexadecimal event ID. "
+            "Use the complete event ID from issue details, not its 8-character prefix."
+        )
+
     def test_generic_exceptions_return_500(self) -> None:
         """Test that generic exceptions return 500 instead of 400."""
         path = self._get_path("get_organization_slug")
