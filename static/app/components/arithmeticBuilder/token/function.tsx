@@ -696,13 +696,12 @@ function useAttributeItems({
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: fit-content;
   min-height: 24px;
-  padding: 1px 0;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
   max-width: 100%;
