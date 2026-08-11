@@ -1750,12 +1750,16 @@ class TestWebhookRequests(TestCase):
         assert first_request["project_id"] == 1
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    def test_uses_app_specific_timeout_override(self, safe_urlopen: MagicMock) -> None:
+    @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
+    def test_uses_app_specific_timeout_override(
+        self, timeout_alarm: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         with override_options(
             {
-                "sentry-apps.webhook.timeout.sec": 1.0,
-                "sentry-apps.override.webhook.timeout.sec": 3.0,
-                "sentry-apps.override.app_slugs.webhook.timeout": [self.sentry_app.slug],
+                "sentry-apps.override.app_slugs.webhook.timeout.sec": {self.sentry_app.slug: 3.0},
+                "sentry-apps.override.app_slugs.webhook.hard-timeout.sec": {
+                    self.sentry_app.slug: 8.0
+                },
             }
         ):
             send_webhooks(
@@ -1766,6 +1770,7 @@ class TestWebhookRequests(TestCase):
             )
 
         assert safe_urlopen.call_args.kwargs["timeout"] == 3.0
+        timeout_alarm.assert_called_once_with(8.0, ANY)
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)

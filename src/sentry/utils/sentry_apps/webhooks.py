@@ -8,6 +8,7 @@ from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
@@ -220,15 +221,30 @@ def _send_webhook_request(
         app_platform_event.install.sentry_app.slug, None
     )
 
-    # We're using a signal based timeout here because we need to interrupt the blocking
-    # socket.connect() operation. See SENTRY-5HA6 for more context. Here we're hanging at
-    # the socket.connect() call and the timeout we set in safe_urlopen is not being respected.
+    if timeout_override is not None:
+        with sentry_sdk.start_span(op="sentry-app.webhook.overriden_timeout") as span:
+            span.set_tag("app_slug", app_platform_event.install.sentry_app.slug)
+            span.set_tag("timeout_seconds", timeout_override)
+            span.set_tag("hard_timeout_seconds", timeout_seconds)
+
+            # We're using a signal based timeout here because we need to interrupt the blocking
+            # socket.connect() operation. See SENTRY-5HA6 for more context. Here we're hanging at
+            # the socket.connect() call and the timeout we set in safe_urlopen is not being respected.
+            with context_wrapper:
+                return safe_urlopen(
+                    url=url,
+                    data=app_platform_event.body,
+                    headers=app_platform_event.headers,
+                    timeout=timeout_override,
+                )
+
+    # See comment above
     with context_wrapper:
         return safe_urlopen(
             url=url,
             data=app_platform_event.body,
             headers=app_platform_event.headers,
-            timeout=timeout_override or options.get("sentry-apps.webhook.timeout.sec"),
+            timeout=options.get("sentry-apps.webhook.timeout.sec"),
         )
 
 
