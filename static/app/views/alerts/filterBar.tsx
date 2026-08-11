@@ -9,11 +9,11 @@ import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar} from 'sentry/components/searchBar';
+import {TeamFilter} from 'sentry/components/teamFilter';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {TeamFilter} from './list/rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
