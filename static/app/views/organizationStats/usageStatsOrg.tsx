@@ -295,11 +295,7 @@ function ScoreCards({
 }
 
 function ChartContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Container column="1 / -1" data-test-id="usage-stats-chart">
-      {children}
-    </Container>
-  );
+  return <Container column="1 / -1">{children}</Container>;
 }
 
 export interface UsageStatsOrganizationProps {
