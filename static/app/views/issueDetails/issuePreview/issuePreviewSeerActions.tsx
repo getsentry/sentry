@@ -105,7 +105,7 @@ function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
     return {
       ...AUTOFIX_ANALYTICS.view,
       kind: 'link',
-      label: completedPullRequestLink.label,
+      label: t('View PR'),
       href: completedPullRequestLink.url,
       isPullRequest: true,
     };
@@ -130,7 +130,7 @@ function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
     return {
       ...AUTOFIX_ANALYTICS.view,
       kind: 'link',
-      label: resultLink.label,
+      label: defined(resultLink.prNumber) ? t('View PR') : resultLink.label,
       href: resultLink.url,
     };
   }
