@@ -2,6 +2,7 @@ import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'reac
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -23,9 +24,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
@@ -33,6 +36,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {parseActorString} from 'sentry/utils/parseActorString';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -40,6 +44,8 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
@@ -376,7 +382,7 @@ function InboxSection({
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
-        expand: ['derivedData'],
+        expand: ['derivedData', 'owners'],
       },
       staleTime: 0,
     }),
@@ -386,7 +392,10 @@ function InboxSection({
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
-  const {data: members = []} = useMembers();
+  const memberIds = groups.flatMap(group =>
+    group.assignedTo?.type === 'user' ? [group.assignedTo.id] : []
+  );
+  const {data: members = []} = useMembers({ids: memberIds});
   const membersById = new Map(members.map(member => [member.id, member]));
   const hasReportedInitialResult = useRef(false);
   const reportInitialResult = useEffectEvent(() => {
@@ -498,6 +507,47 @@ function InboxSection({
   );
 }
 
+function useIssueSuggestedAssignees(group: Group): Actor[] {
+  const ownerActors = (group.owners ?? [])
+    .map(({owner}) => parseActorString(owner))
+    .filter(owner => owner !== undefined);
+  const ownerUserIds = ownerActors
+    .filter(owner => owner.type === 'user')
+    .map(owner => owner.id);
+  const ownerTeamIds = ownerActors
+    .filter(owner => owner.type === 'team')
+    .map(owner => owner.id);
+  const {data: ownerUsers = []} = useMembers({ids: ownerUserIds});
+  const {teams: matchedTeams} = useTeamsById({ids: ownerTeamIds});
+  const ownerTeams = matchedTeams.filter(team => ownerTeamIds.includes(team.id));
+  const user = useUser();
+  const memberTeamIds = new Set(
+    ownerTeams.filter(team => team.isMember).map(team => team.id)
+  );
+  return orderBy(
+    [
+      ...ownerUsers.map<Actor>(owner => ({
+        id: owner.id,
+        name: owner.name,
+        email: owner.email,
+        type: 'user',
+      })),
+      ...ownerTeams.map<Actor>(team => ({
+        id: team.id,
+        name: team.name,
+        type: 'team',
+      })),
+    ],
+    [
+      // If the current user is in the list, sort it to the top
+      owner => owner.type === 'user' && owner.id === user.id,
+      // Secondarily, sort teams that the current user is a member of to the top
+      owner => owner.type === 'team' && memberTeamIds.has(owner.id),
+    ],
+    ['desc', 'desc']
+  );
+}
+
 function InboxIssueCard({
   assignmentFilter,
   assignedUser,
@@ -518,6 +568,7 @@ function InboxIssueCard({
   const {title} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
+  const suggestedAssignees = useIssueSuggestedAssignees(group);
 
   return (
     <Container position="relative">
@@ -587,6 +638,9 @@ function InboxIssueCard({
                   title={group.assignedTo.name}
                 />
               ))}
+            {!group.assignedTo && suggestedAssignees.length > 0 && (
+              <SuggestedAvatarStack size={18} owners={suggestedAssignees} />
+            )}
           </Stack>
         </Grid>
       </IssueCardLink>
