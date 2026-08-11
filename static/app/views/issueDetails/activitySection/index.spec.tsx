@@ -394,6 +394,10 @@ describe('ActivitySection', () => {
       url: '/organizations/org-slug/teams/',
       body: [team],
     });
+    const memberRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     TeamStore.loadInitialData([team]);
 
     const assignedGroup = GroupFixture({
@@ -423,6 +427,10 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Assigned');
     expect(timeline).toHaveTextContent('#frontend');
     expect(teamRequest).not.toHaveBeenCalled();
+    expect(memberRequest).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {query: `user.id:${team.id}`}})
+    );
   });
 
   it('loads an assigned team missing from the team store', async () => {
@@ -509,7 +517,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('#frontend (deleted)')).toBeInTheDocument();
   });
 
-  it('preserves the assigned user avatar from activity data', async () => {
+  it('hydrates the assigned user avatar from the member list', async () => {
     const assignedUser = UserFixture({
       id: '123',
       name: 'David Cramer',
@@ -518,6 +526,14 @@ describe('ActivitySection', () => {
         avatarUrl: 'https://example.com/avatar.jpg',
         avatarUuid: '123',
       },
+    });
+    const memberRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: assignedUser}],
+    });
+    const teamRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
     });
     const assignedGroup = GroupFixture({
       id: '1347',
@@ -529,7 +545,7 @@ describe('ActivitySection', () => {
           data: {
             assignee: assignedUser.id,
             assigneeType: 'user',
-            user: assignedUser,
+            assigneeName: assignedUser.name,
           },
           user,
         },
@@ -547,6 +563,44 @@ describe('ActivitySection', () => {
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
+    expect(memberRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {query: 'user.id:123'}})
+    );
+    expect(teamRequest).not.toHaveBeenCalled();
+  });
+
+  it('renders the stored name for a deleted user assignment', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'deleted-user-assignment',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'David Cramer',
+            assigneeType: 'user',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('David Cramer (deleted)')).toBeInTheDocument();
   });
 
   it('shows ownership assignment rules in an info tooltip', async () => {
