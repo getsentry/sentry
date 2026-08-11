@@ -11,6 +11,7 @@ from django.urls import reverse
 from responses.matchers import header_matcher
 
 from sentry import options
+from sentry.conf.server import DEAD
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
@@ -251,6 +252,13 @@ class DiscordIntegrationTest(IntegrationTestCase):
             integration=self.integration, organization=self.organization, extra={}
         )
         assert mock_set_application_command.call_count == 0
+
+    def test_dead_credentials_are_missing(self) -> None:
+        with override_settings(SENTRY_DISCORD_BOT_TOKEN=DEAD):
+            assert not self.provider()._credentials_exist()
+
+        with override_settings(SENTRY_DISCORD_CLIENT_SECRET=DEAD):
+            assert not self.provider()._credentials_exist()
 
     @responses.activate
     def test_set_commands_failure(self) -> None:

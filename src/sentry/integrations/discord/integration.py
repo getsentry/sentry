@@ -373,7 +373,13 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def _credentials_exist(self) -> bool:
         has_credentials = all(
-            (self.application_id, self.public_key, self.bot_token, self.client_secret)
+            isinstance(credential, str) and credential
+            for credential in (
+                self.application_id,
+                self.public_key,
+                self.bot_token,
+                self.client_secret,
+            )
         )
         if not has_credentials:
             logger.warning(
