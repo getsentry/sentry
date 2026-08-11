@@ -2610,18 +2610,20 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Sets the timeout override for webhooks
+# Which app slugs to override the webhook timeout and their timeout value
+# Example: {"my-test-app": 3.0}
 register(
-    "sentry-apps.override.webhook.timeout.sec",
-    type=Float,
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "sentry-apps.override.app_slugs.webhook.timeout.sec",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Which app slugs to override the webhook timeout for
+# Which app slugs to override the hard timeout for and their timeout value
+# Example: {"my-test-app": 8.0}
 register(
-    "sentry-apps.override.app_slugs.webhook.timeout",
-    type=Sequence,
-    default=[],
+    "sentry-apps.override.app_slugs.webhook.hard-timeout.sec",
+    type=Dict,
+    default={},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 

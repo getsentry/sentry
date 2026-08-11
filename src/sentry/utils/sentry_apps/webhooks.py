@@ -207,14 +207,18 @@ def _send_webhook_request(
     if SiloMode.get_current_mode() is SiloMode.CONTROL:
         context_wrapper = contextlib.nullcontext()
     else:
-        timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
+        hard_timeout_override = options.get(
+            "sentry-apps.override.app_slugs.webhook.hard-timeout.sec"
+        ).get(app_platform_event.install.sentry_app.slug, None)
+
+        timeout_seconds = hard_timeout_override or options.get(
+            "sentry-apps.webhook.hard-timeout.sec"
+        )
         context_wrapper = timeout_alarm(timeout_seconds, _handle_webhook_timeout)
 
-    timeout_override = None
-    if app_platform_event.install.sentry_app.slug in options.get(
-        "sentry-apps.override.app_slugs.webhook.timeout"
-    ):
-        timeout_override = options.get("sentry-apps.override.webhook.timeout.sec")
+    timeout_override = options.get("sentry-apps.override.app_slugs.webhook.timeout.sec").get(
+        app_platform_event.install.sentry_app.slug, None
+    )
 
     # We're using a signal based timeout here because we need to interrupt the blocking
     # socket.connect() operation. See SENTRY-5HA6 for more context. Here we're hanging at
