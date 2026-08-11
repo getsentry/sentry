@@ -81,10 +81,8 @@ class GithubCheckSuitePullRequestBase(BaseModel):
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
     # Optional so feedback serialized before this field existed still parses. Such
-    # an entry is skipped rather than kept (see `resolve_check_suite_autofix_run`), which
-    # is safe because `Config.extra = "allow"` already round-tripped `base` through
-    # the model that predates this field — GitHub always sends it, so it survived
-    # serialization as an extra and parses into this field on the way back in.
+    # an entry is skipped, which strands nothing: `extra = "allow"` round-tripped
+    # `base` through the model that predates the field, so it parses back in here.
     base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
@@ -220,15 +218,13 @@ def resolve_check_suite_autofix_run(
     ``repository`` below is this suite's repo, not the entry's, and the first
     match wins. Skipping them keeps the own-repo entry from being shadowed.
 
-    An entry carrying no ``base.repo`` at all is skipped on the same rule (see
-    ``is_own_repo_pull_request``). Resolving by global ``pr.id`` could place it,
-    but the control parser drops payloads made only of such entries, so acting on
-    them here would be acting on events this path no longer receives.
+    An entry with no ``base.repo`` is skipped on the same rule: a global ``pr.id``
+    could place it, but the control parser drops payloads made only of those, so
+    this path no longer receives them anyway.
     """
     # `sentry.integrations.github` registers rule actions at import time, and this
-    # module is imported while the SCM stream listeners initialize in
-    # AppConfig.ready — before options init. Deferred for the same reason as
-    # `make_scm` in `confirm_green_check_suite`.
+    # module loads while the SCM stream listeners initialize in AppConfig.ready,
+    # before options init. Deferred like `make_scm` in `confirm_green_check_suite`.
     from sentry.integrations.github.check_payloads import is_own_repo_pull_request
 
     repos = (

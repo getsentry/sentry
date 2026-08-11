@@ -31,10 +31,10 @@ OWN_REPO_ID = 123
 
 
 def own_repo_pr(pr_id: int) -> dict:
-    """A ``pull_requests`` entry as GitHub sends it, based in the suite's own repo.
+    """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
 
-    Entries always carry ``base.repo``, and only own-repo ones are resolved, so a
-    fixture without it is not a payload this path can receive.
+    GitHub always carries ``base.repo``, so a fixture without it is not a payload
+    this path can receive.
     """
     return {"id": pr_id, "base": {"repo": {"id": OWN_REPO_ID}}}
 

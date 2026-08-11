@@ -990,17 +990,11 @@ def _prs_from_check_payload(
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
-    so ``pull_requests`` can include PRs that live in *other* repositories. The
-    common case: a PR opened to merge this repo's default branch into another
-    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
-    matches every default-branch check here — but the PR belongs to that other
-    repo and its ``number`` is scoped to it. Each entry carries its own
-    ``base.repo``, so an entry is only ours to resolve when its base repo is the
-    one this webhook is for. Resolving a foreign entry's number against ``repo``
-    would miss, or — on a number collision — attribute another repo's PR activity
-    to ours, so it is skipped. ``is_own_repo_pull_request`` holds that rule, shared
-    with the other consumers of these payloads.
+    ``pull_requests`` can include PRs based in *other* repositories, and a
+    ``number`` is scoped to its base repo, so resolving a foreign entry against
+    ``repo`` would miss or — on a number collision — attribute another repo's PR
+    activity to ours. ``is_own_repo_pull_request`` holds that rule, shared with the
+    other consumers of these payloads.
 
     Numbers are deduped before resolving each to its stored row; unknown PRs are
     dropped by ``_get_pull_request``.
