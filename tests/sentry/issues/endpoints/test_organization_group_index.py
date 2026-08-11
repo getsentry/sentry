@@ -4170,6 +4170,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
+    def test_rejects_negative_snooze_count(self) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        self.get_error_response(
+            qs_params={"id": group.id},
+            status="ignored",
+            ignoreCount=-1,
+            status_code=400,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert not GroupSnooze.objects.filter(group=group).exists()
+
     def test_snooze_user_count(self) -> None:
         for i in range(10):
             event = self.store_event(
