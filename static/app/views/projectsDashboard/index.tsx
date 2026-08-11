@@ -143,6 +143,7 @@ function Dashboard() {
   const [projectQuery, setProjectQuery] = useState('');
   const [debouncedProjectQuery] = useDebouncedValue(projectQuery, {
     wait: DEFAULT_DEBOUNCE_DURATION,
+    leading: true,
   });
   const {projects, fetching, fetchError} = useProjects();
   const canUserCreateProject = useCanCreateProject();
