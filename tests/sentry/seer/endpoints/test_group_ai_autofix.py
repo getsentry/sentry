@@ -6,6 +6,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import GroupActionActor, TriggerAutofixAction
 from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
+    Artifact,
     CodingAgentState,
     MemoryBlock,
     Message,
@@ -106,6 +107,54 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             ]
         ):
             assert get_flags() == (True, True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_llm_format_adds_formatted_field(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="", metadata=None),
+                    timestamp="2023-07-18T12:00:00Z",
+                    artifacts=[
+                        Artifact(
+                            key="root_cause",
+                            reason="",
+                            data={
+                                "one_line_description": "regex too strict",
+                                "five_whys": ["parse fails"],
+                                "reproduction_steps": ["call crash()"],
+                            },
+                        ),
+                        Artifact(
+                            key="solution",
+                            reason="",
+                            data={
+                                "one_line_summary": "loosen regex",
+                                "steps": [{"title": "Update regex", "description": "allow alnum"}],
+                            },
+                        ),
+                    ],
+                )
+            ],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            response = self.client.get(
+                self._get_url(group.id) + "?llmFormat=markdown", format="json"
+            )
+
+        assert response.status_code == 200, response.data
+        assert response.data["formatted"]["format"] == "markdown"
+        content = response.data["formatted"]["content"]
+        assert "## Root Cause" in content
+        assert "regex too strict" in content
+        assert "## Solution" in content
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_handles_block_with_null_metadata(self, mock_get_explorer_state):
