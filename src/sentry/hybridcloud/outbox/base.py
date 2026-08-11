@@ -25,6 +25,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.outboxes")
 
 
+def reserve_ids(model: type[Model], using: str, count: int) -> list[int]:
+    """Claim `count` values from the model's primary key sequence ahead of insert."""
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            "SELECT nextval(%s) FROM generate_series(1,%s);",
+            [f"{model._meta.db_table}_id_seq", count],
+        )
+        return [i for (i,) in cursor.fetchall()]
+
+
 class CellOutboxProducingModel(Model):
     """
     overrides model save, update, and delete methods such that, within an atomic transaction,
@@ -41,6 +51,11 @@ class CellOutboxProducingModel(Model):
 
     default_flush: bool | None = None
     replication_version: int = 1
+    # Set on subclasses carrying a shadow copy of the primary key through a column
+    # widening. Writing the shadow value as rows are inserted keeps new rows in step,
+    # so a one-off backfill only has to cover rows predating the deploy. The pk is
+    # claimed from the sequence up front so both columns land in the same statement.
+    shadow_id_field: str | None = None
 
     @contextlib.contextmanager
     def prepare_outboxes(
@@ -63,6 +78,15 @@ class CellOutboxProducingModel(Model):
 
     def save(self, *args: Any, **kwds: Any) -> None:
         with self.prepare_outboxes(outbox_before_super=False):
+            if self.shadow_id_field is not None and self.id is None:
+                self.id = reserve_ids(type(self), router.db_for_write(type(self)), 1)[0]
+                setattr(self, self.shadow_id_field, self.id)
+                # The pk was just claimed from the sequence, so the row cannot exist yet.
+                # Without force_insert Django probes with an UPDATE before inserting,
+                # costing a wasted round trip on every create.
+                # Skipped when the caller passed force_insert positionally.
+                if not args:
+                    kwds["force_insert"] = True
             super().save(*args, **kwds)
 
     def update(self, *args: Any, **kwds: Any) -> int:
@@ -97,16 +121,14 @@ class CellOutboxProducingManager(BaseManager[_RM]):
 
         assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models!"
         with outbox_context(transaction.atomic(using=using), flush=False):
-            with connections[using].cursor() as cursor:
-                cursor.execute(
-                    "SELECT nextval(%s) FROM generate_series(1,%s);",
-                    [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
-                )
-                ids = [i for (i,) in cursor.fetchall()]
+            ids = reserve_ids(model, using, len(tuple_of_objs))
+            shadow_id_field = model.shadow_id_field
 
             outboxes: list[CellOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
+                if shadow_id_field is not None:
+                    setattr(obj, shadow_id_field, row_id)
                 outboxes.append(obj.outbox_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
@@ -281,12 +303,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
         assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models"
 
         with outbox_context(transaction.atomic(using=using), flush=False):
-            with connections[using].cursor() as cursor:
-                cursor.execute(
-                    "SELECT nextval(%s) FROM generate_series(1,%s);",
-                    [f"{model._meta.db_table}_id_seq", len(tuple_of_objs)],
-                )
-                ids = [i for (i,) in cursor.fetchall()]
+            ids = reserve_ids(model, using, len(tuple_of_objs))
 
             outboxes: list[ControlOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):

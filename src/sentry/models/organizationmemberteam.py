@@ -30,10 +30,11 @@ class OrganizationMemberTeam(ReplicatedCellModel):
 
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
+    shadow_id_field = "new_id"
 
     id = BoundedAutoField(primary_key=True)
-    # Shadow column for the in-progress widening of `id` to int8; swapped into the
-    # primary key once backfilled. Nothing reads or writes it yet.
+    # Shadow column for the in-progress widening of `id` to int8, kept equal to `id`
+    # on write and swapped into the primary key once backfilled.
     new_id = BoundedBigIntegerField(null=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
