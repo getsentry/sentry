@@ -107,11 +107,10 @@ class ResolvedPullRequest(NamedTuple):
     """Result of resolving an externally-reported PR to its canonical ``PullRequest``.
 
     ``pull_request`` is None when the reported identity doesn't map to exactly one active
-    ``Repository``; ``repo_resolution`` says why, and ``provider_unmappable`` flags a
-    *present* provider string we don't map (an empty or ``"unknown"`` provider is treated
-    as absent, not unmappable). ``resolved_by`` names the identity that worked, and is
-    None when nothing resolved. Callers decide how (and whether) to log these under their
-    own namespace.
+    ``Repository``; ``repo_resolution`` says why, ``resolved_by`` names the identity that
+    worked (None if nothing did), and ``provider_unmappable`` flags a *present* provider
+    string we don't map (an empty or ``"unknown"`` provider is treated as absent, not
+    unmappable). Callers decide how (and whether) to log these under their own namespace.
     """
 
     pull_request: PullRequest | None
@@ -222,11 +221,9 @@ class PullRequestManager(BaseManager["PullRequest"]):
         the SCM ``opened`` webhook arrives, so the row can be a shell (no title/body) the
         webhook fills in later — we never overwrite it here.
 
-        ``repo_external_id`` is the provider-side repo id, and resolves exactly; pass it
-        whenever the reporter has it. ``repo_name`` is the fallback for reporters that
-        don't, and it is strictly weaker: a name can be ambiguous across duplicate rows,
-        and for GitLab it cannot match at all, because reporters carry
-        ``path_with_namespace`` while ``Repository.name`` holds ``name_with_namespace``.
+        ``repo_external_id`` resolves exactly; pass it whenever the reporter has it.
+        ``repo_name`` is the weaker fallback — ambiguous across duplicate rows, and for
+        GitLab never equal to the stored name at all.
 
         Returns a ``ResolvedPullRequest``; ``pull_request`` is None when the repo can't be
         uniquely resolved, and ``repo_resolution`` then describes the last identity tried.
@@ -252,9 +249,8 @@ class PullRequestManager(BaseManager["PullRequest"]):
             if repository is not None:
                 resolved_by = "external_id"
 
-        # Fall back to the name whenever the external id didn't land, so a reporter that
-        # doesn't send one — or sends a stale one, e.g. a repo re-added under a new id —
-        # is no worse off than before it was threaded through.
+        # Fall back so a reporter without an external id — or with a stale one, e.g. a
+        # repo re-added under a new id — is no worse off than before.
         if repository is None:
             repository, resolution = Repository.objects.resolve_active(
                 organization_id=organization_id,

@@ -38,10 +38,7 @@ REPOSITORY_URL_LENGTH = 512
 
 RepoResolution = Literal["resolved", "not_found", "ambiguous"]
 
-# Which reported identity actually resolved the repo. ``external_id`` is the identity
-# Sentry itself issued to the reporter; ``name`` is a display string that some providers
-# transform on the way out (GitLab hands out ``path_with_namespace`` while ``name`` holds
-# ``name_with_namespace``), so it is the weaker of the two.
+# Which reported identity resolved the repo.
 RepoLookup = Literal["external_id", "name"]
 
 
@@ -60,15 +57,11 @@ class RepositoryManager(BaseManager["Repository"]):
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve to the single active org repo matching ``identity``, or say why not.
 
-        Both reported identities resolve the same way, and the rule is deliberate:
-        resolve only on exactly one match, and refuse to guess between several rather
-        than risk attaching a PR to the wrong repository. ``normalized_provider`` is the
-        bare, lowercased form (no ``integrations:`` prefix) and narrows the candidates
-        when the reporter gave one, matching both stored shapes via ``provider_match``;
-        None skips that filter.
+        Refusing to guess between several matches is deliberate: picking one risks
+        attaching a PR to the wrong repository. ``normalized_provider`` is the bare,
+        lowercased form (no ``integrations:`` prefix); None skips provider narrowing.
 
-        Returns ``(repository, reason)`` where reason is ``"resolved"``, ``"not_found"``
-        (zero matches), or ``"ambiguous"`` (more than one).
+        Returns ``(repository, "resolved" | "not_found" | "ambiguous")``.
         """
         candidates = self.filter(
             organization_id=organization_id,
@@ -89,9 +82,8 @@ class RepositoryManager(BaseManager["Repository"]):
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve the org-scoped active repository named ``name`` for a reported PR.
 
-        Names are not unique, so this is ambiguous whenever an org holds several rows for
-        one name — which a provider only sometimes separates, since re-installing an
-        integration mints a row with the same name and provider. Prefer
+        Names aren't unique, and a provider only sometimes separates duplicates —
+        re-installing an integration mints a row with the same name and provider. Prefer
         :meth:`resolve_active_by_external_id` wherever the reporter has the external id.
         """
         return self._resolve_active_unique(
@@ -105,11 +97,10 @@ class RepositoryManager(BaseManager["Repository"]):
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve the org-scoped active repository whose provider-side id is ``external_id``.
 
-        This is the identity Sentry handed the reporter in the first place, so it
-        round-trips exactly, and ``(organization_id, provider, external_id)`` is unique.
-        A name cannot do either: GitLab reporters carry ``path_with_namespace`` while
-        ``Repository.name`` holds the space-separated ``name_with_namespace``, which never
-        compares equal.
+        The identity Sentry handed the reporter, so it round-trips exactly, and
+        ``(organization_id, provider, external_id)`` is unique. A name does neither:
+        GitLab reporters carry ``path_with_namespace`` while ``name`` holds
+        ``name_with_namespace``.
         """
         return self._resolve_active_unique(
             organization_id=organization_id,

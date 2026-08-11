@@ -87,9 +87,8 @@ def link_pull_request_to_seer_run(
 ) -> PullRequest | None:
     """Idempotently links one PR to ``seer_run``. Never raises -- returns None on
     failure. Pass ``coding_agent_handoff`` to record which handoff produced the PR, and
-    ``repo_external_id`` whenever the reporter knows it -- it resolves the repo exactly,
-    where the name can't for every provider. Checks the killswitch itself so every write
-    path respects it.
+    ``repo_external_id`` whenever the reporter knows it -- unlike the name, it resolves
+    the repo exactly. Checks the killswitch itself so every write path respects it.
     """
     if options.get("seer.pull-request-linking.killswitch.enabled"):
         return None
@@ -111,10 +110,8 @@ def link_pull_request_to_seer_run(
         return None
 
     if resolved.pull_request is None:
-        # Carry why it didn't resolve: "ambiguous" (several same-named active repos in the
-        # org -- a reported provider of "unknown" disables the disambiguating filter) and
-        # "not_found" are different bugs with different fixes, and the flat warning alone
-        # can't tell them apart.
+        # "ambiguous" (several same-named active repos in the org) and "not_found" are
+        # different bugs with different fixes; the message alone can't tell them apart.
         logger.warning(
             "seer.pr_link.repo_unresolved",
             extra={

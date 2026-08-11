@@ -175,8 +175,7 @@ class LinkSeerRunPullRequestsTest(TestCase):
     @patch("sentry.seer.pull_requests.logger")
     def test_unresolved_repo_reports_ambiguity(self, mock_logger: Mock) -> None:
         """A provider of "unknown" can't disambiguate same-named repos, so the lookup
-        refuses to guess -- the log has to say so, or this is indistinguishable from a
-        repo Sentry has never seen."""
+        refuses to guess -- without the reason this reads as a repo we've never seen."""
         self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
 
         self._link(self._payload(provider="unknown"))
@@ -187,8 +186,8 @@ class LinkSeerRunPullRequestsTest(TestCase):
         )
 
     def test_links_by_reported_repo_external_id(self) -> None:
-        """A GitLab reporter carries the URL path, never the stored display name, so the
-        payload's external id is the only thing that can resolve the repo."""
+        """A GitLab reporter carries the URL path, never the stored display name, so only
+        the payload's external id can resolve the repo."""
         gitlab_repo = self.create_repo(
             self.project,
             name="My Group / My Project",

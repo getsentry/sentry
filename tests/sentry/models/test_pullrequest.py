@@ -505,9 +505,8 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request.key == "42"
 
     def test_resolves_by_external_id_when_name_cannot_match(self) -> None:
-        """GitLab hands reporters ``path_with_namespace`` while ``Repository.name`` holds
-        the space-separated ``name_with_namespace``, so the two never compare equal --
-        without the external id these PRs are unresolvable, not merely ambiguous."""
+        """GitLab reporters carry ``path_with_namespace`` while the row holds the
+        space-separated ``name_with_namespace``, so the name can never match."""
         gitlab_repo = self.create_repo(
             self.project,
             name="My Group / My Project",
@@ -527,8 +526,8 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request.repository_id == gitlab_repo.id
 
     def test_external_id_resolves_past_duplicate_names(self) -> None:
-        """Two active rows for one name under one provider are ambiguous by name, and no
-        provider value can separate them -- only the external id can."""
+        """Duplicate rows sharing a provider are ambiguous by name, and no provider value
+        can separate them -- only the external id can."""
         duplicate = self.create_repo(
             self.project, name="getsentry/sentry", provider="integrations:github"
         )
@@ -541,8 +540,7 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request.repository_id == duplicate.id
 
     def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
-        """A repo re-added under a new external id must be no worse off than before the
-        external id was threaded through."""
+        """A repo re-added under a new external id must be no worse off than before."""
         resolved = self._resolve(repo_external_id="no-longer-in-use")
 
         assert resolved.repo_resolution == "resolved"

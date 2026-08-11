@@ -116,8 +116,8 @@ class SyncCodingAgentStatusTest(TestCase):
     def test_records_branch_of_agent_that_reported_no_pull_request(
         self, mock_update_state: Mock
     ) -> None:
-        """An agent that finishes before its PR exists reports a branch and no PR URL.
-        The branch has to survive the sync or the PR is unrecoverable afterwards."""
+        """An agent that finishes before its PR exists reports a branch and no PR URL;
+        the branch has to survive the sync or that PR is unrecoverable."""
         mock_update_state.return_value = True
 
         sync_coding_agent_status(
