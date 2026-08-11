@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 FEATURE = "organizations:investigations"
 
 
-class OrganizationInvestigationsBasesTest(APITestCase):
+class OrganizationInvestigationBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)

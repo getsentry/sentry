@@ -135,3 +135,27 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
         ):
             raise PermissionDenied("You do not have access to every project in this investigation.")
         return args, kwargs
+
+
+class OrganizationInvestigationBlockEndpoint(OrganizationInvestigationEndpoint):
+    """Base for endpoints addressing a single investigation block."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        block_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["block"] = InvestigationBlock.objects.select_related("investigation").get(
+                id=block_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationBlock.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
