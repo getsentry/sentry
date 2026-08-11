@@ -912,13 +912,16 @@ def classify_ci_head_actor(
 class CiHeadResult(TypedDict):
     """One observed PR head, retaining order and its resolved actor.
 
-    ``sender_type`` is deliberately not carried here: it is only an input to
-    ``classify_ci_head_actor``, and ``actor`` already implies it (``bot``/``seer``
-    mean ``"Bot"``, ``human`` means a non-bot sender, ``unknown`` means absent).
-    ``sender_login`` stays because ``actor`` collapses every non-Seer pusher into
-    ``human``/``bot``, and we want the raw identity behind those: which person, or
-    which third-party bot. Seer's own logins are already known, so the login adds
-    nothing for ``actor == "seer"``.
+    Neither ``sender_login`` nor ``sender_type`` is carried here: both are inputs
+    to ``classify_ci_head_actor`` only, and ``actor`` is the whole output we want
+    downstream. The raw login identifies a specific GitHub person, and these rows
+    are JSON-encoded onto ``PrCloseMetricsEvent.ci_head_results`` and land in
+    BigQuery, so forwarding it would put per-person identities in durable
+    analytics for a question — ours vs. someone else's iteration — that
+    ``seer``/``human``/``bot``/``unknown`` already answers. Keeping it for our own
+    bots only would be redundant with ``actor == "seer"``, and keeping it for
+    third-party bots is the same identity forwarding. Group on ``actor``; the
+    document still holds the login for classification.
 
     ``outcome`` is a free string, not an enum: it forwards GitHub's own check
     conclusion (see :func:`ci_head_outcomes_from_doc`), so a conclusion GitHub adds
@@ -931,7 +934,6 @@ class CiHeadResult(TypedDict):
     before_sha: str | None
     outcome: str
     has_ci: bool
-    sender_login: str | None
     actor: Literal["seer", "human", "bot", "unknown"]
 
 
@@ -987,7 +989,6 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
                 "before_sha": before_sha,
                 "outcome": outcomes.get(head_sha, UNKNOWN_CONCLUSION),
                 "has_ci": head_sha in outcomes,
-                "sender_login": sender_login,
                 "actor": classify_ci_head_actor(sender_login or "", sender_type or ""),
             }
         )
@@ -1000,7 +1001,6 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
                 "before_sha": None,
                 "outcome": outcomes[head_sha],
                 "has_ci": True,
-                "sender_login": None,
                 "actor": "unknown",
             }
         )

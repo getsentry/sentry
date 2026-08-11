@@ -246,9 +246,11 @@ def _ci_head_results_json(
     """Ordered per-head CI results as JSON, or ``None`` when unavailable.
 
     The JSON list follows ``sync_chain`` insertion order and retains SHA,
-    predecessor, sender identity/type, derived actor, whole-head outcome, and
-    whether CI was observed. Consumers can derive actor groups and iteration
-    sequences without losing ordering at collection time.
+    predecessor, derived actor, whole-head outcome, and whether CI was observed.
+    Consumers can derive actor groups and iteration sequences without losing
+    ordering at collection time. The webhook sender's login and type stay in the
+    activity document: they classify the head into ``actor`` and are deliberately
+    not forwarded to the warehouse (see ``CiHeadResult``).
 
     Doc store only: the checks rollup is keyed by ``(head_sha, app_slug,
     check_suite_id)``, falling back to ``(head_sha, app_slug)`` for groups stored

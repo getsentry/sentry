@@ -1126,6 +1126,8 @@ class PrMetricsEmissionTest(TestCase):
             ("old111", "failure", "human"),
             ("new222", "success", "seer"),
         ]
+        # The pusher's login classifies the head but never reaches the warehouse.
+        assert "alice" not in row.ci_head_results
 
     def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
         PullRequestActivityLog.objects.create(pull_request=self.pull_request, data=new_document())

@@ -37,6 +37,7 @@ from sentry.pr_metrics.activity_doc import (
     reviews_requested_count_from_doc,
     timeline_events_from_doc,
 )
+from sentry.utils import json
 
 MODULE = "sentry.pr_metrics.activity_doc"
 
@@ -1618,8 +1619,43 @@ def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
     assert results[0]["actor"] == "human"
     assert results[1]["has_ci"] is False
     assert results[1]["outcome"] == "unknown"
-    assert results[2]["sender_login"] == "bob"
+    assert results[1]["actor"] == "seer"
+    assert results[2]["actor"] == "human"
     assert results[3]["actor"] == "unknown"
+
+
+def test_ci_head_results_never_carry_the_pusher_identity() -> None:
+    # These rows are JSON-encoded onto the analytics event and land in BigQuery, so
+    # the raw GitHub login stays in the document and only ``actor`` is forwarded.
+    doc = new_document()
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        payload={"head_sha": "a", "sender_login": "alice", "sender_type": "User"},
+        ts="2026-07-10T12:00:00Z",
+        webhook_id="o1",
+    )
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        payload={
+            "after_sha": "b",
+            "before_sha": "a",
+            "sender_login": "dependabot[bot]",
+            "sender_type": "Bot",
+        },
+        ts="2026-07-10T12:05:00Z",
+        webhook_id="s1",
+    )
+
+    results = ci_head_results_from_doc(doc)
+
+    assert [item["actor"] for item in results] == ["human", "bot"]
+    assert not any(key.startswith("sender_") for item in results for key in item)
+    assert "alice" not in json.dumps(results)
+    assert "dependabot[bot]" not in json.dumps(results)
+    # ...but the document still holds it, since that is what classifies the head.
+    assert doc["open_head"]["sender_login"] == "alice"
 
 
 def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:
