@@ -400,6 +400,16 @@ describe('IntegrationDetailedView', () => {
     expect(screen.queryByText('features')).not.toBeInTheDocument();
   });
 
+  it('returns to overview when the selected integration does not support the tab', async () => {
+    const {router} = render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'features'}),
+      organization,
+    });
+
+    expect(await screen.findByRole('heading', {name: 'Overview'})).toBeInTheDocument();
+    expect(router.location.query).toEqual({});
+  });
+
   it('renders alerts without crashing when variant is not provided', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,

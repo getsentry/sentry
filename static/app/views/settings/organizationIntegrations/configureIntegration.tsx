@@ -455,11 +455,13 @@ function IntegrationNavigationHeader({
       <SettingsPageHeader
         title={
           <Flex align="center" gap="sm">
-            <Divider />
             <Text as="span">{t('Configurations')}</Text>
             <Divider />
             <IntegrationIcon size={18} integration={integration} />
-            <ExternalLink href={`https://${integration.domainName}`}>
+            <ExternalLink
+              href={`https://${integration.domainName}`}
+              style={{color: 'inherit'}}
+            >
               {integration.name}
             </ExternalLink>
           </Flex>

@@ -50,7 +50,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
@@ -186,6 +185,25 @@ export default function IntegrationDetailedView() {
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
+  const displayTabs = useMemo<IntegrationTab[]>(
+    () =>
+      integrationFeatures.includes(provider?.key ?? '')
+        ? tabs
+        : tabs.filter(tab => tab !== 'features'),
+    [provider?.key]
+  );
+  const displayedTab =
+    !provider || displayTabs.includes(activeTab) ? activeTab : 'overview';
+
+  useEffect(() => {
+    if (!provider || displayTabs.includes(activeTab)) {
+      return;
+    }
+
+    const {tab: _tab, ...query} = location.query;
+    navigate({query}, {replace: true});
+  }, [activeTab, displayTabs, location.query, navigate, provider]);
+
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
   const resourceLinks = useMemo(() => {
@@ -241,8 +259,7 @@ export default function IntegrationDetailedView() {
   const navigationTabTitle = navigationIntegrationName ? (
     <Layout.Title>
       <Flex align="center" gap="sm" minWidth="0">
-        <Divider />
-        <Text as="span">{tabTitles[activeTab]}</Text>
+        <Text as="span">{tabTitles[displayedTab]}</Text>
       </Flex>
     </Layout.Title>
   ) : null;
@@ -266,18 +283,14 @@ export default function IntegrationDetailedView() {
   );
 
   const renderTabs = useCallback(() => {
-    const displayTabs = integrationFeatures.includes(provider?.key ?? '')
-      ? tabs
-      : tabs.filter(tab => tab !== 'features');
-
     return (
       <IntegrationLayout.Tabs
         tabs={displayTabs}
-        activeTab={activeTab}
+        activeTab={displayedTab}
         onTabChange={onTabChange}
       />
     );
-  }, [provider, activeTab, onTabChange]);
+  }, [displayTabs, displayedTab, onTabChange]);
 
   useAutoOpenPermissionsModal({
     provider,
@@ -660,7 +673,7 @@ export default function IntegrationDetailedView() {
         }
         tabs={renderTabs()}
         content={
-          activeTab === 'overview' ? (
+          displayedTab === 'overview' ? (
             <IntegrationLayout.InformationCard
               integrationSlug={integrationSlug}
               description={description}
@@ -679,7 +692,7 @@ export default function IntegrationDetailedView() {
               resourceLinks={resourceLinks}
               permissions={null}
             />
-          ) : activeTab === 'configurations' ? (
+          ) : displayedTab === 'configurations' ? (
             renderConfigurations()
           ) : (
             renderFeatures()
