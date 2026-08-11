@@ -48,4 +48,4 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
           INFERENCE_MODEL: haiku
           SCAN_CONCURRENCY: '4'
-        run: pnpm dlx @sentry/refactor-tasks scan-and-report
+        run: pnpm dlx @sentry/refactor-tasks scan-and-report --verbose
