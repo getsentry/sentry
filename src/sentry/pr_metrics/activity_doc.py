@@ -126,7 +126,7 @@ class ActivityDoc(TypedDict):
     # written before the sender slots have length 2 and read as an unknown pusher,
     # and anything shorter than 5 predates the delivery-id slot and dedupes against
     # nothing (see :func:`_fold_sync_chain`). Every reader therefore guards on
-    # ``len(pair)`` rather than assuming a fixed width.
+    # ``len(link)`` rather than assuming a fixed width.
     sync_chain: list[list[str | None]]
 
 
@@ -329,7 +329,7 @@ def _fold_sync_chain(
     ``events`` (an auto-rebase bot is exactly the synchronize-heavy pathology that
     fills the cap). Distinct synchronize events with the same ``after_sha`` are
     intentionally retained as separate head observations, such as when the head
-    returns to a prior SHA. At the cap the oldest pair is evicted (logged + metered,
+    returns to a prior SHA. At the cap the oldest link is evicted (logged + metered,
     like every cap in this module). ``setdefault`` because a stored document written
     by a build predating this field lacks the key; the fold creates it in place.
 
@@ -354,7 +354,7 @@ def _fold_sync_chain(
         return
 
     chain = doc.setdefault("sync_chain", [])
-    if webhook_id and any(len(pair) > 4 and pair[4] == webhook_id for pair in chain):
+    if webhook_id and any(len(link) > 4 and link[4] == webhook_id for link in chain):
         return
 
     if len(chain) >= MAX_SYNC_CHAIN:
@@ -735,11 +735,11 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
     ancestry instead of following an ``A → B → A`` loop into abandoned commits.
     """
     before_by_after: dict[str, str | None] = {}
-    for pair in doc.get("sync_chain") or []:
-        after = pair[0]
+    for link in doc.get("sync_chain") or []:
+        after = link[0]
         if not after:
             continue
-        before_by_after.setdefault(after, pair[1])
+        before_by_after.setdefault(after, link[1])
 
     shas: set[str] = set()
     current = head_sha or ""
@@ -987,12 +987,12 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
 
     observations.extend(
         (
-            pair[0] or "",
-            pair[1] if len(pair) > 1 else None,
-            pair[2] if len(pair) > 2 else None,
-            pair[3] if len(pair) > 3 else None,
+            link[0] or "",
+            link[1] if len(link) > 1 else None,
+            link[2] if len(link) > 2 else None,
+            link[3] if len(link) > 3 else None,
         )
-        for pair in doc.get("sync_chain") or []
+        for link in doc.get("sync_chain") or []
     )
 
     for sequence, (head_sha, before_sha, sender_login, sender_type) in enumerate(observations):
