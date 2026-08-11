@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -62,15 +63,19 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  showChecksAndReview?: boolean;
   showEmptyState?: boolean;
+  variant?: 'compact' | 'default';
 }
 
 function LinkedPullRequestRow({
   group,
   pullRequest,
+  variant,
 }: {
   group: Group;
   pullRequest: LinkedPullRequest;
+  variant: 'compact' | 'default';
 }) {
   const organization = useOrganization();
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
@@ -111,7 +116,11 @@ function LinkedPullRequestRow({
           })
         }
       >
-        <Grid columns="max-content minmax(0, 1fr)" gap="sm" padding="sm">
+        <Grid
+          columns="max-content minmax(0, 1fr)"
+          gap="sm"
+          padding={variant === 'compact' ? 'sm' : 'md'}
+        >
           <Flex as="span" aria-hidden align="start">
             <RepoProviderIcon
               provider={pullRequest.repository.provider.id}
@@ -119,36 +128,56 @@ function LinkedPullRequestRow({
               variant="muted"
             />
           </Flex>
-          <Stack gap="xs" minWidth={0}>
-            <PullRequestTitle>
-              <Text as="span" bold textWrap="nowrap">
-                {pullRequestLabel}
-              </Text>
-              <Text as="span" ellipsis>
-                {pullRequest.repository.name}
-              </Text>
-            </PullRequestTitle>
-            <Flex align="center" gap="xs">
+          <Stack gap={variant === 'default' ? 'sm' : 'xs'} minWidth={0}>
+            <Stack gap="xs">
+              {variant === 'default' && (
+                <Text as="span" bold ellipsis>
+                  {title}
+                </Text>
+              )}
+              <PullRequestTitle>
+                {variant === 'default' ? (
+                  <Fragment>
+                    <Text as="span" ellipsis variant="muted">
+                      {pullRequest.repository.name}
+                      {pullRequestLabel}
+                    </Text>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <Text as="span" bold textWrap="nowrap">
+                      {pullRequestLabel}
+                    </Text>
+                    <Text as="span" ellipsis>
+                      {pullRequest.repository.name}
+                    </Text>
+                  </Fragment>
+                )}
+              </PullRequestTitle>
+            </Stack>
+            <Flex align="center" gap="md" wrap="wrap">
               <PullRequestStatusBadge status={pullRequest.status} />
+              <Flex align="center" gap="xs">
+                {pullRequest.attribution ? (
+                  <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
+                ) : author ? (
+                  <PullRequestAuthorAvatar author={author} />
+                ) : null}
+                <Text as="span" size="sm" variant="muted">
+                  <TimeSince
+                    date={pullRequest.dateLinked}
+                    suffix={t('ago')}
+                    tooltipPrefix={t('Linked')}
+                    unitStyle="short"
+                  />
+                </Text>
+              </Flex>
               {pullRequest.checksStatus && (
                 <PullRequestChecksBadge status={pullRequest.checksStatus} />
               )}
               {pullRequest.reviewStatus && (
                 <PullRequestReviewBadge status={pullRequest.reviewStatus} />
               )}
-              {pullRequest.attribution ? (
-                <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
-              ) : author ? (
-                <PullRequestAuthorAvatar author={author} />
-              ) : null}
-              <Text as="span" size="sm" variant="muted">
-                <TimeSince
-                  date={pullRequest.dateLinked}
-                  suffix={t('ago')}
-                  tooltipPrefix={t('Linked')}
-                  unitStyle="short"
-                />
-              </Text>
             </Flex>
           </Stack>
         </Grid>
@@ -231,7 +260,13 @@ function SeerAttributionAvatar() {
   );
 }
 
-export function useLinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({
+  group,
+  includeChecksAndReview = true,
+}: {
+  group: Group;
+  includeChecksAndReview?: boolean;
+}) {
   const organization = useOrganization();
 
   return useQuery(
@@ -239,15 +274,23 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: {expand: 'checksAndReview'},
+        query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
         staleTime: 30_000,
       }
     )
   );
 }
 
-export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const {data, isError, isPending} = useLinkedPullRequests({group});
+export function LinkedPullRequests({
+  group,
+  showChecksAndReview = true,
+  showEmptyState,
+  variant = 'default',
+}: LinkedPullRequestsProps) {
+  const {data, isError, isPending} = useLinkedPullRequests({
+    group,
+    includeChecksAndReview: showChecksAndReview,
+  });
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (isError) {
@@ -255,7 +298,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   if (isPending && activityPullRequestIds.size > 0) {
-    return <Placeholder height="52px" />;
+    return <Placeholder height={variant === 'compact' ? '52px' : '78px'} />;
   }
 
   if (data?.pullRequests.length === 0) {
@@ -287,7 +330,11 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           borderTop={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
-          <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
+          <LinkedPullRequestRow
+            group={group}
+            pullRequest={pullRequest}
+            variant={variant}
+          />
         </Container>
       ))}
     </Stack>

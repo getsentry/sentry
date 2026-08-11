@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
+import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 
 /**
  * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
@@ -76,15 +77,67 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
+export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
+
+/**
+ * One Sentry API or lib call a Code Mode execute made.
+ *
+ * `sentry_api_execute` is a single tool name covering every action Code Mode can take, so keying
+ * rendering on the tool name (as classic tools do) says nothing useful. Seer instead reports the
+ * calls themselves and the client decides how to present them.
+ *
+ * `path` is the *templated* route (`/api/0/.../{issue_id}/`) — the key a handler matches on, and
+ * what makes a link buildable from `path_params`. `parent` nests a lib method's HTTP calls under
+ * it; `id` is unique within one execute, so correlation never depends on array position.
+ *
+ * `body` is a bounded preview, not the payload — records live in the run state row, which is
+ * re-serialized on every write and re-downloaded by the poll, so seer caps it and flags when it
+ * cut it. No response body is carried: it is arbitrary customer data, it can hold a secret a write
+ * hands back, and a row reports the request rather than what came back.
+ */
+export interface CallRecord {
+  id: number;
+  kind: 'api' | 'lib';
+  /** Bounded slice of the request body, if the call had one. */
+  body?: string;
+  /** Whether `body` was cut short. */
+  body_truncated?: boolean;
+  /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
+  error?: string;
+  method?: string;
+  /** Lib records only. */
+  name?: string;
+  /** Lib records only: the call's scalar arguments, which name what it acted on. */
+  params?: Record<string, string>;
+  parent?: number | null;
+  path?: string;
+  path_params?: Record<string, string>;
+  /**
+   * `path` with its params interpolated and the query string appended — the literal path that was
+   * requested. Seer carries the query only here, so this is the whole URL.
+   */
+  resolved_path?: string;
+  /** HTTP status. Absent when the request never completed. */
+  status?: number;
+  /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
+  title?: string;
+}
+
 export interface ToolResult {
   content: string;
   tool_call_function: string;
   tool_call_id: string;
-  // MCP-style structured payload carried from seer (code-mode-effects-registry).
-  // The links bus: a tool result's own deep-links as a {kind, params} list — one result can
-  // carry many, so there's no index alignment. Optional — absent on old seer responses, in
-  // which case the frontend falls back to the positional block.tool_links.
-  structuredContent?: {links?: ToolLink[]} | null;
+  // MCP-style structured payload carried from seer (codemode-structured-content-only). Code Mode
+  // returns every surface it produces here rather than on a bespoke block field, so a renderer
+  // resolves a surface from this *and* the legacy field. Keys are optional and additive — absent on
+  // old seer responses, in which case only the legacy field is read.
+  structuredContent?: {
+    agentWriteApproval?: AgentWriteApproval;
+    artifacts?: Artifact[];
+    calls?: CallRecord[];
+    links?: ToolLink[];
+    todos?: TodoItem[];
+  } | null;
 }
 
 export interface ToolCall {
@@ -107,6 +160,12 @@ export interface Block {
   timestamp: string;
   artifacts?: Artifact[];
   file_patches?: ExplorerFilePatch[] | null;
+  /**
+   * Calls the in-flight Code Mode execute has made so far, written as they happen so a long run
+   * shows progress instead of nothing. Superseded by the tool result's `structuredContent.calls`
+   * once the execute finishes.
+   */
+  live_calls?: CallRecord[] | null;
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
   pr_commit_shas?: Record<string, string> | null;
@@ -151,7 +210,11 @@ export function isExplorerCodingAgentState(
 export type PendingUserInput = {
   data: Record<string, any>;
   id: string;
-  input_type: 'file_change_approval' | 'ask_user_question' | 'reauth_monitoring_provider';
+  input_type:
+    | 'file_change_approval'
+    | 'agent_write_approval'
+    | 'ask_user_question'
+    | 'reauth_monitoring_provider';
 };
 
 export interface ReauthMonitoringProviderData {

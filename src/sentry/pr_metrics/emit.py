@@ -253,9 +253,10 @@ def _ci_head_summary_fields(
     whether CI was observed. Consumers can derive actor groups and iteration
     sequences without losing ordering at collection time.
 
-    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug, suite_id)``,
-    falling back to ``(head_sha, app_slug)`` for groups stored before suite IDs
-    existed, none of which the legacy ``CHECK_SUITE_COMPLETED`` rows carry. A null
+    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug,
+    check_suite_id)``, falling back to ``(head_sha, app_slug)`` for groups stored
+    before suite IDs existed, none of which the legacy ``CHECK_SUITE_COMPLETED``
+    rows carry. A null
     (rather than a zeroed matrix) marks "summary unavailable" so warehouse queries
     don't conflate legacy PRs with doc-path PRs that genuinely had no CI.
 
@@ -282,9 +283,9 @@ def _ci_head_summary_fields(
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
     """Whether any check-suite group's latest conclusion is a failure.
 
-    Shared by every doc-store reader over the checks rollup: each group already
-    keeps the latest suite conclusion (a rerun with no new push overwrites the
-    earlier one), so this is just the narrow-vocabulary failing check.
+    Shared by every doc-store reader over the checks rollup. Groups are per check
+    suite (a rerun overwrites its own suite's conclusion only), so one workflow's
+    late green never masks another workflow's standing failure.
     """
     return any(
         group.get("suite_conclusion") in activity_doc.FAILING_CHECK_CONCLUSIONS for group in groups
@@ -328,8 +329,9 @@ def _ci_failing_at_close(
     identical query, so ``doc`` is mandatory here rather than optional.
     """
     if doc is not None:
-        # Same narrow failing vocabulary and suite-only read as the legacy path
-        # (a check_run-only app has no suite conclusion and doesn't count).
+        # Same narrow failing vocabulary and suite-only read as the legacy path,
+        # but per-suite: a failure any workflow left standing is reported, not
+        # just the app's latest suite to complete.
         return _any_group_failing(doc.get("checks", {}).values())
 
     rows = (
@@ -366,8 +368,8 @@ def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityD
 
     Doc store: keyed precisely off the opening head SHA (see
     ``_opened_head_sha_from_doc``), via the checks rollup's ``(head_sha,
-    app_slug)`` grouping — a later push's checks, recorded under a different
-    head, are correctly excluded.
+    app_slug, check_suite_id)`` grouping — a later push's checks, recorded under
+    a different head, are correctly excluded.
 
     Legacy store: the row payload carries no ``head_sha`` at all (see
     ``CheckSuiteCompletedPayload``), so the opening head's checks are

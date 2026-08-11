@@ -12,8 +12,8 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
 type RouteParams = {
@@ -62,7 +62,7 @@ export function UptimeRulesEdit({params, onChangeTitle, organization}: Props) {
 
   const handleDelete = async () => {
     await deleteUptimeRule(api, organization, rule);
-    navigate(makeAlertsPathname({path: '/rules/', organization}));
+    navigate(makeMonitorBasePathname(organization.slug));
   };
 
   return (

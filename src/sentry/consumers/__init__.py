@@ -145,16 +145,6 @@ def issue_occurrence_options() -> list[click.Option]:
     ]
 
 
-def ingest_replay_recordings_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings options."""
-    options = multiprocessing_options(default_max_batch_size=10)
-    options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
-    options.append(
-        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=100)
-    )
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
@@ -315,11 +305,6 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
-    "ingest-replay-recordings": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
-        "click_options": ingest_replay_recordings_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",

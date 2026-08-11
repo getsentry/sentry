@@ -434,7 +434,6 @@ function useFilterSuggestions({
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
     queryKey,
     queryFn: ctx =>
@@ -444,7 +443,6 @@ function useFilterSuggestions({
   });
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
     queryFn: ctx => {

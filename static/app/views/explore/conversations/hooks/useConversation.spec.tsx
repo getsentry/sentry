@@ -26,7 +26,7 @@ function envelope(
   title: string | null = null
 ): Record<string, unknown> {
   return {
-    conversationId: (spans[0]?.['gen_ai.conversation.id'] as string) ?? '',
+    conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '',
     title,
     spans,
   };

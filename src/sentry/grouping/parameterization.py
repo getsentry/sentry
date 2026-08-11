@@ -196,8 +196,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             \b
             # All segments but the final one, each followed by a dot
             (
-                # Lookahead guaranteeing at least one letter
-                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                # Lookahead guaranteeing at least one letter. Bounded to match max segment length.
+                (?= [a-zA-Z0-9\-]{0,62} [a-zA-Z])
                 # Segment body - either all letters/numbers (no dashes), or with interior-only dashes
                 (
                     [a-zA-Z0-9]{1,63}

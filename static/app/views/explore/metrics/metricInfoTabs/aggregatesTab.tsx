@@ -254,7 +254,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                 {displayFields.map((field, j) => (
                   <AggregatesStyledRowCell
                     key={j}
-                    isAggregate={Boolean(parseFunction(field))}
+                    isAggregate={
+                      Boolean(parseFunction(field)) ||
+                      (isVisualizeEquation(visualize) && isEquation(field))
+                    }
                     offset={j === 0 ? firstColumnOffset : undefined}
                     source="metricsPage"
                   >
@@ -310,6 +313,12 @@ const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
   padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+
+  ${p =>
+    p.isAggregate &&
+    css`
+      min-width: min-content;
+    `}
 `;
 
 const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
@@ -320,6 +329,7 @@ const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
     p.isAggregate &&
     css`
       justify-content: flex-end;
+      min-width: min-content;
     `}
   ${p =>
     p.offset &&
