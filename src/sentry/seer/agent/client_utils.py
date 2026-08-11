@@ -71,6 +71,7 @@ class AgentChatRequest(TypedDict):
     external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
     page_location: NotRequired[dict[str, Any] | None]
+    sent_at: NotRequired[list[str] | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]

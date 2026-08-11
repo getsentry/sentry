@@ -117,6 +117,18 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="Where the user was in the UI: url, route pattern, and route/query params.",
     )
+    sent_at = serializers.ListField(
+        child=serializers.CharField(max_length=64, allow_blank=True),
+        required=False,
+        allow_null=True,
+        allow_empty=True,
+        max_length=4,
+        default=None,
+        help_text=(
+            "Client-rendered send times, e.g. local time with its zone name plus the "
+            "same instant in UTC. Passed through to the agent as display strings."
+        ),
+    )
     override_bash_mode_enabled = serializers.BooleanField(
         required=False,
         default=False,
@@ -268,6 +280,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
         page_location = validated_data.get("page_location")
+        sent_at = validated_data.get("sent_at")
         override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
@@ -336,6 +349,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     on_page_context=on_page_context,
                     page_name=page_name,
                     page_location=page_location,
+                    sent_at=sent_at,
                     ui_tools=ui_tools,
                     request=request,
                 )
@@ -349,6 +363,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 on_page_context=on_page_context,
                 page_name=page_name,
                 page_location=page_location,
+                sent_at=sent_at,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
                 request=request,
