@@ -26,6 +26,19 @@ from sentry.testutils.cases import TestCase
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
+
+OWN_REPO_ID = 123
+
+
+def own_repo_pr(pr_id: int) -> dict:
+    """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
+
+    GitHub always carries ``base.repo``, so a fixture without it is not a payload
+    this path can receive.
+    """
+    return {"id": pr_id, "base": {"repo": {"id": OWN_REPO_ID}}}
+
+
 # Lazy-imported inside the listener (must not load at AppConfig.ready).
 TRIGGER_CONSUME_PATH = "sentry.tasks.seer.pr_iteration.trigger_consume_pr_iteration_feedback"
 
@@ -67,7 +80,10 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "updated_at": "2024-01-01T00:00:00Z",
                 "pull_requests": pull_requests or [],
             },
-            "repository": {"html_url": "https://github.com/owner/repo"},
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "id": OWN_REPO_ID,
+            },
         }
 
     def _agent_state(self) -> SeerRunState:
@@ -245,7 +261,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -264,7 +280,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         state = self._agent_state()
         state.metadata = {}
         mock_get_state.return_value = state
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -285,7 +301,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -312,7 +328,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -350,7 +366,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
-        raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
+        raw = self._raw(pull_requests=[own_repo_pr(111), own_repo_pr(222)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -374,7 +390,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         right_org_repo = MagicMock(organization_id=self.organization.id, id=2)
         mock_resolve.return_value = [wrong_org_repo, right_org_repo]
         mock_get_state.side_effect = [None, self._agent_state()]
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -387,7 +403,9 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
-    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+    def _event(
+        self, *, pull_requests: list[dict], repository_id: int | None = None
+    ) -> GithubCheckSuiteEvent:
         return GithubCheckSuiteEvent.parse_obj(
             {
                 "check_suite": {
@@ -398,7 +416,10 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                     "updated_at": "2024-01-01T00:00:00Z",
                     "pull_requests": pull_requests,
                 },
-                "repository": {"html_url": "https://github.com/owner/repo"},
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "id": repository_id,
+                },
             }
         )
 
@@ -428,7 +449,9 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
         mock_get_state.side_effect = [first, second]
 
         result = resolve_check_suite_autofix_run(
-            self._event(pull_requests=[{"id": 111}, {"id": 222}])
+            self._event(
+                pull_requests=[own_repo_pr(111), own_repo_pr(222)], repository_id=OWN_REPO_ID
+            )
         )
 
         assert result is not None
@@ -443,6 +466,105 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                 "organization_ids": [self.organization.id, self.organization.id],
             },
         )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_skips_pull_request_based_in_another_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """A PR with its head here and its base elsewhere is never an Autofix PR."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[{"id": 111, "base": {"repo": {"id": 456}}}],
+            )
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_foreign_entry_does_not_shadow_own_repo_entry(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """The first match wins, so GitHub's ordering must not pick the run."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=222)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[
+                    {"id": 111, "base": {"repo": {"id": 456}}},
+                    {"id": 222, "base": {"repo": {"id": 123}}},
+                ],
+            )
+        )
+
+        assert result is not None
+        assert result.pr_id == 222
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 222)
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_skips_entry_carrying_no_base_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """An entry we cannot place is skipped, on the same rule pr_metrics uses.
+        Resolving by global id could place it, but GitHub always sends base.repo, so
+        this is not a payload shape that reaches us — see the legacy test below for
+        why serialized feedback is not one either."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=123, pull_requests=[{"id": 111}])
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_unplaceable_entry_does_not_shadow_own_repo_entry(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """Same shadowing guarantee as the foreign case, for the entry we cannot place."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=222)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[{"id": 111}, {"id": 222, "base": {"repo": {"id": 123}}}],
+            )
+        )
+
+        assert result is not None
+        assert result.pr_id == 222
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 222)
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_resolves_legacy_entry_round_tripped_through_the_old_model(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """Feedback serialized before `base` was declared still carries it: the model
+        that predates the field had `extra = "allow"`, so `base` survived the round
+        trip as an extra and parses into the field now. This is why skipping the
+        unplaceable entry does not strand in-flight iterations."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        legacy_entry = {"id": 111, "number": 3, "base": {"repo": {"id": 123, "name": "x"}}}
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=123, pull_requests=[legacy_entry])
+        )
+
+        assert result is not None
+        assert result.pr_id == 111
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:

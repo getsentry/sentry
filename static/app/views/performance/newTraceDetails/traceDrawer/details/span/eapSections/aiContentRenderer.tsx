@@ -109,6 +109,17 @@ interface AIContentRendererProps {
   maxJsonDepth?: number;
 }
 
+/**
+ * Tag names (case-insensitive, punctuation-insensitive) whose collapsible
+ * blocks start expanded — the user's own message is the most useful content in
+ * a transcript, so we don't hide it behind a caret.
+ */
+const EXPANDED_BY_DEFAULT_TAGS = new Set(['usermessage', 'usermsg', 'userinput']);
+
+function isExpandedByDefaultTag(tagName: string): boolean {
+  return EXPANDED_BY_DEFAULT_TAGS.has(tagName.toLowerCase().replace(/[-_]/g, ''));
+}
+
 function XmlTagBlock({
   tagName,
   attributes,
@@ -143,7 +154,7 @@ function XmlTagBlock({
   if (collapsible) {
     return (
       <Container margin="sm 0">
-        <CollapsibleContent title={label}>
+        <CollapsibleContent title={label} defaultOpen={isExpandedByDefaultTag(tagName)}>
           <Container paddingTop="md" paddingLeft="md">
             {body}
           </Container>

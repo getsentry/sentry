@@ -5,7 +5,7 @@ import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -46,6 +46,7 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -95,6 +96,7 @@ export function FiltersBar({
   widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const getSearchBarData = useDatasetSearchBarData();
@@ -217,6 +219,7 @@ export function FiltersBar({
       : null
     : t('You do not have permission to edit this dashboard');
   const showAddWidgetButton =
+    !hasNewBreadcrumbs &&
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&
@@ -224,7 +227,13 @@ export function FiltersBar({
     defined(onAddWidget);
 
   return (
-    <Wrapper>
+    <Flex
+      align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
+      direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
+      gap="lg"
+      marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
+      padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
+    >
       <FiltersRow>
         <PageFilterBar condensed>
           <ProjectPageFilter
@@ -390,7 +399,7 @@ export function FiltersBar({
           </Feature>
         )}
       </Grid>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -403,14 +412,6 @@ const parseReleaseSort = createParser({
   },
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-  align-items: flex-start;
-`;
 
 const FiltersRow = styled('div')`
   display: flex;

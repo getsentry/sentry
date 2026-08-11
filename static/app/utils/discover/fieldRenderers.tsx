@@ -1145,7 +1145,7 @@ type SpecialFunctions = {
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
   user_misery: fieldName =>
-    function (data) {
+    function UserMiseryRenderer(data) {
       const userMiseryField = fieldName;
 
       if (!(userMiseryField in data)) {
@@ -1213,7 +1213,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       );
     },
   time_spent_percentage: fieldName =>
-    function (data) {
+    function TimeSpentPercentageRenderer(data) {
       const parsedFunction = parseFunction(fieldName);
       let column = parsedFunction?.arguments?.[1] ?? SpanFields.SPAN_SELF_TIME;
       // TODO - remove with eap, in eap this function only has one arg

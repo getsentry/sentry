@@ -59,7 +59,7 @@ const config: KnipConfig = {
         'static/**/*.figma.{tsx,jsx}',
       ],
       project: [
-        'static/**/*.{js,ts,tsx}!',
+        'static/**/*.{js,ts,tsx,mdx,less}!',
         'config/**/*.ts',
         'tests/js/**/*.{js,ts,tsx}',
         // fixtures can be ignored in production - it's fine that they are only used in tests
@@ -80,6 +80,9 @@ const config: KnipConfig = {
         // Loaded dynamically from the import/resolver setting in oxlint.config.ts.
         'eslint-import-resolver-typescript',
       ],
+      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
+      // so do not report them as unused files.
+      ignoreFiles: ['static/**/*.less'],
     },
   },
   // Loaded by the standalone lint runner across the intentionally excluded

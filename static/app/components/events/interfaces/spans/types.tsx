@@ -1,4 +1,4 @@
-import type {Fuse} from 'sentry/utils/fuzzySearch';
+import type {FuseResult} from 'fuse.js/basic';
 
 import type {SpanTreeModel} from './spanTreeModel';
 
@@ -242,7 +242,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
+  results: Array<FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 

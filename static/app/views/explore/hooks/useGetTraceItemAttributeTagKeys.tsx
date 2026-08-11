@@ -37,6 +37,7 @@ export function useGetTraceItemAttributeTagKeys({
         ...Object.values(keys.stringAttributes),
         ...Object.values(keys.numberAttributes),
         ...Object.values(keys.booleanAttributes),
+        ...Object.values(keys.arrayAttributes),
       ];
       const filteredFetched = hiddenKeySet
         ? fetched.filter(t => !isHiddenAttribute(t, hiddenKeySet))

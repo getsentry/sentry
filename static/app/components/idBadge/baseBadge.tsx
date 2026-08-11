@@ -36,7 +36,7 @@ interface AllBaseBadgeProps extends BaseBadgeProps {
   user?: AvatarUser;
 }
 
-export const BaseBadge = memo(function BaseBadge({
+export const BaseBadge = memo(function BaseBadgeComponent({
   displayName,
   hideName = false,
   hideAvatar = false,

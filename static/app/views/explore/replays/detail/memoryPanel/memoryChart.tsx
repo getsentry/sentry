@@ -132,7 +132,7 @@ interface MemoryChartSeriesProps {
   ref?: React.Ref<ReactEchartsRef>;
 }
 
-const MemoryChartSeries = memo(function MemoryChartSeries({
+const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
   ref,
   durationMs,
   memoryFrames,

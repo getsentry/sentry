@@ -15,9 +15,9 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
+import {UptimeRulesEdit} from 'sentry/views/detectors/components/uptime/edit';
 
 import {CronRulesEdit} from './rules/crons/edit';
-import {UptimeRulesEdit} from './rules/uptime/edit';
 import {CombinedAlertType} from './types';
 
 type RouteParams = {

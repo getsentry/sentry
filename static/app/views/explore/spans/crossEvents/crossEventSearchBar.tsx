@@ -25,92 +25,97 @@ interface SpansTabCrossEventSearchBarProps {
   type: 'logs' | 'spans';
 }
 
-export const SpansTabCrossEventSearchBar = memo(function SpansTabCrossEventSearchBar({
-  index,
-  query,
-  type,
-}: SpansTabCrossEventSearchBarProps) {
-  const mode = useQueryParamsMode();
-  const crossEvents = useQueryParamsCrossEvents();
-  const setCrossEvents = useSetQueryParamsCrossEvents();
+export const SpansTabCrossEventSearchBar = memo(
+  function SpansTabCrossEventSearchBarComponent({
+    index,
+    query,
+    type,
+  }: SpansTabCrossEventSearchBarProps) {
+    const mode = useQueryParamsMode();
+    const crossEvents = useQueryParamsCrossEvents();
+    const setCrossEvents = useSetQueryParamsCrossEvents();
 
-  const traceItemType = type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
+    const traceItemType =
+      type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
 
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {}, 'number');
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {}, 'string');
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
+    const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'number');
+    const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'string');
+    const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
 
-  const eapSpanSearchQueryBuilderProps = useMemo(
-    () => ({
-      initialQuery: query,
-      onSearch: (newQuery: string) => {
-        if (!crossEvents) {
-          return;
-        }
+    const eapSpanSearchQueryBuilderProps = useMemo(
+      () => ({
+        initialQuery: query,
+        onSearch: (newQuery: string) => {
+          if (!crossEvents) {
+            return;
+          }
 
-        setCrossEvents?.(
-          crossEvents.map((c, i) => {
-            if (i === index) {
-              return {query: newQuery, type};
-            }
-            return c;
-          })
-        );
-      },
-      searchSource: 'explore',
-      getFilterTokenWarning:
-        mode === Mode.SAMPLES
-          ? (key: string) => {
-              if (ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)) {
-                return <SamplesModeAggregateFilterWarning />;
+          setCrossEvents?.(
+            crossEvents.map((c, i) => {
+              if (i === index) {
+                return {query: newQuery, type};
               }
-              return;
-            }
-          : undefined,
-      supportedAggregates:
-        mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      booleanAttributes,
-      numberAttributes,
-      stringAttributes,
-      matchKeySuggestions: [
-        {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
-        {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
-      ],
-      booleanSecondaryAliases,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
-      replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
-    }),
-    [
-      booleanAttributes,
-      booleanSecondaryAliases,
-      crossEvents,
-      index,
-      mode,
-      numberSecondaryAliases,
-      numberAttributes,
-      query,
-      setCrossEvents,
-      stringSecondaryAliases,
-      stringAttributes,
-      type,
-    ]
-  );
+              return c;
+            })
+          );
+        },
+        searchSource: 'explore',
+        getFilterTokenWarning:
+          mode === Mode.SAMPLES
+            ? (key: string) => {
+                if (
+                  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
+                ) {
+                  return <SamplesModeAggregateFilterWarning />;
+                }
+                return;
+              }
+            : undefined,
+        supportedAggregates:
+          mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        booleanAttributes,
+        numberAttributes,
+        stringAttributes,
+        matchKeySuggestions: [
+          {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+          {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+        ],
+        booleanSecondaryAliases,
+        numberSecondaryAliases,
+        stringSecondaryAliases,
+        replaceRawSearchKeys: type === 'logs' ? ['message'] : ['span.description'],
+      }),
+      [
+        booleanAttributes,
+        booleanSecondaryAliases,
+        crossEvents,
+        index,
+        mode,
+        numberSecondaryAliases,
+        numberAttributes,
+        query,
+        setCrossEvents,
+        stringSecondaryAliases,
+        stringAttributes,
+        type,
+      ]
+    );
 
-  const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
-    itemType: traceItemType,
-    ...eapSpanSearchQueryBuilderProps,
-  });
+    const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
+      itemType: traceItemType,
+      ...eapSpanSearchQueryBuilderProps,
+    });
 
-  return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
-      <TraceItemSearchQueryBuilder
-        itemType={traceItemType}
-        {...eapSpanSearchQueryBuilderProps}
-      />
-    </SearchQueryBuilderProvider>
-  );
-});
+    return (
+      <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+        <TraceItemSearchQueryBuilder
+          itemType={traceItemType}
+          {...eapSpanSearchQueryBuilderProps}
+        />
+      </SearchQueryBuilderProvider>
+    );
+  }
+);

@@ -434,7 +434,7 @@ type Props = {
   projectId?: Project['id'];
 };
 
-export const CustomerStats = memo(function CustomerStats({
+export const CustomerStats = memo(function CustomerStatsComponent({
   orgSlug,
   projectId,
   dataType,

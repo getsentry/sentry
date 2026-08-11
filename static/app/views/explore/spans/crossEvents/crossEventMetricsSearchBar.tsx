@@ -32,7 +32,7 @@ interface SpansTabCrossEventMetricsSearchBarProps {
 }
 
 export const SpansTabCrossEventMetricsSearchBar = memo(
-  function SpansTabCrossEventMetricsSearchBar({
+  function SpansTabCrossEventMetricsSearchBarComponent({
     index,
     metric,
     query,

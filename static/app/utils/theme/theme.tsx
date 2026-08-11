@@ -196,6 +196,8 @@ const commonTheme = {
     truncationFullValue: 10,
 
     header: 1000,
+    dropdown: 1001,
+    stickyHeader: 1002,
 
     // dashboard widget builder backdrop sits behind the sidebar
     // because it renders on the right next to the sidebar
@@ -203,7 +205,6 @@ const commonTheme = {
     widgetBuilderDrawer: 1016,
 
     sidebarPanel: 1019,
-    dropdown: 1020,
     sidebar: 1020,
 
     // Sentry user feedback modal

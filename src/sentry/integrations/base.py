@@ -244,6 +244,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
 
+    overwrite_existing_integration = True
+    """whether installation refreshes an existing Integration's global fields"""
+
     can_disable = False
     """
     if the integration can be uninstalled in Sentry, set to False
