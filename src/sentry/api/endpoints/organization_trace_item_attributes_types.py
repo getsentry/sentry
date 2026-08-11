@@ -1,5 +1,7 @@
 from typing import Any, Literal, NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
+
 from sentry.search.eap.types import ColumnType
 
 
@@ -40,6 +42,7 @@ class TraceItemAttributeContext(TypedDict):
     replacementAttribute: NotRequired[str]
 
 
+@extend_schema_serializer(exclude_fields=["context"])
 class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
@@ -48,4 +51,8 @@ class TraceItemAttributeKey(TypedDict):
     attributeType: ColumnType
     # Attribute context, only present when requested via ``expand=context``.
     # Attached to every attribute, and empty when it has no metadata.
+    #
+    # Excluded from the OpenAPI spec above: the context shape is still evolving,
+    # so we don't want public consumers depending on it. It stays on the
+    # TypedDict, so mypy and the runtime are unaffected.
     context: NotRequired[TraceItemAttributeContext]

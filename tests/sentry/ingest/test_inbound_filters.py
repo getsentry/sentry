@@ -238,6 +238,14 @@ def error_message_rule_condition(values: list[str]) -> dict:
     }
 
 
+def error_type_rule_condition(values: list[str]) -> dict:
+    return {
+        "op": "any",
+        "name": "event.exception.values",
+        "inner": {"op": "glob", "name": "ty", "value": values},
+    }
+
+
 @django_db_all
 @pytest.mark.parametrize(
     ("conditions", "expected_condition"),
@@ -255,6 +263,39 @@ def error_message_rule_condition(values: list[str]) -> dict:
                 ],
             },
             id="error_message_and_release",
+        ),
+        pytest.param(
+            [{"type": "error_type", "value": ["TypeError", "*Timeout"]}],
+            error_type_rule_condition(["TypeError", "*Timeout"]),
+            id="error_type_only",
+        ),
+        pytest.param(
+            [
+                {"type": "error_type", "value": ["TypeError"]},
+                {"type": "error_message", "value": ["*undefined*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_type_rule_condition(["TypeError"]),
+                    error_message_rule_condition(["*undefined*"]),
+                ],
+            },
+            id="error_type_and_error_message",
+        ),
+        pytest.param(
+            [
+                {"type": "error_type", "value": ["TypeError"]},
+                {"type": "release", "value": ["1.*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_type_rule_condition(["TypeError"]),
+                    {"op": "glob", "name": "event.release", "value": ["1.*"]},
+                ],
+            },
+            id="error_type_and_release",
         ),
         pytest.param(
             [
@@ -421,6 +462,14 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "release", "value": []}],
+    )
+    # A log carries no exception type, so a filter mixing data types matches nothing.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "error_type", "value": ["TypeError"]},
+            {"type": "log_message", "value": ["*DEBUG*"]},
+        ],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(
