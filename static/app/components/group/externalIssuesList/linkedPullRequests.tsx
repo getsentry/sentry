@@ -44,6 +44,13 @@ const PULL_REQUEST_ACTIVITY_TYPES = new Set([
   GroupActivityType.PULL_REQUEST_CLOSED,
 ]);
 
+const CODING_AGENT_NAMES: Record<PullRequestAttributionAgent, string> = {
+  cursor: 'Cursor Cloud Agent',
+  github_copilot: 'GitHub Copilot',
+  claude_code: 'Claude Code',
+  unknown: 'a coding agent',
+};
+
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
     group.activity
@@ -205,7 +212,10 @@ function PullRequestAttributionAvatar({
         return <SeerAttributionAvatar />;
       }
 
-      const label = getCodingAgentAttributionLabel(attribution.agent);
+      const label = t(
+        'Pull request created by %s via Seer',
+        CODING_AGENT_NAMES[attribution.agent]
+      );
       return (
         <Tooltip title={label} skipWrapper>
           {githubAuthorLogin ? (
@@ -234,19 +244,6 @@ function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string
   }
 
   return pullRequest.author?.name?.replace(/\[bot\]$/, '') ?? null;
-}
-
-function getCodingAgentAttributionLabel(agent: PullRequestAttributionAgent) {
-  switch (agent) {
-    case 'cursor':
-      return t('Pull request created by Cursor Cloud Agent via Seer');
-    case 'github_copilot':
-      return t('Pull request created by GitHub Copilot via Seer');
-    case 'claude_code':
-      return t('Pull request created by Claude Code via Seer');
-    case 'unknown':
-      return t('Pull request created by a coding agent via Seer');
-  }
 }
 
 function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {

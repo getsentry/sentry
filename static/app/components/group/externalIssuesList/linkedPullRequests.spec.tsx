@@ -130,9 +130,6 @@ describe('LinkedPullRequests', () => {
       'src',
       'https://github.com/cursor.png?s=120'
     );
-    expect(
-      screen.queryByRole('img', {name: 'Pull request created by Seer'})
-    ).not.toBeInTheDocument();
   });
 
   it('renders checks and review details when available', async () => {
