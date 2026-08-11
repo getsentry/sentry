@@ -34,6 +34,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
+    is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
@@ -172,6 +173,27 @@ def schedule_night_shift(
         step=1000,
     ):
         seer_org_ids.add(spr.project_repository.project.organization_id)
+
+    # Free cohort orgs may not have SeerProjectRepository rows — include them
+    # so they reach the eligibility checks in _get_eligible_orgs_from_batch.
+    try:
+        free_cohort_org_ids = set(
+            OrganizationOption.objects.filter(
+                key="agentic-triage-free-cohort",
+                value=True,
+            ).values_list("organization_id", flat=True)
+        )
+        seer_org_ids |= free_cohort_org_ids
+        if free_cohort_org_ids:
+            logger.info(
+                "night_shift.free_cohort_org_ids",
+                extra={
+                    "num_free_cohort_org_ids": len(free_cohort_org_ids),
+                    "sample_org_ids": sorted(free_cohort_org_ids)[:10],
+                },
+            )
+    except Exception:
+        logger.exception("night_shift.free_cohort_org_ids_failed")
 
     logger.info(
         "night_shift.schedule_org_ids_collected",
@@ -387,7 +409,9 @@ def run_night_shift_execution(
         _complete_run(run)
         return None
 
-    if not quotas.backend.check_seer_quota(
+    # Free cohort orgs have no Subscription so check_seer_quota returns False.
+    # Bypass the check for them — they get night shift without billing.
+    if not is_free_cohort_org(organization) and not quotas.backend.check_seer_quota(
         org_id=organization.id,
         data_category=DataCategory.SEER_AUTOFIX,
     ):
@@ -549,12 +573,16 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    for feature_name in PER_ORG_FEATURE_NAMES:
-        eligible = [org for org in eligible if features.has(feature_name, org)]
-        if not eligible:
-            return []
+    # seat-based-seer-enabled: required for paid path, bypassed by free cohort
+    paid_eligible: list[Organization] = []
+    free_cohort_eligible: list[Organization] = []
+    for org in eligible:
+        if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
+            paid_eligible.append(org)
+        elif features.has("organizations:gen-ai-features", org) and is_free_cohort_org(org):
+            free_cohort_eligible.append(org)
 
-    return eligible
+    return paid_eligible + free_cohort_eligible
 
 
 def _update_run_extras(

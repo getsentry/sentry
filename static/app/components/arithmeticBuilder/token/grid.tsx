@@ -199,7 +199,7 @@ function GridList({showPlaceholder, ...props}: GridListProps) {
 const TokenGridWrapper = styled('div')`
   padding: ${p => p.theme.space.sm};
   display: flex;
-  align-items: stretch;
+  align-items: center;
   row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
 

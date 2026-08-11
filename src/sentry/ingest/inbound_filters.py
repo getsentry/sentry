@@ -6,8 +6,10 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    DATA_TYPE_BY_CONDITION_TYPE,
     CustomInboundFilter,
     CustomInboundFilterConditionType,
+    CustomInboundFilterDataType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -523,6 +525,24 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     return _error_message_condition(patterns, match_logentry=True)
 
 
+def _custom_error_type_condition(values: list[str]) -> RuleCondition:
+    """
+    Matches events that carry an exception whose type matches one of the globs.
+
+    Unlike ``error_message``, this reads the exception type alone, so it narrows a
+    filter to a type without also matching events that merely mention it in their
+    message.
+    """
+    return cast(
+        RuleCondition,
+        {
+            "op": "any",
+            "name": "event.exception.values",
+            "inner": {"op": "glob", "name": "ty", "value": values},
+        },
+    )
+
+
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
@@ -537,20 +557,21 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# A filter's primary condition type selects the item its conditions match against, since
-# only that item carries such data.
-_MATCHERS_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType, _ConditionMatchers] = {
-    CustomInboundFilterConditionType.ERROR_MESSAGE: {
+# A filter's data type selects the item its conditions match against, since only that
+# item carries such data. Release lives on a different field on each of them.
+_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
+    CustomInboundFilterDataType.ERROR: {
+        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
         CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
         CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
     },
-    CustomInboundFilterConditionType.LOG_MESSAGE: {
+    CustomInboundFilterDataType.LOG: {
         CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
         CustomInboundFilterConditionType.RELEASE: _field_matcher(
             "log.attributes.sentry.release.value"
         ),
     },
-    CustomInboundFilterConditionType.METRIC_NAME: {
+    CustomInboundFilterDataType.METRIC: {
         CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
         CustomInboundFilterConditionType.RELEASE: _field_matcher(
             "trace_metric.attributes.sentry.release.value"
@@ -587,14 +608,15 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
     # A filter carrying only release conditions falls through to events, mirroring the
     # legacy `releases` inbound filter.
-    matchers = next(
+    data_type = next(
         (
-            _MATCHERS_BY_PRIMARY_CONDITION[condition_type]
+            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
             for condition_type, _ in parsed
-            if condition_type in _MATCHERS_BY_PRIMARY_CONDITION
+            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
         ),
-        _MATCHERS_BY_PRIMARY_CONDITION[CustomInboundFilterConditionType.ERROR_MESSAGE],
+        CustomInboundFilterDataType.ERROR,
     )
+    matchers = _MATCHERS_BY_DATA_TYPE[data_type]
 
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:

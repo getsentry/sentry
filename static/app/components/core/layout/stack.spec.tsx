@@ -4,12 +4,9 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Stack,
-  type StackProps,
-  type StackPropsWithRenderFunction,
-} from '@sentry/scraps/layout';
 import type {Responsive} from '@sentry/scraps/layout';
+
+import {Stack, type StackProps, type StackPropsWithRenderFunction} from './stack';
 
 const theme = ThemeFixture();
 
