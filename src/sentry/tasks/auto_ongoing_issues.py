@@ -1,9 +1,11 @@
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 
 from django.db.models import Max, OuterRef, Subquery
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
@@ -22,6 +24,24 @@ ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
+def child_task_countdown(
+    batch_index: int,
+    spread_seconds: int,
+    max_batches: int,
+    elapsed_seconds: float,
+) -> int:
+    """
+    Pure countdown math: land batch `batch_index` evenly across `spread_seconds`
+    from schedule start. `elapsed_seconds` is time already spent paging so slow
+    iterators don't double-delay later batches.
+    """
+    if spread_seconds <= 0 or max_batches <= 1 or batch_index <= 0:
+        return 0
+    capped_index = min(batch_index, max_batches - 1)
+    target_offset = (capped_index * spread_seconds) // (max_batches - 1)
+    return max(0, int(target_offset - elapsed_seconds))
+
+
 def _schedule_limit() -> int:
     return ITERATOR_CHUNK * CHILD_TASK_COUNT
 
@@ -34,9 +54,9 @@ def _schedule_limit() -> int:
 )
 def schedule_auto_transition_to_ongoing() -> None:
     """
-    Triggered by cronjob every minute. This task will spawn subtasks
-    that transition Issues to Ongoing according to their specific
-    criteria.
+    Triggered by cronjob (every few minutes). Spawns schedule subtasks that
+    enqueue run_* child tasks spread over
+    issues.auto_ongoing_issues.child_task_spread_seconds.
     """
     now = datetime.now(tz=timezone.utc)
 
@@ -89,21 +109,31 @@ def schedule_auto_transition_issues_new_to_ongoing(
         extra=logger_extra,
     )
 
+    spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
-        for groups in chunked(
-            RangeQuerySetWrapper(
-                base_queryset,
-                step=ITERATOR_CHUNK,
-                limit=_schedule_limit(),
-                order_by="first_seen",
-                override_unique_safety_check=True,
-            ),
-            ITERATOR_CHUNK,
+        started = time.monotonic()
+        for batch_index, groups in enumerate(
+            chunked(
+                RangeQuerySetWrapper(
+                    base_queryset,
+                    step=ITERATOR_CHUNK,
+                    limit=_schedule_limit(),
+                    order_by="first_seen",
+                    override_unique_safety_check=True,
+                ),
+                ITERATOR_CHUNK,
+            )
         ):
             scheduled += len(groups)
-            run_auto_transition_issues_new_to_ongoing.delay(
-                group_ids=[group.id for group in groups],
+            run_auto_transition_issues_new_to_ongoing.apply_async(
+                kwargs={"group_ids": [group.id for group in groups]},
+                countdown=child_task_countdown(
+                    batch_index,
+                    spread_seconds,
+                    CHILD_TASK_COUNT,
+                    time.monotonic() - started,
+                ),
             )
 
     metrics.incr(
@@ -177,20 +207,30 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         .filter(recent_regressed_history__lte=date_threshold)
     )
 
+    spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
-        for group_ids_with_regressed_history in chunked(
-            RangeQuerySetWrapper(
-                base_queryset.values_list("id", flat=True),
-                step=ITERATOR_CHUNK,
-                limit=_schedule_limit(),
-                result_value_getter=lambda item: item,
-            ),
-            ITERATOR_CHUNK,
+        started = time.monotonic()
+        for batch_index, group_ids_with_regressed_history in enumerate(
+            chunked(
+                RangeQuerySetWrapper(
+                    base_queryset.values_list("id", flat=True),
+                    step=ITERATOR_CHUNK,
+                    limit=_schedule_limit(),
+                    result_value_getter=lambda item: item,
+                ),
+                ITERATOR_CHUNK,
+            )
         ):
             scheduled += len(group_ids_with_regressed_history)
-            run_auto_transition_issues_regressed_to_ongoing.delay(
-                group_ids=group_ids_with_regressed_history,
+            run_auto_transition_issues_regressed_to_ongoing.apply_async(
+                kwargs={"group_ids": group_ids_with_regressed_history},
+                countdown=child_task_countdown(
+                    batch_index,
+                    spread_seconds,
+                    CHILD_TASK_COUNT,
+                    time.monotonic() - started,
+                ),
             )
 
     metrics.incr(
@@ -264,20 +304,30 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         .filter(recent_escalating_history__lte=date_threshold)
     )
 
+    spread_seconds = max(0, options.get("issues.auto_ongoing_issues.child_task_spread_seconds"))
     scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
-        for new_group_ids in chunked(
-            RangeQuerySetWrapper(
-                base_queryset.values_list("id", flat=True),
-                step=ITERATOR_CHUNK,
-                limit=_schedule_limit(),
-                result_value_getter=lambda item: item,
-            ),
-            ITERATOR_CHUNK,
+        started = time.monotonic()
+        for batch_index, new_group_ids in enumerate(
+            chunked(
+                RangeQuerySetWrapper(
+                    base_queryset.values_list("id", flat=True),
+                    step=ITERATOR_CHUNK,
+                    limit=_schedule_limit(),
+                    result_value_getter=lambda item: item,
+                ),
+                ITERATOR_CHUNK,
+            )
         ):
             scheduled += len(new_group_ids)
-            run_auto_transition_issues_escalating_to_ongoing.delay(
-                group_ids=new_group_ids,
+            run_auto_transition_issues_escalating_to_ongoing.apply_async(
+                kwargs={"group_ids": new_group_ids},
+                countdown=child_task_countdown(
+                    batch_index,
+                    spread_seconds,
+                    CHILD_TASK_COUNT,
+                    time.monotonic() - started,
+                ),
             )
 
     metrics.incr(
