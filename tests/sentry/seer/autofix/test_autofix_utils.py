@@ -83,11 +83,15 @@ class TestBuildRepoDefinitionFromProjectRepoFallback(TestCase):
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="gh_123"
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
             external_id="ext123",
             name="test-org/test-repo",
+            integration_id=self.integration.id,
         )
 
     def test_builds_definition_with_null_seer_fields(self):
@@ -98,6 +102,7 @@ class TestBuildRepoDefinitionFromProjectRepoFallback(TestCase):
         assert result is not None
         assert result.repository_id == self.repo.id
         assert result.organization_id == self.repo.organization_id
+        assert result.integration_id == str(self.integration.id)
         assert result.provider == "integrations:github"
         assert result.owner == "test-org"
         assert result.name == "test-repo"
@@ -118,26 +123,6 @@ class TestBuildRepoDefinitionFromProjectRepoFallback(TestCase):
         result = build_repo_definition_from_project_repo_fallback(pr)
 
         assert result is None
-
-    def test_includes_integration_id_as_string(self):
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="gh_123"
-        )
-        repo_with_integration = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="ext_int",
-            name="test-org/int-repo",
-            integration_id=integration.id,
-        )
-        pr = ProjectRepository.objects.create(
-            project=self.project, repository=repo_with_integration
-        )
-
-        result = build_repo_definition_from_project_repo_fallback(pr)
-
-        assert result is not None
-        assert result.integration_id == str(integration.id)
 
 
 class TestAutofixStateParsing(TestCase):
