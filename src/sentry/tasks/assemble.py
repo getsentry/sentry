@@ -24,6 +24,7 @@ from sentry.debug_files.artifact_bundles import (
 )
 from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
 from sentry.models.artifactbundle import (
+    MAX_SOURCE_FILE_SIZE,
     NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
@@ -400,11 +401,13 @@ class ArtifactBundlePostAssembler:
     def _validate_bundle_guarded(self):
         try:
             self._validate_bundle()
-        except Exception:
+        except Exception as e:
             metrics.incr("tasks.assemble.invalid_bundle")
             # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
             # avoid orphan entries.
             self.delete_bundle_file_object()
+            if isinstance(e, AssembleArtifactsError):
+                raise
             raise AssembleArtifactsError("the bundle is invalid")
 
     def _validate_bundle(self):
@@ -412,6 +415,13 @@ class ArtifactBundlePostAssembler:
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
+        for info in self.archive.infolist():
+            if info.file_size > MAX_SOURCE_FILE_SIZE:
+                metrics.incr("tasks.assemble.artifact_bundle.file_size_exceeded")
+                raise AssembleArtifactsError(
+                    f"file {info.filename} exceeds the maximum uncompressed file size "
+                    f"({info.file_size} > {MAX_SOURCE_FILE_SIZE} bytes)"
+                )
 
     def __enter__(self):
         return self

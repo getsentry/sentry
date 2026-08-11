@@ -27,6 +27,8 @@ from sentry.utils.hashlib import sha1_text
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
+MAX_SOURCE_FILE_SIZE = 190 * 1024 * 1024
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -236,6 +238,9 @@ class ArtifactBundleArchive:
 
     def info(self, filename: str) -> zipfile.ZipInfo:
         return self._zip_file.getinfo(filename)
+
+    def infolist(self) -> list[zipfile.ZipInfo]:
+        return self._zip_file.infolist()
 
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
