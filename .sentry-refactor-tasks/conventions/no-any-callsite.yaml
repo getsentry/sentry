@@ -1,0 +1,133 @@
+name: no-any-callsite
+severity: warning
+tags: [typescript, type-safety, tech-debt]
+
+why: |
+  `any` opts a value out of type checking entirely — every operation on it,
+  every property access, every value that flows from it into other code is
+  silently unchecked. A single `any` at a boundary can erase type safety for
+  everything downstream of it, which is worse than it looks at the callsite
+  where it's written. `@ts-ignore` and `@ts-expect-error` are the same problem
+  at the statement level (they silence whatever the checker would have
+  reported, correct or not), and `@ts-nocheck` at the file level.
+
+  Each hit here is either a real gap where the actual type was never worked
+  out (worth fixing), or a deliberate escape hatch for something the type
+  system can't express cleanly (worth understanding, possibly worth a better
+  type instead of `any`). The point isn't "delete every `any`" — some are
+  genuinely hard to avoid (untyped third-party libs, `JSON.parse` results) —
+  it's that each one should be a considered choice, not a shortcut past a type
+  error nobody looked at.
+
+  Scope note: this is a grep-based detector, not a type-aware one. It only
+  catches `any` written explicitly in source — `: any`, `as any`, `any[]`,
+  `Array<any>`, `Record<string, any>`, `Promise<any>`, and `Foo<any>` generic
+  arguments — plus the three compiler-suppression comments. It cannot see
+  *inferred* `any` (e.g. a value that becomes `any` because it flows in from
+  an untyped import, or a missing type at a module boundary that widens
+  silently). Closing that gap would need a type-aware rule in the spirit of
+  `no-deprecated-callsite`'s `@typescript-eslint/no-unsafe-*` family — a
+  separate, future convention, not this one.
+
+  Deliberately left out: `as unknown as X` (double-cast escape hatch) and bare
+  non-null assertions (`!`). Both are real type-safety escape hatches, but
+  neither greps reliably enough to be worth a false-positive rate this high —
+  `!` collides with the logical-not operator and definite-assignment
+  assertions on nearly every line of the codebase, and `as unknown as X`
+  requires distinguishing a genuine double-cast from two unrelated, adjacent
+  `as` expressions without an AST. Revisit both if a type-aware detector ever
+  covers this convention.
+
+detect_command: 'bash {convention_dir}/no-any-callsite.detect.sh {repo_path}'
+
+fix: |
+  Each finding names a `category`:
+    - any-annotation, any-array, any-record, any-promise, any-as,
+      any-generic-arg: explicit `any` written at the callsite.
+    - ts-ignore, ts-expect-error: a suppressed type error on the next
+      line/statement.
+    - ts-nocheck: type checking disabled for the whole file.
+
+  For explicit `any` (any-* categories):
+    1. Work out the real type from how the value is used: its call sites,
+       what's assigned to it, what shape the surrounding code expects. Prefer
+       the narrowest accurate type over a broad one.
+    2. If the value comes from a third-party library, check whether
+       `@types/<pkg>` or the package's own types already describe it — reach
+       for those before hand-writing a type.
+    3. If the value is genuinely unknown at this point (e.g. `JSON.parse`,
+       an untyped external payload), prefer `unknown` over `any` and narrow it
+       with a type guard where it's consumed — `unknown` still forces a check
+       before use, `any` doesn't.
+    4. Replace the `any` with the derived type. For `Record<string, any>`,
+       consider whether a specific interface fits better than a wider
+       `Record<string, unknown>`.
+
+  For `@ts-ignore` / `@ts-expect-error`:
+    1. Temporarily remove the comment and run
+       `pnpm tsc --noEmit <file>` (or open the file in an editor with the TS
+       language server) to see the actual error it was hiding.
+    2. Fix the real type error the suppression was masking — do not just
+       delete the comment and leave the code as-is if that reintroduces a
+       type error; do not just re-add the comment either.
+    3. If the error turns out to be a false positive from the checker itself
+       (rare), keep `@ts-expect-error` (never bare `@ts-ignore` — it doesn't
+       fail loudly when the underlying error is later fixed) and add a
+       comment explaining why.
+
+  For `@ts-nocheck`:
+    1. This disables checking for the entire file, so there may be many
+       latent errors underneath it — removing it can surface a large number
+       of type errors at once. Remove it and fix errors incrementally rather
+       than reverting if the count is large; do not re-add it as a shortcut.
+
+  Verify the fix by re-running the TypeScript checker on the changed file(s)
+  from the repo root:
+    pnpm tsc --noEmit --project config/tsconfig.build.json
+
+  Gotchas:
+    1. `any` is contagious — fixing one callsite may reveal that a type
+       upstream or downstream is also `any` (or was silently widened to it).
+       Follow the type through its immediate callers/callees rather than
+       stopping at the first line.
+    2. Don't replace `any` with `unknown` and stop there if the code then
+       needs an unsafe cast to use the value — that just moves the escape
+       hatch one line down. Narrow it properly, or leave a clear reason if a
+       cast is genuinely unavoidable.
+    3. Generic-arg hits (`Foo<any>`) sometimes exist because the generic type
+       itself has no other reasonable default — check the generic's
+       definition before assuming a concrete type is always available.
+    4. `@ts-expect-error` above a line that no longer errors will itself
+       become a type error ("Unused '@ts-expect-error' directive") once the
+       underlying bug is fixed — that's expected and confirms the fix worked.
+
+examples:
+  bad:
+    - 'function handleClick(event: any) { ... }'
+    - 'const data = response as any;'
+    - 'function useItems(): any[] { ... }'
+    - 'const config: Record<string, any> = loadConfig();'
+    - '// @ts-ignore\nconst value = maybeUndefined.property;'
+    - '// @ts-nocheck'
+  good:
+    - 'function handleClick(event: React.MouseEvent<HTMLButtonElement>) { ... }'
+    - 'const data = response as ApiResponse;'
+    - 'function useItems(): Item[] { ... }'
+    - 'const config: AppConfig = loadConfig();'
+    - 'const value = (maybeUndefined as {property?: string} | undefined)?.property;'
+
+# Test files are excluded: an untyped mock or fixture is a much more common
+# and more defensible pattern than untyped production code (the point of a
+# mock is often to stand in loosely for a shape you don't want to fully type),
+# so folding them into the same convention as production `any` usage would
+# mostly add noise. Mirrors no-unjustified-lint-ignore's exclude list.
+include:
+  - 'static/**/*.tsx'
+  - 'static/**/*.ts'
+exclude:
+  - '**/node_modules/**'
+  - '**/__fixtures__/**'
+  - '**/__mocks__/**'
+  - '**/*.spec.*'
+  - '**/*.test.*'
+  - '**/test/**'
