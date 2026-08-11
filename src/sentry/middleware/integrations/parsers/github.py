@@ -9,6 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.github.check_payloads import references_own_repo_pull_request
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
@@ -26,7 +27,6 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -41,30 +41,6 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
     if isinstance(action, str) and action in action_filter.known:
         return action
     return "unknown"
-
-
-def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: str) -> bool:
-    """Whether a check payload references a pull request in the webhook's own repo.
-
-    ``pull_requests`` can list PRs that live in *other* repositories, and the cell's
-    ``_prs_from_check_payload`` resolves only entries whose ``base.repo`` is the repo
-    the webhook is for — a payload carrying none of those is a no-op there. Both
-    sides of that comparison are in the payload, so control can measure how much of
-    the forwarded check volume it could stop storing.
-    """
-    repo_id = get_path(event, "repository", "id")
-    if repo_id is None:
-        return False
-
-    refs = get_path(event, container_key, "pull_requests")
-    if not isinstance(refs, list):
-        return False
-
-    for ref in refs:
-        base_repo_id = get_path(ref, "base", "repo", "id")
-        if base_repo_id is not None and str(base_repo_id) == str(repo_id):
-            return True
-    return False
 
 
 def _forwarded_event_tags(
@@ -88,7 +64,7 @@ def _forwarded_event_tags(
     # only the completed action has a cell-side consumer that reads it.
     if action == "completed":
         tags["has_own_repo_pr"] = (
-            "true" if _references_own_repo_pull_request(event, github_event) else "false"
+            "true" if references_own_repo_pull_request(event, github_event) else "false"
         )
     return tags
 
