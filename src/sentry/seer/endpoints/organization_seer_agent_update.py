@@ -21,6 +21,7 @@ from sentry.seer.agent.client_utils import (
     agent_connection_pool,
     has_seer_agent_access_with_detail,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
 from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
@@ -95,9 +96,23 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
 
         path = "/v1/automation/explorer/update"
 
+        data = dict(request.data)
+        if isinstance(payload, dict) and "author" in payload:
+            # Never trust a client-supplied commit author.
+            payload = {k: v for k, v in payload.items() if k != "author"}
+            data["payload"] = payload
+
+        if payload_type == "create_pr":
+            author = commit_author_for_user(
+                request.user, organization.id, referrer="seer_agent_update_create_pr"
+            )
+            if author is not None:
+                payload = {**payload, "author": author}
+                data["payload"] = payload
+
         body = orjson.dumps(
             {
-                **request.data,
+                **data,
                 "run_id": resolved.seer_run_state_id,
                 "organization_id": organization.id,
             }
