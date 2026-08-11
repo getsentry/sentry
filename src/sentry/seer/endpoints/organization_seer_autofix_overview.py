@@ -1,49 +1,51 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.pullrequest import (
+    PullRequestStatus,
+    get_stored_pull_request_status,
+)
 from sentry.api.utils import get_date_range_from_stats_period
+from sentry.constants import ObjectStatus
+from sentry.integrations.source_code_management.pull_request_status_batch import (
+    get_checks_and_review,
+)
+from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.plugins.base import bindings
+from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
+from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
+    IssuePayload,
+    OverviewResponse,
+    ProposedFixPayload,
+    PullRequestPayload,
+    RootCausePayload,
+    RunPayload,
+)
 from sentry.seer.models.run import (
     RootCauseArtifactExtras,
     SeerRun,
     SeerRunMilestone,
     SeerRunMilestoneExtras,
     SeerRunMilestoneType,
+    SeerRunPullRequest,
     SolutionArtifactExtras,
 )
-
-# NOTE: Pull-request (SCM) enrichment — checks, review status, and changed
-# files — lands in a follow-up PR. The imports, helpers, and wiring it needs
-# are commented out below with the same NOTE marker; re-enable them together.
-# from collections import defaultdict
-#
-# from sentry.api.serializers.models.pullrequest import (
-#     PullRequestStatus,
-#     get_stored_pull_request_status,
-# )
-# from sentry.integrations.source_code_management.pull_request_status_batch import (
-#     get_checks_and_review,
-# )
-# from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
-# from sentry.models.pullrequest import PullRequest
-# from sentry.models.repository import Repository
-# from sentry.plugins.base import bindings
-# from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-# from sentry.seer.models.run import SeerRunPullRequest
 
 # The autofix pipeline in order. A run is grouped under its furthest-reached
 # milestone; the frontend owns section labels, ordering, and layout.
@@ -82,86 +84,94 @@ class _RunMilestones:
         return extras.get("solution_artifact")
 
 
-# NOTE: SCM enrichment — see follow-up PR. Re-enable with the imports above.
-# def _serialize_pull_request(
-#     number: int,
-#     url: str | None,
-#     status: PullRequestStatus | None,
-#     checks_and_review: PullRequestStatusResult,
-# ) -> dict:
-#     return {
-#         "number": number,
-#         "url": url,
-#         "status": status,
-#         "checksStatus": checks_and_review.checks.value if checks_and_review.checks else None,
-#         "reviewStatus": checks_and_review.review.value if checks_and_review.review else None,
-#         "files": [
-#             {
-#                 "path": file.path,
-#                 "additions": file.additions,
-#                 "deletions": file.deletions,
-#                 "changeType": file.change_type,
-#             }
-#             for file in checks_and_review.files
-#         ],
-#     }
-#
-#
-# def _pull_requests_by_seer_run_id(seer_run_ids: list[int]) -> dict[int, list[dict]]:
-#     by_run: dict[int, list[dict]] = defaultdict(list)
-#     links = list(
-#         SeerRunPullRequest.objects.filter(seer_run_id__in=seer_run_ids)
-#         .select_related("pull_request")
-#         .order_by("date_added")
-#     )
-#     if not links:
-#         return by_run
-#
-#     repos_by_id = Repository.objects.in_bulk({link.pull_request.repository_id for link in links})
-#     registry = bindings.get("integration-repository.provider")
-#     providers: dict[str, IntegrationRepositoryProvider] = {}
-#
-#     def _external_url(pr: PullRequest) -> str | None:
-#         repo = repos_by_id.get(pr.repository_id)
-#         if repo is None:
-#             return None
-#         provider_id = repo.provider
-#         if not provider_id or not provider_id.startswith("integrations:"):
-#             return None
-#         provider = providers.get(provider_id)
-#         if provider is None:
-#             provider = registry.get(provider_id)(provider_id)
-#             providers[provider_id] = provider
-#         return provider.pull_request_url(repo, pr)
-#
-#     pull_requests = [link.pull_request for link in links]
-#     status_by_pr_id: dict[int, PullRequestStatus | None] = {
-#         pr.id: get_stored_pull_request_status(pr) for pr in pull_requests
-#     }
-#     # TODO: this hits the provider (GitHub GraphQL) on every page load. If latency
-#     # bites, gate it behind an `expand=checksAndReview` param like the issues endpoint.
-#     checks_and_review_by_pr_id = get_checks_and_review(
-#         pull_requests, repos_by_id, status_by_pr_id, include_files=True
-#     )
-#
-#     for link in links:
-#         pr = link.pull_request
-#         try:
-#             number = int(pr.key)
-#         except (TypeError, ValueError):
-#             continue
-#         by_run[link.seer_run_id].append(
-#             _serialize_pull_request(
-#                 number=number,
-#                 url=_external_url(pr),
-#                 status=status_by_pr_id[pr.id],
-#                 checks_and_review=checks_and_review_by_pr_id.get(pr.id, PullRequestStatusResult()),
-#             )
-#         )
-#     return by_run
+def _serialize_pull_request(
+    number: int,
+    url: str | None,
+    status: PullRequestStatus | None,
+    checks_and_review: PullRequestStatusResult,
+) -> PullRequestPayload:
+    return {
+        "number": number,
+        "url": url,
+        "status": status,
+        "checksStatus": checks_and_review.checks.value if checks_and_review.checks else None,
+        "reviewStatus": checks_and_review.review.value if checks_and_review.review else None,
+        "files": [
+            {
+                "path": file.path,
+                "additions": file.additions,
+                "deletions": file.deletions,
+                "changeType": file.change_type,
+            }
+            for file in checks_and_review.files
+        ],
+    }
 
 
-def _serialize_issue(group: Group, serialized_group: dict) -> dict:
+def _pull_requests_by_seer_run_id(seer_run_ids: list[int]) -> dict[int, list[PullRequestPayload]]:
+    by_run: dict[int, list[PullRequestPayload]] = defaultdict(list)
+    links = list(
+        SeerRunPullRequest.objects.filter(seer_run_id__in=seer_run_ids)
+        .select_related("pull_request")
+        .order_by("date_added")
+    )
+    if not links:
+        return by_run
+
+    repos_by_id = Repository.objects.filter(
+        organization_id__in={link.pull_request.organization_id for link in links},
+        id__in={link.pull_request.repository_id for link in links},
+        status=ObjectStatus.ACTIVE,
+    ).in_bulk()
+    registry = bindings.get("integration-repository.provider")
+    providers: dict[str, IntegrationRepositoryProvider] = {}
+
+    def _external_url(pr: PullRequest) -> str | None:
+        repo = repos_by_id.get(pr.repository_id)
+        if repo is None:
+            return None
+        provider_id = repo.provider
+        if not provider_id or not provider_id.startswith("integrations:"):
+            return None
+        provider = providers.get(provider_id)
+        if provider is None:
+            try:
+                provider = registry.get(provider_id)(provider_id)
+            except KeyError:
+                # `integrations:` is a shape check, not a registry-membership one;
+                # stale/unregistered providers exist in repo data.
+                return None
+            providers[provider_id] = provider
+        return provider.pull_request_url(repo, pr)
+
+    pull_requests = [link.pull_request for link in links]
+    status_by_pr_id: dict[int, PullRequestStatus | None] = {
+        pr.id: get_stored_pull_request_status(pr) for pr in pull_requests
+    }
+    # TODO: this hits the provider (GitHub GraphQL) on every page load. If latency
+    # bites, gate it behind an `expand=checksAndReview` param like the issues endpoint.
+    checks_and_review_by_pr_id = get_checks_and_review(
+        pull_requests, repos_by_id, status_by_pr_id, include_files=True
+    )
+
+    for link in links:
+        pr = link.pull_request
+        try:
+            number = int(pr.key)
+        except (TypeError, ValueError):
+            continue
+        by_run[link.seer_run_id].append(
+            _serialize_pull_request(
+                number=number,
+                url=_external_url(pr),
+                status=status_by_pr_id[pr.id],
+                checks_and_review=checks_and_review_by_pr_id.get(pr.id, PullRequestStatusResult()),
+            )
+        )
+    return by_run
+
+
+def _serialize_issue(group: Group, serialized_group: dict) -> IssuePayload:
     return {
         "count": serialized_group.get("count"),
         "userCount": serialized_group.get("userCount"),
@@ -182,32 +192,35 @@ def _serialize_issue(group: Group, serialized_group: dict) -> dict:
     }
 
 
-def _serialize_run(group: Group, run: _RunMilestones, serialized_group: dict) -> dict:
-    result = {
+def _serialize_run(
+    group: Group,
+    run: _RunMilestones,
+    serialized_group: dict,
+    pull_requests: list[PullRequestPayload],
+) -> RunPayload:
+    root_cause_artifact = run.root_cause_artifact
+    root_cause: RootCausePayload | None = (
+        {"oneLineDescription": root_cause_artifact.get("one_line_description")}
+        if root_cause_artifact
+        else None
+    )
+
+    solution_artifact = run.solution_artifact
+    proposed_fix: ProposedFixPayload | None = (
+        {"oneLineSummary": solution_artifact.get("one_line_summary")} if solution_artifact else None
+    )
+
+    return {
         "groupId": str(group.id),
         "shortId": group.qualified_short_id,
         "title": group.title,
-        "rootCause": None,
-        "proposedFix": None,
+        "rootCause": root_cause,
+        "proposedFix": proposed_fix,
         "seerRunId": str(run.seer_run.uuid),
         "lastTriggeredAt": run.seer_run.last_triggered_at,
-        # NOTE: SCM enrichment — see follow-up PR. Re-add the `pull_requests`
-        # parameter above with this field.
-        # "pullRequests": pull_requests,
+        "pullRequests": pull_requests,
         "issue": _serialize_issue(group, serialized_group),
     }
-
-    root_cause_artifact = run.root_cause_artifact
-    if root_cause_artifact:
-        result["rootCause"] = {
-            "oneLineDescription": root_cause_artifact.get("one_line_description")
-        }
-
-    solution_artifact = run.solution_artifact
-    if solution_artifact:
-        result["proposedFix"] = {"oneLineSummary": solution_artifact.get("one_line_summary")}
-
-    return result
 
 
 class OrganizationSeerAutofixOverviewPermission(OrganizationPermission):
@@ -221,9 +234,6 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAutofixOverviewPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:seer-night-shift-ui", organization):
-            raise NotFound
-
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [p.id for p in projects]
 
@@ -266,13 +276,11 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             )
         }
 
-        # NOTE: SCM enrichment — see follow-up PR. Re-enable with the
-        # `_pull_requests_by_seer_run_id` helper and the `_serialize_run` arg below.
-        # pull_requests_by_seer_run_id = _pull_requests_by_seer_run_id(
-        #     [run.seer_run.id for _, run in capped]
-        # )
+        pull_requests_by_seer_run_id = _pull_requests_by_seer_run_id(
+            [run.seer_run.id for _, run in capped]
+        )
 
-        runs_by_milestone: dict[str, list[dict]] = {milestone: [] for milestone in _PIPELINE}
+        runs_by_milestone: dict[str, list[RunPayload]] = {milestone: [] for milestone in _PIPELINE}
         for milestone, pairs in capped_runs_by_milestone.items():
             for group_id, run in pairs:
                 group = groups.get(group_id)
@@ -283,11 +291,12 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                         group,
                         run,
                         serialized_by_id[str(group_id)],
-                        # pull_requests_by_seer_run_id.get(run.seer_run.id, []),
+                        pull_requests_by_seer_run_id.get(run.seer_run.id, []),
                     )
                 )
 
-        return Response({"runsByMilestone": runs_by_milestone})
+        response: OverviewResponse = {"runsByMilestone": runs_by_milestone}
+        return Response(response)
 
     def _latest_run_per_group(
         self,

@@ -110,6 +110,33 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         investigation = Investigation.objects.get(id=created["id"])
         assert investigation.title == "After"
 
+    def test_regular_member_can_edit_and_archive_another_users_investigation(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Created by someone else",
+        )
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        self.login_as(member_user)
+        url = self.details_url(investigation)
+
+        response = self.client.put(
+            url,
+            data={"investigationVersion": investigation.version, "title": "Updated by member"},
+            format="json",
+        )
+        assert response.status_code == 200, response.data
+
+        response = self.client.delete(
+            url,
+            data={"investigationVersion": response.data["version"]},
+            format="json",
+        )
+        assert response.status_code == 204
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+
     def archived_investigation(self) -> Investigation:
         investigation = self.create_investigation(
             organization=self.organization, created_by=self.user, title="Archived"
