@@ -270,19 +270,19 @@ class ActivityDocumentReadersTest(TestCase):
     def test_ci_failed_at_open_from_doc(self) -> None:
         self._write_doc(
             _doc(
-                open_head={"head_sha": "sha1", "sender_login": "alice", "sender_type": "User"},
                 events=[_entry("opened", "o1", head_sha="sha1")],
                 checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
             )
         )
         assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
 
-    def test_ci_failed_at_open_from_legacy_doc_without_open_head(self) -> None:
-        # Written before ``open_head`` existed: the OPENED entry is the only record
-        # of the opening head, so the reader falls back to scanning ``events``.
+    def test_ci_failed_at_open_from_doc_without_an_open_entry(self) -> None:
+        # Tracking started after the PR opened, so the opening head comes from the
+        # first sync link's ``before_sha`` — the head that push replaced.
         self._write_doc(
             _doc(
-                events=[_entry("opened", "o1", head_sha="sha1")],
+                events=[_entry("synchronized", "s1", after_sha="sha2", before_sha="sha1")],
+                sync_chain=[["sha2", "sha1", "alice", "User", "s1"]],
                 checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
             )
         )

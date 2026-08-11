@@ -5,8 +5,7 @@ No DB access in this module: functions take and mutate plain dicts, so stored
 docs can be re-folded through the same reducer (emit-time parity check, corpus
 rebuilds). :func:`apply_activity` dispatches three event families: lifecycle
 **entries** (appended to ``events`` in arrival order, deduped by ``webhook_id``,
-the opening head stored in ``open_head`` and synchronize links folded into
-``sync_chain``), **checks** (collapsed into
+with synchronize links also folded into ``sync_chain``), **checks** (collapsed into
 per-``(head_sha, app_slug, check_suite_id)`` rollups), and **comments** (folded
 into ``participants`` only, never stored).
 """
@@ -103,12 +102,6 @@ class ActivityEntry(TypedDict):
     payload: dict[str, Any]
 
 
-class OpenHead(TypedDict):
-    head_sha: str
-    sender_login: str | None
-    sender_type: str | None
-
-
 class ActivityDoc(TypedDict):
     """The JSON-round-tripped storage shape of the activity document.
 
@@ -124,9 +117,6 @@ class ActivityDoc(TypedDict):
     participants: dict[str, str]
     counts: dict[str, int]
     events_dropped: int
-    # The head and sender from the pull request's opening event. Legacy documents
-    # written before this field existed simply omit it.
-    open_head: OpenHead | None
     # A list of ``[after_sha, before_sha_or_null, sender_login, sender_type,
     # webhook_id]`` entries in arrival order, NOT an object keyed by after_sha:
     # Postgres jsonb does not preserve object key order, and eviction at the cap must
@@ -188,7 +178,6 @@ def new_document() -> ActivityDoc:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
-        "open_head": None,
         "sync_chain": [],
     }
 
@@ -296,9 +285,7 @@ def _apply_entry(
     if webhook_id and _is_duplicate(doc, webhook_id):
         return
 
-    if event_type == PullRequestActivityType.OPENED:
-        _fold_open_head(doc, payload)
-    elif event_type == PullRequestActivityType.SYNCHRONIZED:
+    if event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload, webhook_id=webhook_id)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
@@ -328,19 +315,6 @@ def _apply_entry(
 
 def _is_duplicate(doc: ActivityDoc, webhook_id: str) -> bool:
     return any(entry.get("webhook_id") == webhook_id for entry in doc["events"])
-
-
-def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
-    """Store the opening head separately from subsequent synchronize links."""
-    head_sha = payload.get("head_sha") or ""
-    if not head_sha:
-        return
-
-    doc["open_head"] = {
-        "head_sha": head_sha,
-        "sender_login": payload.get("sender_login") or None,
-        "sender_type": payload.get("sender_type") or None,
-    }
 
 
 def _fold_sync_chain(
@@ -947,6 +921,44 @@ class CiHeadResult(TypedDict):
     actor: Literal["seer", "human", "bot", "unknown"]
 
 
+def opening_head_from_doc(doc: ActivityDoc) -> tuple[str, str | None, str | None] | None:
+    """The head the PR opened with as ``(head_sha, sender_login, sender_type)``.
+
+    The ``OPENED`` entry carries all three, and no dedicated field duplicates them:
+    the entry is the PR's oldest event and the events cap drops the NEWEST arrivals,
+    so it outlives every later entry it shares the document with.
+
+    A document that never recorded one — activity tracking enabled after the PR
+    opened — falls back to the first ``sync_chain`` link's ``before_sha``, which
+    names the very commit the first push replaced. That recovers the SHA but no
+    sender: a synchronize's sender pushed the head that *superseded* this one, and
+    attributing their login to a push they didn't make is a wrong answer where
+    ``unknown`` is the honest one.
+
+    Returns ``None`` when neither source has it, i.e. there is no reliable opening
+    head to key checks off.
+    """
+    for entry in doc.get("events") or ():
+        if entry.get("event_type") != PullRequestActivityType.OPENED:
+            continue
+        payload = entry.get("payload") or {}
+        head_sha = payload.get("head_sha") or ""
+        if head_sha:
+            return (
+                head_sha,
+                payload.get("sender_login") or None,
+                payload.get("sender_type") or None,
+            )
+
+    chain = doc.get("sync_chain") or []
+    if chain:
+        first_before = (chain[0][1] if len(chain[0]) > 1 else None) or ""
+        if first_before:
+            return first_before, None, None
+
+    return None
+
+
 def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
     """Return the opening head followed by synchronize heads in insertion order.
 
@@ -955,11 +967,12 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
     ``UNKNOWN_CONCLUSION``.
     Check heads absent from the bounded history are appended in sorted SHA order
     with ``sequence=None`` so CI data is not silently lost and no false arrival
-    order is invented. Legacy documents may lack ``open_head`` or sender slots.
+    order is invented. Legacy documents may lack sender slots.
 
-    Attribution comes only from ``open_head`` and the sender slots on
-    ``sync_chain``. ``events`` is deliberately *not* consulted, even though it
-    carries the same senders, because its cap drops the newest entries while
+    The opening head comes from :func:`opening_head_from_doc`; every head after it
+    is attributed from the sender slots on ``sync_chain`` rather than from the
+    matching ``events`` entry, because the events cap drops the newest entries —
+    exactly the pushes a synchronize-heavy PR needs attributed — while
     ``sync_chain`` drops the oldest.
     """
     outcomes = ci_head_outcomes_from_doc(doc)
@@ -967,16 +980,10 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
     observed_shas: set[str] = set()
 
     observations: list[tuple[str, str | None, str | None, str | None]] = []
-    open_head = doc.get("open_head")
-    if open_head:
-        observations.append(
-            (
-                open_head["head_sha"],
-                None,
-                open_head.get("sender_login"),
-                open_head.get("sender_type"),
-            )
-        )
+    opening_head = opening_head_from_doc(doc)
+    if opening_head:
+        head_sha, sender_login, sender_type = opening_head
+        observations.append((head_sha, None, sender_login, sender_type))
 
     observations.extend(
         (

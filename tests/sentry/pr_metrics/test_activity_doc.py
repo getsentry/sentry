@@ -35,6 +35,7 @@ from sentry.pr_metrics.activity_doc import (
     human_participant_count,
     is_failing_conclusion,
     new_document,
+    opening_head_from_doc,
     review_activity_from_doc,
     reviews_requested_count_from_doc,
     timeline_events_from_doc,
@@ -163,7 +164,6 @@ def test_new_document_shape() -> None:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
-        "open_head": None,
         "sync_chain": [],
     }
 
@@ -336,7 +336,7 @@ def test_synchronize_entry_populates_sync_chain() -> None:
     assert doc["sync_chain"] == [["head1", "base1", None, None, "d1"]]
 
 
-def test_open_entry_populates_dedicated_open_head() -> None:
+def test_open_entry_is_the_opening_head_and_folds_no_sync_link() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -346,11 +346,7 @@ def test_open_entry_populates_dedicated_open_head() -> None:
         sender_login="octocat",
         sender_type="User",
     )
-    assert doc["open_head"] == {
-        "head_sha": "head1",
-        "sender_login": "octocat",
-        "sender_type": "User",
-    }
+    assert opening_head_from_doc(doc) == ("head1", "octocat", "User")
     assert doc["sync_chain"] == []
 
 
@@ -1553,7 +1549,7 @@ def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
-def test_opening_head_is_stored_separately_from_sync_chain() -> None:
+def test_opening_head_is_read_from_the_open_entry_not_the_sync_chain() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -1573,12 +1569,54 @@ def test_opening_head_is_stored_separately_from_sync_chain() -> None:
         sender_type="Bot",
     )
 
-    assert doc["open_head"] == {
-        "head_sha": "open1",
-        "sender_login": "alice",
-        "sender_type": "User",
-    }
+    assert opening_head_from_doc(doc) == ("open1", "alice", "User")
     assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot", "s1"]]
+
+
+def test_opening_head_falls_back_to_the_first_sync_link_without_a_sender() -> None:
+    # No OPENED entry — activity tracking started after the PR opened. The first
+    # push names the head it replaced, but its sender pushed the head that
+    # superseded that one, so the opening head is recovered unattributed.
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        after_sha="sync1",
+        before_sha="open1",
+        sender_login="dependabot[bot]",
+        sender_type="Bot",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s2",
+        after_sha="sync2",
+        before_sha="sync1",
+        sender_login="alice",
+        sender_type="User",
+    )
+
+    assert opening_head_from_doc(doc) == ("open1", None, None)
+    assert [result["actor"] for result in ci_head_results_from_doc(doc)] == [
+        "unknown",
+        "bot",
+        "human",
+    ]
+
+
+def test_opening_head_is_none_when_nothing_records_it() -> None:
+    doc = new_document()
+    _entry(doc, event_type=PullRequestActivityType.REVIEW_SUBMITTED, webhook_id="r1")
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        after_sha="sync1",
+    )
+
+    assert opening_head_from_doc(doc) is None
+    assert [result["head_sha"] for result in ci_head_results_from_doc(doc)] == ["sync1"]
 
 
 def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
@@ -1657,9 +1695,7 @@ def test_ci_head_results_never_carry_the_pusher_identity() -> None:
     assert "alice" not in json.dumps(results)
     assert "dependabot[bot]" not in json.dumps(results)
     # ...but the document still holds it, since that is what classifies the head.
-    open_head = doc["open_head"]
-    assert open_head is not None
-    assert open_head["sender_login"] == "alice"
+    assert opening_head_from_doc(doc) == ("a", "alice", "User")
 
 
 def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:

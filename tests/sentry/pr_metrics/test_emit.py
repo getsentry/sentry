@@ -478,38 +478,25 @@ class PrMetricsEmissionTest(TestCase):
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
 
     def test_ci_failed_at_open_from_doc_survives_events_cap(self) -> None:
-        # Fill the entries cap before the OPENED delivery arrives, so the entry is
-        # dropped from ``events``. The opening head is read off ``open_head``,
-        # folded before the cap — the same cap-resilient source
-        # ``ci_head_results_from_doc`` attributes the opening head from, so both
-        # readers still scope to ``open1`` rather than disagreeing here.
-        doc = new_document()
-        for index in range(MAX_EVENTS):
-            apply_activity(
-                doc,
-                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
-                payload={"sender_login": "alice", "sender_type": "User"},
-                ts="2026-07-10T12:00:00Z",
-                webhook_id=f"r{index}",
-            )
+        # Fill the entries cap before the OPENED delivery arrives, so its entry is
+        # dropped from ``events`` and the opening head has to come from the first
+        # ``sync_chain`` link's ``before_sha`` — folded before the cap, and the same
+        # source ``ci_head_results_from_doc`` falls back to, so both readers still
+        # scope to ``open1`` rather than disagreeing here.
+        doc = self._doc_at_events_cap()
         _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
         _doc_suite(doc, head_sha="open1", conclusion="failure")
-        assert doc["events_dropped"] == 1
+        assert doc["events_dropped"] == 2
 
         assert _ci_failed_at_open(self.pull_request, doc=doc) is True
 
     def test_ci_failed_at_open_from_doc_past_cap_still_excludes_later_head(self) -> None:
-        # Same capped document, but the failure belongs to a pushed head: reading
-        # ``open_head`` must not widen the scope to every recorded check.
-        doc = new_document()
-        for index in range(MAX_EVENTS):
-            apply_activity(
-                doc,
-                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
-                payload={"sender_login": "alice", "sender_type": "User"},
-                ts="2026-07-10T12:00:00Z",
-                webhook_id=f"r{index}",
-            )
+        # Same capped document, but the failure belongs to a pushed head: recovering
+        # the opening head must not widen the scope to every recorded check.
+        doc = self._doc_at_events_cap()
         _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
         _doc_sync(
             doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
@@ -518,6 +505,28 @@ class PrMetricsEmissionTest(TestCase):
         _doc_suite(doc, head_sha="push2", conclusion="failure")
 
         assert _ci_failed_at_open(self.pull_request, doc=doc) is False
+
+    def test_ci_failed_at_open_from_doc_past_cap_with_no_push_reports_nothing(self) -> None:
+        # Nothing survived that names the opening head: its entry was dropped by the
+        # cap and no push ever recorded it as a ``before_sha``. With no head to scope
+        # to, the checks on record can't be attributed to the open.
+        doc = self._doc_at_events_cap()
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_suite(doc, head_sha="open1", conclusion="failure")
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is False
+
+    def _doc_at_events_cap(self) -> ActivityDoc:
+        doc = new_document()
+        for index in range(MAX_EVENTS):
+            apply_activity(
+                doc,
+                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                payload={"sender_login": "alice", "sender_type": "User"},
+                ts="2026-07-10T12:00:00Z",
+                webhook_id=f"r{index}",
+            )
+        return doc
 
     # --- _no_ci_events --------------------------------------------------------
 
@@ -1141,19 +1150,14 @@ class PrMetricsEmissionTest(TestCase):
         assert json.loads(row.ci_head_results) == []
 
     def test_build_row_ci_head_actor_from_cap_resilient_fields(self) -> None:
-        # Actor attribution reads ``sync_chain`` senders, not ``events``. Fill the
-        # entries cap first so both head-bearing deliveries are dropped from
-        # ``events`` on arrival; their sender slots survive on ``sync_chain``, so the
-        # heads still bucket under ``seer`` instead of ``unknown``.
-        doc = new_document()
-        for index in range(MAX_EVENTS):
-            apply_activity(
-                doc,
-                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
-                payload={"sender_login": "alice", "sender_type": "User"},
-                ts="2026-07-10T12:00:00Z",
-                webhook_id=f"r{index}",
-            )
+        # Pushed-head attribution reads ``sync_chain`` senders, not ``events``. Fill
+        # the entries cap first so both head-bearing deliveries are dropped from
+        # ``events`` on arrival: the pushed head keeps its sender slot on the chain
+        # and still buckets under ``seer``, while the opening head — recoverable only
+        # as the first link's ``before_sha`` once its entry is gone — is reported
+        # ``unknown`` rather than attributed to the sender of the push that
+        # superseded it.
+        doc = self._doc_at_events_cap()
         _doc_open(doc, head_sha="seer1", sender_login="seer-by-sentry[bot]", sender_type="Bot")
         _doc_sync(
             doc,
@@ -1176,7 +1180,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_head_results is not None
         results = json.loads(row.ci_head_results)
         assert [(item["outcome"], item["actor"]) for item in results] == [
-            ("failure", "seer"),
+            ("failure", "unknown"),
             ("success", "seer"),
         ]
 

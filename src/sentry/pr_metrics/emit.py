@@ -345,39 +345,6 @@ def _ci_failing_at_close(
     return _any_app_failing(rows)
 
 
-def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
-    """The head SHA the PR opened with.
-
-    Read from the dedicated ``open_head`` field, which ``apply_activity`` folds in
-    *before* the events cap — the same cap-resilient source
-    ``ci_head_results_from_doc`` attributes the opening head from, so the two
-    readers agree on which SHA opened the PR even on a PR whose ``OPENED``
-    delivery arrived after ``MAX_EVENTS`` other events and was therefore dropped
-    from ``events``.
-
-    Falls back to scanning ``events`` for the ``OPENED`` entry, for documents
-    written before ``open_head`` existed: ``OpenedPayload.head_sha`` round-trips
-    into the entry's stored payload unchanged (it isn't a check/comment family
-    event, so the entry is appended as-is).
-
-    Returns ``None`` when neither source has it — e.g. activity tracking was
-    enabled after the PR had already opened — since there's then no reliable
-    "opening head" to key checks off.
-    """
-    open_head = doc.get("open_head")
-    if open_head:
-        head_sha = open_head.get("head_sha")
-        if head_sha:
-            return head_sha
-
-    for entry in doc.get("events", []):
-        if entry.get("event_type") == PullRequestActivityType.OPENED:
-            payload_head_sha = (entry.get("payload") or {}).get("head_sha")
-            return payload_head_sha or None
-
-    return None
-
-
 def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None) -> bool:
     """Whether any CI provider's check suite was already failing at the PR's
     *opening* head — unlike ``_ci_failing_at_close``, meaningful for every
@@ -385,9 +352,12 @@ def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityD
     checks scoped to the one head the PR opened with.
 
     Doc store: keyed precisely off the opening head SHA (see
-    ``_opened_head_sha_from_doc``), via the checks rollup's ``(head_sha,
+    ``activity_doc.opening_head_from_doc``, the same reader
+    ``ci_head_results_from_doc`` attributes the opening head with, so the two
+    agree on which SHA opened the PR), via the checks rollup's ``(head_sha,
     app_slug, check_suite_id)`` grouping — a later push's checks, recorded under
-    a different head, are correctly excluded.
+    a different head, are correctly excluded. A document with no recoverable
+    opening head has nothing to scope to, so it reports no failure.
 
     Legacy store: the row payload carries no ``head_sha`` at all (see
     ``CheckSuiteCompletedPayload``), so the opening head's checks are
@@ -399,9 +369,11 @@ def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityD
     ``doc``: see ``_ci_failing_at_close``.
     """
     if doc is not None:
-        open_head_sha = _opened_head_sha_from_doc(doc)
-        if open_head_sha is None:
+        opening_head = activity_doc.opening_head_from_doc(doc)
+        if opening_head is None:
             return False
+
+        open_head_sha = opening_head[0]
         return _any_group_failing(
             group
             for group in doc.get("checks", {}).values()
