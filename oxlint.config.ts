@@ -1325,12 +1325,6 @@ const config = defineConfig({
   },
   overrides: [
     {
-      files: ['scripts/lintSentryTypeAnnotations.ts'],
-      rules: {
-        'boundaries/dependencies': 'off',
-      },
-    },
-    {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
       rules: {
         'constructor-super': 'off',

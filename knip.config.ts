@@ -52,7 +52,6 @@ const config: KnipConfig = {
     '.': {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
-        ...(isProductionMode ? ['scripts/lintJs.ts!'] : []),
         ...testingEntryPoints,
         ...storyBookEntryPoints,
         // figma code connect files - consumed by Figma CLI
@@ -84,11 +83,6 @@ const config: KnipConfig = {
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
     },
-  },
-  // Loaded by the standalone lint runner across the intentionally excluded
-  // Oxlint plugin workspace boundary.
-  ignoreIssues: {
-    'static/eslint/eslintPluginSentry/unnecessaryTypeAnnotation.ts': ['files'],
   },
   ignoreExportsUsedInFile: isProductionMode,
   rules: {

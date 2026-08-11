@@ -101,7 +101,7 @@ repos:
         name: oxlint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: node scripts/lintJs.ts --quiet --fix --no-error-on-unmatched-pattern
+        entry: node --run lint:js -- --quiet --fix --no-error-on-unmatched-pattern
 
       - id: stylelint
         name: stylelint
