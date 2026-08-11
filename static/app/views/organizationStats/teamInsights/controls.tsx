@@ -235,6 +235,12 @@ export function TeamStatsControls({
 }
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+  width: 100%;
+
+  button {
+    width: 100%;
+  }
+
   div {
     min-height: unset;
   }
