@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useEffect, useState} from 'react';
 
 import {useApi} from 'sentry/utils/useApi';

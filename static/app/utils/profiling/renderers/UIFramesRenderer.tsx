@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {mat3, vec2} from 'gl-matrix';
 
 import type {
