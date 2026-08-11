@@ -6,6 +6,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   AGENT_NAME_FIELDS,
+  getIsAiAgentNode,
   getNumberAttr,
   getStringAttr,
   hasError,
@@ -73,7 +74,25 @@ interface ConversationTurn {
 }
 
 /**
- * Extracts conversation messages from trace spans:
+ * Extracts conversation messages from trace spans.
+ *
+ * Spans are first split into agent runs — the top-level conversation plus each
+ * sub-agent that ran within it — because the turn builder assumes a single
+ * sequential think→tool loop. When sub-agents run concurrently their spans
+ * interleave in wall-clock time, so building turns over all spans at once
+ * misattributes one agent's tool calls to another's generation. Each run is
+ * built independently, then the runs are concatenated in start order. Runs are
+ * kept contiguous rather than merged by timestamp so parallel agents read as
+ * separate stretches instead of shuffled together.
+ */
+export function extractMessagesFromNodes(
+  nodes: AITraceSpanNode[]
+): ConversationMessage[] {
+  return groupNodesByAgentRun(nodes).flatMap(extractMessagesFromAgentRun);
+}
+
+/**
+ * Builds the messages for a single agent run — the turn-construction pipeline:
  * 1. Partition spans into generation, tool, and embeddings spans
  * 2. Build conversation turns (user input + assistant output pairs)
  * 3. Merge turns that have no assistant response, carrying tool calls forward
@@ -82,9 +101,7 @@ interface ConversationTurn {
  *    timestamp — unlike tool calls, embeddings don't need a nearby generation
  *    to show up, so they never enter the turn-building pipeline above.
  */
-export function extractMessagesFromNodes(
-  nodes: AITraceSpanNode[]
-): ConversationMessage[] {
+function extractMessagesFromAgentRun(nodes: AITraceSpanNode[]): ConversationMessage[] {
   const {generationSpans, toolSpans, embeddingSpans} = partitionSpansByType(nodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const mergedTurns = mergeEmptyTurns(turns);
@@ -94,6 +111,46 @@ export function extractMessagesFromNodes(
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
+}
+
+const ROOT_AGENT_RUN = '__root__';
+
+/**
+ * Groups spans into agent runs so each is turned into a transcript on its own.
+ *
+ * A span's run is its nearest ancestor agent span (an `agent` node is its own
+ * run), matching how the timeline decides what to indent under an agent. Spans
+ * with no agent ancestor — the common single-agent-less conversation — fall
+ * into one root run, so those conversations are unaffected.
+ *
+ * Runs are returned ordered by their earliest span so the concatenated
+ * transcript follows the order the agents started in.
+ */
+export function groupNodesByAgentRun(nodes: AITraceSpanNode[]): AITraceSpanNode[][] {
+  const runsByAgentId = new Map<string, AITraceSpanNode[]>();
+
+  for (const node of nodes) {
+    // Resolve the ancestor agent outside the ternary: getIsAiAgentNode is a type
+    // guard, so branching on it inline would narrow the else branch to `never`
+    // and hide `findParent`. An agent node is its own run.
+    const agentAncestor = node.findParent(parent => getIsAiAgentNode(parent));
+    const agentNode = getIsAiAgentNode(node) ? node : agentAncestor;
+    const runId = agentNode?.id ?? ROOT_AGENT_RUN;
+    const run = runsByAgentId.get(runId);
+    if (run) {
+      run.push(node);
+    } else {
+      runsByAgentId.set(runId, [node]);
+    }
+  }
+
+  return [...runsByAgentId.values()].sort(
+    (a, b) => earliestNodeStart(a) - earliestNodeStart(b)
+  );
+}
+
+function earliestNodeStart(nodes: AITraceSpanNode[]): number {
+  return Math.min(...nodes.map(getNodeStartTimestamp));
 }
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
