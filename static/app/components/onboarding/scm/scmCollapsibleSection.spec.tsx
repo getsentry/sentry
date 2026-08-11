@@ -25,18 +25,7 @@ describe('ScmCollapsibleSection', () => {
     MotionGlobalConfig.skipAnimations = true;
   });
 
-  it('renders the title and content expanded by default', () => {
-    render(
-      <ScmCollapsibleSection title="Section title">
-        <div>Body content</div>
-      </ScmCollapsibleSection>
-    );
-
-    expect(screen.getByRole('button', {name: 'Section title'})).toBeInTheDocument();
-    expect(screen.getByText('Body content')).toBeInTheDocument();
-  });
-
-  it('allows content to overflow when expanded by default', () => {
+  it('renders content with visible overflow when expanded by default', () => {
     render(
       <ScmCollapsibleSection title="Section title">
         <div>Body content</div>
@@ -48,6 +37,7 @@ describe('ScmCollapsibleSection', () => {
 
     expect(contentId).not.toBeNull();
     expect(document.getElementById(contentId!)).toHaveStyle({overflow: 'visible'});
+    expect(screen.getByText('Body content')).toBeInTheDocument();
   });
 
   it('starts collapsed when defaultExpanded is false', () => {
