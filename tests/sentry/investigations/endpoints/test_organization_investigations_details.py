@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.investigations.models import (
     Investigation,
     InvestigationProject,
+    InvestigationSourceType,
     InvestigationStatus,
 )
 from sentry.testutils.cases import APITestCase
@@ -177,3 +178,56 @@ class OrganizationInvestigationsDetailsTest(APITestCase):
         assert response.status_code == 400
         investigation.refresh_from_db()
         assert investigation.title == "Archived"
+
+    def lineage(self) -> tuple[Investigation, Investigation]:
+        first = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="rev1"
+        )
+        second = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="rev2"
+        )
+        for revision, investigation in enumerate((first, second), start=1):
+            Investigation.objects.filter(id=investigation.id).update(
+                source_type=InvestigationSourceType.BREACHED_METRIC,
+                source_key="lineage",
+                source_revision=revision,
+            )
+            investigation.refresh_from_db()
+        return first, second
+
+    def test_archiving_via_put_cascades_across_the_lineage(self) -> None:
+        """
+        Only archive_investigation cascades, so PUT has to route through it
+        rather than writing the status field directly.
+        """
+        first, second = self.lineage()
+
+        response = self.client.put(
+            self.details_url(second),
+            data={"investigationVersion": second.version, "status": "archived"},
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        first.refresh_from_db()
+        second.refresh_from_db()
+        assert second.status == InvestigationStatus.ARCHIVED
+        assert first.status == InvestigationStatus.ARCHIVED
+
+    def test_archiving_via_put_cannot_be_combined_with_other_changes(self) -> None:
+        first, second = self.lineage()
+
+        response = self.client.put(
+            self.details_url(second),
+            data={
+                "investigationVersion": second.version,
+                "status": "archived",
+                "title": "Renamed",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        second.refresh_from_db()
+        assert second.status == InvestigationStatus.ACTIVE
+        assert second.title == "rev2"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from collections.abc import Iterable
+from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from typing import Any
 
@@ -242,7 +243,10 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
 
 
 def _resolve_breached_metric_source(
-    *, organization: Organization, source_ref: dict[str, Any], accessible_project_ids: set[int]
+    *,
+    organization: Organization,
+    source_ref: dict[str, Any],
+    accessible_project_ids: AbstractSet[int],
 ) -> BreachedMetricSource:
     if set(source_ref) != {"groupId", "openPeriodId"}:
         raise InvestigationValidationError(
@@ -282,7 +286,7 @@ def create_template_investigation(
     template_version: int,
     source_ref: dict[str, Any],
     supplied_parameters: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
     title: str | None = None,
 ) -> Investigation:
     for attempt in range(3):
@@ -311,7 +315,7 @@ def _create_template_investigation(
     template_version: int,
     source_ref: dict[str, Any],
     supplied_parameters: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
     title: str | None = None,
 ) -> Investigation:
     template = get_investigation_template(template_key, template_version)
@@ -656,7 +660,7 @@ def update_parameter_values(
     investigation: Investigation,
     expected_version: int,
     values: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
 ) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
         locked = lock_investigation(investigation, expected_version)

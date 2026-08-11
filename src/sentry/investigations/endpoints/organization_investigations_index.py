@@ -12,7 +12,6 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.bases import (
     OrganizationInvestigationsBaseEndpoint,
-    accessible_project_ids,
     require_authenticated_user,
     service_error,
     user_id,
@@ -76,7 +75,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
-        project_ids = accessible_project_ids(self, request, organization)
+        project_ids = request.access.accessible_project_ids
         try:
             if "template_key" in values:
                 investigation = create_template_investigation(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, TypedDict, override
 
@@ -61,7 +62,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     to it is in that set, so it must be supplied by the caller.
     """
 
-    def __init__(self, accessible_project_ids: set[int]) -> None:
+    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
         self.accessible_project_ids = accessible_project_ids
 
     @override

@@ -10,7 +10,6 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.bases import (
     OrganizationInvestigationEndpoint,
-    accessible_project_ids,
     service_error,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
@@ -40,7 +39,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 investigation,
                 request.user,
                 InvestigationDetailsSerializer(
-                    accessible_project_ids=accessible_project_ids(self, request, organization)
+                    accessible_project_ids=request.access.accessible_project_ids
                 ),
             )
         )
@@ -54,10 +53,8 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         values = dict(validator.validated_data)
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
-        project_ids = accessible_project_ids(self, request, organization)
-        if requested_project_ids is not None and not set(requested_project_ids).issubset(
-            project_ids
-        ):
+        project_ids = request.access.accessible_project_ids
+        if requested_project_ids is not None and not requested_project_ids.issubset(project_ids):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -69,6 +66,28 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             return Response(
                 {"detail": "Archived investigations are read-only."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+        if values.get("status") == InvestigationStatus.ARCHIVED:
+            if set(values) != {"status"} or requested_project_ids is not None:
+                return Response(
+                    {"detail": "Archiving cannot be combined with other changes."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                archived = archive_investigation(
+                    investigation=investigation, expected_version=expected_version
+                )
+            except Exception as error:
+                response = service_error(error)
+                if response is not None:
+                    return response
+                raise
+            return Response(
+                serialize(
+                    archived,
+                    request.user,
+                    InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                )
             )
         try:
             updated = update_investigation(

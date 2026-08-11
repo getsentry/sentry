@@ -44,12 +44,6 @@ def service_error(error: Exception) -> Response | None:
     return None
 
 
-def accessible_project_ids(
-    endpoint: OrganizationEndpoint, request: Request, organization: Organization
-) -> set[int]:
-    return {project.id for project in endpoint.get_projects(request, organization)}
-
-
 def required_investigation_project_ids(investigation: Investigation) -> set[int]:
     selected = set(investigation.projects.values_list("id", flat=True))
     visible_execution_ids: set[int] = set()
@@ -137,7 +131,7 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
         if not required_investigation_project_ids(investigation).issubset(
-            accessible_project_ids(self, request, organization)
+            request.access.accessible_project_ids
         ):
             raise PermissionDenied("You do not have access to every project in this investigation.")
         return args, kwargs

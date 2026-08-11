@@ -139,3 +139,38 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         list_response = self.client.get(self.collection_url)
         assert list_response.status_code == 200
         assert str(investigation.id) in {item["id"] for item in list_response.data}
+
+    def test_project_query_param_cannot_widen_the_access_check(self) -> None:
+        team = self.create_team(organization=self.organization)
+        restricted = self.create_project(organization=self.organization, teams=[team])
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Restricted"
+        )
+        block = self.create_investigation_block(
+            investigation=investigation, position=0, kind="query"
+        )
+        execution = self.create_investigation_block_execution(
+            block=block,
+            executor="manual",
+            block_version=1,
+            input_fingerprint="f" * 64,
+            status=InvestigationBlockExecutionStatus.COMPLETED,
+            result={"schemaVersion": 1},
+        )
+        self.create_investigation_block_execution_project(execution=execution, project=restricted)
+        block.update(current_execution=execution, result_execution=execution)
+
+        viewer = self.create_user()
+        self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
+        self.login_as(viewer)
+        url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        assert self.client.get(url).status_code == 403
+        assert self.client.get(f"{url}?project=-1").status_code == 403
+        assert self.client.get(f"{url}?project={restricted.id}").status_code == 403
