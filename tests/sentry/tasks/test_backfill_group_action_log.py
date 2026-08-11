@@ -616,22 +616,11 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
             side_effect=side_effect,
         )
 
-    def test_dispatches_enrollment_for_seer_organizations_in_rollout(self) -> None:
-        seat_org = self.create_organization()
-        legacy_org = self.create_organization()
-        seer_without_rollout_org = self.create_organization()
-        rollout_without_seer_org = self.create_organization()
+    def test_dispatches_enrollment_for_organizations_in_rollout(self) -> None:
+        rollout_org = self.create_organization()
+        excluded_org = self.create_organization()
         enabled = {
-            "organizations:seat-based-seer-enabled": {
-                seat_org.id,
-                seer_without_rollout_org.id,
-            },
-            "organizations:seer-added": {legacy_org.id},
-            "organizations:issue-action-log-seer-rollout": {
-                seat_org.id,
-                legacy_org.id,
-                rollout_without_seer_org.id,
-            },
+            "organizations:issue-action-log-seer-rollout": {rollout_org.id},
         }
 
         with (
@@ -645,7 +634,8 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         dispatched_organization_ids = {
             call.kwargs["kwargs"]["organization_id"] for call in mock_apply.call_args_list
         }
-        assert dispatched_organization_ids == {seat_org.id, legacy_org.id}
+        assert dispatched_organization_ids == {rollout_org.id}
+        assert excluded_org.id not in dispatched_organization_ids
 
     def test_enrolls_active_projects_without_overwriting_existing_option(self) -> None:
         organization = self.create_organization()

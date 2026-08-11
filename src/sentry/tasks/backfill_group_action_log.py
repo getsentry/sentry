@@ -373,31 +373,13 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
 
 
 def _get_eligible_organization_ids(organizations: Sequence[Organization]) -> set[int]:
-    seat_based = features.batch_has_for_organizations(
-        "organizations:seat-based-seer-enabled", organizations
-    )
-    legacy = features.batch_has_for_organizations("organizations:seer-added", organizations)
-    if seat_based is None or legacy is None:
-        raise RuntimeError("Unable to evaluate Seer organization features")
-
-    seer_organizations = [
-        organization
-        for organization in organizations
-        if seat_based.get(f"organization:{organization.id}", False)
-        or legacy.get(f"organization:{organization.id}", False)
-    ]
-    if not seer_organizations:
-        return set()
-
-    rollout = features.batch_has_for_organizations(
-        _GROUP_ACTION_LOG_ROLLOUT_FEATURE, seer_organizations
-    )
+    rollout = features.batch_has_for_organizations(_GROUP_ACTION_LOG_ROLLOUT_FEATURE, organizations)
     if rollout is None:
         raise RuntimeError("Unable to evaluate group action log rollout feature")
 
     return {
         organization.id
-        for organization in seer_organizations
+        for organization in organizations
         if rollout.get(f"organization:{organization.id}", False)
     }
 
@@ -506,7 +488,7 @@ def enroll_projects_for_group_action_log_backfill(
     last_organization_id: int = 0,
     **kwargs: object,
 ) -> None:
-    """Dispatch project enrollment for active Seer organizations in the rollout."""
+    """Dispatch project enrollment for active organizations in the rollout."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_ENROLLMENT_TASK_KEY, activation_id):
