@@ -261,6 +261,8 @@ def semver_filter_converter(
                 versions = exclude_versions
         all_versions.extend(versions)
     else:
+        # TODO: filter_by_semver has no bulk lookup for multiple versions, so each value is a separate query.
+        # Adding __in support or Q-object composition to filter_by_semver would reduce the query count.
         for version in raw_values:
             qs = (
                 Release.objects.filter_by_semver(
@@ -342,6 +344,8 @@ def semver_build_filter_converter(
     except KeyError:
         raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
 
+    # TODO: filter_by_semver_build has no bulk lookup for multiple builds, so each value is a separate query.
+    # Adding __in support or Q-object composition to filter_by_semver_build would reduce the query count.
     all_versions: list[str] = []
     for build in raw_values:
         versions = list(
