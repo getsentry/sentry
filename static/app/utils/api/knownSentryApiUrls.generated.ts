@@ -197,6 +197,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/integrations/coding-agents/'
   | '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/'
   | '/organizations/$organizationIdOrSlug/intercom-jwt/'
+  | '/organizations/$organizationIdOrSlug/investigations/'
+  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/'
   | '/organizations/$organizationIdOrSlug/invite-requests/'
   | '/organizations/$organizationIdOrSlug/invite-requests/$memberId/'
   | '/organizations/$organizationIdOrSlug/issue-view-title/generate/'
