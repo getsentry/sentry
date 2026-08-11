@@ -644,7 +644,7 @@ export function UsageStatsOrganization({
 
 function PageGrid({children}: {children: React.ReactNode}) {
   return (
-    <Grid columns={{zero: '1fr', xl: 'repeat(2, 1fr)', '4xl': 'repeat(5, 1fr)'}} gap="xl">
+    <Grid columns={{zero: '1fr', sm: 'repeat(2, 1fr)', '4xl': 'repeat(5, 1fr)'}} gap="xl">
       {children}
     </Grid>
   );
