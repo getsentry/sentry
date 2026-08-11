@@ -85,6 +85,7 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
@@ -526,6 +527,21 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
     return ATTRIBUTE_METADATA.get(name) is not None
 
 
+def _replacement_superseded_by_present_source(
+    public_alias: str,
+    item_type: SupportedTraceItemType,
+    present_names: set[str],
+) -> bool:
+    """
+    Whether a convention replacement attribute should be hidden because its
+    deprecated source is also present in the results.
+    """
+    if not is_sentry_convention_replacement_attribute(public_alias, item_type):
+        return False
+    deprecated_names = get_deprecated_source_internal_names(public_alias, item_type)
+    return not deprecated_names.isdisjoint(present_names)
+
+
 def as_attribute_key(
     name: str,
     attr_type: ColumnType,
@@ -947,6 +963,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
+        present_names = {attribute.name for attribute in rpc_response.attributes if attribute.name}
         for attribute in rpc_response.attributes:
             if not attribute.name:
                 continue
@@ -969,8 +986,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                     trace_item_type,
                     include_internal=include_internal,
                 )
-                and not is_sentry_convention_replacement_attribute(
-                    attr_key["name"], trace_item_type
+                and not _replacement_superseded_by_present_source(
+                    attr_key["name"], trace_item_type, present_names
                 )
                 # Remove anything where the public alias doesn't match the substring
                 # This can happen when the public alias is different, but that's handled by
