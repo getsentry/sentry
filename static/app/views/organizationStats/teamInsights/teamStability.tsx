@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
@@ -210,49 +211,51 @@ export function TeamStability({
   const groupedProjects = groupByTrend(sortedProjects);
 
   return (
-    <StyledPanelTable
-      isEmpty={projects.length === 0}
-      emptyMessage={t('No projects with release health enabled')}
-      emptyAction={
-        <LinkButton
-          size="sm"
-          external
-          href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
-        >
-          {t('Learn More')}
-        </LinkButton>
-      }
-      headers={[
-        t('Project'),
-        <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
-        <RightAligned key="avg">{tct('[period] Avg', {period})}</RightAligned>,
-        <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
-        <RightAligned key="diff">{t('Difference')}</RightAligned>,
-      ]}
-    >
-      {groupedProjects.map(({project}) => (
-        <Fragment key={project.id}>
-          <ProjectBadgeContainer>
-            <ProjectBadge avatarSize={18} project={project} />
-          </ProjectBadgeContainer>
+    <Container overflowX="auto">
+      <StyledPanelTable
+        isEmpty={projects.length === 0}
+        emptyMessage={t('No projects with release health enabled')}
+        emptyAction={
+          <LinkButton
+            size="sm"
+            external
+            href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
+          >
+            {t('Learn More')}
+          </LinkButton>
+        }
+        headers={[
+          t('Project'),
+          <RightAligned key="last">{tct('Last [period]', {period})}</RightAligned>,
+          <RightAligned key="avg">{tct('[period] Avg', {period})}</RightAligned>,
+          <RightAligned key="curr">{t('Last 7 Days')}</RightAligned>,
+          <RightAligned key="diff">{t('Difference')}</RightAligned>,
+        ]}
+      >
+        {groupedProjects.map(({project}) => (
+          <Fragment key={project.id}>
+            <ProjectBadgeContainer>
+              <ProjectBadge avatarSize={18} project={project} />
+            </ProjectBadgeContainer>
 
-          <div>
-            {periodSessions && weekSessions && !isLoading && (
-              <MiniBarChart
-                isGroupedByDate
-                showTimeInTooltip
-                series={getMiniBarChartSeries(project, periodSessions)}
-                height={25}
-                tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
-              />
-            )}
-          </div>
-          <ScoreWrapper>{renderScore(project.id, 'period')}</ScoreWrapper>
-          <ScoreWrapper>{renderScore(project.id, 'week')}</ScoreWrapper>
-          <ScoreWrapper>{renderTrend(project.id)}</ScoreWrapper>
-        </Fragment>
-      ))}
-    </StyledPanelTable>
+            <div>
+              {periodSessions && weekSessions && !isLoading && (
+                <MiniBarChart
+                  isGroupedByDate
+                  showTimeInTooltip
+                  series={getMiniBarChartSeries(project, periodSessions)}
+                  height={25}
+                  tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
+                />
+              )}
+            </div>
+            <ScoreWrapper>{renderScore(project.id, 'period')}</ScoreWrapper>
+            <ScoreWrapper>{renderScore(project.id, 'week')}</ScoreWrapper>
+            <ScoreWrapper>{renderTrend(project.id)}</ScoreWrapper>
+          </Fragment>
+        ))}
+      </StyledPanelTable>
+    </Container>
   );
 }
 
