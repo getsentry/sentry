@@ -315,7 +315,6 @@ describe('InboxPage', () => {
           expect.objectContaining({
             method: 'GET',
             query: {
-              project: [-1],
               query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
@@ -717,6 +716,10 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${nextFixProposedGroup.id}/pull-requests/`,
       body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
     mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
       diagnosedGroup,

@@ -372,7 +372,6 @@ function InboxSection({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        project: [-1],
         query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
