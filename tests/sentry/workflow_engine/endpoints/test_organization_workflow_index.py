@@ -701,6 +701,19 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_three.id),
         }
 
+    def test_query_by_assignee_negated_list(self) -> None:
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+        self.workflow_two.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"!assignee:[{user.email}, #{self.team.slug}]"},
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
     def test_query_by_assignee_invalid_user(self) -> None:
         self.workflow.update(owner_user_id=self.user.id)
 

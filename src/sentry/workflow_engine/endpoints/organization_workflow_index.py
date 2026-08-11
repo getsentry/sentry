@@ -256,7 +256,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(created_by_q)
                         else:
                             queryset = queryset.filter(created_by_q)
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                    case SearchFilter(
+                        key=SearchKey("assignee"), operator=("=" | "IN" | "!=" | "NOT IN")
+                    ):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
                             filter.value.value
@@ -268,7 +270,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             values, organization, request.access, request.user
                         )
 
-                        if filter.operator == "!=":
+                        if filter.operator == "!=" or filter.operator == "NOT IN":
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
