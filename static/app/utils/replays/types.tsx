@@ -263,9 +263,19 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
   return frame.op === 'paint';
 }
 
-export function isDeadClick(frame: SlowClickFrame) {
+export function isSlowClickFrame(frame: BreadcrumbFrame): frame is SlowClickFrame {
   return (
-    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.category === 'ui.slowClickDetected' &&
+    typeof frame.data === 'object' &&
+    frame.data !== null
+  );
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  const node: ClickFrameNode | undefined = frame.data.node;
+
+  return (
+    ['a', 'button', 'input'].includes(node?.tagName?.toLowerCase() ?? '') &&
     frame.data.endReason === 'timeout'
   );
 }
@@ -360,6 +370,20 @@ export type FeedbackFrame = {
   timestamp: Date;
   timestampMs: number;
   type: string;
+};
+
+/**
+ * The SDK marks every field inside a click frame's `node` as required, which
+ * describes what a healthy SDK emits rather than what the API returns: replay
+ * attachments are third-party data that nothing validates on the way in, and
+ * nodes do reach us with fields missing. Sentry's ingest already treats them as
+ * optional, see `sentry.replays.usecases.ingest.event_parser`.
+ */
+export type ClickFrameNode = {
+  attributes?: Record<string, string>;
+  id?: number;
+  tagName?: string;
+  textContent?: string;
 };
 
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
