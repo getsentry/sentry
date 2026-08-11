@@ -51,8 +51,14 @@ export const SEER_EMBED_SCHEMAS = {
       format: z.enum(['absolute', 'relative']).default('absolute'),
     }),
     examples: [
-      {label: 'Absolute', data: {value: '2025-07-15T14:30:00Z', format: 'absolute'}},
-      {label: 'Relative', data: {value: '2025-07-15T14:30:00Z', format: 'relative'}},
+      {
+        label: 'Absolute',
+        data: {value: '2025-07-15T14:30:00Z', format: 'absolute'},
+      },
+      {
+        label: 'Relative',
+        data: {value: '2025-07-15T14:30:00Z', format: 'relative'},
+      },
     ],
   },
   docs: {
@@ -65,7 +71,10 @@ export const SEER_EMBED_SCHEMAS = {
     examples: [
       {
         label: 'Doc link',
-        data: {href: 'https://docs.sentry.io/product/issues/', title: 'Issues'},
+        data: {
+          href: 'https://docs.sentry.io/product/issues/',
+          title: 'Issues',
+        },
       },
     ],
   },
@@ -129,7 +138,9 @@ export const SEER_EMBED_SCHEMAS = {
       {
         label: 'Block',
         level: 'block',
-        data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
+        data: {
+          ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF'],
+        },
       },
     ],
   },
@@ -143,12 +154,17 @@ export const SEER_EMBED_SCHEMAS = {
     schema: z
       .object({
         title: z.string().min(1),
-        subtitle: z.string().optional(),
+        subtitle: z.string().nullable().optional(),
         visualization: z.enum(['line', 'area', 'bar']).default('line'),
         x_axis: z.enum(['time', 'category']).default('time'),
         y_axis_unit: z
           .enum(['number', 'percentage', 'duration', 'bytes'])
           .default('number'),
+        y_axis_label: z.string().nullable().optional(),
+        stacked: z.boolean().default(true),
+        show_legend: z.boolean().default(true),
+        show_title: z.boolean().default(true),
+        frameless: z.boolean().default(false),
         series: z.array(chartSeriesSchema).min(1).max(5),
       })
       .superRefine((chart, context) => {

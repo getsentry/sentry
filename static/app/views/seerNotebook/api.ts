@@ -32,14 +32,16 @@ const investigationPath = (organizationSlug: string, investigationId: string) =>
 export function investigationListQueryOptions({
   cursor,
   organizationSlug,
+  query,
 }: {
   organizationSlug: string;
   cursor?: string;
+  query?: string;
 }) {
   return {
     ...apiOptions.as<InvestigationListItem[]>()(COLLECTION_PATH, {
       path: organizationPath(organizationSlug),
-      query: {cursor, status: 'active'},
+      query: {cursor, query, status: 'active'},
       staleTime: 0,
     }),
     select: selectJsonWithHeaders<InvestigationListItem[]>,

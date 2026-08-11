@@ -181,4 +181,41 @@ describe('Chart embed', () => {
 
     expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
   });
+
+  it('applies notebook presentation controls', () => {
+    renderChart({
+      title: 'Hidden title',
+      visualization: 'bar',
+      x_axis: 'time',
+      y_axis_label: 'Errors per minute',
+      stacked: false,
+      show_legend: false,
+      show_title: false,
+      frameless: true,
+      series: [
+        {
+          label: 'Errors',
+          data: [
+            {x: '2026-07-30T12:00:00Z', y: 12},
+            {x: '2026-07-30T13:00:00Z', y: 18},
+          ],
+        },
+        {
+          label: 'Warnings',
+          data: [
+            {x: '2026-07-30T12:00:00Z', y: 4},
+            {x: '2026-07-30T13:00:00Z', y: 6},
+          ],
+        },
+      ],
+    });
+
+    expect(screen.queryByText('Hidden title')).not.toBeInTheDocument();
+    expect(screen.getByTestId('seer-chart-y-axis-label')).toHaveTextContent(
+      'Errors per minute'
+    );
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.legend).toBeUndefined();
+    expect(props.series?.[0]).not.toHaveProperty('stack', 'seer-chart');
+  });
 });
