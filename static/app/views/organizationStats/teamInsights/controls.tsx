@@ -146,7 +146,7 @@ export function TeamStatsControls({
         align="center"
         columns={{
           zero: 'minmax(0, 1fr)',
-          sm: `246px ${showEnvironment ? '246px' : ''} 1fr`,
+          xs: `246px ${showEnvironment ? '246px' : ''} 1fr`,
         }}
         gap="xl"
         marginBottom="xl"
