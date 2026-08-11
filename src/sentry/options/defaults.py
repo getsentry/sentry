@@ -2610,6 +2610,20 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Sets the timeout override for webhooks
+register(
+    "sentry-apps.override.webhook.timeout.sec",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Which app slugs to override the webhook timeout for
+register(
+    "sentry-apps.override.app_slugs.webhook.timeout",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Hard timeout for webhook requests to prevent indefinite hangs.
 # Must be strictly less than the shortest task processing_deadline_duration that

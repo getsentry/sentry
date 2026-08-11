@@ -1749,6 +1749,24 @@ class TestWebhookRequests(TestCase):
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == 1
 
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_uses_app_specific_timeout_override(self, safe_urlopen: MagicMock) -> None:
+        with override_options(
+            {
+                "sentry-apps.webhook.timeout.sec": 1.0,
+                "sentry-apps.override.webhook.timeout.sec": 3.0,
+                "sentry-apps.override.app_slugs.webhook.timeout": [self.sentry_app.slug],
+            }
+        ):
+            send_webhooks(
+                installation=self.install,
+                event="issue.assigned",
+                data={"issue": serialize(self.issue)},
+                actor=self.user,
+            )
+
+        assert safe_urlopen.call_args.kwargs["timeout"] == 3.0
+
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestExpandedSentryAppsWebhooks(TestCase):
