@@ -204,6 +204,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/order/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/'
+  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/parameters/'
   | '/organizations/$organizationIdOrSlug/invite-requests/'
   | '/organizations/$organizationIdOrSlug/invite-requests/$memberId/'
   | '/organizations/$organizationIdOrSlug/issue-view-title/generate/'
