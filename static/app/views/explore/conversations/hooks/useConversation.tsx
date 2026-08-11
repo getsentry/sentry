@@ -254,7 +254,7 @@ export function useConversation(
     isError,
   } = useInfiniteQuery(
     apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
       {
         path: conversation.conversationId
           ? {

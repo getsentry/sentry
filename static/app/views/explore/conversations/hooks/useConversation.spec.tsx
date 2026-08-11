@@ -56,7 +56,7 @@ describe('useConversation', () => {
 
   it('returns the conversation title from the envelope', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-title/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-title/`,
       body: envelope(
         [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
         'My great conversation'
@@ -75,7 +75,7 @@ describe('useConversation', () => {
 
   it('returns a null title when the envelope has none', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([BASE_SPAN]),
     });
 
@@ -93,7 +93,7 @@ describe('useConversation', () => {
     const inputMessages = JSON.stringify([{role: 'user', content: 'Hello from input'}]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-123',
@@ -137,7 +137,7 @@ describe('useConversation', () => {
     ]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-output/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-output/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-output',
@@ -178,7 +178,7 @@ describe('useConversation', () => {
     ]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-456/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-456/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-456',
@@ -215,7 +215,7 @@ describe('useConversation', () => {
 
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-789/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-789/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-789',
@@ -254,7 +254,7 @@ describe('useConversation', () => {
 
   it('uses conversation timestamps when provided', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-timestamps/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-timestamps/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-timestamps',
@@ -292,7 +292,7 @@ describe('useConversation', () => {
     // Verify the API was called with correct timestamps (with 1-hour padding)
     // and ALL_ACCESS_PROJECTS (-1) when no project is selected in page filters
     expect(mockRequest).toHaveBeenCalledWith(
-      expect.stringContaining('/ai-conversations/conv-timestamps/'),
+      expect.stringContaining('/agents/conversations/conv-timestamps/'),
       expect.objectContaining({
         query: expect.objectContaining({
           start: new Date(startTimestamp - 60 * 60 * 1000).toISOString(),
@@ -309,7 +309,7 @@ describe('useConversation', () => {
 
   it('uses span.name for description and name fields', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-name/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-name/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-name',
@@ -345,7 +345,7 @@ describe('useConversation', () => {
 
   it('sorts nodes by start timestamp for AI spans list', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-sort/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-sort',
@@ -395,7 +395,7 @@ describe('useConversation', () => {
     act(() => PageFiltersStore.updateProjects([456], []));
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([BASE_SPAN]),
     });
 
@@ -407,7 +407,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockRequest).toHaveBeenCalledWith(
-      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.stringContaining('/agents/conversations/conv-123/'),
       expect.objectContaining({
         query: expect.objectContaining({project: [456]}),
       })
@@ -425,7 +425,7 @@ describe('useConversation', () => {
     );
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([BASE_SPAN]),
     });
 
@@ -437,7 +437,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockRequest).toHaveBeenCalledWith(
-      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.stringContaining('/agents/conversations/conv-123/'),
       expect.objectContaining({
         query: expect.objectContaining({
           start: expect.stringContaining('2026-04-01'),
@@ -452,7 +452,7 @@ describe('useConversation', () => {
 
   it('falls back to ALL_ACCESS_PROJECTS with no time params when no filters are set', async () => {
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([BASE_SPAN]),
     });
 
@@ -464,7 +464,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockRequest).toHaveBeenCalledWith(
-      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.stringContaining('/agents/conversations/conv-123/'),
       expect.objectContaining({
         query: expect.objectContaining({
           project: [-1],
@@ -489,7 +489,7 @@ describe('useConversation', () => {
     );
 
     const mockRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
       body: envelope([BASE_SPAN]),
     });
 
@@ -501,7 +501,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(mockRequest).toHaveBeenCalledWith(
-      expect.stringContaining('/ai-conversations/conv-123/'),
+      expect.stringContaining('/agents/conversations/conv-123/'),
       expect.objectContaining({
         query: expect.objectContaining({
           statsPeriod: '7d',
@@ -515,7 +515,7 @@ describe('useConversation', () => {
 
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-filter/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-filter',
@@ -562,7 +562,7 @@ describe('useConversation', () => {
 
   it('maps errors and occurrences from the response onto the node', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-issues/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-issues/`,
       body: envelope([
         {
           ...BASE_SPAN,
@@ -616,7 +616,7 @@ describe('useConversation', () => {
 
   it('defaults to no issues when the response omits errors and occurrences', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-no-issues/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-no-issues/`,
       body: envelope([
         {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
       ]),
