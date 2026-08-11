@@ -16,6 +16,7 @@ from sentry.objectstore import get_preprod_session
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.preprod.snapshots.zip_builder import (
+    SnapshotArchiveVersion,
     SnapshotZipBuildError,
     archive_exists,
     archive_object_key,
@@ -77,10 +78,15 @@ def _put_part_with_retry(upload: MultipartUpload, chunk: bytes, part_number: int
     raise AssertionError("unreachable")
 
 
-def _archive_available(org_id: int, project_id: int, artifact_id: int) -> bool:
+def _archive_available(
+    org_id: int,
+    project_id: int,
+    artifact_id: int,
+    archive_version: SnapshotArchiveVersion,
+) -> bool:
     try:
         session = get_preprod_session(org_id, project_id)
-        return archive_exists(session, archive_object_key(artifact_id))
+        return archive_exists(session, archive_object_key(artifact_id, archive_version))
     except Exception:
         return False
 
@@ -114,7 +120,11 @@ def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> Non
     processing_deadline_duration=900,
 )
 def build_snapshot_images_zip(
-    org_id: int, project_id: int, artifact_id: int, user_id: int | None = None
+    org_id: int,
+    project_id: int,
+    artifact_id: int,
+    user_id: int | None = None,
+    archive_version: SnapshotArchiveVersion = SnapshotArchiveVersion.V1,
 ) -> None:
     logger.info(
         "preprod_snapshot_zip.build_started",
@@ -123,6 +133,7 @@ def build_snapshot_images_zip(
             "organization_id": org_id,
             "project_id": project_id,
             "user_id": user_id,
+            "archive_version": archive_version,
         },
     )
     try:
@@ -135,6 +146,7 @@ def build_snapshot_images_zip(
                 "organization_id": org_id,
                 "project_id": project_id,
                 "user_id": user_id,
+                "archive_version": archive_version,
             },
         )
         return
@@ -152,7 +164,7 @@ def build_snapshot_images_zip(
             raise SnapshotZipBuildError(f"missing manifest_key for artifact {artifact_id}")
 
         session = get_preprod_session(org_id, project_id)
-        key = archive_object_key(artifact_id)
+        key = archive_object_key(artifact_id, archive_version)
 
         # Snapshot images for a given artifact are immutable, so a stored archive
         # is always valid: skip the rebuild and just re-send the link.
@@ -162,7 +174,8 @@ def build_snapshot_images_zip(
                 extra={"preprod_artifact_id": artifact_id, "key": key},
             )
         else:
-            manifest, manifest_size_bytes = _load_manifest(session, manifest_key)
+            manifest, manifest_bytes = _load_manifest(session, manifest_key)
+            manifest_size_bytes = len(manifest_bytes)
             logger.info(
                 "preprod_snapshot_zip.manifest_loaded",
                 extra={
@@ -173,7 +186,14 @@ def build_snapshot_images_zip(
             )
             with NamedTemporaryFile() as tmp:
                 build_snapshot_zip(
-                    manifest, session, f"{org_id}/{project_id}", tmp, artifact_id=artifact_id
+                    manifest,
+                    session,
+                    f"{org_id}/{project_id}",
+                    tmp,
+                    artifact_id=artifact_id,
+                    manifest_bytes=(
+                        manifest_bytes if archive_version == SnapshotArchiveVersion.V2 else None
+                    ),
                 )
                 tmp.flush()
                 tmp.seek(0)
@@ -200,7 +220,7 @@ def build_snapshot_images_zip(
             "preprod_snapshot_zip.build_failed",
             extra={"preprod_artifact_id": artifact_id},
         )
-        if _archive_available(org_id, project_id, artifact_id):
+        if _archive_available(org_id, project_id, artifact_id, archive_version):
             logger.info(
                 "preprod_snapshot_zip.failure_superseded_by_existing_archive",
                 extra={"preprod_artifact_id": artifact_id},
@@ -217,21 +237,20 @@ def build_snapshot_images_zip(
             "organization_id": org_id,
             "project_id": project_id,
             "user_id": user_id,
+            "archive_version": archive_version,
         },
     )
     _send_archive_email(organization, user_id, artifact_id, ready=True)
 
 
-def _load_manifest(session: Session, manifest_key: str) -> tuple[SnapshotManifest, int]:
-    """Return the validated manifest and its original objectstore payload size in bytes."""
+def _load_manifest(session: Session, manifest_key: str) -> tuple[SnapshotManifest, bytes]:
+    """Return the validated manifest and its original objectstore payload bytes."""
     response = session.get(manifest_key)
     if response is None:
         raise FileNotFoundError("Manifest does not exist in objectstore")
     try:
         manifest_bytes = response.payload.read()
-        manifest_size_bytes = len(manifest_bytes)
         manifest_data = orjson.loads(manifest_bytes)
-        del manifest_bytes
     finally:
         response.payload.close()
-    return SnapshotManifest(**manifest_data), manifest_size_bytes
+    return SnapshotManifest(**manifest_data), manifest_bytes

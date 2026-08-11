@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -62,7 +62,11 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
-from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    SNAPSHOT_ARCHIVE_MANIFEST_FEATURE,
+    SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
+)
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
@@ -730,6 +734,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         app_id = data.get("app_id")
         images = data.get("images", {})
         diff_threshold = data.get("diff_threshold")
+
+        if features.has(SNAPSHOT_ARCHIVE_MANIFEST_FEATURE, project.organization) and (
+            SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images
+        ):
+            return Response(
+                {"detail": f"The filename {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME} is reserved."},
+                status=400,
+            )
 
         # VCS info
         head_sha = data.get("head_sha")

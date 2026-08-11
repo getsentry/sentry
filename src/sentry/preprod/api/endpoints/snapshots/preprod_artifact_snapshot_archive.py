@@ -10,7 +10,7 @@ from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -21,8 +21,13 @@ from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import PreprodArtifactApiSnapshotArchiveDownloadEvent
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.snapshots.constants import SNAPSHOT_ARCHIVE_MANIFEST_FEATURE
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
-from sentry.preprod.snapshots.zip_builder import archive_exists, archive_object_key
+from sentry.preprod.snapshots.zip_builder import (
+    SnapshotArchiveVersion,
+    archive_exists,
+    archive_object_key,
+)
 from sentry.preprod.snapshots.zip_tasks import build_snapshot_images_zip
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -30,6 +35,12 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 DOWNLOAD_CHUNK_SIZE = 8192
+
+
+def _archive_version(organization: Organization) -> SnapshotArchiveVersion:
+    if features.has(SNAPSHOT_ARCHIVE_MANIFEST_FEATURE, organization):
+        return SnapshotArchiveVersion.V2
+    return SnapshotArchiveVersion.V1
 
 
 def _stream_object(payload: IO[bytes]) -> Iterator[bytes]:
@@ -86,9 +97,11 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
 
         return artifact, metrics
 
-    def _download(self, artifact: PreprodArtifact) -> HttpResponseBase:
+    def _download(
+        self, artifact: PreprodArtifact, archive_version: SnapshotArchiveVersion
+    ) -> HttpResponseBase:
         session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
-        result = session.get(archive_object_key(artifact.id))
+        result = session.get(archive_object_key(artifact.id, archive_version))
         if result is None:
             return Response({"detail": "Download not ready"}, status=409)
 
@@ -103,10 +116,12 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         response["X-Accel-Buffering"] = "no"
         return response
 
-    def _archive_exists(self, artifact: PreprodArtifact) -> bool:
+    def _archive_exists(
+        self, artifact: PreprodArtifact, archive_version: SnapshotArchiveVersion
+    ) -> bool:
         session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
         try:
-            return archive_exists(session, archive_object_key(artifact.id))
+            return archive_exists(session, archive_object_key(artifact.id, archive_version))
         except RequestError:
             return False
 
@@ -117,6 +132,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
         if isinstance(resolved, Response):
             return resolved
         artifact, _metrics = resolved
+        archive_version = _archive_version(organization)
 
         if request.GET.get("download") is not None:
             analytics.record(
@@ -130,11 +146,11 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     client=resolve_action_source(request),
                 )
             )
-            return self._download(artifact)
+            return self._download(artifact, archive_version)
 
         # Readiness probe (no side effect): lets the UI download a ready archive
         # directly instead of re-triggering a build.
-        return Response({"ready": self._archive_exists(artifact)})
+        return Response({"ready": self._archive_exists(artifact, archive_version)})
 
     def post(
         self, request: Request, organization: Organization, snapshot_id: str
@@ -144,16 +160,18 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             return resolved
         artifact, _metrics = resolved
         user_id = getattr(request.user, "id", None)
+        archive_version = _archive_version(organization)
+        task_kwargs = {
+            "org_id": artifact.project.organization_id,
+            "project_id": artifact.project_id,
+            "artifact_id": artifact.id,
+            "user_id": user_id,
+        }
+        if archive_version == SnapshotArchiveVersion.V2:
+            task_kwargs["archive_version"] = archive_version
 
         try:
-            build_snapshot_images_zip.apply_async(
-                kwargs={
-                    "org_id": artifact.project.organization_id,
-                    "project_id": artifact.project_id,
-                    "artifact_id": artifact.id,
-                    "user_id": user_id,
-                }
-            )
+            build_snapshot_images_zip.apply_async(kwargs=task_kwargs)
         except Exception:
             logger.exception(
                 "preprod_snapshot_zip.enqueue_failed",
@@ -162,6 +180,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     "organization_id": artifact.project.organization_id,
                     "project_id": artifact.project_id,
                     "user_id": user_id,
+                    "archive_version": archive_version,
                 },
             )
             return Response(
@@ -175,6 +194,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                 "organization_id": artifact.project.organization_id,
                 "project_id": artifact.project_id,
                 "user_id": user_id,
+                "archive_version": archive_version,
             },
         )
         return Response(
