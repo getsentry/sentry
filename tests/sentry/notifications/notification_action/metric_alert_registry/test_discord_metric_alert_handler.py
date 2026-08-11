@@ -65,13 +65,13 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
         mock_send_incident_alert_notification.assert_called_once_with(
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             alert_context=alert_context,
             notification_context=notification_context,
             metric_issue_context=metric_issue_context,
@@ -144,7 +144,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -230,5 +230,5 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

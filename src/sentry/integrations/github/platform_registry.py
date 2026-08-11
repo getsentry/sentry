@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import re
 from collections import defaultdict
-from collections.abc import Sequence
 from typing import NotRequired, TypedDict
 
 # ---------------------------------------------------------------------------
@@ -938,82 +936,6 @@ def _package_in_manifest(package_name: str, manifest: _PackageManifest | None) -
     if package_name.endswith("/"):
         return any(dep.startswith(package_name) for dep in all_deps)
     return False
-
-
-def _rule_matches(
-    rule: DetectorRule,
-    root_files: set[str] | None,
-    file_contents: dict[str, str],
-    package_manifest: _PackageManifest | None,
-    root_dirs: set[str] | None = None,
-) -> bool:
-    """Evaluate a single detector rule against repository state."""
-    if "match_package" in rule:
-        return _package_in_manifest(rule["match_package"], package_manifest)
-
-    if "match_dir" in rule:
-        if root_dirs is None:
-            return False
-        dirname = rule["match_dir"]
-        if dirname.startswith("."):
-            return any(d.endswith(dirname) for d in root_dirs)
-        return dirname in root_dirs
-
-    if "match_ext" in rule:
-        if root_files is None:
-            return False
-        ext = rule["match_ext"]
-        matching_files = [f for f in root_files if f.endswith(ext)]
-        if not matching_files:
-            return False
-        if "match_content" not in rule:
-            return True
-        pattern = rule["match_content"]
-        for f in matching_files:
-            content = file_contents.get(f)
-            if content and re.search(pattern, content):
-                return True
-        return False
-
-    path = rule.get("path")
-    if path is None:
-        return False
-
-    if "match_content" in rule:
-        content = file_contents.get(path)
-        if content is None:
-            return False
-        return bool(re.search(rule["match_content"], content))
-
-    if root_files is None:
-        return False
-    return path in root_files
-
-
-def _framework_matches(
-    fw: FrameworkDef,
-    root_files: set[str] | None,
-    file_contents: dict[str, str],
-    package_manifest: _PackageManifest | None,
-    root_dirs: set[str] | None = None,
-) -> bool:
-    """Evaluate whether a framework definition matches the repository."""
-    every: Sequence[DetectorRule] = fw.get("every", [])
-    some: Sequence[DetectorRule] = fw.get("some", [])
-
-    if not every and not some:
-        return False
-
-    every_pass = all(
-        _rule_matches(r, root_files, file_contents, package_manifest, root_dirs) for r in every
-    )
-    some_pass = (
-        any(_rule_matches(r, root_files, file_contents, package_manifest, root_dirs) for r in some)
-        if some
-        else True
-    )
-
-    return every_pass and some_pass
 
 
 def _apply_supersession(results: list[DetectedPlatform]) -> list[DetectedPlatform]:

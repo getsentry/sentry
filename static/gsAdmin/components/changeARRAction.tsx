@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Component, Fragment} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';

@@ -80,14 +80,14 @@ from sentry.pr_metrics.attribution import (
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
-    CI_FAILING_AT_CLOSE,
     VerdictDeferral,
-    ci_failing_at_close,
+    calculate_deterministic_diagnosis_labels,
     emit_pr_metrics_row,
     is_pr_tracked,
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
@@ -407,7 +407,9 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable; it is swept out of band
+    by ``sweep_unattributed_pr_activity``.
     """
     if event.get("action") != "closed":
         return
@@ -514,15 +516,7 @@ def _claim_and_emit(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
-    # Sentry can derive this one diagnosis label itself, without a judge: a plain
-    # close (no merge, no engagement) whose check suites were red at close. Scoped
-    # to CLOSED_UNMERGED specifically — the judge-needed and merged paths don't
-    # carry this deterministic signal.
-    diagnosis_labels = (
-        [CI_FAILING_AT_CLOSE]
-        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
-        else None
-    )
+    diagnosis_labels = calculate_deterministic_diagnosis_labels(pull_request, verdict)
 
     # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
     # analytics.record is best-effort, async-batched telemetry; if it raises the
@@ -549,6 +543,11 @@ def handle_metrics(
     reflects the final counts. Gated by the emit flag, the sole consumer; it
     writes only the webhook-sourced counters, leaving the other columns to their
     own producers.
+
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -565,6 +564,19 @@ def handle_metrics(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if is_stale_github_pull_request_payload(pr, pull_request):
+        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        logger.info(
+            "pr_metrics.metrics.stale_snapshot",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "pull_request_id": pr.id,
+                "github_delivery_id": kwargs.get("github_delivery_id"),
+            },
+        )
         return
 
     PullRequestMetrics.objects.update_or_create(
@@ -589,9 +601,11 @@ def handle_activity(
         return
 
     # reopened/edited exist only on the document path; skip the whole path —
-    # including PR resolution — when the cutover option is off, so the legacy path
+    # including PR resolution — when the cutover flag is off, so the legacy path
     # is untouched.
-    if action in _DOC_ONLY_ACTIONS and not options.get("pr_metrics.activity_document.enabled"):
+    if action in _DOC_ONLY_ACTIONS and not features.has(
+        "organizations:pr-metrics-activity-document", organization
+    ):
         return
 
     pr = _get_pull_request(
@@ -604,9 +618,9 @@ def handle_activity(
     if pr is None:
         return
 
-    use_doc = _use_activity_document(pr)
+    use_doc = _use_activity_document(pr, organization)
     if action in _DOC_ONLY_ACTIONS and not use_doc:
-        # Option is on globally, but this PR is still on the legacy store.
+        # The flag is on for this org, but this PR is still on the legacy store.
         return
 
     # Terminal events (close/merge/reopen) on the document path must be recorded
@@ -616,7 +630,7 @@ def handle_activity(
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    _write_activity(pr, action, pull_request_data or {}, event, webhook_id, use_doc)
+    _write_activity(pr, organization, action, pull_request_data or {}, event, webhook_id, use_doc)
 
 
 def handle_comment(
@@ -676,7 +690,7 @@ def handle_comment(
         author_association=comment.get("author_association", "NONE"),
     )
     _record_activity_event(
-        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+        pr, organization, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
 
@@ -742,7 +756,12 @@ def handle_review(
     if not webhook_id:
         return
     _record_activity_event(
-        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+        pr,
+        organization,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
     )
 
 
@@ -794,7 +813,7 @@ def handle_review_comment(
         review_id=comment.get("pull_request_review_id"),
     )
     _record_activity_event(
-        pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
+        pr, organization, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
 
@@ -850,7 +869,12 @@ def handle_review_thread(
     if not webhook_id:
         return
     _record_activity_event(
-        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+        pr,
+        organization,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
     )
 
 
@@ -894,11 +918,13 @@ def handle_check_suite(
         if is_activity_tracking_enabled(organization, pr):
             _record_activity_event(
                 pr,
+                organization,
                 webhook_id,
                 PullRequestActivityType.CHECK_SUITE_COMPLETED,
                 payload,
                 provider_ts=check_suite.get("updated_at"),
                 head_sha=check_suite.get("head_sha"),
+                check_suite_id=check_suite.get("id"),
             )
 
 
@@ -941,11 +967,13 @@ def handle_check_run(
         if is_activity_tracking_enabled(organization, pr):
             _record_activity_event(
                 pr,
+                organization,
                 webhook_id,
                 PullRequestActivityType.CHECK_RUN_COMPLETED,
                 payload,
                 provider_ts=check_run.get("completed_at"),
                 head_sha=check_run.get("head_sha"),
+                check_suite_id=(check_run.get("check_suite") or {}).get("id"),
             )
 
 
@@ -1249,9 +1277,8 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Seer resolves the match either synchronously (a ``200`` with the match body,
-    recorded in-process here) or asynchronously (a ``202``, followed later by the
-    "record_pr_attribution" RPC callback writing the attribution row).
+    Seer returns ``200`` when a match is found (with the match body recorded
+    in-process here) or ``202`` when a match is not found.
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1326,8 +1353,7 @@ def _send_seer_delegated_agent_match(
         return
 
     if response.status != 200:
-        # 202: Seer enqueued the match asynchronously and will call back via the
-        # record_pr_attribution RPC once it resolves.
+        # 202: Seer did not find a match.
         _record_delegated_candidate(provider_hint, "sent")
         return
 
@@ -1349,6 +1375,7 @@ def _send_seer_delegated_agent_match(
             agent_id=match.agent_id,
             pr_url=request_body.pr_url,
             run_id=match.run_id,
+            group_ids=request_body.group_ids,
         ).dict(),
     )
     _record_delegated_candidate(provider_hint, "sync_matched")
@@ -1377,16 +1404,16 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     )
 
 
-def _use_activity_document(pr: PullRequest) -> bool:
+def _use_activity_document(pr: PullRequest, organization: Organization) -> bool:
     """Whether this PR's activity writes go to the reduced JSON document.
 
-    Per-PR routing, consulted only when the cutover option is on: a PR stays on
-    whichever store it started on — an existing document wins, else pre-existing
-    legacy rows keep it on the old path, else (a new PR) it starts on the
-    document. The indexed 1:1 document lookup runs first; the legacy-rows EXISTS
-    only when there's no document.
+    Per-PR routing, consulted only when the cutover flag is on for the org: a PR
+    stays on whichever store it started on — an existing document wins, else
+    pre-existing legacy rows keep it on the old path, else (a new PR) it starts on
+    the document. The indexed 1:1 document lookup runs first; the legacy-rows
+    EXISTS only when there's no document.
     """
-    if not options.get("pr_metrics.activity_document.enabled"):
+    if not features.has("organizations:pr-metrics-activity-document", organization):
         return False
     if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
         return True
@@ -1438,6 +1465,7 @@ def _apply_activity_into_doc(
 
 def _record_activity_event(
     pr: PullRequest,
+    organization: Organization,
     webhook_id: str,
     event_type: PullRequestActivityType,
     payload: dict[str, Any],
@@ -1445,24 +1473,30 @@ def _record_activity_event(
     event_at: str | None = None,
     provider_ts: str | None = None,
     head_sha: str | None = None,
+    check_suite_id: int | None = None,
     use_doc: bool | None = None,
 ) -> None:
     """Route one processed event to the document or a legacy row per this PR's store.
 
-    ``event_at``, ``provider_ts`` and ``head_sha`` only feed the document path; see
-    ``apply_activity`` for their per-family semantics (``head_sha`` keys the check
-    rollup's per-push groups, so the legacy row's payload is left exactly as
-    before). Callers that already resolved the routing decision — because the
-    payload's shape depends on it — pass it as ``use_doc``; otherwise it is
-    computed here.
+    ``event_at``, ``provider_ts``, ``head_sha`` and ``check_suite_id`` only feed the
+    document path; see ``apply_activity`` for their per-family semantics
+    (``head_sha`` and ``check_suite_id`` key the check rollup's per-push, per-suite
+    groups, so the legacy row's payload is left exactly as before). Callers that
+    already resolved the routing decision — because the payload's shape depends on
+    it — pass it as ``use_doc``; otherwise it is computed here.
     """
     if use_doc is None:
-        use_doc = _use_activity_document(pr)
+        use_doc = _use_activity_document(pr, organization)
     if use_doc:
+        doc_extras = {
+            key: value
+            for key, value in (("head_sha", head_sha), ("check_suite_id", check_suite_id))
+            if value is not None
+        }
         _apply_activity_into_doc(
             pr,
             event_type=event_type,
-            payload=payload if head_sha is None else {**payload, "head_sha": head_sha},
+            payload={**payload, **doc_extras} if doc_extras else payload,
             webhook_id=webhook_id,
             event_at=event_at,
             provider_ts=provider_ts,
@@ -1491,6 +1525,7 @@ def _write_activity_row(
 
 def _write_activity(
     pr: PullRequest,
+    organization: Organization,
     action: str,
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
@@ -1518,6 +1553,7 @@ def _write_activity(
     payload = _build_activity_payload(action, pull_request, event, use_doc)
     _record_activity_event(
         pr,
+        organization,
         webhook_id,
         event_type,
         payload,
@@ -1548,6 +1584,7 @@ def _build_activity_payload(
 
     match action:
         case "opened":
+            repository_payload = event.get("repository") or {}
             return asdict(
                 OpenedPayload(
                     **sender_kw,
@@ -1557,6 +1594,7 @@ def _build_activity_payload(
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
                     commits=pull_request.get("commits", 0),
+                    is_private=repository_payload.get("private"),
                 )
             )
         case "synchronize":

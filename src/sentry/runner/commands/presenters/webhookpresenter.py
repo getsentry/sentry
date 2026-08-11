@@ -14,11 +14,13 @@ from sentry.utils import json
 class WebhookPresenter(OptionsPresenter):
     """
     Sends changes of runtime options made via sentry configoptions
-    to a webhook url in a truncated json format. The webhook url can
-    be configured to your liking.
-    """
+    to a webhook url in json format. The webhook url can be configured
+    to your liking.
 
-    MAX_OPTION_VALUE_LENGTH = 100
+    Values are sent in full, untruncated - the receiving webhook is
+    responsible for any truncation needed to fit its own display
+    constraints (e.g. Slack's block/section length limits).
+    """
 
     def __init__(self, source: str, timestamp: float | None = None) -> None:
         self.source = source
@@ -64,20 +66,19 @@ class WebhookPresenter(OptionsPresenter):
             "region": region,
             "source": self.source,
             "drifted_options": [
-                {"option_name": key, "option_value": self.truncate_value(value)}
+                {"option_name": key, "option_value": str(value)}
                 for key, value in self.drifted_options
             ],
             "updated_options": [
                 {
                     "option_name": key,
-                    "db_value": self.truncate_value(db_value),
-                    "value": self.truncate_value(value),
+                    "db_value": str(db_value),
+                    "value": str(value),
                 }
                 for key, db_value, value in self.updated_options
             ],
             "set_options": [
-                {"option_name": key, "option_value": self.truncate_value(value)}
-                for key, value in self.set_options
+                {"option_name": key, "option_value": str(value)} for key, value in self.set_options
             ],
             "unset_options": self.unset_options,
             "not_writable_options": [
@@ -96,13 +97,6 @@ class WebhookPresenter(OptionsPresenter):
             json_data["latency_seconds"] = latency_seconds
 
         self._send_to_webhook(json_data)
-
-    def truncate_value(self, value: str) -> str:
-        value_str = str(value)
-        if len(value_str) > self.MAX_OPTION_VALUE_LENGTH:
-            return value_str[: self.MAX_OPTION_VALUE_LENGTH] + "..."
-        else:
-            return value_str
 
     def set(self, key: str, value: Any) -> None:
         self.set_options.append((key, value))

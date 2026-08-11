@@ -5,13 +5,14 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
@@ -248,5 +249,70 @@ describe('AggregatesTab', () => {
     await waitFor(() => {
       expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
     });
+  });
+
+  it('restricts actions on metric name', async () => {
+    const traceMetric: TraceMetric = {
+      name: 'foo',
+      type: 'distribution',
+      unit: 'millisecond',
+    };
+    const visualize = new VisualizeFunction('avg(value,foo,distribution,millisecond)');
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['metric.name', 'environment'],
+      sortBys: [{field: 'metric.name', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [{groupBy: 'metric.name'}, {groupBy: 'environment'}, visualize],
+      aggregateSortBys: [
+        {field: 'avg(value,foo,distribution,millisecond)', kind: 'desc'},
+      ],
+    });
+
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date(), {
+      baseFields: ['metric.name'],
+    });
+    setupEventsMock(
+      metricFixtures.baseFixtures
+        .filter(f => f[TraceMetricKnownFieldKey.METRIC_NAME] === 'foo')
+        .map(f => ({
+          ...f,
+          [TraceMetricKnownFieldKey.METRIC_NAME]: 'foo',
+          environment: 'production',
+        })),
+      [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-aggregates-table',
+        }),
+      ]
+    );
+
+    render(<AggregatesTab traceMetric={traceMetric} />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    expect(await screen.findByRole('cell', {name: 'foo'})).toBeInTheDocument();
+
+    const fooCellButton = screen.getAllByRole('button')[0]!;
+    expect(fooCellButton).toHaveTextContent('foo');
+    await userEvent.click(fooCellButton);
+
+    expect(await screen.findAllByRole('menuitemradio')).toHaveLength(1);
+    expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+
+    const envCellButton = screen.getAllByRole('button')[1]!;
+    expect(envCellButton).toHaveTextContent('production');
+    await userEvent.click(envCellButton);
+
+    expect(await screen.findAllByRole('menuitemradio')).toHaveLength(3);
+    expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+    expect(screen.getByText('Add to filter')).toBeInTheDocument();
+    expect(screen.getByText('Exclude from filter')).toBeInTheDocument();
   });
 });

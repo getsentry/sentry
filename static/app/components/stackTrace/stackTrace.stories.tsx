@@ -272,7 +272,7 @@ function makeCircularStackTraceData(): StackTraceStoryData {
         {...inAppRecursiveFrame},
         {...inAppRecursiveFrame},
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -294,7 +294,7 @@ function makeSourceMapTooltipStackTraceData(): StackTraceStoryData {
           inApp: true,
         },
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -315,7 +315,7 @@ function makeLongPathStackTraceData(): StackTraceStoryData {
           inApp: true,
         };
       }),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -333,7 +333,7 @@ function makeLongPathAndFunctionStackTraceData(): StackTraceStoryData {
           '__with_additional_context_and_nested_handler_resolution_chain',
         inApp: true,
       })),
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -356,7 +356,7 @@ function makeRawFunctionAndPackageStackTraceData(): StackTraceStoryData {
             },
           ]
         : [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -398,7 +398,7 @@ function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
           package: null,
         }),
       ],
-    } as StacktraceWithFrames,
+    },
   };
 }
 

@@ -1,0 +1,114 @@
+---
+title: EmptyState
+description: Displays a centered message when a view has no content — no results, no data, or first-time setup prompts.
+category: feedback
+source: '@sentry/scraps/emptyState'
+resources:
+  figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/branch/My2KYguV39r2PtkmKKJVTh/%F0%9F%90%A6-Components?node-id=13363-6895
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/emptyState/emptyState.tsx
+---
+
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
+
+import {Button} from '@sentry/scraps/button';
+import {IconAdd} from 'sentry/icons';
+import bugIllo from 'sentry-images/spot/seer-config-bug-1.svg';
+import brokenCodeIllo from 'sentry-images/spot/broken-code-light.svg';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/emptyState');
+
+`EmptyState` is a composable layout for "nothing to show" states. It supports an optional illustration, description, and action slot. Layout is responsive — stacked vertically in narrow containers, side-by-side in wide ones. Drag the resize handle to see it switch.
+
+## Basic
+
+<Storybook.Demo resizable>
+  <EmptyState
+    title="No issues match your search."
+    description="Try widening your search or adjusting your filters."
+  />
+</Storybook.Demo>
+```jsx
+<EmptyState
+  title="No issues match your search."
+  description="Try widening your search or adjusting your filters."
+/>
+```
+
+## With Illustration
+
+Pass an image or SVG element to the `illustration` prop.
+
+<Storybook.Demo resizable>
+  <EmptyState
+    illustration={
+      <Image
+        src={bugIllo}
+        alt="a bug pops out of a cardboard box with many code editor windows"
+        height={130}
+      />
+    }
+    title="Connect a repository."
+    description="Autofix requires you to have GitHub or GitLab repositories connected in order to run."
+    action={
+      <Button priority="primary" icon={<IconAdd />}>
+        Add a repository
+      </Button>
+    }
+  />
+</Storybook.Demo>
+```jsx
+<EmptyState
+  illustration={
+    <Image
+      src={bugIllo}
+      alt="a bug pops out of a cardboard box with many code editor windows"
+      height={130}
+    />
+  }
+  title="Connect a repository."
+  description="Autofix requires you to have GitHub or GitLab repositories connected."
+  action={
+    <Button priority="primary" icon={<IconAdd />}>
+      Add a repository
+    </Button>
+  }
+/>
+```
+
+## With Action
+
+Pass any `ReactNode` to the `action` prop — typically a `Button`.
+
+<Storybook.Demo resizable>
+  <EmptyState
+    title="No logs found yet."
+    description="We scanned 2.4 MB of ~12 MB."
+    action={<Button priority="primary">Keep searching</Button>}
+  />
+</Storybook.Demo>
+```jsx
+<EmptyState
+  title="No logs found yet."
+  description="We scanned 2.4 MB of ~12 MB."
+  action={<Button priority="primary">Keep searching</Button>}
+/>
+```
+
+## Title Only
+
+<Storybook.Demo resizable>
+  <EmptyState title="No results." />
+</Storybook.Demo>
+```jsx
+<EmptyState title="No results." />
+```
+
+## When to Use
+
+- **No results**: A search or filter returned zero matches
+- **No data**: A feature area has no data to display yet
+- **First-time setup**: A feature requires configuration before use (use with illustration and CTA)
+
+Prefer `EmptyState` over building custom empty UIs with ad-hoc styled components.

@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import atexit
+import os
 from collections import deque
 from collections.abc import Callable
 
 from arroyo.backends.abstract import ProducerFuture
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.backends.kafka import (
+    FutureTrackingProducer,
+    KafkaPayload,
+    KafkaProducer,
+    build_kafka_producer_configuration,
+)
+from arroyo.backends.kafka.producer import CloseableProducerProtocol
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
@@ -124,4 +131,27 @@ def get_arroyo_producer(
         record_poll_metrics=record_poll_metrics,
         poll_metric_frequency=poll_metric_frequency,
         **kafka_producer_kwargs,
+    )
+
+
+def get_future_tracking_producer(
+    producer_name: str,
+    producer_factory: Callable[[], CloseableProducerProtocol],
+) -> FutureTrackingProducer:
+    """
+    Helper function to get a FutureTrackingProducer instance.
+    This producer:
+    - Applies backpressure on produces if the librdkafka produce buffer is filling up
+    - Optionally tracks producer futures if the `ARROYO_TRACK_PRODUCER_FUTURES` env var
+      is configured
+      - This is used by taskworkers to guarantee at-least-once delivery for messages
+        produced from tasks
+
+    For more information please see the `FutureTrackingProducer` docstring.
+    """
+
+    return FutureTrackingProducer(
+        name=producer_name,
+        producer_factory=producer_factory,
+        should_track_futures=os.getenv("ARROYO_TRACK_PRODUCER_FUTURES", "").lower() == "true",
     )

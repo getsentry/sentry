@@ -40,7 +40,10 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const aiAutofix = useExplorerAutofix(group, {
-    pollPR: organization.features.includes('autofix-pr-iteration'),
+    // Automated CI iteration pushes commits with no user action, so poll for both.
+    pollPR:
+      organization.features.includes('autofix-pr-iteration') ||
+      organization.features.includes('autofix-pr-iteration-manual'),
   });
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
@@ -95,7 +98,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   );
 }
 
-export function useHandleCopyMarkdown({
+function useHandleCopyMarkdown({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
@@ -119,7 +122,7 @@ export function useHandleCopyMarkdown({
   }, [aiAutofix, copy]);
 }
 
-export function useHandleRestart({
+function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;

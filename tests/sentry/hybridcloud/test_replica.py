@@ -6,7 +6,6 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
@@ -147,35 +146,3 @@ def test_replicate_auth_identity() -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
                 assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
-
-
-@django_db_all(transaction=True)
-@all_silo_test
-def test_replicate_organization_member_team() -> None:
-    org = Factories.create_organization()
-    team = Factories.create_team(org)
-    user = Factories.create_user()
-    member = Factories.create_member(organization=org, user=user)
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        assert OrganizationMemberTeamReplica.objects.count() == 0
-
-    omt = Factories.create_team_membership(team=team, member=member)
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = OrganizationMemberTeamReplica.objects.get(organizationmemberteam_id=omt.id)
-
-    assert replicated.organization_id == omt.organizationmember.organization_id
-    assert replicated.team_id == omt.team_id
-    assert replicated.organizationmember_id == omt.organizationmember_id
-    assert replicated.organizationmemberteam_id == omt.id
-    assert replicated.is_active == omt.is_active
-    assert replicated.role == omt.role
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        omt.role = "boo"
-        omt.save()
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = OrganizationMemberTeamReplica.objects.get(organizationmemberteam_id=omt.id)
-
-    assert replicated.role == "boo"

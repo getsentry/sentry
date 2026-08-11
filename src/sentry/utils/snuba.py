@@ -1427,8 +1427,13 @@ def _snuba_query(
     thread_isolation_scope, thread_current_scope, snuba_request = params
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            headers = snuba_request.headers
             request = snuba_request.request
+            headers = snuba_request.headers
+            # Delete queries do not benefit from compression
+            should_compress = not isinstance(request.query, DeleteQuery)
+            if should_compress:
+                headers = {**headers, "Accept-Encoding": "zstd"}
+
             try:
                 referrer = headers.get("referer", "unknown")
 
@@ -1442,6 +1447,9 @@ def _snuba_query(
                 # but we still want to know a general sense of how referrers impact performance
                 sentry_sdk.set_tag("query.referrer", referrer)
                 sentry_sdk.set_attribute("query.referrer", referrer)
+
+                # Whether client asked snuba to zstd-compress the resp.
+                sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
 
                 if isinstance(request.query, MetricsQuery):
                     return (

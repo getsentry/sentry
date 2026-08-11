@@ -20,6 +20,7 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+// eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -791,7 +792,7 @@ export function serializeTraceForLLM(
   targetElement: TraceElement
 ): string {
   // Reverse the trace array to show root to leaf (trace is leaf to root)
-  const reversedTrace = [...trace].reverse();
+  const reversedTrace = trace.toReversed();
   const targetIndex = reversedTrace.indexOf(targetElement);
 
   // Only include components up to and including the target

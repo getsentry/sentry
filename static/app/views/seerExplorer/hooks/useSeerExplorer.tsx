@@ -153,9 +153,17 @@ export const useSeerExplorer = () => {
         if (storedValue === false) {
           return 'off';
         }
-        return 'on'; // default
+        // Matches the server's own default for a flagged org. This value is sent on every
+        // request, so it is not really an override until someone picks one — leaving it at
+        // 'on' meant the server's default branch could never be reached from the UI, and
+        // flagged orgs kept getting Code Mode alongside the classic tools.
+        return 'only';
       }
     );
+  const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
+    'seer-explorer.override.bash-mode',
+    false
+  );
 
   const {runId, chatStates} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
@@ -175,6 +183,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
+      overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
@@ -212,6 +221,7 @@ export const useSeerExplorer = () => {
           on_page_context: params.screenshot,
           page_name: params.pageName,
           override_ce_enable: params.overrideCtxEngEnable,
+          override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
         },
       });
@@ -233,8 +243,6 @@ export const useSeerExplorer = () => {
     onError: (e, params) => {
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
@@ -302,8 +310,6 @@ export const useSeerExplorer = () => {
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
 
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
@@ -520,6 +526,7 @@ export const useSeerExplorer = () => {
         orgSlug,
         pageName,
         screenshot,
+        overrideBashModeEnabled,
         overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
@@ -532,6 +539,7 @@ export const useSeerExplorer = () => {
       getLLMContext,
       getPageReferrer,
       organization,
+      overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
       sendMessageMutate,
@@ -686,6 +694,8 @@ export const useSeerExplorer = () => {
     hasSentInterrupt,
     respondToUserInput,
     createPR,
+    overrideBashModeEnabled,
+    setOverrideBashModeEnabled,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,

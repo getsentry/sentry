@@ -29,6 +29,7 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
 import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
 import {
@@ -323,6 +324,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     <Stack height="100%">
       <BaseChart
         autoHeightResize
+        renderer="canvas"
         // will be grouped by date as we only support time as the x-axis right now.
         // TODO(nikki): eventually this might change and we'll pass in what kind of x-axis we have
         isGroupedByDate
@@ -421,3 +423,4 @@ type HeatMapTooltipContext = HeatMapBucketBounds;
 export type HeatMapZoomContext = HeatMapBucketBounds;
 
 HeatMapWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+HeatMapWidgetVisualization.NoData = WidgetNoDataPanel;

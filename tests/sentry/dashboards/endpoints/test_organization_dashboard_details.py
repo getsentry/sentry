@@ -249,6 +249,16 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
 
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            title="no split",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=None,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
         response = self.do_request(
             "get",
             self.url(dashboard.id),
@@ -257,6 +267,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][0]["widgetType"] == "error-events"
         assert response.data["widgets"][1]["widgetType"] == "transaction-like"
         assert response.data["widgets"][2]["widgetType"] == "discover"
+        assert response.data["widgets"][3]["widgetType"] == "transaction-like"
 
     def test_dashboard_widget_returns_dataset_source(self) -> None:
         dashboard = Dashboard.objects.create(

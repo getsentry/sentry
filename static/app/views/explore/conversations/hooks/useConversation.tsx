@@ -9,15 +9,12 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -42,6 +39,7 @@ interface ConversationApiSpan {
   errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
+  'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -65,11 +63,20 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+interface ConversationApiResponse {
+  conversationId: string;
+  spans: ConversationApiSpan[];
+  title: string | null;
+}
+
 function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.name']?.startsWith('gen_ai.') ?? false;
+  return (
+    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
+    (span['span.name']?.startsWith('gen_ai.') ?? false)
+  );
 }
 
 interface UseConversationResult {
@@ -77,11 +84,12 @@ interface UseConversationResult {
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
+  title: string | null;
 }
 
 /**
  * Creates a node-like object from a flat API span response so existing UI
- * components (AISpanList, MessagesPanel) work without full trace fetches.
+ * components (AiSpanTimeline, MessagesPanel) work without full trace fetches.
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
@@ -115,6 +123,11 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      // Preserve the raw span op so the transcript can recognize embeddings
+      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
+      // op-type path so the timeline still renders them as before.
+      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
@@ -198,10 +211,7 @@ function createNodeFromApiSpan(
     findParentEapTransaction: () => null,
 
     renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      if (hasGenAiConversationsRedesignFeature(props.organization)) {
-        return <AiSpanDetails node={props.node} traceId={props.traceId} />;
-      }
-      return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
+      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
     },
   };
 
@@ -252,7 +262,7 @@ export function useConversation(
     isLoading,
     isError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiSpan[]>()(
+    apiOptions.asInfinite<ConversationApiResponse>()(
       '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
       {
         path: conversation.conversationId
@@ -275,7 +285,14 @@ export function useConversation(
     }
   }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
 
-  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
+  const allSpans = useMemo(
+    () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
+    [data]
+  );
+
+  // The title is conversation-level, so it is identical across pages; read it
+  // off the first page.
+  const title = data?.pages[0]?.json.title ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -304,6 +321,7 @@ export function useConversation(
       nodeTraceMap: new Map(),
       isLoading: false,
       error: false,
+      title: null,
     };
   }
 
@@ -312,5 +330,6 @@ export function useConversation(
     nodeTraceMap,
     isLoading: isLoading || isFetchingNextPage || hasNextPage,
     error: isError,
+    title,
   };
 }

@@ -86,11 +86,9 @@ describe('InstalledIntegration', () => {
     render(
       <InstalledIntegration
         {...defaultProps}
-        integration={
-          OrganizationIntegrationsFixture({
-            organizationIntegrationStatus: 'disabled',
-          }) as any
-        }
+        integration={OrganizationIntegrationsFixture({
+          organizationIntegrationStatus: 'disabled',
+        })}
         requiresUpgrade
       />
     );

@@ -27,7 +27,6 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'mm2_f',
           canTrial: true,
-          isTrial: false,
         }}
         organization={organization}
         onCloseModal={jest.fn()}
@@ -47,7 +46,7 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'am1_t',
           canTrial: false,
-          isTrial: true,
+          trialPlan: 'am1_t',
         }}
         organization={organization}
         onCloseModal={jest.fn()}
@@ -68,7 +67,6 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'mm2_f',
           canTrial: false,
-          isTrial: false,
         }}
         organization={organization}
         onCloseModal={jest.fn()}
@@ -88,7 +86,6 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'mm2_a_500k',
           canTrial: false,
-          isTrial: false,
         }}
         organization={organization}
         onCloseModal={jest.fn()}
@@ -116,7 +113,6 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'mm2_f',
           canTrial: false,
-          isTrial: false,
         }}
         organization={OrganizationFixture({
           ...organization,
@@ -155,7 +151,6 @@ describe('Business Landing Footer', () => {
           ...subscription,
           plan: 'mm2_f',
           canTrial: true,
-          isTrial: false,
         }}
         organization={OrganizationFixture({
           ...organization,

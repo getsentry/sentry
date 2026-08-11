@@ -511,7 +511,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'rules/',
-          redirectTo: '/organizations/:orgId/alerts/rules/',
+          redirectTo: '/organizations/:orgId/monitors/',
         },
         {
           path: 'rules/new/',
@@ -1335,8 +1335,13 @@ function buildRoutes(): RouteObject[] {
       path: 'rules/',
       children: [
         {
+          // Kept as a redirect: the MS Teams installation card links here, and
+          // Adaptive Card buttons cannot be rewritten once delivered.
           index: true,
-          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
         },
         {
           path: 'details/:ruleId/',
@@ -1352,14 +1357,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1409,8 +1414,8 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           redirectTo: forCustomerDomain
-            ? '/alerts/rules/'
-            : '/organizations/:orgId/alerts/rules/',
+            ? '/monitors/'
+            : '/organizations/:orgId/monitors/',
         },
         {
           path: ':projectId/',
@@ -1419,14 +1424,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1470,14 +1475,8 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
     },
     {
       path: 'new/',
@@ -1492,7 +1491,8 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':alertType/',
           component: make(
-            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
           ),
         },
       ],
@@ -1504,21 +1504,18 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
-      path: ':projectId/',
+      path: ':projectId/new/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/alerts/create')),
-        },
-        {
-          path: 'wizard/',
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
+    },
+    {
+      path: ':projectId/wizard/',
+      component: make(
+        () =>
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+      ),
     },
   ];
   const alertRoutes: SentryRouteObject = {
@@ -1660,7 +1657,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const discoverChildren: SentryRouteObject[] = [
+  const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'queries/',
@@ -1683,11 +1680,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes: SentryRouteObject = {
+  const discoverErrorsRoutes: SentryRouteObject = {
     path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
-    children: discoverChildren,
+    children: discoverErrorsChildren,
   };
 
   const errorsChildren: SentryRouteObject[] = [
@@ -1697,7 +1694,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const errorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/errors-v2/',
     component: make(() => import('sentry/views/explore/errors')),
     withOrgPath: true,
     children: errorsChildren,
@@ -2076,33 +2073,23 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/crons/`,
-      redirectTo: '/insights/crons/',
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
     {
       path: 'uptime/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/uptime/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: 'crons/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/crons/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
   ];
 
@@ -2247,9 +2234,14 @@ function buildRoutes(): RouteObject[] {
       children: replayChildren,
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/discover')),
+      children: discoverErrorsChildren,
+    },
+    {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildren,
+      children: discoverErrorsChildren,
     },
     {
       path: 'releases/',
@@ -2285,7 +2277,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'errors/',
+      path: 'errors-v2/',
       component: make(() => import('sentry/views/explore/errors')),
       children: errorsChildren,
     },
@@ -2293,14 +2285,22 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
-    // These two routes have to be placed at the end of the exploreChildren
-    // array to avoid being overridden by the other routes.
+    // Unknown /explore/ subpaths redirect to the default explore view, rather
+    // than falling through to the `/:orgId/:projectId/` legacy redirect and
+    // rendering "The project you were looking for was not found".
+    //
+    // Real routes outrank these on specificity, so they win regardless of
+    // where they sit in this array. Keep these last anyway: order is the
+    // tiebreaker if a sibling ever scores the same.
     {
       path: ':catchAll/',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
     {
-      path: ':catchAll/*',
+      // Same, for deeper paths. Not `:catchAll/*` — our SDK matches relative
+      // route paths against the full pathname, so that pattern would rename
+      // every transaction in the app to `/:catchAll/...`.
+      path: '*',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];
@@ -2484,8 +2484,8 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
-      path: 'awaiting-input/',
-      component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
+      path: 'inbox/',
+      component: make(() => import('sentry/views/issueList/pages/inbox')),
     },
     {
       path: 'views/',
@@ -2594,6 +2594,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'users/',
+      name: t('Users'),
       children: [
         {
           index: true,
@@ -2601,6 +2602,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':id',
+          name: t('Details'),
           component: make(() => import('sentry/views/admin/adminUserEdit')),
         },
       ],
@@ -2749,6 +2751,10 @@ function buildRoutes(): RouteObject[] {
         )
       ),
     },
+    {
+      path: 'events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
@@ -2770,7 +2776,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       snapshotsRedirect,
       statsRoutes,
-      discoverRoutes,
+      discoverErrorsRoutes,
       errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
@@ -2908,10 +2914,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: ':projectId/issues/:groupId/merged/',
         redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-      },
-      {
-        path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
       },
     ],
   };

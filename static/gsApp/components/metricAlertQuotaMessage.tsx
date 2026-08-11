@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit';
@@ -39,7 +39,7 @@ export function MetricAlertQuotaIcon() {
         title={tct(
           "You have reached your plan's limit on metric monitors. [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
           {
-            removeLink: <Link to={makeAlertsPathname({organization, path: '/rules/'})} />,
+            removeLink: <Link to={makeMonitorBasePathname(organization.slug)} />,
             upgradeLink: <UpgradeLink />,
           }
         )}
@@ -61,7 +61,7 @@ export function MetricAlertQuotaMessage() {
       "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
       {
         limit: metricAlertQuota.detectorLimit.toLocaleString(),
-        removeLink: <Link to={makeAlertsPathname({organization, path: '/rules/'})} />,
+        removeLink: <Link to={makeMonitorBasePathname(organization.slug)} />,
         upgradeLink: <UpgradeLink />,
       }
     );

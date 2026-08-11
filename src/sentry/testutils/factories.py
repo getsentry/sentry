@@ -32,6 +32,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -64,6 +66,7 @@ from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.integration_feature import (
@@ -76,6 +79,22 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
+    InvestigationCell,
+    InvestigationCellDependency,
+    InvestigationCellExecution,
+    InvestigationCellExecutionProject,
+    InvestigationCellParameter,
+    InvestigationFavoriteUser,
+    InvestigationParameter,
+    InvestigationProject,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -108,6 +127,8 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
@@ -139,6 +160,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
@@ -153,6 +175,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
@@ -403,6 +426,92 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation(organization, created_by=None, **kwargs):
+        return Investigation.objects.create(
+            organization=organization,
+            created_by_id=created_by.id if created_by else None,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_project(investigation, project):
+        return InvestigationProject.objects.create(investigation=investigation, project=project)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_favorite(investigation, user):
+        return InvestigationFavoriteUser.objects.create(
+            investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell(investigation, position=0, kind="text", **kwargs):
+        return InvestigationCell.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block(investigation, position=0, kind="text", **kwargs):
+        return InvestigationBlock.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_dependency(cell, depends_on):
+        return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_dependency(block, depends_on):
+        return InvestigationBlockDependency.objects.create(block=block, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_parameter(investigation, **kwargs):
+        return InvestigationParameter.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_parameter(cell, parameter, **kwargs):
+        return InvestigationCellParameter.objects.create(cell=cell, parameter=parameter, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_parameter(block, parameter, **kwargs):
+        return InvestigationBlockParameter.objects.create(
+            block=block, parameter=parameter, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_execution(cell, **kwargs):
+        return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution(block, **kwargs):
+        return InvestigationBlockExecution.objects.create(block=block, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_execution_project(execution, project):
+        return InvestigationCellExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution_project(execution, project):
+        return InvestigationBlockExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -623,6 +732,22 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_ai_conversation_metadata(
+        project: Project,
+        conversation_id: str,
+        title: str | None = None,
+        title_source_timestamp: datetime | None = None,
+    ) -> AIConversationMetadata:
+        return AIConversationMetadata.objects.create(
+            project_id=project.id,
+            conversation_id=clamp_conversation_id_for_storage(conversation_id),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title=title,
+            title_source_timestamp=title_source_timestamp,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1304,6 +1429,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_subscription(group, **kwargs):
+        kwargs.setdefault("project", group.project)
+        return GroupSubscription.objects.create(group=group, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group_owner(
         group,
         type=GroupOwnerType.OWNERSHIP_RULE.value,
@@ -1443,7 +1574,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def add_user_permission(user, permission):
-        UserPermission.objects.create(user=user, permission=permission)
+        with outbox_runner():
+            UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1819,6 +1951,27 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_resolution(group, release, **kwargs):
+        return GroupResolution.objects.create(
+            group=group,
+            release=release,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_link(group, linked_id, linked_type=None, relationship=None, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=linked_type or GroupLink.LinkedType.commit,
+            linked_id=linked_id,
+            relationship=relationship or GroupLink.Relationship.references,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
@@ -2039,6 +2192,19 @@ class Factories:
         return integration
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_gcp_service_account(
+        organization: Organization,
+        service_account_email: str,
+        **kwargs: Any,
+    ) -> GcpServiceAccount:
+        return GcpServiceAccount.objects.create(
+            organization_id=organization.id,
+            service_account_email=service_account_email,
+            **kwargs,
+        )
+
+    @staticmethod
     def create_organization_contributor(
         organization: Organization,
         integration: Integration | RpcIntegration,
@@ -2050,7 +2216,6 @@ class Factories:
 
         return OrganizationContributors.objects.create(
             organization=organization,
-            integration_id=integration.id,
             external_identifier=external_identifier,
             **kwargs,
         )
@@ -2213,6 +2378,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_setting_option(*args, **kwargs) -> NotificationSettingOption:
+        return NotificationSettingOption.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2848,6 +3018,7 @@ class Factories:
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files={"item_0": trace_item.SerializeToString()},
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -3031,6 +3202,16 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_agent_write_grant(organization, user, session_id: str = "s1", **kwargs):
+        return SeerAgentWriteGrant.objects.create(
+            organization=organization,
+            user_id=user.id,
+            agent_session_id=session_id,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

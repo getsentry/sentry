@@ -38,7 +38,7 @@ describe('Dashboards > WidgetCard', () => {
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
     }),
-  } as Parameters<typeof initializeOrg>[0]);
+  });
 
   const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
     render(

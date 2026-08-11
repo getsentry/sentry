@@ -219,12 +219,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
+            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
-  }, [groupId, incomingEnvs, organization.slug, queryClient]);
+  }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {

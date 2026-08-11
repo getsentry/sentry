@@ -11,11 +11,11 @@ interface UseAutoTriggerAutofixOptions {
 export function useAutoTriggerAutofix({autofix, group}: UseAutoTriggerAutofixOptions) {
   const alreadyTriggered = useRef(false);
 
-  // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
+  // Extract startStep so we don't depend on `autofix`, which is unstable.
   const startStep = autofix.startStep;
 
   useEffect(() => {
-    if (alreadyTriggered.current) {
+    if (alreadyTriggered.current || autofix.isLoading || autofix.runState) {
       return;
     }
 
@@ -30,5 +30,11 @@ export function useAutoTriggerAutofix({autofix, group}: UseAutoTriggerAutofixOpt
 
     alreadyTriggered.current = true;
     startStep('root_cause');
-  }, [group, startStep]);
+  }, [
+    autofix.isLoading,
+    autofix.runState,
+    group.seerAutofixLastTriggered,
+    group.seerExplorerAutofixLastTriggered,
+    startStep,
+  ]);
 }

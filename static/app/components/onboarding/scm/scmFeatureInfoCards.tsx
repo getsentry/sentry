@@ -1,4 +1,5 @@
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -111,20 +112,15 @@ export function ScmFeatureInfoCards({
                       {isVolumeLoading ? (
                         <Placeholder height="20px" width="100px" />
                       ) : (
-                        <Tooltip
-                          title={meta.volumeTooltip}
+                        <InfoText
+                          title={isDisabled ? null : meta.volumeTooltip}
                           delay={100}
-                          disabled={isDisabled}
+                          variant="muted"
+                          size="sm"
+                          density="comfortable"
                         >
-                          <Text
-                            variant="muted"
-                            underline="dotted"
-                            size="sm"
-                            density="comfortable"
-                          >
-                            {meta.volume}
-                          </Text>
-                        </Tooltip>
+                          {meta.volume}
+                        </InfoText>
                       )}
                     </Container>
                   ) : null}

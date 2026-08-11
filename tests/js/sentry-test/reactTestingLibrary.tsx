@@ -122,6 +122,7 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
+      <TopBar.Slot.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBar.Slot.Outlet>
       {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
       <TopBar.Slot.Outlet name="title">{p => <h1 {...p} />}</TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
@@ -416,7 +417,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
 
   const {initialProps, ...rest} = options;
 
-  const hookResult = rtl.renderHook(callback as (initialProps: Props) => Result, {
+  const hookResult = rtl.renderHook(callback, {
     ...(rest as Omit<rtl.RenderHookOptions<Props>, 'wrapper'>),
     initialProps,
     wrapper: Wrapper,

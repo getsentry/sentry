@@ -12,7 +12,6 @@ const baseEvidenceData: LowValueSpanEvidenceData = {
   count: 1234,
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
-  estimatedCostUsd: 12.34,
   spanOrigin: 'auto',
 };
 

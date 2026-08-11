@@ -12,7 +12,6 @@ type Props = {
   index: number;
   sortConfig: SortConfig;
   style: CSSProperties;
-  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const COLUMNS: Array<{
@@ -29,11 +28,10 @@ const COLUMNS: Array<{
 
 export const COLUMN_COUNT = COLUMNS.length;
 
-export function ErrorHeaderCell({handleSort, index, sortConfig, style, ref}: Props) {
+export function ErrorHeaderCell({handleSort, index, sortConfig, style}: Props) {
   const {field, label, tooltipTitle} = COLUMNS[index]!;
   return (
     <HeaderCell
-      ref={ref}
       handleSort={handleSort}
       field={field}
       label={label}

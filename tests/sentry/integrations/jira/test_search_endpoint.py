@@ -266,6 +266,74 @@ class JiraSearchEndpointTest(APITestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
+    def test_status_search(self, mock_record: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={
+                "values": [
+                    {"id": "1", "name": "Open"},
+                    {"id": "3", "name": "In Progress"},
+                    {"id": "6", "name": "Closed"},
+                ],
+            },
+        )
+        self.login_as(self.user)
+
+        path = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id]
+        )
+
+        resp = self.client.get(f"{path}?field=status&project=10000")
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"value": "1", "label": "Open"},
+            {"value": "3", "label": "In Progress"},
+            {"value": "6", "label": "Closed"},
+        ]
+        _assert_search_outcome(
+            mock_record, ProjectManagementActionType.SEARCH_STATUSES, EventLifecycleOutcome.SUCCESS
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
+    def test_status_search_missing_project(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(self.user)
+
+        path = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id]
+        )
+
+        resp = self.client.get(f"{path}?field=status")
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "project is a required parameter for status search"}
+
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
+    def test_status_search_error(self, mock_record: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            status=500,
+            body="Jira error",
+        )
+        self.login_as(self.user)
+
+        path = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id]
+        )
+
+        resp = self.client.get(f"{path}?field=status&project=10000")
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch statuses from Jira"}
+        _assert_search_outcome(
+            mock_record,
+            ProjectManagementActionType.SEARCH_STATUSES,
+            EventLifecycleOutcome.HALTED,
+            expected_exception=ApiError,
+        )
+
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event", autospec=True)
     def test_project_search_with_pagination(self, mock_record: mock.MagicMock) -> None:
         responses.add(
             responses.GET,

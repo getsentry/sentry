@@ -16,7 +16,7 @@ class ReleaseThresholdExamples:
                             "name": "production",
                         },
                         "project": BASE_PROJECT,
-                        "threshold_type": 0,
+                        "threshold_type": "total_error_count",
                         "trigger_type": "over",
                         "value": 100,
                         "window_in_seconds": 600,

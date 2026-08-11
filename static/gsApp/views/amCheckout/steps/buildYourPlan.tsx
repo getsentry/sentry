@@ -13,6 +13,7 @@ import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
+  isTrial,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -80,7 +81,7 @@ function PlanSubstep({
       const trialExpired = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
         <Tag variant="warning">
-          {subscription.isTrial && !trialExpired
+          {isTrial(subscription) && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}
         </Tag>

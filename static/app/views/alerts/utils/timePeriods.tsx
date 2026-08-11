@@ -2,24 +2,12 @@ import {t} from 'sentry/locale';
 import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 
-export const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
-  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
-  [TimeWindow.ONE_HOUR]: t('1 hour'),
-  [TimeWindow.TWO_HOURS]: t('2 hours'),
-  [TimeWindow.FOUR_HOURS]: t('4 hours'),
-  [TimeWindow.ONE_DAY]: t('24 hours'),
-};
-
 type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
 
 /**
  * Time period display labels
  */
-export const TIME_PERIOD_MAP: TimePeriodMap = {
+const TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
@@ -41,7 +29,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -74,7 +62,7 @@ const MOST_EAP_TIME_PERIOD = [
 /**
  * Available time periods for EAP alerts
  */
-export const EAP_AVAILABLE_TIME_PERIODS = {
+const EAP_AVAILABLE_TIME_PERIODS = {
   [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
   [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
   [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
@@ -141,16 +129,6 @@ export function getTimePeriodOptions(options: TimePeriodOptions) {
 /**
  * TimeWindow to interval mapping for chart data requests
  */
-export const TIME_WINDOW_TO_INTERVAL = {
-  [TimeWindow.FIVE_MINUTES]: '5m',
-  [TimeWindow.TEN_MINUTES]: '10m',
-  [TimeWindow.FIFTEEN_MINUTES]: '15m',
-  [TimeWindow.THIRTY_MINUTES]: '30m',
-  [TimeWindow.ONE_HOUR]: '1h',
-  [TimeWindow.TWO_HOURS]: '2h',
-  [TimeWindow.FOUR_HOURS]: '4h',
-  [TimeWindow.ONE_DAY]: '1d',
-};
 
 /**
  * Historical time period mappings for fetching background data

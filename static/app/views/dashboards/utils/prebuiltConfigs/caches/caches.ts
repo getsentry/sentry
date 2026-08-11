@@ -4,7 +4,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -107,6 +110,7 @@ export const CACHES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TRANSACTION_TABLE],
   onboarding: {type: 'module', moduleName: ModuleName.CACHE},

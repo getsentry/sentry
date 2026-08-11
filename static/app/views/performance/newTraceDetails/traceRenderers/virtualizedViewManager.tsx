@@ -1,5 +1,5 @@
 import type {Theme} from '@emotion/react';
-import {mat3, vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -25,13 +25,21 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceTimeCompressionGap} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
+import {
+  CompressedTraceViewCalculations,
+  NormalTraceViewCalculations,
+  type CompressedView,
+  type SpanMatrix,
+  type TraceIconEdge,
+  type TraceViewCalculationContext,
+  type TraceViewCalculations,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceViewCalculations';
 
 import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
 
-type TraceIconEdge = 'start' | 'end' | null;
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
   indicators: TraceTree['indicators'];
@@ -69,6 +77,7 @@ type VerticalIndicator = {
   timestamp: number | undefined;
 };
 type SpanTextPlacement = [inside: number, textTransform: number];
+
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -139,11 +148,10 @@ export class VirtualizedViewManager {
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
-  private readonly span_matrix: [number, number, number, number, number, number] = [
-    1, 0, 0, 1, 0, 0,
-  ];
-  private _compressedViewCache: {left: number; right: number; width: number} | null =
-    null;
+  private readonly span_matrix: SpanMatrix = [1, 0, 0, 1, 0, 0];
+  private _compressedViewCache: CompressedView | null = null;
+  private readonly compressedViewCalculations = new CompressedTraceViewCalculations();
+  private readonly normalViewCalculations = new NormalTraceViewCalculations();
 
   timers: {
     onFovChange: {id: number} | null;
@@ -576,41 +584,11 @@ export class VirtualizedViewManager {
 
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
-      let newView: [number, number, number, number];
-
-      if (this.time_compression.enabled) {
-        const compressedView = this.getCompressedView();
-        const leftPercentage = x / this.view.trace_physical_space.width;
-        const compressedCursor =
-          compressedView.left + leftPercentage * compressedView.width;
-        const nextCompressedLeft =
-          compressedCursor + (compressedView.left - compressedCursor) * scale;
-        const nextCompressedRight =
-          compressedCursor + (compressedView.right - compressedCursor) * scale;
-        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
-        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
-
-        newView = [
-          nextRealLeft - this.view.to_origin,
-          this.view.trace_view.y,
-          nextRealRight - nextRealLeft,
-          this.view.trace_view.height,
-        ];
-      } else {
-        const configSpaceCursor = this.getConfigSpaceCursor({x, y: 0});
-        const center = vec2.fromValues(configSpaceCursor[0], 0);
-        const centerScaleMatrix = mat3.create();
-
-        mat3.fromTranslation(centerScaleMatrix, center);
-        mat3.scale(centerScaleMatrix, centerScaleMatrix, vec2.fromValues(scale, 1));
-        mat3.translate(
-          centerScaleMatrix,
-          centerScaleMatrix,
-          vec2.fromValues(-center[0], 0)
-        );
-
-        newView = this.view.trace_view.transform(centerScaleMatrix);
-      }
+      const newView = this.getViewCalculations().computeWheelZoomView(
+        this.getViewCalculationContext(),
+        x,
+        scale
+      );
 
       // When users zoom in, the matrix will compute a width value that is lower than the min,
       // which results in the value of x being incorrectly set and the view moving to the right.
@@ -642,25 +620,13 @@ export class VirtualizedViewManager {
 
       const physicalDeltaPct = distance / this.view.trace_physical_space.width;
 
-      if (this.time_compression.enabled) {
-        const compressedView = this.getCompressedView();
-        const compressedDelta = physicalDeltaPct * compressedView.width;
-        const nextCompressedLeft = compressedView.left + compressedDelta;
-        const nextCompressedRight = compressedView.right + compressedDelta;
-        const nextRealLeft = this.time_compression.toRealTimestamp(nextCompressedLeft);
-        const nextRealRight = this.time_compression.toRealTimestamp(nextCompressedRight);
-
-        this.scheduler.dispatch('set trace view', {
-          x: nextRealLeft - this.view.to_origin,
-          width: nextRealRight - nextRealLeft,
-        });
-      } else {
-        const view_delta = physicalDeltaPct * this.view.trace_view.width;
-
-        this.scheduler.dispatch('set trace view', {
-          x: this.view.trace_view.x + view_delta,
-        });
-      }
+      this.scheduler.dispatch(
+        'set trace view',
+        this.getViewCalculations().computeWheelPanView(
+          this.getViewCalculationContext(),
+          physicalDeltaPct
+        )
+      );
     }
   }
 
@@ -708,28 +674,13 @@ export class VirtualizedViewManager {
     // to move the duration label insdie the bar and can preserve
     // some context around the star/end time of a span
     if (this.view.trace_physical_space.width > 300) {
-      if (this.time_compression.enabled) {
-        const compressedPxRatio = this.span_to_px[0];
-        const paddingCompressedMs = 74 * compressedPxRatio;
-        const realStart = final_x + this.view.to_origin;
-        const realEnd = realStart + final_width;
-        const compressedStart = this.time_compression.toCompressedOffset(realStart);
-        const compressedEnd = this.time_compression.toCompressedOffset(realEnd);
-        const paddedStart = this.time_compression.toRealTimestamp(
-          compressedStart - paddingCompressedMs
-        );
-        const paddedEnd = this.time_compression.toRealTimestamp(
-          compressedEnd + paddingCompressedMs
-        );
-        final_x = paddedStart - this.view.to_origin;
-        final_width = paddedEnd - paddedStart;
-      } else {
-        const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
-        const offsetInConfigSpace = 74 * mat[0];
-
-        final_x -= offsetInConfigSpace;
-        final_width += offsetInConfigSpace * 2;
-      }
+      const paddedSpace = this.getViewCalculations().padZoomIntoSpace(
+        this.getViewCalculationContext(),
+        final_x,
+        final_width
+      );
+      final_x = paddedSpace.x;
+      final_width = paddedSpace.width;
     }
 
     const start_x = this.view.trace_view.x;
@@ -1046,7 +997,24 @@ export class VirtualizedViewManager {
     return transform;
   }
 
-  getCompressedView(): {left: number; right: number; width: number} {
+  private getViewCalculationContext(): TraceViewCalculationContext {
+    return {
+      getCompressedView: () => this.getCompressedView(),
+      getConfigSpacePerPx: () => this.getConfigSpacePerPx(),
+      spanMatrix: this.span_matrix,
+      spanToPx: this.span_to_px,
+      timeCompression: this.time_compression,
+      view: this.view,
+    };
+  }
+
+  private getViewCalculations(): TraceViewCalculations {
+    return this.time_compression.enabled
+      ? this.compressedViewCalculations
+      : this.normalViewCalculations;
+  }
+
+  getCompressedView(): CompressedView {
     if (this._compressedViewCache) {
       return this._compressedViewCache;
     }
@@ -1064,37 +1032,15 @@ export class VirtualizedViewManager {
   }
 
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
-    if (!this.time_compression.enabled) {
-      return this.view.getConfigSpaceCursor(cursor);
-    }
-
-    const leftPercentage = cursor.x / this.view.trace_physical_space.width;
-    const compressedView = this.getCompressedView();
-    const compressedCursor = compressedView.left + leftPercentage * compressedView.width;
-    return [
-      this.time_compression.toRealTimestamp(compressedCursor) - this.view.to_origin,
-      0,
-    ];
+    return this.getViewCalculations().getConfigSpaceCursor(
+      this.getViewCalculationContext(),
+      cursor
+    );
   }
 
   recomputeSpanToPXMatrix() {
-    if (this.time_compression.enabled) {
-      const compressedView = this.getCompressedView();
-      this.span_to_px = mat3.identity(this.span_to_px);
-      this.span_to_px[0] =
-        compressedView.width / Math.max(this.view.trace_physical_space.width, 1);
-      return;
-    }
-
-    const traceViewToSpace = this.view.trace_space.between(this.view.trace_view);
-    const tracePhysicalToView = this.view.trace_physical_space.between(
-      this.view.trace_space
-    );
-
-    this.span_to_px = mat3.multiply(
-      this.span_to_px,
-      traceViewToSpace,
-      tracePhysicalToView
+    this.span_to_px = this.getViewCalculations().recomputeSpanToPXMatrix(
+      this.getViewCalculationContext()
     );
   }
 
@@ -1109,40 +1055,16 @@ export class VirtualizedViewManager {
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
-    const compressedView = this.getCompressedView();
-    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
-    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
-    const compressedDuration = Math.max(compressedEnd - compressedStart, 0);
-    const scale = compressedDuration / compressedView.width;
-    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / compressedView.width);
-    this.span_matrix[4] = (compressedStart - compressedView.left) / this.span_to_px[0];
-
-    // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
-    const compressedTraceEnd = this.time_compression.toCompressedOffset(
-      this.view.to_origin + this.view.trace_space.width
+    return this.getViewCalculations().computeSpanCSSMatrixTransform(
+      this.getViewCalculationContext(),
+      space
     );
-    if (
-      space[0] - this.view.to_origin > this.view.trace_space.width / 2 &&
-      (compressedTraceEnd - compressedEnd) / this.span_to_px[0] <= 1
-    ) {
-      // 1px for the span and 1px for the border
-      this.span_matrix[4] = this.span_matrix[4] - 2;
-    }
-    return this.span_matrix;
   }
 
   transformXFromTimestamp(timestamp: number): number {
-    if (!this.time_compression.enabled) {
-      const config_space_per_px = this.getConfigSpacePerPx();
-      return (
-        (timestamp - this.view.to_origin - this.view.trace_view.x) / config_space_per_px
-      );
-    }
-
-    return (
-      (this.time_compression.toCompressedOffset(timestamp) -
-        this.getCompressedView().left) /
-      this.span_to_px[0]
+    return this.getViewCalculations().transformXFromTimestamp(
+      this.getViewCalculationContext(),
+      timestamp
     );
   }
 
@@ -1315,32 +1237,19 @@ export class VirtualizedViewManager {
     timestamp: number,
     entire_space: [number, number]
   ) {
-    const compressedStart = this.time_compression.toCompressedOffset(entire_space[0]);
-    const compressedEnd = this.time_compression.toCompressedOffset(
-      entire_space[0] + entire_space[1]
+    return this.getViewCalculations().computeRelativeLeftPositionFromOrigin(
+      this.getViewCalculationContext(),
+      timestamp,
+      entire_space
     );
-    const compressedTimestamp = this.time_compression.toCompressedOffset(timestamp);
-    const compressedRange = compressedEnd - compressedStart;
-    if (compressedRange === 0) {
-      return 0;
-    }
-    return (compressedTimestamp - compressedStart) / compressedRange;
   }
 
   computeRelativeWidth(space: [number, number], entire_space: [number, number]) {
-    const compressedStart = this.time_compression.toCompressedOffset(space[0]);
-    const compressedEnd = this.time_compression.toCompressedOffset(space[0] + space[1]);
-    const compressedEntireStart = this.time_compression.toCompressedOffset(
-      entire_space[0]
+    return this.getViewCalculations().computeRelativeWidth(
+      this.getViewCalculationContext(),
+      space,
+      entire_space
     );
-    const compressedEntireEnd = this.time_compression.toCompressedOffset(
-      entire_space[0] + entire_space[1]
-    );
-    const compressedEntireRange = compressedEntireEnd - compressedEntireStart;
-    if (compressedEntireRange === 0) {
-      return 0;
-    }
-    return (compressedEnd - compressedStart) / compressedEntireRange;
   }
 
   computeTraceIconPlacement(
@@ -1367,37 +1276,12 @@ export class VirtualizedViewManager {
     iconWidthPx: number,
     edge: TraceIconEdge
   ): [number, number] {
-    if (!this.time_compression.enabled) {
-      const iconWidth = iconWidthPx * this.getConfigSpacePerPx();
-      if (edge === 'start') {
-        return [anchorTimestamp, anchorTimestamp + iconWidth];
-      }
-      if (edge === 'end') {
-        return [anchorTimestamp - iconWidth, anchorTimestamp];
-      }
-      return [anchorTimestamp - iconWidth / 2, anchorTimestamp + iconWidth / 2];
-    }
-
-    const compressedAnchor = this.time_compression.toCompressedOffset(anchorTimestamp);
-    const iconWidthCompressed = iconWidthPx * this.span_to_px[0];
-
-    if (edge === 'start') {
-      return [
-        anchorTimestamp,
-        this.time_compression.toRealTimestamp(compressedAnchor + iconWidthCompressed),
-      ];
-    }
-    if (edge === 'end') {
-      return [
-        this.time_compression.toRealTimestamp(compressedAnchor - iconWidthCompressed),
-        anchorTimestamp,
-      ];
-    }
-    const half = iconWidthCompressed / 2;
-    return [
-      this.time_compression.toRealTimestamp(compressedAnchor - half),
-      this.time_compression.toRealTimestamp(compressedAnchor + half),
-    ];
+    return this.getViewCalculations().computeTraceIconBounds(
+      this.getViewCalculationContext(),
+      anchorTimestamp,
+      iconWidthPx,
+      edge
+    );
   }
 
   private computeTraceIconEdge(timestamp: number, iconWidthPx: number): TraceIconEdge {
@@ -1440,27 +1324,10 @@ export class VirtualizedViewManager {
       return;
     }
 
-    if (this.time_compression.enabled) {
-      const compressedView = this.getCompressedView();
-      const targetInterval =
-        (110 * window.devicePixelRatio * compressedView.width) /
-        Math.max(this.view.trace_physical_space.width, 1);
-
-      computeCompressedTimelineIntervals(
-        compressedView,
-        targetInterval,
-        this.time_compression,
-        this.view.to_origin,
-        this.intervals
-      );
-      return;
-    }
-
-    const time_at_100 =
-      (110 * window.devicePixelRatio * this.view.trace_view.width) /
-      Math.max(this.view.trace_physical_space.width, 1);
-
-    computeTimelineIntervals(this.view, time_at_100, this.intervals);
+    this.getViewCalculations().recomputeTimelineIntervals(
+      this.getViewCalculationContext(),
+      this.intervals
+    );
   }
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
@@ -2326,74 +2193,6 @@ function getIconTimestamps(
   );
 
   return [min_icon_timestamp, max_icon_timestamp];
-}
-
-/**
- * Finds timeline intervals based off the current zoom level.
- */
-function computeTimelineIntervals(
-  view: TraceView,
-  targetInterval: number,
-  results: Array<number | undefined>
-): void {
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
-
-  let x = Math.ceil(view.trace_view.x / interval) * interval;
-  let idx = -1;
-  if (x > 0) {
-    x -= interval;
-  }
-  while (x <= view.trace_view.right) {
-    results[++idx] = x;
-    x += interval;
-  }
-
-  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
-    results[++idx] = undefined;
-  }
-}
-
-/**
- * Computes timeline intervals in compressed space so ticks are visually
- * evenly spaced, then converts each tick back to a real-time offset.
- */
-function computeCompressedTimelineIntervals(
-  compressedView: {left: number; right: number; width: number},
-  targetInterval: number,
-  compression: TraceTimeCompression,
-  toOrigin: number,
-  results: Array<number | undefined>
-): void {
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
-
-  let x = Math.ceil(compressedView.left / interval) * interval;
-  let idx = -1;
-  if (x > compressedView.left) {
-    x -= interval;
-  }
-  while (x <= compressedView.right) {
-    const realTimestamp = compression.toRealTimestamp(x);
-    results[++idx] = realTimestamp - toOrigin;
-    x += interval;
-  }
-
-  while (idx < results.length - 1 && results[idx + 1] !== undefined) {
-    results[++idx] = undefined;
-  }
 }
 
 export class VirtualizedList {

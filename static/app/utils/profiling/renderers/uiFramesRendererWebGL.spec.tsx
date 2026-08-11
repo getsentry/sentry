@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {vec2} from 'gl-matrix';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
