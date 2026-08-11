@@ -112,6 +112,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable organization investigation notebooks.
+    manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'translate' functionality for GenAI on the explore > traces page
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the explore > metrics tab
@@ -141,6 +143,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Use explicit incremental operations when updating Jira project status mappings.
+    manager.add("organizations:jira-explicit-mapping-removals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Lazy-load Jira statuses per-project instead of pre-fetching all, to fix duplicate statuses for large orgs.
@@ -176,8 +180,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-agentic-setup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable copy setup instructions button on project creation getting-started page
     manager.add("organizations:onboarding-copy-setup-instructions-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable new onboarding welcome and SDK setup UI
-    manager.add("organizations:onboarding-new-welcome-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first onboarding flow with provider connection, platform detection, and feature selection steps
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding A/B test measuring conversion impact
@@ -361,8 +363,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay link in the sidebar
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enable v2 issue activity feed UI
-    manager.add("organizations:issue-activity-feed-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Collapse repetitive status changes in the issue activity feed
+    manager.add("organizations:issue-activity-status-flapping-rollup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new stack trace component for issue details
     manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
@@ -401,6 +403,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations on the old usage-based (v0) Seer plan
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Roll out issue action log writes to organizations with Seer access
+    manager.add("organizations:issue-action-log-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables auto-conversion of number operators for search query builder
     manager.add("organizations:search-query-builder-number-operator-conversion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Organizations on the new seat-based Seer plan

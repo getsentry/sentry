@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
-from django.db import router, transaction
+from django.db import connection, router, transaction
 from django.utils import timezone as django_timezone
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -408,6 +408,145 @@ class ProcessGroupLogTest(TestCase):
         assert derived.cursor_id == old_cursor
         mock_delay.assert_called_once_with(group.id)
 
+    def test_invalidate_soft_inserts_null_row_when_missing(self) -> None:
+        group = self.create_group()
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id)
+
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.pipeline_hash is None
+        mock_generate.assert_called_once_with(group.id)
+        mock_process.assert_not_called()
+
+    def test_invalidate_soft_inserts_null_row_when_missing_no_trigger(self) -> None:
+        group = self.create_group()
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.pipeline_hash is None
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_soft_inserts_null_row_when_missing_with_cursor(self) -> None:
+        group = self.create_group()
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        cursor = (django_timezone.now(), 12345)
+        with patch(
+            "sentry.issues.derived.processing.generate_group_derived_data.delay"
+        ) as mock_generate:
+            invalidate_group_derived_data(group.id, cursor=cursor)
+
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.pipeline_hash is None
+        mock_generate.assert_called_once_with(group.id)
+
+    def test_invalidate_soft_missing_group_is_noop(self) -> None:
+        # Force FK constraints to IMMEDIATE so the violation fires at INSERT time (matching
+        # production autocommit behaviour) rather than at test teardown.
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        nonexistent_group_id = 9_999_999_999
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            # Should not raise IntegrityError — the invalidator swallows it.
+            invalidate_group_derived_data(nonexistent_group_id)
+
+        assert not GroupDerivedData.objects.filter(group_id=nonexistent_group_id).exists()
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_soft_bumps_generated_at(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        before = derived.generated_at
+
+        with patch("sentry.issues.derived.processing.generate_group_derived_data.delay"):
+            invalidate_group_derived_data(group.id)
+
+        derived.refresh_from_db()
+        assert derived.pipeline_hash is None
+        assert derived.generated_at > before
+
+    def test_invalidate_matches_null_hash_row_regardless_of_cursor(self) -> None:
+        # A null-hash row is already stale — a subsequent invalidation whose
+        # cursor is past the row's cursor must still refresh the CAS rather
+        # than fall into the pure-append branch.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        # Null the hash directly to simulate a prior invalidation (placeholder
+        # left behind by the missing-row insert path or an in-flight null).
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash=None)
+        derived.refresh_from_db()
+        before_gen = derived.generated_at
+
+        # Cursor is well past the row's cursor — under the old predicate this
+        # would look like a pure append.
+        future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, cursor=(future, derived.cursor_id + 1000))
+
+        derived.refresh_from_db()
+        assert derived.pipeline_hash is None
+        assert derived.generated_at > before_gen
+        mock_generate.assert_called_once_with(group.id)
+        mock_process.assert_not_called()
+
+    def test_invalidate_supersedes_in_flight_generation(self) -> None:
+        # A generation task that started before invalidation must not
+        # promote its (pre-invalidation) snapshot over the null-hash row.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Snapshot a candidate as if a generation started here.
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=django_timezone.now(),
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+
+        # Invalidation happens between the drain and the promote — either
+        # against an existing row or (as here) inserting the placeholder.
+        with patch("sentry.issues.derived.processing.generate_group_derived_data.delay"):
+            invalidate_group_derived_data(group.id)
+
+        # Promotion of the pre-invalidation snapshot must lose.
+        assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.pipeline_hash is None
+
     def test_invalidate_then_reprocess(self) -> None:
         group = self.create_group()
         user = self.user
@@ -578,6 +717,12 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
 
+        # Direct-create bypasses the outbox and takes ``date_added`` from
+        # ``db_default=Now()`` — Postgres ``NOW()`` returns the enclosing
+        # transaction's start time, which in a test transaction can predate
+        # the outbox-delivered entry above (whose ``date_added`` was stamped
+        # by wall-clock ``timezone.now()``). Set it explicitly so the cursor
+        # predicate sees new_entry as strictly newer.
         new_entry = GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -586,6 +731,7 @@ class ProcessGroupLogTest(TestCase):
             actor_id=0,
             source=SOURCE,
             data={},
+            date_added=derived.cursor_date + timedelta(seconds=1),
         )
 
         # Officially mark the row stale by resetting pipeline_hash to NULL.

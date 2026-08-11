@@ -1,7 +1,5 @@
-import {t} from 'sentry/locale';
 import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export enum AlertRuleThresholdType {
   ABOVE = 0,
@@ -13,14 +11,6 @@ export enum AlertRuleTriggerType {
   CRITICAL = 'critical',
   WARNING = 'warning',
   RESOLVE = 'resolve',
-}
-
-export enum AlertRuleComparisonType {
-  COUNT = 'count',
-  CHANGE = 'change',
-  PERCENT = 'percent',
-  DYNAMIC = 'dynamic',
-  STATIC = 'static',
 }
 
 export enum Dataset {
@@ -64,20 +54,13 @@ export enum EventTypes {
   TRACE_ITEM_METRIC = 'trace_item_metric',
 }
 
-export enum Datasource {
-  ERROR_DEFAULT = 'error_default',
-  DEFAULT = 'default',
-  ERROR = 'error',
-  TRANSACTION = 'transaction',
-}
-
 export enum AlertRuleSensitivity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
 }
 
-export enum AlertRuleSeasonality {
+enum AlertRuleSeasonality {
   AUTO = 'auto',
 }
 
@@ -91,21 +74,13 @@ export enum SessionsAggregate {
   CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 }
 
-export type UnsavedTrigger = {
+type UnsavedTrigger = {
   actions: Action[];
   alertThreshold: number | '' | null;
   label: AlertRuleTriggerType;
   // UnsavedTrigger can be a part of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
-};
-
-export type ThresholdControlValue = {
-  /**
-   * Resolve threshold is optional, so it can be null
-   */
-  threshold: number | '' | null;
-  thresholdType: AlertRuleThresholdType;
 };
 
 export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
@@ -117,7 +92,7 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
 // Form values for creating a new metric alert rule
-export type UnsavedMetricRule = {
+type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
   detectionType: string;
@@ -194,19 +169,7 @@ export enum ActionType {
   SENTRY_APP = 'sentry_app',
 }
 
-export const ActionLabel = {
-  // \u200B is needed because Safari disregards autocomplete="off". It's seeing "Email" and
-  // opening up the browser autocomplete for email. https://github.com/JedWatson/react-select/issues/3500
-  [ActionType.EMAIL]: t('Emai\u200Bl'),
-  [ActionType.SLACK]: t('Slack'),
-  [ActionType.PAGERDUTY]: t('Pagerduty'),
-  [ActionType.MSTEAMS]: t('MS Teams'),
-  [ActionType.OPSGENIE]: t('Opsgenie'),
-  [ActionType.DISCORD]: t('Discord'),
-  [ActionType.SENTRY_APP]: t('Notification'),
-};
-
-export enum TargetType {
+enum TargetType {
   // A direct reference, like an email address, Slack channel, or PagerDuty service
   SPECIFIC = 'specific',
 
@@ -220,78 +183,10 @@ export enum TargetType {
   SENTRY_APP = 'sentry_app',
 }
 
-export const TargetLabel = {
-  [TargetType.USER]: t('Member'),
-  [TargetType.TEAM]: t('Team'),
-};
-
-export const PriorityOptions = {
-  [ActionType.PAGERDUTY]: ['critical', 'warning', 'error', 'info'],
-  [ActionType.OPSGENIE]: ['P1', 'P2', 'P3', 'P4', 'P5'],
-};
-
-// default priorities per threshold (0 = critical, 1 = warning)
-export const DefaultPriorities = {
-  [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
-  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
-};
-
-/**
- * This is an available action template that is associated to a Trigger in a
- * Metric Alert Rule. They are defined by the available-actions API.
- */
-export type MetricActionTemplate = {
-  /**
-   * See `TargetType`
-   */
-  allowedTargetTypes: TargetType[];
-
-  /**
-   * The integration type e.g. 'email'
-   */
-  type: ActionType;
-
-  /**
-   * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
-   */
-  integrationId?: number;
-
-  /**
-   * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
-   */
-  integrationName?: string;
-
-  /**
-   * For some available actions, we pass in the list of available targets.
-   */
-  options?: Array<{label: string; value: any}>;
-
-  /**
-   * SentryApp id for this `type`, should be passed to backend as `sentryAppId` when creating an action.
-   */
-  sentryAppId?: number;
-
-  sentryAppInstallationUuid?: string;
-  /**
-   * Name of the SentryApp. Like `integrationName`, this differentiates SentryApps from each other.
-   */
-  sentryAppName?: string;
-
-  /**
-   * Sentry App Alert Rule UI Component settings
-   */
-  settings?: SchemaFormConfig;
-
-  /**
-   * If this is a `sentry_app` action, this is the Sentry App's status.
-   */
-  status?: 'unpublished' | 'published' | 'internal';
-};
-
 /**
  * This is the user's configured action
  */
-export type Action = UnsavedAction & Partial<SavedActionFields>;
+type Action = UnsavedAction & Partial<SavedActionFields>;
 
 type SavedActionFields = {
   /**

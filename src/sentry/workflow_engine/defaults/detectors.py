@@ -16,6 +16,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.issues import grouptype
 from sentry.locks import locks
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
@@ -37,6 +38,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
     ERROR_DETECTOR_NAME,
     ISSUE_STREAM_DETECTOR_NAME,
     DetectorPriorityLevel,
@@ -275,6 +277,64 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
 
         detectors[detector_type] = _ensure_detector(project, detector_type, default_enabled=enabled)
 
+    return detectors
+
+
+def ensure_default_all_projects_detector(organization_id: int) -> Detector:
+    """
+    Ensure that an org-scoped all-project detector exists for the organization.
+    This detector has project=NULL and config={"organization_id": org_id}.
+    """
+    existing = (
+        Detector.objects.filter(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+            config__organization_id=organization_id,
+        )
+        .order_by("id")
+        .first()
+    )
+    if existing:
+        return existing
+
+    lock = locks.get(
+        f"workflow-engine-org-{IssueStreamGroupType.slug}-detector:{organization_id}",
+        duration=2,
+        name=f"workflow_engine_all_project_{IssueStreamGroupType.slug}_detector",
+    )
+    try:
+        with (
+            lock.blocking_acquire(initial_delay=0.1, timeout=3),
+            transaction.atomic(router.db_for_write(Detector)),
+        ):
+            existing = (
+                Detector.objects.filter(
+                    type=IssueStreamGroupType.slug,
+                    project__isnull=True,
+                    config__organization_id=organization_id,
+                )
+                .order_by("id")
+                .first()
+            )
+            if existing:
+                return existing
+
+            return Detector.objects.create(
+                type=IssueStreamGroupType.slug,
+                project=None,
+                config={"organization_id": organization_id},
+                name=ALL_PROJECTS_DETECTOR_NAME,
+                enabled=True,
+            )
+    except UnableToAcquireLock:
+        raise UnableToAcquireLockApiError
+
+
+def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
+    detectors: dict[str, Detector] = {}
+    detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
+        organization_id=organization.id
+    )
     return detectors
 
 

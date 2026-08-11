@@ -61,6 +61,16 @@ export const ActivityLineRow = styled('div')`
   @container activity-list (min-width: 90px) {
     column-gap: ${p => p.theme.space.sm};
   }
+
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: calc(-${p => p.theme.space.md} - 11px);
+    border-left: 1px solid
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
 `;
 
 const ActivityLineSentence = styled('span')`
@@ -98,20 +108,9 @@ export const ActivityLineContent = styled('div')`
 `;
 
 export const ActivityLineList = styled('div')`
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
   container-name: activity-list;
   container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 11px;
-    width: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
 `;

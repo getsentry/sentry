@@ -19,6 +19,8 @@ const productionEntryPoints = [
   'static/app/components/core/quote/*.tsx',
   'static/app/components/core/markdown/**/*.{ts,tsx}',
   'static/app/components/core/revealOnHover/*.tsx',
+  // TODO: Remove when wired into Seer Explorer
+  'static/app/components/core/chat/thinkingBlock.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
