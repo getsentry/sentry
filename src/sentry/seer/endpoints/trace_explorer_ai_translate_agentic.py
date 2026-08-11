@@ -43,6 +43,11 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         default="Traces",
         help_text="Search strategy to use.",
     )
+    code_mode = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Request code mode execution for the agent.",
+    )
     options = serializers.DictField(
         required=False,
         allow_null=True,
@@ -123,6 +128,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         validated_data = serializer.validated_data
         natural_language_query = validated_data["natural_language_query"]
         strategy = validated_data.get("strategy", "Traces")
+        code_mode_toggle = validated_data["code_mode"]
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
@@ -176,7 +182,8 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
                 organization,
                 actor=request.user,
             ),
-            code_mode=features.has(
+            code_mode=code_mode_toggle
+            and features.has(
                 "organizations:seer-assisted-query-codemode",
                 organization,
                 actor=request.user,
