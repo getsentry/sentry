@@ -30,6 +30,15 @@ def _warning_events(mock_logger: Mock) -> list[str]:
     return [call.args[0] for call in mock_logger.warning.call_args_list]
 
 
+def _warning_extra(mock_logger: Mock, event: str) -> dict[str, Any]:
+    """The ``extra`` of the single warning logged for ``event``."""
+    extras = [
+        call.kwargs["extra"] for call in mock_logger.warning.call_args_list if call.args[0] == event
+    ]
+    assert len(extras) == 1, f"expected exactly one {event} warning, got {len(extras)}"
+    return extras[0]
+
+
 class LinkSeerRunPullRequestsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
@@ -159,6 +168,23 @@ class LinkSeerRunPullRequestsTest(TestCase):
 
         assert not SeerRunPullRequest.objects.exists()
         assert "seer.pr_link.repo_unresolved" in _warning_events(mock_logger)
+        assert _warning_extra(mock_logger, "seer.pr_link.repo_unresolved")["repo_resolution"] == (
+            "not_found"
+        )
+
+    @patch("sentry.seer.pull_requests.logger")
+    def test_unresolved_repo_reports_ambiguity(self, mock_logger: Mock) -> None:
+        """A provider of "unknown" can't disambiguate same-named repos, so the lookup
+        refuses to guess -- the log has to say so, or this is indistinguishable from a
+        repo Sentry has never seen."""
+        self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
+
+        self._link(self._payload(provider="unknown"))
+
+        assert not SeerRunPullRequest.objects.exists()
+        assert _warning_extra(mock_logger, "seer.pr_link.repo_unresolved")["repo_resolution"] == (
+            "ambiguous"
+        )
 
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
     def test_killswitch_disables_writes(self, mock_option: Mock) -> None:

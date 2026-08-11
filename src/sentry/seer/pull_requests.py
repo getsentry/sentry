@@ -104,7 +104,18 @@ def link_pull_request_to_seer_run(
         return None
 
     if resolved.pull_request is None:
-        logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
+        # Carry why it didn't resolve: "ambiguous" (several same-named active repos in the
+        # org -- a reported provider of "unknown" disables the disambiguating filter) and
+        # "not_found" are different bugs with different fixes, and the flat warning alone
+        # can't tell them apart.
+        logger.warning(
+            "seer.pr_link.repo_unresolved",
+            extra={
+                **log_context,
+                "repo_resolution": resolved.repo_resolution,
+                "provider_unmappable": resolved.provider_unmappable,
+            },
+        )
         return None
 
     try:
