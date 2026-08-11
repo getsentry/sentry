@@ -6,11 +6,14 @@ import {getRadius, rc} from '@sentry/scraps/layout';
 
 import type {RadiusSize} from 'sentry/utils/theme';
 
-export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+export interface ImageProps extends Omit<
+  React.ImgHTMLAttributes<HTMLImageElement>,
+  'height' | 'width'
+> {
   alt: string;
   src: string;
   aspectRatio?: CSSProperties['aspectRatio'];
-  height?: string;
+  height?: Responsive<CSSProperties['height']>;
   /**
    * Determines if the image should be loaded eagerly or lazily.
    * @default 'lazy'
@@ -20,16 +23,21 @@ export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   objectPosition?: 'center' | 'top' | 'bottom' | 'left' | 'right' | (string & {});
   radius?: Responsive<RadiusSize>;
   ref?: React.Ref<HTMLImageElement>;
-  width?: string;
+  width?: Responsive<CSSProperties['width']>;
 }
 
-export function Image({loading, ...props}: ImageProps) {
-  return <Img loading={loading ?? 'lazy'} {...props} />;
+export function Image({loading, width, height, ...props}: ImageProps) {
+  return <Img loading={loading ?? 'lazy'} w={width} h={height} {...props} />;
 }
 
-const Img = styled('img')<ImageProps>`
-  width: ${p => p.width ?? '100%'};
-  height: ${p => p.height ?? 'auto'};
+const Img = styled('img')<
+  Omit<ImageProps, 'width' | 'height'> & {
+    h: Responsive<CSSProperties['height']>;
+    w: Responsive<CSSProperties['width']>;
+  }
+>`
+  ${p => rc('width', p.w ?? '100%', p.theme)};
+  ${p => rc('height', p.h ?? 'auto', p.theme)};
   object-fit: ${p => p.objectFit};
   object-position: ${p => p.objectPosition};
   aspect-ratio: ${p => p.aspectRatio};
