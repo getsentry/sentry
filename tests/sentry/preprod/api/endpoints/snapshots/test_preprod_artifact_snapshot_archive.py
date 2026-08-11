@@ -12,7 +12,6 @@ from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive im
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
-from sentry.preprod.snapshots.zip_builder import SnapshotArchiveVersion
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.types.ratelimit import RateLimitCategory
@@ -71,9 +70,7 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
         with self.feature("organizations:preprod-snapshot-archive-manifest"):
             response = self.client.post(self._url(artifact.id))
         assert response.status_code == 202
-        assert mock_task.apply_async.call_args.kwargs["kwargs"]["archive_version"] == (
-            SnapshotArchiveVersion.V2
-        )
+        assert mock_task.apply_async.call_args.kwargs["kwargs"]["include_manifest"] is True
 
     @patch(ENQUEUE_TARGET)
     def test_post_returns_503_when_enqueue_fails(self, mock_task):
@@ -103,18 +100,6 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
-    def test_get_checks_manifest_archive_when_feature_enabled(self, mock_session):
-        artifact = self._artifact()
-        session = MagicMock()
-        session.get.return_value = MagicMock()
-        mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshot-archive-manifest"):
-            response = self.client.get(self._url(artifact.id))
-        assert response.status_code == 200
-        assert response.data["ready"] is True
-        session.get.assert_called_once_with(f"snapshot_archives/v2/{artifact.id}.zip")
-
-    @patch(SESSION_TARGET)
     def test_get_reports_not_ready_when_archive_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
@@ -137,7 +122,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
 
 class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
     @patch(SESSION_TARGET)
-    def test_download_streams_manifest_archive_when_feature_enabled(self, mock_session):
+    def test_download_streams_when_object_present(self, mock_session):
         artifact = self._artifact()
         result = MagicMock()
         result.payload.read.side_effect = [b"ZIPBYTES", b""]
@@ -145,12 +130,11 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         session = MagicMock()
         session.get.return_value = result
         mock_session.return_value = session
-        with self.feature("organizations:preprod-snapshot-archive-manifest"):
-            response = self.client.get(self._url(artifact.id, download=True))
+        response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 200
         assert response["Content-Type"] == "application/zip"
         assert b"".join(response.streaming_content) == b"ZIPBYTES"
-        session.get.assert_called_once_with(f"snapshot_archives/v2/{artifact.id}.zip")
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_download_returns_409_when_absent(self, mock_session):

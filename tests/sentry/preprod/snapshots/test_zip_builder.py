@@ -9,7 +9,6 @@ import pytest
 
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
 from sentry.preprod.snapshots.zip_builder import (
-    SnapshotArchiveVersion,
     SnapshotZipBuildError,
     archive_object_key,
     build_snapshot_zip,
@@ -120,8 +119,5 @@ def test_build_snapshot_zip_rejects_manifest_filename_collision() -> None:
         )
 
 
-def test_archive_object_key_is_versioned() -> None:
-    assert archive_object_key(284978, SnapshotArchiveVersion.V1) == "snapshot_archives/284978.zip"
-    assert archive_object_key(284978, SnapshotArchiveVersion.V2) == (
-        "snapshot_archives/v2/284978.zip"
-    )
+def test_archive_object_key_is_deterministic() -> None:
+    assert archive_object_key(284978) == "snapshot_archives/284978.zip"

@@ -12,7 +12,6 @@ from objectstore_client.multipart import CompletePart
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots import zip_tasks
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
-from sentry.preprod.snapshots.zip_builder import SnapshotArchiveVersion
 from sentry.preprod.snapshots.zip_tasks import (
     _put_part_with_retry,
     _upload_archive_multipart,
@@ -65,7 +64,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_v2_builds_and_uploads_via_multipart_then_emails(self, mock_session, mock_email):
+    def test_build_includes_manifest_when_requested(self, mock_session, mock_email):
         session = self._session()
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -73,11 +72,11 @@ class BuildSnapshotImagesZipTest(TestCase):
             project_id=self.project.id,
             artifact_id=self.artifact.id,
             user_id=self.user.id,
-            archive_version=SnapshotArchiveVersion.V2,
+            include_manifest=True,
         )
         session.initiate_multipart_upload.assert_called_once()
         kwargs = session.initiate_multipart_upload.call_args.kwargs
-        assert kwargs["key"] == f"snapshot_archives/v2/{self.artifact.id}.zip"
+        assert kwargs["key"] == f"snapshot_archives/{self.artifact.id}.zip"
         assert kwargs["compression"] == "none"
         assert kwargs["content_type"] == "application/zip"
 
@@ -93,7 +92,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_v1_build_uses_unversioned_key_and_omits_manifest(self, mock_session, mock_email):
+    def test_build_omits_manifest_by_default(self, mock_session, mock_email):
         session = self._session()
         mock_session.return_value = session
 
@@ -114,7 +113,7 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_skips_rebuild_when_archive_exists(self, mock_session, mock_email):
+    def test_reuses_existing_archive_when_manifest_requested(self, mock_session, mock_email):
         session = self._session(existing_archive_key=f"snapshot_archives/{self.artifact.id}.zip")
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -122,6 +121,7 @@ class BuildSnapshotImagesZipTest(TestCase):
             project_id=self.project.id,
             artifact_id=self.artifact.id,
             user_id=self.user.id,
+            include_manifest=True,
         )
         session.initiate_multipart_upload.assert_not_called()
         mock_email.assert_called_once()

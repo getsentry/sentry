@@ -4,7 +4,6 @@ import logging
 import zipfile
 from collections import defaultdict
 from concurrent.futures import as_completed
-from enum import IntEnum
 from typing import IO
 
 from objectstore_client import Session
@@ -19,20 +18,8 @@ logger = logging.getLogger(__name__)
 FETCH_MAX_WORKERS = 16
 
 
-class SnapshotArchiveVersion(IntEnum):
-    V1 = 1  # Images only.
-    V2 = 2  # Images plus a compressed manifest.
-
-
-def archive_object_key(
-    artifact_id: int,
-    archive_version: SnapshotArchiveVersion,
-) -> str:
-    if archive_version == SnapshotArchiveVersion.V1:
-        return f"snapshot_archives/{artifact_id}.zip"
-    if archive_version == SnapshotArchiveVersion.V2:
-        return f"snapshot_archives/v{archive_version}/{artifact_id}.zip"
-    raise ValueError(f"Unsupported snapshot archive version: {archive_version}")
+def archive_object_key(artifact_id: int) -> str:
+    return f"snapshot_archives/{artifact_id}.zip"
 
 
 def archive_exists(session: Session, key: str) -> bool:
