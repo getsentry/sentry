@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
@@ -38,7 +38,12 @@ export function FilterBar({
 
   return (
     <Grid columns={{zero: '1fr', '4xl': 'min-content 1fr'}} gap="lg" marginBottom="xl">
-      <FilterButtons gap="lg">
+      <Flex
+        gap="lg"
+        align={{zero: 'start', '4xl': 'center'}}
+        wrap={{zero: 'wrap', '4xl': 'nowrap'}}
+        width={{zero: '100%', '4xl': 'max-content'}}
+      >
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
         {hasStatusFilters && onChangeStatus && (
@@ -64,7 +69,7 @@ export function FilterBar({
             onChange={({value}) => onChangeStatus(value)}
           />
         )}
-      </FilterButtons>
+      </Flex>
       <Grid minWidth={0} width="100%" gap="md" align="center" columns="1fr min-content">
         <Flex minWidth={0} width="100%">
           <FullWidthSearchBar
@@ -91,22 +96,6 @@ export function FilterBar({
     </Grid>
   );
 }
-
-const FilterButtons = styled((props: GridProps) => (
-  <Grid flow="column" align="center" {...props} />
-))`
-  @container (max-width: ${p => p.theme.container['4xl']}) {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: ${p => p.theme.space.lg};
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    display: grid;
-    grid-auto-columns: max-content;
-  }
-`;
 
 const FullWidthSearchBar = styled(SearchBar)`
   width: 100%;
