@@ -15,12 +15,16 @@ export const inlineCodeStyles = (theme: Theme, props?: InlineCodeProps) => css`
    */
   font-size-adjust: ex-height 0.57;
 
-  color: ${props?.variant === 'neutral'
-    ? theme.tokens.content.primary
-    : theme.tokens.content.promotion};
-  background: ${props?.variant === 'neutral'
-    ? theme.tokens.background.transparent.neutral.muted
-    : theme.tokens.background.transparent.promotion.muted};
+  color: ${
+    props?.variant === 'neutral'
+      ? theme.tokens.content.primary
+      : theme.tokens.content.promotion
+  };
+  background: ${
+    props?.variant === 'neutral'
+      ? theme.tokens.background.transparent.neutral.muted
+      : theme.tokens.background.transparent.promotion.muted
+  };
 
   padding-inline: 0.3ch;
   margin-inline: -0.15ch;

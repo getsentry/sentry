@@ -33,6 +33,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_push_changes,
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
+from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
     blocks_have_failed_tool_call,
@@ -717,7 +718,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # update that PR. _push_changes is a no-op once the repos are synced, so
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
-            pushed = cls._push_changes(group, run_id, state)
+            pushed = cls._push_changes(
+                group, run_id, state, author=cls._iteration_commit_author(state)
+            )
 
             if not pushed:
                 # we want to consume queued feedback _after_ we know changes have been pushed
@@ -751,6 +754,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stopping_point == AutofixStoppingPoint.OPEN_PR
             and current_step == AutofixStep.CODE_CHANGES
         ):
+            # Pipeline push: no author, the commit is Seer's.
             cls._push_changes(group, run_id, state)
             return
 
@@ -878,7 +882,26 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return []
 
     @classmethod
-    def _push_changes(cls, group: Group, run_id: int, state: SeerRunState) -> bool:
+    def _iteration_commit_author(cls, state: SeerRunState) -> SeerCommitAuthor | None:
+        """The author stored on the latest iteration's opening PR_ITERATION block."""
+        try:
+            iterations = get_iterations(state)
+        except Exception:
+            logger.exception("autofix.on_completion_hook.iteration_commit_author_failed")
+            return None
+        if not iterations:
+            return None
+        metadata = iterations[-1].blocks[0].message.metadata or {}
+        return parse_commit_author(metadata.get("commit_author"))
+
+    @classmethod
+    def _push_changes(
+        cls,
+        group: Group,
+        run_id: int,
+        state: SeerRunState,
+        author: SeerCommitAuthor | None = None,
+    ) -> bool:
         """Push code changes to create PRs. Returns True if changes were pushed."""
         # Check if there are code changes to push
         has_changes, is_synced = state.has_code_changes()
@@ -923,6 +946,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
                 verify_content=should_verify_pr_content,
+                author=author,
             )
         except Exception:
             logger.exception(

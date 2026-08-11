@@ -34,6 +34,7 @@ from sentry.seer.autofix.artifact_schemas import (
     RootCauseArtifact,
     SolutionArtifact,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.flags import PrIterationStage, has_pr_iteration_flag
@@ -175,6 +176,7 @@ def build_step_prompt(
     group: Group,
     user_context: str | None = None,
     run_state: SeerRunState | None = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     """
     Build the prompt for a step using issue details.
@@ -183,6 +185,7 @@ def build_step_prompt(
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
         run_state: The current run state, used to surface PR links for iteration
+        enable_bash_tools: Whether bash tools are available to the run
 
     Returns:
         Formatted prompt string
@@ -194,6 +197,7 @@ def build_step_prompt(
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
         run_state=run_state,
+        enable_bash_tools=enable_bash_tools,
     )
 
     parts = [prompt]
@@ -502,6 +506,7 @@ def trigger_autofix_agent(
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
+    commit_author: SeerCommitAuthor | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -593,7 +598,13 @@ def trigger_autofix_agent(
         else:
             iteration_index = get_latest_iteration_index(run_state) + 1
 
-    prompt = build_step_prompt(step, group, user_context, run_state=run_state)
+    prompt = build_step_prompt(
+        step,
+        group,
+        user_context,
+        run_state=run_state,
+        enable_bash_tools=client.enable_bash_tools,
+    )
     prompt_metadata = {
         "step": step.value,
         "referrer": referrer.value,
@@ -603,6 +614,10 @@ def trigger_autofix_agent(
     feedback_items = list(feedback or [])
     if step == AutofixStep.PR_ITERATION and feedback_items:
         prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
+    # Read back in the completion hook, which pushes long after this request.
+    if is_iteration_step and commit_author is not None:
+        prompt_metadata["commit_author"] = json.dumps(commit_author)
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
@@ -906,6 +921,7 @@ def trigger_push_changes(
     state: SeerRunState | None = None,
     repo_name: str | None = None,
     verify_content: bool = False,
+    author: SeerCommitAuthor | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -937,6 +953,7 @@ def trigger_push_changes(
         ready_for_review=not _should_open_autofix_pr_as_draft(group.project),
         verify_content=verify_content,
         blocking=False,
+        author=author,
     )
 
     metrics.incr(

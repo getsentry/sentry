@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.defaults.detectors import (
@@ -321,7 +323,8 @@ class TestEnsurePullRequestWorkflow(TestCase):
 
 
 class TestEnsureDefaultOrganizationWorkflows(TestCase):
-    def test_creates_and_connects_workflows(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_creates_and_connects_workflows(self, mock_is_self_hosted: mock.MagicMock) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
 
         assert len(workflows) == 1
@@ -334,7 +337,8 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
         assert connection.detector.project is None
         assert connection.detector.config["organization_id"] == self.organization.id
 
-    def test_uses_existing_all_projects_detector(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_uses_existing_all_projects_detector(self, mock_is_self_hosted: mock.MagicMock) -> None:
         existing_detector = ensure_default_all_projects_detector(self.organization.id)
         workflows = ensure_default_organization_workflows(self.organization)
 
@@ -350,7 +354,15 @@ class TestEnsureDefaultOrganizationWorkflows(TestCase):
             == 1
         )
 
-    def test_returns_workflows_list(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_returns_workflows_list(self, mock_is_self_hosted: mock.MagicMock) -> None:
         workflows = ensure_default_organization_workflows(self.organization)
         assert isinstance(workflows, list)
         assert all(isinstance(w, Workflow) for w in workflows)
+
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=True)
+    def test_skips_pull_request_workflow_when_self_hosted(
+        self, mock_is_self_hosted: mock.MagicMock
+    ) -> None:
+        workflows = ensure_default_organization_workflows(self.organization)
+        assert workflows == []

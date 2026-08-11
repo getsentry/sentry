@@ -13,7 +13,6 @@ import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/lin
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -62,15 +61,19 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
 
   useMarkPreviewedGroupSeen(group);
 
   return (
     <Fragment>
       <Container padding="xs 2xl" borderBottom="muted">
-        <Flex align="center" flex="1" gap="md">
+        <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
           ) : isPending ? (
@@ -79,6 +82,20 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
+          {group && (
+            <LinkButton
+              to={issueDetailsUrl}
+              size="xs"
+              analyticsEventKey="issue_inbox.open_issue_clicked"
+              analyticsEventName="Issue Inbox: Open Issue Clicked"
+              analyticsParams={{
+                group_id: group.id,
+                progress: group.derivedData?.progress,
+              }}
+            >
+              {t('Open Issue')}
+            </LinkButton>
+          )}
         </Flex>
       </Container>
       <Container
@@ -139,20 +156,6 @@ function IssuePreviewContent() {
                     {primaryTitle}
                   </Heading>
                 </Tooltip>
-                <LinkButton
-                  to={issueDetailsUrl}
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconOpen size="xs" variant="muted" />}
-                  aria-label={t('Open Issue')}
-                  tooltipProps={{title: t('Open Issue')}}
-                  analyticsEventKey="issue_inbox.open_issue_clicked"
-                  analyticsEventName="Issue Inbox: Open Issue Clicked"
-                  analyticsParams={{
-                    group_id: group.id,
-                    progress: group.derivedData?.progress,
-                  }}
-                />
               </Flex>
               <IssueSeenTimes group={group} />
             </Flex>
