@@ -615,10 +615,6 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Deduplicate Seer Agent Slack event_callback deliveries by event_id (SET NX)
-register("slack.dedupe-seer-webhook-events", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Log Slack webhook retry headers and slow (>3s) responses for debugging
-register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
 register(
     "slack.nudge-frequency",
