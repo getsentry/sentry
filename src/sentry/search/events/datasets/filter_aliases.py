@@ -333,7 +333,6 @@ def semver_build_filter_converter(
         raise InvalidSearchQuery("Invalid value for semver build filter")
 
     raw_values: list[str] = to_list(raw_value)
-    is_negated = search_filter.operator == "NOT IN"
     effective_operator = (
         "=" if search_filter.operator in ("IN", "NOT IN") else search_filter.operator
     )
@@ -367,7 +366,7 @@ def semver_build_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         all_versions = [constants.SEMVER_EMPTY_RELEASE]
 
-    final_operator = Op.NOT_IN if is_negated else Op.IN
+    final_operator = Op.NOT_IN if search_filter.operator == "NOT IN" else Op.IN
     return Condition(builder.column("release"), final_operator, all_versions)
 
 
