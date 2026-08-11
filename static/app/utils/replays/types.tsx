@@ -372,12 +372,7 @@ export type FeedbackFrame = {
   type: string;
 };
 
-export type ClickFrameNode = {
-  attributes?: Record<string, string>;
-  id?: number;
-  tagName?: string;
-  textContent?: string;
-};
+export type ClickFrameNode = Partial<NonNullable<SlowClickFrame['data']['node']>>;
 
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
