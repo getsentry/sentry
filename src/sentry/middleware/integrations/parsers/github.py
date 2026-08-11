@@ -44,7 +44,9 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
     return "unknown"
 
 
-def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: str) -> bool:
+def _references_own_repo_pull_request(
+    event: Mapping[str, Any], container_key: str, *, unplaceable_is_work: bool = False
+) -> bool:
     """Whether a check payload references a pull request in the webhook's own repo.
 
     ``pull_requests`` can list PRs that live in *other* repositories, and the cell's
@@ -56,6 +58,12 @@ def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: s
     ``repo.external_id`` is the string form of the payload's ``repository.id``: the
     cell looks the row up by that value (``GitHubWebhook.__call__``), so comparing
     against the payload here is the same comparison the cell makes.
+
+    ``unplaceable_is_work`` covers the entry that carries no ``base.repo.id`` at all.
+    pr_metrics skips it; Seer's ``_is_foreign_base_repo`` keeps it, on the grounds
+    that dropping one costs a real Autofix iteration. Set it for event types whose
+    consumers disagree, so the drop stays a subset of *every* consumer's no-op set
+    rather than just the strictest one's.
 
     Only ever used to *drop*, so it must not return True on a payload the cell would
     ignore — it is fine to be conservative, never to be optimistic.
@@ -70,7 +78,11 @@ def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: s
 
     for ref in refs:
         base_repo_id = get_path(ref, "base", "repo", "id")
-        if base_repo_id is not None and str(base_repo_id) == str(repo_id):
+        if base_repo_id is None:
+            if unplaceable_is_work:
+                return True
+            continue
+        if str(base_repo_id) == str(repo_id):
             return True
     return False
 
@@ -97,6 +109,12 @@ def _forwarded_event_tags(
     # action rather than ``own_repo_pr_actions`` on purpose: this measures the share
     # an own-repo drop *could* reclaim, which stays worth having on the event types
     # where applying that drop is not safe.
+    #
+    # Deliberately the strict predicate, without ``unplaceable_is_work``, so the
+    # series keeps one meaning across event types and stays comparable with the
+    # measurement this drop was sized from. On an event type that sets that flag it
+    # is therefore an upper bound: enabling the drop takes `false` to near zero, not
+    # to zero, and the remainder is the unplaceable entries the drop preserves.
     if action == "completed":
         tags["has_own_repo_pr"] = (
             "true" if _references_own_repo_pull_request(event, github_event) else "false"
@@ -234,7 +252,11 @@ class GithubRequestParser(BaseRequestParser):
             action_filter is not None
             and action in action_filter.own_repo_pr_actions
             and options.get("hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr")
-            and not _references_own_repo_pull_request(event, github_event or "")
+            and not _references_own_repo_pull_request(
+                event,
+                github_event or "",
+                unplaceable_is_work=action_filter.unplaceable_pr_is_work,
+            )
         ):
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",

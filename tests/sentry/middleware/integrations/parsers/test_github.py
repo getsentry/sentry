@@ -1004,15 +1004,137 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
-    def test_check_suite_completed_is_never_dropped_by_the_pr_predicate(self) -> None:
-        """check_suite has a second consumer (Seer's pr_iteration listener) that
-        resolves entries by their global id without comparing base.repo, so the
-        predicate must not apply to it even with the option on."""
+    @patch("sentry.middleware.integrations.parsers.github.metrics")
+    def test_drops_check_suite_completed_with_only_foreign_repo_prs(
+        self, mock_metrics: Mock
+    ) -> None:
+        """Both check_suite consumers skip a definitively foreign entry: pr_metrics'
+        _prs_from_check_payload and Seer's resolve_check_suite_autofix_run."""
         self.get_integration()
         request = self._post_check_event(
             action="completed",
             event_type=GithubWebhookType.CHECK_SUITE,
             container={"pull_requests": [{"number": 7, "base": {"repo": {"id": 456}}}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+        mock_metrics.incr.assert_any_call(
+            "github.webhook.drop_unprocessed_event",
+            tags={"event_type": "check_suite", "action": "completed", "reason": "no_own_repo_pr"},
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_drops_check_suite_completed_with_no_pull_requests(self) -> None:
+        """An empty list is a no-op for both consumers, and is most of the volume."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
+            container={"pull_requests": []},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_forwards_check_suite_completed_with_own_repo_pr(self) -> None:
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
+            container={"pull_requests": [{"number": 7, "base": {"repo": {"id": 123}}}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_forwards_check_suite_completed_with_an_unplaceable_pr(self) -> None:
+        """The one case the two consumers read differently. pr_metrics skips an entry
+        with no base.repo, but Seer's _is_foreign_base_repo keeps it — so the payload
+        is still work there and control must not drop it. Contrast with the check_run
+        equivalent below, which has no such consumer and is dropped."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
+            container={"pull_requests": [{"number": 7}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_forwards_check_suite_completed_with_malformed_pull_requests(self) -> None:
+        """Junk resolves to no base.repo, which for check_suite means unplaceable
+        rather than foreign — kept, for the same reason as the test above."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
+            container={"pull_requests": ["junk", {"base": "junk"}, {"base": {"repo": []}}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert WebhookPayload.objects.count() == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_drops_check_run_completed_with_an_unplaceable_pr(self) -> None:
+        """check_run's only pull_requests consumer is pr_metrics, which skips an entry
+        with no base.repo, so here the strict reading is the correct one."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            container={"pull_requests": [{"number": 7}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_check_suite_completed_without_own_repo_pr_is_forwarded_by_default(self) -> None:
+        """Ships off for check_suite too."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
+            container={"pull_requests": []},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
