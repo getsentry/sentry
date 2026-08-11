@@ -180,7 +180,7 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
                   <InfoTip
                     size="sm"
                     title={t(
-                      'This has no effect on when the alert fires or who it notifies. It is purely an organizational tool.'
+                      'Used to organize Alerts in your organization.This has no effect on when the alert fires or who it notifies.'
                     )}
                   />
                 </Flex>
