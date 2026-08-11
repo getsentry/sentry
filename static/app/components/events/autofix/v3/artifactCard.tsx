@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode} from 'react';
+import {Fragment, type ReactNode, type Ref} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -16,6 +16,8 @@ interface ArtifactCardProps {
   allowReset?: boolean;
   onCopy?: () => void;
   onReset?: () => void;
+  /** Lets a card scroll itself into view, e.g. when a banner points at it. */
+  ref?: Ref<HTMLDivElement>;
 }
 
 export function ArtifactCard({
@@ -25,9 +27,16 @@ export function ArtifactCard({
   onCopy,
   allowReset,
   onReset,
+  ref,
 }: ArtifactCardProps) {
   return (
-    <Container border="primary" radius="md" padding="lg" background="primary">
+    <Container
+      ref={ref}
+      border="primary"
+      radius="md"
+      padding="lg"
+      background="primary"
+    >
       <Disclosure defaultExpanded>
         <Disclosure.Title
           trailingItems={

@@ -112,6 +112,12 @@ class RepoPRState(BaseModel):
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
+    # Attributed cause of a push failure, when seer could determine one. Both
+    # values mean the push carried a `.github/workflows/` entry, which the
+    # GitHub App is not allowed to write: "workflow_patch" when the run's own
+    # changes touch a workflow file, "workflow_drift" when the base branch moved
+    # past our pinned commit with a workflow change of someone else's.
+    pr_creation_error_reason: Literal["workflow_patch", "workflow_drift"] | None = None
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
@@ -275,6 +281,20 @@ class SeerRunState(BaseModel):
 
     class Config:
         extra = "ignore"
+
+    def get_created_pull_request_states(self) -> list[RepoPRState]:
+        """
+        The repos this run actually got a pull request onto.
+
+        ``repo_pr_states`` also holds repos whose push failed, so a plain
+        truthiness check treats a failed run as one that opened PRs — which
+        would, for instance, refuse to re-run a step that stranded nothing.
+        """
+        return [
+            pr_state
+            for pr_state in self.repo_pr_states.values()
+            if pr_state.pr_creation_status != "error"
+        ]
 
     def get_artifacts(self) -> dict[str, Artifact]:
         """

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated, Any
@@ -16,7 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 FeedbackSource = Annotated[
     UserUIFeedbackSource
@@ -26,6 +27,8 @@ FeedbackSource = Annotated[
     | CheckSuiteFeedbackSource,
     Field(discriminator="type"),
 ]
+
+logger = logging.getLogger(__name__)
 
 _PARSE_FEEDBACK_ERRORS = (ValidationError, ValueError)
 
@@ -91,6 +94,43 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     # An iteration with no parseable feedback isn't a human iteration, so treat it
     # as automated (don't let a metadata gap reset the streak).
     return all(feedback.source.is_automated for feedback in feedbacks)
+
+
+def is_multi_repo_run(run_state: SeerRunState) -> bool:
+    """Whether this Autofix run opened PRs in more than one repository.
+
+    PR iteration is single-repository: CI completion, comments, and reviews are
+    all per-repository, while feedback is queued per run. Rather than partially
+    supporting these runs, feedback for them is rejected explicitly (AIML-3278).
+    """
+    return len(run_state.repo_pr_states) > 1
+
+
+def log_multi_repo_rejection(
+    run_state: SeerRunState,
+    *,
+    source: str,
+    organization_id: int,
+    pr_id: int | None = None,
+) -> None:
+    """Record a rejected multi-repo PR-iteration trigger.
+
+    ``run_id``/repo names stay in the log rather than metric tags: the metrics
+    middleware denylists keys ending in ``_id`` and rejects unbounded values.
+    The metric carries only the bounded ``source`` tag.
+    """
+    logger.info(
+        "autofix.pr_iteration.multi_repo_rejected",
+        extra={
+            "run_id": run_state.run_id,
+            "organization_id": organization_id,
+            "repo_count": len(run_state.repo_pr_states),
+            "repo_names": sorted(run_state.repo_pr_states),
+            "source": source,
+            "pr_id": pr_id,
+        },
+    )
+    metrics.incr("autofix.pr_iteration.multi_repo_rejected", tags={"source": source})
 
 
 def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:

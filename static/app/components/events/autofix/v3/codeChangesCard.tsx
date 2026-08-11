@@ -10,6 +10,7 @@ import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getCreatedPullRequestStates,
   isCodeChangesArtifact,
   isPrIterationBlock,
   type AutofixSection,
@@ -101,7 +102,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact]
   );
 
-  const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
+  const createdPRs = getCreatedPullRequestStates(autofix.runState);
+  const hasPRs = createdPRs.length > 0;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
@@ -110,7 +112,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
     : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
 
-  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+  const {cardRef, canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
@@ -276,6 +278,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   return (
     <ArtifactCard
+      ref={cardRef}
       icon={<IconCode />}
       title={title}
       onCopy={
