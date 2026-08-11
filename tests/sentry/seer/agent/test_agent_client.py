@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
@@ -1033,8 +1034,13 @@ class TestSeerAgentClientPushChanges(TestCase):
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
         assert body["payload"]["repo_name"] == "owner/repo"
+        assert "author" not in body["payload"]
         assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
+
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+        client.push_changes(123, author=author)
+        assert mock_post.call_args[0][0]["payload"]["author"] == author
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")

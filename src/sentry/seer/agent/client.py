@@ -49,6 +49,7 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     SeerApiError,
@@ -955,6 +956,7 @@ class SeerAgentClient:
         verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
+        author: SeerCommitAuthor | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -967,6 +969,7 @@ class SeerAgentClient:
             repo_name: Specific repo to push, or None for all repos with changes
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
+            author: Git commit author; None lets Seer pick one
 
         Returns:
             SeerRunState: Final state with PR info
@@ -995,6 +998,8 @@ class SeerAgentClient:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
             payload["pr_description_suffix"] = pr_description_suffix
+        if author:
+            payload["author"] = author
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = AgentUpdateRequest(

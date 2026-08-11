@@ -14,7 +14,7 @@ type Attribute = {
   attributeSource: {
     source_type: 'sentry' | 'user';
   };
-  attributeType: 'boolean' | 'number' | 'string';
+  attributeType: 'boolean' | 'number' | 'string' | 'array';
   key: string;
   name: string;
 };
@@ -27,13 +27,14 @@ type ScopedCase = {
 
 function makeAttribute(
   key: string,
-  attributeType: Attribute['attributeType'] = 'string'
+  attributeType: Attribute['attributeType'] = 'string',
+  name: string = key
 ): Attribute {
   return {
     attributeSource: {source_type: 'user'},
     attributeType,
     key,
-    name: key,
+    name,
   };
 }
 
@@ -306,6 +307,39 @@ describe('getTraceItemTagCollection', () => {
         key,
         name: key,
         kind: FieldKind.TAG,
+        secondaryAliases: [],
+        attributeSource: 'user',
+      },
+    });
+  });
+
+  it('collects array attributes with the [*] membership key and array kind', () => {
+    const key = 'tags[csv_headers,array]';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'array')], 'array')).toEqual({
+      [`${key}[*]`]: {
+        key: `${key}[*]`,
+        name: key,
+        kind: FieldKind.ARRAY,
+        secondaryAliases: [],
+        attributeSource: 'user',
+      },
+    });
+  });
+
+  it('drops the stringified twin when an array attribute shares its name', () => {
+    const arrayKey = 'tags[csv_headers,array]';
+    const result = getTraceItemTagCollection([
+      makeAttribute(arrayKey, 'array', 'csv_headers'),
+      makeAttribute('csv_headers', 'string', 'csv_headers'),
+    ]);
+
+    expect(result.stringAttributes).toEqual({});
+    expect(result.arrayAttributes).toEqual({
+      [`${arrayKey}[*]`]: {
+        key: `${arrayKey}[*]`,
+        name: 'csv_headers',
+        kind: FieldKind.ARRAY,
         secondaryAliases: [],
         attributeSource: 'user',
       },

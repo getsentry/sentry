@@ -670,6 +670,10 @@ describe('Onboarding', () => {
         await screen.findByDisplayValue('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
       expect(screen.getByDisplayValue('Help me setup Sentry')).toBeInTheDocument();
+      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+      expect(screen.getByText('Choose your platform')).toBeInTheDocument();
+      expect(screen.getByText('Install the SDK')).toBeInTheDocument();
+      expect(screen.getByText('Verify your setup')).toBeInTheDocument();
       // The org has no projects yet, so the waiter is on its first milestone
       expect(await screen.findByText('Waiting for project creation')).toBeInTheDocument();
       expect(
