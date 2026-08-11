@@ -34,7 +34,7 @@ import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggr
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -721,7 +721,7 @@ function getConversationsUrlFromSavedQueryUrl({
     queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
   const basePath = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
   return `${basePath}?${queryString}`;
 }

@@ -230,7 +230,9 @@ export function mergeEmptyTurns(turns: ConversationTurn[]): ConversationTurn[] {
     const allToolCalls = [...pendingToolCalls, ...turn.toolCalls];
     const allToolSpanNodes = [...pendingToolSpanNodes, ...(turn.toolSpanNodes ?? [])];
 
-    if (turn.assistantContent) {
+    // A reasoning-bearing turn is displayable (see turnsToMessages), so it
+    // anchors its own tool calls instead of being merged forward as empty.
+    if (turn.assistantContent || turn.reasoning) {
       result.push({...turn, toolCalls: allToolCalls, toolSpanNodes: allToolSpanNodes});
       pendingToolCalls = [];
       pendingToolSpanNodes = [];

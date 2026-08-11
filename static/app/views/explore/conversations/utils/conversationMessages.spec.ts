@@ -770,6 +770,36 @@ describe('conversationMessages utilities', () => {
       expect(merged[0]?.toolCalls[0]?.name).toBe('search');
     });
 
+    it('keeps tool calls on a reasoning-only turn instead of carrying them forward', () => {
+      // A think→tool→think→tool loop: each generation reasons but emits no
+      // assistant text. The tool calls must stay attached to their reasoning
+      // turn, not pile onto the final turn.
+      const turns = [
+        makeTurn({
+          generation: {id: 'gen-1'} as any,
+          reasoning: 'Thinking 1',
+        }),
+        makeTurn({
+          generation: {id: 'gen-2'} as any,
+          reasoning: 'Thinking 2',
+          toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
+        }),
+        makeTurn({
+          generation: {id: 'gen-3'} as any,
+          reasoning: 'Thinking 3',
+          assistantContent: 'Done',
+          toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
+        }),
+      ];
+
+      const merged = mergeEmptyTurns(turns);
+
+      expect(merged).toHaveLength(3);
+      expect(merged[0]?.toolCalls.map(t => t.name)).toEqual([]);
+      expect(merged[1]?.toolCalls.map(t => t.name)).toEqual(['search']);
+      expect(merged[2]?.toolCalls.map(t => t.name)).toEqual(['calc']);
+    });
+
     it('preserves user content turns even without assistant response', () => {
       const turns = [
         makeTurn({
@@ -1264,6 +1294,73 @@ describe('conversationMessages utilities', () => {
         'weather',
         'weather',
         'calculator',
+      ]);
+    });
+
+    it('interleaves thinking and tool calls in a reasoning tool loop', () => {
+      // Each generation reasons and requests a tool but emits no assistant text
+      // until the last one. Tool calls must land on their own reasoning turn, so
+      // the transcript reads thinking→tool→thinking→tool rather than all the
+      // thinking rows first and every tool call dumped at the end.
+      const reasoningOutput = (thought: string) =>
+        JSON.stringify([
+          {role: 'assistant', parts: [{type: 'reasoning', content: thought}]},
+        ]);
+
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        endTimestamp: 1100,
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: reasoningOutput('Thinking 1')},
+      });
+      const tool1 = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1200,
+        endTimestamp: 1300,
+      });
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 1400,
+        endTimestamp: 1500,
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: reasoningOutput('Thinking 2')},
+      });
+      const tool2 = createMockToolNode({
+        id: 'tool-2',
+        toolName: 'calc',
+        startTimestamp: 1600,
+        endTimestamp: 1700,
+      });
+      const gen3 = createMockNode({
+        id: 'gen-3',
+        startTimestamp: 1800,
+        endTimestamp: 1900,
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {
+              role: 'assistant',
+              parts: [
+                {type: 'reasoning', content: 'Thinking 3'},
+                {type: 'text', text: 'Done'},
+              ],
+            },
+          ]),
+        },
+      });
+
+      const messages = extractMessagesFromNodes([gen1, tool1, gen2, tool2, gen3] as any);
+
+      const assistants = messages.filter(m => m.role === 'assistant');
+      expect(
+        assistants.map(m => ({
+          reasoning: m.reasoning,
+          tools: m.toolCalls?.map(t => t.name) ?? [],
+          content: m.content,
+        }))
+      ).toEqual([
+        {reasoning: 'Thinking 1', tools: [], content: ''},
+        {reasoning: 'Thinking 2', tools: ['search'], content: ''},
+        {reasoning: 'Thinking 3', tools: ['calc'], content: 'Done'},
       ]);
     });
 
