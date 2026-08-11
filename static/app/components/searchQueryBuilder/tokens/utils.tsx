@@ -254,10 +254,12 @@ export function getInitialFilterText(
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
 
-  // Array attributes filter by membership: `key[*]:value`. Append the `[*]`
-  // operator here (no wildcard) rather than baking it into the stored key.
+  // Array attributes filter by membership: `key[*]:value`. Add the `[*]` operator
+  // only when it isn't already present, so selection supplies it while a
+  // user-typed `[*]` is never doubled. No wildcard — `[*]` is the operator.
   if (fieldDefinition?.kind === FieldKind.ARRAY) {
-    return `${keyText}[*]:${defaultValue}`;
+    const membershipKey = keyText.endsWith('[*]') ? keyText : `${keyText}[*]`;
+    return `${membershipKey}:${defaultValue}`;
   }
 
   switch (valueType) {

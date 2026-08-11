@@ -83,6 +83,14 @@ function isQuoted(inputValue: string) {
   return inputValue.startsWith('"') && inputValue.endsWith('"');
 }
 
+// The `[*]` array-membership operator isn't part of the key, so ignore an
+// in-progress `[`, `[*`, or `[*]` when searching keys — otherwise typing the
+// operator drops the matching attribute suggestion.
+export function stripMembershipOperator(query: string): string {
+  const stripped = query.replace(/\[\*?\]?$/, '');
+  return stripped || query;
+}
+
 // Adds static filter values to the searchable items so that they can be
 // suggested if they appear high in the search results.
 function getFilterSearchValues(
@@ -290,7 +298,7 @@ export function useSortedFilterKeyItems({
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(filterValue);
+    const searched = search.search(stripMembershipOperator(filterValue));
 
     const allKeyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)

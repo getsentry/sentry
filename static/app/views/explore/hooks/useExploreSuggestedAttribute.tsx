@@ -48,11 +48,19 @@ export function useExploreSuggestedAttribute({
         return explicitBooleanAttribute;
       }
 
-      // Resolve a tag array's root name to its backend key form, eg.
-      // `foo` -> `tags[foo,array]`.
-      const explicitArrayAttribute = `tags[${key},array]`;
-      if (explicitArrayAttribute in arrayAttributes) {
-        return explicitArrayAttribute;
+      // Array membership requires the `[*]` operator, so only resolve keys that
+      // carry it — mapping the base to its backend key while keeping `[*]` (eg.
+      // `foo[*]` -> `tags[foo,array][*]`). A bare `foo` (no `[*]`) is intentionally
+      // not resolved, so it never becomes a membership filter on its own.
+      if (key.endsWith('[*]')) {
+        const base = key.slice(0, -'[*]'.length);
+        if (base in arrayAttributes) {
+          return `${base}[*]`;
+        }
+        const explicitArrayAttribute = `tags[${base},array]`;
+        if (explicitArrayAttribute in arrayAttributes) {
+          return `${explicitArrayAttribute}[*]`;
+        }
       }
 
       return null;

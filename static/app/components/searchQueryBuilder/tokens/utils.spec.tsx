@@ -48,9 +48,16 @@ describe('getInitialFilterText', () => {
 
     // Non-tag array: no wrapping.
     expect(getInitialFilterText('some.array', fieldDefinition)).toBe('some.array[*]:""');
-    // Tag array: keeps the tags[...] wrapping the backend requires.
+    // Tag array (key without `[*]`, eg. from selection): the operator is added.
     expect(getInitialFilterText('tags[csv_headers,array]', fieldDefinition)).toBe(
       'tags[csv_headers,array][*]:""'
+    );
+    // Key that already carries `[*]` (eg. user-typed): not doubled.
+    expect(getInitialFilterText('tags[csv_headers,array][*]', fieldDefinition)).toBe(
+      'tags[csv_headers,array][*]:""'
+    );
+    expect(getInitialFilterText('some.array[*]', fieldDefinition)).toBe(
+      'some.array[*]:""'
     );
   });
 });
