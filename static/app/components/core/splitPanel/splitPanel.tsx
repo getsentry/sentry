@@ -76,7 +76,6 @@ export function SplitPanel({
   onResize,
   onResizeEnd,
 }: SplitPanelProps) {
-  // The hook's return type widens to the responsive shape; narrow by value.
   const orientation =
     useResponsivePropValue(orientationProp) === 'vertical' ? 'vertical' : 'horizontal';
   const isSizedFirst = placement === 'start';
@@ -231,7 +230,7 @@ export function SplitPanel({
           // pane gets its basis.
           style={hasFill && availableSize === 0 ? {visibility: 'hidden'} : undefined}
         >
-          {isSizedFirst ? panes : [...panes].reverse()}
+          {isSizedFirst ? panes : panes.toReversed()}
         </RootElement>
       )}
     </Flex>

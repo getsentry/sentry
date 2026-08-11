@@ -1,14 +1,16 @@
 import hashlib
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
     SeerViewerContext,
@@ -80,6 +82,74 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
     if len(conversation_id) <= CONVERSATION_ID_MAX_LENGTH:
         return conversation_id
     return conversation_id[:CONVERSATION_ID_TRUNCATE_TO] + "..."
+
+
+# Earliest title source wins (closest to the first user message); project_id breaks ties.
+TITLE_ORDER_BY = (F("title_source_timestamp").asc(nulls_last=True), "project_id")
+
+
+def fetch_conversation_titles(
+    conversation_project_pairs: Collection[tuple[str, int]],
+) -> dict[str, str]:
+    """One title per conversation_id among the given (conversation_id, project_id) pairs.
+
+    Only requested pairs are considered (ids are unique per project). Among those,
+    earliest ``title_source_timestamp`` wins; ``project_id`` breaks ties.
+    """
+    if not conversation_project_pairs:
+        return {}
+
+    requested_pairs = set(conversation_project_pairs)
+    conversation_id_by_hash = {
+        conversation_id_hash(conversation_id): conversation_id
+        for conversation_id, _ in requested_pairs
+    }
+
+    rows = (
+        AIConversationMetadata.objects.filter(
+            project_id__in={project_id for _, project_id in requested_pairs},
+            conversation_id_hash__in=conversation_id_by_hash,
+            title__isnull=False,
+        )
+        .exclude(title="")
+        .order_by(*TITLE_ORDER_BY)
+        .values_list("conversation_id_hash", "project_id", "title")
+    )
+
+    titles: dict[str, str] = {}
+    for row_hash, project_id, title in rows:
+        if title is None:
+            continue
+        conversation_id = conversation_id_by_hash[row_hash]
+        if (conversation_id, project_id) in requested_pairs:
+            titles.setdefault(conversation_id, title)
+    return titles
+
+
+def fetch_conversation_title(
+    conversation_id: str,
+    project_ids: Collection[int],
+) -> AIConversationMetadata | None:
+    """Look up the titled metadata row for one conversation across the given projects.
+
+    A conversation id is only unique within a project, so the same id can be titled in
+    several projects. The earliest title wins: titles come from the first user message,
+    so the smallest ``title_source_timestamp`` is the one closest to the start of the
+    conversation. Ordering happens in the database; ``project_id`` only breaks ties.
+    """
+    if not project_ids:
+        return None
+
+    return (
+        AIConversationMetadata.objects.filter(
+            project_id__in=set(project_ids),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title__isnull=False,
+        )
+        .exclude(title="")
+        .order_by(*TITLE_ORDER_BY)
+        .first()
+    )
 
 
 def _extract_first_user_message(messages: Any) -> str | None:
@@ -208,6 +278,10 @@ def generate_title_with_seer(
         max_tokens=64,
         response_schema=TITLE_RESPONSE_SCHEMA,
         reasoning="off",  # force thinking_budget=0 on Gemini 2.x flash-lite
+        # Never attach this call to a conversation: its own gen_ai spans would be
+        # ingested as a conversation, which would enqueue another title
+        # generation, and so on forever.
+        conversation_id=None,
     )
     try:
         response = make_llm_generate_request(body, timeout=20, viewer_context=viewer_context)

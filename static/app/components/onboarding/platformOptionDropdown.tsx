@@ -24,6 +24,12 @@ type PlatformOptionsControlProps = {
    */
   platformOptions: Record<string, PlatformOption>;
   /**
+   * Optional connector word rendered before a given option's control, keyed by
+   * option key. Lets callers compose a readable sentence, e.g. rendering "on"
+   * between two selectors so it reads "with <integration> on <runtime>".
+   */
+  connectors?: Record<string, string>;
+  /**
    * Whether the option is disabled
    */
   disabled?: boolean;
@@ -53,6 +59,7 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
 export function PlatformOptionDropdown({
   platformOptions,
   disabled,
+  connectors,
 }: PlatformOptionsControlProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,13 +86,15 @@ export function PlatformOptionDropdown({
     <Fragment>
       {t('with')}
       {Object.keys(platformOptions).map(key => (
-        <OptionControl
-          key={key}
-          option={platformOptions[key]!}
-          value={urlOptionValues[key]!}
-          onChange={v => handleChange(key, v.value)}
-          disabled={disabled}
-        />
+        <Fragment key={key}>
+          {connectors?.[key]}
+          <OptionControl
+            option={platformOptions[key]!}
+            value={urlOptionValues[key]!}
+            onChange={v => handleChange(key, v.value)}
+            disabled={disabled}
+          />
+        </Fragment>
       ))}
     </Fragment>
   );

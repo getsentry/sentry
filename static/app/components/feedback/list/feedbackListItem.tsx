@@ -11,7 +11,7 @@ import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackin
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -48,7 +48,6 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
   const location = useLocation();
 
   const hasLinkedError = feedbackHasLinkedError(feedbackItem);
-  const hasAttachments = feedbackItem.latestEventHasAttachments;
   const hasComments = feedbackItem.numComments > 0;
 
   return (
@@ -140,12 +139,6 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
                 <IconPlay size="xs" variant="muted" />
-              </Tooltip>
-            )}
-
-            {hasAttachments && (
-              <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" variant="muted" />
               </Tooltip>
             )}
 

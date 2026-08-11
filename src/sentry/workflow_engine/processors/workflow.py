@@ -26,10 +26,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
-from sentry.workflow_engine.processors.evaluations import (
-    DataConditionGroupEvaluation,
-    TriggerResult,
-)
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.evaluations.workflow import (
     GroupedWorkflowEvaluationResult,
     WorkflowEvaluation,
@@ -62,7 +59,7 @@ class EvaluationStats:
     untainted: int = 0
 
     @classmethod
-    def from_results(cls, results: Iterable[TriggerResult]) -> "EvaluationStats":
+    def from_results(cls, results: Iterable[DataConditionGroupEvaluation]) -> "EvaluationStats":
         tainted, untainted = 0, 0
         for result in results:
             if result.is_tainted():
@@ -146,7 +143,7 @@ def evaluate_workflow_triggers(
     event_data: WorkflowEventData,
     event_start_time: datetime,
 ) -> tuple[
-    dict[Workflow, TriggerResult],
+    dict[Workflow, DataConditionGroupEvaluation],
     dict[Workflow, DelayedWorkflowItem],
     EvaluationStats,
     dict[Workflow, DataConditionGroupEvaluation],
@@ -161,7 +158,7 @@ def evaluate_workflow_triggers(
     - trigger_evals: the trigger (WHEN) group evaluation for every evaluated workflow,
       including those enqueued for slow evaluation
     """
-    triggered_workflows: dict[Workflow, TriggerResult] = {}
+    triggered_workflows: dict[Workflow, DataConditionGroupEvaluation] = {}
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
     trigger_evals: dict[Workflow, DataConditionGroupEvaluation] = {}
 
@@ -213,10 +210,10 @@ def evaluate_workflow_triggers(
                     },
                 )
         else:
-            if evaluation.outcome.triggered:
-                triggered_workflows[workflow] = evaluation.outcome
+            if evaluation.triggered:
+                triggered_workflows[workflow] = evaluation
             else:
-                if evaluation.outcome.is_tainted():
+                if evaluation.is_tainted():
                     tainted_untriggered += 1
                 else:
                     untainted_untriggered += 1
@@ -255,7 +252,7 @@ def evaluate_workflow_triggers(
 @trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
-    triggered_workflows: dict[Workflow, TriggerResult],
+    triggered_workflows: dict[Workflow, DataConditionGroupEvaluation],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
     event_start_time: datetime,
@@ -305,7 +302,7 @@ def evaluate_workflows_action_filters(
         )
     }
 
-    workflow_to_result: dict[int, TriggerResult] = {
+    workflow_to_result: dict[int, DataConditionGroupEvaluation] = {
         wf.id: result for wf, result in triggered_workflows.items()
     }
     filter_evals_by_workflow: dict[Workflow, list[DataConditionGroupEvaluation]] = defaultdict(list)
@@ -351,12 +348,12 @@ def evaluate_workflows_action_filters(
         else:
             # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
             if workflow.id in workflow_to_result:
-                workflow_to_result[workflow.id] = TriggerResult.choose_tainted(
+                workflow_to_result[workflow.id] = DataConditionGroupEvaluation.choose_tainted(
                     workflow_to_result[workflow.id],
-                    group_evaluation.outcome,
+                    group_evaluation,
                 )
 
-            if group_evaluation.outcome.triggered:
+            if group_evaluation.triggered:
                 if delayed_workflow_item := queue_items_by_workflow.get(workflow):
                     if delayed_workflow_item.delayed_when_group_id:
                         # If there are already delayed when conditions,
@@ -471,8 +468,8 @@ def _build_workflow_evaluations(
         )
         workflow_evaluations[workflow.id] = WorkflowEvaluation(
             result=result,
-            triggered=trigger_eval.outcome.triggered,
-            error=trigger_eval.outcome.error,
+            triggered=trigger_eval.triggered,
+            error=trigger_eval.error,
             data={
                 "trigger_group_eval": trigger_eval,
                 "filter_group_evals": filter_evals.get(workflow, []),

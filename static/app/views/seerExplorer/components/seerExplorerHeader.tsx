@@ -123,10 +123,7 @@ export function SeerExplorerHeader({
         <Text wrap="nowrap" size="md">
           {t('Seer Agent')}
         </Text>
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{title: t('This feature is in beta and may change')}}
-        />
+        <FeatureBadge type="beta" />
       </Flex>
       <Flex flex="1" />
       <Flex gap="sm" align="center">

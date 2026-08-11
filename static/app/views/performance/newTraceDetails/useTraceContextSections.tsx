@@ -23,7 +23,9 @@ function hasCount(count: number | undefined, fallback: boolean): boolean {
 export function useTraceContextSections({
   tree,
   logs,
+  logsCount,
   metrics,
+  metricsCount,
   meta,
   logsEnabled = true,
   metricsEnabled = true,
@@ -31,18 +33,27 @@ export function useTraceContextSections({
   logs: OurLogsResponseItem[] | undefined;
   metrics: {count: number} | undefined;
   tree: TraceTree;
+  logsCount?: number;
   logsEnabled?: boolean;
   meta?: TraceMetaQueryResults['data'];
+  metricsCount?: number;
   metricsEnabled?: boolean;
 }) {
   const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
 
   const hasLogs =
-    logsEnabled && hasCount(getTraceMetaLogsCount(meta), !!(logs && logs?.length > 0));
+    logsEnabled &&
+    hasCount(
+      getTraceMetaLogsCount(meta),
+      logsCount === undefined ? !!(logs && logs.length > 0) : logsCount > 0
+    );
   const hasMetrics =
     metricsEnabled &&
-    hasCount(getTraceMetaMetricsCount(meta), !!(metrics && metrics.count > 0));
-  const hasOnlyLogs = tree.type === 'empty' && hasLogs;
+    hasCount(
+      getTraceMetaMetricsCount(meta),
+      metricsCount === undefined ? !!(metrics && metrics.count > 0) : metricsCount > 0
+    );
+  const hasOnlyNonTraceData = tree.type === 'empty' && (hasLogs || hasMetrics);
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
   const hasVitals: boolean = Array.from(tree.vitals.values()).some(vitalGroup =>
@@ -60,7 +71,9 @@ export function useTraceContextSections({
     (getTraceMetaUptimeCount(meta) ?? 0);
 
   const hasTraceEvents =
-    meta === undefined ? !hasOnlyLogs : traceEventCount > 0 || !hasOnlyLogs;
+    meta === undefined
+      ? !hasOnlyNonTraceData
+      : traceEventCount > 0 || !hasOnlyNonTraceData;
 
   return useMemo(
     () => ({

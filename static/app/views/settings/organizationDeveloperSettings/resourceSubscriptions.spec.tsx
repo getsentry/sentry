@@ -141,7 +141,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions
-            events={['issue']}
+            events={['issue.created']}
             permissions={basePermissions}
             onChange={jest.fn()}
           />
@@ -157,7 +157,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions
-            events={['issue']}
+            events={['issue.created']}
             permissions={{...basePermissions, Event: 'no-access'}}
             onChange={jest.fn()}
           />

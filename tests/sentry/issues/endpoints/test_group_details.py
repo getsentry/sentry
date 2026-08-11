@@ -4,6 +4,7 @@ from unittest import mock
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from sentry import audit_log, buffer, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
@@ -33,6 +34,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.action_log import capture_action_log
@@ -47,6 +49,9 @@ from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
 
+SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
+FLAG = "organizations:seer-agent-token-flow"
+
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self) -> None:
@@ -56,6 +61,26 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(group.id)
+
+    @override_settings(SEER_API_SHARED_SECRET=SECRET)
+    def test_agent_token_gets_issue_details(self) -> None:
+        group = self.create_group()
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=group.organization.id,
+            scopes=["event:read", "org:read", "project:read"],
+            session_id="s1",
+        )
+        client = APIClient()
+
+        with self.feature(FLAG):
+            response = client.get(
+                f"/api/0/issues/{group.id}/",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(group.id)

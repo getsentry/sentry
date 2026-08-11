@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState, type MouseEvent} from 'react';
+import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -63,9 +63,8 @@ import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler'
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
-  EVENT_CHOICES,
   granularWebhookEvents,
-  WEBHOOK_GRANULAR_EVENT_CHOICES,
+  WEBHOOK_SUBSCRIPTION_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   getSentryAppTemplates,
@@ -119,9 +118,7 @@ const sentryAppBaseSchema = z.object({
   organization: z.string(),
   isInternal: z.boolean(),
   scopes: z.array(z.enum(ALLOWED_SCOPES)),
-  events: z.array(
-    z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
-  ),
+  events: z.array(z.enum(WEBHOOK_SUBSCRIPTION_CHOICES)),
 });
 
 type SentryAppFormValues = z.infer<typeof sentryAppBaseSchema>;
@@ -448,6 +445,7 @@ function ClaudeRoutineTemplateForm() {
       token: '',
       scopes: CLAUDE_ROUTINE_SCOPES,
       events: CLAUDE_ROUTINE_EVENTS,
+      isAlertable: true,
     },
     validators: {
       onDynamic: claudeRoutineSchema,
@@ -550,18 +548,18 @@ export default function SentryApplicationDetails() {
   const template = getSentryAppTemplates(organization).find(
     entry => entry.slug === templateSlug
   );
-  const TemplateForm = template && TEMPLATE_FORMS[template.slug];
+  const templateFormSlug = template?.slug;
   const referrer = decodeScalar(location.query.referrer);
 
   useEffect(() => {
-    if (template && TemplateForm) {
+    if (templateFormSlug && TEMPLATE_FORMS[templateFormSlug]) {
       trackAnalytics('integrations.sentry_app_template_applied', {
         organization,
         referrer,
-        template: template.slug,
+        template: templateFormSlug,
       });
     }
-  }, [template, TemplateForm, organization, referrer]);
+  }, [templateFormSlug, organization, referrer]);
 
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
@@ -600,10 +598,10 @@ export default function SentryApplicationDetails() {
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
-      ) : template && TemplateForm ? (
+      ) : template && templateFormSlug && TEMPLATE_FORMS[templateFormSlug] ? (
         <Fragment>
           <TemplateHeader template={template} />
-          <TemplateForm key={template.slug} />
+          {createElement(TEMPLATE_FORMS[templateFormSlug])}
         </Fragment>
       ) : isInternalRoute ? (
         <InternalSentryAppCreationForm />
@@ -836,10 +834,7 @@ function SentryAppEditForm({
       }),
   });
 
-  // Older API responses only send the consolidated resource list
-  const initialEvents: WebhookSubscription[] = granularWebhookEvents(
-    app.webhookEvents ?? app.events
-  );
+  const initialEvents = granularWebhookEvents(app.webhookEvents);
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');

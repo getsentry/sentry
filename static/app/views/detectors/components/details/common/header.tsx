@@ -17,6 +17,7 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
@@ -25,8 +26,9 @@ type DetectorDetailsHeaderProps = {
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
-  if (!organization.features.includes('ui-migration-breadcrumbs')) {
+  if (!hasNewBreadcrumbs) {
     return (
       <Breadcrumbs
         crumbs={[
@@ -63,9 +65,9 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
 }
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
-  const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
-  if (organization.features.includes('ui-migration-breadcrumbs')) {
+  if (hasNewBreadcrumbs) {
     return (
       <Fragment>
         <TopBar.Slot name="breadcrumbs">

@@ -70,7 +70,6 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
-  ENTERPRISE_TEAM = 'Enterprise (Team)',
   ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
@@ -159,8 +158,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   dashboardLimit: number;
-  features: string[];
-
   hasOnDemandModes: boolean;
   id: string;
   /**

@@ -386,7 +386,7 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
   if (mode === 'demo') {
     return {
       errors: [],
-      status: 'success' as QueryStatus,
+      status: 'success',
       isLoading: false,
       data: isEAP
         ? {

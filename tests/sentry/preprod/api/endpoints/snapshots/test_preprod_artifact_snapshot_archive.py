@@ -94,7 +94,7 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
     def test_get_reports_not_ready_when_archive_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
@@ -130,7 +130,7 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
     def test_download_returns_409_when_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409

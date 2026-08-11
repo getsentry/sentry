@@ -33,7 +33,7 @@ The disclosure component supports a controlled and uncontrolled state via the `d
 
 <Storybook.Demo>
   <Flex width="100%">
-    <Disclosure>
+    <Disclosure flex={1}>
       <Disclosure.Title>This is a disclosure</Disclosure.Title>
       <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
     </Disclosure>
@@ -53,7 +53,7 @@ The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or con
 
 <Storybook.Demo>
   <Flex width="100%">
-    <Disclosure defaultExpanded>
+    <Disclosure defaultExpanded flex={1}>
       <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
       <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
     </Disclosure>
@@ -73,7 +73,7 @@ The disclosure can be sized by setting the `size` prop.
 
 <Storybook.Demo>
   <Flex width="100%">
-    <Stack direction="column" justify="center" gap="2xl">
+    <Stack direction="column" justify="center" gap="2xl" flex={1}>
       <Disclosure size="md" defaultExpanded>
         <Disclosure.Title>This is medium disclosure</Disclosure.Title>
         <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
@@ -113,7 +113,7 @@ Note: The trailing items should be sized to match the disclosure size - this is 
 
 <Storybook.Demo>
   <Flex width="100%">
-    <Disclosure size="sm" defaultExpanded>
+    <Disclosure size="sm" defaultExpanded flex={1}>
       <Disclosure.Title
         trailingItems={
           <Button size="xs" icon={<IconEdit />}>
@@ -143,6 +143,44 @@ Note: The trailing items should be sized to match the disclosure size - this is 
 </Disclosure>
 ```
 
+### Leading Items
+
+Add a glyph or avatar before the title with `leadingItems`. When present, the
+chevron moves to sit after the title so the leading slot is the row's first
+element.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" defaultExpanded flex={1}>
+      <Disclosure.Title leadingItems={<IconEdit size="xs" />}>
+        Title With A Leading Glyph
+      </Disclosure.Title>
+      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+### Outline Variant
+
+Set `variant="outline"` to render the content as a bordered, rounded card below
+the title instead of the default left-indented panel.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" variant="outline" defaultExpanded flex={1}>
+      <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+      <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="sm" variant="outline" defaultExpanded>
+  <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+  <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+</Disclosure>
+```
+
 ### Remembering Expanded State
 
 The disclosure component provides a `onExpandedChange` prop that can be used to listen for changes to the expanded state - this allows you to store the state in a storage of your choice.
@@ -153,7 +191,7 @@ export function LocalStorageDisclosure() {
     const [expanded, setExpanded] = useLocalStorageState('my-disclosure-key', false);
 
     return (
-        <Disclosure expanded={expanded} onExpandedChange={setExpanded}>
+        <Disclosure expanded={expanded} onExpandedChange={setExpanded} flex={1}>
             <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
             <Disclosure.Content>Reload the page to see the expanded state is remembered</Disclosure.Content>
         </Disclosure>
@@ -196,7 +234,7 @@ export function URLStateDisclosure() {
     const [expanded, setExpanded] = useQueryState('my-disclosure-key', parseAsBoolean.withDefault(false));
 
     return (
-        <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded}>
+        <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded} flex={1}>
             <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
             <Disclosure.Content>Reload the page to see the expanded state is remembered and new params are added to the URL</Disclosure.Content>
         </Disclosure>

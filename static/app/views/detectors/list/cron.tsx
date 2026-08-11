@@ -12,6 +12,7 @@ import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlace
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -205,7 +206,12 @@ function CronEmptyState() {
   );
 }
 
+const CronsListPageHeader = OverrideOrDefault({
+  overrideName: 'component:crons-list-page-header',
+});
+
 export default function CronDetectorsList() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const detectorListQuery = useDetectorListQuery({
     detectorFilter: 'monitor_check_in_failure',
@@ -249,6 +255,7 @@ export default function CronDetectorsList() {
           description={DESCRIPTION}
           docsUrl={DOCS_URL}
         >
+          <CronsListPageHeader organization={organization} />
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>

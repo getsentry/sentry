@@ -49,7 +49,13 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
+from sentry.seer.models import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
+    SeerApiError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -348,8 +354,11 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        if enable_pr_context_tools and not features.has(
-            "organizations:autofix-pr-iteration", organization, actor=user
+        # PR context tools back both the automated CI and the manual iteration flows,
+        # so either flag grants them.
+        if enable_pr_context_tools and not (
+            features.has("organizations:autofix-pr-iteration", organization, actor=user)
+            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
         ):
             raise SeerPermissionError("PR context tools are not enabled for this organization")
 
@@ -577,6 +586,27 @@ class SeerAgentClient:
             flush=flush,
         )
 
+    def _embed_widgets_enabled(self) -> bool:
+        """Whether to tell the agent it may emit embed widgets.
+
+        Code Mode ships the embed surface itself, so a run using it renders the same
+        widgets whether or not the org holds the embeds flag. Gating on the flag alone
+        would leave those runs emitting plain text where the rest of the product shows a
+        widget — a difference the user sees but cannot explain.
+
+        Widening this changes only what the agent is told it may emit: rendering is not
+        flag-gated on the frontend, and per-widget flags still apply in
+        ``get_embed_widgets``. ``enable_embeds`` remains the hard opt-out for surfaces
+        that cannot render Markdoc, such as Slack.
+        """
+        if not self.enable_embeds:
+            return False
+        if self.enable_code_mode_tools != "off":
+            return True
+        return features.has(
+            "organizations:seer-explorer-embeds", self.organization, actor=self.user
+        )
+
     def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
@@ -613,11 +643,7 @@ class SeerAgentClient:
         ):
             opts["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
@@ -648,7 +674,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
         request: Request | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
@@ -661,14 +687,23 @@ class SeerAgentClient:
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
 
         Returns:
-            int: The run ID (same as input)
+            SeerRun: The run's mirror row.
 
         Raises:
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If no SeerRun mirror exists for run_id
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
+
+        # Resolve the mirror before calling Seer so a missing run never advances
+        # the remote run (fail closed).
+        run = SeerRun.objects.filter(
+            organization_id=self.organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
@@ -747,11 +782,7 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
@@ -765,11 +796,10 @@ class SeerAgentClient:
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
 
-        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
+        run.update(last_triggered_at=now())
 
-        return result["run_id"]
+        return run
 
     def get_run(
         self,
@@ -923,8 +953,10 @@ class SeerAgentClient:
         blocking: bool = True,
         pr_description_suffix: str | None = None,
         ready_for_review: bool = True,
+        verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
+        author: SeerCommitAuthor | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -937,6 +969,7 @@ class SeerAgentClient:
             repo_name: Specific repo to push, or None for all repos with changes
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
+            author: Git commit author; None lets Seer pick one
 
         Returns:
             SeerRunState: Final state with PR info
@@ -955,6 +988,7 @@ class SeerAgentClient:
         payload: dict[str, Any] = {
             "type": "create_pr",
             "ready_for_review": ready_for_review,
+            "verify_content": verify_content,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.
@@ -964,6 +998,8 @@ class SeerAgentClient:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
             payload["pr_description_suffix"] = pr_description_suffix
+        if author:
+            payload["author"] = author
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = AgentUpdateRequest(

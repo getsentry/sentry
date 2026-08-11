@@ -210,7 +210,6 @@ class DebugWeeklyReportView(MailPreviewView):
                     random.choice(
                         [
                             "Resolved",
-                            "Resolved in PR",
                             "Resolved in release",
                             "Resolved in next release",
                         ]

@@ -12,13 +12,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
 import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
 import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProjectDetailsCore';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
   type ScmProjectDetailsCompletion,
@@ -31,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -77,6 +78,13 @@ export function ScmCreateProject() {
   // `variant` and to `referrer=getting-started` autofill — back-from-docs
   // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
+
+  // Above the keyed wizard so the per-mount sampling decision survives the
+  // restore remount below.
+  useReplayForCriticalFlow({
+    flowName: 'scm_project_creation',
+    sampleRate: 0.5,
+  });
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
@@ -221,8 +229,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   );
 
   const form = useScmProjectDetails({
-    analyticsFlow: 'project-creation',
-    allowMemberWithoutTeam: true,
     selectedPlatform,
     selectedRepository,
     createdProjectSlug,
@@ -319,7 +325,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
               <motion.div layout="position">
                 <ScmProjectDetailsCore
-                  analyticsFlow="project-creation"
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
                   onProjectNameBlur={form.onProjectNameBlur}

@@ -136,6 +136,14 @@ def resource_of(event: str) -> SentryAppResourceType | None:
     return EVENT_TO_RESOURCE.get(event)
 
 
+def has_error_events(events: Collection[str] | None) -> bool:
+    """Whether any entry subscribes to error webhooks, as the whole resource or a single event."""
+    return any(
+        event == SentryAppResourceType.ERROR or resource_of(event) is SentryAppResourceType.ERROR
+        for event in events or ()
+    )
+
+
 def is_subscribed(stored_events: Collection[str], event: str) -> bool:
     """
     Whether a stored subscription covers a fired event.
