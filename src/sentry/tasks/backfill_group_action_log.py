@@ -443,6 +443,16 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
+    # Track missing rows so we only invalidate caches for newly enrolled projects.
+    project_ids_with_option = set(
+        ProjectOption.objects.filter(
+            project_id__in=project_ids,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).values_list("project_id", flat=True)
+    )
+    project_ids_to_enroll = [
+        project_id for project_id in project_ids if project_id not in project_ids_with_option
+    ]
     ProjectOption.objects.bulk_create(
         [
             ProjectOption(
@@ -450,10 +460,16 @@ def enroll_organization_projects_for_group_action_log_backfill(
                 key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
                 value=False,
             )
-            for project_id in project_ids
+            for project_id in project_ids_to_enroll
         ],
         ignore_conflicts=True,
     )
+    for project_id in project_ids_to_enroll:
+        ProjectOption.objects.reload_cache(
+            project_id,
+            "group_action_log_backfill.enrollment",
+            GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        )
 
     logger.info(
         "backfill_group_action_log.organization_enrollment.batch_completed",

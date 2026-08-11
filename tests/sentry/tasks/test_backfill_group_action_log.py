@@ -644,23 +644,12 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         inactive_project = self.create_project(organization=organization)
         completed_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         inactive_project.update(status=1)
+        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
         enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
-        assert (
-            ProjectOption.objects.get(
-                project=pending_project,
-                key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
-            ).value
-            is False
-        )
-        assert (
-            ProjectOption.objects.get(
-                project=completed_project,
-                key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
-            ).value
-            is True
-        )
+        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert completed_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
         assert not ProjectOption.objects.filter(
             project=inactive_project,
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
