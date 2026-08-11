@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import moment from 'moment-timezone';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -11,6 +12,10 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {
+  LLMContextLocation,
+  LLMContextSnapshot,
+} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {
   useSeerExplorerChatDispatch,
@@ -186,10 +191,12 @@ export const useSeerExplorer = () => {
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
+      pageLocation: LLMContextLocation | undefined;
       pageName: string;
       query: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
+      sentAt: string[];
     }
   >({
     mutationFn: async params => {
@@ -220,6 +227,8 @@ export const useSeerExplorer = () => {
           insert_index: params.insertIndex,
           on_page_context: params.screenshot,
           page_name: params.pageName,
+          page_location: params.pageLocation,
+          sent_at: params.sentAt,
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
@@ -466,21 +475,31 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
+      // The snapshot is the source of location for both branches below, so take it
+      // once here rather than only on the structured path.
+      let snapshot: LLMContextSnapshot | undefined;
+      try {
+        snapshot = getLLMContext();
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
       if (
+        snapshot &&
         overrideCtxEngEnable &&
         supportsStructuredContext(getPageReferrer(), organization)
       ) {
         try {
-          screenshot = JSON.stringify(getLLMContext());
+          screenshot = JSON.stringify(snapshot);
         } catch (e) {
           Sentry.captureException(e);
-          screenshot = captureAsciiSnapshot?.();
+          screenshot = captureAsciiSnapshot?.(snapshot?.location);
         }
       } else {
-        screenshot = captureAsciiSnapshot?.();
+        screenshot = captureAsciiSnapshot?.(snapshot?.location);
       }
 
       const pageName = getPageReferrer();
@@ -525,6 +544,14 @@ export const useSeerExplorer = () => {
         runId: effectiveRunId,
         orgSlug,
         pageName,
+        pageLocation: snapshot?.location,
+        // Local time first, then the same instant in UTC. Both are display strings
+        // the agent reads directly — nothing downstream parses them, so the zone
+        // name travels in the string (RFC 9557) rather than as a separate field.
+        sentAt: [
+          `${moment().format()}[${Intl.DateTimeFormat().resolvedOptions().timeZone}]`,
+          moment().utc().format(),
+        ],
         screenshot,
         overrideBashModeEnabled,
         overrideCtxEngEnable,
