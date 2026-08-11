@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -443,10 +444,10 @@ export function PrimaryNavigationQuotaExceeded({
     // either it has been more than a day since the last shown date,
     // the categories have changed, or
     // the last time it was shown was before the current usage cycle started
-    const lastShownCategories = localStorage.getItem(
+    const lastShownCategories = localStorageWrapper.getItem(
       `billing-status-last-shown-categories-${organization.id}`
     );
-    const lastShownDate = localStorage.getItem(
+    const lastShownDate = localStorageWrapper.getItem(
       `billing-status-last-shown-date-${organization.id}`
     );
     const daysSinceLastShown = lastShownDate ? getDaysSinceDate(lastShownDate) : 0;
@@ -463,11 +464,11 @@ export function PrimaryNavigationQuotaExceeded({
     ) {
       hasAutoOpenedAlertRef.current = true;
       overlayState.open();
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         `billing-status-last-shown-categories-${organization.id}`,
         currentCategories
       );
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         `billing-status-last-shown-date-${organization.id}`,
         moment().utc().toISOString()
       );
