@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 import {SCM_MESSAGING_PROVIDER_DESCRIPTIONS} from './messagingProviders';
+import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 import {ScmSelectableContainer} from './scmSelectableContainer';
 import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
@@ -270,11 +271,20 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' && viewModel.integration && (
           <ChannelPickerSlot>
-            {renderChannelPicker?.({
-              integration: viewModel.integration,
-              onCancel: handleCancelConfiguring,
-              onConfigured: handleConfigured,
-            })}
+            {renderChannelPicker ? (
+              renderChannelPicker({
+                integration: viewModel.integration,
+                onCancel: handleCancelConfiguring,
+                onConfigured: handleConfigured,
+              })
+            ) : (
+              <ScmMessagingChannelPicker
+                integration={viewModel.integration}
+                onCancel={handleCancelConfiguring}
+                onConfigured={handleConfigured}
+                existingSetup={isConfigured ? messagingSetup : undefined}
+              />
+            )}
           </ChannelPickerSlot>
         )}
       </RowBody>
