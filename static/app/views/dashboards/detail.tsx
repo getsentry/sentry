@@ -76,14 +76,16 @@ import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
-import {Controls} from './controls';
+import {Controls, DashboardActionBar} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
+import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DashboardPageFilters} from './dashboardPageFilters';
 import {FiltersBar} from './filtersBar';
@@ -103,10 +105,6 @@ import type {
 import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
-
-export const UNSAVED_FILTERS_MESSAGE = t(
-  'You have unsaved dashboard filters. You can save or discard them.'
-);
 
 const OverrideHeader = OverrideOrDefault({
   overrideName: 'component:dashboards-header',
@@ -1171,6 +1169,7 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       pageAlerts,
       queryClient,
+      theme,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1205,20 +1204,19 @@ class DashboardDetail extends Component<Props, State> {
                         />
                       </TopBar.Slot>
                       <TopBar.Slot name="title">
-                        <BreadcrumbList.Title
-                          item={{
-                            type: 'editable-title',
-                            value: (modifiedDashboard ?? dashboard).title,
-                            onChange: newTitle =>
-                              this.setModifiedDashboard({
-                                ...(modifiedDashboard ?? dashboard),
-                                title: newTitle,
-                              }),
-                            isDisabled: !this.isEditingDashboard,
-                            errorMessage: t('Please set a title for this dashboard'),
-                            autoSelect: true,
-                            'aria-label': t('Edit Dashboard Name'),
-                          }}
+                        <DashboardBreadcrumbTitle
+                          dashboard={modifiedDashboard ?? dashboard}
+                          hasUnsavedFilters={hasUnsavedFilters}
+                          isEditing={this.isEditingDashboard}
+                          isPreview={this.isPreview}
+                          isSaving={isCommittingChanges}
+                          onChange={newTitle =>
+                            this.setModifiedDashboard({
+                              ...(modifiedDashboard ?? dashboard),
+                              title: newTitle,
+                            })
+                          }
+                          onEdit={this.onEdit}
                         />
                       </TopBar.Slot>
                     </Fragment>
@@ -1262,177 +1260,211 @@ class DashboardDetail extends Component<Props, State> {
                   </TopBar.Slot>
                 </Fragment>
               )}
-              <Layout.Body>
-                <Layout.Main width="full">
-                  <MetricsCardinalityProvider
-                    organization={organization}
-                    location={location}
-                  >
-                    <MetricsDataSwitcher location={location}>
-                      {metricsDataSide => (
-                        <MEPSettingProvider
-                          location={location}
-                          forceTransactions={metricsDataSide.forceTransactionsOnly}
+              <MetricsCardinalityProvider organization={organization} location={location}>
+                <MetricsDataSwitcher location={location}>
+                  {metricsDataSide => (
+                    <MEPSettingProvider
+                      location={location}
+                      forceTransactions={metricsDataSide.forceTransactionsOnly}
+                    >
+                      <Fragment>
+                        {/* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs,
+                            Traces, and Replays. */}
+                        <Layout.Body
+                          borderBottom="primary"
+                          flexGrow={0}
+                          padding="0"
+                          position="sticky"
+                          style={{zIndex: theme.zIndex.header}}
+                          top={`var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px)`}
                         >
-                          <Stack gap="xl">
-                            {pageAlerts}
-                            <FiltersBar
-                              dashboard={modifiedDashboard ?? dashboard}
-                              filters={(modifiedDashboard ?? dashboard).filters}
-                              dashboardPermissions={dashboard.permissions}
-                              dashboardCreator={dashboard.createdBy}
-                              location={location}
-                              hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
-                              isEditingDashboard={
-                                dashboardState !== DashboardState.CREATE &&
-                                this.isEditingDashboard
-                              }
-                              isPreview={this.isPreview}
-                              onAddWidget={this.onAddWidget}
-                              onDashboardFilterChange={this.handleChangeFilter}
-                              shouldBusySaveButton={this.state.isSavingDashboardFilters}
-                              prebuiltDashboardId={dashboard.prebuiltId}
-                              storageNamespace={this.props.storageNamespace}
-                              widgetLimitReached={widgetLimitReached}
-                              onCancel={() => {
-                                resetPageFilters(dashboard, location, navigate);
-                                trackAnalytics('dashboards2.filter.cancel', {
-                                  organization,
-                                });
-
-                                this.setState({
-                                  modifiedDashboard: {
-                                    ...(modifiedDashboard ?? dashboard),
-                                    filters: dashboard.filters,
-                                  },
-                                });
-                              }}
-                              onSave={async () => {
-                                const newModifiedDashboard = {
-                                  ...cloneDashboard(modifiedDashboard ?? dashboard),
-                                  ...getCurrentPageFilters(location),
-                                  filters: getMergedDashboardFilters(
-                                    (modifiedDashboard ?? dashboard).filters,
-                                    location
-                                  ),
-                                  ...(defined(dashboard.prebuiltId) && {
-                                    widgets: undefined,
-                                  }),
-                                };
-                                this.setState({
-                                  isSavingDashboardFilters: true,
-                                });
-                                addLoadingMessage(t('Saving dashboard filters'));
-                                await updateDashboard(
-                                  api,
-                                  organization.slug,
-                                  newModifiedDashboard
-                                ).then(
-                                  (newDashboard: DashboardDetails) => {
-                                    queryClient.invalidateQueries({
-                                      queryKey: getDashboardRevisionsQueryKey(
-                                        organization.slug,
-                                        newDashboard.id
-                                      ),
-                                    });
-                                    addSuccessMessage(t('Dashboard filters updated'));
-                                    trackAnalytics('dashboards2.filter.save', {
+                          <Layout.Main width="full">
+                            <Stack gap="xl">
+                              {pageAlerts}
+                              <Stack gap="0">
+                                <FiltersBar
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  filters={(modifiedDashboard ?? dashboard).filters}
+                                  dashboardPermissions={dashboard.permissions}
+                                  dashboardCreator={dashboard.createdBy}
+                                  location={location}
+                                  hasUnsavedChanges={
+                                    !this.isEmbedded && hasUnsavedFilters
+                                  }
+                                  isEditingDashboard={
+                                    dashboardState !== DashboardState.CREATE &&
+                                    this.isEditingDashboard
+                                  }
+                                  isPreview={this.isPreview}
+                                  onAddWidget={this.onAddWidget}
+                                  onDashboardFilterChange={this.handleChangeFilter}
+                                  shouldBusySaveButton={
+                                    this.state.isSavingDashboardFilters
+                                  }
+                                  prebuiltDashboardId={dashboard.prebuiltId}
+                                  storageNamespace={this.props.storageNamespace}
+                                  widgetLimitReached={widgetLimitReached}
+                                  onCancel={() => {
+                                    resetPageFilters(dashboard, location, navigate);
+                                    trackAnalytics('dashboards2.filter.cancel', {
                                       organization,
                                     });
 
-                                    const navigateToDashboard = () => {
-                                      this.props.navigate(
-                                        normalizeUrl({
-                                          pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                          query: omit(
-                                            location.query,
-                                            Object.values(DashboardFilterKeys)
-                                          ),
-                                        }),
-                                        {replace: true}
-                                      );
-                                    };
-
-                                    if (onDashboardUpdate) {
-                                      onDashboardUpdate(newDashboard);
-                                      this.setState(
-                                        {
-                                          modifiedDashboard: null,
-                                          isSavingDashboardFilters: false,
-                                        },
-                                        () => {
-                                          // Wait for modifiedDashboard state to update before navigating
-                                          navigateToDashboard();
-                                        }
-                                      );
-                                      return;
-                                    }
-
-                                    navigateToDashboard();
                                     this.setState({
-                                      isSavingDashboardFilters: false,
+                                      modifiedDashboard: {
+                                        ...(modifiedDashboard ?? dashboard),
+                                        filters: dashboard.filters,
+                                      },
                                     });
-                                  },
-                                  // `updateDashboard` does its own error handling
-                                  () => {}
-                                );
-                              }}
-                            />
-                          </Stack>
+                                  }}
+                                  onSave={async () => {
+                                    const newModifiedDashboard = {
+                                      ...cloneDashboard(modifiedDashboard ?? dashboard),
+                                      ...getCurrentPageFilters(location),
+                                      filters: getMergedDashboardFilters(
+                                        (modifiedDashboard ?? dashboard).filters,
+                                        location
+                                      ),
+                                      ...(defined(dashboard.prebuiltId) && {
+                                        widgets: undefined,
+                                      }),
+                                    };
+                                    this.setState({
+                                      isSavingDashboardFilters: true,
+                                    });
+                                    addLoadingMessage(t('Saving dashboard filters'));
+                                    await updateDashboard(
+                                      api,
+                                      organization.slug,
+                                      newModifiedDashboard
+                                    ).then(
+                                      (newDashboard: DashboardDetails) => {
+                                        queryClient.invalidateQueries({
+                                          queryKey: getDashboardRevisionsQueryKey(
+                                            organization.slug,
+                                            newDashboard.id
+                                          ),
+                                        });
+                                        addSuccessMessage(t('Dashboard filters updated'));
+                                        trackAnalytics('dashboards2.filter.save', {
+                                          organization,
+                                        });
 
-                          <Fragment>
-                            <WidgetQueryQueueProvider>
-                              <PrebuiltDashboardOnboardingGate
-                                prebuiltId={dashboard.prebuiltId}
-                              >
-                                <Dashboard
-                                  dashboard={modifiedDashboard ?? dashboard}
-                                  isEditingDashboard={this.isEditingDashboard}
-                                  widgetLimitReached={widgetLimitReached}
-                                  onUpdate={this.handleUpdateEditStateWidgets}
-                                  handleUpdateWidgetList={this.handleUpdateWidgetList}
-                                  handleAddCustomWidget={this.handleAddCustomWidget}
-                                  onAddWidget={this.onAddWidget}
-                                  isEmbedded={this.isEmbedded}
-                                  isPreview={this.isPreview}
-                                  widgetLegendState={this.state.widgetLegendState}
-                                  onEditWidget={this.onEditWidget}
-                                  newlyAddedWidget={newlyAddedWidget}
-                                  onNewWidgetScrollComplete={
-                                    this.handleScrollToNewWidgetComplete
-                                  }
-                                  widgetInterval={this.props.widgetInterval}
+                                        const navigateToDashboard = () => {
+                                          this.props.navigate(
+                                            normalizeUrl({
+                                              pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                              query: omit(
+                                                location.query,
+                                                Object.values(DashboardFilterKeys)
+                                              ),
+                                            }),
+                                            {replace: true}
+                                          );
+                                        };
+
+                                        if (onDashboardUpdate) {
+                                          onDashboardUpdate(newDashboard);
+                                          this.setState(
+                                            {
+                                              modifiedDashboard: null,
+                                              isSavingDashboardFilters: false,
+                                            },
+                                            () => {
+                                              // Wait for modifiedDashboard state to update before navigating
+                                              navigateToDashboard();
+                                            }
+                                          );
+                                          return;
+                                        }
+
+                                        navigateToDashboard();
+                                        this.setState({
+                                          isSavingDashboardFilters: false,
+                                        });
+                                      },
+                                      // `updateDashboard` does its own error handling
+                                      () => {}
+                                    );
+                                  }}
                                 />
-                              </PrebuiltDashboardOnboardingGate>
-                            </WidgetQueryQueueProvider>
+                                <DashboardActionBar
+                                  organization={organization}
+                                  dashboard={dashboard}
+                                  hasUnsavedFilters={hasUnsavedFilters}
+                                  onEdit={this.onEdit}
+                                  onCancel={this.onCancel}
+                                  onCommit={this.onCommit}
+                                  onAddWidget={this.onAddWidget}
+                                  onDelete={this.onDelete(dashboard)}
+                                  onChangeEditAccess={this.onChangeEditAccess}
+                                  dashboardState={dashboardState}
+                                  widgetLimitReached={widgetLimitReached}
+                                  isSaving={isCommittingChanges}
+                                />
+                              </Stack>
+                            </Stack>
+                          </Layout.Main>
+                        </Layout.Body>
 
-                            <WidgetBuilderV2
-                              isOpen={this.state.isWidgetBuilderOpen}
-                              openWidgetTemplates={
-                                this.state.openWidgetTemplates ?? false
-                              }
-                              setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
-                              onClose={this.handleCloseWidgetBuilder}
-                              dashboardFilters={getMergedDashboardFilters(
-                                dashboard.filters,
-                                location
-                              )}
-                              dashboard={modifiedDashboard ?? dashboard}
-                              onSave={this.handleSaveWidget}
-                            />
-                            {dashboardState === DashboardState.EDIT && (
-                              <DashboardEditSeerChat
+                        <Layout.Body>
+                          <Layout.Main width="full">
+                            <Fragment>
+                              <WidgetQueryQueueProvider>
+                                <PrebuiltDashboardOnboardingGate
+                                  prebuiltId={dashboard.prebuiltId}
+                                >
+                                  <Dashboard
+                                    dashboard={modifiedDashboard ?? dashboard}
+                                    isEditingDashboard={this.isEditingDashboard}
+                                    widgetLimitReached={widgetLimitReached}
+                                    onUpdate={this.handleUpdateEditStateWidgets}
+                                    handleUpdateWidgetList={this.handleUpdateWidgetList}
+                                    handleAddCustomWidget={this.handleAddCustomWidget}
+                                    onAddWidget={this.onAddWidget}
+                                    isEmbedded={this.isEmbedded}
+                                    isPreview={this.isPreview}
+                                    widgetLegendState={this.state.widgetLegendState}
+                                    onEditWidget={this.onEditWidget}
+                                    newlyAddedWidget={newlyAddedWidget}
+                                    onNewWidgetScrollComplete={
+                                      this.handleScrollToNewWidgetComplete
+                                    }
+                                    widgetInterval={this.props.widgetInterval}
+                                  />
+                                </PrebuiltDashboardOnboardingGate>
+                              </WidgetQueryQueueProvider>
+
+                              <WidgetBuilderV2
+                                isOpen={this.state.isWidgetBuilderOpen}
+                                openWidgetTemplates={
+                                  this.state.openWidgetTemplates ?? false
+                                }
+                                setOpenWidgetTemplates={
+                                  this.handleChangeWidgetBuilderView
+                                }
+                                onClose={this.handleCloseWidgetBuilder}
+                                dashboardFilters={getMergedDashboardFilters(
+                                  dashboard.filters,
+                                  location
+                                )}
                                 dashboard={modifiedDashboard ?? dashboard}
-                                onDashboardUpdate={this.handleSeerDashboardUpdate}
+                                onSave={this.handleSaveWidget}
                               />
-                            )}
-                          </Fragment>
-                        </MEPSettingProvider>
-                      )}
-                    </MetricsDataSwitcher>
-                  </MetricsCardinalityProvider>
-                </Layout.Main>
-              </Layout.Body>
+                              {dashboardState === DashboardState.EDIT && (
+                                <DashboardEditSeerChat
+                                  dashboard={modifiedDashboard ?? dashboard}
+                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
+                                />
+                              )}
+                            </Fragment>
+                          </Layout.Main>
+                        </Layout.Body>
+                      </Fragment>
+                    </MEPSettingProvider>
+                  )}
+                </MetricsDataSwitcher>
+              </MetricsCardinalityProvider>
             </NoProjectMessage>
           </MetricsResultsMetaProvider>
         </OnDemandControlProvider>
