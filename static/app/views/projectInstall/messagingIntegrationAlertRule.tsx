@@ -23,7 +23,6 @@ type Channel = {
   type: string;
 };
 
-/** @public Consumed by ScmMessagingChannelPicker to look up channel IDs. */
 export type {Channel};
 
 type ChannelListResponse = {
