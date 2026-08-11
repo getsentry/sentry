@@ -9,10 +9,12 @@ from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.test import Client, RequestFactory
+from django.urls import reverse
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.email_verification import hash_email
 from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
@@ -31,6 +33,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.pipeline.constants import PIPELINE_STATE_TTL
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -41,6 +44,10 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.redis import clusters
+from sentry.web.frontend.signup_email_verification import (
+    PENDING_EXPIRY_TEXT_SESSION_KEY,
+    PENDING_VERIFICATION_SESSION_KEY,
+)
 
 
 def _set_up_request():
@@ -74,7 +81,7 @@ class AuthIdentityHandlerTest(TestCase):
             "data": {"foo": "bar"},
         }
 
-        self.state = AuthHelperSessionStore(self.request, "pipeline")
+        self.state = AuthHelperSessionStore(self.request, "pipeline", ttl=PIPELINE_STATE_TTL)
 
     @property
     def handler(self):
@@ -1360,3 +1367,118 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         auth_identity.refresh_from_db()
         assert auth_identity.user_id == inactive_user.id
         assert auth_identity.user_id != requesting_user.id
+
+
+@control_silo_test
+class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
+    def test_flag_off_creates_user_immediately(self) -> None:
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": False}):
+            self.handler.handle_unknown_identity(self.state)
+
+        assert AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        ).exists()
+        user = User.objects.get(email=self.email)
+        assert UserEmail.objects.get(user=user, email=self.email).is_verified is False
+
+    def test_flag_on_trust_check_passes_creates_user_with_verified_email(self) -> None:
+        identity: _Identity = {
+            "id": "google-123",
+            "email": self.email,
+            "name": "Morty",
+            "data": {},
+        }
+        identity["email_verified"] = True  # type: ignore[typeddict-unknown-key]
+
+        handler = self._handler_with(identity)
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            with mock.patch.object(handler, "provider") as mock_provider:
+                mock_provider.key = "google"
+                handler.handle_unknown_identity(self.state)
+
+        user = User.objects.get(email=self.email)
+        assert UserEmail.objects.get(user=user, email=self.email).is_verified is True
+
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_flag_on_untrusted_provider_sends_verification_email(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.url == reverse("sentry-signup-verify-email-pending")
+        mock_send.assert_called_once_with(
+            email=self.email,
+            url_name="sentry-signup-verify-email-sso",
+            max_age_minutes=PIPELINE_STATE_TTL // 60,
+        )
+        assert not User.objects.filter(email=self.email).exists()
+        assert self.request.session[PENDING_VERIFICATION_SESSION_KEY] == self.email
+        assert self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] == PIPELINE_STATE_TTL // 60
+
+    @override_options({"auth.email-verification-at-signup.force-in-experiment": ["*@example.com"]})
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_allowlist_forces_verification_even_without_flag(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": False}):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.url == reverse("sentry-signup-verify-email-pending")
+        mock_send.assert_called_once()
+        assert not User.objects.filter(email=self.email).exists()
+        assert self.request.session[PENDING_VERIFICATION_SESSION_KEY] == self.email
+
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_flag_on_refreshes_pipeline_ttl(self, mock_send: mock.MagicMock) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        client = self.state._client
+        client.expire(self.state.redis_key, 5)
+        assert client.ttl(self.state.redis_key) <= 5
+
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            self.handler.handle_unknown_identity(self.state)
+
+        assert client.ttl(self.state.redis_key) > 5
+
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_resubmitting_confirmation_form_does_not_resend_email(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.request.POST = {"op": "newuser"}
+
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            for _ in range(3):
+                response = self.handler.handle_unknown_identity(self.state)
+                assert isinstance(response, HttpResponseRedirect)
+                assert response.url == reverse("sentry-signup-verify-email-pending")
+
+        mock_send.assert_called_once()
+
+    @mock.patch("sentry.auth.helper.ratelimiter")
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_rate_limited_send_shows_error_instead_of_pending_page(
+        self, mock_send: mock.MagicMock, mock_ratelimiter: mock.MagicMock
+    ) -> None:
+        mock_ratelimiter.backend.is_limited.return_value = True
+
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert not isinstance(response, HttpResponseRedirect)
+        assert response.status_code == 400
+        assert b"Too many attempts" in response.content
+        mock_send.assert_not_called()
+        mock_ratelimiter.backend.is_limited.assert_called_once_with(
+            f"signup-verify-send:email:{hash_email(self.email)}", limit=5, window=300
+        )
+        assert PENDING_VERIFICATION_SESSION_KEY not in self.request.session

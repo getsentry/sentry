@@ -11,6 +11,7 @@ from sentry.auth.exceptions import IdentityNotValid, PipelineStateExpired, Provi
 from sentry.auth.helper import AuthHelper
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.signup_email_verification import (
+    PENDING_EXPIRY_TEXT_SESSION_KEY,
     PENDING_VERIFICATION_SESSION_KEY,
     BaseSignupVerificationView,
 )
@@ -79,5 +80,6 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
 
         helper.state.verified_email = verified_email
         request.session.pop(PENDING_VERIFICATION_SESSION_KEY, None)
+        request.session.pop(PENDING_EXPIRY_TEXT_SESSION_KEY, None)
 
         return HttpResponseRedirect(reverse("sentry-auth-sso"))

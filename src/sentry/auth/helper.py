@@ -21,11 +21,17 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry import audit_log, features
+from flagpole.conditions import glob_star_match
+from sentry import audit_log, features, options
+from sentry import ratelimits as ratelimiter
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.auth.email_verification import hash_email
+from sentry.auth.email_verification import (
+    hash_email,
+    is_email_verified_by_trusted_provider,
+    send_signup_verification_email,
+)
 from sentry.auth.exceptions import (
     AuthIdentityUserMismatch,
     IdentityNotValid,
@@ -57,6 +63,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.pipeline.base import Pipeline
+from sentry.pipeline.constants import PIPELINE_STATE_TTL
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
@@ -70,6 +77,11 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
+from sentry.web.frontend.signup_email_verification import (
+    PENDING_EXPIRY_TEXT_SESSION_KEY,
+    PENDING_VERIFICATION_SESSION_KEY,
+    _get_signup_url,
+)
 from sentry.web.helpers import render_to_response
 
 from . import manager
@@ -101,6 +113,21 @@ ERR_USER_SUSPENDED = _("Your account has been suspended.")
 ERR_MERGE_FAILED = _(
     "Unable to merge accounts. Please verify your email address to link your SSO identity."
 )
+
+
+def _sso_verification_required(email: str) -> bool:
+    """Check if email verification at signup is required for this email"""
+    force_emails = options.get("auth.email-verification-at-signup.force-in-experiment")
+    in_allowlist = any(glob_star_match(p, email) for p in force_emails)
+
+    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
+
+
+def _sso_verification_send_rate_limited(email: str) -> bool:
+    """Throttle verification email sends per email address"""
+    return ratelimiter.backend.is_limited(
+        f"signup-verify-send:email:{hash_email(email)}", limit=5, window=300
+    )
 
 
 @dataclass
@@ -539,6 +566,42 @@ class AuthIdentityHandler:
         state.verified_email = None
         return verified.lower() == self.identity["email"].lower()
 
+    def _send_sso_verification_email_and_redirect(
+        self, email: str, state: AuthHelperSessionStore
+    ) -> HttpResponse:
+        """Send the SSO signup verification email (unless already sent for
+        this pipeline) and redirect to the pending-verification page.
+
+        If rate limited, match the rate limit response in BaseSignupVerificationView.
+        """
+        if not getattr(state, "verification_email_sent", False):
+            if _sso_verification_send_rate_limited(email):
+                logger.warning(
+                    "sso_signup.verification_send_rate_limited",
+                    extra={"email_hash": hash_email(email)},
+                )
+                return self._respond(
+                    "sentry/signup-verification-error.html",
+                    context={
+                        "title": "Too many attempts",
+                        "message": "Please wait a moment and try again.",
+                        "signup_url": _get_signup_url(),
+                    },
+                    status=400,
+                )
+            max_age_minutes = PIPELINE_STATE_TTL // 60
+            send_signup_verification_email(
+                email=email,
+                url_name="sentry-signup-verify-email-sso",
+                max_age_minutes=max_age_minutes,
+            )
+            self.request.session[PENDING_VERIFICATION_SESSION_KEY] = email
+            self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] = max_age_minutes
+            # Setting this refreshes the pipeline's TTL to match the link's max_age,
+            # and stops a resubmit from re-sending or re-extending the TTL.
+            state.verification_email_sent = True
+        return HttpResponseRedirect(reverse("sentry-signup-verify-email-pending"))
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -635,7 +698,12 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                auth_identity = self.handle_new_user()
+                trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                if not trusted and _sso_verification_required(self.identity["email"]):
+                    return self._send_sso_verification_email_and_redirect(
+                        self.identity["email"], state
+                    )
+                auth_identity = self.handle_new_user(email_verified=trusted)
                 created_new_user = True
             elif self._has_verified_signup_email(state):
                 auth_identity = self.handle_new_user(email_verified=True)

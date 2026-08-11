@@ -93,7 +93,6 @@ class SSOSignupVerificationViewTest(TestCase):
 
     @mock.patch("sentry.auth.helper.auth")
     def test_full_flow_creates_user(self, mock_auth: mock.MagicMock) -> None:
-        """Follow the redirect through the pipeline to verify user creation."""
         mock_auth.login.return_value = True
         mock_auth.get_login_redirect.return_value = "/organizations/test-org/issues/"
 
