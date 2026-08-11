@@ -1,7 +1,6 @@
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {updateDashboard} from 'sentry/actionCreators/dashboards';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
@@ -13,13 +12,12 @@ export type UpdateDashboardVariables = {
 };
 
 function useUpdateDashboardMutationOptions() {
-  const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return mutationOptions({
     mutationFn: ({dashboard, revisionSource}: UpdateDashboardVariables) =>
-      updateDashboard(api, organization.slug, dashboard, {revisionSource}),
+      updateDashboard(organization.slug, dashboard, {revisionSource}),
     onSuccess: updatedDashboard => {
       queryClient.invalidateQueries({
         queryKey: getDashboardRevisionsQueryKey(organization.slug, updatedDashboard.id),
