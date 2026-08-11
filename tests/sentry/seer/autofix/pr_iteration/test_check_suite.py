@@ -387,7 +387,9 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
-    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+    def _event(
+        self, *, pull_requests: list[dict], repository_id: int | None = None
+    ) -> GithubCheckSuiteEvent:
         return GithubCheckSuiteEvent.parse_obj(
             {
                 "check_suite": {
@@ -398,7 +400,10 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                     "updated_at": "2024-01-01T00:00:00Z",
                     "pull_requests": pull_requests,
                 },
-                "repository": {"html_url": "https://github.com/owner/repo"},
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "id": repository_id,
+                },
             }
         )
 
@@ -443,6 +448,63 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                 "organization_ids": [self.organization.id, self.organization.id],
             },
         )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_skips_pull_request_based_in_another_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """A PR with its head here and its base elsewhere is never an Autofix PR."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[{"id": 111, "base": {"repo": {"id": 456}}}],
+            )
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_foreign_entry_does_not_shadow_own_repo_entry(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """The first match wins, so GitHub's ordering must not pick the run."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=222)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[
+                    {"id": 111, "base": {"repo": {"id": 456}}},
+                    {"id": 222, "base": {"repo": {"id": 123}}},
+                ],
+            )
+        )
+
+        assert result is not None
+        assert result.pr_id == 222
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 222)
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_resolves_entry_carrying_no_base_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """An entry we cannot place stays in: dropping one costs a real iteration."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=123, pull_requests=[{"id": 111}])
+        )
+
+        assert result is not None
+        assert result.pr_id == 111
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:

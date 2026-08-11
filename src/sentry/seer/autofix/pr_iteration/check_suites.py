@@ -64,8 +64,24 @@ class GithubCheckSuiteApp(BaseModel):
         extra = "allow"
 
 
+class GithubCheckSuitePullRequestRepository(BaseModel):
+    id: int | None = None
+
+    class Config:
+        extra = "allow"
+
+
+class GithubCheckSuitePullRequestBase(BaseModel):
+    repo: GithubCheckSuitePullRequestRepository | None = None
+
+    class Config:
+        extra = "allow"
+
+
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
+    # Optional so feedback serialized before this field existed still parses.
+    base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
         extra = "allow"
@@ -181,6 +197,18 @@ class CheckSuiteAutofixRun:
     group_id: int
 
 
+def _is_foreign_base_repo(pr: GithubCheckSuitePullRequest, repository_id: int | None) -> bool:
+    """Whether this entry's PR is based in a repository other than the suite's.
+
+    Only ``True`` when both ids are present and differ — an entry we cannot place
+    is kept, since dropping one costs a real iteration.
+    """
+    if repository_id is None:
+        return False
+    base_repo_id = pr.base.repo.id if pr.base and pr.base.repo else None
+    return base_repo_id is not None and base_repo_id != repository_id
+
+
 def resolve_check_suite_autofix_run(
     event: GithubCheckSuiteEvent, repositories: Sequence[Repository] | None = None
 ) -> CheckSuiteAutofixRun | None:
@@ -191,6 +219,14 @@ def resolve_check_suite_autofix_run(
     match, logs a warning and returns the first. Callers that already resolved
     (or filtered) the candidate repos can pass ``repositories`` to restrict the
     search.
+
+    GitHub matches a PR to a suite on ``head_sha`` + ``head_branch``, so an entry
+    whose ``base.repo`` is not this suite's repo is a PR with its *head* here and
+    its base elsewhere — a fork syncing from upstream, say. Autofix opens both
+    sides of a PR in one repo, so such an entry can never be one of its own, and
+    resolving it would bind the suite to whatever run owns that foreign PR:
+    ``repository`` below is this suite's repo, not the entry's, and the first
+    match wins. Skipping them keeps the own-repo entry from being shadowed.
     """
     repos = (
         list(repositories) if repositories is not None else resolve_check_suite_repositories(event)
@@ -198,7 +234,12 @@ def resolve_check_suite_autofix_run(
     if not repos:
         return None
 
-    pull_requests = event.check_suite.pull_requests
+    pull_requests = []
+    for pr in event.check_suite.pull_requests:
+        if _is_foreign_base_repo(pr, event.repository.id):
+            metrics.incr("autofix.pr_iteration.check_suite.foreign_pull_request")
+            continue
+        pull_requests.append(pr)
     if not pull_requests:
         return None
 
