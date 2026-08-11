@@ -8329,6 +8329,78 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
+    it('deduplicates explicit async tags that match bare static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'tags[user.email,string]', name: 'user.email', kind: FieldKind.TAG},
+        {key: 'novel_async_key', name: 'Novel Async Key', kind: FieldKind.TAG},
+      ]);
+      const filterKeys = {
+        ...FILTER_KEYS,
+        'user.email': {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+      };
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...filterKeys,
+            has: getHasTag(filterKeys),
+          }}
+          getTagKeys={mockGetTagKeys}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('user.email');
+
+      // Only the bare static key should remain; the explicit async twin is dropped.
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'user.email'})).toHaveLength(1);
+      });
+    });
+
+    it('keeps distinct typed explicit tags when no bare key exists', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'tags[amount,string]', name: 'amount', kind: FieldKind.TAG},
+        {key: 'tags[amount,number]', name: 'amount', kind: FieldKind.MEASUREMENT},
+      ]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('amount');
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'amount'})).toHaveLength(2);
+      });
+    });
+
+    it('deduplicates bare and explicit twins already present in static keys', async () => {
+      const filterKeys = {
+        ...FILTER_KEYS,
+        'user.email': {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+        'tags[user.email,string]': {
+          key: 'tags[user.email,string]',
+          name: 'user.email',
+          kind: FieldKind.TAG,
+        },
+      };
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...filterKeys,
+            has: getHasTag(filterKeys),
+          }}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('user.email');
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'user.email'})).toHaveLength(1);
+      });
+    });
+
     it('can select an async-only key to create a filter token', async () => {
       const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
       const mockOnChange = jest.fn();
@@ -8507,6 +8579,46 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
       expect(screen.getAllByRole('option', {name: 'custom_tag_name'})).toHaveLength(1);
       expect(mockGetTagValues).not.toHaveBeenCalled();
+    });
+
+    it('rewrites explicit async has suggestions to bare static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'tags[user.email,string]', name: 'user.email', kind: FieldKind.TAG},
+        {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+      ]);
+      const mockOnChange = jest.fn();
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...FILTER_KEYS,
+            'user.email': {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+          }}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="has:custom_tag_name"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+      const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+      await userEvent.type(input, 'user.email');
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'user.email'})).toHaveLength(1);
+      });
+
+      await userEvent.click(screen.getByRole('option', {name: 'user.email'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenLastCalledWith(
+          'has:user.email',
+          expect.anything()
+        );
+      });
     });
 
     it('saves the selected async has suggestion as the returned key', async () => {

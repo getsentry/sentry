@@ -89,6 +89,7 @@ import {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
+import {collapseDuplicateFilterKeys, isBareFilterKey} from 'sentry/utils/tag';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -498,12 +499,34 @@ function useFilterSuggestions({
   const suggestionGroups = useMemo(() => {
     let groups: SuggestionSection[];
     if (shouldFetchTagKeys) {
-      const suggestions =
-        asyncKeys?.map(tag => ({
-          label: prettifyTagKey(tag.key),
-          value: tag.key,
-          tag,
-        })) ?? [];
+      // Prefer bare/static keys over explicit `tags[key,type]` twins so has
+      // value suggestions do not show the same attribute twice.
+      const bareStaticKeys = new Set(
+        Object.values(filterKeys)
+          .map(tag => tag.key)
+          .filter(isBareFilterKey)
+      );
+      const rewritten =
+        asyncKeys?.map(tag => {
+          const prettyKey = prettifyTagKey(tag.key);
+          if (!bareStaticKeys.has(prettyKey)) {
+            return tag;
+          }
+          return (
+            (Object.hasOwn(filterKeys, prettyKey) ? filterKeys[prettyKey] : undefined) ?? {
+              ...tag,
+              key: prettyKey,
+              name: prettyKey,
+            }
+          );
+        }) ?? [];
+
+      const suggestions = collapseDuplicateFilterKeys(rewritten).map(tag => ({
+        label: prettifyTagKey(tag.key),
+        value: tag.key,
+        tag,
+      }));
+
       groups = [{sectionText: '', suggestions}];
     } else if (shouldFetchValues) {
       const suggestions = data?.map(item => {
@@ -537,6 +560,7 @@ function useFilterSuggestions({
   }, [
     data,
     asyncKeys,
+    filterKeys,
     predefinedValues,
     shouldFetchTagKeys,
     shouldFetchValues,

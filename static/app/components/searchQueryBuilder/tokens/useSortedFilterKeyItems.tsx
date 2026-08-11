@@ -25,6 +25,10 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {
+  collapseDuplicateFilterKeys,
+  isRedundantExplicitFilterKey,
+} from 'sentry/utils/tag';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type FilterKeySearchItem = {
@@ -197,45 +201,55 @@ export function useSortedFilterKeyItems({
 
   const isLoading = shouldFetchAsync && isQueryLoading;
 
-  // Set of Tag.key values from static filterKeys, used consistently for deduplication.
-  const staticKeyValues = useMemo(
-    () => new Set(Object.values(filterKeys).map(k => k.key)),
+  // Collapse bare/explicit twins within static keys, then use those keys for
+  // deduplication against async results.
+  const collapsedStaticKeys = useMemo(
+    () => collapseDuplicateFilterKeys(Object.values(filterKeys)),
     [filterKeys]
   );
 
-  const flatKeys = useMemo(() => {
-    const keys = Object.values(filterKeys);
+  const staticKeyValues = useMemo(
+    () => new Set(collapsedStaticKeys.map(k => k.key)),
+    [collapsedStaticKeys]
+  );
+
+  const uniqueAsyncKeys = useMemo(() => {
     if (!asyncKeys?.length) {
-      return keys;
+      return [];
     }
 
-    return [...keys, ...asyncKeys.filter(k => !staticKeyValues.has(k.key))];
-  }, [filterKeys, asyncKeys, staticKeyValues]);
+    return collapseDuplicateFilterKeys(
+      asyncKeys.filter(k => !isRedundantExplicitFilterKey(k.key, staticKeyValues))
+    );
+  }, [asyncKeys, staticKeyValues]);
+
+  const flatKeys = useMemo(() => {
+    if (!uniqueAsyncKeys.length) {
+      return collapsedStaticKeys;
+    }
+
+    return [...collapsedStaticKeys, ...uniqueAsyncKeys];
+  }, [collapsedStaticKeys, uniqueAsyncKeys]);
 
   // Keys that exist only in asyncKeys and not in the static filterKeys.
   // Used to partition results so async-only keys always render below static keys.
   const asyncOnlyKeys = useMemo(() => {
-    if (!asyncKeys?.length) {
-      return new Set<string>();
-    }
-    return new Set(asyncKeys.filter(k => !staticKeyValues.has(k.key)).map(k => k.key));
-  }, [asyncKeys, staticKeyValues]);
+    return new Set(uniqueAsyncKeys.map(k => k.key));
+  }, [uniqueAsyncKeys]);
 
   // Merged lookup of static + async keys, used for validating search results.
   // Without this, async-only keys would be filtered out by the `filterKeys` check.
   const allKeysLookup = useMemo(() => {
-    if (!asyncKeys?.length) {
-      return filterKeys;
+    if (!uniqueAsyncKeys.length) {
+      return Object.fromEntries(collapsedStaticKeys.map(tag => [tag.key, tag]));
     }
 
-    const merged = {...filterKeys};
-    for (const tag of asyncKeys) {
-      if (!staticKeyValues.has(tag.key)) {
-        merged[tag.key] = tag;
-      }
+    const merged = Object.fromEntries(collapsedStaticKeys.map(tag => [tag.key, tag]));
+    for (const tag of uniqueAsyncKeys) {
+      merged[tag.key] = tag;
     }
     return merged;
-  }, [filterKeys, asyncKeys, staticKeyValues]);
+  }, [collapsedStaticKeys, uniqueAsyncKeys]);
 
   const searchableItems = useMemo<FilterKeySearchItem[]>(() => {
     const searchKeyItems: FilterKeySearchItem[] = flatKeys.map(key => {
