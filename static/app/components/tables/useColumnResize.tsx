@@ -33,6 +33,14 @@ export function useColumnResize<T extends HTMLElement>({
   onColumnResizeEnd,
 }: UseColumnResizeOptions<T>) {
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
+  const frameRef = useRef<number | null>(null);
+
+  const cancelPendingFrame = useCallback(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+  }, []);
 
   const applyTemplate = useCallback(
     (template: string) => {
@@ -61,11 +69,16 @@ export function useColumnResize<T extends HTMLElement>({
       // fractional on a scaled display, and a consumer may persist the width.
       state.width += delta;
 
-      window.requestAnimationFrame(() =>
-        applyTemplate(getResizeTemplate(state.columnIndex, Math.round(state.width)))
-      );
+      // Several pointer moves can land in one frame, and they would all write the
+      // same template, so only the newest is kept.
+      cancelPendingFrame();
+
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = null;
+        applyTemplate(getResizeTemplate(state.columnIndex, Math.round(state.width)));
+      });
     },
-    [applyTemplate, getResizeTemplate]
+    [applyTemplate, cancelPendingFrame, getResizeTemplate]
   );
 
   const onResizeEnd = useCallback(() => {
@@ -74,9 +87,15 @@ export function useColumnResize<T extends HTMLElement>({
       return;
     }
 
+    // Written synchronously rather than left to the dropped frame: consumers that only
+    // track widths through `getResizeTemplate` have no other chance to see the last one.
+    cancelPendingFrame();
     resizeStateRef.current = null;
-    onColumnResizeEnd?.(state.columnIndex, Math.round(state.width));
-  }, [onColumnResizeEnd]);
+
+    const width = Math.round(state.width);
+    applyTemplate(getResizeTemplate(state.columnIndex, width));
+    onColumnResizeEnd?.(state.columnIndex, width);
+  }, [applyTemplate, cancelPendingFrame, getResizeTemplate, onColumnResizeEnd]);
 
   return {applyTemplate, onResizeEnd, onResizeMove, onResizeStart};
 }
