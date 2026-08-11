@@ -372,13 +372,6 @@ export type FeedbackFrame = {
   type: string;
 };
 
-/**
- * The SDK marks every field inside a click frame's `node` as required, which
- * describes what a healthy SDK emits rather than what the API returns: replay
- * attachments are third-party data that nothing validates on the way in, and
- * nodes do reach us with fields missing. Sentry's ingest already treats them as
- * optional, see `sentry.replays.usecases.ingest.event_parser`.
- */
 export type ClickFrameNode = {
   attributes?: Record<string, string>;
   id?: number;
