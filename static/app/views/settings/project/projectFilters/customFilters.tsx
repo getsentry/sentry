@@ -599,7 +599,9 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <Stack gap="lg">
+    // The table drops its date columns by its own width, not the viewport's, so
+    // it needs a query container of that width to resolve against.
+    <Stack gap="lg" containerType="inline-size">
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -654,10 +656,12 @@ export function CustomFilters({project}: {project: Project}) {
             <SimpleTable.HeaderCell divider={false}>
               {t('Conditions')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
+            <SimpleTable.HeaderCell divider={false} data-column-name="created">
               {t('Created')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+              {t('Edited')}
+            </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
           </SimpleTable.Header>
           {visibleFilters.length === 0 && (
@@ -696,11 +700,11 @@ export function CustomFilters({project}: {project: Project}) {
                   )}
                 </Stack>
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <TimeSince date={filter.dateCreated} />
+              <SimpleTable.RowCell data-column-name="created">
+                <TimeSince date={filter.dateCreated} unitStyle="short" />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <TimeSince date={filter.dateUpdated} />
+              <SimpleTable.RowCell data-column-name="edited">
+                <TimeSince date={filter.dateUpdated} unitStyle="short" />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
                 <Flex gap="sm">
@@ -747,10 +751,23 @@ export function CustomFilters({project}: {project: Project}) {
   );
 }
 
-// Fixed widths for the columns whose content is a control or a relative date,
-// so the layout stays put as rows come and go. Sizing them to their content
+// Fixed widths for the columns whose content is a control or a short relative
+// date, so the layout stays put as rows come and go. Sizing them to their content
 // makes the columns jump every time the row set changes, and collapses them onto
 // the header text once the last row is gone.
+//
+// Name and conditions carry the filter, so they keep the remaining width. Once
+// the table is too narrow to give them a useful share of it, the dates go rather
+// than shrink them further.
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 2fr) 160px 160px 110px;
+  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 2fr) 100px 100px 110px;
+
+  @container (max-width: ${p => p.theme.container['2xl']}) {
+    grid-template-columns: 90px minmax(0, 1fr) minmax(0, 2fr) 110px;
+
+    [data-column-name='created'],
+    [data-column-name='edited'] {
+      display: none;
+    }
+  }
 `;
