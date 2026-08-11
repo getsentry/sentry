@@ -1347,9 +1347,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             widget.discover_widget_split = None
             widget.dataset_source = DatasetSourcesTypes.UNKNOWN.value
 
-        # Only text widgets may have a NULL widget_type. Any other widget without one
-        # serializes as `discover` and reads from the transactions dataset, so refuse to
-        # write that state at all.
         if widget.widget_type is None and widget.display_type != DashboardWidgetDisplayTypes.TEXT:
             raise serializers.ValidationError(
                 {"widget_type": "`widgetType` is required for widgets that are not text widgets"}

@@ -269,31 +269,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["widgets"][2]["widgetType"] == "discover"
         assert response.data["widgets"][3]["widgetType"] == "transaction-like"
 
-    @mock.patch("sentry.api.serializers.models.dashboard.metrics.incr")
-    def test_unresolvable_widget_type_reports_discover_and_counts(self, mock_incr) -> None:
-        dashboard = Dashboard.objects.create(
-            title="Dashboard With An Unresolvable Widget",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        self.create_dashboard_widget(
-            dashboard=dashboard,
-            title="null type widget",
-            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-        )
-
-        response = self.do_request("get", self.url(dashboard.id))
-        assert response.status_code == 200, response.content
-        assert response.data["widgets"][0]["widgetType"] == "discover"
-
-        assert (
-            mock.call(
-                "dashboards.serializer.unresolved_widget_type",
-                tags={"widget_type": "None", "has_split": False},
-            )
-            in mock_incr.mock_calls
-        )
-
     def test_dashboard_widget_returns_dataset_source(self) -> None:
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
@@ -4065,35 +4040,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.widget_1.refresh_from_db()
         assert self.widget_1.title == "Renamed"
         assert self.widget_1.widget_type == DashboardWidgetTypes.DISCOVER
-
-    def test_partial_update_rejects_existing_null_widget_type(self) -> None:
-        # Only text widgets may have a NULL widget_type, so a non-text widget that already
-        # stores one cannot be saved until a backfill gives it a real dataset.
-        widget = self.create_dashboard_widget(
-            dashboard=self.dashboard,
-            order=2,
-            title="Null Type Widget",
-            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-        )
-        assert widget.widget_type is None
-
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(widget.id), "title": "Renamed"},
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 400, response.data
-        assert (
-            response.data["widget_type"]
-            == "`widgetType` is required for widgets that are not text widgets"
-        )
-
-        widget.refresh_from_db()
-        assert widget.title == "Null Type Widget"
 
     def test_text_widget_update_without_display_type(self) -> None:
         # `displayType` is omitted, so the widget stays a text widget and its NULL

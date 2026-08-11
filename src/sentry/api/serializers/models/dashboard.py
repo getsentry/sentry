@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.db.models import prefetch_related_objects
 
 from sentry import features
@@ -31,7 +32,7 @@ from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -313,17 +314,16 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         else:
             widget_type = DashboardWidgetTypes.get_type_name(obj.widget_type)
             if widget_type is None:
-                # The stored widget_type resolves to no name: either NULL, or an int absent
-                # from TYPES such as METRICS=3. Reported as `discover` unless the
-                # discover_widget_split below rescues it. Counted so the remaining invalid
-                # rows stay visible -- new ones are rejected on write.
-                metrics.incr(
-                    "dashboards.serializer.unresolved_widget_type",
-                    tags={
-                        "widget_type": str(obj.widget_type),
-                        "has_split": obj.discover_widget_split is not None,
+                sentry_sdk.set_context(
+                    "dashboard",
+                    {
+                        "dashboard_id": obj.dashboard_id,
+                        "widget_id": obj.id,
+                        "widget_type": obj.widget_type,
+                        "discover_widget_split": obj.discover_widget_split,
                     },
                 )
+                sentry_sdk.capture_message("Widget has an unresolvable widget_type", level="error")
                 widget_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.DISCOVER)
 
         discover_widget_type = (
