@@ -105,6 +105,18 @@ describe('useColumnResize', () => {
     expect(onColumnResizeEnd).toHaveBeenCalledWith(0, expected);
   });
 
+  it('names the resize handle after the column it resizes', () => {
+    render(<TestTable />);
+
+    expect(resizer()).toHaveAccessibleName('Column');
+  });
+
+  it('leaves the header cell named by its own content', () => {
+    render(<TestTable />);
+
+    expect(screen.getByRole('columnheader')).toHaveAccessibleName('Column');
+  });
+
   it('does not resize when a key other than an arrow is pressed', async () => {
     const onColumnResizeEnd = jest.fn();
     render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
