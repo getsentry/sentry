@@ -48,19 +48,23 @@ export function useExploreSuggestedAttribute({
         return explicitBooleanAttribute;
       }
 
-      // Array membership requires the `[*]` operator, so only resolve keys that
-      // carry it — mapping the base to its backend key while keeping `[*]` (eg.
-      // `foo[*]` -> `tags[foo,array][*]`). A bare `foo` (no `[*]`) is intentionally
-      // not resolved, so it never becomes a membership filter on its own.
+      // Array attributes filter by membership. Resolve both the `[*]` form and
+      // the bare root name to the backend key; getInitialFilterText adds the
+      // `[*]` operator, so plain `:` and `[*]:` both produce a membership filter.
       if (key.endsWith('[*]')) {
         const base = key.slice(0, -'[*]'.length);
         if (base in arrayAttributes) {
           return `${base}[*]`;
         }
-        const explicitArrayAttribute = `tags[${base},array]`;
-        if (explicitArrayAttribute in arrayAttributes) {
-          return `${explicitArrayAttribute}[*]`;
+        const explicitArrayWithOperator = `tags[${base},array]`;
+        if (explicitArrayWithOperator in arrayAttributes) {
+          return `${explicitArrayWithOperator}[*]`;
         }
+      }
+
+      const explicitArrayAttribute = `tags[${key},array]`;
+      if (explicitArrayAttribute in arrayAttributes) {
+        return explicitArrayAttribute;
       }
 
       return null;

@@ -32,10 +32,10 @@ function setup() {
 }
 
 describe('useExploreSuggestedAttribute', () => {
-  it('does not resolve a tag array root without the [*] operator', () => {
-    // The `[*]` membership operator is required; a bare root is not turned into
-    // a membership filter on its own.
-    expect(setup()('csv_headers')).toBeNull();
+  it('resolves a tag array root to its backend key (plain `:` is membership too)', () => {
+    // getInitialFilterText adds the `[*]` operator, so a plain `:` on an array
+    // attribute produces the same membership filter as `[*]:`.
+    expect(setup()('csv_headers')).toBe('tags[csv_headers,array]');
   });
 
   it('resolves a tag array root with [*] to its backend membership key', () => {
