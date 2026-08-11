@@ -76,19 +76,24 @@ interface ConversationTurn {
 /**
  * Extracts conversation messages from trace spans.
  *
- * Spans are first split into agent runs — the top-level conversation plus each
- * sub-agent that ran within it — because the turn builder assumes a single
- * sequential think→tool loop. When sub-agents run concurrently their spans
- * interleave in wall-clock time, so building turns over all spans at once
- * misattributes one agent's tool calls to another's generation. Each run is
- * built independently, then the runs are concatenated in start order. Runs are
- * kept contiguous rather than merged by timestamp so parallel agents read as
- * separate stretches instead of shuffled together.
+ * The turn builder assumes a single sequential think→tool loop, which breaks
+ * when a conversation invokes sub-agents: their spans interleave in wall-clock
+ * time, so building turns over all spans at once attributes one agent's tool
+ * calls to another's generation and shuffles their rows together.
+ *
+ * Instead the span tree is processed as nested agent runs. A run — the top-level
+ * conversation or a single agent span — is built from only the spans it owns
+ * directly (those whose nearest ancestor agent is that run). Each nested agent
+ * is spliced back in as its own sub-conversation, positioned by where it was
+ * invoked and processed recursively, so a sub-agent appears between the parent
+ * turns that surround it rather than being hoisted out of order. Nesting is
+ * taken from the parent-span lineage, not wall-clock containment, since parallel
+ * agents overlap in time.
  */
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  return groupNodesByAgentRun(nodes).flatMap(extractMessagesFromAgentRun);
+  return buildAgentRunMessages(ROOT_AGENT_RUN, indexAgentRuns(nodes));
 }
 
 /**
@@ -115,42 +120,85 @@ function extractMessagesFromAgentRun(nodes: AITraceSpanNode[]): ConversationMess
 
 const ROOT_AGENT_RUN = '__root__';
 
+interface AgentRunIndex {
+  // Agent span start timestamp keyed by agent id — positions a sub-conversation
+  // within its parent run.
+  agentStartById: Map<string, number>;
+  // Agent spans nested directly in a run, keyed by the parent run id.
+  childAgentsByRun: Map<string, AITraceSpanNode[]>;
+  // Content spans (generation/tool/embedding) owned directly by a run, keyed by
+  // run id — those whose nearest ancestor agent is that run.
+  ownNodesByRun: Map<string, AITraceSpanNode[]>;
+}
+
 /**
- * Groups spans into agent runs so each is turned into a transcript on its own.
- *
- * A span's run is its nearest ancestor agent span (an `agent` node is its own
- * run), matching how the timeline decides what to indent under an agent. Spans
- * with no agent ancestor — the common single-agent-less conversation — fall
- * into one root run, so those conversations are unaffected.
- *
- * Runs are returned ordered by their earliest span so the concatenated
- * transcript follows the order the agents started in.
+ * Indexes the span tree into agent runs. Every span is attributed to the run of
+ * its nearest ancestor agent (or ROOT when it has none); an agent span is a
+ * child of the run it sits in and opens a run of its own. This is derived from
+ * the parent-span lineage, matching how the timeline decides what to nest under
+ * an agent.
  */
-export function groupNodesByAgentRun(nodes: AITraceSpanNode[]): AITraceSpanNode[][] {
-  const runsByAgentId = new Map<string, AITraceSpanNode[]>();
+function indexAgentRuns(nodes: AITraceSpanNode[]): AgentRunIndex {
+  const ownNodesByRun = new Map<string, AITraceSpanNode[]>();
+  const childAgentsByRun = new Map<string, AITraceSpanNode[]>();
+  const agentStartById = new Map<string, number>();
+
+  const pushInto = (
+    map: Map<string, AITraceSpanNode[]>,
+    key: string,
+    node: AITraceSpanNode
+  ) => {
+    const existing = map.get(key);
+    if (existing) {
+      existing.push(node);
+    } else {
+      map.set(key, [node]);
+    }
+  };
 
   for (const node of nodes) {
-    // Resolve the ancestor agent outside the ternary: getIsAiAgentNode is a type
-    // guard, so branching on it inline would narrow the else branch to `never`
-    // and hide `findParent`. An agent node is its own run.
-    const agentAncestor = node.findParent(parent => getIsAiAgentNode(parent));
-    const agentNode = getIsAiAgentNode(node) ? node : agentAncestor;
-    const runId = agentNode?.id ?? ROOT_AGENT_RUN;
-    const run = runsByAgentId.get(runId);
-    if (run) {
-      run.push(node);
+    // findParent looks at ancestors only, so for an agent node this is its
+    // parent agent — the run it is nested in.
+    const parentAgent = node.findParent(parent => getIsAiAgentNode(parent));
+    const parentRunId = parentAgent?.id ?? ROOT_AGENT_RUN;
+
+    if (getIsAiAgentNode(node)) {
+      agentStartById.set(node.id, getNodeStartTimestamp(node));
+      pushInto(childAgentsByRun, parentRunId, node);
     } else {
-      runsByAgentId.set(runId, [node]);
+      pushInto(ownNodesByRun, parentRunId, node);
     }
   }
 
-  return [...runsByAgentId.values()].sort(
-    (a, b) => earliestNodeStart(a) - earliestNodeStart(b)
-  );
+  return {ownNodesByRun, childAgentsByRun, agentStartById};
 }
 
-function earliestNodeStart(nodes: AITraceSpanNode[]): number {
-  return Math.min(...nodes.map(getNodeStartTimestamp));
+/**
+ * Builds one run's messages and splices its sub-agent runs back in.
+ *
+ * The run's own spans go through the turn-construction pipeline; each nested
+ * agent is expanded recursively and inserted as one atomic block at the agent's
+ * start timestamp. Keeping a sub-conversation contiguous — rather than merging
+ * its messages into the parent by timestamp — is what stops parallel agents from
+ * re-interleaving.
+ */
+function buildAgentRunMessages(
+  runId: string,
+  index: AgentRunIndex
+): ConversationMessage[] {
+  const ownMessages = extractMessagesFromAgentRun(index.ownNodesByRun.get(runId) ?? []);
+  const childAgents = index.childAgentsByRun.get(runId) ?? [];
+
+  const items: Array<{messages: ConversationMessage[]; timestamp: number}> = [
+    ...ownMessages.map(message => ({timestamp: message.timestamp, messages: [message]})),
+    ...childAgents.map(agent => ({
+      timestamp: index.agentStartById.get(agent.id) ?? 0,
+      messages: buildAgentRunMessages(agent.id, index),
+    })),
+  ];
+
+  items.sort((a, b) => a.timestamp - b.timestamp);
+  return items.flatMap(item => item.messages);
 }
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {

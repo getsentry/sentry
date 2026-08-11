@@ -6,7 +6,6 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
-  groupNodesByAgentRun,
   mergeEmptyTurns,
   messagesToMarkdown,
   parseAssistantContent,
@@ -664,93 +663,6 @@ describe('conversationMessages utilities', () => {
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
-    });
-  });
-
-  describe('groupNodesByAgentRun', () => {
-    it('puts every span in one root run when there are no agent spans', () => {
-      const gen = createMockNode({id: 'gen-1', startTimestamp: 1000});
-      const tool = createMockToolNode({
-        id: 'tool-1',
-        toolName: 'search',
-        startTimestamp: 1500,
-      });
-
-      const runs = groupNodesByAgentRun(withLineage([gen, tool]) as any);
-
-      expect(runs).toHaveLength(1);
-      expect(runs[0]?.map(n => n.id)).toEqual(['gen-1', 'tool-1']);
-    });
-
-    it('groups each agent with its descendant spans and drops the cross-agent shuffle', () => {
-      const agentA = createMockAgentNode({
-        id: 'agent-a',
-        agentName: 'Errors',
-        startTimestamp: 900,
-      });
-      const genA = createMockNode({
-        id: 'gen-a',
-        startTimestamp: 1000,
-        parentSpanId: 'agent-a',
-      });
-      const toolA = createMockToolNode({
-        id: 'tool-a',
-        toolName: 'query_errors',
-        startTimestamp: 2500,
-        parentSpanId: 'agent-a',
-      });
-      const agentB = createMockAgentNode({
-        id: 'agent-b',
-        agentName: 'Traces',
-        startTimestamp: 3400,
-      });
-      const genB = createMockNode({
-        id: 'gen-b',
-        startTimestamp: 3500,
-        parentSpanId: 'agent-b',
-      });
-
-      // Deliberately unordered input.
-      const runs = groupNodesByAgentRun(
-        withLineage([genB, toolA, agentB, genA, agentA]) as any
-      );
-
-      // Two runs, ordered by earliest span: Errors (900) before Traces (3400).
-      expect(runs.map(run => run.map(n => n.id).sort())).toEqual([
-        ['agent-a', 'gen-a', 'tool-a'],
-        ['agent-b', 'gen-b'],
-      ]);
-    });
-
-    it('groups a nested sub-agent under itself, not its parent agent', () => {
-      const parentAgent = createMockAgentNode({
-        id: 'agent-parent',
-        startTimestamp: 900,
-      });
-      const parentGen = createMockNode({
-        id: 'gen-parent',
-        startTimestamp: 1000,
-        parentSpanId: 'agent-parent',
-      });
-      const childAgent = createMockAgentNode({
-        id: 'agent-child',
-        startTimestamp: 1100,
-        parentSpanId: 'agent-parent',
-      });
-      const childGen = createMockNode({
-        id: 'gen-child',
-        startTimestamp: 1200,
-        parentSpanId: 'agent-child',
-      });
-
-      const runs = groupNodesByAgentRun(
-        withLineage([parentAgent, parentGen, childAgent, childGen]) as any
-      );
-
-      expect(runs.map(run => run.map(n => n.id).sort())).toEqual([
-        ['agent-parent', 'gen-parent'],
-        ['agent-child', 'gen-child'],
-      ]);
     });
   });
 
@@ -1605,6 +1517,95 @@ describe('conversationMessages utilities', () => {
       // Agent A's run renders as one contiguous block before Agent B's.
       const order = messages.map(m => m.content);
       expect(order.indexOf('A done')).toBeLessThan(order.indexOf('B done'));
+    });
+
+    it('splices sub-agents between the parent turns that surround them', () => {
+      // A top-level orchestrator plans, invokes two sub-agents, then answers.
+      // The final turn must land after the sub-agents, not be hoisted above them
+      // the way a flat, per-run concatenation ordered by start time would.
+      const genPlan = createMockNode({
+        id: 'gen-plan',
+        startTimestamp: 1000,
+        endTimestamp: 1100,
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Planning'},
+      });
+      const agentA = createMockAgentNode({
+        id: 'agent-a',
+        agentName: 'Errors',
+        startTimestamp: 1200,
+        endTimestamp: 3000,
+      });
+      const genA = createMockNode({
+        id: 'gen-a',
+        startTimestamp: 1300,
+        endTimestamp: 2000,
+        parentSpanId: 'agent-a',
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'A result'},
+      });
+      const agentB = createMockAgentNode({
+        id: 'agent-b',
+        agentName: 'Traces',
+        startTimestamp: 1400,
+        endTimestamp: 3100,
+      });
+      const genB = createMockNode({
+        id: 'gen-b',
+        startTimestamp: 1500,
+        endTimestamp: 2100,
+        parentSpanId: 'agent-b',
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'B result'},
+      });
+      const genAnswer = createMockNode({
+        id: 'gen-answer',
+        startTimestamp: 4000,
+        endTimestamp: 4100,
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Final answer'},
+      });
+
+      const messages = extractMessagesFromNodes(
+        withLineage([genAnswer, genB, agentB, genA, agentA, genPlan]) as any
+      );
+
+      expect(messages.map(m => m.content)).toEqual([
+        'Planning',
+        'A result',
+        'B result',
+        'Final answer',
+      ]);
+    });
+
+    it('expands nested sub-agents recursively in order', () => {
+      const agentOuter = createMockAgentNode({
+        id: 'agent-outer',
+        startTimestamp: 1000,
+        endTimestamp: 4000,
+      });
+      const genOuter = createMockNode({
+        id: 'gen-outer',
+        startTimestamp: 1100,
+        endTimestamp: 1200,
+        parentSpanId: 'agent-outer',
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Outer'},
+      });
+      const agentInner = createMockAgentNode({
+        id: 'agent-inner',
+        startTimestamp: 1500,
+        endTimestamp: 3000,
+        parentSpanId: 'agent-outer',
+      });
+      const genInner = createMockNode({
+        id: 'gen-inner',
+        startTimestamp: 1600,
+        endTimestamp: 1700,
+        parentSpanId: 'agent-inner',
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Inner'},
+      });
+
+      const messages = extractMessagesFromNodes(
+        withLineage([agentOuter, genOuter, agentInner, genInner]) as any
+      );
+
+      expect(messages.map(m => m.content)).toEqual(['Outer', 'Inner']);
     });
 
     // Same question in two spans: collapse only for a cumulative tool loop.
