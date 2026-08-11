@@ -918,6 +918,58 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
 
     expect(result.current.runState?.queued_feedback).toHaveLength(1);
   });
+
+  it('keeps the existing run visible when the step is rejected', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: 'Cannot re-run a step after a pull request has started'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await act(async () => {
+      await expect(
+        result.current.startStep('code_changes', {runId: 42, insertIndex: 3})
+      ).rejects.toBeDefined();
+    });
+
+    // The run is untouched server-side, so it must still be readable rather
+    // than replaced by an error-only placeholder.
+    expect(result.current.runState?.run_id).toBe(42);
+    expect(result.current.runState?.status).toBe('processing');
+  });
+
+  it('shows the error when a kickoff has no run to fall back on', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Something broke'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState).toBeNull());
+
+    await act(async () => {
+      await expect(result.current.startStep('root_cause')).rejects.toBeDefined();
+    });
+
+    expect(result.current.runState?.status).toBe('error');
+    expect(result.current.runState?.blocks[0]?.message.content).toBe(
+      'Error: Something broke'
+    );
+  });
 });
 
 describe('useExplorerAutofix - codingAgentErrors', () => {

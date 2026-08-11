@@ -49,7 +49,12 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    automated_iteration_cap_reached,
+    is_multi_repo_run,
+    log_multi_repo_rejection,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -85,6 +90,16 @@ INELIGIBLE_PR_ITERATION_COMMENT = (
     "created by the Coding Agent handoff and unrelated human PRs."
 )
 
+# Posted when someone iterates on a PR from an Autofix run that opened PRs in
+# more than one repository. PR iteration is single-repository (CI completion,
+# comments, and reviews are all per-repo), so these runs are rejected outright
+# rather than partially iterated (AIML-3278).
+MULTI_REPO_PR_ITERATION_COMMENT = (
+    "PR iteration isn't supported for Autofix runs that opened pull requests in "
+    "more than one repository. This run spans multiple repositories, so feedback "
+    "on this pull request won't be picked up."
+)
+
 # One explanatory comment per PR; further pings still get a :confused: reaction.
 _INELIGIBLE_COMMENT_CACHE_TTL = int(timedelta(days=7).total_seconds())
 
@@ -93,8 +108,10 @@ def _ineligible_comment_cache_key(*, organization_id: int, repo_id: int, pr_numb
     return f"autofix:pr_iteration:ineligible_comment:{organization_id}:{repo_id}:{pr_number}"
 
 
-def _ineligible_pr_iteration_comment_body(github_username: str) -> str:
-    return f"@{github_username}\n\n{INELIGIBLE_PR_ITERATION_COMMENT}"
+def _ineligible_pr_iteration_comment_body(
+    github_username: str, body: str = INELIGIBLE_PR_ITERATION_COMMENT
+) -> str:
+    return f"@{github_username}\n\n{body}"
 
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
@@ -194,6 +211,13 @@ def consume_queued_autofix_feedback(
         if not queued_items:
             return
 
+        if is_multi_repo_run(state):
+            # Backstop: the triggers reject multi-repo runs, but anything
+            # enqueued before this shipped is already drained off the queue
+            # here — drop it rather than hand it to the agent (AIML-3278).
+            log_multi_repo_rejection(state, source="consume", organization_id=organization_id)
+            return
+
         consumable_items: list[QueuedAutofixFeedback] = []
         feedback_items = []
         # Keyed by (source class, id): issue-comment, review-comment, and review
@@ -204,7 +228,8 @@ def consume_queued_autofix_feedback(
         # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
         seen_check_suite_keys: set[tuple[int, str] | int] = set()
         for item in queued_items:
-            if not item.feedback.source.should_consume(state):
+            source = item.feedback.source
+            if not source.should_consume(state):
                 logger.info(
                     "autofix.pr_iteration.consume_feedback.stale_feedback",
                     extra={
@@ -216,7 +241,6 @@ def consume_queued_autofix_feedback(
 
                 continue
 
-            source = item.feedback.source
             comment_dedupe_id: int | None = None
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
@@ -390,6 +414,7 @@ def _comment_pr_iteration_ineligible(
     github_username: str,
     source_type: GithubPrCommentFeedbackType,
     comment_id: int | None,
+    body: str = INELIGIBLE_PR_ITERATION_COMMENT,
 ) -> None:
     """React :confused: and, at most once per PR, explain why iteration didn't run."""
     log_extra = {
@@ -434,7 +459,7 @@ def _comment_pr_iteration_ineligible(
                 client.create_comment(
                     repo_name,
                     str(pr_number),
-                    {"body": _ineligible_pr_iteration_comment_body(github_username)},
+                    {"body": _ineligible_pr_iteration_comment_body(github_username, body)},
                 )
             except Exception:
                 logger.warning(
@@ -563,6 +588,28 @@ def trigger_pr_iteration_from_comment(
             github_username=github_username,
             source_type=source.type,
             comment_id=comment.id,
+        )
+        return None
+
+    if is_multi_repo_run(agent_state):
+        # PR iteration is single-repository; reject rather than partially
+        # iterate on one repo's PR while other repos are mid-flight (AIML-3278).
+        log_multi_repo_rejection(
+            agent_state,
+            source="comment",
+            organization_id=organization_id,
+            pr_id=pr_id,
+        )
+        _comment_pr_iteration_ineligible(
+            client,
+            organization_id=organization_id,
+            repo_id=repo.id,
+            repo_name=repo.name,
+            pr_number=pr_number,
+            github_username=github_username,
+            source_type=source.type,
+            comment_id=comment.id,
+            body=MULTI_REPO_PR_ITERATION_COMMENT,
         )
         return None
 
@@ -830,6 +877,16 @@ def trigger_pr_iteration_from_review(
         logger.info(
             "autofix.pr_iteration.review_trigger.no_run",
             extra={**log_extra, "pr_id": pr_id},
+        )
+        return None
+
+    if is_multi_repo_run(agent_state):
+        # See the comment path: single-repository only, reject explicitly.
+        log_multi_repo_rejection(
+            agent_state,
+            source="review",
+            organization_id=organization_id,
+            pr_id=pr_id,
         )
         return None
 

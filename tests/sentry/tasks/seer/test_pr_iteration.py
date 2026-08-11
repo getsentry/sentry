@@ -8,7 +8,11 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    is_multi_repo_run,
+    serialize_feedback,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -1153,3 +1157,67 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+
+class MultiRepoRejectionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _state(self, repos: list[str]) -> SeerRunState:
+        return SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={name: RepoPRState(repo_name=name, commit_sha="abc") for name in repos},
+            metadata={"group_id": self.group.id},
+        )
+
+    def _ui_feedback(self) -> QueuedAutofixFeedback:
+        return QueuedAutofixFeedback(
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
+            referrer=AutofixReferrer.WEB,
+        )
+
+    def test_single_repo_run_is_not_multi_repo(self) -> None:
+        assert is_multi_repo_run(self._state(["owner/a"])) is False
+
+    def test_two_repos_is_multi_repo(self) -> None:
+        assert is_multi_repo_run(self._state(["owner/a", "owner/b"])) is True
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_consume_drops_queued_feedback_for_multi_repo_run(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(["owner/a", "owner/b"])
+        mock_pop.return_value = [self._ui_feedback()]
+
+        consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
+
+        # pop_* already drained it off the queue; it must not reach the agent.
+        mock_pop.assert_called_once_with(67890)
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_consume_still_processes_single_repo_run(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(["owner/a"])
+        mock_pop.return_value = [self._ui_feedback()]
+
+        consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
+
+        mock_trigger.assert_called_once()

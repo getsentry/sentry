@@ -1,9 +1,18 @@
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  RetryStepProvider,
+  useRetryStep,
+} from 'sentry/components/events/autofix/v3/retryStepContext';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 
 function makeAutofix(
@@ -248,6 +257,105 @@ describe('useResetAutofixStep', () => {
         insertIndex: 1,
       });
     });
+  });
+
+  describe('external retry requests', () => {
+    const scrollIntoView = jest.fn();
+
+    beforeEach(() => {
+      scrollIntoView.mockClear();
+      // jsdom has no layout, so scrollIntoView is not implemented on elements.
+      Element.prototype.scrollIntoView = scrollIntoView;
+    });
+
+    function renderWithBanner(step: 'root_cause' | 'code_changes') {
+      const autofix = makeAutofix({
+        runState: {
+          run_id: 1,
+          status: 'completed',
+          blocks: [],
+          updated_at: '2024-01-01T00:00:00Z',
+          repo_pr_states: {},
+          coding_agents: {},
+        },
+      });
+
+      // A banner outside the card asks for the code changes step to be retried.
+      function Banner() {
+        const retryStep = useRetryStep();
+        return (
+          <button onClick={() => retryStep?.requestRetry('code_changes')}>request</button>
+        );
+      }
+
+      const rendered = renderHookWithProviders(
+        () => useResetAutofixStep({autofix, section: makeSection(), step}),
+        {
+          additionalWrapper: ({children}) => (
+            <RetryStepProvider>
+              <Banner />
+              {children}
+            </RetryStepProvider>
+          ),
+        }
+      );
+
+      return {...rendered, autofix};
+    }
+
+    it('opens and scrolls to the prompt when its own step is requested', async () => {
+      const {result, autofix} = renderWithBanner('code_changes');
+
+      // The hook's ref is only attached once a card renders it.
+      result.current.cardRef.current = document.createElement('div');
+
+      await userEvent.click(screen.getByRole('button', {name: 'request'}));
+
+      expect(result.current.shouldShowReset).toBe(true);
+      expect(scrollIntoView).toHaveBeenCalled();
+      // Requesting a retry must not start the step on the user's behalf.
+      expect(autofix.startStep).not.toHaveBeenCalled();
+    });
+
+    it('ignores a request aimed at another step', async () => {
+      const {result} = renderWithBanner('root_cause');
+
+      await userEvent.click(screen.getByRole('button', {name: 'request'}));
+
+      expect(result.current.shouldShowReset).toBe(false);
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+  });
+
+  it('stays resettable when a push failed instead of opening a PR', () => {
+    const autofix = makeAutofix({
+      runState: {
+        run_id: 1,
+        status: 'completed',
+        blocks: [],
+        updated_at: '2024-01-01T00:00:00Z',
+        repo_pr_states: {
+          'repo-1': {
+            repo_name: 'repo-1',
+            branch_name: 'fix/branch',
+            commit_sha: 'abc123',
+            pr_creation_error: 'Resource not accessible by integration',
+            pr_creation_status: 'error',
+            pr_id: null,
+            pr_number: null,
+            pr_url: null,
+            title: 'Fix bug',
+          },
+        },
+        coding_agents: {},
+      },
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
+    );
+
+    expect(result.current.canReset).toBe(true);
   });
 
   describe('state management', () => {

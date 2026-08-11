@@ -10,6 +10,7 @@ import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getCreatedPullRequestStates,
   isCodeChangesArtifact,
   isPrIterationBlock,
   type AutofixSection,
@@ -101,7 +102,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact]
   );
 
-  const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
+  const createdPRs = getCreatedPullRequestStates(autofix.runState);
+  const hasPRs = createdPRs.length > 0;
+  // PR iteration is single-repository. Runs that opened PRs in more than one
+  // repo are rejected by the backend, so don't offer the form (AIML-3278).
+  // Counts created PRs, not `repo_pr_states` entries: a repo whose push failed
+  // never got a PR, so it must not push the run over the single-repo line.
+  const isMultiRepoRun = createdPRs.length > 1;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
@@ -110,7 +117,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
     : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
 
-  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+  const {cardRef, canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
@@ -143,7 +150,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
+  const showPrIterationForm = hasPRs && hasManualPrIterationFeature && !isMultiRepoRun;
   const prIterationForm = (
     <PrIterationFeedbackForm
       autofix={autofix}
@@ -276,6 +283,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   return (
     <ArtifactCard
+      ref={cardRef}
       icon={<IconCode />}
       title={title}
       onCopy={

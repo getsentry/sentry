@@ -60,7 +60,11 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    is_multi_repo_run,
+    log_multi_repo_rejection,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -379,9 +383,25 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 except SeerPermissionError:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                if not run_state.repo_pr_states:
+                if not run_state.get_created_pull_request_states():
                     return Response(
                         {"detail": "Cannot iterate on a PR before one has been created"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if is_multi_repo_run(run_state):
+                    log_multi_repo_rejection(
+                        run_state,
+                        source="ui",
+                        organization_id=group.organization.id,
+                    )
+                    return Response(
+                        {
+                            "detail": (
+                                "PR iteration isn't supported for Autofix runs that opened "
+                                "pull requests in more than one repository"
+                            )
+                        },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
@@ -397,6 +417,10 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     },
                 )
 
+                # UI feedback is not tied to a repository. Fanning it out to
+                # every repo queue would duplicate it (UserUIFeedbackSource has
+                # no consume-time dedupe), so it stays on the run-level queue,
+                # which every consumer reads.
                 try_enqueue_autofix_feedback(
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
@@ -427,7 +451,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.repo_pr_states or run_state.coding_agents:
+                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"

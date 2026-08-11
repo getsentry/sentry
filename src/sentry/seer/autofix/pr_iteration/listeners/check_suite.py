@@ -16,7 +16,11 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     confirm_green_check_suite,
     resolve_green_check_suite,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    is_multi_repo_run,
+    log_multi_repo_rejection,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
@@ -80,6 +84,18 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     repo = autofix_run.repository
     organization_id = repo.organization_id
     agent_state = autofix_run.run_state
+
+    if is_multi_repo_run(agent_state):
+        # Single-repository only: take no action on CI for multi-repo runs —
+        # don't enqueue failure feedback, don't schedule a consume (AIML-3278).
+        log_multi_repo_rejection(
+            agent_state,
+            source="check_suite",
+            organization_id=organization_id,
+            pr_id=autofix_run.pr_id,
+        )
+        return None
+
     feedback = Feedback(source=source)
 
     enqueued = try_enqueue_autofix_feedback(

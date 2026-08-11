@@ -29,6 +29,11 @@ const repoPRStateSchema = z.object({
   branch_name: z.string().nullable(),
   commit_sha: z.string().nullable(),
   pr_creation_error: z.string().nullable(),
+  // Optional: absent on runs whose state was written before seer attributed
+  // push failures, so a missing field must not fail the type guard.
+  pr_creation_error_reason: zLooseEnum(['workflow_patch', 'workflow_drift'])
+    .nullish()
+    .optional(),
   pr_creation_status: zLooseEnum(['creating', 'completed', 'error']).nullable(),
   pr_id: z.number().nullable(),
   pr_number: z.number().nullable(),
