@@ -406,6 +406,20 @@ def mark_block_execution_dispatched(
     return updated == 1
 
 
+def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> None:
+    execution.update(status=InvestigationBlockExecutionStatus.RUNNING)
+
+
+def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> None:
+    execution.update(status=InvestigationBlockExecutionStatus.STOPPING)
+
+
+def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> None:
+    execution.update(
+        status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now()
+    )
+
+
 def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:
     updated = InvestigationBlockExecution.objects.filter(
         id=execution.id,
