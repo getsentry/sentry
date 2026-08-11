@@ -29,12 +29,23 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_push_changes,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import (
+    AUTOMATED_FLAG,
+    MANUAL_FLAG,
+    PR_ITERATION_PROJECT_FLAG,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+# Every PR-iteration stage needs the project umbrella flag on top of its own org
+# flag, so tests that exercise a stage have to enable both.
+PR_ITERATION_FLAGS = [PR_ITERATION_PROJECT_FLAG, AUTOMATED_FLAG]
+MANUAL_ITERATION_FLAGS = [PR_ITERATION_PROJECT_FLAG, MANUAL_FLAG]
 
 
 def _make_scm_mock(*, get_repository=None, get_branch=None):
@@ -710,7 +721,7 @@ class TestTriggerAutofixAgent(TestCase):
             organization=self.group.organization, seer_run_state_id=67890
         )
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature(PR_ITERATION_FLAGS):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
@@ -731,7 +742,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.get_run.return_value = _state_with_blocks([], group_id=self.group.id)
 
         with (
-            self.feature("organizations:autofix-pr-iteration"),
+            self.feature(PR_ITERATION_FLAGS),
             pytest.raises(PrIterationNoPullRequestException),
         ):
             trigger_autofix_agent(
@@ -784,11 +795,11 @@ class TestTriggerAutofixAgent(TestCase):
             trigger()
         mock_client.continue_run.assert_not_called()
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature(PR_ITERATION_FLAGS):
             trigger()
         assert mock_client.continue_run.call_count == 1
 
-        with self.feature("organizations:autofix-pr-iteration-manual"):
+        with self.feature(MANUAL_ITERATION_FLAGS):
             trigger()
         assert mock_client.continue_run.call_count == 2
 
@@ -958,7 +969,7 @@ class TestTriggerAutofixAgent(TestCase):
             organization=self.group.organization, seer_run_state_id=67890
         )
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature(PR_ITERATION_FLAGS):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
@@ -1676,7 +1687,8 @@ class TestTriggerPushChanges(TestCase):
         with self.feature(
             {
                 "organizations:gen-ai-features": True,
-                "organizations:autofix-pr-iteration-review-request": True,
+                REVIEW_REQUEST_FLAG: True,
+                PR_ITERATION_PROJECT_FLAG: True,
             }
         ):
             trigger_push_changes(

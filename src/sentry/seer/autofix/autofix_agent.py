@@ -35,8 +35,8 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.flags import PrIterationStage, has_pr_iteration_flag
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -70,6 +70,7 @@ if TYPE_CHECKING:
 
     from sentry.models.group import Group
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.seer.agent.client_models import MemoryBlock
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
@@ -561,12 +562,10 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
-    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
-    # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(
-        "organizations:autofix-pr-iteration", group.organization
-    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
+    # Automated CI iteration and human-triggered iteration both reach this
+    # function via `trigger_autofix_agent`, and either one enables the
+    # PR_ITERATION step. Asking for AUTOMATED covers both: MANUAL implies it.
+    pr_iteration_enabled = has_pr_iteration_flag(PrIterationStage.AUTOMATED, group.project)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -895,9 +894,9 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
-def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+def _should_open_autofix_pr_as_draft(project: Project) -> bool:
     """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
-    return features.has(REVIEW_REQUEST_FLAG, organization)
+    return has_pr_iteration_flag(PrIterationStage.REVIEW, project)
 
 
 def trigger_push_changes(
@@ -935,7 +934,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
-        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        ready_for_review=not _should_open_autofix_pr_as_draft(group.project),
         verify_content=verify_content,
         blocking=False,
     )
