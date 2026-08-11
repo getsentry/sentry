@@ -273,68 +273,34 @@ describe('ScmMessagingProviderRow', () => {
   });
 
   describe('permission-limited state', () => {
-    it('shows workspace name, an explanation, and a disabled Add destination button', () => {
+    it('shows workspace name, an explanation, and a disabled Connect button', () => {
       renderRow(permissionLimitedMsteams);
 
       expect(screen.getByText('Microsoft Teams')).toBeInTheDocument();
       expect(screen.getByText('Contoso Teams')).toBeInTheDocument();
       expect(screen.getByText(/tenant-level connection/)).toBeInTheDocument();
 
-      const addBtn = screen.getByRole('button', {name: /Add destination/});
+      const addBtn = screen.getByRole('button', {name: /Connect/});
       expect(addBtn).toBeDisabled();
     });
   });
 
-  describe('connected state', () => {
-    it('shows workspace name and Add destination button', () => {
-      renderRow(connectedSlack);
-
-      expect(screen.getByText('Slack')).toBeInTheDocument();
-      expect(screen.getByText('test-workspace')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Add destination/})).toBeInTheDocument();
-    });
-  });
-
-  describe('configuring state', () => {
-    it('enters configuring state and calls renderChannelPicker when Add destination is clicked', async () => {
+  describe('configuring state (connected, not yet configured)', () => {
+    it('immediately renders the channel picker without any interaction', () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        renderChannelPicker,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: /Add destination/}));
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
       expect(renderChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
           integration: slackIntegration,
-          onCancel: expect.any(Function),
+          onCancel: undefined,
           onConfigured: expect.any(Function),
         })
       );
     });
 
-    it('exits configuring state when onCancel is called', async () => {
-      let capturedOnCancel: (() => void) | undefined;
-      const renderChannelPicker = jest.fn(({onCancel}: {onCancel: () => void}) => {
-        capturedOnCancel = onCancel;
-        return <div>channel-picker</div>;
-      });
-
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        renderChannelPicker,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: /Add destination/}));
-      expect(screen.getByText('channel-picker')).toBeInTheDocument();
-
-      act(() => capturedOnCancel?.());
-
-      expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Add destination/})).toBeInTheDocument();
-    });
-
-    it('saves the setup and exits configuring when onConfigured is called', async () => {
+    it('saves the setup and transitions to configured when onConfigured is called', () => {
       const onMessagingSetupChange = jest.fn();
       let capturedOnConfigured:
         | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
@@ -347,22 +313,31 @@ describe('ScmMessagingProviderRow', () => {
         }
       );
 
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+      const {rerender} = renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onMessagingSetupChange,
         renderChannelPicker,
       });
 
-      await userEvent.click(screen.getByRole('button', {name: /Add destination/}));
-
       act(() => capturedOnConfigured?.(selectedSlackSetup));
-
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
+
+      // Simulate the parent updating the prop after receiving the save callback.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={connectedSlack}
+          messagingSetup={selectedSlackSetup}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={onMessagingSetupChange}
+          renderChannelPicker={renderChannelPicker}
+        />
+      );
+
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
     });
   });
 
   describe('configured state', () => {
-    it('shows workspace · channel and Edit + Remove buttons', () => {
+    it('shows workspace / channel and Edit + Remove buttons', () => {
       renderRow(connectedSlack, selectedSlackSetup);
 
       expect(screen.getByText('Slack')).toBeInTheDocument();
@@ -372,13 +347,18 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
     });
 
-    it('enters configuring state when Edit is clicked', async () => {
+    it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, selectedSlackSetup, {renderChannelPicker});
 
       await userEvent.click(screen.getByRole('button', {name: /Edit/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
+      expect(renderChannelPicker).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onCancel: expect.any(Function),
+        })
+      );
     });
   });
 
@@ -388,7 +368,8 @@ describe('ScmMessagingProviderRow', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
 
-      expect(screen.getByText(/Remove #alerts/)).toBeInTheDocument();
+      expect(screen.getByText(/Remove Slack integration\?/)).toBeInTheDocument();
+      expect(screen.getByText(/You can reconnect at any time/)).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Cancel/})).toBeInTheDocument();
     });
 
@@ -399,9 +380,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(
-        screen.queryByText(/The .* workspace will remain connected/)
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/You can reconnect at any time/)).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {

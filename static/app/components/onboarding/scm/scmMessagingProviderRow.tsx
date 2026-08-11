@@ -3,11 +3,16 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconInfo} from 'sentry/icons/iconInfo';
+import {IconSound} from 'sentry/icons/iconSound';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -18,7 +23,10 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
-import {SCM_MESSAGING_PROVIDER_DESCRIPTIONS} from './messagingProviders';
+import {
+  SCM_MESSAGING_PROVIDER_DESCRIPTIONS,
+  SCM_MESSAGING_PROVIDER_TOOLTIPS,
+} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 import {ScmSelectableContainer} from './scmSelectableContainer';
@@ -39,8 +47,6 @@ type RowVisualState =
   | 'loading'
   /** Active integration exists but is ineligible for Issue Alert actions. */
   | 'permission-limited'
-  /** Active, eligible integration; no destination configured yet. */
-  | 'connected'
   /** Destination is being configured (channel picker rendered inline). */
   | 'configuring'
   /** A destination has been saved to session state. */
@@ -94,10 +100,8 @@ function deriveVisualState({
     messagingSetup.providerKey === viewModel.providerKey &&
     messagingSetup.integrationId === viewModel.integration?.id;
 
-  // Configuring takes priority so Edit can open the picker even when a
-  // destination is already saved.
-  if (isConfiguring) {
-    return 'configuring';
+  if (isConfigured && isConfiguring) {
+    return 'configuring'; // Edit mode
   }
   if (isConfigured && isRemoving) {
     return 'removing';
@@ -105,7 +109,8 @@ function deriveVisualState({
   if (isConfigured) {
     return 'configured';
   }
-  return 'connected';
+  // Auto-expand the form immediately when connected but not yet configured.
+  return 'configuring';
 }
 
 export interface ScmMessagingProviderRowProps {
@@ -124,7 +129,7 @@ export interface ScmMessagingProviderRowProps {
    */
   renderChannelPicker?: (props: {
     integration: OrganizationIntegration;
-    onCancel: () => void;
+    onCancel: (() => void) | undefined;
     onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   }) => ReactNode;
 }
@@ -187,7 +192,6 @@ export function ScmMessagingProviderRow({
     });
   }, [startFlow, viewModel.provider, organization, onInstallComplete]);
 
-  const handleAddDestination = () => setIsConfiguring(true);
   const handleEditDestination = () => setIsConfiguring(true);
   const handleCancelConfiguring = () => setIsConfiguring(false);
   const handleStartRemoving = () => setIsRemoving(true);
@@ -215,12 +219,6 @@ export function ScmMessagingProviderRow({
   return (
     <ScmSelectableContainer isSelected={isConfigured}>
       <RowBody>
-        {(visualState === 'loading' || visualState === 'installing') && (
-          <Flex justify="center" align="center" padding="lg">
-            <LoadingIndicator mini style={{margin: 0}} />
-          </Flex>
-        )}
-
         {visualState === 'install-error' && (
           <Stack padding="md" gap="md" align="start">
             <Alert
@@ -234,53 +232,68 @@ export function ScmMessagingProviderRow({
           </Stack>
         )}
 
-        {visualState !== 'loading' &&
-          visualState !== 'installing' &&
-          visualState !== 'install-error' && (
-            <Flex padding="lg" gap="md" align="start" justify="between">
-              <Flex gap="md" align="start" style={{flex: 1, minWidth: 0}}>
-                <IconWrapper>
-                  <PluginIcon pluginId={viewModel.providerKey} size={24} />
-                </IconWrapper>
-                <Stack gap="xs">
-                  <Text bold size="sm">
-                    {viewModel.provider.name}
+        {visualState !== 'install-error' && (
+          <Flex padding="lg" gap="md" align="center" justify="between">
+            <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
+              <IconWrapper>
+                <PluginIcon pluginId={viewModel.providerKey} size={24} />
+              </IconWrapper>
+              <Stack gap="xs">
+                <Flex gap="xs" align="center">
+                  <Text bold size="md">
+                    {visualState === 'removing'
+                      ? t('Remove %s integration?', viewModel.provider.name)
+                      : viewModel.provider.name}
                   </Text>
-                  <RowSubtitle
-                    visualState={visualState}
-                    viewModel={viewModel}
-                    messagingSetup={messagingSetup}
-                  />
-                </Stack>
-              </Flex>
-
-              <Flex gap="sm" align="center" style={{flexShrink: 0}}>
-                <RowActions
+                  {viewModel.status !== 'connected' && visualState !== 'removing' && (
+                    <Tooltip
+                      title={SCM_MESSAGING_PROVIDER_TOOLTIPS[viewModel.providerKey]}
+                    >
+                      <Flex align="center">
+                        <IconInfo size="xs" variant="muted" />
+                      </Flex>
+                    </Tooltip>
+                  )}
+                  {viewModel.status === 'connected' && visualState !== 'removing' && (
+                    <Tag variant="info" icon={<IconSound />}>
+                      {t('Alerts enabled')}
+                    </Tag>
+                  )}
+                </Flex>
+                <RowSubtitle
                   visualState={visualState}
                   viewModel={viewModel}
-                  onConnect={handleConnect}
-                  onAddDestination={handleAddDestination}
-                  onEditDestination={handleEditDestination}
-                  onStartRemoving={handleStartRemoving}
-                  onCancelRemoving={handleCancelRemoving}
-                  onConfirmRemove={handleConfirmRemove}
+                  messagingSetup={messagingSetup}
                 />
-              </Flex>
+              </Stack>
             </Flex>
-          )}
+
+            <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+              <RowActions
+                visualState={visualState}
+                viewModel={viewModel}
+                onConnect={handleConnect}
+                onEditDestination={handleEditDestination}
+                onStartRemoving={handleStartRemoving}
+                onCancelRemoving={handleCancelRemoving}
+                onConfirmRemove={handleConfirmRemove}
+              />
+            </Flex>
+          </Flex>
+        )}
 
         {visualState === 'configuring' && viewModel.integration && (
           <ChannelPickerSlot>
             {renderChannelPicker ? (
               renderChannelPicker({
                 integration: viewModel.integration,
-                onCancel: handleCancelConfiguring,
+                onCancel: isConfigured ? handleCancelConfiguring : undefined,
                 onConfigured: handleConfigured,
               })
             ) : (
               <ScmMessagingChannelPicker
                 integration={viewModel.integration}
-                onCancel={handleCancelConfiguring}
+                onCancel={isConfigured ? handleCancelConfiguring : undefined}
                 onConfigured={handleConfigured}
                 existingSetup={isConfigured ? messagingSetup : undefined}
               />
@@ -301,7 +314,11 @@ function RowSubtitle({
   viewModel: ScmMessagingProviderViewModel;
   visualState: RowVisualState;
 }) {
-  if (visualState === 'installable') {
+  if (
+    visualState === 'installable' ||
+    visualState === 'loading' ||
+    visualState === 'installing'
+  ) {
     return (
       <Text variant="muted" size="sm">
         {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[viewModel.providerKey]}
@@ -322,16 +339,12 @@ function RowSubtitle({
     );
   }
 
-  if (visualState === 'connected') {
-    return <Text size="sm">{viewModel.integration?.name}</Text>;
-  }
-
   if (visualState === 'configured' && messagingSetup.mode === 'selected') {
     return (
       <Flex gap="xs" align="center">
         <Text size="sm">{viewModel.integration?.name}</Text>
         <Text variant="muted" size="sm" aria-hidden>
-          ·
+          /
         </Text>
         <Text size="sm">{messagingSetup.channelName}</Text>
       </Flex>
@@ -341,11 +354,7 @@ function RowSubtitle({
   if (visualState === 'removing' && messagingSetup.mode === 'selected') {
     return (
       <Text variant="muted" size="sm">
-        {t(
-          'Remove %s from your destinations? The %s workspace will remain connected.',
-          messagingSetup.channelName,
-          viewModel.integration?.name ?? viewModel.provider.name
-        )}
+        {t('You can reconnect at any time')}
       </Text>
     );
   }
@@ -354,7 +363,6 @@ function RowSubtitle({
 }
 
 interface RowActionsProps {
-  onAddDestination: () => void;
   onCancelRemoving: () => void;
   onConfirmRemove: () => void;
   onConnect: () => void;
@@ -368,16 +376,24 @@ function RowActions({
   visualState,
   viewModel,
   onConnect,
-  onAddDestination,
   onEditDestination,
   onStartRemoving,
   onCancelRemoving,
   onConfirmRemove,
 }: RowActionsProps) {
+  if (visualState === 'loading' || visualState === 'installing') {
+    return (
+      <Flex justify="center" align="center" style={{minWidth: 88}}>
+        <LoadingIndicator mini style={{margin: 0}} />
+      </Flex>
+    );
+  }
+
   if (visualState === 'installable') {
     return (
       <Button
         size="sm"
+        icon={<IconAdd size="xs" />}
         disabled={!viewModel.provider.canAdd}
         onClick={onConnect}
         aria-label={t('Connect %s', viewModel.provider.name)}
@@ -390,15 +406,7 @@ function RowActions({
   if (visualState === 'permission-limited') {
     return (
       <Button size="sm" disabled>
-        {t('Add destination')}
-      </Button>
-    );
-  }
-
-  if (visualState === 'connected') {
-    return (
-      <Button size="sm" onClick={onAddDestination}>
-        {t('Add destination')}
+        {t('Connect')}
       </Button>
     );
   }
@@ -406,10 +414,10 @@ function RowActions({
   if (visualState === 'configured') {
     return (
       <Fragment>
-        <Button size="sm" variant="secondary" onClick={onEditDestination}>
+        <Button size="sm" variant="link" onClick={onEditDestination}>
           {t('Edit')}
         </Button>
-        <Button size="sm" variant="danger" onClick={onStartRemoving}>
+        <Button size="sm" variant="link" onClick={onStartRemoving}>
           {t('Remove')}
         </Button>
       </Fragment>
@@ -419,7 +427,7 @@ function RowActions({
   if (visualState === 'removing') {
     return (
       <Fragment>
-        <Button size="sm" onClick={onCancelRemoving}>
+        <Button size="sm" variant="link" onClick={onCancelRemoving}>
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>
