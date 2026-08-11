@@ -114,4 +114,32 @@ describe('useChartZoom', () => {
       })
     );
   });
+
+  it('ignores synced zooms relayed from another chart', () => {
+    const {result, router} = renderHookWithProviders<
+      ReturnType<typeof useChartZoom>,
+      UseChartZoomProps
+    >((props: UseChartZoomProps) => useChartZoom(props), {
+      initialProps: {usePageDate: true},
+      initialRouterConfig: {
+        location: {pathname: '/dashboard/1/', query: {statsPeriod: '7d'}},
+      },
+    });
+
+    act(() => {
+      result.current.onDataZoom(
+        dataZoomPayload(
+          Date.UTC(2026, 6, 4, 11, 1, 30),
+          Date.UTC(2026, 6, 4, 16, 54, 30)
+        ),
+        {
+          __connectUpdateStatus: 0, // This flag the zoom as a synced action from another chart.
+        } as any
+      );
+    });
+
+    expect(router.location.query.statsPeriod).toBe('7d');
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.end).toBeUndefined();
+  });
 });
