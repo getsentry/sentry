@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 
@@ -35,18 +35,20 @@ describe('useInboxPreviewPrefetch', () => {
     jest.useRealTimers();
   });
 
+  const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+
   function hover() {
-    fireEvent.mouseEnter(screen.getByText('Issue card'));
+    return user.hover(screen.getByText('Issue card'));
   }
 
   function unhover() {
-    fireEvent.mouseLeave(screen.getByText('Issue card'));
+    return user.unhover(screen.getByText('Issue card'));
   }
 
-  it('prefetches the issue when hovered for the delay', () => {
+  it('prefetches the issue when hovered for the delay', async () => {
     render(<IssueCard groupId={group.id} />, {organization});
 
-    hover();
+    await hover();
     act(() => {
       jest.advanceTimersByTime(PREFETCH_DELAY_MS);
     });
@@ -54,11 +56,11 @@ describe('useInboxPreviewPrefetch', () => {
     expect(groupRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('does not prefetch the issue when unhovered before the delay', () => {
+  it('does not prefetch the issue when unhovered before the delay', async () => {
     render(<IssueCard groupId={group.id} />, {organization});
 
-    hover();
-    unhover();
+    await hover();
+    await unhover();
     act(() => {
       jest.advanceTimersByTime(PREFETCH_DELAY_MS);
     });
@@ -66,10 +68,10 @@ describe('useInboxPreviewPrefetch', () => {
     expect(groupRequest).not.toHaveBeenCalled();
   });
 
-  it('does not prefetch the issue when unmounted before the delay', () => {
+  it('does not prefetch the issue when unmounted before the delay', async () => {
     const {unmount} = render(<IssueCard groupId={group.id} />, {organization});
 
-    hover();
+    await hover();
     unmount();
     act(() => {
       jest.advanceTimersByTime(PREFETCH_DELAY_MS);
