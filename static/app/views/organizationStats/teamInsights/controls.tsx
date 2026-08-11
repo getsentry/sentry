@@ -146,7 +146,7 @@ export function TeamStatsControls({
         align="center"
         columns={{
           zero: 'minmax(0, 1fr)',
-          sm: `246px ${showEnvironment ? '246px' : ''} 1fr`,
+          xl: `246px ${showEnvironment ? '246px' : ''} 1fr`,
         }}
         gap="xl"
         marginBottom="xl"
@@ -208,27 +208,29 @@ export function TeamStatsControls({
             inFieldLabel={t('Environment:')}
           />
         )}
-        <StyledTimeRangeSelector
-          relative={period ?? ''}
-          start={start ?? null}
-          end={end ?? null}
-          utc={utc ?? null}
-          onChange={handleUpdateDatetime}
-          showAbsolute={false}
-          relativeOptions={props => ({
-            ...relativeOptions,
-            ...props.arbitraryOptions,
-          })}
-          trigger={triggerProps => (
-            <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
-              {period
-                ? relativeOptions[period] ||
-                  getArbitraryRelativePeriod(period)[period] ||
-                  triggerProps.children
-                : triggerProps.children}
-            </TimeRangeSelectTrigger>
-          )}
-        />
+        <Container width={{zero: '100%', xl: 'max-content'}}>
+          <StyledTimeRangeSelector
+            relative={period ?? ''}
+            start={start ?? null}
+            end={end ?? null}
+            utc={utc ?? null}
+            onChange={handleUpdateDatetime}
+            showAbsolute={false}
+            relativeOptions={props => ({
+              ...relativeOptions,
+              ...props.arbitraryOptions,
+            })}
+            trigger={triggerProps => (
+              <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
+                {period
+                  ? relativeOptions[period] ||
+                    getArbitraryRelativePeriod(period)[period] ||
+                    triggerProps.children
+                  : triggerProps.children}
+              </TimeRangeSelectTrigger>
+            )}
+          />
+        </Container>
       </Grid>
     </Container>
   );
