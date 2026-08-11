@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,24 +15,18 @@ export function DescriptionCard({title, description, children}: Props) {
       marginBottom="2xl"
       radius="md"
     >
-      <LeftPanel>
+      <Container
+        borderBottom={{zero: 'primary', '3xl': 'none'}}
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        maxWidth={{'3xl': '250px'}}
+        padding="xl"
+      >
         <Stack gap="xs">
           <Text size="lg">{title}</Text>
           <Text variant="muted">{description}</Text>
         </Stack>
-      </LeftPanel>
+      </Container>
       <Container flexGrow={1}>{children}</Container>
     </Flex>
   );
 }
-
-const LeftPanel = styled('div')`
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    max-width: 250px;
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    border-bottom: 0;
-  }
-`;
