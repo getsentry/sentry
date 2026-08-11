@@ -6,7 +6,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationsLayout from './layout';
-import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
+import {CONVERSATIONS_LANDING_TITLE, CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
 const organization = OrganizationFixture({
   features: ['performance-view', 'gen-ai-conversations'],
@@ -46,7 +46,9 @@ describe('ConversationsLayout', () => {
     );
 
     const topBar = screen.getByRole('banner');
-    expect(await within(topBar).findByText('AI Conversations')).toBeInTheDocument();
+    expect(
+      await within(topBar).findByText(CONVERSATIONS_LANDING_TITLE)
+    ).toBeInTheDocument();
   });
 
   it('renders saved query breadcrumbs on the list page', async () => {
@@ -96,7 +98,9 @@ describe('ConversationsLayout', () => {
     // The detail page renders its own breadcrumbs, so the layout leaves the
     // top bar title slot empty.
     const topBar = screen.getByRole('banner');
-    expect(within(topBar).queryByText('AI Conversations')).not.toBeInTheDocument();
+    expect(
+      within(topBar).queryByText(CONVERSATIONS_LANDING_TITLE)
+    ).not.toBeInTheDocument();
     expect(
       within(topBar).queryByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).not.toBeInTheDocument();
