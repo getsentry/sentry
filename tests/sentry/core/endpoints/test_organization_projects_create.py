@@ -46,10 +46,6 @@ class OrganizationProjectsCreateTest(APITestCase):
     def test_org_member_can_create_project(self) -> None:
         # Members have project:read scope, which is sufficient for POST /organizations/{org}/projects/.
         # This verifies the intentionally-lowered scope in OrganizationProjectsPermission.
-        # Orgs default to disable_member_project_creation=True; explicitly enable it here.
-        self.organization.flags.disable_member_project_creation = False
-        self.organization.save()
-
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.organization, role="member", teams=[]
@@ -154,8 +150,6 @@ class OrganizationProjectsCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     def test_team_slug_is_slugified(self) -> None:
-        self.organization.flags.disable_member_project_creation = False
-        self.organization.save()
         special_email = "test.bad$email@foo.com"
         t1 = "team-testbademail"
         user = self.create_user(email=special_email)
