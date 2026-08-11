@@ -975,7 +975,7 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
             pair[2] if len(pair) > 2 else None,
             pair[3] if len(pair) > 3 else None,
         )
-        for pair in doc.get("sync_chain", [])
+        for pair in doc.get("sync_chain") or []
     )
 
     for sequence, (head_sha, before_sha, sender_login, sender_type) in enumerate(observations):
