@@ -24,18 +24,17 @@ describe('escapeConditionalFilter', () => {
   });
 });
 
-// The parsing itself is covered by parseFunction's `normalizeIfCombinator` tests in
+// The parsing itself is covered by parseFunction's backtick / `_if` tests in
 // static/app/utils/discover/fields.spec.tsx.
 describe('parseConditionalAggregate', () => {
   it('parses a plain aggregate', () => {
     expect(parseConditionalAggregate('avg(span.duration)')).toEqual({
       name: 'avg',
       arguments: ['span.duration'],
-      filter: '',
     });
   });
 
-  it('parses an _if aggregate', () => {
+  it('strips the _if combinator and filter argument', () => {
     expect(parseConditionalAggregate('avg_if(`span.op:db`,span.duration)')).toEqual({
       name: 'avg',
       arguments: ['span.duration'],

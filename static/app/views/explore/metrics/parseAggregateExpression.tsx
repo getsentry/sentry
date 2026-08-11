@@ -3,7 +3,7 @@ import {
   type TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {EQUATION_PREFIX, isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
 import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
@@ -15,6 +15,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface ParsedAggregateExpression {
@@ -50,7 +51,7 @@ interface ParsedEquationComponent {
  * applicable and extraction of the query from that combinator.
  */
 export function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
-  const parsed = parseFunction(token.text, {normalizeIfCombinator: true});
+  const parsed = parseConditionalAggregate(token.text);
   if (!parsed?.filter) {
     return {plainAggregate: token.text, filterQuery: ''};
   }

@@ -1,7 +1,4 @@
-import {
-  parseFunction,
-  type ParsedConditionalFunction,
-} from 'sentry/utils/discover/fields';
+import {parseFunction, type ParsedFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
 
@@ -29,7 +26,7 @@ const FILTERABLE_AGGREGATES: string[] = [
   AggregationKey.P100,
 ];
 
-export type ConditionalAggregate = ParsedConditionalFunction;
+export type ConditionalAggregate = ParsedFunction;
 
 /**
  * Remove backticks so the filter can be safely wrapped in them.
@@ -49,10 +46,25 @@ export function escapeConditionalFilter(filter: string): string {
  * Split a visualize yAxis into its base aggregate and its `_if` filter.
  *
  * `avg_if(\`span.op:db\`,span.duration)` → `{name: 'avg', arguments: ['span.duration'], filter: 'span.op:db'}`
- * `avg(span.duration)` → `{name: 'avg', arguments: ['span.duration'], filter: ''}`
+ * `avg(span.duration)` → `{name: 'avg', arguments: ['span.duration']}`
  */
 export function parseConditionalAggregate(yAxis: string): ConditionalAggregate | null {
-  return parseFunction(yAxis, {normalizeIfCombinator: true});
+  const parsed = parseFunction(yAxis);
+  if (!parsed) {
+    return null;
+  }
+  if (parsed.filter === undefined) {
+    return parsed;
+  }
+
+  const [, ...restArguments] = parsed.arguments;
+  return {
+    name: parsed.name.endsWith(IF_SUFFIX)
+      ? parsed.name.slice(0, -IF_SUFFIX.length)
+      : parsed.name,
+    arguments: restArguments,
+    filter: parsed.filter,
+  };
 }
 
 /**

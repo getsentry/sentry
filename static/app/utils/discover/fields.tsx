@@ -55,14 +55,12 @@ export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 export type ParsedFunction = {
   arguments: string[];
   name: string;
-};
-
-export type ParsedConditionalFunction = ParsedFunction & {
   /**
-   * The search query applied by the EAP `_if` combinator. Empty when the aggregate is
-   * unconditional.
+   * The search query from a backtick-wrapped first argument (EAP `_if` filter).
+   * Name and arguments are left as written; use `parseConditionalAggregate` when the
+   * combinator should be stripped.
    */
-  filter: string;
+  filter?: string;
 };
 
 type ValidateColumnValueFunction = (data: {
@@ -957,55 +955,41 @@ export function getAggregateArg(field: string): string | null {
   return null;
 }
 
-const IF_SUFFIX = '_if';
-
 function isSearchFilterArgument(value: string): boolean {
   return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
 }
 
-export function parseFunction(
-  field: string,
-  options: {normalizeIfCombinator: true}
-): ParsedConditionalFunction | null;
-// Keep the default signature last so `ReturnType<typeof parseFunction>` resolves to it.
-export function parseFunction(
-  field: string,
-  options?: {normalizeIfCombinator?: false}
-): ParsedFunction | null;
 /**
  * Parse an aggregate into its name and arguments.
  *
- * With `normalizeIfCombinator`, the EAP `_if` combinator is split out of the aggregate:
- * `avg_if(\`span.op:db\`,span.duration)` → `{name: 'avg', arguments: ['span.duration'], filter: 'span.op:db'}`.
+ * When the first argument is backtick-wrapped, `filter` is set to the unwrapped search
+ * query. Name and arguments are left as written so Discover helpers (explode, alias,
+ * prettify) keep working unchanged:
+ * `avg_if(\`span.op:db\`,span.duration)` →
+ * `{name: 'avg_if', arguments: ['\`span.op:db\`', 'span.duration'], filter: 'span.op:db'}`.
  * Discover style conditionals such as `count_if(span.duration,equals,300)` do not wrap
- * their first argument in backticks, and are left untouched with an empty filter.
+ * their first argument in backticks, and are left untouched.
  */
-export function parseFunction(
-  field: string,
-  options?: {normalizeIfCombinator?: boolean}
-): ParsedFunction | ParsedConditionalFunction | null {
+export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
-  if (results?.length !== 3) {
-    return null;
+  if (results?.length === 3) {
+    const name = results[1]!;
+    const args = parseArguments(results[2]!);
+    const firstArgument = args[0];
+    if (isSearchFilterArgument(firstArgument ?? '')) {
+      return {
+        name,
+        arguments: args,
+        filter: firstArgument!.slice(1, -1),
+      };
+    }
+    return {
+      name,
+      arguments: args,
+    };
   }
 
-  const name = results[1]!;
-  const args = parseArguments(results[2]!);
-
-  if (!options?.normalizeIfCombinator) {
-    return {name, arguments: args};
-  }
-
-  const [firstArgument, ...restArguments] = args;
-  if (!name.endsWith(IF_SUFFIX) || !isSearchFilterArgument(firstArgument ?? '')) {
-    return {name, arguments: args, filter: ''};
-  }
-
-  return {
-    name: name.slice(0, -IF_SUFFIX.length),
-    arguments: restArguments,
-    filter: firstArgument!.slice(1, -1),
-  };
+  return null;
 }
 
 function _lookback(columnText: string, j: number, str: string) {

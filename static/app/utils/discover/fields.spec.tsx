@@ -97,10 +97,11 @@ describe('parseFunction', () => {
     });
   });
 
-  it('handles backtick wrapped search filter arguments', () => {
+  it('annotates filter when the first argument is backtick-wrapped', () => {
     expect(parseFunction('avg_if(`span.op:db`,span.duration)')).toEqual({
       name: 'avg_if',
       arguments: ['`span.op:db`', 'span.duration'],
+      filter: 'span.op:db',
     });
   });
 
@@ -108,12 +109,14 @@ describe('parseFunction', () => {
     expect(parseFunction('avg_if(`span.op:[db,http]`,span.duration)')).toEqual({
       name: 'avg_if',
       arguments: ['`span.op:[db,http]`', 'span.duration'],
+      filter: 'span.op:[db,http]',
     });
     expect(
       parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)')
     ).toEqual({
       name: 'count_if',
       arguments: ['`span.description:"GET /foo, /bar"`', 'span.duration'],
+      filter: 'span.description:"GET /foo, /bar"',
     });
   });
 
@@ -121,76 +124,31 @@ describe('parseFunction', () => {
     expect(parseFunction('count_if(`span.op:db`)')).toEqual({
       name: 'count_if',
       arguments: ['`span.op:db`'],
+      filter: 'span.op:db',
     });
   });
 
-  describe('normalizeIfCombinator', () => {
-    it('returns null on non aggregate fields', () => {
-      expect(parseFunction('span.duration', {normalizeIfCombinator: true})).toBeNull();
+  it('annotates filters containing commas and quotes', () => {
+    expect(
+      parseFunction('avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)')
+    ).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http] AND span.status:ok`', 'span.duration'],
+      filter: 'span.op:[db,http] AND span.status:ok',
     });
+  });
 
-    it('leaves plain aggregates alone with an empty filter', () => {
-      expect(parseFunction('avg(span.duration)', {normalizeIfCombinator: true})).toEqual({
-        name: 'avg',
-        arguments: ['span.duration'],
-        filter: '',
-      });
+  it('leaves Discover style count_if untouched', () => {
+    expect(parseFunction('count_if(span.duration,equals,300)')).toEqual({
+      name: 'count_if',
+      arguments: ['span.duration', 'equals', '300'],
     });
+  });
 
-    it('splits the filter out of an _if aggregate', () => {
-      expect(
-        parseFunction('avg_if(`span.op:db`,span.duration)', {
-          normalizeIfCombinator: true,
-        })
-      ).toEqual({
-        name: 'avg',
-        arguments: ['span.duration'],
-        filter: 'span.op:db',
-      });
-    });
-
-    it('splits out filters containing commas and quotes', () => {
-      expect(
-        parseFunction('avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)', {
-          normalizeIfCombinator: true,
-        })
-      ).toEqual({
-        name: 'avg',
-        arguments: ['span.duration'],
-        filter: 'span.op:[db,http] AND span.status:ok',
-      });
-      expect(
-        parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)', {
-          normalizeIfCombinator: true,
-        })
-      ).toEqual({
-        name: 'count',
-        arguments: ['span.duration'],
-        filter: 'span.description:"GET /foo, /bar"',
-      });
-    });
-
-    it('leaves Discover style count_if untouched', () => {
-      expect(
-        parseFunction('count_if(span.duration,equals,300)', {
-          normalizeIfCombinator: true,
-        })
-      ).toEqual({
-        name: 'count_if',
-        arguments: ['span.duration', 'equals', '300'],
-        filter: '',
-      });
-    });
-
-    it('is opt in', () => {
-      expect(parseFunction('count_if(`span.op:db`,span.duration)')).toEqual({
-        name: 'count_if',
-        arguments: ['`span.op:db`', 'span.duration'],
-      });
-      expect(parseFunction('count_if(span.duration,equals,300)')).toEqual({
-        name: 'count_if',
-        arguments: ['span.duration', 'equals', '300'],
-      });
+  it('leaves plain aggregates without a filter key', () => {
+    expect(parseFunction('avg(span.duration)')).toEqual({
+      name: 'avg',
+      arguments: ['span.duration'],
     });
   });
 });
@@ -387,6 +345,16 @@ describe('explodeField', () => {
       kind: 'function',
       function: ['count', 'foo.bar.is-Enterprise_42', undefined, undefined],
     });
+  });
+
+  it('round-trips backtick-wrapped _if filters', () => {
+    expect(explodeField({field: 'avg_if(`span.op:db`,span.duration)'})).toEqual({
+      kind: 'function',
+      function: ['avg_if', '`span.op:db`', 'span.duration'],
+    });
+    expect(
+      generateFieldAsString(explodeField({field: 'avg_if(`span.op:db`,span.duration)'}))
+    ).toBe('avg_if(`span.op:db`,span.duration)');
   });
 });
 
