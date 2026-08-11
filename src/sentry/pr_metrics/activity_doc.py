@@ -740,12 +740,20 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
 
 
 def _aggregate_ci_verdicts(conclusions: Iterable[str | None]) -> CiVerdict:
-    """Collapse CI conclusions using failure, success, inconclusive precedence."""
+    """Collapse CI conclusions using failure, success, inconclusive precedence.
+
+    Only conclusions unambiguously known to pass or fail move the verdict off
+    ``inconclusive``. A conclusion that is neither — ``action_required``, or one
+    GitHub adds later — falls through to ``inconclusive`` rather than defaulting
+    to a false ``success``; ``NON_FAILING_CONCLUSIONS`` also matches the nested
+    ``"success"`` verdict from a recursive call, same as ``FAILING_CHECK_CONCLUSIONS``
+    already does for nested ``"failure"``.
+    """
     has_success = False
     for conclusion in conclusions:
         if conclusion in FAILING_CHECK_CONCLUSIONS:
             return "failure"
-        if conclusion != "inconclusive" and has_verdict(conclusion):
+        if conclusion in NON_FAILING_CONCLUSIONS:
             has_success = True
     return "success" if has_success else "inconclusive"
 

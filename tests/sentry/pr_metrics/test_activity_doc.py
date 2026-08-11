@@ -1600,3 +1600,24 @@ def test_ci_head_outcomes_aborted_runs_without_suite_are_inconclusive() -> None:
     doc = new_document()
     _run(doc, check_name="tests", conclusion="cancelled", head_sha="sha1")
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "inconclusive"}
+
+
+def test_ci_head_outcomes_action_required_suite_is_inconclusive_not_success() -> None:
+    # action_required is blocked on approval, not broken, so it must not read as
+    # a failure here — but it also never ran, so it must not read as a success
+    # either. Falling through to inconclusive avoids a false-positive "success"
+    # for a suite that never actually passed.
+    doc = new_document()
+    _suite(doc, conclusion="action_required")
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "inconclusive"}
+
+
+def test_timeline_suite_conclusion_action_required_stays_raw() -> None:
+    # The judge timeline forwards the provider's own conclusion string rather
+    # than synthesizing one, so this stays "action_required" here — Seer's own
+    # shared conclusion vocabulary (module docstring above) is what reads an
+    # unrecognized conclusion like this as a failure downstream, which is why
+    # the outcome above must not independently call it a success.
+    doc = new_document()
+    _suite(doc, conclusion="action_required")
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "action_required"
