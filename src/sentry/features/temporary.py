@@ -559,7 +559,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable reflection step feature
     manager.add("organizations:seer-assisted-query-reflection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Run the agent in code mode (sandboxed Python over the Sentry API)
+    # Run the agent in code mode
     manager.add("organizations:seer-assisted-query-codemode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enable humanized string to ESQ conversion
