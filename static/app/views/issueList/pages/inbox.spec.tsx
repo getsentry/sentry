@@ -1304,6 +1304,85 @@ describe('InboxPage', () => {
       expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
     });
 
+    it('auto-selects the first issue when switching assignee tabs', async () => {
+      const myTeamsGroup = GroupFixture({
+        ...fixProposedGroup,
+        id: '201',
+        metadata: {
+          ...fixProposedGroup.metadata,
+          title: 'My teams issue',
+        },
+      });
+      const allGroup = GroupFixture({
+        ...fixProposedGroup,
+        id: '301',
+        metadata: {
+          ...fixProposedGroup.metadata,
+          title: 'All assignees issue',
+        },
+      });
+
+      function mockSectionsForTab(
+        assignmentQuerySuffix: string,
+        firstGroup: typeof fixProposedGroup
+      ) {
+        for (const progress of [
+          'fix_proposed',
+          'diagnosed',
+          'assigned',
+          'identified',
+          'fix_applied',
+        ]) {
+          mockSection(
+            `issue.progress:${progress} is:unresolved${assignmentQuerySuffix}`,
+            progress === 'fix_proposed' ? [firstGroup] : []
+          );
+        }
+      }
+
+      mockSuccessfulSections();
+      mockIssuePreview();
+      mockSectionsForTab(' assigned_or_suggested:[me,my_teams]', myTeamsGroup);
+      mockSectionsForTab('', allGroup);
+      mockIssuePreview({group: myTeamsGroup});
+      mockIssuePreview({group: allGroup});
+
+      const {router} = render(<InboxPage />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
+
+      await userEvent.click(screen.getByRole('radio', {name: /^My Teams/}));
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({assignment: 'my_teams', preview: myTeamsGroup.id})
+        );
+      });
+      expect(
+        within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+          name: /My teams issue/,
+        })
+      ).toHaveAttribute('aria-current', 'true');
+
+      await userEvent.click(screen.getByRole('radio', {name: /^All/}));
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({assignment: 'all', preview: allGroup.id})
+        );
+      });
+      expect(
+        within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+          name: /All assignees issue/,
+        })
+      ).toHaveAttribute('aria-current', 'true');
+    });
+
     it('follows section order even when a later section resolves first', async () => {
       // Diagnosed resolves immediately, Fix Proposed only after a delay. Both
       // have issues, so taking whichever result arrives first would select the

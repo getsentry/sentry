@@ -9,7 +9,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -162,49 +162,55 @@ export default function InboxPage() {
 }
 
 function useSelectFirstLoadedIssue({
+  assignmentFilter,
   disabled,
   onSelect,
-  resetKey,
   sections,
 }: {
+  assignmentFilter: AssignmentFilter;
   disabled: boolean;
   onSelect: (issueId: string) => void;
-  resetKey: AssignmentFilter;
   sections: InboxSectionConfig[];
 }) {
-  const sectionResults = useRef(new Map<string, string | null>());
-  const hasFinished = useRef(disabled);
-  const previousResetKey = useRef(resetKey);
-
-  if (previousResetKey.current !== resetKey) {
-    previousResetKey.current = resetKey;
-    sectionResults.current.clear();
-    hasFinished.current = disabled;
-  }
+  const selectionState = useRef({
+    assignmentFilter,
+    sectionResults: new Map<string, string | null>(),
+    hasFinished: disabled,
+  });
 
   return (sectionKey: string, firstIssueId: string | null) => {
-    if (hasFinished.current) {
+    let currentState = selectionState.current;
+    if (currentState.assignmentFilter !== assignmentFilter) {
+      currentState = {
+        assignmentFilter,
+        sectionResults: new Map(),
+        hasFinished: disabled,
+      };
+      selectionState.current = currentState;
+    }
+
+    if (currentState.hasFinished) {
       return;
     }
     if (disabled) {
-      hasFinished.current = true;
+      currentState.hasFinished = true;
       return;
     }
 
-    sectionResults.current.set(sectionKey, firstIssueId);
+    currentState.sectionResults.set(sectionKey, firstIssueId);
     for (const section of sections) {
-      if (!sectionResults.current.has(section.key)) {
+      if (!currentState.sectionResults.has(section.key)) {
         return;
       }
 
-      const issueId = sectionResults.current.get(section.key);
+      const issueId = currentState.sectionResults.get(section.key);
       if (issueId) {
-        hasFinished.current = true;
+        currentState.hasFinished = true;
         onSelect(issueId);
         return;
       }
     }
-    hasFinished.current = true;
+    currentState.hasFinished = true;
   };
 }
 
@@ -305,15 +311,20 @@ function InboxContent() {
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const hasSeer = orgHasSeerAccess(organization);
-  const [assignmentFilter, setAssignmentFilter] = useQueryState(
-    ASSIGNMENT_QUERY_PARAM,
-    parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('me')
-      .withOptions({history: 'replace'})
-  );
-  const [selectedIssueId, setSelectedIssueId] = useQueryState(
-    SELECTED_ISSUE_QUERY_PARAM,
-    parseAsString.withOptions({history: 'replace'})
+  const [
+    {
+      [ASSIGNMENT_QUERY_PARAM]: assignmentFilter,
+      [SELECTED_ISSUE_QUERY_PARAM]: selectedIssueId,
+    },
+    setInboxQueryState,
+  ] = useQueryStates(
+    {
+      [ASSIGNMENT_QUERY_PARAM]: parseAsStringLiteral(ASSIGNMENT_FILTERS).withDefault(
+        'me'
+      ),
+      [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
+    },
+    {history: 'replace'}
   );
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
@@ -333,11 +344,18 @@ function InboxContent() {
   });
 
   const handleInitialSectionResult = useSelectFirstLoadedIssue({
+    assignmentFilter,
     disabled: !isDesktop || selectedIssueId !== null,
-    onSelect: issueId => void setSelectedIssueId(issueId),
-    resetKey: assignmentFilter,
+    // Keep both params in this update so selecting a preview cannot overwrite
+    // the pending assignment change that triggered the new section requests.
+    onSelect: issueId =>
+      void setInboxQueryState({assignment: assignmentFilter, preview: issueId}),
     sections,
   });
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    void setInboxQueryState({assignment: filter, preview: null});
+  };
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -373,7 +391,7 @@ function InboxContent() {
             </Heading>
             <AssignmentTabs
               assignmentFilter={assignmentFilter}
-              setAssignmentFilter={setAssignmentFilter}
+              setAssignmentFilter={handleAssignmentFilterChange}
             />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
@@ -426,7 +444,7 @@ function InboxContent() {
                 size="xs"
                 variant="link"
                 icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
+                onClick={() => void setInboxQueryState({preview: null})}
               >
                 {t('Back to inbox')}
               </Button>
