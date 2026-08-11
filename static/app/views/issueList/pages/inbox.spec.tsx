@@ -365,6 +365,10 @@ describe('InboxPage', () => {
 
   it('shows up to two pull request badges only in pull request sections', async () => {
     mockSuccessfulSections();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      body: fixProposedGroup,
+    });
     const diagnosedPullRequests = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${diagnosedGroup.id}/pull-requests/`,
       body: {pullRequests: []},
