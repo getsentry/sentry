@@ -459,6 +459,7 @@ type AggregateColumnParameter = {
   kind: 'column';
   name: string;
   required: boolean;
+  defaultLabel?: string;
   defaultValue?: string;
 };
 
@@ -1332,6 +1333,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
+        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },

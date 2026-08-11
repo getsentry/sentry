@@ -12,6 +12,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
@@ -34,6 +35,7 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
+from sentry.utils import json
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -407,6 +409,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
             verify_content=False,
+            author=None,
         )
 
     @patch(
@@ -427,6 +430,25 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_called_once()
         mock_consume.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    def test_pr_iteration_push_forwards_stored_commit_author(self, mock_push_changes, mock_consume):
+        """An iteration's push is attributed to the author stored on its opening block."""
+        block = pr_iteration_memory_block()
+        state = run_state(blocks=[block], metadata={"group_id": self.group.id})
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        assert mock_push_changes.call_args.kwargs["author"] is None
+
+        assert block.message.metadata is not None
+        block.message.metadata["commit_author"] = json.dumps(author)
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        assert mock_push_changes.call_args.kwargs["author"] == author
 
     @patch(
         "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._consume_queued_feedback"

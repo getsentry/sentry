@@ -211,7 +211,6 @@ export function fetchDashboard(
 }
 
 export function updateDashboard(
-  api: Client,
   orgId: string,
   dashboard: DashboardDetails,
   {revisionSource}: {revisionSource?: string} = {}
@@ -237,17 +236,17 @@ export function updateDashboard(
       .map(_enforceWidgetLimit);
   }
 
-  const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
-    {
-      method: 'PUT',
-      data,
+  const promise = fetchMutation<DashboardDetails>({
+    url: `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    method: 'PUT',
+    data,
+    options: {
       query: {
         project: projects,
         environment,
       },
-    }
-  );
+    },
+  });
 
   // We let the callers of `updateDashboard` handle adding a success message, so
   // that it can be more specific than just "Dashboard updated," but do the

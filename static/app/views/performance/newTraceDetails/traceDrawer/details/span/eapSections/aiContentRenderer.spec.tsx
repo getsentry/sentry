@@ -131,4 +131,21 @@ describe('AIContentRenderer', () => {
     render(<AIContentRenderer text={'```\nconst x = 1;\n```'} inline />);
     expect(await screen.findByText(/const x = 1;/)).toBeInTheDocument();
   });
+
+  it('collapses generic XML tags by default', () => {
+    const text = '<thinking>\nhidden thought\n</thinking>';
+    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+    expect(screen.getByText('<thinking>').closest('details')).not.toHaveAttribute('open');
+  });
+
+  it.each(['user_message', 'user-message', 'userMessage', 'user_msg', 'user_input'])(
+    'expands the %s tag by default',
+    tagName => {
+      const text = `<${tagName}>\nhello there\n</${tagName}>`;
+      render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+      expect(screen.getByText(`<${tagName}>`).closest('details')).toHaveAttribute('open');
+    }
+  );
 });
