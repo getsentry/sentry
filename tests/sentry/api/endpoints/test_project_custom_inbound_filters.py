@@ -120,7 +120,7 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert response.data["detail"] == "You do not have that feature enabled"
 
-    def test_rejects_incompatible_primary_conditions(self) -> None:
+    def test_rejects_conditions_from_two_data_types(self) -> None:
         conditions = [
             {"type": "error_message", "value": ["TypeError*"]},
             {"type": "log_message", "value": ["Rate limit*"]},
@@ -137,8 +137,49 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert (
             str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
         )
+
+    def test_rejects_error_type_with_another_data_type(self) -> None:
+        conditions = [
+            {"type": "error_type", "value": ["TypeError"]},
+            {"type": "log_message", "value": ["Rate limit*"]},
+        ]
+
+        with self.feature([*self.features, "organizations:ourlogs-ingestion"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Error type and log",
+                conditions=conditions,
+            )
+
+        assert (
+            str(response.data["conditions"][0])
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
+        )
+
+    def test_allows_error_type_with_error_message(self) -> None:
+        conditions = [
+            {"type": "error_type", "value": ["TypeError"]},
+            {"type": "error_message", "value": ["*undefined*"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Type and message",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert custom_filter.conditions == conditions
 
     def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
@@ -220,8 +261,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_rejects_conditions_without_required_ingestion_feature(self) -> None:
         cases = [
-            ("log_message", ["Rate limit*"], "Log message filters are not enabled"),
-            ("metric_name", ["counter.*"], "Metric name filters are not enabled"),
+            ("log_message", ["Rate limit*"], "Log filters are not enabled"),
+            ("metric_name", ["counter.*"], "Metric filters are not enabled"),
         ]
         for condition_type, value, expected in cases:
             with self.feature(self.features):
@@ -358,7 +399,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             ).exists()
 
-    def test_put_rejects_incompatible_primary_conditions(self) -> None:
+    def test_put_rejects_conditions_from_two_data_types(self) -> None:
         conditions = [
             {"type": "error_message", "value": ["TypeError*"]},
             {"type": "log_message", "value": ["Rate limit*"]},
@@ -374,7 +415,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
         assert (
             str(response.data["conditions"][0])
-            == "Only one of error_message, log_message, or metric_name can be used in a filter."
+            == "A filter matches one data type, so error, log, and metric conditions "
+            "cannot be combined."
         )
 
     def test_delete(self) -> None:

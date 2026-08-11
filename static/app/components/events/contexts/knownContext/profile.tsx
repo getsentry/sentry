@@ -102,8 +102,8 @@ function getProfilerIdEntry(
   };
 }
 
-function getStartEnd(event: any): [string | null, string | null] {
-  if (!isTransaction(event)) {
+function getStartEnd(event: Event | undefined): [string | null, string | null] {
+  if (!event || !isTransaction(event)) {
     return [null, null];
   }
 

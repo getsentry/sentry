@@ -23,7 +23,7 @@ type AttributeType = {
   secondaryAliases?: string[];
 };
 
-type TraceItemAttributeType = 'string' | 'number' | 'boolean';
+type TraceItemAttributeType = 'string' | 'number' | 'boolean' | 'array';
 
 type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
@@ -55,7 +55,7 @@ export function traceItemAttributeKeysOptions({
   selection,
   staleTime = 0,
   traceItemType,
-  type = ['string', 'number', 'boolean'],
+  type = ['string', 'number', 'boolean', 'array'],
   projects,
   projectIds: explicitProjectIds,
   environments,
@@ -67,9 +67,14 @@ export function traceItemAttributeKeysOptions({
     (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
   const substringMatch = search || undefined;
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const attributeType =
+    Array.isArray(type) && !supportsArrays
+      ? type.filter(attrType => attrType !== 'array')
+      : type;
   const options: TraceItemAttributeKeyOptions = {
     itemType: traceItemType,
-    attributeType: type,
+    attributeType,
     project: projectIds?.map(String),
     environment: environments ?? selection.environments,
     query,
@@ -105,6 +110,7 @@ export function traceItemAttributeKeysOptions({
 }
 
 type TraceItemTagCollections = {
+  arrayAttributes: TagCollection;
   booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
@@ -157,6 +163,7 @@ export function getTraceItemTagCollection(
   const stringAttributes: TagCollection = {};
   const numberAttributes: TagCollection = {};
   const booleanAttributes: TagCollection = {};
+  const arrayAttributes: TagCollection = {};
 
   for (const attribute of result ?? []) {
     if (isKnownAttribute(attribute)) {
@@ -167,7 +174,7 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[\w.:@-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:@-]+,(number|boolean|string)\]$/.test(attribute.key)
+      !/^tags\[[\w.:@-]+,(number|boolean|string|array)\]$/.test(attribute.key)
     ) {
       continue;
     }
@@ -202,6 +209,27 @@ export function getTraceItemTagCollection(
         secondaryAliases: attribute?.secondaryAliases ?? [],
         attributeSource: attribute.attributeSource?.source_type,
       };
+    } else if (attributeType === 'array') {
+      // (eg. `tags[foo,array][*]:value`).
+      const arrayKey = `${attribute.key}[*]`;
+      arrayAttributes[arrayKey] = {
+        key: arrayKey,
+        name: attribute.name,
+        kind: FieldKind.ARRAY,
+        secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
+      };
+    }
+  }
+
+  const arrayAttributesNames = new Set(
+    Object.values(arrayAttributes).map(attr => attr.name)
+  );
+
+  // dedupe stringified arrays
+  for (const [key, attr] of Object.entries(stringAttributes)) {
+    if (arrayAttributesNames.has(attr.name)) {
+      delete stringAttributes[key];
     }
   }
 
@@ -217,10 +245,15 @@ export function getTraceItemTagCollection(
     return stringAttributes;
   }
 
+  if (type === 'array') {
+    return arrayAttributes;
+  }
+
   return {
     stringAttributes,
     numberAttributes,
     booleanAttributes,
+    arrayAttributes,
   };
 }
 
