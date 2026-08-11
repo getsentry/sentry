@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 from django.urls import reverse
-from django.utils import timezone
 
-from sentry.investigations.models import (
-    InvestigationBlock,
-)
+from sentry.investigations.models import InvestigationBlock
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -13,7 +10,7 @@ FEATURE = "organizations:investigations"
 
 
 @with_feature(FEATURE)
-class InvestigationBlockEndpointTest(APITestCase):
+class InvestigationBlockDetailsEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
@@ -21,15 +18,6 @@ class InvestigationBlockEndpointTest(APITestCase):
             organization=self.organization,
             created_by=self.user,
             title="Block tests",
-        )
-
-    def blocks_url(self) -> str:
-        return reverse(
-            "sentry-api-0-organization-investigation-blocks",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
-            },
         )
 
     def block_url(self, block: InvestigationBlock) -> str:
@@ -42,35 +30,23 @@ class InvestigationBlockEndpointTest(APITestCase):
             },
         )
 
-    def test_create_update_and_soft_delete_block(self) -> None:
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": 1,
-                "kind": "query",
-                "content": "find slow transactions",
-                "generationPrompt": "Generate the query",
-                "display": {"type": "bar", "xAxis": "release", "yAxes": ["count"]},
-            },
-            format="json",
+    def test_update_and_soft_delete_block(self) -> None:
+        block = self.create_investigation_block(
+            investigation=self.investigation, kind="query", content="find slow transactions"
         )
-        assert response.status_code == 201, response.data
-        assert response.data["content"] == "find slow transactions"
-        assert response.data["generationPrompt"] == "Generate the query"
-        assert response.data["generatedContent"] == ""
-        block = InvestigationBlock.objects.get(id=response.data["id"])
+        original_investigation_version = self.investigation.version
 
         response = self.client.put(
             self.block_url(block),
             data={
-                "investigationVersion": 2,
-                "version": 1,
+                "investigationVersion": original_investigation_version,
+                "version": block.version,
                 "content": "updated query",
             },
             format="json",
         )
         assert response.status_code == 200
-        assert response.data["version"] == 2
+        assert response.data["version"] == block.version + 1
         assert response.data["staleAt"] is not None
 
         block.refresh_from_db()
@@ -78,10 +54,11 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert block.content == "updated query"
         assert block.version == 2
         assert block.stale_at is not None
-        assert self.investigation.version == 3
+        assert self.investigation.version == original_investigation_version + 1
+
         response = self.client.delete(
             self.block_url(block),
-            data={"investigationVersion": self.investigation.version, "version": 2},
+            data={"investigationVersion": self.investigation.version, "version": block.version},
             format="json",
         )
         assert response.status_code == 204
@@ -194,217 +171,9 @@ class InvestigationBlockEndpointTest(APITestCase):
         block.refresh_from_db()
         assert block.content == ""
 
-    def test_display_validation(self) -> None:
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "display": {"type": "line", "xAxis": "time", "yAxes": []},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "text",
-                "display": {"type": "table"},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "content": "Show error volume",
-                "display": {
-                    "version": 1,
-                    "type": "table",
-                    "defaultView": "chart",
-                    "queryCollapsed": True,
-                },
-            },
-            format="json",
-        )
-        assert response.status_code == 201, response.data
-
-    def test_versioned_display_rejects_invalid_field_types(self) -> None:
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "display": {"version": 1.0, "type": "table"},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "text",
-                "display": {"version": True, "type": "markdown"},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "display": {"version": 1, "type": []},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "display": {
-                    "version": 1,
-                    "type": "table",
-                    "stacked": "yes",
-                },
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "query",
-                "display": {
-                    "version": 1,
-                    "type": "table",
-                    "topN": True,
-                },
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-    def test_text_display_accepts_persisted_prompt_collapse(self) -> None:
-        response = self.client.post(
-            self.blocks_url(),
-            data={
-                "investigationVersion": self.investigation.version,
-                "kind": "text",
-                "generationPrompt": "Summarize the context",
-                "display": {
-                    "version": 1,
-                    "type": "markdown",
-                    "promptCollapsed": True,
-                },
-            },
-            format="json",
-        )
-        assert response.status_code == 201, response.data
-        assert response.data["display"]["promptCollapsed"] is True
-
-    def test_drag_reorder_requires_exact_permutation(self) -> None:
-        blocks = [
-            self.create_investigation_block(
-                investigation=self.investigation, position=position, kind="text"
-            )
-            for position in range(3)
-        ]
-        url = reverse(
-            "sentry-api-0-organization-investigation-block-order",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
-            },
-        )
-        response = self.client.put(
-            url,
-            data={
-                "investigationVersion": self.investigation.version,
-                "blockIds": [block.id for block in reversed(blocks)],
-            },
-            format="json",
-        )
-        assert response.status_code == 200, response.data
-        assert [block["id"] for block in response.data["blocks"]] == [
-            str(block.id) for block in reversed(blocks)
-        ]
-
-        version = response.data["version"]
-        response = self.client.put(
-            url,
-            data={
-                "investigationVersion": version,
-                "blockIds": [blocks[0].id, blocks[0].id, blocks[1].id],
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-    def test_drag_reorder_rejects_missing_deleted_and_foreign_blocks_without_changes(self) -> None:
-        first = self.create_investigation_block(
+    def test_sentry_app_cannot_mutate_block(self) -> None:
+        block = self.create_investigation_block(
             investigation=self.investigation, position=0, kind="text"
-        )
-        second = self.create_investigation_block(
-            investigation=self.investigation, position=1, kind="text"
-        )
-        foreign_investigation = self.create_investigation(
-            organization=self.organization, created_by=self.user, title="Foreign"
-        )
-        foreign = self.create_investigation_block(investigation=foreign_investigation)
-        url = reverse(
-            "sentry-api-0-organization-investigation-block-order",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
-            },
-        )
-
-        for block_ids in ([first.id], [first.id, foreign.id]):
-            response = self.client.put(
-                url,
-                data={
-                    "investigationVersion": self.investigation.version,
-                    "blockIds": block_ids,
-                },
-                format="json",
-            )
-            assert response.status_code == 400
-            first.refresh_from_db()
-            second.refresh_from_db()
-            assert (first.position, second.position) == (0, 1)
-
-        second.deleted_at = timezone.now()
-        second.save(update_fields=["deleted_at"])
-        response = self.client.put(
-            url,
-            data={
-                "investigationVersion": self.investigation.version,
-                "blockIds": [first.id, second.id],
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-
-    def test_sentry_app_cannot_mutate_blocks(self) -> None:
-        first = self.create_investigation_block(
-            investigation=self.investigation, position=0, kind="text"
-        )
-        second = self.create_investigation_block(
-            investigation=self.investigation, position=1, kind="text"
         )
         sentry_app_user = self.create_user(is_sentry_app=True)
         self.create_member(
@@ -414,18 +183,11 @@ class InvestigationBlockEndpointTest(APITestCase):
         )
         self.login_as(sentry_app_user)
 
-        response = self.client.post(
-            self.blocks_url(),
-            data={"investigationVersion": self.investigation.version, "kind": "text"},
-            format="json",
-        )
-        assert response.status_code == 403
-
         response = self.client.put(
-            self.block_url(first),
+            self.block_url(block),
             data={
                 "investigationVersion": self.investigation.version,
-                "version": first.version,
+                "version": block.version,
                 "content": "must not be saved",
             },
             format="json",
@@ -433,37 +195,18 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.status_code == 403
 
         response = self.client.delete(
-            self.block_url(first),
+            self.block_url(block),
             data={
                 "investigationVersion": self.investigation.version,
-                "version": first.version,
+                "version": block.version,
             },
             format="json",
         )
         assert response.status_code == 403
 
-        order_url = reverse(
-            "sentry-api-0-organization-investigation-block-order",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.investigation.id,
-            },
-        )
-        response = self.client.put(
-            order_url,
-            data={
-                "investigationVersion": self.investigation.version,
-                "blockIds": [second.id, first.id],
-            },
-            format="json",
-        )
-        assert response.status_code == 403
-
-        first.refresh_from_db()
-        second.refresh_from_db()
-        assert first.content == ""
-        assert first.deleted_at is None
-        assert (first.position, second.position) == (0, 1)
+        block.refresh_from_db()
+        assert block.content == ""
+        assert block.deleted_at is None
 
     def test_delete_marks_transitive_downstream_blocks_stale(self) -> None:
         upstream = self.create_investigation_block(
