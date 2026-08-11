@@ -418,9 +418,10 @@ def _forward_priority(group: CheckGroup) -> tuple[bool, str]:
 def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
     """The rollup for a check payload's ``(head_sha, app_slug, check_suite_id)``.
 
-    Per-suite, not per-app: one app emits one suite per workflow run, so folding
-    an app's suites together let the last suite to complete overwrite every other
-    workflow's conclusion, run count, and same-named runs.
+    Per-suite, not per-app: nothing limits an app to one suite per head — GitHub
+    Actions raises one per workflow run — so folding an app's suites together let
+    the last suite to complete overwrite every other suite's conclusion, run
+    count, and same-named runs.
 
     A payload without a suite id falls back to the suite-less legacy key, so
     pre-split documents — and id-less events from not-yet-updated processors
