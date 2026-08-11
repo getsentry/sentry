@@ -6,6 +6,7 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  groupNodesByAgentRun,
   mergeEmptyTurns,
   messagesToMarkdown,
   parseAssistantContent,
@@ -18,9 +19,16 @@ function createMockNode(overrides: {
   id: string;
   attributes?: Record<string, string | number>;
   endTimestamp?: number;
+  parentSpanId?: string;
   startTimestamp?: number;
 }) {
-  const {id, attributes = {}, startTimestamp = 1000, endTimestamp} = overrides;
+  const {
+    id,
+    attributes = {},
+    startTimestamp = 1000,
+    endTimestamp,
+    parentSpanId,
+  } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
@@ -31,12 +39,14 @@ function createMockNode(overrides: {
     value: {
       start_timestamp: startTimestamp,
       end_timestamp: end,
+      parent_span_id: parentSpanId,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
       ...attributes,
     },
     errors: new Set(),
+    findParent: () => null,
   };
 }
 
@@ -44,9 +54,10 @@ function createMockToolNode(overrides: {
   id: string;
   toolName: string;
   endTimestamp?: number;
+  parentSpanId?: string;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000, endTimestamp} = overrides;
+  const {id, toolName, startTimestamp = 1000, endTimestamp, parentSpanId} = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
@@ -57,13 +68,71 @@ function createMockToolNode(overrides: {
     value: {
       start_timestamp: startTimestamp,
       end_timestamp: end,
+      parent_span_id: parentSpanId,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
     },
     errors: new Set(),
+    findParent: () => null,
   };
+}
+
+// Agent span ("gen_ai.operation.type: agent") — the anchor a sub-agent run is
+// grouped under. Carries no chat content itself; it only delimits the run.
+function createMockAgentNode(overrides: {
+  id: string;
+  agentName?: string;
+  endTimestamp?: number;
+  parentSpanId?: string;
+  startTimestamp?: number;
+}) {
+  const {id, agentName, startTimestamp = 1000, endTimestamp, parentSpanId} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.invoke_agent',
+    startTimestamp,
+    endTimestamp: end,
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+      parent_span_id: parentSpanId,
+    },
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+      ...(agentName ? {[SpanFields.GEN_AI_AGENT_NAME]: agentName} : {}),
+    },
+    errors: new Set(),
+    findParent: () => null,
+  };
+}
+
+// Wires each mock node's `findParent` to walk `value.parent_span_id` through the
+// given set, mirroring the real node produced by `useConversation`.
+function withLineage<T extends {id: string; value: {parent_span_id?: string}}>(
+  nodes: T[]
+): T[] {
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  for (const node of nodes) {
+    (node as any).findParent = (predicate: (parent: any) => boolean) => {
+      let parentId = node.value.parent_span_id;
+      while (parentId) {
+        const parent = byId.get(parentId);
+        if (!parent) {
+          return null;
+        }
+        if (predicate(parent)) {
+          return parent;
+        }
+        parentId = parent.value.parent_span_id;
+      }
+      return null;
+    };
+  }
+  return nodes;
 }
 
 // Mirrors the node `useConversation` produces for an embeddings span: the op
@@ -107,6 +176,7 @@ function createMockEmbeddingNode(overrides: {
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
+    findParent: () => null,
   };
 }
 
@@ -594,6 +664,93 @@ describe('conversationMessages utilities', () => {
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+  });
+
+  describe('groupNodesByAgentRun', () => {
+    it('puts every span in one root run when there are no agent spans', () => {
+      const gen = createMockNode({id: 'gen-1', startTimestamp: 1000});
+      const tool = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1500,
+      });
+
+      const runs = groupNodesByAgentRun(withLineage([gen, tool]) as any);
+
+      expect(runs).toHaveLength(1);
+      expect(runs[0]?.map(n => n.id)).toEqual(['gen-1', 'tool-1']);
+    });
+
+    it('groups each agent with its descendant spans and drops the cross-agent shuffle', () => {
+      const agentA = createMockAgentNode({
+        id: 'agent-a',
+        agentName: 'Errors',
+        startTimestamp: 900,
+      });
+      const genA = createMockNode({
+        id: 'gen-a',
+        startTimestamp: 1000,
+        parentSpanId: 'agent-a',
+      });
+      const toolA = createMockToolNode({
+        id: 'tool-a',
+        toolName: 'query_errors',
+        startTimestamp: 2500,
+        parentSpanId: 'agent-a',
+      });
+      const agentB = createMockAgentNode({
+        id: 'agent-b',
+        agentName: 'Traces',
+        startTimestamp: 3400,
+      });
+      const genB = createMockNode({
+        id: 'gen-b',
+        startTimestamp: 3500,
+        parentSpanId: 'agent-b',
+      });
+
+      // Deliberately unordered input.
+      const runs = groupNodesByAgentRun(
+        withLineage([genB, toolA, agentB, genA, agentA]) as any
+      );
+
+      // Two runs, ordered by earliest span: Errors (900) before Traces (3400).
+      expect(runs.map(run => run.map(n => n.id).sort())).toEqual([
+        ['agent-a', 'gen-a', 'tool-a'],
+        ['agent-b', 'gen-b'],
+      ]);
+    });
+
+    it('groups a nested sub-agent under itself, not its parent agent', () => {
+      const parentAgent = createMockAgentNode({
+        id: 'agent-parent',
+        startTimestamp: 900,
+      });
+      const parentGen = createMockNode({
+        id: 'gen-parent',
+        startTimestamp: 1000,
+        parentSpanId: 'agent-parent',
+      });
+      const childAgent = createMockAgentNode({
+        id: 'agent-child',
+        startTimestamp: 1100,
+        parentSpanId: 'agent-parent',
+      });
+      const childGen = createMockNode({
+        id: 'gen-child',
+        startTimestamp: 1200,
+        parentSpanId: 'agent-child',
+      });
+
+      const runs = groupNodesByAgentRun(
+        withLineage([parentAgent, parentGen, childAgent, childGen]) as any
+      );
+
+      expect(runs.map(run => run.map(n => n.id).sort())).toEqual([
+        ['agent-parent', 'gen-parent'],
+        ['agent-child', 'gen-child'],
+      ]);
     });
   });
 
@@ -1362,6 +1519,92 @@ describe('conversationMessages utilities', () => {
         {reasoning: 'Thinking 2', tools: ['search'], content: ''},
         {reasoning: 'Thinking 3', tools: ['calc'], content: 'Done'},
       ]);
+    });
+
+    it('keeps parallel sub-agents from stealing each other tool calls', () => {
+      // Two agents run concurrently. Agent A requests a tool that finishes
+      // between Agent B's generations, so a flat, timestamp-only builder
+      // misattributes it to B. Grouping by agent run keeps it on A.
+      const reasoningAndText = (thought: string, text: string) =>
+        JSON.stringify([
+          {
+            role: 'assistant',
+            parts: [
+              {type: 'reasoning', content: thought},
+              {type: 'text', text},
+            ],
+          },
+        ]);
+
+      const agentA = createMockAgentNode({
+        id: 'agent-a',
+        agentName: 'Errors',
+        startTimestamp: 900,
+        endTimestamp: 5000,
+      });
+      const genA1 = createMockNode({
+        id: 'gen-a1',
+        startTimestamp: 900,
+        endTimestamp: 1000,
+        parentSpanId: 'agent-a',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {role: 'assistant', parts: [{type: 'reasoning', content: 'A thinks first'}]},
+          ]),
+        },
+      });
+      const toolA = createMockToolNode({
+        id: 'tool-a',
+        toolName: 'query_errors',
+        startTimestamp: 2500,
+        endTimestamp: 3000,
+        parentSpanId: 'agent-a',
+      });
+      const genA2 = createMockNode({
+        id: 'gen-a2',
+        startTimestamp: 4500,
+        endTimestamp: 5000,
+        parentSpanId: 'agent-a',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: reasoningAndText('A concludes', 'A done'),
+        },
+      });
+
+      const agentB = createMockAgentNode({
+        id: 'agent-b',
+        agentName: 'Traces',
+        startTimestamp: 3400,
+        endTimestamp: 4000,
+      });
+      // Ends at 4000, between toolA (3000) and genA2 (5000): the flat builder
+      // would attach toolA to this generation.
+      const genB = createMockNode({
+        id: 'gen-b',
+        startTimestamp: 3500,
+        endTimestamp: 4000,
+        parentSpanId: 'agent-b',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: reasoningAndText('B thinks', 'B done'),
+        },
+      });
+
+      const messages = extractMessagesFromNodes(
+        withLineage([genB, toolA, agentB, genA1, agentA, genA2]) as any
+      );
+
+      const bothDone = messages.filter(
+        m => m.content === 'A done' || m.content === 'B done'
+      );
+      const aDone = bothDone.find(m => m.content === 'A done');
+      const bDone = bothDone.find(m => m.content === 'B done');
+
+      // The tool stays with Agent A; Agent B never gets it.
+      expect(aDone?.toolCalls?.map(t => t.name)).toEqual(['query_errors']);
+      expect(bDone?.toolCalls ?? []).toEqual([]);
+
+      // Agent A's run renders as one contiguous block before Agent B's.
+      const order = messages.map(m => m.content);
+      expect(order.indexOf('A done')).toBeLessThan(order.indexOf('B done'));
     });
 
     // Same question in two spans: collapse only for a cumulative tool loop.
