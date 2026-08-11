@@ -475,6 +475,48 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
 
+    def test_ci_failed_at_open_from_doc_survives_events_cap(self) -> None:
+        # Fill the entries cap before the OPENED delivery arrives, so the entry is
+        # dropped from ``events``. The opening head is read off ``open_head``,
+        # folded before the cap — the same cap-resilient source
+        # ``ci_head_results_from_doc`` attributes the opening head from, so both
+        # readers still scope to ``open1`` rather than disagreeing here.
+        doc = new_document()
+        for index in range(MAX_EVENTS):
+            apply_activity(
+                doc,
+                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                payload={"sender_login": "alice", "sender_type": "User"},
+                ts="2026-07-10T12:00:00Z",
+                webhook_id=f"r{index}",
+            )
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_suite(doc, head_sha="open1", conclusion="failure")
+        assert doc["events_dropped"] == 1
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is True
+
+    def test_ci_failed_at_open_from_doc_past_cap_still_excludes_later_head(self) -> None:
+        # Same capped document, but the failure belongs to a pushed head: reading
+        # ``open_head`` must not widen the scope to every recorded check.
+        doc = new_document()
+        for index in range(MAX_EVENTS):
+            apply_activity(
+                doc,
+                event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                payload={"sender_login": "alice", "sender_type": "User"},
+                ts="2026-07-10T12:00:00Z",
+                webhook_id=f"r{index}",
+            )
+        _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
+        _doc_suite(doc, head_sha="open1", conclusion="success")
+        _doc_suite(doc, head_sha="push2", conclusion="failure")
+
+        assert _ci_failed_at_open(self.pull_request, doc=doc) is False
+
     # --- _no_ci_events --------------------------------------------------------
 
     def test_no_ci_events_true_when_no_checks_recorded(self) -> None:

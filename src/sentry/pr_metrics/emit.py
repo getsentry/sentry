@@ -345,18 +345,35 @@ def _ci_failing_at_close(
 
 
 def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
-    """The head SHA the PR opened with, read off its ``OPENED`` lifecycle entry.
+    """The head SHA the PR opened with.
 
-    ``OpenedPayload.head_sha`` round-trips into the entry's stored payload
-    unchanged (it isn't a check/comment family event, so ``apply_activity``
-    appends it as-is). Returns ``None`` when there's no ``OPENED`` entry to read
-    it from — e.g. activity tracking was enabled after the PR had already
-    opened — since there's then no reliable "opening head" to key checks off.
+    Read from the dedicated ``open_head`` field, which ``apply_activity`` folds in
+    *before* the events cap — the same cap-resilient source
+    ``ci_head_results_from_doc`` attributes the opening head from, so the two
+    readers agree on which SHA opened the PR even on a PR whose ``OPENED``
+    delivery arrived after ``MAX_EVENTS`` other events and was therefore dropped
+    from ``events``.
+
+    Falls back to scanning ``events`` for the ``OPENED`` entry, for documents
+    written before ``open_head`` existed: ``OpenedPayload.head_sha`` round-trips
+    into the entry's stored payload unchanged (it isn't a check/comment family
+    event, so the entry is appended as-is).
+
+    Returns ``None`` when neither source has it — e.g. activity tracking was
+    enabled after the PR had already opened — since there's then no reliable
+    "opening head" to key checks off.
     """
+    open_head = doc.get("open_head")
+    if open_head:
+        head_sha = open_head.get("head_sha")
+        if head_sha:
+            return head_sha
+
     for entry in doc.get("events", []):
         if entry.get("event_type") == PullRequestActivityType.OPENED:
             head_sha = (entry.get("payload") or {}).get("head_sha")
             return head_sha or None
+
     return None
 
 
