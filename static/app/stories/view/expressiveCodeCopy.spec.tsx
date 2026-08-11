@@ -1,7 +1,6 @@
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-// eslint-disable-next-line boundaries/dependencies -- unit test for a Stories-only helper
 import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
 
 function StoryCodeBlock() {

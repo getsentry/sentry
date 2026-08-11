@@ -42,6 +42,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
+from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -64,6 +65,12 @@ class OrganizationEventsEndpointTestBase(
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
+    # Match EAPClient / EAP_FULL_FIDELITY_QUERY_DAYS. Snuba forces tier 8 when the
+    # query start is older than the standard retention window (~30d). API endpoints
+    # still default unset windows to 90d, and some EAP paths (e.g. trace-meta) are
+    # not covered by EAPClient's path/dataset heuristics, so this base injects the
+    # full-fidelity window unless the test sets an explicit one.
+    default_stats_period = EAP_DEFAULT_STATS_PERIOD
 
     def setUp(self) -> None:
         super().setUp()
@@ -75,8 +82,45 @@ class OrganizationEventsEndpointTestBase(
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
         self.features: dict[str, bool] = {}
 
-    def client_get(self, *args, **kwargs):
-        return self.client.get(*args, **kwargs)
+    def with_default_stats_period(self, data=None):
+        """Ensure EAP queries stay on tier 1 unless the test sets an explicit window."""
+        query = {} if data is None else dict(data)
+        has_explicit_window = any(
+            key in query
+            for key in (
+                "statsPeriod",
+                "statsPeriodStart",
+                "statsPeriodEnd",
+                "start",
+                "end",
+                "range",
+                "timestamp",
+            )
+        )
+        if not has_explicit_window:
+            query["statsPeriod"] = self.default_stats_period
+        return query
+
+    def client_get(self, *args, data=None, url=None, **kwargs):
+        """GET helper that defaults statsPeriod for EAP tier-1 routing.
+
+        Supports both styles used by these suites:
+        - client_get(path, query_dict, format="json")
+        - client_get(data=query_dict, url=path)
+        """
+        if url is not None or (not args and data is not None):
+            path = url if url is not None else getattr(self, "url", None)
+            if path is None:
+                raise TypeError("client_get requires url= or a path argument")
+            kwargs.setdefault("format", "json")
+            return self.client.get(path, self.with_default_stats_period(data), **kwargs)
+
+        args_list = list(args)
+        if len(args_list) >= 2 and isinstance(args_list[1], dict):
+            args_list[1] = self.with_default_stats_period(args_list[1])
+        elif data is not None and len(args_list) == 1:
+            return self.client.get(args_list[0], self.with_default_stats_period(data), **kwargs)
+        return self.client.get(*args_list, **kwargs)
 
     def reverse_url(self):
         return reverse(
@@ -90,7 +134,12 @@ class OrganizationEventsEndpointTestBase(
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
+            return self.client_get(
+                self.reverse_url(),
+                self.with_default_stats_period(query),
+                format="json",
+                **kwargs,
+            )
 
     def _setup_user_misery(
         self, per_transaction_threshold: bool = False, project: Project | None = None

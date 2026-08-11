@@ -1,4 +1,4 @@
-import type Fuse from 'fuse.js';
+import type {RangeTuple} from 'fuse.js/basic';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -498,7 +498,7 @@ describe('computeHighlightedBounds', () => {
   ];
 
   it.each(testTable)('$name', ({args, expected}) => {
-    const value = computeHighlightedBounds(args.bounds as Fuse.RangeTuple, args.trim);
+    const value = computeHighlightedBounds(args.bounds as RangeTuple, args.trim);
     expect(value).toEqual(expected);
   });
 });

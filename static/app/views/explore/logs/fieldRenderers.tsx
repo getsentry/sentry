@@ -83,6 +83,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
   canAppendTemplateToBody?: boolean;
+  isTraceItemDetailsPending?: boolean;
   logEnd?: string;
   logStart?: string;
   meta?: EventsMetaType;
@@ -166,6 +167,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
+        isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
         <DateTime seconds milliseconds date={timestampToUse} />
@@ -213,6 +215,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
+        isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
         relativeTimeToReplay={relativeTimestampMs}
       >

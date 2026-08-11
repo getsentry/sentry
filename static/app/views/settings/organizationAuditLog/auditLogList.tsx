@@ -32,10 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  projectDetectorSettingsId,
-  retentionPrioritiesLabels,
-} from 'sentry/views/settings/projectPerformance';
+import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance';
+import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/detectors/detectorFieldGroups';
 
 const avatarStyle = {
   width: 36,
