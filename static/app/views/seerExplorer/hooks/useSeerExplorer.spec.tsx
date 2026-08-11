@@ -1,3 +1,4 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -277,10 +278,14 @@ describe('useSeerExplorer', () => {
         // Local (zone name in brackets) then UTC, as display strings.
         const sentAt = postMock.mock.calls[0][1].data.sent_at;
         expect(sentAt).toHaveLength(2);
-        expect(sentAt[0]).toContain(
-          `[${Intl.DateTimeFormat().resolvedOptions().timeZone}]`
-        );
         expect(sentAt[1]).toMatch(/(Z|\+00:00)$/);
+
+        // The offset and the bracketed zone name must describe the same zone.
+        // ConfigStore points moment's default at the account timezone preference,
+        // so deriving them from different sources yields a contradictory string.
+        const [, offset, zone] = sentAt[0].match(/([+-]\d{2}:\d{2}|Z)\[(.+)\]$/) ?? [];
+        expect(zone).toBeTruthy();
+        expect(moment.tz(zone).format('Z')).toBe(offset === 'Z' ? '+00:00' : offset);
       });
     });
 

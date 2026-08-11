@@ -4,6 +4,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -139,6 +140,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getPageReferrer} = usePageReferrer();
   const {getLLMContext} = useLLMContext();
+  const timezone = useTimezone();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
     true
@@ -548,8 +550,13 @@ export const useSeerExplorer = () => {
         // Local time first, then the same instant in UTC. Both are display strings
         // the agent reads directly — nothing downstream parses them, so the zone
         // name travels in the string (RFC 9557) rather than as a separate field.
+        //
+        // The offset and the bracketed name must come from one source: ConfigStore
+        // calls moment.tz.setDefault with the account timezone preference, so a bare
+        // moment() would render that offset while the browser reported a different
+        // name. useTimezone() is that single source (preference, else browser).
         sentAt: [
-          `${moment().format()}[${Intl.DateTimeFormat().resolvedOptions().timeZone}]`,
+          `${moment().tz(timezone).format()}[${timezone}]`,
           moment().utc().format(),
         ],
         screenshot,
@@ -571,6 +578,7 @@ export const useSeerExplorer = () => {
       overrideCodeModeEnable,
       sendMessageMutate,
       setLastSentMessage,
+      timezone,
     ]
   );
 
