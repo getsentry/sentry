@@ -15,6 +15,7 @@ import {
   SortableHeaderCell,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {IconStack} from 'sentry/icons/iconStack';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -205,6 +206,10 @@ export function AggregatesTable({
           {result.isPending ? (
             <TableStatus>
               <LoadingIndicator />
+            </TableStatus>
+          ) : result.isError ? (
+            <TableStatus>
+              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
