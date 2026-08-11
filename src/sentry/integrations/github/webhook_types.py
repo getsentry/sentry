@@ -44,10 +44,17 @@ class ActionFilter(NamedTuple):
     ``known`` is every action GitHub documents for the event, and bounds metric tag
     cardinality. The request body is not signature-verified until it reaches the
     cell, so an action is only tagged verbatim when GitHub could have sent it.
+
+    ``own_repo_pr_actions`` narrows further: actions where *every* cell-side consumer
+    resolves pull requests through the payload's own repo, so a payload referencing
+    none of them cannot do work there. Empty unless each consumer has been checked —
+    a consumer that reads ``pull_requests`` without filtering on ``base.repo`` loses
+    events under this predicate.
     """
 
     consumed: frozenset[str]
     known: frozenset[str]
+    own_repo_pr_actions: frozenset[str] = frozenset()
 
 
 # Event types whose actions are filtered in control; an event type absent here has
@@ -64,17 +71,31 @@ class ActionFilter(NamedTuple):
 #
 # A cell also republishes every delivered webhook onto the SCM event stream, so
 # `sentry.scm.stream` listeners are the second set of consumers to check before
-# narrowing this map. They gate on the same actions today.
+# narrowing this map. They gate on the same actions today:
+#   check_suite completed -> sentry.seer.autofix.pr_iteration.listeners.check_suite
+#   check_run             -> no-op stub
 #
-# A new consumer on either path must add its action here to receive those events.
+# A new consumer on either path must add its action here to receive those events —
+# and, for an action in `own_repo_pr_actions`, must resolve pull requests through
+# the payload's own repo, or those events never reach it.
 CELL_PROCESSED_ACTIONS: Mapping[str, ActionFilter] = {
     GithubWebhookType.CHECK_RUN: ActionFilter(
         consumed=frozenset({"completed", "requested_action", "rerequested"}),
         known=frozenset({"completed", "created", "requested_action", "rerequested"}),
+        # `completed`'s only consumer that reads `check_run.pull_requests` is
+        # pr_metrics' `_prs_from_check_payload`, which skips every entry whose
+        # `base.repo` is not this webhook's repo. The other two processors return on
+        # the action, and the SCM stream's check_run listener is a no-op stub.
+        own_repo_pr_actions=frozenset({"completed"}),
     ),
     GithubWebhookType.CHECK_SUITE: ActionFilter(
         consumed=frozenset({"completed"}),
         known=frozenset({"completed", "requested", "rerequested"}),
+        # Two consumers read `check_suite.pull_requests`: pr_metrics'
+        # `_prs_from_check_payload` and, behind the SCM stream, Seer's
+        # `resolve_check_suite_autofix_run`. Both go through
+        # `is_own_repo_pull_request`, so the predicate holds across them.
+        own_repo_pr_actions=frozenset({"completed"}),
     ),
 }
 
