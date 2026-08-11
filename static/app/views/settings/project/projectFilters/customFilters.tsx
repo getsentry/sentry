@@ -747,8 +747,10 @@ export function CustomFilters({project}: {project: Project}) {
   );
 }
 
+// Fixed widths for the columns whose content is a control or a relative date,
+// so the layout stays put as rows come and go. Sizing them to their content
+// makes the columns jump every time the row set changes, and collapses them onto
+// the header text once the last row is gone.
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns:
-    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
-    max-content;
+  grid-template-columns: 90px minmax(0, 1fr) minmax(0, 2fr) 160px 160px 110px;
 `;
