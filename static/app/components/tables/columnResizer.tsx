@@ -29,25 +29,19 @@ export function ColumnResizer({
   onResizeStart,
 }: ColumnResizerProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {max, width} = useObservedColumnSize(ref);
+  const {cell, max, width} = useObservedColumnSize(ref);
   const fallbackCellId = useId();
 
   // A focusable separator is a widget, so it needs a name. The header cell already
   // carries the column's name, and pointing at it rather than repeating it as an
   // `aria-label` keeps the resizer out of that cell's own name-from-content.
-  useEffect(() => {
-    const resizer = ref.current;
-    const cell = resizer?.closest('th');
-    if (!resizer || !cell) {
-      return;
-    }
+  const cellId = cell?.id ?? fallbackCellId;
 
-    if (!cell.id) {
+  useEffect(() => {
+    if (cell && !cell.id) {
       cell.id = fallbackCellId;
     }
-
-    resizer.setAttribute('aria-labelledby', cell.id);
-  }, [fallbackCellId]);
+  }, [cell, fallbackCellId]);
 
   const {moveProps} = useDragMove({
     onMove: onResizeMove,
@@ -63,6 +57,7 @@ export function ColumnResizer({
         onDoubleClick: (event: React.MouseEvent) =>
           onResetColumnSize?.(event, columnIndex),
       })}
+      aria-labelledby={cellId}
       aria-orientation="vertical"
       aria-valuemax={max || undefined}
       aria-valuemin={minimumColumnWidth}
