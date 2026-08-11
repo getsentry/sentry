@@ -21,6 +21,7 @@ export function DragHandleDemo({variant}: {variant?: DragHandleVariant}) {
           <Text bold>Sized</Text>
         </Stack>
         <DragHandle
+          aria-label="Resize panes"
           isSizedFirst
           max={MAX_SIZE}
           min={MIN_SIZE}

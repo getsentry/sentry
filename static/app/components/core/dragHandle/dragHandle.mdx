@@ -69,6 +69,10 @@ Use the `ghost` variant to draw it only while the handle is hovered, focused, or
 
 The handle is a `separator` with `tabIndex={0}`, and reports `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` from the `value`, `min`, and `max` props.
 
+A focusable separator is a widget, so it must be named: pass either `aria-label` or `aria-labelledby`. Name what the handle resizes, such as `Resize panels`, rather than the handle itself; without a name it is announced as a bare number with no subject.
+
+Prefer `aria-labelledby` when the handle sits inside an element that takes its own name from its content, such as a table header cell. An `aria-label` there would also become part of that cell's name, so the column would announce as `duration Resize duration column`.
+
 The arrow keys along the handle's axis move it by 10px, or by 50px while shift is held.
 Pass `onKeyDown` to handle keys the handle does not claim, such as `Home` and `End`.
 

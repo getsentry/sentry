@@ -11,6 +11,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -285,11 +286,14 @@ function HeadCell({
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
+  const fallbackId = useId();
+  const cellId = props.id ?? fallbackId;
 
   return (
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
       {...props}
+      id={cellId}
       ref={cellRef}
       role="columnheader"
     >
@@ -303,6 +307,7 @@ function HeadCell({
       {showResizer && (
         <TableResizer onContextMenu={event => event.preventDefault()}>
           <DragHandle
+            aria-labelledby={cellId}
             isSizedFirst
             max={Math.max(max, context.minimumColumnWidth)}
             min={context.minimumColumnWidth}
