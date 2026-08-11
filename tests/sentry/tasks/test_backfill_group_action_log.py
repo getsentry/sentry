@@ -598,7 +598,8 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
                     "issues.backfill_group_action_log.enrollment_killswitch": False,
                     "issues.backfill_group_action_log.enrollment_organization_batch_size": 50,
                     "issues.backfill_group_action_log.enrollment_project_batch_size": 500,
-                    "issues.backfill_group_action_log.enrollment_inter_batch_delay_s": 0,
+                    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s": 0,
+                    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s": 0,
                 }
             )
         )

@@ -417,7 +417,7 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
     batch_size: int = options.get("issues.backfill_group_action_log.enrollment_project_batch_size")
     inter_batch_delay_s: int = options.get(
-        "issues.backfill_group_action_log.enrollment_inter_batch_delay_s"
+        "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s"
     )
     if batch_size <= 0:
         logger.error(
@@ -523,7 +523,7 @@ def enroll_projects_for_group_action_log_backfill(
         "issues.backfill_group_action_log.enrollment_organization_batch_size"
     )
     inter_batch_delay_s: int = options.get(
-        "issues.backfill_group_action_log.enrollment_inter_batch_delay_s"
+        "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s"
     )
     if batch_size <= 0:
         logger.error(

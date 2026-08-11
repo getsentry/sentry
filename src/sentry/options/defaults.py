@@ -1377,7 +1377,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.backfill_group_action_log.enrollment_inter_batch_delay_s",
+    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s",
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
