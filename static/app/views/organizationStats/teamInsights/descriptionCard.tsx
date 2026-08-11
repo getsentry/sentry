@@ -18,7 +18,7 @@ export function DescriptionCard({title, description, children}: Props) {
       <Container
         borderBottom={{zero: 'primary', '3xl': 'none'}}
         borderRight={{zero: 'none', '3xl': 'primary'}}
-        maxWidth={{'3xl': '250px'}}
+        maxWidth={{zero: 'none', '3xl': '250px'}}
         padding="xl"
       >
         <Stack gap="xs">
