@@ -49,10 +49,12 @@ interface ScmFeatureSelectionPanelProps {
  * Feature selection for the resolved platform, rendered as a sibling of
  * `ScmPlatformFeaturesCore`. Toggleable cards for platforms whose products are
  * user-configurable, informational cards for wizard-driven platforms, and
- * nothing when the platform has no product info. The resolved platform is the
+ * nothing when a resolved platform has no product info. The resolved platform is the
  * host's explicit selection or, before that commits, the first auto-detected
  * platform — re-derived here from the same (deduped) detection query Core uses.
- * Owns the feature-toggled analytic; renders nothing for an unresolved platform.
+ * Owns the feature-toggled analytic. In project creation, an unresolved platform
+ * keeps the section visible with the select-a-platform prompt; onboarding hides it
+ * until resolution.
  */
 export function ScmFeatureSelectionPanel({
   analyticsFlow,
@@ -200,7 +202,6 @@ export function ScmFeatureSelectionPanel({
 
   return (
     <ScmCollapsibleReveal open={showSection}>
-      {/* Keep spacing inside the reveal so it collapses with the content. */}
       <Stack gap="0" width="100%">
         <MotionStack layout="position" width="100%">
           {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
