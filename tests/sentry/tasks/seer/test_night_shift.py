@@ -10,6 +10,7 @@ from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -576,6 +577,38 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
             result = _get_eligible_projects(org, "manual")
 
         assert result[0].automation_tuning is None
+
+    def test_free_cohort_bypasses_automation_tuning_and_stopping_point(self) -> None:
+        """Free cohort projects with default options (automation_tuning=OFF,
+        stopping_point=code_changes) are not filtered out."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        # Only set up a repo (via ProjectRepository) — no automation tuning or
+        # stopping point configured, so defaults (OFF / code_changes) apply.
+        repo = self.create_repo(project=project, provider="github", name="owner/proj")
+        ProjectRepository.objects.create(project=project, repository=repo)
+
+        with (
+            patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=True),
+            patch("sentry.tasks.seer.night_shift.cron.is_free_cohort_org", return_value=True),
+        ):
+            result = _get_eligible_projects(org, "cron")
+
+        assert len(result) == 1
+        assert result[0].project == project
+        assert result[0].stopping_point == AutofixStoppingPoint.OPEN_PR
+
+    @patch("sentry.tasks.seer.night_shift.cron.is_free_cohort_org", return_value=False)
+    def test_paying_org_with_defaults_still_filtered(self, _mock_free_cohort) -> None:
+        """Non-free-cohort org with default options is still filtered out."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        repo = self.create_repo(project=project, provider="github", name="owner/proj")
+        self.create_seer_project_repository(project=project, repository=repo)
+
+        result = _get_eligible_projects(org, "manual")
+
+        assert result == []
 
 
 @django_db_all

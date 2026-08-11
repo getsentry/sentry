@@ -21,6 +21,7 @@ from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
+    is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
@@ -202,6 +203,13 @@ def _process_verdicts(
             else default_stopping_point
             for pid in project_ids
         }
+
+        # Free cohort orgs have no project settings — override to OPEN_PR
+        # so night shift runs produce PRs.
+        if is_free_cohort_org(organization):
+            stopping_point_by_project_id = {
+                pid: AutofixStoppingPoint.OPEN_PR for pid in project_ids
+            }
 
         referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
 

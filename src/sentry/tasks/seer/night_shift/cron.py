@@ -664,6 +664,12 @@ def _get_eligible_projects(
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
+    is_free_cohort = is_free_cohort_org(organization)
+    if is_free_cohort:
+        logger.info(
+            "night_shift.free_cohort_project_overrides",
+            extra={"organization_id": organization.id, "num_projects": len(project_map)},
+        )
 
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():
@@ -671,14 +677,23 @@ def _get_eligible_projects(
         if pref is None:
             continue
         tweaks = get_night_shift_tweaks(project)
-        stopping_point = AutofixStoppingPoint(
-            pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+        # Free cohort orgs have no project settings configured — override
+        # stopping_point to OPEN_PR so night shift can produce PRs.
+        stopping_point = (
+            AutofixStoppingPoint.OPEN_PR
+            if is_free_cohort
+            else AutofixStoppingPoint(
+                pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+            )
         )
 
         reasons: list[str] = []
         if not pref.repositories:
             reasons.append("no_connected_repos")
-        if pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF:
+        if (
+            not is_free_cohort
+            and pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
+        ):
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
             reasons.append("tweaks_disabled")
@@ -709,7 +724,9 @@ def _get_eligible_projects(
                 tweaks=tweaks,
                 stopping_point=stopping_point,
                 connected_repos=[f"{repo.owner}/{repo.name}" for repo in pref.repositories],
-                automation_tuning=pref.autofix_automation_tuning if is_legacy_org else None,
+                automation_tuning=pref.autofix_automation_tuning
+                if is_legacy_org and not is_free_cohort
+                else None,
             )
         )
 
