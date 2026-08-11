@@ -916,6 +916,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
@@ -1075,6 +1076,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "deliver-group-action-log-outbox": {
+        "task": "issues.action_log:sentry.issues.action_log.tasks.enqueue_group_action_log_outbox_jobs",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
