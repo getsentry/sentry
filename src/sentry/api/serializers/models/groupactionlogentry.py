@@ -27,8 +27,8 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import (
-    GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS,
     GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+    translate_group_action_data_to_activity_data,
 )
 
 if TYPE_CHECKING:
@@ -198,12 +198,7 @@ class GroupActionLogEntrySerializer(Serializer):
             counterpart_group_ids = (obj.data or {}).get("counterpart_group_ids", [])
             data = {"issues": [{"id": str(group_id)} for group_id in counterpart_group_ids]}
         else:
-            raw_data = obj.data or {}
-            key_translations = GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS.get(obj.type)
-            if key_translations:
-                data = {key_translations.get(key, key): value for key, value in raw_data.items()}
-            else:
-                data = dict(raw_data)
+            data = translate_group_action_data_to_activity_data(obj.type, obj.data)
             data.pop("mentions", None)
 
         if (

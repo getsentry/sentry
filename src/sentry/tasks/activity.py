@@ -66,6 +66,7 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
     silo_mode=SiloMode.CELL,
 )
 def send_activity_notifications(activity_id: int) -> None:
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
     from sentry.models.activity import Activity
     from sentry.models.organization import Organization
     from sentry.notifications.platform.service import NotificationService
@@ -75,9 +76,12 @@ def send_activity_notifications(activity_id: int) -> None:
     from sentry.notifications.platform.templates.activity.base import (
         ACTIVITY_TYPE_TO_SOURCE,
         ActivityNotificationData,
-        build_activity_notification_data,
+        build_activity_notification_context,
+        build_activity_notification_data_from_context,
+        build_group_action_notification_context,
     )
     from sentry.types.activity import ActivityType
+    from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
     try:
         activity = Activity.objects.get(pk=activity_id)
@@ -100,7 +104,24 @@ def send_activity_notifications(activity_id: int) -> None:
         _send_legacy_activity_notification(activity=activity)
         return
 
-    strategy = IssueSubscribersActivityStrategy(activity=activity)
+    context = build_activity_notification_context(activity)
+    if activity.group_id is not None:
+        group_action_log_entry = GroupActionLogEntry.objects.filter(
+            group_id=activity.group_id,
+            idempotency_key=activity_action_idempotency_key(activity),
+        ).first()
+        if group_action_log_entry is not None:
+            group_action_context = build_group_action_notification_context(group_action_log_entry)
+            if (
+                group_action_context is not None
+                and group_action_context.activity_type == activity.type
+            ):
+                context = group_action_context
+
+    strategy = IssueSubscribersActivityStrategy(
+        group=activity.group,
+        actor_user_id=context.actor_user_id,
+    )
     for target in strategy.get_targets():
-        data = build_activity_notification_data(activity=activity, target=target)
+        data = build_activity_notification_data_from_context(context=context, target=target)
         NotificationService[ActivityNotificationData](data=data).notify_target(target=target)

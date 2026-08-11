@@ -789,6 +789,11 @@ class SeerIterationStartedAction(GroupAction):
 class SeerIterationCompletedAction(GroupAction):
     user_visible = True
 
+    run_id: Optional[int | str] = None
+    pull_requests: Optional[list[dict[str, object]]] = None
+    code_changes: Optional[dict[str, list[dict[str, object]]]] = None
+    iteration_index: Optional[int] = None
+
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_COMPLETED

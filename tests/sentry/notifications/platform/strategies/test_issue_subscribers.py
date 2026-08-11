@@ -9,19 +9,11 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import ActivityType
 
 
 class IssueSubscribersActivityStrategyTest(TestCase):
     def test_returns_empty_when_no_group(self) -> None:
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-        )
-        activity.group = None
-        activity.save()
-
-        strategy = IssueSubscribersActivityStrategy(activity=activity)
+        strategy = IssueSubscribersActivityStrategy(group=None, actor_user_id=None)
         assert strategy.get_targets() == []
 
     def test_returns_subscriber_targets(self) -> None:
@@ -30,12 +22,7 @@ class IssueSubscribersActivityStrategyTest(TestCase):
             user_id=self.user.id,
             is_active=True,
         )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-        )
-
-        strategy = IssueSubscribersActivityStrategy(activity=activity)
+        strategy = IssueSubscribersActivityStrategy(group=self.group, actor_user_id=None)
         targets = strategy.get_targets()
 
         email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]
@@ -53,13 +40,7 @@ class IssueSubscribersActivityStrategyTest(TestCase):
             user_id=self.user.id,
             is_active=True,
         )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            user_id=self.user.id,
-        )
-
-        strategy = IssueSubscribersActivityStrategy(activity=activity)
+        strategy = IssueSubscribersActivityStrategy(group=self.group, actor_user_id=self.user.id)
         targets = strategy.get_targets()
 
         assert not any(
@@ -74,17 +55,13 @@ class IssueSubscribersActivityStrategyTest(TestCase):
             user_id=self.user.id,
             is_active=True,
         )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-            user_id=self.user.id,
-        )
-
         with patch(
             "sentry.notifications.utils.participants.get_option_from_list",
             return_value="1",
         ):
-            strategy = IssueSubscribersActivityStrategy(activity=activity)
+            strategy = IssueSubscribersActivityStrategy(
+                group=self.group, actor_user_id=self.user.id
+            )
             targets = strategy.get_targets()
 
         email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]
@@ -99,12 +76,7 @@ class IssueSubscribersActivityStrategyTest(TestCase):
                 user_id=u.id,
                 is_active=True,
             )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-        )
-
-        strategy = IssueSubscribersActivityStrategy(activity=activity)
+        strategy = IssueSubscribersActivityStrategy(group=self.group, actor_user_id=None)
         targets = strategy.get_targets()
 
         email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]
@@ -118,12 +90,7 @@ class IssueSubscribersActivityStrategyTest(TestCase):
             user_id=self.user.id,
             is_active=False,
         )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_RESOLVED.value,
-        )
-
-        strategy = IssueSubscribersActivityStrategy(activity=activity)
+        strategy = IssueSubscribersActivityStrategy(group=self.group, actor_user_id=None)
         targets = strategy.get_targets()
 
         email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]

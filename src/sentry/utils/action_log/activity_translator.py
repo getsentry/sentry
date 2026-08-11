@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from pydantic.error_wrappers import ValidationError
 
@@ -148,6 +148,25 @@ GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
     for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
     if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS
 }
+
+
+def translate_group_action_data_to_activity_data(
+    group_action_type: int,
+    data: Mapping[str, Any] | None,
+    *,
+    exclude_none: bool = False,
+) -> dict[str, Any]:
+    """Translate persisted GroupAction field names back to the Activity data shape.
+
+    GroupAction models serialize optional defaults as ``None``. Consumers that
+    rely on Activity's sparse data shape can exclude those defaults.
+    """
+    key_translations = GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS.get(group_action_type, {})
+    return {
+        key_translations.get(key, key): value
+        for key, value in (data or {}).items()
+        if not exclude_none or value is not None
+    }
 
 
 logger = logging.getLogger(__name__)

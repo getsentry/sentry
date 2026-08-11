@@ -25,24 +25,32 @@ def _get_team_option(assignee_id: int | None, organization: Organization) -> Tea
     return Team.objects.filter(id=assignee_id, organization=organization).first()
 
 
+def _is_team_assignee(data: Mapping[str, Any] | None) -> bool:
+    return data is not None and data.get("assigneeType") == "team"
+
+
 def is_team_assignee(activity: Activity) -> bool:
-    return bool(activity.data) and activity.data.get("assigneeType") == "team"
+    return _is_team_assignee(activity.data)
 
 
-def get_assignee_str(activity: Activity, organization: Organization) -> str:
+def get_assignee_str_from_data(
+    data: Mapping[str, Any] | None,
+    actor_user_id: int | None,
+    organization: Organization,
+) -> str:
     """Get a human-readable version of the assignment's target."""
 
-    assignee_id = activity.data.get("assignee") if activity.data else None
-    assignee_email: str | None = activity.data.get("assigneeEmail") if activity.data else None
+    assignee_id = data.get("assignee") if data else None
+    assignee_email: str | None = data.get("assigneeEmail") if data else None
 
-    if is_team_assignee(activity):
+    if _is_team_assignee(data):
         assignee_team = _get_team_option(assignee_id, organization)
         if assignee_team:
             return f"the {assignee_team.slug} team"
         return "an unknown team"
 
     # TODO(mgaeta): Refactor GroupAssigneeManager to not make IDs into strings.
-    if str(activity.user_id) == str(assignee_id):
+    if actor_user_id is not None and str(actor_user_id) == str(assignee_id):
         return "themselves"
 
     assignee_user = _get_user_option(assignee_id)
@@ -52,6 +60,10 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
     if assignee_email:
         return assignee_email
     return "an unknown user"
+
+
+def get_assignee_str(activity: Activity, organization: Organization) -> str:
+    return get_assignee_str_from_data(activity.data, activity.user_id, organization)
 
 
 class AssignedActivityNotification(GroupActivityNotification):

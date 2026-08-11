@@ -32,6 +32,7 @@ from sentry.issues.action_log.types import (
     MergeIntoOtherAction,
     PullRequestClosedAction,
     ResolveAction,
+    SeerIterationCompletedAction,
     SetPriorityAction,
     SetResolvedByAgeAction,
     UnassignAction,
@@ -856,3 +857,34 @@ class TestActivitiesCreateActions(TestCase):
         caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
         action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
         assert action.auto_resolve_age_threshold == 123
+
+    def test_seer_iteration_completed_preserves_notification_data(self) -> None:
+        data = {
+            "run_id": "run-123",
+            "iteration_index": 2,
+            "pull_requests": [
+                {
+                    "repo_name": "owner/repo",
+                    "pull_request": {
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                        "pr_number": 42,
+                    },
+                }
+            ],
+            "code_changes": {"owner/repo": [{"path": "src/example.py"}]},
+        }
+
+        with (
+            action_context_scope(ActionSource.SEER_EXPLORER),
+            capture_action_log() as log,
+        ):
+            self.create_group_activity(
+                group=self.group,
+                type=ActivityType.SEER_ITERATION_COMPLETED.value,
+                user_id=self.user.id,
+                data=data,
+            )
+
+        captured = cast(CapturedAction, log.assert_logged(SeerIterationCompletedAction))
+        action = cast(SeerIterationCompletedAction, captured.action)
+        assert action.dict(exclude_none=True) == data

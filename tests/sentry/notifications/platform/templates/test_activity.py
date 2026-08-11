@@ -1,3 +1,4 @@
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_TYPE_TO_SOURCE,
@@ -6,8 +7,11 @@ from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_PROJECT_URL,
     EXAMPLE_USER_SETTINGS_URL,
     ActivityNotificationData,
+    AssignedNotificationData,
     build_activity_notification_data,
+    build_activity_notification_data_from_context,
     build_footer,
+    build_group_action_notification_context,
     build_issue_link,
     create_activity_notification_example,
     get_issue_description,
@@ -131,6 +135,64 @@ class ActivityAlertBaseTest(TestCase):
         assert data.alert_url is not None
         assert data.activity_data == activity.data
         assert data.user_settings_url is None
+
+    def test_build_activity_notification_data_from_group_action_log_entry(self) -> None:
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.ASSIGN,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={
+                "assignee": str(self.user.id),
+                "assignee_email": self.user.email,
+                "assignee_name": None,
+                "assignee_type": "user",
+            },
+        )
+
+        context = build_group_action_notification_context(entry)
+        assert context is not None
+        data = build_activity_notification_data_from_context(context=context)
+
+        assert isinstance(data, AssignedNotificationData)
+        assert data.source == NotificationSource.ACTIVITY_ASSIGNED
+        assert data.activity_type == ActivityType.ASSIGNED.value
+        assert data.activity_data == {
+            "assignee": str(self.user.id),
+            "assigneeEmail": self.user.email,
+            "assigneeType": "user",
+        }
+        assert data.activity_user_name == self.user.get_display_name()
+        assert data.assignee_label == "themselves"
+
+    def test_group_action_log_system_actor_has_no_activity_user(self) -> None:
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.RESOLVE,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+        )
+
+        context = build_group_action_notification_context(entry)
+
+        assert context is not None
+        assert context.actor_user_id is None
+
+    def test_group_action_log_assignment_without_actor_or_assignee(self) -> None:
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.ASSIGN,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            data={},
+        )
+
+        context = build_group_action_notification_context(entry)
+        assert context is not None
+        data = build_activity_notification_data_from_context(context=context)
+
+        assert isinstance(data, AssignedNotificationData)
+        assert data.assignee_label == "an unknown user"
 
     def test_build_activity_notification_data_user_settings_url_email_with_workflow(self) -> None:
         workflow = self.create_workflow(

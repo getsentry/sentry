@@ -1,6 +1,9 @@
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
+from sentry.issues.action_log.types import GroupActorType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -21,6 +24,10 @@ from sentry.notifications.platform.types import (
 )
 from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.utils.action_log.activity_translator import (
+    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+    translate_group_action_data_to_activity_data,
+)
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Workflow
 
@@ -54,11 +61,20 @@ EXAMPLE_USER_SETTINGS_URL = "https://sentry.io/settings/account/notifications/al
 FOOTER_DELIMITER = " · "
 
 
+@dataclass(frozen=True)
+class ActivityNotificationContext:
+    activity_type: int
+    activity_data: dict[str, Any] | None
+    actor_user_id: int | None
+    group_id: int | None
+    project_id: int
+
+
 class ActivityNotificationData(NotificationData):
     source: NotificationSource
     activity_type: int
     activity_data: dict[str, Any] | None = None
-    # The name of the user who is associated with an activity (Activity.user_id)
+    # The name of the user who performed the activity.
     activity_user_name: str | None = None
     issue_short_id: str | None = None
     issue_url: str
@@ -140,17 +156,51 @@ def get_issue_description(data: ActivityNotificationData) -> list[NotificationSe
     return sections
 
 
-def extract_notification_models_by_activity(
-    activity: Activity,
+def build_activity_notification_context(activity: Activity) -> ActivityNotificationContext:
+    return ActivityNotificationContext(
+        activity_type=activity.type,
+        activity_data=activity.data,
+        actor_user_id=activity.user_id,
+        group_id=activity.group_id,
+        project_id=activity.project_id,
+    )
+
+
+def build_group_action_notification_context(
+    entry: GroupActionLogEntry,
+) -> ActivityNotificationContext | None:
+    activity_type = GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.get(entry.type)
+    if activity_type is None:
+        return None
+
+    activity_data = translate_group_action_data_to_activity_data(
+        entry.type,
+        entry.data,
+        exclude_none=True,
+    )
+    actor_user_id = entry.actor_id if entry.actor_type == GroupActorType.USER else None
+
+    return ActivityNotificationContext(
+        activity_type=activity_type,
+        activity_data=activity_data,
+        actor_user_id=actor_user_id,
+        group_id=entry.group_id,
+        project_id=entry.project_id,
+    )
+
+
+def _extract_notification_models(
+    group_id: int | None,
+    project_id: int,
 ) -> tuple[Group, Project, Organization]:
     try:
-        group = Group.objects.get_from_cache(id=activity.group_id)
+        group = Group.objects.get_from_cache(id=group_id)
     except Group.DoesNotExist:
-        raise ValueError(f"Group not found: {activity.group_id}")
+        raise ValueError(f"Group not found: {group_id}")
     try:
-        project = Project.objects.get_from_cache(id=activity.project_id)
+        project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
-        raise ValueError(f"Project not found: {activity.project_id}")
+        raise ValueError(f"Project not found: {project_id}")
     try:
         organization = Organization.objects.get_from_cache(id=project.organization_id)
     except Organization.DoesNotExist:
@@ -159,20 +209,44 @@ def extract_notification_models_by_activity(
     return group, project, organization
 
 
+def extract_notification_models_by_activity(
+    activity: Activity,
+) -> tuple[Group, Project, Organization]:
+    return _extract_notification_models(activity.group_id, activity.project_id)
+
+
 def build_activity_notification_data(
-    activity: Activity, *, workflow_id: int | None = None, target: NotificationTarget | None = None
+    activity: Activity,
+    *,
+    workflow_id: int | None = None,
+    target: NotificationTarget | None = None,
+) -> ActivityNotificationData:
+    return build_activity_notification_data_from_context(
+        context=build_activity_notification_context(activity),
+        workflow_id=workflow_id,
+        target=target,
+    )
+
+
+def build_activity_notification_data_from_context(
+    context: ActivityNotificationContext,
+    *,
+    workflow_id: int | None = None,
+    target: NotificationTarget | None = None,
 ) -> ActivityNotificationData:
     from sentry.integrations.messaging.message_builder import (
         build_attachment_text,
         build_attachment_title,
     )
-    from sentry.notifications.notifications.activity.assigned import get_assignee_str
+    from sentry.notifications.notifications.activity.assigned import get_assignee_str_from_data
 
-    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
+    source = ACTIVITY_TYPE_TO_SOURCE.get(context.activity_type)
     if source is None:
-        raise ValueError(f"No notification source for activity type: {activity.type}")
+        raise ValueError(f"No notification source for activity type: {context.activity_type}")
 
-    group, project, organization = extract_notification_models_by_activity(activity)
+    group, project, organization = _extract_notification_models(
+        context.group_id, context.project_id
+    )
 
     workflow: Workflow | None = None
     if workflow_id:
@@ -182,12 +256,12 @@ def build_activity_notification_data(
             raise ValueError(f"Workflow not found: {workflow_id}")
 
     issue_url_params: dict[str, str] = {}
-    if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
+    if ActivityType(context.activity_type) in SEER_ACTIVITY_TYPES:
         issue_url_params.update({"seerDrawer": "true"})
 
     action_data = dict(
         source=source,
-        activity_type=activity.type,
+        activity_type=context.activity_type,
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(group.get_absolute_url(params=issue_url_params)),
         issue_title=build_attachment_title(group) or "",
@@ -198,7 +272,7 @@ def build_activity_notification_data(
             f"organizations/{organization.slug}/issues/",
             query=urlencode({"project": project.id}),
         ),
-        activity_data=activity.data,
+        activity_data=context.activity_data,
         activity_user_name=None,
     )
 
@@ -227,18 +301,18 @@ def build_activity_notification_data(
             }
         )
 
-    if activity.user_id:
-        user = user_service.get_user(user_id=activity.user_id)
+    if context.actor_user_id:
+        user = user_service.get_user(user_id=context.actor_user_id)
         if user:
             action_data["activity_user_name"] = user.get_display_name()
 
-    match activity.type:
+    match context.activity_type:
         case ActivityType.SET_RESOLVED_IN_COMMIT.value:
             commit_sha = None
             commit_message = None
-            if activity.data and "commit" in activity.data:
+            if context.activity_data and "commit" in context.activity_data:
                 try:
-                    commit = Commit.objects.get(id=activity.data["commit"])
+                    commit = Commit.objects.get(id=context.activity_data["commit"])
                     commit_sha = commit.short_id
                     commit_message = commit.message
                 except Commit.DoesNotExist:
@@ -249,8 +323,8 @@ def build_activity_notification_data(
         case ActivityType.SET_RESOLVED_IN_RELEASE.value:
             release_url = None
             # If version is missing, None or "" -> it was resolved in an upcoming release
-            if activity.data and activity.data.get("version"):
-                raw_version = activity.data["version"]
+            if context.activity_data and context.activity_data.get("version"):
+                raw_version = context.activity_data["version"]
                 release_url = organization.absolute_url(
                     f"organizations/{organization.slug}/releases/{raw_version}/",
                     query=urlencode({"project": project.id}),
@@ -258,8 +332,14 @@ def build_activity_notification_data(
             return SetResolvedInReleaseNotificationData(**action_data, release_url=release_url)
 
         case ActivityType.ASSIGNED.value:
-            assignee_label = get_assignee_str(activity=activity, organization=organization)
-            assignee_email = activity.data.get("assigneeEmail") if activity.data else None
+            assignee_label = get_assignee_str_from_data(
+                data=context.activity_data,
+                actor_user_id=context.actor_user_id,
+                organization=organization,
+            )
+            assignee_email = (
+                context.activity_data.get("assigneeEmail") if context.activity_data else None
+            )
             assignee_url = None
             # TODO(Leander): If a team is assigned, maybe link to the team page?
             if assignee_email:
