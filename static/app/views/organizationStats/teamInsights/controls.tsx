@@ -4,6 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -140,7 +141,14 @@ export function TeamStatsControls({
   const isOrgOwner = organization.access.includes('org:admin');
 
   return (
-    <ControlsWrapper showEnvironment={showEnvironment}>
+    <Grid
+      align="center"
+      columns={{
+        xl: `246px ${showEnvironment ? '246px' : ''} 1fr`,
+      }}
+      gap="xl"
+      marginBottom="xl"
+    >
       <TeamSelector
         name="select-team"
         inFieldLabel={t('Team: ')}
@@ -217,20 +225,9 @@ export function TeamStatsControls({
           </TimeRangeSelectTrigger>
         )}
       />
-    </ControlsWrapper>
+    </Grid>
   );
 }
-
-const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 246px ${p => (p.showEnvironment ? '246px' : '')} 1fr;
-  }
-`;
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   div {

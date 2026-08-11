@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -301,7 +301,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     });
 
     return (
-      <PageControl>
+      <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}>
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
@@ -316,7 +316,7 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
           />
           <DatePageFilter />
         </PageFilterBar>
-      </PageControl>
+      </Grid>
     );
   };
 
@@ -425,20 +425,10 @@ const DropdownDataCategory = styled(CompactSelect)`
     height: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     grid-column: auto / span 2;
   }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-column: auto / span 1;
-  }
-`;
-
-const PageControl = styled('div')`
-  display: grid;
-
-  margin-bottom: 0;
-  grid-template-columns: minmax(0, max-content);
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: minmax(0, 1fr);
   }
 `;
