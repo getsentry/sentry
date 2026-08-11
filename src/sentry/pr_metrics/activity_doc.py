@@ -18,6 +18,7 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from typing import Any, Literal, TypedDict
 
+from sentry.integrations.github.utils import is_github_bot_login
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.utils import metrics
 
@@ -851,10 +852,13 @@ def classify_ci_head_actor(
     """Bucket a head's webhook sender into seer / human / bot / unknown."""
     if not sender_type:
         return "unknown"
-    if sender_type != "Bot":
+
+    if sender_type != "Bot" and not is_github_bot_login(sender_login):
         return "human"
+
     if _normalize_github_login(sender_login) in _OUR_GITHUB_BOT_LOGINS:
         return "seer"
+
     return "bot"
 
 

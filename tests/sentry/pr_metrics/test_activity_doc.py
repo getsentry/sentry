@@ -25,6 +25,7 @@ from sentry.pr_metrics.activity_doc import (
     apply_activity,
     ci_head_outcomes_from_doc,
     ci_head_results_from_doc,
+    classify_ci_head_actor,
     commit_shas_from_doc,
     derived_metrics_from_doc,
     extract_event_at,
@@ -1589,6 +1590,10 @@ def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
     assert results[1]["outcome"] == "inconclusive"
     assert results[2]["sender_login"] == "bob"
     assert results[3]["actor"] == "unknown"
+
+
+def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:
+    assert classify_ci_head_actor("Copilot", "User") == "bot"
 
 
 def test_ci_head_outcomes_aborted_runs_without_suite_are_inconclusive() -> None:
