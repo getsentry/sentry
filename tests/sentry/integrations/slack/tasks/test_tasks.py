@@ -309,8 +309,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
+            find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
         assert rule.created_by_id == self.user.id
@@ -340,8 +339,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
+            find_channel_id_for_alert_rule(**data)
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
@@ -367,8 +365,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
+            find_channel_id_for_alert_rule(**data)
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
@@ -396,13 +393,12 @@ class SlackTasksTest(TestCase):
         # Catch the exception we've side-effected in the serializer
         with pytest.raises(Exception, match="something broke!"):
             with self.tasks():
-                with self.feature(["organizations:incidents"]):
-                    find_channel_id_for_alert_rule(
-                        data=data,
-                        uuid=self.uuid,
-                        organization_id=self.organization.id,
-                        user_id=self.user.id,
-                    )
+                find_channel_id_for_alert_rule(
+                    data=data,
+                    uuid=self.uuid,
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                )
 
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_get_channel_id.assert_called_with(
@@ -438,8 +434,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
+            find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
@@ -473,8 +468,7 @@ class SlackTasksTest(TestCase):
         }
 
         with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
+            find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
