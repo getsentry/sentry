@@ -2092,6 +2092,36 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    # The counter that makes the control-side own-repo drop verifiable: it has to
+    # track rows written, or enabling that drop has no cell-side signal at all.
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_run_recorded_activity_is_counted(self, mock_metrics: MagicMock) -> None:
+        self._call_run()
+
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.check.activity_recorded", tags={"github_event": "check_run"}
+        )
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_suite_recorded_activity_is_counted(self, mock_metrics: MagicMock) -> None:
+        self._call_suite()
+
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.check.activity_recorded", tags={"github_event": "check_suite"}
+        )
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_run_counts_nothing_when_no_own_repo_pr(self, mock_metrics: MagicMock) -> None:
+        """The exact payload control would drop. The counter must already read zero
+        here, or it cannot distinguish a working drop from a broken one."""
+        self._call_run(pr_numbers=(), foreign_pr_numbers=(42,))
+
+        assert not any(
+            call.args[0] == "pr_metrics.check.activity_recorded"
+            for call in mock_metrics.incr.call_args_list
+        )
+
     def test_check_run_flag_off_skips(self) -> None:
         with self.feature({"organizations:pr-metrics-activity": False}):
             self._call_run()

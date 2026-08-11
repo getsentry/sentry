@@ -925,6 +925,7 @@ def handle_check_suite(
                 provider_ts=check_suite.get("updated_at"),
                 head_sha=check_suite.get("head_sha"),
             )
+            _record_check_activity_metric(github_event)
 
 
 def handle_check_run(
@@ -973,6 +974,22 @@ def handle_check_run(
                 provider_ts=check_run.get("completed_at"),
                 head_sha=check_run.get("head_sha"),
             )
+            _record_check_activity_metric(github_event)
+
+
+def _record_check_activity_metric(github_event: GithubWebhookType) -> None:
+    """Count the check activity this cell actually recorded.
+
+    The control parser drops check deliveries it predicts are no-ops here
+    (``ActionFilter.own_repo_pr_actions``). That prediction reads the payload alone,
+    and nothing else on this path is instrumented — ``_write_activity_row`` is a bare
+    insert — so a wrong prediction would silently stop work with no signal anywhere.
+    This is that signal: it must not move when a drop is enabled in control.
+
+    Sampled. The question it answers is "did the rate change", which 10% already
+    answers precisely at this volume (~90/s).
+    """
+    metrics.incr("pr_metrics.check.activity_recorded", tags={"github_event": github_event.value})
 
 
 def _prs_from_check_payload(
