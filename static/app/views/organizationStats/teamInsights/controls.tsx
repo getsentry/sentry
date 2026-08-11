@@ -218,13 +218,13 @@ export function TeamStatsControls({
             ...props.arbitraryOptions,
           })}
           trigger={triggerProps => (
-            <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
+            <FullWidthTimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
               {period
                 ? relativeOptions[period] ||
                   getArbitraryRelativePeriod(period)[period] ||
                   triggerProps.children
                 : triggerProps.children}
-            </TimeRangeSelectTrigger>
+            </FullWidthTimeRangeSelectTrigger>
           )}
         />
       </Container>
@@ -235,11 +235,11 @@ export function TeamStatsControls({
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   width: 100%;
 
-  button {
-    width: 100%;
-  }
-
   div {
     min-height: unset;
   }
+`;
+
+const FullWidthTimeRangeSelectTrigger = styled(TimeRangeSelectTrigger)`
+  width: 100%;
 `;
