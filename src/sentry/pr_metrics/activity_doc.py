@@ -893,36 +893,6 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
     return {sha: _head_conclusion(groups) for sha, groups in groups_by_sha.items()}
 
 
-def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
-    """Map head SHA → ``(sender_login, sender_type)`` for every head we can attribute.
-
-    Reads the dedicated ``open_head`` item and sender slots on ``sync_chain``.
-    A SHA neither source covers stays unmapped (callers treat it as ``unknown``).
-
-    ``events`` is deliberately *not* consulted, even though it carries the same
-    senders, because its cap drops the newest entries while ``sync_chain`` drops
-    the oldest. Legacy documents without these dedicated fields remain readable
-    with unknown attribution.
-    """
-    pushers: dict[str, tuple[str, str]] = {}
-
-    open_head = doc.get("open_head")
-    if open_head:
-        pushers[open_head["head_sha"]] = (
-            open_head.get("sender_login") or "",
-            open_head.get("sender_type") or "",
-        )
-
-    for pair in doc.get("sync_chain", []):
-        after = pair[0]
-        if not after or len(pair) < 4:
-            continue
-
-        pushers[after] = (pair[2] or "", pair[3] or "")
-
-    return pushers
-
-
 def classify_ci_head_actor(
     sender_login: str, sender_type: str
 ) -> Literal["seer", "human", "bot", "unknown"]:
@@ -974,6 +944,11 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
     Check heads absent from the bounded history are appended in sorted SHA order
     with ``sequence=None`` so CI data is not silently lost and no false arrival
     order is invented. Legacy documents may lack ``open_head`` or sender slots.
+
+    Attribution comes only from ``open_head`` and the sender slots on
+    ``sync_chain``. ``events`` is deliberately *not* consulted, even though it
+    carries the same senders, because its cap drops the newest entries while
+    ``sync_chain`` drops the oldest.
     """
     outcomes = ci_head_outcomes_from_doc(doc)
     results: list[CiHeadResult] = []
