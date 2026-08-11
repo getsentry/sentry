@@ -205,6 +205,8 @@ def _send_webhook_request(
     # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
     # Also that we aren't guaranteed to be in main thread
     context_wrapper: contextlib.AbstractContextManager[None]
+    timeout_seconds = None
+
     if SiloMode.get_current_mode() is SiloMode.CONTROL:
         context_wrapper = contextlib.nullcontext()
     else:
