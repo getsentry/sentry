@@ -532,6 +532,8 @@ describe('searchSyntax/parser', () => {
       expect(getKeyName(filter.key)).toBe('tags[csv_headers,array]');
       expect(getKeyLabel(filter.key)).toBe('csv_headers');
       expect(stringifyToken(filter.key)).toBe('tags[csv_headers,array][*]');
+      // The whole filter round-trips without an operator sentinel.
+      expect(stringifyToken(filter)).toBe('tags[csv_headers,array][*]:foo');
     });
 
     it('does not treat the tags[...,array] form without [*] as membership', () => {
@@ -573,6 +575,7 @@ describe('searchSyntax/parser', () => {
       expect(getKeyName(filter.key)).toBe('csv_headers');
       expect(getKeyLabel(filter.key)).toBe('csv_headers');
       expect(stringifyToken(filter.key)).toBe('csv_headers[*]');
+      expect(stringifyToken(filter)).toBe('csv_headers[*]:foo');
     });
 
     it('marks a negated membership filter as does-not-include', () => {
@@ -583,6 +586,9 @@ describe('searchSyntax/parser', () => {
       }
 
       const filter = result.find(token => token.type === Token.FILTER);
+      if (filter?.type !== Token.FILTER) {
+        throw new Error('Expected a filter token');
+      }
 
       expect(filter).toEqual(
         expect.objectContaining({
@@ -592,6 +598,9 @@ describe('searchSyntax/parser', () => {
           operator: TermOperator.INCLUDES,
         })
       );
+
+      // Negation round-trips as `!…[*]`, not a DoesNotInclude sentinel.
+      expect(stringifyToken(filter)).toBe('!csv_headers[*]:foo');
     });
   });
 });

@@ -1,6 +1,7 @@
 import type {LocationRange} from 'peggy';
 
 import {
+  FilterType,
   Token,
   wildcardOperators,
   type TokenResult,
@@ -308,7 +309,12 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
 
-  stringifiedToken += token.operator;
+  // Array membership (INCLUDES / DOES_NOT_INCLUDE) is expressed by the `[*]` key
+  // suffix and `!` negation, not a value-prefix operator sentinel — so skip the
+  // operator for these filters.
+  if (token.filter !== FilterType.ARRAY_INCLUDES) {
+    stringifiedToken += token.operator;
+  }
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;
