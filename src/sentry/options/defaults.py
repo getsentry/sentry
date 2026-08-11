@@ -87,6 +87,26 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Randomly sample rendered public API responses and validate them against their OpenAPI declarations.
+register(
+    "api.response-schema-validation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.response-schema-validation.max-response-bytes",
+    type=Int,
+    default=512 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "api.response-schema-validation.excluded-operations",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Redis
 register(
     "redis.clusters",
