@@ -395,18 +395,19 @@ def create_block_execution(
 
 def mark_block_execution_dispatched(
     execution: InvestigationBlockExecution, *, seer_run_id: int
-) -> None:
-    InvestigationBlockExecution.objects.filter(
+) -> bool:
+    updated = InvestigationBlockExecution.objects.filter(
         id=execution.id, status=InvestigationBlockExecutionStatus.PENDING
     ).update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
         started_at=timezone.now(),
     )
+    return updated == 1
 
 
-def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> None:
-    InvestigationBlockExecution.objects.filter(
+def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:
+    updated = InvestigationBlockExecution.objects.filter(
         id=execution.id,
         status__in=[
             InvestigationBlockExecutionStatus.PENDING,
@@ -420,3 +421,4 @@ def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution)
         },
         completed_at=timezone.now(),
     )
+    return updated == 1

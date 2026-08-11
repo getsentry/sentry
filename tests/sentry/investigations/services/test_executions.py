@@ -247,7 +247,7 @@ class InvestigationExecutionServiceTest(TestCase):
         execution, _ = self.run_block(block)
         seer_run = self.create_seer_run(organization=self.organization)
 
-        mark_block_execution_dispatch_failed(execution)
+        assert mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.FAILED
         assert execution.error == {
@@ -255,7 +255,7 @@ class InvestigationExecutionServiceTest(TestCase):
             "message": "The execution could not be started.",
         }
 
-        mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
+        assert not mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.FAILED
         assert execution.seer_run_id is None
@@ -264,15 +264,15 @@ class InvestigationExecutionServiceTest(TestCase):
         block = self.create_block()
         execution, _ = self.run_block(block)
         seer_run = self.create_seer_run(organization=self.organization)
-        mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
-        mark_block_execution_dispatch_failed(execution)
+        assert mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
+        assert mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.FAILED
 
         execution.status = InvestigationBlockExecutionStatus.COMPLETED
         execution.error = None
         execution.save(update_fields=["status", "error"])
-        mark_block_execution_dispatch_failed(execution)
+        assert not mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert execution.error is None
