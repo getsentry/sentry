@@ -35,7 +35,6 @@ class GithubPullRequestReviewComment(GithubIssueComment):
     line: int | None = None
     start_line: int | None = None
     diff_hunk: str | None = None
-    # GraphQL node id used to resolve the review thread at completion (CW-1688).
     unique_id: str | None = None
 
 
