@@ -1,7 +1,6 @@
 import type {LocationRange} from 'peggy';
 
 import {
-  FilterType,
   Token,
   wildcardOperators,
   type TokenResult,
@@ -55,6 +54,16 @@ export function quoteFilterKey(key: string): string {
   }
 
   return key;
+}
+
+/**
+ * Strips a trailing array-membership operator (`[`, `[*`, or `[*]`) from a filter
+ * key, returning the base attribute key. The `[*]` operator is query syntax, not
+ * part of the key's identity, so this normalizes the key for lookups/matching.
+ */
+export function stripArrayMembershipOperator(key: string): string {
+  const stripped = key.replace(/\[\*?\]?$/, '');
+  return stripped || key;
 }
 
 type TreeResultLocatorOpts<T> = {
@@ -309,12 +318,7 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
 
-  // Array membership (INCLUDES / DOES_NOT_INCLUDE) is expressed by the `[*]` key
-  // suffix and `!` negation, not a value-prefix operator sentinel — so skip the
-  // operator for these filters.
-  if (token.filter !== FilterType.ARRAY_INCLUDES) {
-    stringifiedToken += token.operator;
-  }
+  stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;

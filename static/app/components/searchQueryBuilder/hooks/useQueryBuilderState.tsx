@@ -340,8 +340,7 @@ function termOperatorToInternal(op: TermOperator): {
     op === TermOperator.NOT_EQUAL ||
     op === TermOperator.DOES_NOT_CONTAIN ||
     op === TermOperator.DOES_NOT_START_WITH ||
-    op === TermOperator.DOES_NOT_END_WITH ||
-    op === TermOperator.DOES_NOT_INCLUDE;
+    op === TermOperator.DOES_NOT_END_WITH;
 
   let internalOp: TermOperator;
   if (op === TermOperator.DOES_NOT_CONTAIN) {
@@ -350,8 +349,6 @@ function termOperatorToInternal(op: TermOperator): {
     internalOp = TermOperator.STARTS_WITH;
   } else if (op === TermOperator.DOES_NOT_END_WITH) {
     internalOp = TermOperator.ENDS_WITH;
-  } else if (op === TermOperator.DOES_NOT_INCLUDE) {
-    internalOp = TermOperator.INCLUDES;
   } else if (op === TermOperator.NOT_EQUAL) {
     internalOp = TermOperator.DEFAULT;
   } else {

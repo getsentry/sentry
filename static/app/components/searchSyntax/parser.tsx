@@ -86,10 +86,6 @@ export enum TermOperator {
   DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
   DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
-  // Array membership operators. The `[*]` on the key carries the syntax, so
-  // these render with no marker text (unlike the wildcard operators).
-  INCLUDES = '\uF00DIncludes\uF00D',
-  DOES_NOT_INCLUDE = '\uF00DDoesNotInclude\uF00D',
 }
 
 /**
@@ -160,17 +156,11 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
-const arrayIncludesOperators = [
-  TermOperator.INCLUDES,
-  TermOperator.DOES_NOT_INCLUDE,
-] as const;
-
 export const negationOperators: readonly TermOperator[] = [
   TermOperator.NOT_EQUAL,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.DOES_NOT_END_WITH,
-  TermOperator.DOES_NOT_INCLUDE,
 ];
 
 /**
@@ -320,7 +310,7 @@ export const filterTypeConfig = {
   },
   [FilterType.ARRAY_INCLUDES]: {
     validKeys: arrayIncludesKeys,
-    validOps: arrayIncludesOperators,
+    validOps: basicOperators,
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },

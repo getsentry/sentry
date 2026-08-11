@@ -510,7 +510,7 @@ describe('searchSyntax/parser', () => {
           type: Token.FILTER,
           filter: FilterType.ARRAY_INCLUDES,
           negated: false,
-          operator: TermOperator.INCLUDES,
+          operator: TermOperator.DEFAULT,
           key: expect.objectContaining({
             type: Token.KEY_ARRAY_INCLUDES,
             index: '*',
@@ -562,7 +562,7 @@ describe('searchSyntax/parser', () => {
         expect.objectContaining({
           type: Token.FILTER,
           filter: FilterType.ARRAY_INCLUDES,
-          operator: TermOperator.INCLUDES,
+          operator: TermOperator.DEFAULT,
           key: expect.objectContaining({
             type: Token.KEY_ARRAY_INCLUDES,
             index: '*',
@@ -595,7 +595,7 @@ describe('searchSyntax/parser', () => {
           type: Token.FILTER,
           filter: FilterType.ARRAY_INCLUDES,
           negated: true,
-          operator: TermOperator.INCLUDES,
+          operator: TermOperator.DEFAULT,
         })
       );
 

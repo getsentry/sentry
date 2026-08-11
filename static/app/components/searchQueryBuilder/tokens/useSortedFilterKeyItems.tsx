@@ -21,6 +21,7 @@ import {
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
@@ -81,14 +82,6 @@ const LOGIC_FILTER_ITEMS: FilterKeySearchItem[] = [
 
 function isQuoted(inputValue: string) {
   return inputValue.startsWith('"') && inputValue.endsWith('"');
-}
-
-// The `[*]` array-membership operator isn't part of the key, so ignore an
-// in-progress `[`, `[*`, or `[*]` when searching keys — otherwise typing the
-// operator drops the matching attribute suggestion.
-export function stripMembershipOperator(query: string): string {
-  const stripped = query.replace(/\[\*?\]?$/, '');
-  return stripped || query;
 }
 
 // Adds static filter values to the searchable items so that they can be
@@ -298,7 +291,7 @@ export function useSortedFilterKeyItems({
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(stripMembershipOperator(filterValue));
+    const searched = search.search(stripArrayMembershipOperator(filterValue));
 
     const allKeyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)

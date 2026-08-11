@@ -3,7 +3,6 @@
   const tc = new TokenConverter({text, location, config});
 
   const opDefault = TermOperator.DEFAULT;
-  const opInclude = TermOperator.INCLUDES;
 }
 
 search
@@ -209,7 +208,7 @@ is_filter
     }
 
 // Array membership filter, eg. `foo[*]:value`. The `[*]` on the key carries the
-// operation, so the filter operator is `:` (INCLUDES) or `!` (DOES_NOT_INCLUDE).
+// operation, so it uses the default operator (`:`) with `!` for negation.
 array_includes_filter
   = negation:negation?
     key:array_includes_key
@@ -221,7 +220,7 @@ array_includes_filter
         FilterType.ARRAY_INCLUDES,
         key,
         value,
-        opInclude,
+        opDefault,
         !!negation,
         undefined,
       );

@@ -9,6 +9,7 @@ import {
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -84,9 +85,9 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ): FieldDefinitionGetter {
   return (key, options) => {
-    // Array membership keys carry a `[*]` suffix (eg. `foo[*]`). Strip it so the
+    // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
     // field definition resolves to the attribute's stored backend key.
-    const baseKey = key.endsWith('[*]') ? key.slice(0, -'[*]'.length) : key;
+    const baseKey = stripArrayMembershipOperator(key);
     return getFieldDefinition(
       baseKey,
       typeMap[itemType],

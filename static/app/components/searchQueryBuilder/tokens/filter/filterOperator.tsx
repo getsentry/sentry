@@ -216,6 +216,35 @@ export function getOperatorInfo({
     };
   }
 
+  if (filterToken.filter === FilterType.ARRAY_INCLUDES) {
+    // Array membership uses the default operator; `[*]` on the key conveys
+    // membership and `!` negation reads as "does not include".
+    const includesLabel = 'includes';
+    const doesNotIncludeLabel = 'does not include';
+    const isNegated = operator === TermOperator.NOT_EQUAL;
+
+    return {
+      operator,
+      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      options: [
+        {
+          value: TermOperator.DEFAULT,
+          label: <OpLabel>{includesLabel}</OpLabel>,
+          textValue: includesLabel,
+        },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: <OpLabel>{doesNotIncludeLabel}</OpLabel>,
+                textValue: doesNotIncludeLabel,
+              },
+            ]),
+      ],
+    };
+  }
+
   const keyLabel = filterToken.key.text;
 
   const validOps = getValidOpsForFilter({filterToken, fieldDefinition});

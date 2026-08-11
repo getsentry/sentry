@@ -413,11 +413,7 @@ describe('array membership filters', () => {
     const query = 'csv_headers[*]:foo';
 
     expect(
-      modifyFilterOperatorQuery(
-        query,
-        getFirstFilterToken(query),
-        TermOperator.DOES_NOT_INCLUDE
-      )
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.NOT_EQUAL)
     ).toBe('!csv_headers[*]:foo');
   });
 
@@ -425,7 +421,7 @@ describe('array membership filters', () => {
     const query = '!csv_headers[*]:foo';
 
     expect(
-      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.INCLUDES)
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.DEFAULT)
     ).toBe('csv_headers[*]:foo');
   });
 });
