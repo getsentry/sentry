@@ -1554,7 +1554,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
-  const {mutateAsync: updateDashboard} = useUpdateDashboard();
+  const updateDashboard = useUpdateDashboard();
   const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
@@ -1573,7 +1573,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
-      updateDashboard={updateDashboard}
+      updateDashboard={updateDashboard.mutateAsync}
       hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );

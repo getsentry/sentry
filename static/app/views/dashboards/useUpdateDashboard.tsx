@@ -12,7 +12,7 @@ export type UpdateDashboardVariables = {
   revisionSource?: string | undefined;
 };
 
-export function useUpdateDashboardMutationOptions() {
+function useUpdateDashboardMutationOptions() {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
