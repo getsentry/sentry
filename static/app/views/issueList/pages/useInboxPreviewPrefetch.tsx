@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
@@ -29,6 +30,8 @@ export function useInboxPreviewPrefetch(groupId: string) {
     },
     {wait: PREFETCH_DELAY_MS}
   );
+
+  useEffect(() => () => prefetchDebouncer.cancel(), [prefetchDebouncer]);
 
   const {hoverProps} = useHover({
     onHoverStart: () => prefetchDebouncer.maybeExecute(),
