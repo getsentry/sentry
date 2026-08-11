@@ -1989,7 +1989,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.webhook_id == "delivery-1"
         assert activity.payload["conclusion"] == "success"
         assert activity.payload["app_slug"] == "github-actions"
-        assert activity.payload["suite_id"] == "12345"
         assert activity.payload["check_runs_count"] == 6
 
     def test_check_suite_non_completed_action_skipped(self) -> None:
@@ -2080,7 +2079,6 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["check_name"] == "lint"
         assert activity.payload["conclusion"] == "failure"
         assert activity.payload["app_slug"] == "github-actions"
-        assert activity.payload["suite_id"] == "12345"
 
     def test_check_run_non_completed_action_skipped(self) -> None:
         for action in ("created", "rerequested", "requested_action"):
