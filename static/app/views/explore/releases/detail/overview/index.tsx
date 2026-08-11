@@ -64,7 +64,7 @@ import {ReleaseIssues} from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 
-export enum TransactionsListOption {
+enum TransactionsListOption {
   FAILURE_COUNT = 'failure_count',
   TPM = 'tpm',
   SLOW = 'slow',

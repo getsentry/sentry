@@ -281,7 +281,8 @@ export function getWidgetIssueUrl(
     query: applyDashboardFilters(
       widget.queries?.[0]?.conditions,
       dashboardFilters,
-      widget.widgetType
+      widget.widgetType,
+      true // Issue search does not support parens
     ),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
@@ -592,7 +593,8 @@ export const performanceScoreTooltip = t('peformance_score is not supported in D
 export function applyDashboardFilters(
   baseQuery: string | undefined,
   dashboardFilters: DashboardFilters | undefined,
-  widgetType?: WidgetType
+  widgetType?: WidgetType,
+  skipParens?: boolean
 ): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(
     dashboardFilters,
@@ -600,7 +602,9 @@ export function applyDashboardFilters(
   );
   if (dashboardFilterConditions) {
     if (baseQuery) {
-      return `(${baseQuery}) ${dashboardFilterConditions}`;
+      return skipParens
+        ? `${baseQuery} ${dashboardFilterConditions}`
+        : `(${baseQuery}) ${dashboardFilterConditions}`;
     }
     return dashboardFilterConditions;
   }

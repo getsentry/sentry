@@ -333,6 +333,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             "https://github.com/owner/repo/pull/7#discussion_r1",
             "https://github.com/owner/repo/pull/7#discussion_r2",
         }
+        # The commenter's GitHub id rides along for commit attribution.
+        assert all(
+            s.comment.user is not None and s.comment.user.id == "999" for s in comment_sources
+        )
         assert all(
             c.kwargs["referrer"] == AutofixReferrer.GITHUB_PR_REVIEW
             for c in self.mock_enqueue.call_args_list
@@ -423,6 +427,8 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # comment carries) so the UI can render the reviewer's avatar on the header.
         assert source.user is not None
         assert source.user.login == "reviewer"
+        # The GitHub id rides along so commit attribution can build the noreply email.
+        assert source.user.id == "999"
 
         # A body-only review has no inline comment to react to.
         self.mock_actions.create_review_comment_reaction.assert_not_called()

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -10,6 +10,7 @@ from django.http.response import HttpResponseBase
 
 from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.github.check_payloads import references_own_repo_pull_request
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
@@ -27,7 +28,6 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -42,37 +42,6 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
     if isinstance(action, str) and action in action_filter.known:
         return action
     return "unknown"
-
-
-def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: str) -> bool:
-    """Whether a check payload references a pull request in the webhook's own repo.
-
-    ``pull_requests`` can list PRs based in *other* repositories, and every cell-side
-    consumer of these actions resolves only own-repo entries — a payload carrying
-    none is a no-op there. Both sides of that comparison are in the payload, so
-    control can decide without the cell's database: the cell looks its ``Repository``
-    row up by ``external_id=str(repository.id)`` (``GitHubWebhook.__call__``), which
-    is the value compared here.
-
-    An entry with no ``base.repo.id`` cannot be placed and no consumer acts on one,
-    so it does not keep a payload alive.
-
-    A False drops the payload, so it must never be False for one the cell would act
-    on. Erring True only costs a forwarded no-op.
-    """
-    repo_id = get_path(event, "repository", "id")
-    if repo_id is None:
-        return False
-
-    refs = get_path(event, container_key, "pull_requests")
-    if not isinstance(refs, list):
-        return False
-
-    for ref in refs:
-        base_repo_id = get_path(ref, "base", "repo", "id")
-        if base_repo_id is not None and str(base_repo_id) == str(repo_id):
-            return True
-    return False
 
 
 def _forwarded_event_tags(
@@ -98,7 +67,7 @@ def _forwarded_event_tags(
     # drop could reclaim even before one is enabled for that event type.
     if action == "completed":
         tags["has_own_repo_pr"] = (
-            "true" if _references_own_repo_pull_request(event, github_event) else "false"
+            "true" if references_own_repo_pull_request(event, github_event) else "false"
         )
     return tags
 
@@ -233,7 +202,7 @@ class GithubRequestParser(BaseRequestParser):
             action_filter is not None
             and action in action_filter.own_repo_pr_actions
             and options.get("hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr")
-            and not _references_own_repo_pull_request(event, github_event or "")
+            and not references_own_repo_pull_request(event, github_event or "")
         ):
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",

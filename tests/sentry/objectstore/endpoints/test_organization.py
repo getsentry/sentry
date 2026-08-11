@@ -10,6 +10,7 @@ from django.urls import reverse
 from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
+from sentry.objectstore.endpoints.organization import stream_response
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
@@ -327,3 +328,35 @@ class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
             ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
 
         assert mock_request.call_args.kwargs["params"] == query
+
+
+class ObjectstoreProxyStreamCloseTest(TransactionTestCase):
+    def make_upstream_response(self) -> requests.Response:
+        response = requests.Response()
+        response.status_code = 200
+        response.raw = MagicMock()
+        response.raw.read.side_effect = [b"foo", b"bar", b""]
+        return response
+
+    def test_closes_upstream_response_when_fully_streamed(self) -> None:
+        response = self.make_upstream_response()
+
+        with patch.object(response, "close") as mock_close:
+            streamed = close_streaming_response(stream_response(response))
+
+        assert streamed == b"foobar"
+        assert mock_close.called
+
+    def test_closes_upstream_response_when_client_disconnects(self) -> None:
+        response = self.make_upstream_response()
+
+        with patch.object(response, "close") as mock_close:
+            streaming_response = stream_response(response)
+            assert next(iter(streaming_response)) == b"foo"
+            assert not mock_close.called
+
+            # Django closes the response, and with it the generator, when the client
+            # disconnects part-way through the download.
+            streaming_response.close()
+
+            assert mock_close.called

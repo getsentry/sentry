@@ -174,6 +174,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -732,6 +733,26 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_replay_deletion_job(
+        project: Project,
+        range_start: datetime,
+        range_end: datetime,
+        status: str = DeletionJobStatus.PENDING,
+        query: str = "",
+        environments: list[str] | None = None,
+    ) -> ReplayDeletionJobModel:
+        return ReplayDeletionJobModel.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            range_start=range_start,
+            range_end=range_end,
+            status=status,
+            query=query,
+            environments=environments or [],
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

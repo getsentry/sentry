@@ -14,7 +14,7 @@ import type {
 import type {
   UptimeAssertion,
   UptimeMonitorMode,
-} from 'sentry/views/alerts/rules/uptime/types';
+} from 'sentry/views/detectors/components/uptime/types';
 import type {Monitor, MonitorConfig} from 'sentry/views/insights/crons/types';
 import type {
   MetricType as PreprodMeasurement,
