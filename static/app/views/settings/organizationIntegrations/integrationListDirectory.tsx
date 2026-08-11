@@ -22,6 +22,8 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
+import {preload} from 'sentry/router/preload';
+import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -219,6 +221,7 @@ function useIntegrationList() {
 export default function IntegrationListDirectory() {
   const title = t('Integrations');
   const organization = useOrganization();
+  const routeConfig = useRouteConfig();
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -235,6 +238,17 @@ export default function IntegrationListDirectory() {
   const search = decodeScalar(location.query.search) ?? '';
 
   const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
+
+  useEffect(() => {
+    if (!routeConfig) {
+      return;
+    }
+
+    preload(
+      routeConfig,
+      `/settings/${organization.slug}/integrations/__preload_integration_details__/`
+    );
+  }, [organization.slug, routeConfig]);
 
   const {displayList, showLegacyWebhookRow} = useMemo(() => {
     const results = getDisplayedResults(list, search, category, !!legacyWebhooks);

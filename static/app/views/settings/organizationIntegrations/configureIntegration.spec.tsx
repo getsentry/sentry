@@ -76,6 +76,7 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure(integration);
 
+    expect(screen.getByRole('heading')).toHaveTextContent(/Configurations.*sentry-demos/);
     expect(screen.getByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
       'href',
       'https://github.com/sentry-demos'

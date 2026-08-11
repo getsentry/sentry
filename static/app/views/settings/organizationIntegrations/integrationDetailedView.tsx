@@ -7,10 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -47,6 +49,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
@@ -111,6 +115,15 @@ function makeIntegrationQueryKey({
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
+const tabTitles: Record<IntegrationTab, string> = {
+  overview: t('Overview'),
+  configurations: t('Configurations'),
+  features: t('Features'),
+};
+
+type IntegrationDetailedViewLocationState = {
+  integrationName?: string;
+};
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
@@ -121,6 +134,7 @@ export default function IntegrationDetailedView() {
   );
   const navigate = useNavigate();
   const location = useLocation();
+  const locationState = location.state as IntegrationDetailedViewLocationState | null;
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -223,6 +237,15 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
+  const navigationIntegrationName = integrationName || locationState?.integrationName;
+  const navigationTabTitle = navigationIntegrationName ? (
+    <Layout.Title>
+      <Flex align="center" gap="sm" minWidth="0">
+        <Divider />
+        <Text as="span">{tabTitles[activeTab]}</Text>
+      </Flex>
+    </Layout.Title>
+  ) : null;
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -542,7 +565,15 @@ export default function IntegrationDetailedView() {
   }, [organization, provider, configurations, orgMutationOptions]);
 
   if (isInformationPending || isConfigurationsPending) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {navigationIntegrationName && (
+          <BreadcrumbTitle title={navigationIntegrationName} />
+        )}
+        {navigationTabTitle}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isInformationError || isConfigurationsError) {
@@ -604,6 +635,7 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
+      {navigationTabTitle}
       <IntegrationLayout.Body
         integrationName={integrationName}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}

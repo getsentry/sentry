@@ -66,6 +66,7 @@ export function IntegrationRow(props: Props) {
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
+  const navigationState = {integrationName: displayName};
 
   const hasIntegrationAccess = canManageIntegrations(organization);
 
@@ -101,7 +102,7 @@ export function IntegrationRow(props: Props) {
     }
     return (
       <Flex align="center" gap="xs">
-        <StyledLink to={`${baseUrl}?tab=configurations`}>
+        <StyledLink to={`${baseUrl}?tab=configurations`} state={navigationState}>
           {tn('%s Configuration', '%s Configurations', configurations)}
         </StyledLink>
         {disabledConfigurations ? (
@@ -118,7 +119,11 @@ export function IntegrationRow(props: Props) {
     if (status) {
       return <IntegrationStatus status={status} />;
     }
-    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
+    return (
+      <LearnMore to={baseUrl} state={navigationState}>
+        {t('Learn More')}
+      </LearnMore>
+    );
   };
 
   const getUpgradeTooltipTitle = () => {
@@ -136,6 +141,7 @@ export function IntegrationRow(props: Props) {
         link: (
           <Link
             to={resolveNowHref}
+            state={navigationState}
             onClick={() =>
               trackAnalytics('integrations.resolve_now_clicked', {
                 integration_type: convertIntegrationTypeToSnakeCase(type),
@@ -155,7 +161,9 @@ export function IntegrationRow(props: Props) {
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <Flex gap="xs" align="center">
-            <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+            <IntegrationName to={baseUrl} state={navigationState}>
+              {displayName}
+            </IntegrationName>
             {outdatedConfigurations > 0 && (
               <Tooltip
                 isHoverable

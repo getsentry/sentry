@@ -8,6 +8,7 @@ import {FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -176,12 +177,7 @@ function ConfigureIntegration() {
     return (
       <Fragment>
         {navigationIntegration && (
-          <IntegrationNavigationHeader
-            breadcrumbTitle={getTabTitle(
-              decodeScalar(location.query.tab) as Tab | undefined
-            )}
-            integration={navigationIntegration}
-          />
+          <IntegrationNavigationHeader integration={navigationIntegration} />
         )}
         <LoadingIndicator />
       </Fragment>
@@ -252,7 +248,6 @@ function ConfigureIntegration() {
     tabParam && allTabs.some(([key]) => key === tabParam)
       ? tabParam
       : (allTabs[0]?.[0] ?? 'settings');
-  const activeTabTitle = allTabs.find(([key]) => key === tab)?.[1] ?? getTabTitle(tab);
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
@@ -441,22 +436,16 @@ function ConfigureIntegration() {
 
   return (
     <Fragment>
-      <IntegrationNavigationHeader
-        breadcrumbTitle={activeTabTitle}
-        integration={integration}
-        action={getAction()}
-      />
+      <IntegrationNavigationHeader integration={integration} action={getAction()} />
       {renderMainContent()}
     </Fragment>
   );
 }
 
 function IntegrationNavigationHeader({
-  breadcrumbTitle,
   integration,
   action,
 }: {
-  breadcrumbTitle: string;
   integration: Integration;
   action?: React.ReactNode;
 }) {
@@ -467,6 +456,8 @@ function IntegrationNavigationHeader({
         title={
           <Flex align="center" gap="sm">
             <Divider />
+            <Text as="span">{t('Configurations')}</Text>
+            <Divider />
             <IntegrationIcon size={18} integration={integration} />
             <ExternalLink href={`https://${integration.domainName}`}>
               {integration.name}
@@ -475,23 +466,9 @@ function IntegrationNavigationHeader({
         }
         action={action}
       />
-      <BreadcrumbTitle title={breadcrumbTitle} />
+      <BreadcrumbTitle title={integration.provider.name} />
     </Fragment>
   );
-}
-
-function getTabTitle(tab: Tab | undefined) {
-  switch (tab) {
-    case 'codeMappings':
-      return t('Code Mappings');
-    case 'userMappings':
-      return t('User Mappings');
-    case 'teamMappings':
-      return t('Team Mappings');
-    case 'settings':
-    default:
-      return t('Settings');
-  }
 }
 
 function PagerdutyAddServicesButton({

@@ -150,8 +150,24 @@ describe('IntegrationDetailedView', () => {
       organization,
     });
     expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Overview'})).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
+  });
+
+  it('shows the selected tab in the header while loading navigation data', () => {
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: {
+        ...createRouterConfig('bitbucket'),
+        location: {
+          ...createRouterConfig('bitbucket').location,
+          state: {integrationName: 'Bitbucket'},
+        },
+      },
+      organization,
+    });
+
+    expect(screen.getByRole('heading', {name: 'Overview'})).toBeInTheDocument();
   });
 
   it('view configurations', async () => {
@@ -162,6 +178,7 @@ describe('IntegrationDetailedView', () => {
     expect(
       await screen.findByText('{fb715533-bbd7-4666-aa57-01dc93dd9cc0}')
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configurations'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
