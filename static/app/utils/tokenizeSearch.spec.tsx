@@ -264,6 +264,37 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should handle array membership filter (stores the base key)',
+        string: 'csv_headers[*]:foo',
+        object: {
+          tokens: [
+            {type: TokenType.ARRAY_INCLUDES_FILTER, key: 'csv_headers', value: 'foo'},
+          ],
+        },
+      },
+      {
+        name: 'should handle array membership filter on an explicit tag key',
+        string: 'tags[csv_headers,array][*]:foo',
+        object: {
+          tokens: [
+            {
+              type: TokenType.ARRAY_INCLUDES_FILTER,
+              key: 'tags[csv_headers,array]',
+              value: 'foo',
+            },
+          ],
+        },
+      },
+      {
+        name: 'should handle a negated array membership filter',
+        string: '!csv_headers[*]:foo',
+        object: {
+          tokens: [
+            {type: TokenType.ARRAY_INCLUDES_FILTER, key: '!csv_headers', value: 'foo'},
+          ],
+        },
+      },
+      {
         name: 'should handle trailing paren when quoted value contains parens',
         string: '(key:"value with (parens)")',
         object: {
@@ -297,6 +328,33 @@ describe('utils/tokenizeSearch', () => {
       // eslint-disable-next-line jest/valid-title
       it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
+  });
+
+  describe('array membership filters', () => {
+    it('round-trips through formatString', () => {
+      expect(new MutableSearch('csv_headers[*]:foo').formatString()).toBe(
+        'csv_headers[*]:foo'
+      );
+      expect(new MutableSearch('tags[csv_headers,array][*]:foo').formatString()).toBe(
+        'tags[csv_headers,array][*]:foo'
+      );
+      expect(new MutableSearch('!csv_headers[*]:foo').formatString()).toBe(
+        '!csv_headers[*]:foo'
+      );
+    });
+
+    it('exposes the base key for name-based lookups', () => {
+      const search = new MutableSearch('csv_headers[*]:foo other:bar');
+      expect(search.getFilterValues('csv_headers')).toEqual(['foo']);
+      expect(search.hasFilter('csv_headers')).toBe(true);
+      expect(search.getFilterKeys()).toEqual(['csv_headers', 'other']);
+    });
+
+    it('removes an array membership filter by its base key', () => {
+      const search = new MutableSearch('csv_headers[*]:foo other:bar');
+      search.removeFilter('csv_headers');
+      expect(search.formatString()).toBe('other:bar');
+    });
   });
 
   describe('QueryResults operations', () => {

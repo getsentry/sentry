@@ -19,6 +19,7 @@ export enum TokenType {
   CONTAINS_FILTER = 3,
   STARTS_WITH_FILTER = 4,
   ENDS_WITH_FILTER = 5,
+  ARRAY_INCLUDES_FILTER = 6,
 }
 
 const FILTER_TOKENS = [
@@ -26,7 +27,19 @@ const FILTER_TOKENS = [
   TokenType.CONTAINS_FILTER,
   TokenType.STARTS_WITH_FILTER,
   TokenType.ENDS_WITH_FILTER,
+  TokenType.ARRAY_INCLUDES_FILTER,
 ];
+
+const ARRAY_MEMBERSHIP_OPERATOR = '[*]';
+
+// The `[*]` membership operator is a key suffix, not part of the attribute
+// identity. Keep parity with the grammar (KEY_ARRAY_INCLUDES): store the base
+// key so lookups by name work, and re-add `[*]` on serialization.
+function stripArrayOperator(key: string): string {
+  return key.endsWith(ARRAY_MEMBERSHIP_OPERATOR)
+    ? key.slice(0, -ARRAY_MEMBERSHIP_OPERATOR.length)
+    : key;
+}
 
 type Token = {
   type: TokenType;
@@ -201,6 +214,9 @@ export class MutableSearch {
 
           if (nextChar === ':' || nextChar === ' ') {
             tokenState = TokenType.FREE_TEXT;
+          } else if (token.slice(0, i).endsWith(ARRAY_MEMBERSHIP_OPERATOR)) {
+            // Array membership operator on the key, eg. `foo[*]:value`.
+            tokenState = TokenType.ARRAY_INCLUDES_FILTER;
           } else if (
             token.slice(indexOffset, indexOffset + WildcardOperators.CONTAINS.length) ===
             WildcardOperators.CONTAINS
@@ -238,6 +254,8 @@ export class MutableSearch {
         this.addFreeText(token);
       } else if (tokenState === TokenType.FILTER) {
         this.addStringFilter(token, false);
+      } else if (tokenState === TokenType.ARRAY_INCLUDES_FILTER) {
+        this.addStringArrayIncludesFilter(token, false);
       } else if (tokenState === TokenType.CONTAINS_FILTER) {
         token = token.replace(WildcardOperators.CONTAINS, '');
         this.addStringContainsFilter(token, false);
@@ -261,6 +279,20 @@ export class MutableSearch {
       switch (token.type) {
         case TokenType.FILTER:
           formattedTokens.push(generateFilterValue(token, ':'));
+          break;
+        case TokenType.ARRAY_INCLUDES_FILTER:
+          formattedTokens.push(
+            generateFilterValue(
+              {
+                ...token,
+                key:
+                  token.key === undefined
+                    ? token.key
+                    : `${token.key}${ARRAY_MEMBERSHIP_OPERATOR}`,
+              },
+              ':'
+            )
+          );
           break;
         case TokenType.CONTAINS_FILTER:
           formattedTokens.push(
@@ -318,6 +350,12 @@ export class MutableSearch {
     return this;
   }
 
+  addStringArrayIncludesFilter(filter: string, shouldEscape = true) {
+    const [key, value] = parseFilter(filter);
+    this.addArrayIncludesFilterValues(key!, [value!], shouldEscape);
+    return this;
+  }
+
   addStringStartsWithFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
     this.addStartsWithFilterValues(key!, [value!], shouldEscape);
@@ -340,6 +378,13 @@ export class MutableSearch {
   addContainsFilterValues(key: string, values: string[], shouldEscape = true) {
     for (const value of values) {
       this.addContainsFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addArrayIncludesFilterValues(key: string, values: string[], shouldEscape = true) {
+    for (const value of values) {
+      this.addArrayIncludesFilterValue(key, value, shouldEscape);
     }
     return this;
   }
@@ -395,6 +440,17 @@ export class MutableSearch {
   addContainsFilterValue(key: string, value: string, shouldEscape = true) {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const token: Token = {type: TokenType.CONTAINS_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  addArrayIncludesFilterValue(key: string, value: string, shouldEscape = true) {
+    const escaped = shouldEscape ? escapeFilterValue(value) : value;
+    // Store the base key (without `[*]`); serialization re-adds the operator.
+    const token: Token = {
+      type: TokenType.ARRAY_INCLUDES_FILTER,
+      key: stripArrayOperator(key),
+      value: escaped,
+    };
     this.tokens.push(token);
   }
 
