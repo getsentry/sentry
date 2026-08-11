@@ -27,9 +27,10 @@ _JAVA_CLASS_IN_TEXT_RE = re.compile(
     re.X,
 )
 
-# R8 can flatten packages, leaving bare class names that are only unambiguous
-# in a complete "<source> cannot be cast to <target>" value.
-_BARE_CLASS_CAST_MESSAGE_RE = re.compile(r"([A-Za-z_$][\w$]*) cannot be cast to ([A-Za-z_$][\w$]*)")
+# R8 can flatten packages, leaving class names without one. Those are only
+# unambiguous in a complete "<source> cannot be cast to <target>" value. Either
+# operand may still be dotted, since a keep rule can preserve one of the two.
+_CLASS_CAST_MESSAGE_RE = re.compile(r"([A-Za-z_$][\w$.]*) cannot be cast to ([A-Za-z_$][\w$.]*)")
 
 
 class Exceptions:
@@ -41,9 +42,10 @@ class Exceptions:
             if exc.get("type", None):
                 self._processable_exceptions.append(exc)
             if value := exc.get("value", None):
-                class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
-                if match := _BARE_CLASS_CAST_MESSAGE_RE.fullmatch(value):
-                    class_matches.extend(match.groups())
+                if match := _CLASS_CAST_MESSAGE_RE.fullmatch(value):
+                    class_matches = list(match.groups())
+                else:
+                    class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
                 if class_matches:
                     self._processable_exceptions_with_values.append((exc, class_matches))
 
@@ -83,7 +85,7 @@ class Exceptions:
             for exc, class_names in self._processable_exceptions_with_values:
                 original_value = exc["value"]
 
-                if mapped_value := _deobfuscate_bare_class_cast_message(original_value, classes):
+                if mapped_value := _deobfuscate_class_cast_message(original_value, classes):
                     exc["raw_value"] = original_value
                     exc["value"] = mapped_value
                     continue
@@ -114,8 +116,8 @@ class Exceptions:
                     exc["value"] = new_value
 
 
-def _deobfuscate_bare_class_cast_message(value: str, classes: Mapping[str, str]) -> str | None:
-    match = _BARE_CLASS_CAST_MESSAGE_RE.fullmatch(value)
+def _deobfuscate_class_cast_message(value: str, classes: Mapping[str, str]) -> str | None:
+    match = _CLASS_CAST_MESSAGE_RE.fullmatch(value)
     if not match:
         return None
 

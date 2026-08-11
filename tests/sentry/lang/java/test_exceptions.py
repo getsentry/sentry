@@ -175,6 +175,51 @@ def test_cast_message_class_names_are_matched_when_bare() -> None:
     assert excs.get_exception_class_names() == ["a0o$b", "chf", "ft70$a", "l260", "ymu", "nbx"]
 
 
+def test_cast_message_class_names_are_matched_when_mixed() -> None:
+    # A keep rule can preserve one class while R8 flattens the other.
+    data = build_event(
+        [
+            {"value": "com.example.Foo cannot be cast to chf"},
+            {"value": "chf cannot be cast to com.example.Foo"},
+        ]
+    )
+
+    excs = Exceptions(data)
+    class_names = excs.get_exception_class_names()
+
+    assert class_names == ["com.example.Foo", "chf", "chf", "com.example.Foo"]
+
+
+def test_deobfuscate_mixed_cast_message_class_names() -> None:
+    # com.example.Foo is kept by a keep rule, so it has no mapping of its own.
+    bare_target = {"value": "com.example.Foo cannot be cast to chf"}
+    bare_source = {"value": "chf cannot be cast to com.example.Foo"}
+    data = build_event([bare_target, bare_source])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"chf": "com.example.CastTarget"}, mapped_exceptions=[])
+
+    assert bare_target["value"] == "com.example.Foo cannot be cast to com.example.CastTarget"
+    assert bare_target["raw_value"] == "com.example.Foo cannot be cast to chf"
+    assert bare_source["value"] == "com.example.CastTarget cannot be cast to com.example.Foo"
+    assert bare_source["raw_value"] == "chf cannot be cast to com.example.Foo"
+
+
+def test_deobfuscate_qualified_cast_message_class_names() -> None:
+    # Fully qualified operands take the same rebuild path as bare ones, so an
+    # unmapped operand is kept as-is rather than dropped.
+    exc = {"value": "com.example.Foo cannot be cast to com.example.Bar"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    excs.deobfuscate_and_save({"com.example.Bar": "com.example.MappedBar"}, mapped_exceptions=[])
+
+    assert exc["value"] == "com.example.Foo cannot be cast to com.example.MappedBar"
+    assert exc["raw_value"] == "com.example.Foo cannot be cast to com.example.Bar"
+
+
 def test_cast_message_is_not_matched_in_prose() -> None:
     # A real cast message ends on the target class. Without that anchor, ordinary
     # prose that happens to contain the word "cast" would offer candidates.
