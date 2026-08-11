@@ -20,6 +20,7 @@ from sentry.utils.query import (
     RangeQuerySetWrapperWithProgressBar,
     RangeQuerySetWrapperWithProgressBarApprox,
     bulk_delete_objects,
+    iter_id_ranges,
 )
 
 
@@ -32,6 +33,131 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", ["sluga", "slugb"])).count() == 2
         assert Organization.objects.filter(in_iexact("slug", ["slugC"])).count() == 1
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
+
+
+@no_silo_test
+class IterIdRangesTest(TestCase):
+    def test_empty(self) -> None:
+        assert list(iter_id_ranges(User.objects.all(), 10)) == []
+
+    def test_exact_multiple(self) -> None:
+        users = [self.create_user() for _ in range(6)]
+        ids = sorted(u.id for u in users)
+        qs = User.objects.filter(id__in=ids)
+        assert list(iter_id_ranges(qs, 3)) == [
+            (ids[0], ids[2]),
+            (ids[3], ids[5]),
+        ]
+
+    def test_remainder(self) -> None:
+        users = [self.create_user() for _ in range(5)]
+        ids = sorted(u.id for u in users)
+        qs = User.objects.filter(id__in=ids)
+        assert list(iter_id_ranges(qs, 2)) == [
+            (ids[0], ids[1]),
+            (ids[2], ids[3]),
+            (ids[4], ids[4]),
+        ]
+
+    def test_start_after(self) -> None:
+        users = [self.create_user() for _ in range(5)]
+        ids = sorted(u.id for u in users)
+        qs = User.objects.filter(id__in=ids)
+        assert list(iter_id_ranges(qs, 2, start_after=ids[1])) == [
+            (ids[2], ids[3]),
+            (ids[4], ids[4]),
+        ]
+
+    def test_max_ranges_continue_without_gap_or_overlap(self) -> None:
+        users = [self.create_user() for _ in range(7)]
+        ids = sorted(u.id for u in users)
+        qs = User.objects.filter(id__in=ids)
+
+        first_pass = list(iter_id_ranges(qs, 2, max_ranges=2))
+        assert first_pass == [(ids[0], ids[1]), (ids[2], ids[3])]
+
+        second_pass = list(iter_id_ranges(qs, 2, start_after=first_pass[-1][1]))
+        assert second_pass == [(ids[4], ids[5]), (ids[6], ids[6])]
+
+        combined = first_pass + second_pass
+        assert combined == list(iter_id_ranges(qs, 2))
+
+        covered: list[int] = []
+        for first_id, last_id in combined:
+            covered.extend(
+                User.objects.filter(id__in=ids, id__gte=first_id, id__lte=last_id)
+                .order_by("id")
+                .values_list("id", flat=True)
+            )
+        assert covered == ids
+
+    def test_extra_predicate(self) -> None:
+        active = [self.create_user(is_active=True) for _ in range(3)]
+        inactive = [self.create_user(is_active=False) for _ in range(3)]
+        all_ids = [u.id for u in active + inactive]
+        active_ids = sorted(u.id for u in active)
+        qs = User.objects.filter(id__in=all_ids, is_active=True)
+        assert list(iter_id_ranges(qs, 2)) == [
+            (active_ids[0], active_ids[1]),
+            (active_ids[2], active_ids[2]),
+        ]
+        for first_id, last_id in iter_id_ranges(qs, 2):
+            batch = list(
+                User.objects.filter(id__in=all_ids, id__gte=first_id, id__lte=last_id)
+                .order_by("id")
+                .values_list("id", "is_active")
+            )
+            assert all(is_active for _, is_active in batch)
+            assert [pk for pk, _ in batch] == [pk for pk in active_ids if first_id <= pk <= last_id]
+
+    def test_sparse_ids(self) -> None:
+        users = [self.create_user() for _ in range(10)]
+        # Delete every other user so remaining ids are sparse
+        for user in users[1::2]:
+            user.delete()
+        remaining = sorted(u.id for u in users[0::2])
+        qs = User.objects.filter(id__in=remaining)
+        ranges = list(iter_id_ranges(qs, 2))
+        assert ranges == [
+            (remaining[0], remaining[1]),
+            (remaining[2], remaining[3]),
+            (remaining[4], remaining[4]),
+        ]
+        # Range bounds span gaps in id space but cover only matching rows
+        for first_id, last_id in ranges:
+            matched = list(
+                User.objects.filter(id__in=remaining, id__gte=first_id, id__lte=last_id)
+                .order_by("id")
+                .values_list("id", flat=True)
+            )
+            assert 1 <= len(matched) <= 2
+
+    def test_invalid_inputs(self) -> None:
+        with pytest.raises(ValueError, match="range_size"):
+            list(iter_id_ranges(User.objects.all(), 0))
+        with pytest.raises(ValueError, match="range_size"):
+            list(iter_id_ranges(User.objects.all(), -1))
+        with pytest.raises(InvalidQuerySetError, match="pre-sliced"):
+            list(iter_id_ranges(User.objects.all()[:5], 2))
+        with pytest.raises(InvalidQuerySetError, match="unique"):
+            list(iter_id_ranges(User.objects.all(), 2, id_field="name"))
+
+    def test_full_coverage_of_matching_pks(self) -> None:
+        users = [self.create_user() for _ in range(11)]
+        ids = sorted(u.id for u in users)
+        qs = User.objects.filter(id__in=ids)
+        covered: list[int] = []
+        for first_id, last_id in iter_id_ranges(qs, 3):
+            batch = list(
+                qs.filter(id__gte=first_id, id__lte=last_id)
+                .order_by("id")
+                .values_list("id", flat=True)
+            )
+            assert batch[0] == first_id
+            assert batch[-1] == last_id
+            assert len(batch) <= 3
+            covered.extend(batch)
+        assert covered == ids
 
 
 @no_silo_test
