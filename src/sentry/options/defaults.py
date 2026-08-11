@@ -1333,6 +1333,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.backfill_group_action_log.coordinator_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.coordinator_batch_size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.coordinator_inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_pr_lifecycle_action_log.killswitch",
     type=Bool,
     default=False,
