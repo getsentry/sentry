@@ -300,7 +300,10 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     });
 
     return (
-      <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}>
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}
+        width={{zero: '100%', xl: 'max-content'}}
+      >
         <PageFilterBar>
           <ProjectPageFilter />
           <CompactSelect
