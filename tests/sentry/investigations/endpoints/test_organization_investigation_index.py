@@ -54,6 +54,20 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.data[0]["blockCount"] == 0
         assert response.data[0]["isFavorited"] is False
 
+    def test_regular_member_can_create_an_investigation(self) -> None:
+        member_user = self.create_user()
+        self.create_member(organization=self.organization, user=member_user, role="member")
+        self.login_as(member_user)
+
+        response = self.client.post(
+            self.collection_url,
+            data={"title": "Created by member"},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["createdBy"] == str(member_user.id)
+
     def test_manual_creation_rejects_inaccessible_project(self) -> None:
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)
