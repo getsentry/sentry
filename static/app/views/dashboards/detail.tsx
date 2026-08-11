@@ -59,7 +59,7 @@ import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashbo
 import {
   useUpdateDashboard,
   type UpdateDashboardVariables,
-} from 'sentry/views/dashboards/hooks/useUpdateDashboard';
+} from 'sentry/views/dashboards/useUpdateDashboard';
 import {
   cloneDashboard,
   getCurrentPageFilters,
