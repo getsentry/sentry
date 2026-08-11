@@ -55,61 +55,67 @@ class RepositoryManager(BaseManager["Repository"]):
         """
         return models.Q(provider=provider) | models.Q(provider=f"integrations:{provider}")
 
+    def _resolve_active_unique(
+        self, *, organization_id: int, normalized_provider: str | None, **identity: str
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve to the single active org repo matching ``identity``, or say why not.
+
+        Both reported identities resolve the same way, and the rule is deliberate:
+        resolve only on exactly one match, and refuse to guess between several rather
+        than risk attaching a PR to the wrong repository. ``normalized_provider`` is the
+        bare, lowercased form (no ``integrations:`` prefix) and narrows the candidates
+        when the reporter gave one, matching both stored shapes via ``provider_match``;
+        None skips that filter.
+
+        Returns ``(repository, reason)`` where reason is ``"resolved"``, ``"not_found"``
+        (zero matches), or ``"ambiguous"`` (more than one).
+        """
+        candidates = self.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **identity,
+        )
+        if normalized_provider is not None:
+            candidates = candidates.filter(self.provider_match(normalized_provider))
+
+        # Two is enough: we only need to know whether there is exactly one.
+        matches = list(candidates.order_by("id")[:2])
+        if len(matches) == 1:
+            return matches[0], "resolved"
+        return None, "ambiguous" if matches else "not_found"
+
     def resolve_active(
         self, *, organization_id: int, name: str, normalized_provider: str | None
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve the org-scoped active repository named ``name`` for a reported PR.
 
-        Resolves only when exactly one active repo matches. A provider disambiguates
-        same-named repos across providers (matching both stored shapes via
-        ``provider_match``); without one, refuse to guess between them rather than risk
-        mis-resolution.
-
-        ``normalized_provider`` is the bare, lowercased form (no ``integrations:`` prefix);
-        None skips provider filtering. Returns ``(repository, reason)`` where reason is
-        ``"resolved"``, ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
+        Names are not unique, so this is ambiguous whenever an org holds several rows for
+        one name — which a provider only sometimes separates, since re-installing an
+        integration mints a row with the same name and provider. Prefer
+        :meth:`resolve_active_by_external_id` wherever the reporter has the external id.
         """
-        candidates = self.filter(
+        return self._resolve_active_unique(
             organization_id=organization_id,
+            normalized_provider=normalized_provider,
             name=name,
-            status=ObjectStatus.ACTIVE,
         )
-        if normalized_provider is not None:
-            candidates = candidates.filter(self.provider_match(normalized_provider))
-
-        # Fetch up to 2 to detect ambiguity — the same name can exist under multiple
-        # providers (e.g. github & gitlab) within one org.
-        matches = list(candidates.order_by("id")[:2])
-        if len(matches) == 1:
-            return matches[0], "resolved"
-        return None, "ambiguous" if matches else "not_found"
 
     def resolve_active_by_external_id(
         self, *, organization_id: int, external_id: str, normalized_provider: str | None
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve the org-scoped active repository whose provider-side id is ``external_id``.
 
-        Prefer this over :meth:`resolve_active`: ``external_id`` is the identity Sentry
-        handed the reporter in the first place, so it round-trips exactly. Name matching
-        cannot -- GitLab reporters carry ``path_with_namespace`` while ``Repository.name``
-        holds the space-separated ``name_with_namespace``, which never compares equal.
-
-        ``(organization_id, provider, external_id)`` is unique, so a provider narrows this
-        to at most the two stored provider shapes; same "exactly one match" rule as
-        ``resolve_active``, and the same ``(repository, reason)`` return.
+        This is the identity Sentry handed the reporter in the first place, so it
+        round-trips exactly, and ``(organization_id, provider, external_id)`` is unique.
+        A name cannot do either: GitLab reporters carry ``path_with_namespace`` while
+        ``Repository.name`` holds the space-separated ``name_with_namespace``, which never
+        compares equal.
         """
-        candidates = self.filter(
+        return self._resolve_active_unique(
             organization_id=organization_id,
+            normalized_provider=normalized_provider,
             external_id=external_id,
-            status=ObjectStatus.ACTIVE,
         )
-        if normalized_provider is not None:
-            candidates = candidates.filter(self.provider_match(normalized_provider))
-
-        matches = list(candidates.order_by("id")[:2])
-        if len(matches) == 1:
-            return matches[0], "resolved"
-        return None, "ambiguous" if matches else "not_found"
 
 
 @cell_silo_model
