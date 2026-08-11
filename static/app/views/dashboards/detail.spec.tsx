@@ -558,11 +558,11 @@ describe('Dashboards > Detail', () => {
         })
       );
 
-      await waitFor(() =>
-        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
-          'Custom Errors'
-        )
-      );
+      expect(
+        await screen.findByText('Custom Errors', {
+          selector: '[aria-label="Starred dashboard title"]',
+        })
+      ).toBeInTheDocument();
 
       await activateDashboardEditMode();
       const titleInput = screen.getByRole('textbox');
@@ -582,11 +582,11 @@ describe('Dashboards > Detail', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
 
-      await waitFor(() =>
-        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
-          'Renamed Dashboard'
-        )
-      );
+      expect(
+        await screen.findByText('Renamed Dashboard', {
+          selector: '[aria-label="Starred dashboard title"]',
+        })
+      ).toBeInTheDocument();
     });
 
     it('appends dashboard-level filters to series request', async () => {
