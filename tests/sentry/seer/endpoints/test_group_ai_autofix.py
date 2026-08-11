@@ -2,6 +2,7 @@ import uuid
 from unittest.mock import ANY, Mock, patch
 
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import GroupActionActor, TriggerAutofixAction
 from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
@@ -725,131 +726,85 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             auto_create_pr=True,
         )
 
+    def _mock_open_pr_requests(self, mock_update_request, mock_state_request, group) -> None:
+        mock_update_response = Mock()
+        mock_update_response.status = 200
+        mock_update_request.return_value = mock_update_response
+
+        mock_state_response = Mock()
+        mock_state_response.status = 200
+        mock_state_response.json = Mock(
+            return_value={
+                "session": {
+                    **SeerRunState(
+                        run_id=123,
+                        blocks=[],
+                        status="completed",
+                        updated_at="2023-07-18T12:00:00Z",
+                    ).dict(),
+                    "metadata": {"group_id": group.id},
+                }
+            }
+        )
+        mock_state_request.return_value = mock_state_response
+
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
         self.login_as(user=self.user)
         group = self.create_group()
-
-        mock_explorer_update_response = Mock()
-        mock_explorer_update_response.status = 200
-        mock_explorer_update_request.return_value = mock_explorer_update_response
-
-        mock_explorer_state_response = Mock()
-        mock_explorer_state_response.status = 200
-        mock_explorer_state_response.json = Mock(
-            return_value={
-                "session": {
-                    **SeerRunState(
-                        run_id=123,
-                        blocks=[],
-                        status="completed",
-                        updated_at="2023-07-18T12:00:00Z",
-                    ).dict(),
-                    "metadata": {"group_id": group.id},
-                }
-            }
+        self._mock_open_pr_requests(
+            mock_explorer_update_request, mock_explorer_state_request, group
         )
-        mock_explorer_state_request.return_value = mock_explorer_state_response
 
         response = self.client.post(
             self._get_url(group.id),
-            data={
-                "step": "open_pr",
-                "run_id": 123,
-            },
+            data={"step": "open_pr", "run_id": 123},
             format="json",
         )
 
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 123, "sentry_run_id": None}
+        payload = mock_explorer_update_request.call_args[0][0]["payload"]
+        assert payload["type"] == "create_pr"
+        # No repo name and no GitHub-linked acting user, so neither key is sent.
+        assert "repo_name" not in payload
+        assert "author" not in payload
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_open_pr_with_repo_name(
+    def test_open_pr_with_repo_name_and_commit_author(
         self, mock_explorer_update_request, mock_explorer_state_request
     ):
         self.login_as(user=self.user)
         group = self.create_group()
-
-        mock_explorer_update_response = Mock()
-        mock_explorer_update_response.status = 200
-        mock_explorer_update_request.return_value = mock_explorer_update_response
-
-        mock_explorer_state_response = Mock()
-        mock_explorer_state_response.status = 200
-        mock_explorer_state_response.json = Mock(
-            return_value={
-                "session": {
-                    **SeerRunState(
-                        run_id=123,
-                        blocks=[],
-                        status="completed",
-                        updated_at="2023-07-18T12:00:00Z",
-                    ).dict(),
-                    "metadata": {"group_id": group.id},
-                }
-            }
+        self.create_external_user(
+            user=self.user,
+            organization=self.organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="583231",
+            integration=self.create_integration(
+                organization=self.organization, provider="github", external_id="gh:1"
+            ),
         )
-        mock_explorer_state_request.return_value = mock_explorer_state_response
+        self._mock_open_pr_requests(
+            mock_explorer_update_request, mock_explorer_state_request, group
+        )
 
         response = self.client.post(
             self._get_url(group.id),
-            data={
-                "step": "open_pr",
-                "run_id": 123,
-                "repo_name": "my-org/my-repo",
-            },
+            data={"step": "open_pr", "run_id": 123, "repo_name": "my-org/my-repo"},
             format="json",
         )
 
         assert response.status_code == 202, response.data
-        call_body = mock_explorer_update_request.call_args[0][0]
-        assert call_body["payload"]["type"] == "create_pr"
-        assert call_body["payload"]["repo_name"] == "my-org/my-repo"
-
-    @patch("sentry.seer.agent.client_utils.make_agent_state_request")
-    @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_open_pr_without_repo_name(
-        self, mock_explorer_update_request, mock_explorer_state_request
-    ):
-        self.login_as(user=self.user)
-        group = self.create_group()
-
-        mock_explorer_update_response = Mock()
-        mock_explorer_update_response.status = 200
-        mock_explorer_update_request.return_value = mock_explorer_update_response
-
-        mock_explorer_state_response = Mock()
-        mock_explorer_state_response.status = 200
-        mock_explorer_state_response.json = Mock(
-            return_value={
-                "session": {
-                    **SeerRunState(
-                        run_id=123,
-                        blocks=[],
-                        status="completed",
-                        updated_at="2023-07-18T12:00:00Z",
-                    ).dict(),
-                    "metadata": {"group_id": group.id},
-                }
-            }
-        )
-        mock_explorer_state_request.return_value = mock_explorer_state_response
-
-        response = self.client.post(
-            self._get_url(group.id),
-            data={
-                "step": "open_pr",
-                "run_id": 123,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 202, response.data
-        call_body = mock_explorer_update_request.call_args[0][0]
-        assert call_body["payload"]["type"] == "create_pr"
-        assert "repo_name" not in call_body["payload"]
+        payload = mock_explorer_update_request.call_args[0][0]["payload"]
+        assert payload["repo_name"] == "my-org/my-repo"
+        assert payload["author"] == {
+            "name": self.user.get_display_name(),
+            "email": "583231+octocat@users.noreply.github.com",
+        }
 
     def test_open_pr_no_run_id(self) -> None:
         self.login_as(user=self.user)

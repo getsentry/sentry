@@ -290,14 +290,15 @@ class GroupPullRequestsEndpointTest(APITestCase):
         delegated_pull_request, _ = self.create_linked_pull_request(key="1")
         PullRequestAttribution.objects.create(
             pull_request=delegated_pull_request,
-            signal_type=PullRequestAttributionSignalType.MCP,
-            source=PullRequestAttributionSource.WEBHOOK_DATA,
-        )
-        PullRequestAttribution.objects.create(
-            pull_request=delegated_pull_request,
             signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.SEER_DATA,
         )
+        PullRequestAttribution.objects.create(
+            pull_request=delegated_pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+
         sentry_app_pull_request, _ = self.create_linked_pull_request(key="2")
         PullRequestAttribution.objects.create(
             pull_request=sentry_app_pull_request,
@@ -319,11 +320,32 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert attribution_by_id["1"] == {
             "type": "seer",
             "id": "seer",
+            "agent": "claude_code",
         }
         assert attribution_by_id["2"] == {
             "type": "seer",
             "id": "seer",
+            "agent": None,
         }
+
+    def test_ignores_invalid_display_pull_request_attribution(self) -> None:
+        pull_request, _ = self.create_linked_pull_request(key="1")
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=False,
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["attribution"] is None
 
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
     def test_status_derivation_prefers_stored_lifecycle_fields(

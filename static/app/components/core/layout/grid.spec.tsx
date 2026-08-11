@@ -3,11 +3,7 @@ import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  Grid,
-  type GridProps,
-  type GridPropsWithRenderFunction,
-} from '@sentry/scraps/layout';
+import {Grid, type GridProps, type GridPropsWithRenderFunction} from './grid';
 
 describe('Grid', () => {
   it('renders children', () => {
