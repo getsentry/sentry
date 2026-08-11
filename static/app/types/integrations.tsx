@@ -156,9 +156,16 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
+export type PullRequestAttributionAgent =
+  | 'cursor'
+  | 'github_copilot'
+  | 'claude_code'
+  | 'unknown';
+
 type SeerAttribution = {
   id: 'seer';
   type: 'seer';
+  agent?: PullRequestAttributionAgent | null;
 };
 
 export type PullRequestAttribution = SeerAttribution;
