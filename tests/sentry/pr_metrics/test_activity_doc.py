@@ -1742,16 +1742,18 @@ def test_ci_head_outcomes_suite_conclusion_wins_over_runs() -> None:
     assert timeline_events_from_doc(doc)[0]["payload"]["failing_check_names"] == ["tests"]
 
 
-def test_ci_head_outcomes_recovered_runs_without_suite_are_unknown() -> None:
+def test_recovered_runs_without_suite_are_unknown_to_both_readers() -> None:
     # Deriving from runs can only ever prove a failure: `runs` tracks nothing but
     # the checks that once failed, so a recovered one says nothing about the checks
     # in the suite that were never tracked at all. That is an absent conclusion,
-    # not a pass.
+    # not a pass — and the judge timeline says so too, since it describes the very
+    # same group as the per-head outcome and must not report it green.
     doc = new_document()
     _run(doc, check_name="flaky", conclusion="failure")
     _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:01:00Z")
 
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "unknown"}
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "unknown"
 
 
 def test_ci_head_outcomes_verdict_suite_outranks_aborted_suite() -> None:

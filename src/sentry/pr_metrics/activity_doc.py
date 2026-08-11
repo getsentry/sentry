@@ -749,46 +749,34 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
     return shas
 
 
-def _conclusion_from_runs(group: CheckGroup, *, when_clean: str) -> str:
-    """Derive a conclusion for a group whose app never emitted a suite event.
-
-    ``runs`` only tracks checks that have EVER failed, so it can prove a failure
-    and nothing else: a group holding a currently-failing run is a ``failure``,
-    and everything else — no runs at all, or runs that all recovered — is
-    ``when_clean``, which is the only thing the two readers below disagree about.
-    """
-    runs = group.get("runs", {})
-    if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
-        return "failure"
-
-    return when_clean
-
-
 def _synthesized_suite_conclusion(group: CheckGroup) -> str:
-    """The group's conclusion for the per-head CI outcome: GitHub's own suite
-    conclusion when the app emitted one, else derived from the tracked runs.
+    """The group's conclusion: GitHub's own suite conclusion when the app emitted
+    one, else derived from the tracked runs.
 
     Forwards the provider's string as-is — ``cancelled`` stays ``cancelled``,
     ``action_required`` stays ``action_required`` — rather than collapsing it into a
     synthesized pass/fail/inconclusive verdict. The synthesized form was both lossy
     (every non-verdict conclusion arrived as one indistinguishable ``inconclusive``)
     and a second vocabulary that could, and did, disagree with what the judge
-    timeline reported for the very same group. With no suite event only a failing
-    run is provable, so a clean derivation is ``UNKNOWN_CONCLUSION`` rather than a
-    fabricated ``success``.
-    """
-    return group.get("suite_conclusion") or _conclusion_from_runs(
-        group, when_clean=UNKNOWN_CONCLUSION
-    )
+    timeline reported for the very same group.
 
-
-def _timeline_suite_conclusion(group: CheckGroup) -> str:
-    """The judge-timeline conclusion: the same provider pass-through, except that a
-    group with no suite event and no failing run derives ``success`` as it always
-    has — the judge treats a synthesized suite exactly like one the app emitted, and
-    has no ``inconclusive`` in its vocabulary.
+    ``runs`` only tracks checks that have EVER failed, so with no suite event it can
+    prove a failure and nothing else: a group holding a currently-failing run is a
+    ``failure``, and everything else — no runs at all, or runs that all recovered —
+    is ``UNKNOWN_CONCLUSION`` rather than a fabricated ``success``. Both readers get
+    that same answer: the per-head CI outcome and the judge timeline describe the
+    same group, so a group that concluded nothing must not read as green on one side
+    and unknown on the other.
     """
-    return group.get("suite_conclusion") or _conclusion_from_runs(group, when_clean="success")
+    suite_conclusion = group.get("suite_conclusion")
+    if suite_conclusion:
+        return suite_conclusion
+
+    runs = group.get("runs", {})
+    if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
+        return "failure"
+
+    return UNKNOWN_CONCLUSION
 
 
 def _completion_order(group: CheckGroup) -> str:
@@ -1028,7 +1016,7 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
     runs = group.get("runs", {})
     return {
         "action": "completed",
-        "conclusion": _timeline_suite_conclusion(group),
+        "conclusion": _synthesized_suite_conclusion(group),
         "app_slug": group.get("app_slug", ""),
         "check_runs_count": group.get("check_runs_count", 0),
         # Additive keys the legacy row forward never carried (Seer ignores unknown
