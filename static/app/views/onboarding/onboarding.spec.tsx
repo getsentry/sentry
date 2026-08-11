@@ -540,7 +540,7 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
+      features: ['onboarding-scm-experiment', 'onboarding-agentic-setup'],
     });
 
     // Shares scmOrganization's slug, so the mocks registered in beforeEach below
@@ -580,6 +580,11 @@ describe('Onboarding', () => {
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/repos/`,
+        body: [],
+      });
+      // Polled by the agentic setup while it waits for the agent to create a project
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/projects/`,
         body: [],
       });
     });
@@ -644,6 +649,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -652,6 +658,41 @@ describe('Onboarding', () => {
 
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/scm-connect/`
+      );
+    });
+
+    it('shows the agent setup on start click without leaving welcome', async () => {
+      const {router} = renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(
+        await screen.findByDisplayValue('npx @sentry/agent-plugin install')
+      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Help me setup Sentry')).toBeInTheDocument();
+      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+      expect(screen.getByText('Choose your platform')).toBeInTheDocument();
+      expect(screen.getByText('Install the SDK')).toBeInTheDocument();
+      expect(screen.getByText('Verify your setup')).toBeInTheDocument();
+      // The org has no projects yet, so the waiter is on its first milestone
+      expect(await screen.findByText('Waiting for project creation')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Detect your framework and language')
+      ).not.toBeInTheDocument();
+
+      act(() => {
+        screen.getByRole('button', {name: 'What will my agent do?'}).focus();
+      });
+
+      expect(
+        await screen.findByText('Detect your framework and language')
+      ).toBeInTheDocument();
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_present_agentic_interstitial_clicked',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/welcome/`
       );
     });
 
@@ -679,6 +720,10 @@ describe('Onboarding', () => {
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
           createdProjectSlug: 'javascript-nextjs',
           messagingSetup: selectedMessagingSetup,
+          agentSetupProjectBaseline: {
+            organizationId: scmOrganization.id,
+            projectIds: ['1'],
+          },
         })
       );
 
@@ -692,10 +737,23 @@ describe('Onboarding', () => {
       });
     });
 
-    it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
+    it('goes straight to scm-connect when the agentic setup is off', async () => {
+      const organization = OrganizationFixture({
+        features: ['onboarding-scm-experiment'],
+      });
+      const {router} = renderFlow(organization, 'welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
+      expect(router.location.pathname).toContain('/scm-connect/');
+    });
+
+    it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',

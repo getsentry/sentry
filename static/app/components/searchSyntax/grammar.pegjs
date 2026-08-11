@@ -302,6 +302,11 @@ explicit_boolean_tag_key
       return tc.tokenKeyExplicitBooleanTag(prefix, key)
     }
 
+explicit_array_tag_key
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'array' closed_bracket open_bracket "*" closed_bracket {
+      return tc.tokenKeyExplicitArrayTag(prefix, key)
+    }
+
 aggregate_key
   = name:key open_paren s1:spaces args:function_args? s2:spaces closed_paren {
       return tc.tokenKeyAggregate(name, args, s1, s2);
@@ -335,7 +340,7 @@ search_key
   = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
 
 text_key
-  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
+  = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / explicit_array_tag_key / search_key
 
 // Filter values
 

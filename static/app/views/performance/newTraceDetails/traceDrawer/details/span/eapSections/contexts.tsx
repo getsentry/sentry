@@ -12,23 +12,6 @@ import {
   hasAdditionalData,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/additionalData';
 
-// List of context types that are displayed as span attributes.
-// These should not be displayed in the contexts section.
-const DUPLICATES_FROM_ATTRIBUTES = [
-  'feedback',
-  'response',
-  'browser',
-  'runtime',
-  'os',
-  'flags',
-  'user',
-  'profile',
-  'replay',
-  'device',
-  'trace',
-  'environment',
-];
-
 export function Contexts({
   contexts,
   extra,
@@ -38,9 +21,7 @@ export function Contexts({
   extra: EventTransaction['context'] | undefined;
   project: Project | undefined;
 }) {
-  const extraContexts = getOrderedContextItemsFromContexts({contexts}).filter(
-    ({type}) => !DUPLICATES_FROM_ATTRIBUTES.includes(type)
-  );
+  const extraContexts = getOrderedContextItemsFromContexts({contexts});
   const eventHasExtraContexts = extraContexts.length > 0;
   const eventHasAdditionalData = hasAdditionalData(extra);
 

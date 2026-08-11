@@ -18,6 +18,7 @@ import {
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
+  ARRAY_OP_LABELS,
   DATE_OP_LABELS,
   DATE_OPTIONS,
   getLabelAndOperatorFromToken,
@@ -39,7 +40,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FilterOperatorProps {
@@ -130,7 +131,7 @@ export function getOperatorInfo({
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(filterToken);
+  const {operator} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
     return {
@@ -217,15 +218,23 @@ export function getOperatorInfo({
   }
 
   const keyLabel = filterToken.key.text;
+  const isArrayField = fieldDefinition?.kind === FieldKind.ARRAY;
+  const opLabels = isArrayField ? ARRAY_OP_LABELS : OP_LABELS;
+
+  // Array attributes only support membership, so restrict the operators to
+  // "includes"/"does not include" instead of the full string operator set.
+  const validOps = isArrayField
+    ? [TermOperator.CONTAINS, TermOperator.DOES_NOT_CONTAIN]
+    : getValidOpsForFilter({filterToken, fieldDefinition});
 
   return {
     operator,
-    label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter({filterToken, fieldDefinition})
+    label: <OpLabel>{opLabels[operator] ?? operator}</OpLabel>,
+    options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
-        const optionOpLabel = OP_LABELS[op] ?? op;
+        const optionOpLabel = opLabels[op] ?? op;
 
         return {
           value: op,

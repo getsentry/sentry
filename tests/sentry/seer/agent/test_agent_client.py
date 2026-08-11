@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
@@ -294,6 +295,64 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = self._mock_run_response()
 
         client = SeerAgentClient(self.organization, self.user, enable_embeds=False)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_code_mode_grants_embed_widgets_without_the_embeds_flag(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """Code Mode ships the embed surface, so a run using it renders widgets whether
+        or not the org holds the embeds flag. Gating on the flag alone would leave those
+        runs emitting plain text where the rest of the product shows a widget."""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_code_mode_tools="only")
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_no_embed_widgets_without_code_mode_or_the_flag(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_code_mode_tools="off")
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    def test_enable_embeds_false_still_wins_over_code_mode(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """`enable_embeds=False` is the hard opt-out for surfaces that cannot render
+        Markdoc, such as Slack, where the tags would leak as raw text."""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(
+            self.organization,
+            self.user,
+            enable_code_mode_tools="only",
+            enable_embeds=False,
+        )
         client.start_run("Test query")
 
         body = mock_post.call_args[0][0]
@@ -975,8 +1034,13 @@ class TestSeerAgentClientPushChanges(TestCase):
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
         assert body["payload"]["repo_name"] == "owner/repo"
+        assert "author" not in body["payload"]
         assert result is not None
         assert result.repo_pr_states["owner/repo"].pr_url == "https://github.com/owner/repo/pull/1"
+
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+        client.push_changes(123, author=author)
+        assert mock_post.call_args[0][0]["payload"]["author"] == author
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")

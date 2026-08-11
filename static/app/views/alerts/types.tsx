@@ -1,6 +1,5 @@
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
 
@@ -83,10 +82,6 @@ export enum CombinedAlertType {
   ISSUE = 'rule',
   UPTIME = 'uptime',
   CRONS = 'monitor',
-}
-
-export interface UptimeAlert extends UptimeRule {
-  type: CombinedAlertType.UPTIME;
 }
 
 export type Anomaly = {

@@ -8,6 +8,7 @@ from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.settings import is_self_hosted
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
     _ensure_detector,
@@ -214,5 +215,7 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
     all_projects_detector = ensure_default_all_projects_detector(organization.id)
-    workflows = [ensure_pull_request_workflow(organization, all_projects_detector)]
+    workflows: list[Workflow] = []
+    if not is_self_hosted():
+        workflows.append(ensure_pull_request_workflow(organization, all_projects_detector))
     return workflows

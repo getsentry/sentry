@@ -394,6 +394,10 @@ describe('ActivitySection', () => {
       url: '/organizations/org-slug/teams/',
       body: [team],
     });
+    const memberRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
     TeamStore.loadInitialData([team]);
 
     const assignedGroup = GroupFixture({
@@ -423,6 +427,10 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Assigned');
     expect(timeline).toHaveTextContent('#frontend');
     expect(teamRequest).not.toHaveBeenCalled();
+    expect(memberRequest).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {query: `user.id:${team.id}`}})
+    );
   });
 
   it('loads an assigned team missing from the team store', async () => {
@@ -509,7 +517,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('#frontend (deleted)')).toBeInTheDocument();
   });
 
-  it('preserves the assigned user avatar from activity data', async () => {
+  it('hydrates the assigned user avatar from the member list', async () => {
     const assignedUser = UserFixture({
       id: '123',
       name: 'David Cramer',
@@ -518,6 +526,14 @@ describe('ActivitySection', () => {
         avatarUrl: 'https://example.com/avatar.jpg',
         avatarUuid: '123',
       },
+    });
+    const memberRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [{user: assignedUser}],
+    });
+    const teamRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
     });
     const assignedGroup = GroupFixture({
       id: '1347',
@@ -529,7 +545,7 @@ describe('ActivitySection', () => {
           data: {
             assignee: assignedUser.id,
             assigneeType: 'user',
-            user: assignedUser,
+            assigneeName: assignedUser.name,
           },
           user,
         },
@@ -547,6 +563,44 @@ describe('ActivitySection', () => {
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
+    expect(memberRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {query: 'user.id:123'}})
+    );
+    expect(teamRequest).not.toHaveBeenCalled();
+  });
+
+  it('renders the stored name for a deleted user assignment', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'deleted-user-assignment',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'David Cramer',
+            assigneeType: 'user',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('David Cramer (deleted)')).toBeInTheDocument();
   });
 
   it('shows ownership assignment rules in an info tooltip', async () => {
@@ -634,6 +688,89 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 11 hours of inactivity/)).toBeInTheDocument();
     expect(screen.getByText(/after 30 hours of inactivity/)).toBeInTheDocument();
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
+  });
+
+  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
+
+  function makeFlappingGroup(id: string) {
+    return GroupFixture({
+      id,
+      activity: [
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-2`,
+          dateCreated: '2020-01-01T06:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-2`,
+          dateCreated: '2020-01-01T05:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-1`,
+          dateCreated: '2020-01-01T04:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-1`,
+          dateCreated: '2020-01-01T03:00:00Z',
+          data: {},
+        },
+      ],
+      project,
+    });
+  }
+
+  it('expands and collapses a status-flapping rollup when enabled', async () => {
+    const flappingGroup = makeFlappingGroup('1348');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+    expect(screen.getAllByRole('img', {name: 'Activity update'})).toHaveLength(3);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more'}));
+
+    expect(screen.queryByRole('button', {name: 'Show 2 more'})).not.toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(2);
+    expect(screen.getAllByText('Resolved')).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide 2 events'}));
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+  });
+
+  it('does not count rolled-up events as hidden sidebar rows', () => {
+    const flappingGroup = makeFlappingGroup('1350');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getByText('Expand')).toBeInTheDocument();
+    expect(screen.queryByText('View 2 more')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
   it('renders note and allows for edit', async () => {

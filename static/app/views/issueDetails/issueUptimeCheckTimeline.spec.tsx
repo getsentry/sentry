@@ -9,7 +9,7 @@ import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/ge
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';

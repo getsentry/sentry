@@ -251,13 +251,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
-        ui_tools = (
-            validated_data.get("ui_tools")
-            if features.has(
-                "organizations:seer-explorer-ui-tools", organization, actor=request.user
-            )
-            else None
-        )
+        ui_tools = validated_data.get("ui_tools")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -292,7 +286,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
             else:
-                enable_code_mode_tools = "on"
+                # "only" rather than "on": running Code Mode alongside the classic tools
+                # gives the agent two ways to do everything and it mixes them, so the
+                # surface being dogfooded is never the one that ships. The frontend
+                # override still selects either mode for comparison.
+                enable_code_mode_tools = "only"
 
             client = SeerAgentClient(
                 organization,
