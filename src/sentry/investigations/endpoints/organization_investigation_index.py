@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import Any
+
 from django.db.models import Count, Exists, OuterRef, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -15,6 +18,7 @@ from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     accessible_project_ids,
     require_authenticated_user,
+    serialize_permissions,
     service_error,
     user_id,
 )
@@ -43,6 +47,20 @@ from sentry.investigations.services import (
 from sentry.models.organization import Organization
 
 
+def _serialize_investigations(
+    investigations: Sequence[Investigation], request: Request, organization: Organization
+) -> list[dict[str, Any]]:
+    values = list(investigations)
+    serialized = serialize(values, request.user, InvestigationSerializer())
+    return [
+        {
+            **data,
+            "permissions": serialize_permissions(investigation, request, organization),
+        }
+        for investigation, data in zip(values, serialized)
+    ]
+
+
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndpoint):
@@ -69,6 +87,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         investigations = (
             Investigation.objects.filter(organization=organization, status=requested_status)
             .filter(Q(source_type=InvestigationSourceType.MANUAL) | ~Exists(newer_lineage_revision))
+            .select_related("permissions")
             .annotate(
                 active_block_count=Count(
                     "blocks", filter=Q(blocks__deleted_at__isnull=True), distinct=True
@@ -84,9 +103,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             queryset=investigations,
             paginator_cls=DateTimePaginator,
             order_by="-date_updated",
-            on_results=lambda values: serialize(
-                list(values), request.user, InvestigationSerializer()
-            ),
+            on_results=lambda values: _serialize_investigations(values, request, organization),
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
@@ -127,14 +144,15 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             if response is not None:
                 return response
             raise
-        return Response(
+        data = dict(
             serialize(
                 investigation,
                 request.user,
                 InvestigationDetailsSerializer(accessible_project_ids=project_ids),
-            ),
-            status=status.HTTP_201_CREATED,
+            )
         )
+        data["permissions"] = serialize_permissions(investigation, request, organization)
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=["Investigations"])
@@ -202,10 +220,12 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpo
             raise
 
         project_ids = accessible_project_ids(self, request, organization)
-        return Response(
+        data = dict(
             serialize(
                 updated,
                 request.user,
                 InvestigationDetailsSerializer(accessible_project_ids=project_ids),
             )
         )
+        data["permissions"] = serialize_permissions(updated, request, organization)
+        return Response(data)

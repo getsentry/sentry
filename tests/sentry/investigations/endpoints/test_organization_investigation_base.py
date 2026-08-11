@@ -24,11 +24,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_closed_membership_organizations_are_not_supported(self) -> None:
-        """
-        Investigations are organization-visible with no per-investigation access
-        control, so the initial pass is limited to open-membership orgs.
-        """
+    def test_closed_membership_organizations_are_supported(self) -> None:
         self.login_as(self.user)
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -38,7 +34,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(FEATURE):
-            assert self.client.get(url).status_code == 404
+            assert self.client.get(url).status_code == 200
 
     def test_feature_is_required(self) -> None:
         self.login_as(self.user)

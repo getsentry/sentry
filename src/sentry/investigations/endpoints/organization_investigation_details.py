@@ -14,6 +14,8 @@ from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     accessible_project_ids,
     require_authenticated_user,
+    require_manager_or_creator,
+    serialize_permissions,
     service_error,
 )
 from sentry.investigations.endpoints.serializers import (
@@ -48,7 +50,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
     def get(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
-        return Response(
+        data = dict(
             serialize(
                 investigation,
                 request.user,
@@ -57,6 +59,8 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 ),
             )
         )
+        data["permissions"] = serialize_permissions(investigation, request, organization)
+        return Response(data)
 
     def put(
         self, request: Request, organization: Organization, investigation: Investigation
@@ -75,6 +79,8 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if "status" in values and values["status"] != investigation.status:
+            require_manager_or_creator(request, organization, investigation)
         if investigation.status == InvestigationStatus.ARCHIVED and values != {
             "status": InvestigationStatus.ACTIVE
         }:
@@ -94,17 +100,20 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             if response is not None:
                 return response
             raise
-        return Response(
+        data = dict(
             serialize(
                 updated,
                 request.user,
                 InvestigationDetailsSerializer(accessible_project_ids=project_ids),
             )
         )
+        data["permissions"] = serialize_permissions(updated, request, organization)
+        return Response(data)
 
     def delete(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
+        require_manager_or_creator(request, organization, investigation)
         validator = InvestigationDeleteValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

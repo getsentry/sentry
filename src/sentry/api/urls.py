@@ -302,6 +302,10 @@ from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationBlocksEndpoint,
     OrganizationInvestigationsIndexEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_parameters_permissions import (
+    OrganizationInvestigationParametersEndpoint,
+    OrganizationInvestigationPermissionsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2395,6 +2399,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
         OrganizationInvestigationBlockDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-block-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/parameters/$",
+        OrganizationInvestigationParametersEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-parameters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/permissions/$",
+        OrganizationInvestigationPermissionsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-permissions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",

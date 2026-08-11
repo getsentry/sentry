@@ -9,9 +9,10 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.investigations.models import Investigation, InvestigationBlock
+from sentry.investigations.models import Investigation, InvestigationBlock, InvestigationPermissions
+from sentry.investigations.permissions import InvestigationPermission, is_organization_manager
 from sentry.investigations.services import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
@@ -25,14 +26,7 @@ QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
-    """
-    Investigations are organization-visible with no per-investigation access
-    control, so for now they are limited to organizations with open membership.
-    """
-    return (
-        features.has(FEATURE, organization, actor=request.user)
-        and request.access.has_open_membership
-    )
+    return features.has(FEATURE, organization, actor=request.user)
 
 
 def query_execution_enabled(request: Request, organization: Organization) -> bool:
@@ -93,19 +87,48 @@ def require_authenticated_user(request: Request) -> int:
     return user_id(request)
 
 
-class InvestigationPermission(OrganizationPermission):
-    """
-    Any organization member may read and edit investigations.
+def ensure_permissions(investigation: Investigation) -> InvestigationPermissions:
+    try:
+        return investigation.permissions
+    except InvestigationPermissions.DoesNotExist:
+        permissions, _ = InvestigationPermissions.objects.get_or_create(investigation=investigation)
+        investigation.permissions = permissions
+        return permissions
 
-    There is no per-investigation access control in this pass, so mutations
-    require only ``org:read`` rather than the default ``org:write``.
-    """
 
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+def can_edit(request: Request, organization: Organization, investigation: Investigation) -> bool:
+    return is_organization_manager(request, organization) or ensure_permissions(
+        investigation
+    ).has_edit_permissions(user_id(request))
+
+
+def can_manage(request: Request, organization: Organization, investigation: Investigation) -> bool:
+    return user_id(request) == investigation.created_by_id or is_organization_manager(
+        request, organization
+    )
+
+
+def require_manager_or_creator(
+    request: Request, organization: Organization, investigation: Investigation
+) -> None:
+    if not can_manage(request, organization, investigation):
+        raise PermissionDenied
+
+
+def serialize_permissions(
+    investigation: Investigation,
+    request: Request,
+    organization: Organization,
+) -> dict[str, Any]:
+    permissions = ensure_permissions(investigation)
+    return {
+        "isEditableByEveryone": permissions.is_editable_by_everyone,
+        "teamIds": [
+            str(team_id)
+            for team_id in sorted(permissions.teams_with_edit_access.values_list("id", flat=True))
+        ],
+        "canEdit": can_edit(request, organization, investigation),
+        "canManage": can_manage(request, organization, investigation),
     }
 
 
@@ -142,12 +165,14 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
         organization = kwargs["organization"]
         try:
-            investigation = Investigation.objects.select_related("organization").get(
+            investigation = Investigation.objects.select_related("organization", "permissions").get(
                 id=investigation_id, organization=organization
             )
         except (Investigation.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
+        ensure_permissions(investigation)
+        self.check_object_permissions(request, investigation)
         if not required_investigation_project_ids(investigation).issubset(
             accessible_project_ids(self, request, organization)
         ):
