@@ -45,7 +45,10 @@ def _build_author(
 ) -> SeerCommitAuthor:
     login = login.lstrip("@")
     external_id = str(external_id) if external_id is not None else ""
-    # The id-prefixed noreply address is what links the commit to the GitHub account.
+    # Both noreply forms attribute the commit to the GitHub account. The id-prefixed
+    # one is canonical and survives a username change; the login-only form is what
+    # GitHub itself issues to pre-2017 accounts, so it stays a usable fallback rather
+    # than a failure. See https://docs.github.com/en/account-and-profile/reference/email-addresses-reference
     email = (
         f"{external_id}+{login}@{GITHUB_NOREPLY_DOMAIN}"
         if external_id.isdigit()
@@ -104,7 +107,7 @@ def commit_author_for_user(
 ) -> SeerCommitAuthor | None:
     """The acting user's GitHub identity, or ``None`` to let Seer author the commit."""
     if user is None or isinstance(user, AnonymousUser) or user.id is None:
-        _record_outcome("no_github_identity")
+        _record_outcome("no_acting_user")
         return None
 
     try:
@@ -116,7 +119,7 @@ def commit_author_for_user(
         # A GitHub Enterprise login has no github.com account behind it, so the
         # noreply address would point at a stranger or nobody.
         if _is_github_enterprise_only(user.id, organization_id):
-            _record_outcome("no_github_identity")
+            _record_outcome("github_enterprise_only")
             return None
 
         external_actor = _github_com_external_actor(user.id, organization_id, login)
@@ -130,7 +133,7 @@ def commit_author_for_user(
             "autofix.commit_author.resolve_failed",
             extra={"organization_id": organization_id, "referrer": referrer},
         )
-        _record_outcome("error")
+        _record_outcome("resolve_error")
         return None
 
     _record_outcome("sentry_user")
@@ -172,18 +175,22 @@ def commit_author_for_feedback(
 ) -> SeerCommitAuthor | None:
     """The author for an iteration, set only when one human drove all of its feedback."""
     try:
-        if not items or any(item.source.is_automated for item in items):
-            _record_outcome("no_github_identity")
+        if not items:
+            _record_outcome("no_feedback")
+            return None
+
+        if any(item.source.is_automated for item in items):
+            _record_outcome("automated_feedback")
             return None
 
         actors = {_feedback_actor(item.source) for item in items}
         if len(actors) != 1:
-            _record_outcome("no_github_identity")
+            _record_outcome("multiple_feedback_actors")
             return None
 
         actor = actors.pop()
         if actor is None:
-            _record_outcome("no_github_identity")
+            _record_outcome("unidentified_feedback_actor")
             return None
 
         kind, identifier = actor
@@ -198,7 +205,7 @@ def commit_author_for_feedback(
             "autofix.commit_author.feedback_failed",
             extra={"organization_id": organization_id},
         )
-        _record_outcome("error")
+        _record_outcome("feedback_error")
         return None
     return commit_author_for_user(user, organization_id, referrer="autofix_pr_iteration")
 

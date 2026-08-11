@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -22,6 +22,7 @@ from sentry.testutils.cases import TestCase
 
 OCTOCAT_EMAIL = "583231+octocat@users.noreply.github.com"
 LOGIN_ONLY_EMAIL = "octocat@users.noreply.github.com"
+METRICS_PATH = "sentry.seer.autofix.commit_author.metrics"
 
 
 def check_suite_feedback() -> Feedback:
@@ -79,12 +80,19 @@ class CommitAuthorTest(TestCase):
     def _for_user(self, user):
         return commit_author_for_user(user, self.organization.id, referrer="test")
 
+    def _assert_outcome(self, mock_metrics: MagicMock, expected: str) -> None:
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.commit_author.resolved", tags={"outcome": expected}
+        )
+
     def test_github_actor_email_shape(self) -> None:
         assert commit_author_for_github_actor(login="octocat", external_id=583231) == {
             "name": "octocat",
             "email": OCTOCAT_EMAIL,
         }
-        # A missing or non-numeric id degrades to the login-only noreply form.
+        # A missing or non-numeric id degrades to the login-only noreply form, which
+        # GitHub still attributes to the account -- it's the address GitHub itself
+        # issues to pre-2017 accounts. So this is a supported author, not an error.
         assert commit_author_for_github_actor(login="octocat") == {
             "name": "octocat",
             "email": LOGIN_ONLY_EMAIL,
@@ -199,6 +207,81 @@ class CommitAuthorTest(TestCase):
             "name": "Mona Lisa",
             "email": OCTOCAT_EMAIL,
         }
+
+    @patch(METRICS_PATH)
+    def test_user_outcomes_are_distinctly_tagged(self, mock_metrics: MagicMock) -> None:
+        # Each way of failing to resolve a user gets its own tag, so the metric
+        # says *why* attribution was skipped rather than just that it was.
+        self._for_user(None)
+        self._assert_outcome(mock_metrics, "no_acting_user")
+
+        mock_metrics.reset_mock()
+        self._for_user(self.actor)
+        self._assert_outcome(mock_metrics, "no_github_identity")
+
+        mock_metrics.reset_mock()
+        self.create_external_user(
+            user=self.actor,
+            organization=self.organization,
+            provider=ExternalProviders.GITHUB_ENTERPRISE.value,
+            external_name="@octocat",
+            external_id="583231",
+            integration=self.create_integration(
+                organization=self.organization, provider="github_enterprise", external_id="ghe:2"
+            ),
+        )
+        self._for_user(self.actor)
+        self._assert_outcome(mock_metrics, "github_enterprise_only")
+
+        mock_metrics.reset_mock()
+        self._link_github()
+        self._for_user(self.actor)
+        self._assert_outcome(mock_metrics, "sentry_user")
+
+    @patch(METRICS_PATH)
+    def test_user_error_outcome_is_distinctly_tagged(self, mock_metrics: MagicMock) -> None:
+        with patch(
+            "sentry.seer.autofix.commit_author.get_github_username_for_user",
+            side_effect=Exception("boom"),
+        ):
+            assert self._for_user(self.actor) is None
+        self._assert_outcome(mock_metrics, "resolve_error")
+
+    @patch(METRICS_PATH)
+    def test_feedback_outcomes_are_distinctly_tagged(self, mock_metrics: MagicMock) -> None:
+        commit_author_for_feedback([], self.organization.id)
+        self._assert_outcome(mock_metrics, "no_feedback")
+
+        mock_metrics.reset_mock()
+        commit_author_for_feedback([check_suite_feedback()], self.organization.id)
+        self._assert_outcome(mock_metrics, "automated_feedback")
+
+        mock_metrics.reset_mock()
+        commit_author_for_feedback(
+            [comment_feedback("octocat", 1), comment_feedback("hubot", 2, comment_id=11)],
+            self.organization.id,
+        )
+        self._assert_outcome(mock_metrics, "multiple_feedback_actors")
+
+        mock_metrics.reset_mock()
+        commit_author_for_feedback([comment_feedback(None)], self.organization.id)
+        self._assert_outcome(mock_metrics, "unidentified_feedback_actor")
+
+        mock_metrics.reset_mock()
+        commit_author_for_feedback([comment_feedback("octocat", 583231)], self.organization.id)
+        self._assert_outcome(mock_metrics, "github_actor")
+
+    @patch(METRICS_PATH)
+    def test_feedback_error_outcome_is_distinctly_tagged(self, mock_metrics: MagicMock) -> None:
+        with patch(
+            "sentry.seer.autofix.commit_author.user_service.get_user",
+            side_effect=Exception("boom"),
+        ):
+            items = [
+                Feedback(source=UserUIFeedbackSource(user_id=self.actor.id, user_feedback="go"))
+            ]
+            assert commit_author_for_feedback(items, self.organization.id) is None
+        self._assert_outcome(mock_metrics, "feedback_error")
 
     def test_parse_commit_author(self) -> None:
         assert parse_commit_author('{"name": "Mona", "email": "mona@example.com"}') == {
