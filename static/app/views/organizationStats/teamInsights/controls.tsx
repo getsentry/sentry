@@ -141,7 +141,7 @@ export function TeamStatsControls({
   const isOrgOwner = organization.access.includes('org:admin');
 
   return (
-    <Container containerType="inline-size">
+    <Container>
       <Grid
         align="center"
         columns={{
