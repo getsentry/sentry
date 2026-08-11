@@ -7,6 +7,7 @@ __all__ = ["FeatureManager"]
 import abc
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -36,6 +37,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass(slots=True)
+class _ProjectHandlerEvaluation:
+    """Results from running feature-specific handlers across projects."""
+
+    decisions: dict[Project, bool]
+    unresolved_projects: set[Project]
+    failed: bool
+
+
 class RegisteredFeatureManager:
     """
     Feature functions that are built around the need to register feature
@@ -58,7 +68,11 @@ class RegisteredFeatureManager:
         for feature_name in handler.features:
             self._handler_registry[feature_name].append(handler)
 
-    def _get_handler(self, feature: Feature, actor: User) -> bool | None:
+    def _get_handler(
+        self,
+        feature: Feature,
+        actor: User | RpcUser | AnonymousUser | None,
+    ) -> bool | None:
         for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
@@ -103,39 +117,60 @@ class RegisteredFeatureManager:
         """
 
         result: dict[Project, bool | None] = {}
-        remaining = set(objects)
-
-        handlers = self._handler_registry[name]
         try:
-            for handler in handlers:
-                if not remaining:
-                    break
+            evaluation = self._evaluate_handlers_for_projects(name, organization, objects, actor)
+            result.update(evaluation.decisions)
 
-                with start_span(
-                    op="feature.has_for_batch.handler",
-                    name=f"{type(handler).__name__} ({name})",
-                ) as span:
-                    batch_size = len(remaining)
-                    set_span_data(span, "Batch Size", batch_size)
-                    set_span_data(span, "Feature Name", name)
-                    set_span_data(span, "Handler Type", type(handler).__name__)
-
-                    batch = FeatureCheckBatch(self, name, organization, remaining, actor)
-                    handler_result = handler.has_for_batch(batch)
-                    for obj, flag in handler_result.items():
-                        if flag is not None:
-                            remaining.remove(obj)
-                            result[obj] = flag
-                    set_span_data(span, "Flags Found", batch_size - len(remaining))
+            if evaluation.failed:
+                return result
 
             default_flag = settings.SENTRY_FEATURES.get(name, False)
-            for obj in remaining:
-                result[obj] = default_flag
+            for project in evaluation.unresolved_projects:
+                result[project] = default_flag
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
 
         return result
+
+    def _evaluate_handlers_for_projects(
+        self,
+        feature_name: str,
+        organization: Organization,
+        projects: Iterable[Project],
+        actor: User | RpcUser | AnonymousUser | None,
+    ) -> _ProjectHandlerEvaluation:
+        decisions: dict[Project, bool] = {}
+        unresolved_projects = set(projects)
+        try:
+            for handler in self._handler_registry[feature_name]:
+                if not unresolved_projects:
+                    break
+
+                with start_span(
+                    op="feature.has_for_batch.handler",
+                    name=f"{type(handler).__name__} ({feature_name})",
+                ) as span:
+                    batch_size = len(unresolved_projects)
+                    set_span_data(span, "Batch Size", batch_size)
+                    set_span_data(span, "Feature Name", feature_name)
+                    set_span_data(span, "Handler Type", type(handler).__name__)
+
+                    batch = FeatureCheckBatch(
+                        self, feature_name, organization, unresolved_projects, actor
+                    )
+                    handler_result = handler.has_for_batch(batch)
+                    for project, value in handler_result.items():
+                        if value is not None:
+                            unresolved_projects.remove(project)
+                            decisions[project] = value
+                    set_span_data(span, "Flags Found", batch_size - len(unresolved_projects))
+        except Exception as e:
+            if in_random_rollout("features.error.capture_rate"):
+                sentry_sdk.capture_exception(e)
+            return _ProjectHandlerEvaluation(decisions, unresolved_projects, failed=True)
+
+        return _ProjectHandlerEvaluation(decisions, unresolved_projects, failed=False)
 
 
 FLAGPOLE_OPTION_PREFIX = "feature"
