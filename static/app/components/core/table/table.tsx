@@ -227,7 +227,12 @@ export function Table({
 
   return (
     <TableContext value={contextValue}>
-      <TableGrid {...props} ref={gridRef} role="table">
+      <TableGrid
+        {...props}
+        ref={gridRef}
+        role="table"
+        style={template ? {...props.style, gridTemplateColumns: template} : props.style}
+      >
         {children}
       </TableGrid>
     </TableContext>
