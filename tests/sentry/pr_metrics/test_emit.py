@@ -393,22 +393,24 @@ class PrMetricsEmissionTest(TestCase):
         assert _ci_failing_at_close(self.pull_request, doc=None) is True
 
     def test_reviews_requested_count_no_activity_is_zero(self) -> None:
-        assert review_activity(self.pull_request).requested_count == 0
+        assert review_activity(self.pull_request, doc=None).requested_count == 0
 
     def test_reviews_requested_count_nets_removals(self) -> None:
         self._add_review_request(webhook_id="rr1")
         self._add_review_request(webhook_id="rr2")
         self._add_review_request(webhook_id="rr3", removed=True)
-        assert review_activity(self.pull_request).requested_count == 1  # 2 requested - 1 removed
+        assert (
+            review_activity(self.pull_request, doc=None).requested_count == 1
+        )  # 2 requested - 1 removed
 
     def test_reviews_requested_count_floors_at_zero(self) -> None:
         # More removals than requests can't be matched 1:1 (e.g. a second
         # reviewer's outstanding request), so the net never goes negative.
         self._add_review_request(webhook_id="rr1", removed=True)
-        assert review_activity(self.pull_request).requested_count == 0
+        assert review_activity(self.pull_request, doc=None).requested_count == 0
 
     def test_review_results_no_activity_is_all_zero(self) -> None:
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 0,
@@ -419,7 +421,7 @@ class PrMetricsEmissionTest(TestCase):
         self._add_review(webhook_id="r2", review_state="approved")
         self._add_review(webhook_id="r3", review_state="changes_requested")
         self._add_review(webhook_id="r4", review_state="commented")
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 2,
             "changes_requested": 1,
             "commented": 1,
@@ -429,7 +431,7 @@ class PrMetricsEmissionTest(TestCase):
         # A review_dismissed row (or any future/unmapped state) contributes
         # nothing rather than erroring or padding an unexpected key.
         self._add_review(webhook_id="r1", review_state="dismissed")
-        assert review_activity(self.pull_request).results == {
+        assert review_activity(self.pull_request, doc=None).results == {
             "approved": 0,
             "changes_requested": 0,
             "commented": 0,

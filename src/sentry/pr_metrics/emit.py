@@ -243,8 +243,9 @@ def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
 
 
 def _ci_head_summary_fields(
-    pull_request: PullRequest,
     attributions: list[dict[str, Any]],
+    *,
+    doc: activity_doc.ActivityDoc | None,
 ) -> dict[str, Any]:
     """Ordered per-head CI results, or null when unavailable.
 
@@ -267,11 +268,15 @@ def _ci_head_summary_fields(
     zero. A PR carrying a weak signal *alongside* an authoring one still emits —
     the authoring signal makes the heads meaningful.
 
+    ``doc``: mandatory rather than loaded here, since its only caller
+    (``build_pr_metrics_row``) loads the activity document once and threads it
+    through to every reader on the row instead of each re-issuing an identical
+    query. ``None`` means the PR is on the legacy store, i.e. summary
+    unavailable.
     """
     if not _has_authoring_attribution(attributions):
         return _null_ci_head_summary_fields()
 
-    doc = load_activity_document(pull_request)
     if doc is None:
         return _null_ci_head_summary_fields()
 
@@ -451,7 +456,9 @@ def _no_ci_events(pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | 
     ).exists()
 
 
-def review_activity(pull_request: PullRequest) -> ReviewActivity:
+def review_activity(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None
+) -> ReviewActivity:
     """Review-submission facts read live off activity at emit time — never
     persisted onto ``PullRequestMetrics`` like ``reviews_count`` and its
     siblings, since every current caller of ``build_pr_metrics_row`` runs
@@ -462,8 +469,10 @@ def review_activity(pull_request: PullRequest) -> ReviewActivity:
 
     A single conditional aggregate does all the bucketing in Postgres — no rows
     cross into Python — rather than pulling every row over to count client-side.
+
+    ``doc``: see ``_ci_failing_at_close`` — the caller loads the document once
+    and threads it through, so it's mandatory here rather than optional.
     """
-    doc = load_activity_document(pull_request)
     if doc is not None:
         return ReviewActivity(**activity_doc.review_activity_from_doc(doc))
 
@@ -782,7 +791,9 @@ def _conversation_analysis_fields(
     }
 
 
-def _repo_is_public(pull_request: PullRequest) -> bool | None:
+def _repo_is_public(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None
+) -> bool | None:
     """Whether the repo was public at PR-open time, or ``None`` if unknown.
 
     Repository never persists visibility, so this is read back from the
@@ -791,9 +802,10 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
     in either store depending on its ``_use_activity_document`` routing (see
     ``pr_metrics.webhooks``), so the document is checked first and the legacy
     row is a fallback for PRs still on the old store.
+
+    ``doc``: see ``_ci_failing_at_close`` — the caller loads the document once
+    and threads it through, so it's mandatory here rather than optional.
     """
-    # Use the standard helper that correctly handles empty documents and orphaned rows
-    doc = load_activity_document(pull_request)
     if doc:
         opened_entry = next(
             (e for e in doc.get("events", []) if e["event_type"] == PullRequestActivityType.OPENED),
@@ -857,9 +869,13 @@ def build_pr_metrics_row(
     metrics = (
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
-    # Read once so requested_count and results (both unpersisted) come from the
-    # same activity snapshot rather than two separate reads.
-    review = review_activity(pull_request)
+    # Loaded once and threaded through to every reader below: they all read the
+    # same PR's activity, so without this each would re-issue an identical
+    # load_activity_document query. It also pins them to one snapshot, so the
+    # row's review, visibility, and CI-head facts can't come from different
+    # versions of the document.
+    doc = load_activity_document(pull_request)
+    review = review_activity(pull_request, doc=doc)
 
     # One repo read serves both the provider slug and the dedup key's identity.
     repo_external_id, repo_provider, integration_id = _repo_external_identity(pull_request)
@@ -869,7 +885,7 @@ def build_pr_metrics_row(
         repository_id=pull_request.repository_id,
         deduplication_key=_deduplication_key(pull_request, repo_external_id, integration_id),
         repository_provider=repo_provider,
-        repository_is_public=_repo_is_public(pull_request),
+        repository_is_public=_repo_is_public(pull_request, doc=doc),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         group_ids=group_ids,
@@ -903,7 +919,7 @@ def build_pr_metrics_row(
         autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
-        **_ci_head_summary_fields(pull_request, attributions),
+        **_ci_head_summary_fields(attributions, doc=doc),
         **_conversation_analysis_fields(conversation_analysis),
     )
 
