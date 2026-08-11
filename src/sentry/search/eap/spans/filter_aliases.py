@@ -247,13 +247,11 @@ def semver_build_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         all_versions = [constants.SEMVER_EMPTY_RELEASE]
 
-    build_final_operator: Literal["IN", "NOT IN"] = (
+    final_operator: Literal["IN", "NOT IN"] = (
         "NOT IN" if search_filter.operator == "NOT IN" else "IN"
     )
     return [
-        SearchFilter(
-            SearchKey(constants.RELEASE_ALIAS), build_final_operator, SearchValue(all_versions)
-        )
+        SearchFilter(SearchKey(constants.RELEASE_ALIAS), final_operator, SearchValue(all_versions))
     ]
 
 
