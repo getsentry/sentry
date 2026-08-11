@@ -56,7 +56,13 @@ ABORTED_CONCLUSIONS = frozenset({"cancelled", "stale"})
 # conclusion as a failure; use this where a false failure would be misread.
 FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
 
-CiVerdict = Literal["failure", "success", "inconclusive"]
+# The one CI conclusion value GitHub never sends: no suite reported a conclusion
+# and no tracked run failed, so there is nothing to pass through. Kept distinct
+# from ``cancelled``/``stale`` — "CI told us nothing" is not "CI was called off".
+# Spelled the same as Seer's ``_UNKNOWN_CONCLUSION`` so one vocabulary covers both
+# sides of the wire; ``is_failing_conclusion`` excludes it explicitly, since it
+# would otherwise fall through as an unrecognized — therefore failing — value.
+UNKNOWN_CONCLUSION = "unknown"
 
 # Comment events fold into ``participants`` only — no entry, no count — because
 # their per-comment volume is exactly what this design sheds.
@@ -135,10 +141,12 @@ def is_failing_conclusion(conclusion: str | None) -> bool:
 
     An empty/absent conclusion (a check that hasn't concluded) is not a failure;
     ``success``/``neutral``/``skipped`` pass; ``cancelled``/``stale`` aborted
-    without a verdict; every other non-empty value is a failure.
+    without a verdict; ``UNKNOWN_CONCLUSION`` is our own "CI said nothing" marker
+    rather than something CI reported; every other non-empty value is a failure.
     """
-    if not conclusion:
+    if not conclusion or conclusion == UNKNOWN_CONCLUSION:
         return False
+
     return conclusion not in NON_FAILING_CONCLUSIONS and conclusion not in ABORTED_CONCLUSIONS
 
 
@@ -739,51 +747,85 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
     return shas
 
 
-def _aggregate_ci_verdicts(conclusions: Iterable[str | None]) -> CiVerdict:
-    """Collapse CI conclusions using failure, success, inconclusive precedence.
+def _conclusion_from_runs(group: CheckGroup, *, when_clean: str) -> str:
+    """Derive a conclusion for a group whose app never emitted a suite event.
 
-    Only conclusions unambiguously known to pass or fail move the verdict off
-    ``inconclusive``. A conclusion that is neither — ``action_required``, or one
-    GitHub adds later — falls through to ``inconclusive`` rather than defaulting
-    to a false ``success``; ``NON_FAILING_CONCLUSIONS`` also matches the nested
-    ``"success"`` verdict from a recursive call, same as ``FAILING_CHECK_CONCLUSIONS``
-    already does for nested ``"failure"``.
+    ``runs`` only tracks checks that have EVER failed, so it can prove a failure
+    and nothing else: a group holding a currently-failing run is a ``failure``,
+    and everything else — no runs at all, or runs that all recovered — is
+    ``when_clean``, which is the only thing the two readers below disagree about.
     """
-    has_success = False
-    for conclusion in conclusions:
-        if conclusion in FAILING_CHECK_CONCLUSIONS:
-            return "failure"
-        if conclusion in NON_FAILING_CONCLUSIONS:
-            has_success = True
-    return "success" if has_success else "inconclusive"
-
-
-def _synthesized_suite_conclusion(group: CheckGroup) -> CiVerdict:
-    """Reduce a suite and its runs to failure, success, or inconclusive."""
-    suite_conclusion = group.get("suite_conclusion")
-    if suite_conclusion:
-        return _aggregate_ci_verdicts([suite_conclusion])
-
-    return _aggregate_ci_verdicts(run.get("conclusion") for run in group.get("runs", {}).values())
-
-
-def _timeline_suite_conclusion(group: CheckGroup) -> str:
-    """The judge-timeline conclusion: the stored suite conclusion, or the legacy
-    two-state derivation from runs when no suite event was ever seen.
-
-    Unlike :func:`_synthesized_suite_conclusion`, this is not inconclusive-aware:
-    the timeline should reflect the actual provider conclusion (``cancelled`` stays
-    ``cancelled``), and a group with only aborted runs derives ``success`` as it
-    always did, because the judge treats a synthesized suite like the app emitted it.
-    """
-    suite_conclusion = group.get("suite_conclusion")
-    if suite_conclusion:
-        return suite_conclusion
-
     runs = group.get("runs", {})
     if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
         return "failure"
-    return "success"
+
+    return when_clean
+
+
+def _synthesized_suite_conclusion(group: CheckGroup) -> str:
+    """The group's conclusion for the per-head CI outcome: GitHub's own suite
+    conclusion when the app emitted one, else derived from the tracked runs.
+
+    Forwards the provider's string as-is — ``cancelled`` stays ``cancelled``,
+    ``action_required`` stays ``action_required`` — rather than collapsing it into a
+    synthesized pass/fail/inconclusive verdict. The synthesized form was both lossy
+    (every non-verdict conclusion arrived as one indistinguishable ``inconclusive``)
+    and a second vocabulary that could, and did, disagree with what the judge
+    timeline reported for the very same group. With no suite event only a failing
+    run is provable, so a clean derivation is ``UNKNOWN_CONCLUSION`` rather than a
+    fabricated ``success``.
+    """
+    return group.get("suite_conclusion") or _conclusion_from_runs(
+        group, when_clean=UNKNOWN_CONCLUSION
+    )
+
+
+def _timeline_suite_conclusion(group: CheckGroup) -> str:
+    """The judge-timeline conclusion: the same provider pass-through, except that a
+    group with no suite event and no failing run derives ``success`` as it always
+    has — the judge treats a synthesized suite exactly like one the app emitted, and
+    has no ``inconclusive`` in its vocabulary.
+    """
+    return group.get("suite_conclusion") or _conclusion_from_runs(group, when_clean="success")
+
+
+def _completion_order(group: CheckGroup) -> str:
+    """When a group last saw activity, for "latest wins" among equally strong suites.
+
+    The group's newest event of any kind, not its suite conclusion stamp — matching
+    how Seer orders the same suites (``suite["ts"]``, a max over suite *and* run
+    events): a workflow can start early and still finish last, and a group
+    synthesized from runs alone has no suite stamp to sort on at all.
+    """
+    return group.get("last_event_at") or ""
+
+
+def _head_conclusion(groups: Iterable[CheckGroup]) -> str:
+    """Collapse one head's suite groups into a single conclusion, any-failure-wins.
+
+    Deliberately the same reduction Seer's ``_combine_suite_conclusions`` applies
+    over the timeline's suites, so a head reads the same on both sides of the wire:
+    a failure beats a pass, a pass beats an abort (``cancelled``/``stale`` decided
+    nothing, so a suite that did decide speaks for the head), an abort beats
+    silence — and within a class the latest completion wins, which keeps the value a
+    conclusion GitHub actually reported (``timed_out``, not a flattened ``failure``).
+    """
+    by_class: dict[str, list[str]] = {"failing": [], "passed": [], "aborted": []}
+    for group in sorted(groups, key=_completion_order):
+        conclusion = _synthesized_suite_conclusion(group)
+        if is_failing_conclusion(conclusion):
+            by_class["failing"].append(conclusion)
+        elif conclusion in NON_FAILING_CONCLUSIONS:
+            by_class["passed"].append(conclusion)
+        elif conclusion in ABORTED_CONCLUSIONS:
+            by_class["aborted"].append(conclusion)
+        # Anything left is ``UNKNOWN_CONCLUSION``: a group that concluded nothing
+        # can't speak for the head, so it drops out and lets a real conclusion win.
+
+    for conclusions in by_class.values():
+        if conclusions:
+            return conclusions[-1]
+    return UNKNOWN_CONCLUSION
 
 
 # Normalized (lowercase, ``[bot]`` stripped) GitHub logins for our apps. Login is
@@ -803,13 +845,15 @@ def _normalize_github_login(login: str) -> str:
     return login.lower().removesuffix("[bot]")
 
 
-def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, CiVerdict]:
-    """Map each check-rollup ``head_sha`` to a single CI outcome.
+def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
+    """Map each check-rollup ``head_sha`` to a single CI conclusion.
 
-    All of a SHA's suite groups collapse to one outcome, any-failure-wins: any
-    failing suite → ``failure``; else any suite with a pass/fail verdict →
-    ``success``; else ``inconclusive`` (no app produced a verdict for that
-    head). Empty ``head_sha`` groups are skipped.
+    Values are GitHub's own conclusion strings — ``success``, ``failure``,
+    ``timed_out``, ``cancelled``, ``action_required``, or whatever GitHub adds next
+    — read the same way the judge timeline reads them, plus ``UNKNOWN_CONCLUSION``
+    when a head has check groups but none of them concluded anything. All of a
+    SHA's suite groups collapse to one value; see :func:`_head_conclusion`. Empty
+    ``head_sha`` groups are skipped.
     """
     groups_by_sha: dict[str, list[CheckGroup]] = {}
     for group in doc.get("checks", {}).values():
@@ -818,10 +862,7 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, CiVerdict]:
             continue
         groups_by_sha.setdefault(sha, []).append(group)
 
-    return {
-        sha: _aggregate_ci_verdicts(_synthesized_suite_conclusion(group) for group in groups)
-        for sha, groups in groups_by_sha.items()
-    }
+    return {sha: _head_conclusion(groups) for sha, groups in groups_by_sha.items()}
 
 
 def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
@@ -880,12 +921,17 @@ class CiHeadResult(TypedDict):
     ``human``/``bot``, and we want the raw identity behind those: which person, or
     which third-party bot. Seer's own logins are already known, so the login adds
     nothing for ``actor == "seer"``.
+
+    ``outcome`` is a free string, not an enum: it forwards GitHub's own check
+    conclusion (see :func:`ci_head_outcomes_from_doc`), so a conclusion GitHub adds
+    later lands in the warehouse as itself instead of being flattened into a
+    verdict this module invented.
     """
 
     sequence: int | None
     head_sha: str
     before_sha: str | None
-    outcome: CiVerdict
+    outcome: str
     has_ci: bool
     sender_login: str | None
     actor: Literal["seer", "human", "bot", "unknown"]
@@ -895,7 +941,8 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
     """Return the opening head followed by synchronize heads in insertion order.
 
     Every head observation is retained, including repeated SHAs caused by force
-    pushes. Heads without checks are explicit ``has_ci=False`` / ``inconclusive``.
+    pushes. Heads without checks are explicit ``has_ci=False`` /
+    ``UNKNOWN_CONCLUSION``.
     Check heads absent from the bounded history are appended in sorted SHA order
     with ``sequence=None`` so CI data is not silently lost and no false arrival
     order is invented. Legacy documents may lack ``open_head`` or sender slots.
@@ -935,7 +982,7 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
                 "sequence": sequence,
                 "head_sha": head_sha,
                 "before_sha": before_sha,
-                "outcome": outcomes.get(head_sha, "inconclusive"),
+                "outcome": outcomes.get(head_sha, UNKNOWN_CONCLUSION),
                 "has_ci": head_sha in outcomes,
                 "sender_login": sender_login,
                 "actor": classify_ci_head_actor(sender_login or "", sender_type or ""),

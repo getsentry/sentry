@@ -1426,16 +1426,23 @@ def test_ci_head_outcomes_empty_doc() -> None:
     assert ci_head_outcomes_from_doc(new_document()) == {}
 
 
-def test_ci_head_outcomes_failure_success_inconclusive() -> None:
+def test_ci_head_outcomes_pass_through_github_conclusions() -> None:
+    # Whatever the suite concluded is what the head reports — including the
+    # conclusions that are neither a pass nor a failure, which a synthesized
+    # verdict would have flattened into one indistinguishable value.
     doc = new_document()
     _suite(doc, head_sha="sha_fail", conclusion="failure")
     _suite(doc, head_sha="sha_pass", conclusion="success", app_slug="pass-app")
     _suite(doc, head_sha="sha_abort", conclusion="cancelled", app_slug="abort-app")
+    _suite(doc, head_sha="sha_timeout", conclusion="timed_out", app_slug="timeout-app")
+    _suite(doc, head_sha="sha_blocked", conclusion="action_required", app_slug="blocked-app")
 
     assert ci_head_outcomes_from_doc(doc) == {
         "sha_fail": "failure",
         "sha_pass": "success",
-        "sha_abort": "inconclusive",
+        "sha_abort": "cancelled",
+        "sha_timeout": "timed_out",
+        "sha_blocked": "action_required",
     }
 
 
@@ -1587,7 +1594,7 @@ def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
     assert [item["sequence"] for item in results] == [0, 1, 2, None]
     assert results[0]["actor"] == "human"
     assert results[1]["has_ci"] is False
-    assert results[1]["outcome"] == "inconclusive"
+    assert results[1]["outcome"] == "unknown"
     assert results[2]["sender_login"] == "bob"
     assert results[3]["actor"] == "unknown"
 
@@ -1596,28 +1603,97 @@ def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> Non
     assert classify_ci_head_actor("Copilot", "User") == "bot"
 
 
-def test_ci_head_outcomes_aborted_runs_without_suite_are_inconclusive() -> None:
+def test_ci_head_outcomes_aborted_runs_without_suite_are_unknown() -> None:
     doc = new_document()
     _run(doc, check_name="tests", conclusion="cancelled", head_sha="sha1")
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "inconclusive"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "unknown"}
 
 
-def test_ci_head_outcomes_action_required_suite_is_inconclusive_not_success() -> None:
-    # action_required is blocked on approval, not broken, so it must not read as
-    # a failure here — but it also never ran, so it must not read as a success
-    # either. Falling through to inconclusive avoids a false-positive "success"
-    # for a suite that never actually passed.
+def test_outcome_and_timeline_agree_on_the_same_group() -> None:
+    # The two readers used to run different vocabularies over one group, so
+    # action_required collapsed to a synthesized "inconclusive" in the outcome while
+    # the timeline read it as a failure. Both now forward GitHub's own string, so a
+    # group GitHub concluded reads identically either way.
     doc = new_document()
     _suite(doc, conclusion="action_required")
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "inconclusive"}
 
-
-def test_timeline_suite_conclusion_action_required_stays_raw() -> None:
-    # The judge timeline forwards the provider's own conclusion string rather
-    # than synthesizing one, so this stays "action_required" here — Seer's own
-    # shared conclusion vocabulary (module docstring above) is what reads an
-    # unrecognized conclusion like this as a failure downstream, which is why
-    # the outcome above must not independently call it a success.
-    doc = new_document()
-    _suite(doc, conclusion="action_required")
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "action_required"}
     assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "action_required"
+
+
+def test_ci_head_outcomes_suite_conclusion_wins_over_runs() -> None:
+    # The suite is GitHub's own aggregate over these runs, so it is reported as
+    # given rather than second-guessed from the runs underneath it — in either
+    # direction. The failing run is still carried to the judge in the timeline
+    # payload's `failing_check_names`/`check_runs`.
+    doc = new_document()
+    _run(doc, check_name="tests", conclusion="failure")
+    _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "cancelled"}
+    assert timeline_events_from_doc(doc)[0]["payload"]["failing_check_names"] == ["tests"]
+
+
+def test_ci_head_outcomes_recovered_runs_without_suite_are_unknown() -> None:
+    # Deriving from runs can only ever prove a failure: `runs` tracks nothing but
+    # the checks that once failed, so a recovered one says nothing about the checks
+    # in the suite that were never tracked at all. That is an absent conclusion,
+    # not a pass.
+    doc = new_document()
+    _run(doc, check_name="flaky", conclusion="failure")
+    _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "unknown"}
+
+
+def test_ci_head_outcomes_verdict_suite_outranks_aborted_suite() -> None:
+    # Two apps on one head: one was called off, the other actually decided. The
+    # decision is the head's conclusion — an abort reports nothing to collapse to.
+    doc = new_document()
+    _suite(doc, app_slug="abort-app", conclusion="cancelled")
+    _suite(doc, app_slug="pass-app", conclusion="success")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "success"}
+
+
+def test_ci_head_outcomes_failing_suite_outranks_both() -> None:
+    # ...and a failure outranks the pass, keeping any-failure-wins at the head.
+    doc = new_document()
+    _suite(doc, app_slug="abort-app", conclusion="cancelled")
+    _suite(doc, app_slug="pass-app", conclusion="success")
+    _suite(doc, app_slug="fail-app", conclusion="timed_out")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}
+
+
+def test_ci_head_outcomes_latest_failure_wins_within_its_class() -> None:
+    # Two apps failed differently. Both are failures, so neither outranks the other
+    # by class and the later completion speaks — the same tie-break Seer's
+    # `_combine_suite_conclusions` applies, so the head reads identically on both
+    # sides. Document order is the reverse of completion order here, so a
+    # first-seen-wins collapse would answer "failure".
+    doc = new_document()
+    _suite(doc, app_slug="slow-app", conclusion="timed_out", updated_at="2026-07-10T12:05:00Z")
+    _suite(doc, app_slug="fail-app", conclusion="failure", updated_at="2026-07-10T12:01:00Z")
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}
+
+
+def test_ci_head_outcomes_order_reads_last_activity_not_the_suite_stamp() -> None:
+    # "Latest" is the group's newest event of any kind, which is what Seer sorts its
+    # suites by (`suite["ts"]`, a max over suite and run events): the slow app
+    # concluded its suite first but kept reporting runs afterwards, so it is the
+    # later of the two failures. Sorting on the suite stamp alone would answer
+    # "failure" here.
+    doc = new_document()
+    _suite(doc, app_slug="fast-app", conclusion="failure", updated_at="2026-07-10T12:05:00Z")
+    _suite(doc, app_slug="slow-app", conclusion="timed_out", updated_at="2026-07-10T12:01:00Z")
+    _run(
+        doc,
+        app_slug="slow-app",
+        check_name="tests",
+        conclusion="failure",
+        completed_at="2026-07-10T12:10:00Z",
+    )
+
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "timed_out"}

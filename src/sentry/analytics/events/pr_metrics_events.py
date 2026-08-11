@@ -124,9 +124,13 @@ class PrCloseMetricsEvent(analytics.Event):
 
     # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
     # order. Each item retains sequence, head/before SHA, sender login/type, derived
-    # actor, whole-head outcome, and ``has_ci``. Opening and synchronize heads with
-    # no checks are included; check heads missing from the bounded chain are
-    # appended with null sequence/identity. Null means unavailable (legacy storage
+    # actor, whole-head outcome, and ``has_ci``. ``outcome`` is GitHub's own check
+    # conclusion for that head — ``success``/``failure``/``timed_out``/``cancelled``/
+    # ``action_required``/…, any-failure-wins across the head's suites — so query it
+    # as an open string set, not a fixed enum; the sole non-GitHub value is
+    # ``unknown``, meaning no suite concluded anything. Opening and synchronize
+    # heads with no checks are included; check heads missing from the bounded chain
+    # are appended with null sequence/identity. Null means unavailable (legacy storage
     # or no authoring attribution), while ``[]`` means an available empty document.
     ci_head_results: str | None = None
 
