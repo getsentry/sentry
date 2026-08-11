@@ -50,17 +50,11 @@ class ActionFilter(NamedTuple):
     none of them cannot do work there. Empty unless each consumer has been checked —
     a consumer that reads ``pull_requests`` without filtering on ``base.repo`` loses
     events under this predicate.
-
-    ``unplaceable_pr_is_work`` is for when those consumers agree on the foreign entry
-    but disagree on the entry carrying no ``base.repo`` at all: set it when any of
-    them still treats such an entry as work, so the drop stays a subset of every
-    consumer's no-op set rather than only the strictest one's.
     """
 
     consumed: frozenset[str]
     known: frozenset[str]
     own_repo_pr_actions: frozenset[str] = frozenset()
-    unplaceable_pr_is_work: bool = False
 
 
 # Event types whose actions are filtered in control; an event type absent here has
@@ -97,16 +91,11 @@ CELL_PROCESSED_ACTIONS: Mapping[str, ActionFilter] = {
     GithubWebhookType.CHECK_SUITE: ActionFilter(
         consumed=frozenset({"completed"}),
         known=frozenset({"completed", "requested", "rerequested"}),
-        # `completed` has two consumers that read `check_suite.pull_requests`:
-        # pr_metrics' `_prs_from_check_payload`, and Seer's
-        # `resolve_check_suite_autofix_run` behind the SCM stream's
-        # `pr_iteration_from_check_suite_listener`. Both skip entries based in
-        # another repo, so the predicate holds across both.
+        # Two consumers read `check_suite.pull_requests`: pr_metrics'
+        # `_prs_from_check_payload` and, behind the SCM stream, Seer's
+        # `resolve_check_suite_autofix_run`. Both go through
+        # `is_own_repo_pull_request`, so the predicate holds across them.
         own_repo_pr_actions=frozenset({"completed"}),
-        # ...but only pr_metrics also skips the entry with no `base.repo` at all.
-        # Seer keeps it deliberately, so a payload made up of them is still work
-        # there and must not be dropped on pr_metrics' stricter reading.
-        unplaceable_pr_is_work=True,
     ),
 }
 

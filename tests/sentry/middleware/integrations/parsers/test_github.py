@@ -1068,31 +1068,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
-    def test_forwards_check_suite_completed_with_an_unplaceable_pr(self) -> None:
-        """The one case the two consumers read differently. pr_metrics skips an entry
-        with no base.repo, but Seer's _is_foreign_base_repo keeps it — so the payload
-        is still work there and control must not drop it. Contrast with the check_run
-        equivalent below, which has no such consumer and is dropped."""
-        self.get_integration()
-        request = self._post_check_event(
-            action="completed",
-            event_type=GithubWebhookType.CHECK_SUITE,
-            container={"pull_requests": [{"number": 7}]},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert WebhookPayload.objects.count() == 1
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
-    def test_forwards_check_suite_completed_with_malformed_pull_requests(self) -> None:
-        """Junk resolves to no base.repo, which for check_suite means unplaceable
-        rather than foreign — kept, for the same reason as the test above."""
+    def test_drops_check_suite_completed_with_malformed_pull_requests(self) -> None:
+        """Junk resolves to no base.repo, so no consumer can place it either."""
         self.get_integration()
         request = self._post_check_event(
             action="completed",
@@ -1104,18 +1081,39 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        assert WebhookPayload.objects.count() == 1
+        assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
     @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_run_completed_with_an_unplaceable_pr(self) -> None:
-        """check_run's only pull_requests consumer is pr_metrics, which skips an entry
-        with no base.repo, so here the strict reading is the correct one."""
+        """An entry with no base.repo cannot be placed, and every consumer of these
+        actions skips it — pr_metrics because a number is scoped to its base repo,
+        Seer's suite resolver to stay aligned with that."""
         self.get_integration()
         request = self._post_check_event(
             action="completed",
+            container={"pull_requests": [{"number": 7}]},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
+    def test_drops_check_suite_completed_with_an_unplaceable_pr(self) -> None:
+        """Same rule for check_suite: its second consumer resolves by global id, but
+        skips the unplaceable entry so both consumers act on the same set."""
+        self.get_integration()
+        request = self._post_check_event(
+            action="completed",
+            event_type=GithubWebhookType.CHECK_SUITE,
             container={"pull_requests": [{"number": 7}]},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)

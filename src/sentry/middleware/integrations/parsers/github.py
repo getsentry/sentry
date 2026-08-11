@@ -44,29 +44,21 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
     return "unknown"
 
 
-def _references_own_repo_pull_request(
-    event: Mapping[str, Any], container_key: str, *, unplaceable_is_work: bool = False
-) -> bool:
+def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: str) -> bool:
     """Whether a check payload references a pull request in the webhook's own repo.
 
-    ``pull_requests`` can list PRs that live in *other* repositories, and the cell's
-    ``_prs_from_check_payload`` resolves only entries whose ``base.repo`` is the repo
-    the webhook is for — a payload carrying none of those is a no-op there. Both
-    sides of that comparison are in the payload, so control can decide without the
-    cell's database.
+    ``pull_requests`` can list PRs based in *other* repositories, and every cell-side
+    consumer of these actions resolves only own-repo entries — a payload carrying
+    none is a no-op there. Both sides of that comparison are in the payload, so
+    control can decide without the cell's database: the cell looks its ``Repository``
+    row up by ``external_id=str(repository.id)`` (``GitHubWebhook.__call__``), which
+    is the value compared here.
 
-    ``repo.external_id`` is the string form of the payload's ``repository.id``: the
-    cell looks the row up by that value (``GitHubWebhook.__call__``), so comparing
-    against the payload here is the same comparison the cell makes.
+    An entry with no ``base.repo.id`` cannot be placed and no consumer acts on one,
+    so it does not keep a payload alive.
 
-    ``unplaceable_is_work`` covers the entry that carries no ``base.repo.id`` at all.
-    pr_metrics skips it; Seer's ``_is_foreign_base_repo`` keeps it, on the grounds
-    that dropping one costs a real Autofix iteration. Set it for event types whose
-    consumers disagree, so the drop stays a subset of *every* consumer's no-op set
-    rather than just the strictest one's.
-
-    Only ever used to *drop*, so it must not return True on a payload the cell would
-    ignore — it is fine to be conservative, never to be optimistic.
+    A False drops the payload, so it must never be False for one the cell would act
+    on. Erring True only costs a forwarded no-op.
     """
     repo_id = get_path(event, "repository", "id")
     if repo_id is None:
@@ -78,11 +70,7 @@ def _references_own_repo_pull_request(
 
     for ref in refs:
         base_repo_id = get_path(ref, "base", "repo", "id")
-        if base_repo_id is None:
-            if unplaceable_is_work:
-                return True
-            continue
-        if str(base_repo_id) == str(repo_id):
+        if base_repo_id is not None and str(base_repo_id) == str(repo_id):
             return True
     return False
 
@@ -104,17 +92,10 @@ def _forwarded_event_tags(
         return tags
 
     tags["action"] = _bounded_action_tag(action, action_filter)
-    # The container holding "pull_requests" is named after the event itself, and
-    # only the completed action has a cell-side consumer that reads it. Keyed off the
-    # action rather than ``own_repo_pr_actions`` on purpose: this measures the share
-    # an own-repo drop *could* reclaim, which stays worth having on the event types
-    # where applying that drop is not safe.
-    #
-    # Deliberately the strict predicate, without ``unplaceable_is_work``, so the
-    # series keeps one meaning across event types and stays comparable with the
-    # measurement this drop was sized from. On an event type that sets that flag it
-    # is therefore an upper bound: enabling the drop takes `false` to near zero, not
-    # to zero, and the remainder is the unplaceable entries the drop preserves.
+    # The container holding "pull_requests" is named after the event itself, and only
+    # the completed action has a cell-side consumer that reads it. Keyed off the
+    # action rather than `own_repo_pr_actions` so the series measures the share a
+    # drop could reclaim even before one is enabled for that event type.
     if action == "completed":
         tags["has_own_repo_pr"] = (
             "true" if _references_own_repo_pull_request(event, github_event) else "false"
@@ -252,11 +233,7 @@ class GithubRequestParser(BaseRequestParser):
             action_filter is not None
             and action in action_filter.own_repo_pr_actions
             and options.get("hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr")
-            and not _references_own_repo_pull_request(
-                event,
-                github_event or "",
-                unplaceable_is_work=action_filter.unplaceable_pr_is_work,
-            )
+            and not _references_own_repo_pull_request(event, github_event or "")
         ):
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",
