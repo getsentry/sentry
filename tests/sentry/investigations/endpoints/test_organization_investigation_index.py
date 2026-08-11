@@ -24,7 +24,7 @@ FEATURE = "organizations:investigations"
 
 
 @with_feature(FEATURE)
-class OrganizationInvestigationsIndexTest(APITestCase):
+class OrganizationInvestigationIndexTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)

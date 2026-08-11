@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.investigations.endpoints.bases import (
+from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     service_error,
 )

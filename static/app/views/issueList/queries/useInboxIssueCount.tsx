@@ -23,7 +23,6 @@ export function useInboxIssueCount() {
         path: {organizationIdOrSlug: organization.slug},
         query: {
           query: [inboxCountQuery],
-          project: [-1],
         },
         staleTime: 180_000,
       }

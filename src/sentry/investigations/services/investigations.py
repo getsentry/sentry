@@ -48,6 +48,9 @@ def _reject_unsupported_fields(values: dict[str, Any], allowed: frozenset[str]) 
         raise InvestigationValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
 
 
+BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
+
+
 class InvestigationServiceError(Exception):
     pass
 
@@ -446,6 +449,7 @@ def _create_template_investigation(
 
 
 def lock_investigation(investigation: Investigation, expected_version: int) -> Investigation:
+    """Lock the aggregate root before subordinate rows in an Investigation-routed transaction."""
     try:
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
     except Investigation.DoesNotExist:
@@ -545,7 +549,7 @@ def update_block(
     user_id: int,
     values: dict[str, Any],
 ) -> InvestigationBlock:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
@@ -556,11 +560,16 @@ def update_block(
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
         _reject_unsupported_fields(values, UPDATABLE_BLOCK_FIELDS)
-        stale_fields = {"content", "prompt", "config"}
-        inputs_changed = bool(stale_fields.intersection(values))
+        changed_values = {
+            field: value for field, value in values.items() if getattr(locked, field) != value
+        }
+        if not changed_values:
+            return locked
+
+        inputs_changed = bool(BLOCK_EXECUTION_INPUT_FIELDS.intersection(changed_values))
         if inputs_changed:
             locked.stale_at = timezone.now()
-        for field, value in values.items():
+        for field, value in changed_values.items():
             setattr(locked, field, value)
         locked.last_edited_by_id = user_id
         locked.version += 1
@@ -601,7 +610,7 @@ def mark_downstream_blocks_stale(
 def delete_block(
     *, block: InvestigationBlock, expected_investigation_version: int, expected_block_version: int
 ) -> None:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
@@ -611,6 +620,7 @@ def delete_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        # Traverse before soft deletion because stale propagation only follows active endpoints.
         mark_downstream_blocks_stale(
             investigation_id=investigation.id, upstream_block_ids={locked.id}
         )

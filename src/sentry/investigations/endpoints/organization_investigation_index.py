@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.investigations.endpoints.bases import (
+from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     require_authenticated_user,
     service_error,
