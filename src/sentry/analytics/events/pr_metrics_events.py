@@ -123,8 +123,11 @@ class PrCloseMetricsEvent(analytics.Event):
     diagnosis_labels: list[str] | None = None
 
     # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
-    # order. Each item retains sequence, head/before SHA, sender login/type, derived
-    # actor, whole-head outcome, and ``has_ci``. ``outcome`` is GitHub's own check
+    # order. Each item retains sequence, head/before SHA, ``sender_login``, derived
+    # ``actor``, whole-head outcome, and ``has_ci``. There is no ``sender_type`` key:
+    # the raw GitHub account type is only an input to the actor classification, and
+    # ``actor`` (``seer``/``bot``/``human``/``unknown``) already encodes it — filter
+    # on ``actor``. ``outcome`` is GitHub's own check
     # conclusion for that head — ``success``/``failure``/``timed_out``/``cancelled``/
     # ``action_required``/…, any-failure-wins across the head's suites — so query it
     # as an open string set, not a fixed enum; the sole non-GitHub value is
