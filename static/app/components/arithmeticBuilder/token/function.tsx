@@ -103,7 +103,7 @@ function ArgumentsGrid({
   };
 
   if (!args.length) {
-    return '()';
+    return <BaseGridCell>()</BaseGridCell>;
   }
 
   return (
@@ -696,7 +696,7 @@ function useAttributeItems({
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
@@ -755,6 +755,7 @@ const BaseGridCell = styled('div')`
   align-items: center;
   position: relative;
   height: 100%;
+  min-height: 22px;
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`
