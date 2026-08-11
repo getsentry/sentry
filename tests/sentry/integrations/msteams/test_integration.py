@@ -150,7 +150,7 @@ class MsTeamsApiPipelineTest(APITestCase):
     @responses.activate
     def test_team_installation(self) -> None:
         post_install_body = self._complete_install(installation_type="team")
-        assert f"organizations/{self.organization.slug}/alerts/rules/" in post_install_body
+        assert f"organizations/{self.organization.slug}/monitors/" in post_install_body
         assert self.organization.name in post_install_body
 
     @responses.activate

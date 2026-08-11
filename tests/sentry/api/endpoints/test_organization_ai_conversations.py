@@ -114,6 +114,15 @@ class TestGetLastOutput:
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
 
+    def test_agents_conversations_url(self) -> None:
+        assert (
+            reverse(
+                "sentry-api-0-organization-agent-conversations",
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            )
+            == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
+        )
+
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:gen-ai-conversations"]

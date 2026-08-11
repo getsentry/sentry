@@ -102,6 +102,7 @@ function FeedbackFooter({
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
       <FeedbackButton
+        variant="secondary"
         size={hasAskSeerRework ? 'zero' : 'xs'}
         feedbackOptions={{
           messagePlaceholder: t('How can we make search better for you?'),
@@ -486,15 +487,17 @@ const SectionedOverlay = styled(Overlay, {
             'tabs tabs'
             'list list'
             'footer footer';
-          ${p.fullWidth &&
-          css`
-            grid-template-areas:
-              'seer seer'
-              'recentFilters recentFilters'
-              'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
-          `}
+          ${
+            p.fullWidth &&
+            css`
+              grid-template-areas:
+                'seer seer'
+                'recentFilters recentFilters'
+                'tabs tabs'
+                ${p.showDetailsPane ? "'list details'" : "'list list'"}
+                'footer footer';
+            `
+          }
         `
       : css`
           grid-template-rows: auto auto 1fr auto;
@@ -504,14 +507,16 @@ const SectionedOverlay = styled(Overlay, {
             'tabs tabs'
             'list list'
             'footer footer';
-          ${p.fullWidth &&
-          css`
-            grid-template-areas:
-              'recentFilters recentFilters'
-              'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
-          `}
+          ${
+            p.fullWidth &&
+            css`
+              grid-template-areas:
+                'recentFilters recentFilters'
+                'tabs tabs'
+                ${p.showDetailsPane ? "'list details'" : "'list list'"}
+                'footer footer';
+            `
+          }
         `}
   overflow: hidden;
   height: 400px;

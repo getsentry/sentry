@@ -94,7 +94,7 @@ export function useDeleteDataForwarder({
         makeDataForwarderMutationQueryKey({
           dataForwarderId: dfId,
           orgSlug: os,
-        })[0] as string,
+        })[0],
         {method: 'DELETE'}
       ),
     onSuccess: () => {

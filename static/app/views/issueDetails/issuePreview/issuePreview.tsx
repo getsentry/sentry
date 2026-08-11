@@ -13,7 +13,6 @@ import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/lin
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -44,7 +43,6 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
-import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -63,15 +61,19 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
 
   useMarkPreviewedGroupSeen(group);
 
   return (
     <Fragment>
       <Container padding="xs 2xl" borderBottom="muted">
-        <Flex align="center" flex="1" gap="md">
+        <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
           ) : isPending ? (
@@ -80,6 +82,20 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
+          {group && (
+            <LinkButton
+              to={issueDetailsUrl}
+              size="xs"
+              analyticsEventKey="issue_inbox.open_issue_clicked"
+              analyticsEventName="Issue Inbox: Open Issue Clicked"
+              analyticsParams={{
+                group_id: group.id,
+                progress: group.derivedData?.progress,
+              }}
+            >
+              {t('Open Issue')}
+            </LinkButton>
+          )}
         </Flex>
       </Container>
       <Container
@@ -140,14 +156,6 @@ function IssuePreviewContent() {
                     {primaryTitle}
                   </Heading>
                 </Tooltip>
-                <LinkButton
-                  to={issueDetailsUrl}
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconOpen size="xs" variant="muted" />}
-                  aria-label={t('Open Issue')}
-                  tooltipProps={{title: t('Open Issue')}}
-                />
               </Flex>
               <IssueSeenTimes group={group} />
             </Flex>
@@ -162,9 +170,6 @@ function IssuePreviewContent() {
               <GroupStatusSubtitle group={group} project={project} />
             </Flex>
             <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-              {group.derivedData?.progress && (
-                <IssueProgressTag state={group.derivedData.progress} />
-              )}
               <EventUserCounts group={group} project={project} />
             </Flex>
           </Flex>
@@ -213,7 +218,11 @@ function IssuePreviewContent() {
         <Dividers>
           <LinkedPullRequests group={group} showEmptyState={false} />
           {hasAutofix ? (
-            <IssuePreviewAutofixSummary key={group.id} runState={autofix.runState} />
+            <IssuePreviewAutofixSummary
+              key={group.id}
+              autofix={autofix}
+              groupId={group.id}
+            />
           ) : null}
           <Container>
             <ErrorBoundary mini>

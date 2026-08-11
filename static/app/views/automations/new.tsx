@@ -71,6 +71,7 @@ function AutomationBreadcrumbs() {
 }
 
 const INITIAL_FORM_DATA_DEFAULTS = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,

@@ -4,14 +4,14 @@ import {css, useTheme} from '@emotion/react';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
+import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -87,45 +87,34 @@ export function MessageToolCalls({
   }, 0);
 
   return (
-    <CollapsibleContent
+    <CollapsibleChatRow
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
       defaultOpen={selectedToolCallId !== null}
       title={
-        // Match the rows' vertical padding so the toggle shares their line
-        // height, and mirror their layout: label on the left, the same fixed
-        // meta column on the right so the totals line up over the per-row values.
-        <Flex
-          flex="1"
-          align="center"
-          justify="between"
-          gap="md"
-          minWidth={0}
-          padding="sm 0"
-        >
-          <Flex align="center" gap="sm" minWidth={0}>
-            <Text size="sm" variant="muted">
-              {tn('%s tool call', '%s tool calls', toolCalls.length)}
+        <Flex align="center" gap="sm" minWidth={0}>
+          <Text size="sm" variant="muted">
+            {tn('%s tool call', '%s tool calls', toolCalls.length)}
+          </Text>
+          {errorCount > 0 && (
+            <Text size="sm" variant="danger">
+              {tn('%s error', '%s errors', errorCount)}
             </Text>
-            {errorCount > 0 && (
-              <Text size="sm" variant="danger">
-                {tn('%s error', '%s errors', errorCount)}
-              </Text>
-            )}
-          </Flex>
-          <TurnMeta
-            metric={
-              totalBytes > 0 ? (
-                <MetaValue>{formatBytesBase10(totalBytes)}</MetaValue>
-              ) : null
-            }
-            duration={
-              totalDuration > 0 ? (
-                <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
-              ) : null
-            }
-          />
+          )}
         </Flex>
+      }
+      // The run-level totals line up over the per-row values in the same column.
+      meta={
+        <TurnMeta
+          metric={
+            totalBytes > 0 ? <MetaValue>{formatBytesBase10(totalBytes)}</MetaValue> : null
+          }
+          duration={
+            totalDuration > 0 ? (
+              <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
+            ) : null
+          }
+        />
       }
       onToggle={open =>
         trackAnalytics('conversations.detail.expand-tool-calls', {
@@ -135,7 +124,7 @@ export function MessageToolCalls({
       }
     >
       <Container paddingTop="xs">{rows}</Container>
-    </CollapsibleContent>
+    </CollapsibleChatRow>
   );
 }
 
@@ -157,7 +146,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
     width: calc(100% + ${theme.space.sm} * 2);
     margin: 0 -${theme.space.sm};
     &:hover {
-      opacity: 0.85;
+      background: ${theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `;
 

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useMemo} from 'react';
 import type * as Sentry from '@sentry/react';
 

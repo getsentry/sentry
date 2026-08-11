@@ -37,6 +37,7 @@ describe('IssueDetailsSidebar', () => {
         user,
       },
     ],
+    numComments: 1,
   });
   const event = EventFixture({group});
 
@@ -144,6 +145,8 @@ describe('IssueDetailsSidebar', () => {
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'View 1 comment'})).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Similar Issues'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Similar Issues'})).toBeInTheDocument();

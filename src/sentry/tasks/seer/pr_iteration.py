@@ -47,6 +47,7 @@ from sentry.seer.autofix.autofix_agent import (
     PrIterationNotEnabledException,
     trigger_autofix_agent,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
@@ -254,6 +255,7 @@ def consume_queued_autofix_feedback(
                 user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
                 actor_user_id=_get_feedback_actor_user_id(consumable_items),
+                commit_author=commit_author_for_feedback(feedback_items, organization_id),
             )
         except (
             PrIterationNoPullRequestException,
@@ -723,7 +725,10 @@ def _build_review_feedback(
             line=_diff_line_number(comment.get("line")),
             start_line=_diff_line_number(comment.get("start_line")),
             diff_hunk=comment.get("diff_hunk"),
-            user=GithubPrCommentUser(login=author["username"] if author else None),
+            user=GithubPrCommentUser(
+                id=author["id"] if author else None,
+                login=author["username"] if author else None,
+            ),
         )
         source = GithubPrReviewCommentFeedbackSource(
             comment=review_comment,
@@ -738,7 +743,10 @@ def _build_review_feedback(
             review_state=review_state,
             body=review_body,
             html_url=review_html_url,
-            user=GithubPrCommentUser(login=review_author["username"] if review_author else None),
+            user=GithubPrCommentUser(
+                id=review_author["id"] if review_author else None,
+                login=review_author["username"] if review_author else None,
+            ),
             author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))

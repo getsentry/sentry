@@ -4,7 +4,6 @@ import logging
 import uuid
 from typing import Any
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -56,6 +55,7 @@ from sentry.seer.autofix.coding_agent import (
     poll_claude_code_agents,
     poll_github_copilot_agents,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
@@ -343,6 +343,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         resolved_run_id,
                         referrer=referrer,
                         repo_name=data.get("repo_name"),
+                        author=commit_author_for_user(
+                            request.user,
+                            group.organization.id,
+                            referrer="autofix_open_pr",
+                        ),
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -355,7 +360,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                if not features.has("organizations:autofix-pr-iteration", group.organization):
+                if not features.has(
+                    "organizations:autofix-pr-iteration-manual", group.organization
+                ):
                     return Response(
                         {"detail": "PR iteration is not enabled for this organization"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -428,7 +435,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                triggered_at = timezone.now() if is_autofix_kickoff else None
                 try:
                     run = trigger_autofix_agent(
                         group=group,
@@ -468,7 +474,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             ),
                             data={"referrer": referrer.value},
                             send_notification=False,
-                            datetime=triggered_at,
                         )
                     sentry_run_id = str(run.uuid)
                 else:
@@ -575,6 +580,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     },
                     "pr_iteration_enabled": features.has(
                         "organizations:autofix-pr-iteration", group.organization
+                    ),
+                    "manual_pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
                     "warnings": warnings,

@@ -177,6 +177,7 @@ class ActivityDocumentWritePathTest(TestCase):
         conclusion: str = "failure",
         updated_at: str = "2026-07-10T12:00:00Z",
         head_sha: str = "headsha1",
+        suite_id: int | None = 101,
         webhook_id: str = "cs1",
     ) -> None:
         handle_check_suite(
@@ -184,6 +185,7 @@ class ActivityDocumentWritePathTest(TestCase):
             event={
                 "action": "completed",
                 "check_suite": {
+                    "id": suite_id,
                     "head_sha": head_sha,
                     "conclusion": conclusion,
                     "app": {"slug": "github-actions"},
@@ -205,6 +207,7 @@ class ActivityDocumentWritePathTest(TestCase):
         conclusion: str = "failure",
         completed_at: str = "2026-07-10T12:00:00Z",
         head_sha: str = "headsha1",
+        suite_id: int | None = 101,
         webhook_id: str = "cr1",
     ) -> None:
         handle_check_run(
@@ -216,6 +219,7 @@ class ActivityDocumentWritePathTest(TestCase):
                     "head_sha": head_sha,
                     "conclusion": conclusion,
                     "app": {"slug": "github-actions"},
+                    "check_suite": {"id": suite_id},
                     "completed_at": completed_at,
                     "pull_requests": [{"number": 42, "base": {"repo": {"id": 99}}}],
                 },
@@ -556,19 +560,45 @@ class ActivityDocumentWritePathTest(TestCase):
         assert self._doc_or_none() is None
         assert self._rows() == 0
 
-    def test_check_group_keyed_on_head_sha(self) -> None:
+    def test_check_group_keyed_on_head_sha_and_suite(self) -> None:
+        # The check_run path reads its suite id off ``check_run.check_suite.id``.
         with self.feature(DOC_FLAG):
             self._check_run(check_name="t", conclusion="failure", webhook_id="cr1")
-        assert "headsha1|github-actions" in self._doc()["checks"]
+        assert "headsha1|github-actions|101" in self._doc()["checks"]
 
     def test_check_groups_split_by_head_sha(self) -> None:
         with self.feature(DOC_FLAG):
             self._check_suite(head_sha="headsha1", webhook_id="cs1")
             self._check_suite(head_sha="headsha2", webhook_id="cs2")
         assert set(self._doc()["checks"].keys()) == {
-            "headsha1|github-actions",
-            "headsha2|github-actions",
+            "headsha1|github-actions|101",
+            "headsha2|github-actions|101",
         }
+
+    def test_check_groups_split_by_suite_within_one_app(self) -> None:
+        # One app, one head, two suites (two workflow runs): the later green suite
+        # must not overwrite the earlier failed one.
+        with self.feature(DOC_FLAG):
+            self._check_suite(
+                suite_id=1,
+                conclusion="failure",
+                updated_at="2026-07-10T12:00:00Z",
+                webhook_id="cs1",
+            )
+            self._check_suite(
+                suite_id=2,
+                conclusion="success",
+                updated_at="2026-07-10T12:05:00Z",
+                webhook_id="cs2",
+            )
+        checks = self._doc()["checks"]
+        assert checks["headsha1|github-actions|1"]["suite_conclusion"] == "failure"
+        assert checks["headsha1|github-actions|2"]["suite_conclusion"] == "success"
+
+    def test_check_event_without_suite_id_uses_legacy_key(self) -> None:
+        with self.feature(DOC_FLAG):
+            self._check_suite(suite_id=None, webhook_id="cs1")
+        assert "headsha1|github-actions" in self._doc()["checks"]
 
     def test_auto_merge_enabled_captures_sender_on_document(self) -> None:
         with self.feature(DOC_FLAG):

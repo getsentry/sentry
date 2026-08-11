@@ -31,6 +31,8 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   allowedAttributeKeys?: string[];
+  arrayAttributes?: TagCollection;
+  arraySecondaryAliases?: TagCollection;
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
@@ -96,6 +98,8 @@ export function useTraceItemSearchQueryBuilderProps({
   numberSecondaryAliases,
   stringAttributes,
   stringSecondaryAliases,
+  arrayAttributes = {},
+  arraySecondaryAliases = {},
   initialQuery,
   searchSource,
   getFilterTokenWarning,
@@ -136,6 +140,7 @@ export function useTraceItemSearchQueryBuilderProps({
     stringAttributes,
     functionTags,
     booleanAttributes,
+    arrayAttributes,
     disallowHas: disallowHas ?? false,
   });
 
@@ -151,6 +156,7 @@ export function useTraceItemSearchQueryBuilderProps({
     numberAttributes,
     stringAttributes,
     booleanAttributes,
+    arrayAttributes,
   });
 
   const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
@@ -228,6 +234,7 @@ export function useTraceItemSearchQueryBuilderProps({
         ...numberSecondaryAliases,
         ...stringSecondaryAliases,
         ...booleanSecondaryAliases,
+        ...arraySecondaryAliases,
       },
       caseInsensitive,
       disabled,
@@ -265,6 +272,7 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       searchSource,
       stringSecondaryAliases,
+      arraySecondaryAliases,
     ]
   );
 }
@@ -277,6 +285,8 @@ export function TraceItemSearchQueryBuilder({
   numberSecondaryAliases,
   numberAttributes,
   stringSecondaryAliases,
+  arrayAttributes,
+  arraySecondaryAliases,
   searchSource,
   stringAttributes,
   itemType,
@@ -316,6 +326,8 @@ export function TraceItemSearchQueryBuilder({
     stringAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
+    arrayAttributes,
+    arraySecondaryAliases,
     initialQuery,
     placeholder,
     searchSource,
@@ -371,9 +383,11 @@ function useFilterTags({
   numberAttributes,
   stringAttributes,
   booleanAttributes,
+  arrayAttributes,
   functionTags,
   disallowHas,
 }: {
+  arrayAttributes: TagCollection;
   booleanAttributes: TagCollection;
   disallowHas: boolean;
   functionTags: TagCollection;
@@ -386,6 +400,7 @@ function useFilterTags({
       ...numberAttributes,
       ...stringAttributes,
       ...booleanAttributes,
+      ...arrayAttributes,
     };
 
     if (!disallowHas) {
@@ -393,10 +408,18 @@ function useFilterTags({
         ...numberAttributes,
         ...stringAttributes,
         ...booleanAttributes,
+        ...arrayAttributes,
       });
     }
     return tags;
-  }, [booleanAttributes, disallowHas, functionTags, numberAttributes, stringAttributes]);
+  }, [
+    booleanAttributes,
+    disallowHas,
+    functionTags,
+    numberAttributes,
+    stringAttributes,
+    arrayAttributes,
+  ]);
 }
 
 function useFilterKeySections(

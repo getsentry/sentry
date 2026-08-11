@@ -213,7 +213,7 @@ describe('useResetAutofixStep', () => {
         useResetAutofixStep({autofix, section, step: 'solution'})
       );
 
-      result.current.handleReset();
+      act(() => void result.current.handleReset());
 
       expect(autofix.startStep).toHaveBeenCalledWith('solution', {
         runId: 42,
@@ -240,7 +240,7 @@ describe('useResetAutofixStep', () => {
         })
       );
 
-      result.current.handleReset('Please focus on the auth module');
+      act(() => void result.current.handleReset('Please focus on the auth module'));
 
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {
         runId: 7,

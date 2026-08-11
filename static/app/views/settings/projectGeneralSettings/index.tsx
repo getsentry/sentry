@@ -345,7 +345,7 @@ function AutoResolveForm({
 }
 
 const SECURITY_TOKEN_HELP = t(
-  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended. This does not apply to sourcemap scraping when Allowed Domains is *.'
 );
 
 function SecurityTokenForm({

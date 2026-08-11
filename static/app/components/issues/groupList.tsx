@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -25,10 +32,25 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
+
+export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
+  'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search';
+
+export type TimePeriodType = {
+  display: ReactNode;
+  end: string;
+  label: string;
+  period: string;
+  start: string;
+  /**
+   * The start/end were chosen from the period and not the user
+   */
+  usingPeriod: boolean;
+  custom?: boolean;
+  utc?: boolean;
+};
 
 export type GroupListColumn =
   | 'graph'
@@ -78,6 +100,7 @@ type Props = {
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
@@ -113,6 +136,7 @@ export function GroupList({
   customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -201,12 +225,12 @@ export function GroupList({
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,

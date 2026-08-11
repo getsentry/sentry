@@ -10,9 +10,14 @@ type CodingAgentResult = NonNullable<ExplorerCodingAgentState['results']>[number
 /**
  * A link to a pull request an autofix run produced, resolved from either of the two
  * shapes Seer reports one in so that every surface renders the same label.
+ *
+ * `label` is the button wording; surfaces that word the link themselves take
+ * `repoName` and `prNumber` instead.
  */
 interface AutofixResultLink {
   label: string;
+  prNumber: number | null;
+  repoName: string;
   url: string;
 }
 
@@ -29,6 +34,8 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
 
   return {
     label: t('View %s#%s', state.repo_name, state.pr_number),
+    repoName: state.repo_name,
+    prNumber: state.pr_number,
     url: state.pr_url,
   };
 }
@@ -50,6 +57,8 @@ export function getCodingAgentResultLink(
     label: defined(result.pr_number)
       ? t('View %s#%s', result.repo_full_name, result.pr_number)
       : t('View %s', result.repo_full_name),
+    repoName: result.repo_full_name,
+    prNumber: result.pr_number,
     url: result.pr_url,
   };
 }

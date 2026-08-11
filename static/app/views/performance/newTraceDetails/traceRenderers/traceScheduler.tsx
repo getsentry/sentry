@@ -76,9 +76,7 @@ export class TraceScheduler {
       return;
     }
 
-    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb) as unknown as Array<
-      [TraceEventPriority, K]
-    >;
+    (this.events as any)[eventName] = arr.filter(a => a[1] !== cb);
   }
 
   dispatch<K extends keyof TraceEvents>(

@@ -95,10 +95,6 @@ describe('GroupDetailsLayout', () => {
       body: TagsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/1/committers/',
-      body: {committers: []},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
