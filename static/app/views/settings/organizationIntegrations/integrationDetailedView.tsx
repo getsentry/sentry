@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
@@ -19,6 +19,8 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
+import {preload} from 'sentry/router/preload';
+import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -112,6 +114,7 @@ const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
+  const routeConfig = useRouteConfig();
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
@@ -154,6 +157,18 @@ export default function IntegrationDetailedView() {
       retry: false,
     }
   );
+
+  useEffect(() => {
+    const firstConfiguration = configurations[0];
+    if (!routeConfig || !firstConfiguration) {
+      return;
+    }
+
+    preload(
+      routeConfig,
+      `/settings/${organization.slug}/integrations/${integrationSlug}/${firstConfiguration.id}/`
+    );
+  }, [configurations, integrationSlug, organization.slug, routeConfig]);
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];

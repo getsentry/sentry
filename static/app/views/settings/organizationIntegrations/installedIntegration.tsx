@@ -205,6 +205,7 @@ export class InstalledIntegration extends Component<Props> {
                       icon={<IconSettings />}
                       disabled={!allowMemberConfiguration && !canConfigure}
                       to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                      state={{integration}}
                       data-test-id="integration-configure-button"
                     >
                       {t('Configure')}

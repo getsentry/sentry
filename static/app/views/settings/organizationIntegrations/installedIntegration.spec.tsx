@@ -21,10 +21,22 @@ describe('InstalledIntegration', () => {
     trackIntegrationAnalytics: jest.fn(),
   };
 
-  it('shows the Configure button normally', () => {
-    render(<InstalledIntegration {...defaultProps} />);
+  it('passes the integration in navigation state when configuring', async () => {
+    const {router} = render(<InstalledIntegration {...defaultProps} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${defaultProps.provider.key}/`,
+        },
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+      },
+    });
 
-    expect(screen.getByRole('button', {name: 'Configure'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
+
+    expect(router.location.state).toMatchObject({
+      integration: defaultProps.integration,
+    });
   });
 
   it('hides the Configure button when directEnable aspect is set', () => {

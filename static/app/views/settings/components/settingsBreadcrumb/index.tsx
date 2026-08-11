@@ -35,7 +35,7 @@ export function SettingsBreadcrumb({params}: Props) {
   }
 
   return (
-    <Flex as="span" flex="1" align="center" gap="sm">
+    <Flex as="span" flex="0 1 auto" align="center" gap="sm" minWidth="0">
       {routes.map((route, i) => {
         if (!route.name) {
           return null;

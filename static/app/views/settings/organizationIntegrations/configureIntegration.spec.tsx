@@ -49,13 +49,14 @@ describe('ConfigureIntegration settings tab', () => {
     });
   }
 
-  function renderConfigure() {
+  function renderConfigure(integration?: OrganizationIntegration) {
     return render(<ConfigureIntegration />, {
       organization: org,
       initialRouterConfig: {
         location: {
           pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
           query: {},
+          state: integration ? {integration} : undefined,
         },
         route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
       },
@@ -63,6 +64,41 @@ describe('ConfigureIntegration settings tab', () => {
   }
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
+
+  it('seeds the integration header from navigation state while loading', () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure(integration);
+
+    expect(screen.getByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
+      'href',
+      'https://github.com/sentry-demos'
+    );
+  });
+
+  it('shows the integration name as a link in the header', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
+      'href',
+      'https://github.com/sentry-demos'
+    );
+    expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
+  });
 
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(

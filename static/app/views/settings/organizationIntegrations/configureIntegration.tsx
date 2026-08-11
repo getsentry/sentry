@@ -5,6 +5,8 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
@@ -17,6 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
+  Integration,
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
@@ -38,16 +41,21 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
-import {IntegrationItem} from './integrationItem';
+import {IntegrationIcon} from './integrationIcon';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
+
+type ConfigureIntegrationLocationState = {
+  integration?: Integration;
+};
 
 const makeIntegrationQuery = (
   organization: Organization,
@@ -94,6 +102,7 @@ function withJiraStatusMappingRemovals(
 
 function ConfigureIntegration() {
   const location = useLocation();
+  const locationState = location.state as ConfigureIntegrationLocationState | null;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -127,6 +136,7 @@ function ConfigureIntegration() {
   );
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
+  const navigationIntegration = integration ?? locationState?.integration;
   const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
@@ -163,7 +173,19 @@ function ConfigureIntegration() {
   }, [navigate, organization, providerKey]);
 
   if (isLoadingConfig || isLoadingIntegration) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {navigationIntegration && (
+          <IntegrationNavigationHeader
+            breadcrumbTitle={getTabTitle(
+              decodeScalar(location.query.tab) as Tab | undefined
+            )}
+            integration={navigationIntegration}
+          />
+        )}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isErrorConfig || isErrorIntegration) {
@@ -230,6 +252,7 @@ function ConfigureIntegration() {
     tabParam && allTabs.some(([key]) => key === tabParam)
       ? tabParam
       : (allTabs[0]?.[0] ?? 'settings');
+  const activeTabTitle = allTabs.find(([key]) => key === tab)?.[1] ?? getTabTitle(tab);
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
@@ -404,7 +427,7 @@ function ConfigureIntegration() {
       <Fragment>
         <TabsContainer>
           <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
+            <TabList variant="floating">
               {allTabs.map(tabTuple => (
                 <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
               ))}
@@ -418,17 +441,57 @@ function ConfigureIntegration() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={integration ? integration.provider.name : 'Configure Integration'}
-      />
-      <SettingsPageHeader
-        title={<IntegrationItem integration={integration} compact />}
+      <IntegrationNavigationHeader
+        breadcrumbTitle={activeTabTitle}
+        integration={integration}
         action={getAction()}
       />
       {renderMainContent()}
-      <BreadcrumbTitle title={t('Configure %s', integration.provider.name)} />
     </Fragment>
   );
+}
+
+function IntegrationNavigationHeader({
+  breadcrumbTitle,
+  integration,
+  action,
+}: {
+  breadcrumbTitle: string;
+  integration: Integration;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={integration.provider.name} />
+      <SettingsPageHeader
+        title={
+          <Flex align="center" gap="sm">
+            <Divider />
+            <IntegrationIcon size={18} integration={integration} />
+            <ExternalLink href={`https://${integration.domainName}`}>
+              {integration.name}
+            </ExternalLink>
+          </Flex>
+        }
+        action={action}
+      />
+      <BreadcrumbTitle title={breadcrumbTitle} />
+    </Fragment>
+  );
+}
+
+function getTabTitle(tab: Tab | undefined) {
+  switch (tab) {
+    case 'codeMappings':
+      return t('Code Mappings');
+    case 'userMappings':
+      return t('User Mappings');
+    case 'teamMappings':
+      return t('Team Mappings');
+    case 'settings':
+    default:
+      return t('Settings');
+  }
 }
 
 function PagerdutyAddServicesButton({
