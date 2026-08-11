@@ -7,7 +7,7 @@ in the completion hook alone:
   which case opening it *is* the ready moment — emitted from
   ``on_completion_hook`` alongside ``pr_created``;
 * the PR was opened as a draft and CI later went green, in which case the
-  undraft in ``pr_iteration.green_check_suite.ready_for_review`` is the moment.
+  undraft in ``pr_iteration.ready_for_review`` is the moment.
 
 Both go through ``emit_pr_ready_for_review`` so the activity, the entrypoint
 fan-out, and the public webhook stay identical whichever way we got here.
