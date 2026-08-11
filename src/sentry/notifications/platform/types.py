@@ -27,6 +27,7 @@ class NotificationCategory(StrEnum):
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
     ACTIVITY = "activity"
+    DEPLOY = "deploy"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -73,6 +74,9 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
+    # DEPLOY
+    DEPLOY_RELEASE = "deploy-release"
+
     # ACTIVITY
     ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
     ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
@@ -91,6 +95,9 @@ class NotificationSource(StrEnum):
     ACTIVITY_SET_ESCALATING = "activity-set-escalating"
     ACTIVITY_SET_UNRESOLVED = "activity-set-unresolved"
     ACTIVITY_SET_IGNORED = "activity-set-ignored"
+    ACTIVITY_NOTE = "activity-note"
+    ACTIVITY_ASSIGNED = "activity-assigned"
+    ACTIVITY_UNASSIGNED = "activity-unassigned"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -129,6 +136,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
+    NotificationCategory.DEPLOY: [
+        NotificationSource.DEPLOY_RELEASE,
+    ],
     NotificationCategory.ACTIVITY: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
@@ -147,6 +157,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SET_ESCALATING,
         NotificationSource.ACTIVITY_SET_UNRESOLVED,
         NotificationSource.ACTIVITY_SET_IGNORED,
+        NotificationSource.ACTIVITY_NOTE,
+        NotificationSource.ACTIVITY_ASSIGNED,
+        NotificationSource.ACTIVITY_UNASSIGNED,
     ],
 }
 

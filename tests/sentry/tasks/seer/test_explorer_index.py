@@ -15,6 +15,7 @@ from sentry.tasks.seer.explorer_index import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 @django_db_all
@@ -385,3 +386,41 @@ class TestRunExplorerIndexForProjects(TestCase):
             ) as mock_request:
                 run_explorer_index_for_projects([(1, 100)], "2024-01-15T12:00:00+00:00")
                 mock_request.assert_not_called()
+
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
+    def test_sets_viewer_context_for_single_org_batch(self, mock_request):
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
+
+        captured_vc = None
+
+        def capture_vc(*args, **kwargs):
+            nonlocal captured_vc
+            captured_vc = get_viewer_context()
+            return mock_request.return_value
+
+        mock_request.side_effect = capture_vc
+
+        run_explorer_index_for_projects([(1, 100), (2, 100)], "2024-01-15T12:00:00+00:00")
+
+        assert captured_vc is not None
+        assert captured_vc.organization_id == 100
+        assert captured_vc.actor_type == ActorType.SYSTEM
+
+    @patch("sentry.tasks.seer.explorer_index.make_agent_index_request")
+    def test_no_viewer_context_org_for_multi_org_batch(self, mock_request):
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"scheduled_count": 2, "projects": []}
+
+        captured_vc = None
+
+        def capture_vc(*args, **kwargs):
+            nonlocal captured_vc
+            captured_vc = get_viewer_context()
+            return mock_request.return_value
+
+        mock_request.side_effect = capture_vc
+
+        run_explorer_index_for_projects([(1, 100), (2, 200)], "2024-01-15T12:00:00+00:00")
+
+        assert captured_vc is None

@@ -223,15 +223,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
         pass
 
-    def client_get(self, data, url=None):
-        if url is None:
-            url = self.url
-        return self.client.get(
-            url,
-            data,
-            format="json",
-        )
-
     def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -243,10 +234,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+            response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 
@@ -1134,10 +1122,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+            response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 
@@ -1152,10 +1137,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-            )
+            response = self.client_get(url=self.url)
 
         assert response.status_code == 200, response.content
         data = response.data
@@ -1179,11 +1161,7 @@ class OrganizationEventsTraceMetaEndpointTest(
     def test_simple(self) -> None:
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["projects"] == 4
@@ -1222,11 +1200,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             }
         ):
             with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"project": -1},
-                    format="json",
-                )
+                response = self.client_get(data={"project": -1}, url=self.url)
 
         assert response.status_code == 200, response.content
         data = response.data
@@ -1241,10 +1215,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.team.delete()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-            )
+            response = self.client_get(url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["projects"] == 4
@@ -1258,11 +1229,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["projects"] == 5
@@ -1276,11 +1243,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.load_default()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["projects"] == 4

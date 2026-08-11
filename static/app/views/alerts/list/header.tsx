@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -12,14 +11,9 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-type Props = {
-  activeTab: 'stream' | 'rules';
-};
-
-export function AlertHeader({activeTab}: Props) {
+export function AlertHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -36,18 +30,6 @@ export function AlertHeader({activeTab}: Props) {
     );
   };
 
-  const alertRulesLink = (
-    <TabList.Item
-      key="rules"
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
-    >
-      {t('Alert Rules')}
-    </TabList.Item>
-  );
-
   return (
     <Fragment>
       <Layout.Title>
@@ -55,7 +37,7 @@ export function AlertHeader({activeTab}: Props) {
         <PageHeadingQuestionTooltip
           docsUrl="https://docs.sentry.io/product/alerts/"
           title={t(
-            'Real-time visibility into problems with your code and the impact on your users, along with a view of your existing alert rules, their status, project, team, and creation date.'
+            'Real-time visibility into problems with your code and the impact on your users.'
           )}
         />
       </Layout.Title>
@@ -76,22 +58,6 @@ export function AlertHeader({activeTab}: Props) {
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <Layout.Header>
-        <Layout.HeaderTabs value={activeTab}>
-          <TabList>
-            {alertRulesLink}
-            <TabList.Item
-              key="stream"
-              to={makeAlertsPathname({
-                path: '/',
-                organization,
-              })}
-            >
-              {t('History')}
-            </TabList.Item>
-          </TabList>
-        </Layout.HeaderTabs>
-      </Layout.Header>
     </Fragment>
   );
 }

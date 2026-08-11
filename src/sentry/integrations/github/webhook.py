@@ -7,7 +7,8 @@ import logging
 import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
-from datetime import datetime, timezone
+from contextlib import nullcontext
+from datetime import timezone
 from typing import Any, Protocol
 
 import orjson
@@ -49,11 +50,13 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import (
     ActionSource,
+    GroupActionActor,
     action_context_scope,
     resolve_action_actor,
 )
@@ -61,12 +64,17 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
+)
+from sentry.pr_metrics.lifecycle_mapping import (
+    parse_scm_timestamp,
+    pull_request_lifecycle_state_from_github,
+    update_pull_request_from_scm_snapshot,
 )
 from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
@@ -80,11 +88,11 @@ from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handl
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
-from sentry.seer.autofix.pr_iteration.mention import (
-    handle_issue_comment_for_autofix_iteration,
-    handle_pull_request_review_comment_for_autofix_iteration,
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
+from sentry.seer.autofix.webhooks import (
+    handle_github_pr_webhook_for_autofix,
+    handle_pull_requests_merged_milestone,
 )
-from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
@@ -1073,33 +1081,13 @@ class IssuesEventWebhook(GitHubWebhook):
         return f"{repo_full_name}#{issue_number}"
 
 
-def _parse_github_timestamp(value: str | None) -> datetime | None:
-    """Parse a GitHub ISO-8601 timestamp into a UTC datetime, or None if absent."""
-    if not value:
-        return None
-    return parse_date(value).astimezone(timezone.utc)
-
-
-def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
-    """Map a GitHub PR payload to a ``PullRequestLifecycleState`` value.
-
-    GitHub reports ``state`` as only "open"/"closed" alongside a separate
-    ``merged`` flag; we fold the two into the richer lifecycle enum so a merged
-    PR is stored as "merged" rather than an ambiguous "closed".
-    """
-    if pull_request.get("merged"):
-        return PullRequestLifecycleState.MERGED
-    if pull_request.get("state") == "closed":
-        return PullRequestLifecycleState.CLOSED
-    return PullRequestLifecycleState.OPEN
-
-
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        handle_pull_requests_merged_milestone,
         _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
@@ -1146,10 +1134,12 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
-        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
-        closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
-        merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
-        state = _pull_request_lifecycle_state(pull_request)
+        opened_at = parse_scm_timestamp(pull_request.get("created_at"))
+        closed_at = parse_scm_timestamp(pull_request.get("closed_at"))
+        merged_at = parse_scm_timestamp(pull_request.get("merged_at"))
+        # The ordering high-water mark; see update_pull_request_from_scm_snapshot.
+        provider_updated_at = parse_scm_timestamp(pull_request.get("updated_at"))
+        state = pull_request_lifecycle_state_from_github(pull_request)
         draft = pull_request.get("draft")
 
         author_email = "{}@localhost".format(user["login"][:65])
@@ -1203,25 +1193,53 @@ class PullRequestEventWebhook(GitHubWebhook):
                     )
 
         author.preload_users()
-        try:
-            _, created = PullRequest.objects.update_or_create(
+        activity_actor = None
+        if state == PullRequestLifecycleState.MERGED:
+            activity_actor = pull_request.get("merged_by") or event.get("sender")
+        elif event.get("action") in ("closed", "reopened"):
+            activity_actor = event.get("sender")
+        activity_user = (
+            find_user_for_scm_actor(
                 organization_id=organization.id,
-                repository_id=repo.id,
-                key=number,
-                defaults={
-                    "organization_id": organization.id,
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "head_commit_sha": head_commit_sha,
-                    "opened_at": opened_at,
-                    "closed_at": closed_at,
-                    "merged_at": merged_at,
-                    "state": state,
-                    "draft": draft,
-                },
+                integration_id=integration.id,
+                username=activity_actor["login"],
+                external_id=activity_actor.get("id"),
             )
+            if activity_actor and activity_actor.get("login")
+            else None
+        )
+        activity_context = (
+            action_context_scope(
+                source=self.provider,
+                actor=GroupActionActor.user(activity_user.id),
+            )
+            if activity_user is not None
+            else nullcontext()
+        )
+        try:
+            with activity_context:
+                _, created = update_pull_request_from_scm_snapshot(
+                    provider=self.provider,
+                    organization_id=organization.id,
+                    repository_id=repo.id,
+                    key=number,
+                    defaults={
+                        "organization_id": organization.id,
+                        "title": title,
+                        "author": author,
+                        "message": body,
+                        "merge_commit_sha": merge_commit_sha,
+                        "head_commit_sha": head_commit_sha,
+                        "opened_at": opened_at,
+                        "closed_at": closed_at,
+                        "merged_at": merged_at,
+                        "provider_updated_at": provider_updated_at,
+                        "state": state,
+                        "draft": draft,
+                    },
+                    event_state=state,
+                    event_updated_at=provider_updated_at,
+                )
 
             if created:
                 try:
@@ -1301,10 +1319,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment"""
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = (
-        pr_metrics_handle_review_comment,
-        handle_pull_request_review_comment_for_autofix_iteration,
-    )
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_comment,)
 
 
 class PullRequestReviewThreadEventWebhook(GitHubWebhook):

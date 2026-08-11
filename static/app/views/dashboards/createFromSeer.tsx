@@ -26,9 +26,7 @@ export default function CreateFromSeer() {
   const location = useLocation();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
-  const hasFeature =
-    organization.features.includes('dashboards-edit') &&
-    organization.features.includes('dashboards-ai-generate');
+  const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 

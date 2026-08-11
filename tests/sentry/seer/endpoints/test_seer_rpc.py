@@ -16,9 +16,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
-from sentry.models.pullrequest import PullRequestAttribution, PullRequestAttributionSignalType
 from sentry.models.repository import Repository
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
@@ -29,19 +29,19 @@ from sentry.seer.endpoints.seer_rpc import (
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
-    record_pr_attribution,
     refresh_monitoring_provider_token,
 )
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
-    PrAttributionResponse,
+    HeaderAuthConnectionData,
     SendSeerWebhookSuccessResponse,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
+from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
@@ -509,8 +509,17 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
-        event_payload = {"run_id": 123}
+        group = self.create_group(project=self.project)
+        event_payload = {"run_id": 123, "group_id": group.id}
         event_name = "root_cause_completed"
+
+        def assert_activity_exists(**_kwargs: object) -> None:
+            assert Activity.objects.filter(
+                group=group,
+                type=ActivityType.SEER_RCA_COMPLETED.value,
+            ).exists()
+
+        mock_process_autofix_updates.apply_async.side_effect = assert_activity_exists
 
         with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
@@ -525,6 +534,7 @@ class TestSeerRpcMethods(APITestCase):
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
                 "organization_id": self.organization.id,
+                "activity_already_recorded": True,
             },
         )
         mock_broadcast.assert_called_once()
@@ -891,6 +901,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
 
         assert len(result.connections) == 1
         connection = result.connections[0]
+        assert isinstance(connection, HeaderAuthConnectionData)
         assert connection.provider_key == "datadog"
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
@@ -1064,131 +1075,6 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
 
         assert result == {"error": "refresh_not_supported"}
-
-
-@with_feature("organizations:pr-metrics-attribution")
-@cell_silo_test
-class TestRecordPrAttribution(APITestCase):
-    def setUp(self) -> None:
-        self.project = self.create_project(organization=self.organization)
-        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="1")
-        self.pr = self.create_pull_request(
-            repository_id=self.repo.id,
-            organization_id=self.organization.id,
-            key="10",
-        )
-
-    _DEFAULT_PR_URL = "https://github.com/getsentry/sentry/pull/99"
-
-    def _call(self, **overrides: Any) -> PrAttributionResponse:
-        kwargs: dict[str, Any] = {
-            "organization_id": self.organization.id,
-            "pull_request_id": self.pr.id,
-            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
-            "signal_details": {"pr_url": self._DEFAULT_PR_URL},
-        }
-        kwargs.update(overrides)
-        return record_pr_attribution(**kwargs)
-
-    def test_creates_attribution(self) -> None:
-        result = self._call()
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_type == PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE
-        assert attr.is_valid is True
-        assert result.attribution_id == attr.id
-
-    def test_stores_typed_signal_details_for_delegated_signals(self) -> None:
-        self._call(
-            signal_details={
-                "agent_id": "agent-abc-123",
-                "pr_url": self._DEFAULT_PR_URL,
-                "run_id": 42,
-            }
-        )
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_details == {
-            "agent_id": "agent-abc-123",
-            "pr_url": self._DEFAULT_PR_URL,
-            "run_id": 42,
-            "group_ids": [],
-        }
-
-    def test_delegated_signal_details_defaults_nullable_fields(self) -> None:
-        self._call(signal_details={"pr_url": self._DEFAULT_PR_URL})
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_details == {
-            "agent_id": None,
-            "pr_url": self._DEFAULT_PR_URL,
-            "run_id": None,
-            "group_ids": [],
-        }
-
-    def test_invalid_delegated_signal_details_raises(self) -> None:
-        from rest_framework.exceptions import ParseError
-
-        with pytest.raises(ParseError):
-            self._call(signal_details={"agent_id": "x"})  # missing required pr_url
-
-    def test_no_signal_details_for_non_delegated_type_leaves_null(self) -> None:
-        self._call(
-            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
-            signal_details=None,
-        )
-
-        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
-        assert attr.signal_details is None
-
-    def test_idempotent_on_repeat_call(self) -> None:
-        result1 = self._call()
-        result2 = self._call()
-
-        assert result1 == result2
-        assert PullRequestAttribution.objects.filter(pull_request=self.pr).count() == 1
-
-    def test_invalid_signal_type_raises(self) -> None:
-        from rest_framework.exceptions import ParseError
-
-        with pytest.raises(ParseError):
-            self._call(signal_type="not_a_real_signal")
-
-    def test_org_not_found_raises(self) -> None:
-        from django.core.exceptions import ObjectDoesNotExist
-
-        with pytest.raises(ObjectDoesNotExist):
-            self._call(organization_id=999999)
-
-    def test_pr_not_found_raises(self) -> None:
-        from django.core.exceptions import ObjectDoesNotExist
-
-        with pytest.raises(ObjectDoesNotExist):
-            self._call(pull_request_id=999999)
-
-    def test_pr_from_different_org_raises(self) -> None:
-        from django.core.exceptions import ObjectDoesNotExist
-
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        other_repo = self.create_repo(
-            other_project, provider="integrations:github", external_id="2"
-        )
-        other_pr = self.create_pull_request(
-            repository_id=other_repo.id,
-            organization_id=other_org.id,
-            key="20",
-        )
-
-        with pytest.raises(ObjectDoesNotExist):
-            self._call(pull_request_id=other_pr.id)
-
-    def test_feature_disabled_returns_null_attribution_id(self) -> None:
-        with self.feature({"organizations:pr-metrics-attribution": False}):
-            result = self._call()
-
-        assert result == {"attribution_id": None}
-        assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])

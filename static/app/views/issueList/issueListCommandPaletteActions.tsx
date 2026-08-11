@@ -197,7 +197,6 @@ function FilterActions({
       prompt: t('Select a value...'),
       limit: 4,
       resource: (_q: string, ctx: CMDKResourceContext) =>
-        // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
           queryFn: async () => {

@@ -2,6 +2,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  embeddingSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -60,6 +61,50 @@ function createMockToolNode(overrides: {
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an embeddings span: the op
+// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
+// embeddings bucket), and the span is recognized by its span op. `spanOp` can be
+// cleared to exercise the input-attribute fallback path.
+function createMockEmbeddingNode(overrides: {
+  id: string;
+  endTimestamp?: number;
+  input?: string;
+  model?: string;
+  spanOp?: string;
+  startTimestamp?: number;
+  tokens?: number;
+}) {
+  const {
+    id,
+    input = 'search query',
+    model = 'text-embedding-005',
+    spanOp = 'gen_ai.embeddings',
+    startTimestamp = 1000,
+    endTimestamp,
+    tokens,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.embeddings',
+    startTimestamp,
+    endTimestamp: end,
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+    },
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.SPAN_OP]: spanOp,
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
+      ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
   };
@@ -506,6 +551,93 @@ describe('conversationMessages utilities', () => {
       expect(result.generationSpans).toHaveLength(1);
       expect(result.toolSpans).toHaveLength(0);
     });
+
+    it('separates embeddings spans from generation and tool spans', () => {
+      const generationNode = createMockNode({id: 'gen-1', startTimestamp: 1000});
+      const toolNode = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1500,
+      });
+      const embeddingNode = createMockEmbeddingNode({
+        id: 'embed-1',
+        startTimestamp: 2000,
+      });
+
+      const result = partitionSpansByType([
+        generationNode,
+        toolNode,
+        embeddingNode,
+      ] as any);
+
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+      expect(result.toolSpans.map(s => s.id)).toEqual(['tool-1']);
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+
+    it('recognizes an embeddings span by its span op even though operation.type reports ai_client', () => {
+      // gen_ai.operation.type is a closed, ingestion-computed enum with no
+      // "embeddings" bucket, so real embeddings spans report "ai_client" —
+      // detection must key off the span op instead, or these spans get swallowed
+      // into generationSpans and silently dropped there (no chat content).
+      const embeddingNode = createMockEmbeddingNode({id: 'embed-1'});
+
+      const result = partitionSpansByType([embeddingNode] as any);
+
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+      expect(result.generationSpans).toHaveLength(0);
+    });
+
+    it('falls back to the embeddings input attribute when the span op is absent', () => {
+      const embeddingNode = createMockEmbeddingNode({id: 'embed-1', spanOp: ''});
+
+      const result = partitionSpansByType([embeddingNode] as any);
+
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+  });
+
+  describe('embeddingSpansToMessages', () => {
+    it('maps an embeddings span to a standalone message', () => {
+      const node = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'search query',
+        tokens: 6,
+        startTimestamp: 1000,
+        endTimestamp: 1200,
+      });
+
+      const messages = embeddingSpansToMessages([node as any]);
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toMatchObject({
+        id: 'embedding-embed-1',
+        role: 'embedding',
+        content: '',
+        nodeId: 'embed-1',
+        embeddingInput: 'search query',
+        embeddingTokens: 6,
+        embeddingHasError: false,
+        duration: 200,
+      });
+    });
+
+    it('skips spans with no captured input', () => {
+      // The input is the whole point of the row, so a span without it (e.g. the
+      // bulk fetch didn't return gen_ai.embeddings.input) produces no message.
+      const node = {
+        id: 'embed-1',
+        value: {start_timestamp: 1000, end_timestamp: 1200},
+        attributes: {
+          [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+          [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
+          [SpanFields.GEN_AI_RESPONSE_MODEL]: 'text-embedding-005',
+        },
+        errors: new Set(),
+      };
+
+      expect(embeddingSpansToMessages([node as any])).toEqual([]);
+    });
   });
 
   describe('buildConversationTurns', () => {
@@ -541,6 +673,23 @@ describe('conversationMessages utilities', () => {
       expect(turns[0]?.toolCalls).toHaveLength(0);
       expect(turns[1]?.toolCalls).toHaveLength(1);
       expect(turns[1]?.toolCalls[0]?.name).toBe('search');
+    });
+
+    it('treats whitespace-only content as absent so no blank bubble renders', () => {
+      const requestMessages = JSON.stringify([{role: 'user', content: '   '}]);
+      const genNode = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: '\n\n',
+        },
+      });
+
+      const turns = buildConversationTurns([genNode as any], []);
+
+      expect(turns[0]?.userContent).toBeNull();
+      expect(turns[0]?.assistantContent).toBeNull();
     });
   });
 
@@ -1204,6 +1353,66 @@ describe('conversationMessages utilities', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
     });
+
+    it('positions an embeddings span between the turns around it by timestamp', () => {
+      const requestMessages = JSON.stringify([{role: 'user', content: 'Find docs'}]);
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me search',
+        },
+      });
+      const embedding = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'find docs',
+        startTimestamp: 1500,
+      });
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is what I found',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([gen1, embedding, gen2] as any);
+
+      const embeddingIndex = messages.findIndex(m => m.role === 'embedding');
+      expect(messages[embeddingIndex]).toMatchObject({
+        role: 'embedding',
+        embeddingInput: 'find docs',
+      });
+      // Sits between the two assistant turns, matching its timestamp.
+      expect(messages[embeddingIndex - 1]).toMatchObject({
+        role: 'assistant',
+        content: 'Let me search',
+      });
+      expect(messages[embeddingIndex + 1]?.timestamp).toBeGreaterThanOrEqual(
+        messages[embeddingIndex]!.timestamp
+      );
+    });
+
+    it('renders embeddings spans even with no generation spans in the conversation', () => {
+      const embedding1 = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'doc one',
+        startTimestamp: 1000,
+      });
+      const embedding2 = createMockEmbeddingNode({
+        id: 'embed-2',
+        input: 'doc two',
+        startTimestamp: 2000,
+      });
+
+      const messages = extractMessagesFromNodes([embedding2, embedding1] as any);
+
+      expect(messages).toHaveLength(2);
+      expect(messages.every(m => m.role === 'embedding')).toBe(true);
+      expect(messages.map(m => m.embeddingInput)).toEqual(['doc one', 'doc two']);
+    });
   });
 
   describe('parseAssistantContent with reasoning', () => {
@@ -1364,6 +1573,20 @@ describe('conversationMessages utilities', () => {
       ]);
       expect(result).toContain('> Called tools: `bash`, `read`');
       expect(result).toContain('I ran the tools');
+    });
+
+    it('formats embedding messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'embedding-1',
+          role: 'embedding',
+          content: '',
+          timestamp: 1000,
+          nodeId: 'n1',
+          embeddingInput: 'search query',
+        },
+      ]);
+      expect(result).toBe('### Embedding\n\n> search query');
     });
 
     it('formats a full conversation with separators between messages', () => {

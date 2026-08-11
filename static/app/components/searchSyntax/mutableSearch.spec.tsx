@@ -11,6 +11,10 @@ describe('MutableSearch', () => {
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
       [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
       [{transaction: '(empty)'}, '!has:transaction'],
+      [
+        {'imaginary.attribute:made_up_key': '(empty)'},
+        '!has:"imaginary.attribute:made_up_key"',
+      ],
       [{'span.op': '\uF00DContains\uF00Dtest'}, 'span.op:\uF00DContains\uF00Dtest'],
       [{'span.op': '\uF00DStartsWith\uF00Dtest'}, 'span.op:\uF00DStartsWith\uF00Dtest'],
       [{'span.op': '\uF00DEndsWith\uF00Dtest'}, 'span.op:\uF00DEndsWith\uF00Dtest'],
@@ -49,6 +53,8 @@ describe('MutableSearch', () => {
       ['a:"\\"a\\""', 'a:"\\"a\\""'],
       ['a:"i \\" quote" b:"b\\"bb" c:"cc"', 'a:"i \\" quote" b:"b\\"bb" c:"cc"'],
       ['tags["foo:bar",string]:asdf', 'tags["foo:bar",string]:asdf'],
+      ['"foo:bar":"id:123"', '"foo:bar":id:123'],
+      ['has:"foo:bar"', 'has:"foo:bar"'],
       ['span.op:\uF00DContains\uF00Dtest', 'span.op:\uF00DContains\uF00Dtest'],
       ['span.op:\uF00DStartsWith\uF00Dtest', 'span.op:\uF00DStartsWith\uF00Dtest'],
       ['span.op:\uF00DEndsWith\uF00Dtest', 'span.op:\uF00DEndsWith\uF00Dtest'],
@@ -129,6 +135,22 @@ describe('MutableSearch', () => {
 
       results.addFilterValue('e', 'e1*e2\\e3');
       expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
+    });
+
+    it('preserves colons in filter keys across filter operations', () => {
+      const results = new MutableSearch('');
+
+      results.addFilterValue('imaginary.attribute:made_up_key', 'asdf');
+      results.addContainsFilterValue('!imaginary.attribute:made_up_key', 'fdsa');
+      results.addFilterValue('tags[imaginary.attribute:made_up_key,string]', 'typed');
+      results.addFilterValue('has', 'imaginary.attribute:made_up_key');
+
+      expect(results.formatString()).toBe(
+        `"imaginary.attribute:made_up_key":asdf ` +
+          `!"imaginary.attribute:made_up_key":${WildcardOperators.CONTAINS}fdsa ` +
+          `tags[imaginary.attribute:made_up_key,string]:typed ` +
+          `has:"imaginary.attribute:made_up_key"`
+      );
     });
 
     it('add text searches to query object', () => {
@@ -371,6 +393,12 @@ describe('MutableSearch', () => {
       results = new MutableSearch('');
       results.addFilterValueList('message', [',testA,', ',testB,']);
       expect(results.formatString()).toBe('message:[",testA,",",testB,"]');
+
+      results = new MutableSearch('');
+      results.addFilterValueList('imaginary.attribute:made_up_key', ['asdf', 'fdsa']);
+      expect(results.formatString()).toBe(
+        '"imaginary.attribute:made_up_key":[asdf,fdsa]'
+      );
     });
   });
 

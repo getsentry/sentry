@@ -1,5 +1,4 @@
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,16 +45,14 @@ export function DashboardsNavigationItems({dashboards}: DashboardsNavigationItem
               />
             }
           >
-            <Tooltip
+            <InfoText
               title={dashboard.title}
               position="top"
-              showOnlyOnOverflow
-              skipWrapper
+              mode="overflowOnly"
+              variant="inherit"
             >
-              <Text ellipsis variant="inherit">
-                {dashboard.title}
-              </Text>
-            </Tooltip>
+              {dashboard.title}
+            </InfoText>
           </SecondaryNavigation.ReorderableLink>
         );
       }}

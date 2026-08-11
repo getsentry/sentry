@@ -87,6 +87,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
@@ -406,7 +407,9 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable; it is swept out of band
+    by ``sweep_unattributed_pr_activity``.
     """
     if event.get("action") != "closed":
         return
@@ -540,6 +543,11 @@ def handle_metrics(
     reflects the final counts. Gated by the emit flag, the sole consumer; it
     writes only the webhook-sourced counters, leaving the other columns to their
     own producers.
+
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -556,6 +564,19 @@ def handle_metrics(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if is_stale_github_pull_request_payload(pr, pull_request):
+        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        logger.info(
+            "pr_metrics.metrics.stale_snapshot",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "pull_request_id": pr.id,
+                "github_delivery_id": kwargs.get("github_delivery_id"),
+            },
+        )
         return
 
     PullRequestMetrics.objects.update_or_create(
@@ -903,6 +924,7 @@ def handle_check_suite(
                 payload,
                 provider_ts=check_suite.get("updated_at"),
                 head_sha=check_suite.get("head_sha"),
+                check_suite_id=check_suite.get("id"),
             )
 
 
@@ -951,6 +973,7 @@ def handle_check_run(
                 payload,
                 provider_ts=check_run.get("completed_at"),
                 head_sha=check_run.get("head_sha"),
+                check_suite_id=(check_run.get("check_suite") or {}).get("id"),
             )
 
 
@@ -1254,9 +1277,8 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Seer resolves the match either synchronously (a ``200`` with the match body,
-    recorded in-process here) or asynchronously (a ``202``, followed later by the
-    "record_pr_attribution" RPC callback writing the attribution row).
+    Seer returns ``200`` when a match is found (with the match body recorded
+    in-process here) or ``202`` when a match is not found.
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1331,8 +1353,7 @@ def _send_seer_delegated_agent_match(
         return
 
     if response.status != 200:
-        # 202: Seer enqueued the match asynchronously and will call back via the
-        # record_pr_attribution RPC once it resolves.
+        # 202: Seer did not find a match.
         _record_delegated_candidate(provider_hint, "sent")
         return
 
@@ -1452,24 +1473,30 @@ def _record_activity_event(
     event_at: str | None = None,
     provider_ts: str | None = None,
     head_sha: str | None = None,
+    check_suite_id: int | None = None,
     use_doc: bool | None = None,
 ) -> None:
     """Route one processed event to the document or a legacy row per this PR's store.
 
-    ``event_at``, ``provider_ts`` and ``head_sha`` only feed the document path; see
-    ``apply_activity`` for their per-family semantics (``head_sha`` keys the check
-    rollup's per-push groups, so the legacy row's payload is left exactly as
-    before). Callers that already resolved the routing decision — because the
-    payload's shape depends on it — pass it as ``use_doc``; otherwise it is
-    computed here.
+    ``event_at``, ``provider_ts``, ``head_sha`` and ``check_suite_id`` only feed the
+    document path; see ``apply_activity`` for their per-family semantics
+    (``head_sha`` and ``check_suite_id`` key the check rollup's per-push, per-suite
+    groups, so the legacy row's payload is left exactly as before). Callers that
+    already resolved the routing decision — because the payload's shape depends on
+    it — pass it as ``use_doc``; otherwise it is computed here.
     """
     if use_doc is None:
         use_doc = _use_activity_document(pr, organization)
     if use_doc:
+        doc_extras = {
+            key: value
+            for key, value in (("head_sha", head_sha), ("check_suite_id", check_suite_id))
+            if value is not None
+        }
         _apply_activity_into_doc(
             pr,
             event_type=event_type,
-            payload=payload if head_sha is None else {**payload, "head_sha": head_sha},
+            payload={**payload, **doc_extras} if doc_extras else payload,
             webhook_id=webhook_id,
             event_at=event_at,
             provider_ts=provider_ts,
@@ -1557,6 +1584,7 @@ def _build_activity_payload(
 
     match action:
         case "opened":
+            repository_payload = event.get("repository") or {}
             return asdict(
                 OpenedPayload(
                     **sender_kw,
@@ -1566,6 +1594,7 @@ def _build_activity_payload(
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
                     commits=pull_request.get("commits", 0),
+                    is_private=repository_payload.get("private"),
                 )
             )
         case "synchronize":

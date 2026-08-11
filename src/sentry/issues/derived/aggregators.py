@@ -19,6 +19,7 @@ from sentry.issues.action_log.types import (
     SeerRCAStartedAction,
     SeerSolutionCompletedAction,
     SeerSolutionStartedAction,
+    SetEscalatingAction,
     SetRegressedAction,
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
@@ -42,6 +43,7 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import (
     Aggregator,
     AggregatorResult,
+    Scope,
     StateView,
     aggregator,
     emit,
@@ -65,6 +67,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
         SetResolvedInCommitAction,
         ArchiveAction,
         UnresolveAction,
+        SetEscalatingAction,
         SetRegressedAction,
         ReconcileStatusAction,
     ),
@@ -85,7 +88,9 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             | ArchiveAction()
         ) if current == IssueStatus.OPEN:
             return emit(STATUS.value(IssueStatus.CLOSED))
-        case UnresolveAction() | SetRegressedAction() if current == IssueStatus.CLOSED:
+        case UnresolveAction() | SetRegressedAction() | SetEscalatingAction() if (
+            current == IssueStatus.CLOSED
+        ):
             return emit(STATUS.value(IssueStatus.OPEN))
 
     return None
@@ -93,7 +98,7 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 # Progress for open issues (None when closed).
 #
-# Progress is dervived from a few features, which are tracked independently:
+# Progress is derived from a few features, which are tracked independently:
 #
 #   * IS_ASSIGNED     — issue has an assignee. Survives close/reopen.
 #   * HAS_ROOT_CAUSE  — a root cause has been identified (diagnosed). Cleared on
@@ -107,9 +112,12 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 #   IS_ASSIGNED     → ASSIGNED
 #   (none)          → IDENTIFIED
 #
+# A merged fix PR advances progress to FIX_APPLIED, which remains sticky until
+# the issue closes.
+#
 #   IDENTIFIED → ASSIGNED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
-#                                (RESOLVE / ARCHIVE)         → None (closed)
-#                                (UNRESOLVE / SET_REGRESSED) → Reopened
+#   (RESOLVE / ARCHIVE) → None (closed)
+#   (UNRESOLVE / SET_REGRESSED) → Reopen
 
 
 @aggregator(
@@ -150,7 +158,6 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    deps=(STATUS,),
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,
@@ -190,6 +197,11 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
+    elif (
+        current_progress == IssueProgressState.FIX_APPLIED
+        or entry.type == PullRequestMergedAction.get_type()
+    ):
+        new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:
         new_progress = IssueProgressState.FIX_PROPOSED
     elif state[HAS_ROOT_CAUSE]:
@@ -249,6 +261,7 @@ def track_last_completed_autofix_step(
 @aggregator(
     (BLOCKER,),
     deps=(STATUS, HAS_OPEN_FIX_PR, LAST_COMPLETED_AUTOFIX_STEP),
+    scope=Scope.DEPS,
 )
 def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track the human action blocking the issue's progress toward resolution.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import logging
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -8,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField, ListField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -17,15 +19,25 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.gcp.utils import generate_sentry_sa, validate_gcp_project_id
+from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
+from sentry.integrations.gcp.utils import GCP_MCP_URLS, validate_gcp_project_id
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
+from sentry.seer.agent.monitoring_providers import (
+    OrgMonitoringProvider,
+    org_monitoring_provider_registry,
+)
+from sentry.seer.sentry_data_models import GcpSaImpersonationConnectionData
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+
+logger = logging.getLogger(__name__)
 
 DESCRIPTION = """
 Connect your Google Cloud Platform projects so Seer can pull in infrastructure
@@ -71,6 +83,11 @@ class GcpSaGenerationApiStep:
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         assert pipeline.organization is not None
+
+        existing_email = pipeline.fetch_state("sentry_sa_email")
+        if existing_email:
+            return {"sentrySaEmail": existing_email}
+
         sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
         pipeline.bind_state("sentry_sa_email", sentry_sa_email)
         return {"sentrySaEmail": sentry_sa_email}
@@ -117,6 +134,17 @@ class GcpIntegration(IntegrationInstallation):
         if not config:
             return None
         return cast(GcpConfig, config)
+
+    def uninstall(self) -> None:
+        config = self.gcp_config
+        if config is None:
+            return
+        sa_email = config.get("sentry_sa_email")
+        if sa_email:
+            delete_sentry_sa(sa_email, self.organization_id)
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        pass
 
     def get_organization_config(self) -> Sequence[Any]:
         return []
@@ -182,3 +210,62 @@ class GcpIntegrationProvider(IntegrationProvider):
             "projects": extra["projects"],
         }
         org_integration.update(config=gcp_config)
+
+
+@org_monitoring_provider_registry.register(IntegrationProviderSlug.GCP.value)
+class GcpOrgMonitoringProvider(OrgMonitoringProvider):
+    """Surfaces the org-level GCP integration to Seer as shared monitoring connections."""
+
+    provider_key = IntegrationProviderSlug.GCP.value
+
+    def build_connection(
+        self, organization: Organization
+    ) -> list[GcpSaImpersonationConnectionData] | None:
+        ctx = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
+        )
+        integration = ctx.integration
+        org_integration = ctx.organization_integration
+        if (
+            integration is None
+            or org_integration is None
+            or integration.status != ObjectStatus.ACTIVE
+            or org_integration.status != ObjectStatus.ACTIVE
+        ):
+            return None
+
+        config = org_integration.config
+        projects: list[str] = config.get("projects", [])
+        sentry_sa_email: str | None = config.get("sentry_sa_email")
+        customer_sa_email: str | None = config.get("customer_sa_email")
+
+        if not projects:
+            logger.error(
+                "seer.monitoring_providers.gcp_integration_no_projects",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
+        if not sentry_sa_email or not customer_sa_email:
+            logger.error(
+                "seer.monitoring_providers.gcp_integration_missing_sa_emails",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
+        return [
+            GcpSaImpersonationConnectionData(
+                provider_key=self.provider_key,
+                url=url,
+                sentry_sa_email=sentry_sa_email,
+                customer_sa_email=customer_sa_email,
+                gcp_project_ids=projects,
+            )
+            for url in GCP_MCP_URLS
+        ]

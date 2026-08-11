@@ -46,6 +46,8 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import SetRegressedAction
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceNPlusOneGroupType,
@@ -83,6 +85,7 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
@@ -710,6 +713,31 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert not group.is_resolved()
         assert send_robust.called
 
+    def test_regression_attributes_to_system(self) -> None:
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32, checksum="a" * 32, timestamp=before_now(minutes=5).isoformat()
+            )
+        )
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        assert event.group_id is not None
+        group = Group.objects.get(id=event.group_id)
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        with capture_action_log() as log:
+            manager.save(self.project.id)
+
+        log.assert_logged(
+            SetRegressedAction, group_id=group.id, source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR
+        )
+
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_marks_as_unresolved_with_new_release(
         self,
@@ -1324,39 +1352,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group_id == group.id
 
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
-
-    @mock.patch("sentry.models.Group.is_resolved")
-    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
-        ts = before_now(minutes=5).isoformat()
-        mock_is_resolved.return_value = False
-        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
-        with self.tasks():
-            event = manager.save(self.project.id)
-        assert event.group is not None
-
-        resolved_at = before_now(minutes=4)
-        Activity.objects.create(
-            group=event.group,
-            project=event.group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=resolved_at,
-        )
-
-        mock_is_resolved.return_value = True
-        manager = EventManager(
-            make_event(
-                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
-            )
-        )
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-        assert event2.group is not None
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group.id)
-        assert group.active_at
-        assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
-        assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}

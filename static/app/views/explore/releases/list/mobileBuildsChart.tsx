@@ -125,7 +125,7 @@ export function MobileBuildsChart({
         symbolSize: 6,
         emphasis: {
           focus: 'series',
-        } as LineSeriesOption['emphasis'],
+        } as const satisfies LineSeriesOption['emphasis'],
       };
     });
 

@@ -1,6 +1,8 @@
-import styled from '@emotion/styled';
+import type {ReactNode} from 'react';
+import {useId, useState} from 'react';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -8,8 +10,15 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {
+  collapseSeerActivityPairs,
+  type ActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -287,6 +296,12 @@ const seerPullRequest = {
 };
 
 const seerActivities = [
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'slack'}),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {
+    referrer: 'issue_summary.post_process_fixability',
+  }),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'night_shift'}),
   seerActivity(GroupActivityType.SEER_RCA_STARTED),
   seerActivity(GroupActivityType.SEER_RCA_COMPLETED),
   seerActivity(GroupActivityType.SEER_SOLUTION_STARTED),
@@ -297,21 +312,98 @@ const seerActivities = [
     pull_requests: [seerPullRequest],
   }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.pr_comment',
+  }),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.check_suite',
+  }),
   seerActivity(GroupActivityType.SEER_ITERATION_COMPLETED, {
     pull_requests: [seerPullRequest],
   }),
 ];
 
+const collapsedSeerActivities = collapseSeerActivityPairs([
+  seerActivityAt(GroupActivityType.SEER_RCA_COMPLETED, '2025-01-01T00:12:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_COMPLETED, '2025-01-01T00:22:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_STARTED, '2025-01-01T00:12:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
+    pull_requests: [seerPullRequest],
+    run_id: 4,
+  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_ITERATION_STARTED, '2025-01-01T00:30:00Z', {
+      referrer: 'github.check_suite',
+      run_id: 4,
+    }),
+    user,
+  },
+]);
+
 export default Storybook.story('Issue Activity', story => {
-  story('Resolution', () => <ResolutionExamples />);
-  story('Archived', () => <ActivityExamples items={archivedActivities} />);
-  story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
-  story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
-  story('Source control', () => <ActivityExamples items={sourceControlActivities} />);
-  story('Issue changes', () => <ActivityExamples items={issueActivities} />);
-  story('Comments', () => <CommentExample />);
-  story('Seer', () => <ActivityExamples items={seerActivities} />);
+  const activityStory = (name: string, render: () => ReactNode) =>
+    story(name, () => <ActivityStory>{render()}</ActivityStory>);
+
+  activityStory('Resolution', () => <ResolutionExamples />);
+  activityStory('Archived', () => <ActivityExamples items={archivedActivities} />);
+  activityStory('Assignment', () => <ActivityExamples items={assignmentActivities} />);
+  activityStory('Priority and escalation', () => (
+    <ActivityExamples items={priorityActivities} />
+  ));
+  activityStory('Source control', () => (
+    <ActivityExamples items={sourceControlActivities} />
+  ));
+  activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
+  activityStory('Comments', () => <CommentExample />);
+  activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
+  activityStory('Collapsed Seer', () => (
+    <ActivityFeedExamples items={collapsedSeerActivities} />
+  ));
 });
+
+function ActivityStory({children}: {children: ReactNode}) {
+  const checkboxId = useId();
+  const organization = useOrganization();
+  const [showProgress, setShowProgress] = useState(false);
+  const features = organization.features.filter(
+    feature => feature !== 'issue-activity-progress'
+  );
+
+  if (showProgress) {
+    features.push('issue-activity-progress');
+  }
+
+  return (
+    <OrganizationContext.Provider value={{...organization, features}}>
+      <Stack gap="lg">
+        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
+          <Checkbox
+            id={checkboxId}
+            checked={showProgress}
+            onChange={() => setShowProgress(value => !value)}
+          />
+          <Text>Show progress indicators</Text>
+        </Flex>
+        {children}
+      </Stack>
+    </OrganizationContext.Provider>
+  );
+}
 
 function ResolutionExamples() {
   return (
@@ -345,6 +437,14 @@ function seerActivity(type: GroupActivityType, data: Record<string, unknown> = {
   return activity(type, data, null);
 }
 
+function seerActivityAt(
+  type: GroupActivityType,
+  dateCreated: string,
+  data: Record<string, unknown>
+) {
+  return {...seerActivity(type, data), dateCreated};
+}
+
 function sentryAppActivity(
   type: GroupActivityType,
   data: Record<string, unknown>,
@@ -359,26 +459,34 @@ function release(version: string, dateReleased: string) {
 
 function ActivityExamples({items}: {items: GroupActivity[]}) {
   return (
-    <ActivityList gap="md">
+    <ActivityFeedExamples
+      items={items.map(item => ({type: 'activity', activity: item}))}
+    />
+  );
+}
+
+function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
+  return (
+    <ActivityLineList>
       {items.map((item, index) =>
-        isActivityNote(item) ? (
+        item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
-            key={`${item.id}-${index}`}
-            activity={item}
+            key={`${item.activity.id}-${index}`}
+            activity={item.activity}
             group={group}
             inputVariant="compact"
             onDelete={async () => {}}
           />
         ) : (
           <ActivityLine
-            key={`${item.id}-${index}`}
+            key={`${item.activity.id}-${index}`}
             group={group}
             item={item}
             timestampUnitStyle="short"
           />
         )
       )}
-    </ActivityList>
+    </ActivityLineList>
   );
 }
 
@@ -390,28 +498,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityList gap="md">
+    <ActivityLineList>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         group={group}
         inputVariant="full"
         onDelete={async () => {}}
       />
-    </ActivityList>
+    </ActivityLineList>
   );
 }
-
-const ActivityList = styled(Stack)`
-  position: relative;
-  container-name: activity-list;
-  container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-`;

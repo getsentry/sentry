@@ -46,6 +46,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -159,18 +160,7 @@ export function ToolbarSaveAs() {
     },
   });
 
-  const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('Monitor for')
-    : t('Alert for');
-
-  items.push({
-    key: 'create-alert',
-    label: newAlertLabel,
-    textValue: newAlertLabel,
-    children: alertsUrls ?? [],
-    disabled: !alertsUrls || alertsUrls.length === 0,
-    submenu: true,
-  });
+  items.push(getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true}));
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 

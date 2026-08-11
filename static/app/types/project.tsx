@@ -131,6 +131,8 @@ export interface DetailedProject extends ProjectSummary {
   preprodDistributionPrCommentsEnabledByCustomer?: boolean;
   preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
+  preprodSizePrCommentsEnabled?: boolean;
+  preprodSizePrCommentsRules?: unknown[];
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
   preprodSnapshotPrCommentsEnabled?: boolean;

@@ -18,7 +18,7 @@ export function ActivityLineHeadline({
   timestamp,
 }: ActivityLineHeadlineProps) {
   return (
-    <Flex column={3} row={1} minWidth={0} minHeight="22px" align="baseline">
+    <Flex column={2} row={1} minWidth={0} minHeight="22px" align="baseline">
       <ActivityLineSentence>
         <ActivityLineTitleText
           as="span"
@@ -53,13 +53,23 @@ export function ActivityLineHeadline({
 export const ActivityLineRow = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: 22px 22px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: start;
   column-gap: ${p => p.theme.space.xs};
 
   @container activity-list (min-width: 90px) {
     column-gap: ${p => p.theme.space.sm};
+  }
+
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: calc(-${p => p.theme.space.md} - 11px);
+    border-left: 1px solid
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
@@ -92,7 +102,15 @@ const ActivityLineMeta = styled('span')`
 `;
 
 export const ActivityLineContent = styled('div')`
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 2;
   min-width: 0;
+`;
+
+export const ActivityLineList = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
 `;

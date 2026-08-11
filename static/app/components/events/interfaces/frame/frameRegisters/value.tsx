@@ -1,72 +1,61 @@
-import {useState} from 'react';
-import styled from '@emotion/styled';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from '@sentry/scraps/button';
-
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 type Props = {
+  isHexadecimal: boolean;
+  meta: Meta | undefined;
   value: string | number;
-  meta?: Meta;
 };
 
-export function FrameRegisterValue({meta, value}: Props) {
-  const [isHexadecimal, setIsHexadecimal] = useState(true);
+function formatRegisterValue(value: string | number, isHexadecimal: boolean) {
+  const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
 
-  function formatValue() {
-    try {
-      const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
-      if (isNaN(parsed)) {
-        return value;
-      }
-
-      return isHexadecimal ? `0x${parsed.toString(16).padStart(16, '0')}` : `${parsed}`;
-    } catch {
-      return value;
-    }
+  if (isNaN(parsed)) {
+    return value;
   }
 
-  const toggleFormat = () => {
-    setIsHexadecimal(!isHexadecimal);
-  };
-
-  const formatLabel = isHexadecimal ? t('Hexadecimal') : t('Numeric');
-
-  return (
-    <InlinePre>
-      <AnnotatedText value={formatValue()} meta={meta} />
-      <div>
-        <ToggleButton
-          size="zero"
-          variant="transparent"
-          icon={<IconSliders size="xs" />}
-          onClick={toggleFormat}
-          tooltipProps={{title: formatLabel}}
-          aria-label={t('Toggle register value format')}
-        />
-      </div>
-    </InlinePre>
-  );
+  return isHexadecimal ? `0x${parsed.toString(16).padStart(16, '0')}` : `${parsed}`;
 }
 
-const InlinePre = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  display: inline-grid;
-  line-height: 1rem;
-  grid-template-columns: 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  text-align: left;
-  font-size: ${p => p.theme.font.size.sm};
-`;
+export function FrameRegisterValue({isHexadecimal, meta, value}: Props) {
+  const formattedValue = formatRegisterValue(value, isHexadecimal);
 
-const ToggleButton = styled(Button)`
-  opacity: 0.33;
-
-  &:hover {
-    opacity: 1;
-  }
-`;
+  return (
+    <Grid
+      columns="minmax(0, 1fr) 1.5rem"
+      align="center"
+      gap="xs"
+      width="100%"
+      minWidth="0"
+      padding="sm md sm lg"
+      radius="sm"
+      background="secondary"
+    >
+      <Text
+        align="left"
+        density="compressed"
+        monospace
+        size="sm"
+        tabular
+        wordBreak="break-word"
+      >
+        <AnnotatedText value={formattedValue} meta={meta} />
+      </Text>
+      {isEmptyObject(meta) ? (
+        <CopyToClipboardButton
+          text={String(formattedValue)}
+          size="zero"
+          variant="transparent"
+          aria-label={t('Copy register value to clipboard')}
+          tooltipProps={{title: t('Copy register value')}}
+        />
+      ) : null}
+    </Grid>
+  );
+}

@@ -34,11 +34,14 @@ from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_cont
 from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.pr_metrics.lifecycle_mapping import (
+    map_gitlab_state_to_pullrequest_lifecycle,
+    update_pull_request_from_scm_snapshot,
+)
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
@@ -382,15 +385,6 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
-def _map_gitlab_state_to_pullrequest_lifecycle(gitlab_state: str | None) -> str | None:
-    return {
-        "opened": PullRequestLifecycleState.OPEN,
-        "closed": PullRequestLifecycleState.CLOSED,
-        "merged": PullRequestLifecycleState.MERGED,
-        "locked": PullRequestLifecycleState.LOCKED,
-    }.get(gitlab_state or "")
-
-
 class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
@@ -463,7 +457,7 @@ class MergeEventWebhook(GitlabWebhook):
 
             updated_at = event["object_attributes"].get("updated_at")
             merged_at = event["object_attributes"].get("merged_at")
-            state = _map_gitlab_state_to_pullrequest_lifecycle(
+            state = map_gitlab_state_to_pullrequest_lifecycle(
                 event["object_attributes"].get("state")
             )
             action = event["object_attributes"].get("action")
@@ -496,6 +490,8 @@ class MergeEventWebhook(GitlabWebhook):
         )[0]
 
         opened_at = parse_date(created_at).astimezone(timezone.utc)
+        # Doubles as the ordering high-water mark and as the fallback for the
+        # timestamps GitLab doesn't report.
         state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
         merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
 
@@ -508,6 +504,7 @@ class MergeEventWebhook(GitlabWebhook):
             "date_added": opened_at,
             "opened_at": opened_at,
             "merged_at": merged_at_dt,
+            "provider_updated_at": state_changed_at,
             "state": state,
             "draft": draft,
         }
@@ -524,26 +521,18 @@ class MergeEventWebhook(GitlabWebhook):
 
         author.preload_users()
         try:
-            PullRequest.objects.update_or_create(
+            update_pull_request_from_scm_snapshot(
+                provider=self.provider,
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
                 defaults=defaults,
+                event_state=state,
+                event_updated_at=state_changed_at,
             )
         except IntegrityError:
             pass
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.merge_request.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "pr_number": number,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -605,16 +594,6 @@ class NoteEventWebhook(GitlabWebhook):
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.note.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,

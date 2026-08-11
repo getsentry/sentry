@@ -380,13 +380,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
-APIGW_MIDDLEWARE = (
-    "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
-    if APIGW_ASYNC
-    else "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"
-)
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -405,7 +399,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    APIGW_MIDDLEWARE,
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -500,6 +494,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.investigations.apps.InvestigationsConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
@@ -874,8 +869,10 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -891,6 +888,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
@@ -962,13 +960,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.backfill_group_action_log",
+    "sentry.tasks.backfill_pr_lifecycle_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.seer.autofix",
     "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
@@ -1211,6 +1209,16 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "demomode:sentry.demo_mode.tasks.sync_debug_artifacts",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "pr-metrics-detect-stale": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.detect_stale_pull_requests",
+        "schedule": crontab("0", "2", "*", "*", "*"),
+    },
+    "pr-metrics-sweep-unattributed-activity": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.sweep_unattributed_pr_activity",
+        # Hourly rather than daily: the sweep has to keep pace with inbound PR
+        # webhooks, and small frequent batches are gentler than one daily surge.
+        "schedule": crontab("20", "*", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1226,6 +1234,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
+    },
+    "heal-stale-derived-data": {
+        "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
 }
 
@@ -1261,6 +1273,14 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "deliver-webhooks-control": {
         "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
         "schedule": timedelta(seconds=10),
+    },
+    "webhook-backlog-metrics-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_webhook_backlog_metrics",
+        "schedule": timedelta(seconds=60),
+    },
+    "webhook-mailbox-depth-metrics-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_mailbox_depth_metrics",
+        "schedule": timedelta(minutes=5),
     },
     "relocation-find-transfer-control": {
         "task": "relocation.control:sentry.relocation.transfer.find_relocation_transfer_control",
@@ -1546,7 +1566,7 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
-# sample rate for the ingest-replay-recordings processing (consumer and task)
+# sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
@@ -2255,7 +2275,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.0"
+SELF_HOSTED_STABLE_VERSION = "26.7.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

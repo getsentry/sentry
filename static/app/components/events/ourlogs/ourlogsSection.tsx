@@ -146,7 +146,7 @@ function OurlogsSectionContent({
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const logsUrl = useEventLogsUrl(event, project);
+  const logsUrl = useEventLogsUrl(event);
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
@@ -247,7 +247,6 @@ function OurlogsSectionContent({
             <LinkButton
               analyticsEventKey="issue_details.logs_open_in_explore_action_button_clicked"
               analyticsEventName="Issue Details: Logs Open in Explore Action Button Clicked"
-              openInNewTab
               size="xs"
               to={logsUrl}
             >

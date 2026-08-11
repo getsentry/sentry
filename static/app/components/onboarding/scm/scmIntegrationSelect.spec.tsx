@@ -3,6 +3,8 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import * as analytics from 'sentry/utils/analytics';
+
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
 
 const githubGetsentry = OrganizationIntegrationsFixture({
@@ -41,6 +43,7 @@ describe('ScmIntegrationSelect', () => {
   it('renders the selected integration name in the trigger', async () => {
     render(
       <ScmIntegrationSelect
+        analyticsFlow="project-creation"
         integrations={[githubGetsentry, gitlabAcme]}
         selectedIntegration={githubGetsentry}
         onChange={jest.fn()}
@@ -55,6 +58,7 @@ describe('ScmIntegrationSelect', () => {
     const onChange = jest.fn();
     render(
       <ScmIntegrationSelect
+        analyticsFlow="project-creation"
         integrations={[githubGetsentry, gitlabAcme]}
         selectedIntegration={githubGetsentry}
         onChange={onChange}
@@ -75,6 +79,7 @@ describe('ScmIntegrationSelect', () => {
   it('links the Manage providers footer to SCM integration settings', async () => {
     render(
       <ScmIntegrationSelect
+        analyticsFlow="project-creation"
         integrations={[githubGetsentry]}
         selectedIntegration={githubGetsentry}
         onChange={jest.fn()}
@@ -87,6 +92,27 @@ describe('ScmIntegrationSelect', () => {
     expect(await screen.findByRole('button', {name: 'Manage providers'})).toHaveAttribute(
       'href',
       '/settings/org-slug/integrations/?category=source%20code%20management'
+    );
+  });
+
+  it('fires manage_providers_clicked with the flow variant on footer click', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(
+      <ScmIntegrationSelect
+        analyticsFlow="project-creation"
+        integrations={[githubGetsentry]}
+        selectedIntegration={githubGetsentry}
+        onChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /getsentry/}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Manage providers'}));
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.manage_providers_clicked',
+      expect.objectContaining({variant: 'scm'})
     );
   });
 });

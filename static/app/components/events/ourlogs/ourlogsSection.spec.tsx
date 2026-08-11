@@ -441,7 +441,7 @@ describe('OurlogsSection', () => {
 
     const href = openInExploreButton.getAttribute('href');
     expect(href).toBe(
-      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&environment=dev&logsQuery=trace%3A00000000000000000000000000000000&project=2&start=2019-03-19T00%3A00%3A00'
+      '/organizations/org-slug/explore/logs/?end=2019-03-21T00%3A00%3A00&logsQuery=trace%3A00000000000000000000000000000000&project=-1&start=2019-03-19T00%3A00%3A00'
     );
   });
 });

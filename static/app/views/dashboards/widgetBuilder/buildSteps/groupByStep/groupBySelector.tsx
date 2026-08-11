@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,6 +24,7 @@ import {
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
 import {correctDragOverlayOffset} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
+import {OnDemandWarningIcon} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';

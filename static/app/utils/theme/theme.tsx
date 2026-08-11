@@ -196,6 +196,8 @@ const commonTheme = {
     truncationFullValue: 10,
 
     header: 1000,
+    dropdown: 1001,
+    stickyHeader: 1002,
 
     // dashboard widget builder backdrop sits behind the sidebar
     // because it renders on the right next to the sidebar
@@ -203,7 +205,6 @@ const commonTheme = {
     widgetBuilderDrawer: 1016,
 
     sidebarPanel: 1019,
-    dropdown: 1020,
     sidebar: 1020,
 
     // Sentry user feedback modal
@@ -649,11 +650,13 @@ function makeChartColorPalette<T extends ChartColorPalette>(
     length: Length | number | 'all'
   ): T[Length] {
     if (length === 'all') {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       return palette.at(-1) as unknown as T[Length];
     }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     return palette[index] as unknown as T[Length];
   };
 }
@@ -881,4 +884,5 @@ export type StrictCSSObject = {
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `--${string}`]: string; // Allow CSS custom properties
 }>;

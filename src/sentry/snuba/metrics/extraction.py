@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -26,7 +25,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.options.rollout import in_random_rollout
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -35,16 +33,12 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils import metrics
-from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
 
 # Functions that are not allowed for on-demand metric querying.
 OPS_DISALLOWED: set[str] = {"count_unique", "user_misery"}
-
-# Splits the bulk cache for on-demand resolution into N chunks
-WIDGET_QUERY_CACHE_MAX_CHUNKS = 6
 
 
 # This helps us control the different spec versions
@@ -639,39 +633,8 @@ def should_use_on_demand_metrics(
     query: str,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
     prefilling_for_deprecation: bool = False,
 ) -> bool:
-    if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
-        if organization_bulk_query_cache is None:
-            organization_bulk_query_cache = defaultdict(dict)
-
-        dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
-        groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
-        local_cache_md5 = md5_text(
-            f"{dataset_str}-{aggregate}-{query or ''}-{groupbys_str}-prefilling={prefilling}"
-        )
-        local_cache_digest_chunk = local_cache_md5.digest()[0] % WIDGET_QUERY_CACHE_MAX_CHUNKS
-        local_cache_key = local_cache_md5.hexdigest()
-        cached_result = organization_bulk_query_cache.get(local_cache_digest_chunk, {}).get(
-            local_cache_key, None
-        )
-        if cached_result:
-            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
-            return cached_result
-        else:
-            result = _should_use_on_demand_metrics(
-                dataset=dataset,
-                aggregate=aggregate,
-                query=query,
-                groupbys=groupbys,
-                prefilling=prefilling,
-                prefilling_for_deprecation=prefilling_for_deprecation,
-            )
-            metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
-            organization_bulk_query_cache[local_cache_digest_chunk][local_cache_key] = result
-            return result
-
     return _should_use_on_demand_metrics(
         dataset=dataset,
         aggregate=aggregate,

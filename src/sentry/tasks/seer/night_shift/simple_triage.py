@@ -17,6 +17,7 @@ from snuba_sdk.query import Limit, Query
 
 from sentry import features, options, search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -155,6 +156,16 @@ def _agentic_triage_snuba_factors(
             dt = parse_datetime(ts)
             factors["max_timestamp"] = dt.timestamp() if dt else 0.0
         result[factors.pop("group_id")] = factors
+
+    logger.info(
+        "night_shift.agentic_snuba_factors",
+        extra={
+            "organization_id": organization_id,
+            "num_groups_queried": len(group_ids),
+            "num_groups_with_data": len(result),
+            "lookback_seconds": lookback,
+        },
+    )
     return result
 
 
@@ -185,7 +196,17 @@ def _agentic_triage_score(
         rng = mx - mn
         normed[k] = [(v - mn) / rng if rng else 0.0 for v in vals]
 
-    return {gid: sum(w * normed[k][i] for k, w in active) for i, gid in enumerate(group_ids)}
+    scores = {gid: sum(w * normed[k][i] for k, w in active) for i, gid in enumerate(group_ids)}
+
+    logger.info(
+        "night_shift.agentic_triage_score",
+        extra={
+            "num_candidates": len(group_ids),
+            "num_active_factors": len(active),
+            "active_factors": [k for k, _ in active],
+        },
+    )
+    return scores
 
 
 def _fetch_and_score(
@@ -284,7 +305,10 @@ def _fetch_and_score_agentic(
 
     # Step 1: Get eligible group IDs from Postgres with pagination.
     # Mirrors the search.backend.query filters: unresolved, un-triaged, eligible types.
-    type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
+    eligible_types = group_types_from([]) | {LowValueSpanConfigurationType.type_id}
+    # Rage clicks can't be autofixed — filter them out.
+    eligible_types.discard(ReplayRageClickType.type_id)
+    type_ids = sorted(eligible_types)
     # Exclude groups Seer ran on within the last 30 days (matching the
     # RecentDateCondition used by the recommended path's search filter).
     seer_recency_cutoff = timezone.now() - timedelta(days=30)
@@ -320,6 +344,14 @@ def _fetch_and_score_agentic(
         if len(candidates) >= fetch_limit:
             break
 
+    logger.info(
+        "night_shift.agentic_search_results",
+        extra={
+            "organization_id": projects[0].organization_id,
+            "num_candidates": len(candidates),
+        },
+    )
+
     if not candidates:
         return []
 
@@ -336,10 +368,11 @@ def _fetch_and_score_agentic(
     scores = _agentic_triage_score([g.id for g in with_data], factors)
     with_data.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
 
-    # Step 4: Take the top 10 issues each from the scored and unscored groups and re-rank by fixability.
+    # Step 4: Take the top 2x max_candidates from each pool and re-rank by fixability.
+    pool_size = max_candidates * 2
     eligible = [
         g
-        for g in with_data[:10] + without_data[:10]
+        for g in with_data[:pool_size] + without_data[:pool_size]
         if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
     ]
     eligible.sort(
@@ -347,10 +380,22 @@ def _fetch_and_score_agentic(
         reverse=True,
     )
 
-    return [
+    selected = [
         ScoredCandidate(group=g, fixability=g.seer_fixability_score, times_seen=g.times_seen)
         for g in eligible[:max_candidates]
     ]
+
+    logger.info(
+        "night_shift.agentic_selected",
+        extra={
+            "organization_id": projects[0].organization_id,
+            "num_selected": len(selected),
+            "num_with_snuba_data": len(with_data),
+            "num_without_snuba_data": len(without_data),
+        },
+    )
+
+    return selected
 
 
 def priority_label(priority: int | None) -> str | None:

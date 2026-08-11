@@ -28,7 +28,7 @@ export interface AutofixStartStepData {
   step: AutofixExplorerStep;
   stepOptions: {
     insertIndex?: number;
-    runId?: number;
+    runId?: number | string;
     userContext?: string;
   };
 }

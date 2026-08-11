@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
+import type {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,8 +11,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {fetchIncident} from './utils/apiCalls';
+import type {Incident} from './types';
 import {alertDetailsLink} from './utils';
+
+function fetchIncident(api: Client, orgId: string, alertId: string): Promise<Incident> {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
+}
 
 /**
  * Reirects from an incident to the incident's metric alert details page

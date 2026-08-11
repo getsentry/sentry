@@ -133,8 +133,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
 
   const isResolved = group.status === 'resolved';
   const isIgnored = group.status === 'ignored';
-  const isAutoResolved =
-    group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
@@ -429,7 +427,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 }
               />
             )}
-            {isResolved && resolveCap.enabled && !isAutoResolved && (
+            {isResolved && resolveCap.enabled && (
               <CMDKAction
                 display={{label: t('Unresolve'), icon: <IconCheckmark />}}
                 onAction={() =>
@@ -486,7 +484,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             {resolveCap.enabled && isResolved && (
               <Button
                 size="sm"
-                disabled={disabled || isAutoResolved}
+                disabled={disabled}
                 onClick={() =>
                   onUpdate({
                     status: GroupStatus.UNRESOLVED,
@@ -501,7 +499,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             {isIgnored && (
               <Button
                 size="sm"
-                disabled={disabled || isAutoResolved}
+                disabled={disabled}
                 onClick={() =>
                   onUpdate({
                     status: GroupStatus.UNRESOLVED,
@@ -526,8 +524,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
                 project={project}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
                 size="sm"
                 priority="primary"
               />

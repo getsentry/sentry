@@ -1,7 +1,6 @@
 import zoneinfo
 from datetime import timedelta
 from unittest import mock
-from uuid import uuid4
 
 import pytest
 from django.core import mail
@@ -12,10 +11,9 @@ from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -30,23 +28,22 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 )
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
+    SIX_HOURS,
+    TOP_SPANS_LIMIT,
     OrganizationReportContext,
     ProjectContext,
-    _project_key_performance_issues_eap,
-    _project_key_performance_issues_snuba,
-    fetch_past_resolved_issue_links,
     org_key_error_issues,
-    organization_project_issue_summaries,
-    project_past_resolved_issues,
     user_project_ownership,
 )
 from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
     OrganizationReportBatch,
     _pct_change,
     date_format,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
+    project_breakdown_colors,
     render_template_context,
     schedule_organizations,
 )
@@ -292,95 +289,6 @@ class WeeklyReportsTest(
         )
         assert message_builder.call_count == 1
 
-    @with_feature("organizations:escalating-issues")
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_substatus_summaries(self) -> None:
-        self.login_as(user=self.user)
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event1.group.substatus = GroupSubStatus.ONGOING
-        event1.group.save()
-
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2.group.substatus = GroupSubStatus.NEW
-        event2.group.save()
-        timestamp = self.now.timestamp()
-
-        self.store_event_outcomes(
-            self.organization.id, self.project.id, self.two_days_ago, num_times=2
-        )
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-        results = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
-
-        substatus_totals: dict[int | None, int] = {}
-        for row in results:
-            substatus_totals[row["substatus"]] = (
-                substatus_totals.get(row["substatus"], 0) + row["total"]
-            )
-
-        assert substatus_totals.get(GroupSubStatus.NEW, 0) == 1
-        assert substatus_totals.get(GroupSubStatus.ESCALATING, 0) == 0
-        assert substatus_totals.get(GroupSubStatus.ONGOING, 0) == 1
-        assert substatus_totals.get(GroupSubStatus.REGRESSED, 0) == 0
-        assert sum(substatus_totals.values()) == 2
-
-    def test_org_key_error_issues_batched(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group2 = event2.group
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = self.now - timedelta(minutes=1)
-        group2.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-        result = org_key_error_issues(
-            ctx, [self.project.id], Referrer.REPORTS_KEY_ERROR_ISSUES.value
-        )
-        assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
-
     def test_message_builder_filter_resolved_batched(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
@@ -440,64 +348,6 @@ class WeeklyReportsTest(
         assert event1.group.id in key_error_issue_ids
         assert event3.group.id in key_error_issue_ids
         assert len(ctx.projects_context_map[self.project.id].key_error_issues_by_id) == 2
-
-    def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-
-        # Create 3 events for group1 and 1 for group2 in Snuba (via search_issues)
-        fingerprint_1 = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-        fingerprint_2 = f"{PerformanceNPlusOneGroupType.type_id}-group2"
-        perf_event_1a = self.create_performance_issue(fingerprint=fingerprint_1)
-        self.create_performance_issue(fingerprint=fingerprint_1)
-        self.create_performance_issue(fingerprint=fingerprint_1)
-        perf_event_2 = self.create_performance_issue(fingerprint=fingerprint_2)
-
-        assert perf_event_1a.group is not None
-        assert perf_event_2.group is not None
-        perf_group_1 = perf_event_1a.group
-        perf_group_2 = perf_event_2.group
-        perf_group_1.update(last_seen=self.now, times_seen=10)
-        perf_group_2.update(last_seen=self.now, times_seen=5)
-
-        # Store matching EAP occurrences for the same groups with the same counts
-        self.store_eap_items(
-            [
-                self.create_eap_occurrence(
-                    group_id=perf_group_1.id,
-                    project=self.project,
-                    timestamp=self.now - timedelta(minutes=i + 1),
-                    issue_occurrence_id=uuid4().hex,
-                )
-                for i in range(3)
-            ]
-            + [
-                self.create_eap_occurrence(
-                    group_id=perf_group_2.id,
-                    project=self.project,
-                    timestamp=self.now - timedelta(minutes=1),
-                    issue_occurrence_id=uuid4().hex,
-                ),
-            ]
-        )
-
-        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
-        group_ids = [perf_group_1.id, perf_group_2.id]
-        referrer = Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value
-
-        snuba_rows = _project_key_performance_issues_snuba(ctx, self.project, referrer, group_ids)
-        eap_rows = _project_key_performance_issues_eap(ctx, self.project, referrer, group_ids)
-
-        assert len(snuba_rows) == 2
-        assert len(eap_rows) == 2
-        for snuba_row, eap_row in zip(snuba_rows, eap_rows):
-            assert int(snuba_row["group_id"]) == int(eap_row["group_id"])
-            assert int(snuba_row["count()"]) == int(eap_row["count()"])
-
-        assert int(snuba_rows[0]["group_id"]) == perf_group_1.id
-        assert int(snuba_rows[0]["count()"]) == 3
-        assert int(snuba_rows[1]["group_id"]) == perf_group_2.id
-        assert int(snuba_rows[1]["count()"]) == 1
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -1032,76 +882,6 @@ class WeeklyReportsTest(
                 for entry in project_series
             )
             assert has_nonzero_issue_day
-
-    def test_organization_project_issue_summaries_query(self) -> None:
-        """Verify organization_project_issue_summaries returns per-day, per-substatus counts."""
-        three_days_ago = self.three_days_ago.isoformat()
-        two_days_ago = self.two_days_ago.isoformat()
-
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "issue A",
-                "timestamp": three_days_ago,
-                "fingerprint": ["group-a"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event1.group.substatus = GroupSubStatus.NEW
-        event1.group.save()
-
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "issue B",
-                "timestamp": two_days_ago,
-                "fingerprint": ["group-b"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2.group.substatus = GroupSubStatus.ESCALATING
-        event2.group.save()
-
-        event3 = self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "issue C",
-                "timestamp": two_days_ago,
-                "fingerprint": ["group-c"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event3.group.substatus = GroupSubStatus.REGRESSED
-        event3.group.save()
-
-        # Resolved issues should NOT be counted
-        event4 = self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "message": "resolved issue",
-                "timestamp": two_days_ago,
-                "fingerprint": ["group-d"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event4.group.status = GroupStatus.RESOLVED
-        event4.group.substatus = None
-        event4.group.save()
-
-        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
-        results = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
-
-        for row in results:
-            assert row["project_id"] == self.project.id
-            assert "substatus" in row
-            assert "day" in row
-
-        total = sum(row["total"] for row in results)
-        assert total == 3
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2102,194 +1882,6 @@ class WeeklyReportsTest(
             "text_color": "#80708F",
         }
 
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_past_resolved_issues_basic(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "resolved error",
-                "timestamp": min_ago,
-                "fingerprint": ["resolved-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group1 = event1.group
-        group1.status = GroupStatus.RESOLVED
-        group1.substatus = None
-        group1.resolved_at = self.now - timedelta(minutes=1)
-        group1.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
-        assert len(results) == 1
-        assert results[0][0].id == group1.id
-        assert results[0][1] >= 1
-        assert results[0][2] is False
-
-    @mock.patch("sentry.tasks.summaries.utils._past_resolved_performance_counts")
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_past_resolved_issues_includes_current_performance_categories(
-        self, mock_perf_counts: mock.MagicMock
-    ) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-
-        perf_event = self.create_performance_issue()
-        assert perf_event.group is not None
-        group = perf_event.group
-        assert group.issue_category != GroupCategory.PERFORMANCE
-        group.status = GroupStatus.RESOLVED
-        group.substatus = None
-        group.resolved_at = self.now - timedelta(minutes=1)
-        group.save()
-        mock_perf_counts.return_value = {group.id: 1}
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
-
-        assert results == [(group, 1, False)]
-        mock_perf_counts.assert_called_once()
-        assert mock_perf_counts.call_args.args[2] == [group.id]
-
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_past_resolved_issues_excludes_unresolved(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "unresolved error",
-                "timestamp": min_ago,
-                "fingerprint": ["unresolved-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        assert event1.group is not None
-        assert event1.group.status == GroupStatus.UNRESOLVED
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
-        assert len(results) == 0
-
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_past_resolved_issues_excludes_outside_window(self) -> None:
-        self.project.first_event = self.now - timedelta(days=30)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "old resolved error",
-                "timestamp": min_ago,
-                "fingerprint": ["old-resolved-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group1 = event1.group
-        group1.status = GroupStatus.RESOLVED
-        group1.substatus = None
-        group1.resolved_at = self.now - timedelta(days=14)
-        group1.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
-        assert len(results) == 0
-
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_fetch_past_resolved_issue_links(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "linked error",
-                "timestamp": min_ago,
-                "fingerprint": ["linked-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "unlinked error",
-                "timestamp": min_ago,
-                "fingerprint": ["unlinked-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-
-        group1 = event1.group
-        group1.status = GroupStatus.RESOLVED
-        group1.substatus = None
-        group1.resolved_at = self.now - timedelta(minutes=1)
-        group1.save()
-
-        group2 = event2.group
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = self.now - timedelta(minutes=1)
-        group2.save()
-
-        GroupLink.objects.create(
-            group=group1,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
-            linked_id=1,
-            relationship=GroupLink.Relationship.resolves,
-        )
-        GroupLink.objects.create(
-            group=group2,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
-            linked_id=2,
-            relationship=GroupLink.Relationship.references,
-        )
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-
-        results = project_past_resolved_issues(
-            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
-        )
-        ctx.projects_context_map[self.project.id].past_resolved_issues = results
-
-        fetch_past_resolved_issue_links(ctx)
-
-        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
-        has_link_by_group = {group.id: has_link for group, _count, has_link in updated}
-        assert has_link_by_group[group1.id] is True
-        assert has_link_by_group[group2.id] is False
-
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     @with_feature("organizations:weekly-report-past-issues")
@@ -2361,3 +1953,102 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+
+    @with_feature("organizations:weekly-report-spans-chart")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_in_template_context(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        ts1 = int(ctx.start.timestamp())
+        ctx.top_spans = [
+            {"name": "/api/users", "p95": 120.0, "sum": 50000.0},
+            {"name": "/api/events", "p95": 80.0, "sum": 30000.0},
+        ]
+        ctx.top_spans_projects = {
+            "/api/users": self.project.id,
+            "/api/events": self.project.id,
+        }
+        ctx.top_spans_timeseries = {
+            "/api/users": {ts1: 100.0, ts1 + SIX_HOURS: 150.0},
+            "/api/events": {ts1: 80.0, ts1 + SIX_HOURS: 90.0},
+        }
+        ctx.spans_count_by_project = {self.project.id: 10}
+
+        with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
+            mock_charts.is_enabled.return_value = True
+            mock_charts.generate_chart.return_value = "https://example.com/chart.png"
+
+            template_ctx = render_template_context(ctx, self.user.id)
+
+        assert template_ctx is not None
+        assert template_ctx["spans_chart_url"] == "https://example.com/chart.png"
+        mock_charts.generate_chart.assert_called_once()
+        call_args = mock_charts.generate_chart.call_args
+        chart_data = call_args[0][1]
+        assert "/api/users" in chart_data["stats"]
+        assert "/api/events" in chart_data["stats"]
+
+    @with_feature("organizations:weekly-report-spans-chart")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_cached_across_users(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+
+        user2 = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=user2,
+            teams=[self.team],
+        )
+
+        user_project_ownership(ctx)
+
+        ts1 = int(ctx.start.timestamp())
+        ctx.top_spans = [{"name": "/api/users", "p95": 120.0, "sum": 50000.0}]
+        ctx.top_spans_projects = {"/api/users": self.project.id}
+        ctx.top_spans_timeseries = {"/api/users": {ts1: 100.0}}
+        ctx.spans_count_by_project = {self.project.id: 10}
+
+        with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
+            mock_charts.is_enabled.return_value = True
+            mock_charts.generate_chart.return_value = "https://example.com/chart.png"
+
+            cache: dict[frozenset[str], str | None] = {}
+            ctx1 = render_template_context(ctx, self.user.id, spans_chart_cache=cache)
+            ctx2 = render_template_context(ctx, user2.id, spans_chart_cache=cache)
+
+        assert ctx1 is not None
+        assert ctx2 is not None
+        assert ctx1["spans_chart_url"] == "https://example.com/chart.png"
+        assert ctx2["spans_chart_url"] == "https://example.com/chart.png"
+        mock_charts.generate_chart.assert_called_once()
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_none_without_feature_flag(self) -> None:
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+        ctx.top_spans = [{"name": "/api/users", "p95": 120.0, "sum": 50000.0}]
+
+        template_ctx = render_template_context(ctx, self.user.id)
+        assert template_ctx is not None
+        assert template_ctx["spans_chart_url"] is None
+
+    def test_chart_palette_equals_top_spans_limit(self):
+        assert len(CHART_PALETTE) == TOP_SPANS_LIMIT
+
+    def test_project_breakdown_equals_covers_project_limit(self):
+        assert len(project_breakdown_colors) == TOP_SPANS_LIMIT

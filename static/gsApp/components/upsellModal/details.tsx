@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasPerformance} from 'getsentry/utils/billing';
+import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
@@ -303,7 +303,7 @@ export class Details extends Component<Props, State> {
       ];
     }
 
-    return subscription.isTrial
+    return isTrial(subscription)
       ? // If the subscription already has performance
         hasPerformance(subscription.planDetails)
         ? [
@@ -373,7 +373,7 @@ export class Details extends Component<Props, State> {
         'Start your trial again to invite team members, integrate with Sentry with services like Slack, GitHub, and Jira, and build custom dashboards to view issues across projects.'
       );
     }
-    return subscription.canTrial && !subscription.isTrial
+    return subscription.canTrial && !isTrial(subscription)
       ? t(
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)

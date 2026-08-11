@@ -10,6 +10,8 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import SetResolvedInReleaseAction
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -40,6 +42,7 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
@@ -664,6 +667,25 @@ class SetCommitsTestCase(TestCase):
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             ),
+        )
+
+    @receivers_raise_on_send()
+    def test_resolution_attributes_to_system(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+
+        release = self.create_release(project=project, version="abcdabc")
+        with capture_action_log() as log:
+            release.set_commits(
+                [{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}]
+            )
+
+        log.assert_logged(
+            SetResolvedInReleaseAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
         )
 
     @patch("sentry.analytics.record")

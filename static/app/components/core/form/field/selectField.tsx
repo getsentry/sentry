@@ -159,9 +159,7 @@ export function SelectField<TValue>({
             ) => {
               if (multiple) {
                 // For multi-select, option is an array
-                (onChange as (value: TValue[]) => void)(
-                  Array.isArray(option) ? option.map(o => o.value) : []
-                );
+                onChange(Array.isArray(option) ? option.map(o => o.value) : []);
                 // For multi-select in auto-save context, trigger save when menu is closed
                 // (e.g., clicking X on a tag or clear all while menu is not open)
                 if (autoSaveContext && !isMenuOpenRef.current) {

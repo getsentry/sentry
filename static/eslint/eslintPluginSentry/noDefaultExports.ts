@@ -4,6 +4,13 @@ import ts from 'typescript';
 
 import {lazy} from './utils/lazy';
 
+// Comment-separated static imports are harmless false positives.
+const possibleDynamicImportPattern = /\bimport\s*(?:\(|\/[/*])/u;
+
+export function mayContainDynamicImport(source: string): boolean {
+  return possibleDynamicImportPattern.test(source);
+}
+
 function unwrapParenthesized(node: ts.Node): ts.Node {
   return ts.isParenthesizedExpression(node) ? unwrapParenthesized(node.expression) : node;
 }
@@ -55,7 +62,7 @@ function collectResolvedImportFiles(program: ts.Program) {
   }
 
   for (const sourceFile of program.getSourceFiles()) {
-    if (!sourceFile.isDeclarationFile) {
+    if (!sourceFile.isDeclarationFile && mayContainDynamicImport(sourceFile.text)) {
       ts.forEachChild(sourceFile, child => visit(child, sourceFile));
     }
   }

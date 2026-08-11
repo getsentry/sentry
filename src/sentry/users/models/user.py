@@ -458,7 +458,6 @@ class User(Model, AbstractBaseUser):
             UserAvatar,
             UserEmail,
             UserOption,
-            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
             OrganizationMemberMapping,
         )
         with outbox_context(flush=False):

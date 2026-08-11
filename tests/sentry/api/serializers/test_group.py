@@ -1,13 +1,10 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer, SimpleGroupSerializer
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -81,38 +78,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
-    def test_manually_unresolved_after_auto_resolve(self) -> None:
-        now = timezone.now()
-        self.project.update_option("sentry:resolve_age", 168)  # 7 days
-
-        user = self.create_user()
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
-        )
-
-        group.resolved_at = now - timedelta(days=1)
-        group.save()
-
-        result = serialize(group, user)
-        assert result["status"] == "unresolved"
-        assert result["statusDetails"] == {}
-
-    def test_auto_resolve_not_yet_resolved(self) -> None:
-        now = timezone.now()
-        self.project.update_option("sentry:resolve_age", 168)  # 7 days
-
-        user = self.create_user()
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
-        )
-        assert group.resolved_at is None
-
-        result = serialize(group, user)
-        assert result["status"] == "resolved"
-        assert result["statusDetails"]["autoResolved"] is True
-
     def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
@@ -165,40 +130,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
-
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age: MagicMock) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        result = serialize(group, user)
-        assert result["status"] == "resolved"
-        assert result["statusDetails"] == {"autoResolved": True}
-
-    @patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved_respects_enable_auto_resolve_flag(
-        self, mock_is_over_resolve_age: MagicMock
-    ) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-
-        # Test with a group type that has auto-resolve enabled
-        error_type_id = ErrorGroupType.type_id
-        group_error = self.create_group(status=GroupStatus.UNRESOLVED, type=error_type_id)
-        result_error = serialize(group_error, user)
-        assert result_error["status"] == "resolved"
-        assert result_error["statusDetails"] == {"autoResolved": True}
-
-        # Test with a group type that has auto-resolve disabled (feedback)
-        feedback_type_id = FeedbackGroup.type_id
-        group_feedback = self.create_group(status=GroupStatus.UNRESOLVED, type=feedback_type_id)
-
-        result_feedback = serialize(group_feedback, user)
-        assert result_feedback["status"] == "unresolved"
-        assert "autoResolved" not in result_feedback.get("statusDetails", {})
 
     def test_subscribed(self) -> None:
         user = self.create_user()
