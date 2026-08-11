@@ -220,6 +220,24 @@ def test_deobfuscate_qualified_cast_message_class_names() -> None:
     assert exc["raw_value"] == "com.example.Foo cannot be cast to com.example.Bar"
 
 
+def test_deobfuscate_array_cast_message_class_names() -> None:
+    exc = {"value": "a0o$b[][] cannot be cast to chf[]"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    assert excs.get_exception_class_names() == ["a0o$b", "chf"]
+
+    classes = {
+        "a0o$b": "com.example.CastSource",
+        "chf": "com.example.CastTarget",
+    }
+    excs.deobfuscate_and_save(classes, mapped_exceptions=[])
+
+    assert exc["value"] == ("com.example.CastSource[][] cannot be cast to com.example.CastTarget[]")
+    assert exc["raw_value"] == "a0o$b[][] cannot be cast to chf[]"
+
+
 def test_cast_message_is_not_matched_in_prose() -> None:
     # A real cast message ends on the target class. Without that anchor, ordinary
     # prose that happens to contain the word "cast" would offer candidates.
