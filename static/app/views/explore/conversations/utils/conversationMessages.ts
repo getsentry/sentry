@@ -177,10 +177,14 @@ function indexAgentRuns(nodes: AITraceSpanNode[]): AgentRunIndex {
  * Builds one run's messages and splices its sub-agent runs back in.
  *
  * The run's own spans go through the turn-construction pipeline; each nested
- * agent is expanded recursively and inserted as one atomic block at the agent's
- * start timestamp. Keeping a sub-conversation contiguous — rather than merging
- * its messages into the parent by timestamp — is what stops parallel agents from
- * re-interleaving.
+ * agent is expanded recursively and inserted as one atomic block right after the
+ * turn that spawned it, keeping the sub-conversation contiguous.
+ *
+ * Placement keys off each turn's START, not the message timestamp. An assistant
+ * message is stamped at the turn END — `max(generation end, last tool end)` — and
+ * a sub-agent invoked as a long-running tool drags that end out past the
+ * sub-agent's own start, so ordering by it would sort the sub-agent ahead of the
+ * turn that launched it. A turn's start is recoverable as `timestamp - duration`.
  */
 function buildAgentRunMessages(
   runId: string,
@@ -189,16 +193,36 @@ function buildAgentRunMessages(
   const ownMessages = extractMessagesFromAgentRun(index.ownNodesByRun.get(runId) ?? []);
   const childAgents = index.childAgentsByRun.get(runId) ?? [];
 
-  const items: Array<{messages: ConversationMessage[]; timestamp: number}> = [
-    ...ownMessages.map(message => ({timestamp: message.timestamp, messages: [message]})),
-    ...childAgents.map(agent => ({
-      timestamp: index.agentStartById.get(agent.id) ?? 0,
-      messages: buildAgentRunMessages(agent.id, index),
-    })),
-  ];
+  if (childAgents.length === 0) {
+    return ownMessages;
+  }
 
-  items.sort((a, b) => a.timestamp - b.timestamp);
-  return items.flatMap(item => item.messages);
+  const childBlocks = childAgents
+    .map(agent => ({
+      start: index.agentStartById.get(agent.id) ?? 0,
+      messages: buildAgentRunMessages(agent.id, index),
+    }))
+    .sort((a, b) => a.start - b.start);
+
+  // Merge the sub-agent blocks into the run's own messages: before emitting a
+  // turn, flush every sub-agent that started before this turn did (it belongs to
+  // an earlier turn), so each block lands after the turn in progress when the
+  // sub-agent began. Remaining blocks follow the last turn.
+  const merged: ConversationMessage[] = [];
+  let nextChild = 0;
+  for (const message of ownMessages) {
+    const turnStart = message.timestamp - (message.duration ?? 0);
+    while (nextChild < childBlocks.length && childBlocks[nextChild]!.start < turnStart) {
+      merged.push(...childBlocks[nextChild]!.messages);
+      nextChild++;
+    }
+    merged.push(message);
+  }
+  for (; nextChild < childBlocks.length; nextChild++) {
+    merged.push(...childBlocks[nextChild]!.messages);
+  }
+
+  return merged;
 }
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {

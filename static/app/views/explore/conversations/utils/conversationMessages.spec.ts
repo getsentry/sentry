@@ -1608,6 +1608,37 @@ describe('conversationMessages utilities', () => {
       expect(messages.map(m => m.content)).toEqual(['Outer', 'Inner']);
     });
 
+    it('keeps a sub-agent after the long turn that spawned it', () => {
+      // The spawning generation span stays open until the sub-agent returns, so
+      // its turn is stamped (at the turn end) after the sub-agent's own start.
+      // Positioning by the turn end would sort the sub-agent ahead of the turn
+      // that launched it; it must stay after.
+      const genParent = createMockNode({
+        id: 'gen-parent',
+        startTimestamp: 1000,
+        endTimestamp: 5000,
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Parent decides'},
+      });
+      const agentSub = createMockAgentNode({
+        id: 'agent-sub',
+        startTimestamp: 1200,
+        endTimestamp: 4500,
+      });
+      const genSub = createMockNode({
+        id: 'gen-sub',
+        startTimestamp: 1300,
+        endTimestamp: 1400,
+        parentSpanId: 'agent-sub',
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Sub result'},
+      });
+
+      const messages = extractMessagesFromNodes(
+        withLineage([genParent, agentSub, genSub]) as any
+      );
+
+      expect(messages.map(m => m.content)).toEqual(['Parent decides', 'Sub result']);
+    });
+
     // Same question in two spans: collapse only for a cumulative tool loop.
     const Q = 'How is the weather in Vienna?';
     it.each([
