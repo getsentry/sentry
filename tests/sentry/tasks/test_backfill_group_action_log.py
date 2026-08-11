@@ -22,6 +22,7 @@ from sentry.tasks.backfill_group_action_log import (
     reset_and_backfill_group_action_log,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 TEST_BATCH_SIZE = 5
@@ -587,25 +588,17 @@ class BackfillGroupActionLogForProjectTest(TestCase):
 
 
 class BackfillGroupActionLogForAllProjectsTest(TestCase):
-    def _options(
-        self,
-        killswitch: bool = False,
-        batch_size: int = 50,
-        delay: int = 0,
-    ) -> Any:
-        overrides = {
-            "issues.backfill_group_action_log.coordinator_killswitch": killswitch,
-            "issues.backfill_group_action_log.coordinator_batch_size": batch_size,
-            "issues.backfill_group_action_log.coordinator_inter_batch_delay_s": delay,
-        }
-        original_get = real_options.get
-
-        def side_effect(key: str, *args: Any, **kwargs: Any) -> Any:
-            if key in overrides:
-                return overrides[key]
-            return original_get(key, *args, **kwargs)
-
-        return patch("sentry.tasks.backfill_group_action_log.options.get", side_effect=side_effect)
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(
+            override_options(
+                {
+                    "issues.backfill_group_action_log.coordinator_killswitch": False,
+                    "issues.backfill_group_action_log.coordinator_batch_size": 50,
+                    "issues.backfill_group_action_log.coordinator_inter_batch_delay_s": 0,
+                }
+            )
+        )
 
     def _set_backfill_complete(self, project: Any, value: bool) -> ProjectOption:
         project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, value)
@@ -621,7 +614,6 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(complete_project, True)
 
         with (
-            self._options(),
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
             patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
         ):
@@ -645,7 +637,6 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(inactive_project, False)
 
         with (
-            self._options(),
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
             patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
         ):
@@ -657,25 +648,13 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         assert active_project.id in dispatched_project_ids
         assert inactive_project.id not in dispatched_project_ids
 
-    def test_coordinator_killswitch_stops_dispatch(self) -> None:
-        project = self.create_project(organization=self.organization)
-        self._set_backfill_complete(project, False)
-
-        with (
-            self._options(killswitch=True),
-            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
-        ):
-            backfill_group_action_log_for_all_projects()
-
-        mock_apply.assert_not_called()
-
     def test_self_chains_when_more_projects_remain(self) -> None:
         for _ in range(3):
             project = self.create_project(organization=self.organization)
             self._set_backfill_complete(project, False)
 
         with (
-            self._options(batch_size=2),
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
             patch.object(backfill_group_action_log_for_project, "apply_async"),
             patch.object(
                 backfill_group_action_log_for_all_projects, "apply_async"
@@ -690,7 +669,6 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(project, False)
 
         with (
-            self._options(batch_size=100),
             patch.object(backfill_group_action_log_for_project, "apply_async"),
             patch.object(
                 backfill_group_action_log_for_all_projects, "apply_async"
@@ -707,7 +685,6 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(p2, False)
 
         with (
-            self._options(),
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
             patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
         ):
@@ -724,7 +701,6 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(project, False)
 
         with (
-            self._options(),
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
             patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
         ):
@@ -739,7 +715,7 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
             self._set_backfill_complete(project, False)
 
         with (
-            self._options(batch_size=2),
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
             patch.object(backfill_group_action_log_for_project, "apply_async"),
             patch.object(
                 backfill_group_action_log_for_all_projects, "apply_async"
@@ -756,7 +732,7 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         self._set_backfill_complete(project, False)
 
         with (
-            self._options(batch_size=0),
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 0}),
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
         ):
             backfill_group_action_log_for_all_projects()

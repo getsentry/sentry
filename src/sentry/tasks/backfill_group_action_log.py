@@ -432,11 +432,6 @@ def backfill_group_action_log_for_all_projects(
             headers={"sentry-propagate-traces": False},
         )
 
-    metrics.incr(
-        "issues.backfill_group_action_log.coordinator.projects_dispatched",
-        amount=len(project_options),
-    )
-
     logger.info(
         "backfill_group_action_log.coordinator.batch_dispatched",
         extra={
