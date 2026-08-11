@@ -75,6 +75,19 @@ class CodeModeField(serializers.Field):
         return str(value)
 
 
+class PageLocationSerializer(serializers.Serializer):
+    """Where the user was in the UI when they sent the message.
+
+    Every field is optional: older clients omit the object entirely, and pages
+    that cannot report a route still send a URL. Seer renders whatever arrives.
+    """
+
+    url = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    name = serializers.CharField(required=False, allow_null=True, allow_blank=True, default=None)
+    params = serializers.DictField(required=False, allow_null=True, default=None)
+    query = serializers.DictField(required=False, allow_null=True, default=None)
+
+
 class SeerAgentChatSerializer(serializers.Serializer):
     query = serializers.CharField(
         required=True,
@@ -97,6 +110,12 @@ class SeerAgentChatSerializer(serializers.Serializer):
         allow_blank=True,
         default=None,
         help_text="The UI page name where the request originated (e.g., route string).",
+    )
+    page_location = PageLocationSerializer(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="Where the user was in the UI: url, route pattern, and route/query params.",
     )
     override_bash_mode_enabled = serializers.BooleanField(
         required=False,
@@ -248,6 +267,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
+        page_location = validated_data.get("page_location")
         override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
@@ -315,6 +335,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    page_location=page_location,
                     ui_tools=ui_tools,
                     request=request,
                 )
@@ -327,6 +348,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 prompt=query,
                 on_page_context=on_page_context,
                 page_name=page_name,
+                page_location=page_location,
                 ui_tools=ui_tools,
                 override_ce_enable=override_ce_enable,
                 request=request,
