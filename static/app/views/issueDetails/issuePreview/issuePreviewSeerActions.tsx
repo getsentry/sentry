@@ -1,7 +1,11 @@
 import {useState} from 'react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
   findCodingAgentResultLink,
@@ -12,11 +16,21 @@ import {
   getOrderedAutofixSections,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconGithub, IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
+import {
+  IconAdd,
+  IconChevron,
+  IconGithub,
+  IconOpen,
+  IconRefresh,
+  IconSeer,
+} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -195,10 +209,22 @@ function IssuePreviewSeerButton({
   group,
   onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
+  const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const action = getAutofixPrimaryAction(autofix);
   const runId = autofix.runState?.run_id;
   const busy = autofix.isPolling || isStartingAction;
+  const canHandOff = action?.kind === 'solution' || action?.kind === 'code_changes';
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      group,
+      runId: runId ?? 0,
+      step: action?.kind === 'solution' ? 'root_cause' : 'solution',
+      referrer: 'issue_inbox',
+      enabled: canHandOff && defined(runId),
+      onHandoff: onContinueInSeer,
+    });
 
   if (!action) {
     return null;
@@ -235,6 +261,25 @@ function IssuePreviewSeerButton({
     }
   };
 
+  const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
+    const actionLabel =
+      integration.requires_identity && !integration.has_identity
+        ? t('Setup %s', integration.name)
+        : t('Send to %s', integration.name);
+
+    return {
+      key: `agent:${integration.id ?? integration.provider}`,
+      textValue: actionLabel,
+      label: (
+        <Flex gap="md" align="center">
+          <PluginIcon pluginId={integration.provider} size={16} />
+          <span>{actionLabel}</span>
+        </Flex>
+      ),
+      onAction: () => handleCodingAgentHandoff(integration),
+    };
+  });
+
   if (action.href) {
     return (
       <LinkButton
@@ -260,7 +305,7 @@ function IssuePreviewSeerButton({
     );
   }
 
-  return (
+  const primaryButton = (
     <Button
       variant="primary"
       size="sm"
@@ -275,5 +320,42 @@ function IssuePreviewSeerButton({
     >
       {action.label}
     </Button>
+  );
+
+  if (!canHandOff || codingAgentIntegrations === undefined) {
+    return primaryButton;
+  }
+
+  return (
+    <ButtonBar>
+      {primaryButton}
+      <DropdownMenu
+        items={codingAgentOptions}
+        isDisabled={defined(codingAgentDisabledReason)}
+        trigger={(triggerProps, isOpen) => (
+          <Button
+            {...triggerProps}
+            variant="primary"
+            size="sm"
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More code fix options')}
+            disabled={disabled || busy || defined(codingAgentDisabledReason)}
+            tooltipProps={{title: codingAgentDisabledReason}}
+          />
+        )}
+        position="bottom-end"
+        shouldCloseOnBlur={false}
+        menuFooter={
+          <DropdownMenuFooter>
+            <MenuComponents.CTALinkButton
+              icon={<IconAdd />}
+              to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+            >
+              {t('Add Integration')}
+            </MenuComponents.CTALinkButton>
+          </DropdownMenuFooter>
+        }
+      />
+    </ButtonBar>
   );
 }
