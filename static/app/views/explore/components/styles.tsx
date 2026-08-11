@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -54,14 +54,14 @@ export const ExploreFilterSection = styled('div')`
 `;
 
 function StuckAwareExploreBodySearch(props: React.ComponentProps<typeof Layout.Body>) {
-  const [element, setElement] = useState<HTMLDivElement | null>(null);
+  const elementRef = useRef<HTMLDivElement>(null);
   const {pageContentTop} = useTopOffset();
-  const isStuck = useIsStuck(element, {
+  const isStuck = useIsStuck(elementRef, {
     offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 
   return (
-    <Layout.Body ref={setElement} data-stuck={isStuck ? '' : undefined} {...props} />
+    <Layout.Body ref={elementRef} data-stuck={isStuck ? '' : undefined} {...props} />
   );
 }
 
