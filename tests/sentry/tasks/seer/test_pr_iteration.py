@@ -885,6 +885,58 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args.kwargs["user_context"] == "top level\n\nui feedback"
 
+    def _commenter_feedback(self, comment_id: int, login: str, user_id: int) -> Feedback:
+        return Feedback(
+            source=GithubPrCommentFeedbackSource(
+                comment={
+                    "id": comment_id,
+                    "body": "@sentry fix it",
+                    "user": {"id": user_id, "login": login},
+                }
+            )
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_commit_author_attributed_to_a_single_commenter(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        octocat = self._commenter_feedback(1001, "octocat", 583231)
+        hubot = self._commenter_feedback(1002, "hubot", 2)
+        mock_fetch.return_value = self._state()
+
+        mock_pop.return_value = [self._queued(octocat)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] == {
+            "name": "octocat",
+            "email": "583231+octocat@users.noreply.github.com",
+        }
+
+        # Two different commenters in one batch: no single author to attribute to.
+        mock_pop.return_value = [self._queued(octocat), self._queued(hubot)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_commit_author_for_check_suite_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
     def _feedback(self) -> Feedback:

@@ -32,7 +32,7 @@ describe('useConversations', () => {
 
   it('requests 50 conversations per page', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [],
       match: [MockApiClient.matchQuery({per_page: 50})],
     });
@@ -44,7 +44,7 @@ describe('useConversations', () => {
 
   it('normalizes firstInput when it is a string', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: 'hello', lastOutput: null}],
     });
 
@@ -57,7 +57,7 @@ describe('useConversations', () => {
 
   it('normalizes firstInput from array format to string', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           ...BASE_CONVERSATION,
@@ -79,7 +79,7 @@ describe('useConversations', () => {
 
   it('normalizes firstInput to null when array has no text type', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           ...BASE_CONVERSATION,
@@ -98,7 +98,7 @@ describe('useConversations', () => {
 
   it('normalizes lastOutput when it is a string', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: 'world'}],
     });
 
@@ -111,7 +111,7 @@ describe('useConversations', () => {
 
   it('normalizes lastOutput from array format to string', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           ...BASE_CONVERSATION,
@@ -135,7 +135,7 @@ describe('useConversations', () => {
 
   it('normalizes lastOutput to null when array has no text type', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {
           ...BASE_CONVERSATION,
@@ -154,7 +154,7 @@ describe('useConversations', () => {
 
   it('handles null firstInput and lastOutput', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
     });
 
@@ -168,7 +168,7 @@ describe('useConversations', () => {
 
   it('sorts conversations by endTimestamp descending', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
         {...BASE_CONVERSATION, conversationId: 'older', endTimestamp: 1000},
         {...BASE_CONVERSATION, conversationId: 'newer', endTimestamp: 2000},
@@ -185,7 +185,7 @@ describe('useConversations', () => {
 
   it('reports a direct hit when the header is present', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
       headers: {'X-Sentry-Direct-Hit': '1'},
     });
@@ -199,7 +199,7 @@ describe('useConversations', () => {
 
   it('does not report a direct hit when the header is absent', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/`,
+      url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
     });
 

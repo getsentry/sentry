@@ -16,14 +16,15 @@ import {IssueTitle} from 'sentry/types/group';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import * as utils from 'sentry/utils/isActiveSuperuser';
+import {ProjectPerformance} from 'sentry/views/settings/projectPerformance';
+
 import {
   allowedCountValues,
   allowedDurationValues,
   allowedPercentageValues,
   allowedSizeValues,
-  DetectorConfigCustomer,
-  ProjectPerformance,
-} from 'sentry/views/settings/projectPerformance';
+} from './detectors/detectorFieldGroups';
+import {DetectorConfigCustomer} from './detectors/detectorSettings';
 
 jest.mock('sentry/utils/analytics');
 

@@ -92,6 +92,20 @@ S019_logrecord_attrs = frozenset(
     )
 )
 
+# Snuba EAP standard retention defaults to 30d and routes older starts to tier 8.
+# OrganizationEventsEndpointTestBase injects statsPeriod via client_get/do_request.
+S020_msg = (
+    "S020 Use client_get()/do_request() instead of self.client.get() in "
+    "OrganizationEventsEndpointTestBase suites so default statsPeriod is applied"
+)
+S020_eap_base_classes = frozenset(
+    (
+        "OrganizationEventsEndpointTestBase",
+        # Transitive base used by trace/meta suites; still inherits the helper.
+        "OrganizationEventsTraceEndpointBase",
+    )
+)
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -138,15 +152,59 @@ def _wall_clock_year_from_datetime_call(node: ast.Call) -> int | None:
     return None
 
 
+def _is_eap_events_endpoint_test_path(filename: str) -> bool:
+    # Keep S020 scoped to snuba organization-events endpoint suites.
+    return "tests/snuba/api/endpoints/" in filename and "test_organization_" in filename
+
+
+def _base_class_names(node: ast.ClassDef) -> list[str]:
+    names: list[str] = []
+    for base in node.bases:
+        if isinstance(base, ast.Name):
+            names.append(base.id)
+        elif isinstance(base, ast.Attribute):
+            names.append(base.attr)
+    return names
+
+
+def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
+    """Classes in this module that inherit an EAP events endpoint test base."""
+    class_bases: dict[str, list[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_bases[node.name] = _base_class_names(node)
+
+    eap_classes = set(S020_eap_base_classes)
+    changed = True
+    while changed:
+        changed = False
+        for name, bases in class_bases.items():
+            if name in eap_classes:
+                continue
+            if any(base in eap_classes for base in bases):
+                eap_classes.add(name)
+                changed = True
+    return eap_classes
+
+
 class SentryVisitor(ast.NodeVisitor):
-    def __init__(self, filename: str, s015_year: int, s015_msg: str) -> None:
+    def __init__(
+        self,
+        filename: str,
+        s015_year: int,
+        s015_msg: str,
+        eap_suite_classes: set[str] | None = None,
+    ) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
         self._s015_year = s015_year
         self._s015_msg = s015_msg
+        self._eap_suite_classes = eap_suite_classes or set()
 
         self._except_vars: list[str | None] = []
         self._function_depth = 0
+        self._class_stack: list[str] = []
+        self._function_stack: list[str] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -276,18 +334,29 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._function_depth += 1
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self._class_stack.append(node.name)
         try:
             self.generic_visit(node)
         finally:
+            self._class_stack.pop()
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._function_depth += 1
+        self._function_stack.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_stack.pop()
             self._function_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._function_depth += 1
+        self._function_stack.append(node.name)
         try:
             self.generic_visit(node)
         finally:
+            self._function_stack.pop()
             self._function_depth -= 1
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
@@ -350,6 +419,21 @@ class SentryVisitor(ast.NodeVisitor):
                                 (key.lineno, key.col_offset, S019_fmt.format(key.value))
                             )
 
+        # S020: ban raw self.client.get outside client_get in EAP endpoint suites.
+        if (
+            _is_eap_events_endpoint_test_path(self.filename)
+            and self._class_stack
+            and self._class_stack[-1] in self._eap_suite_classes
+            and (not self._function_stack or self._function_stack[-1] != "client_get")
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get"
+            and isinstance(node.func.value, ast.Attribute)
+            and node.func.value.attr == "client"
+            and isinstance(node.func.value.value, ast.Name)
+            and node.func.value.value.id == "self"
+        ):
+            self.errors.append((node.lineno, node.col_offset, S020_msg))
+
         self.generic_visit(node)
 
 
@@ -360,7 +444,12 @@ class SentryCheck:
 
     def run(self) -> Generator[tuple[int, int, str, type[Any]]]:
         cy = datetime.now(timezone.utc).year
-        visitor = SentryVisitor(self.filename, cy, _s015_msg())
+        eap_suite_classes = (
+            _collect_eap_suite_class_names(self.tree)
+            if _is_eap_events_endpoint_test_path(self.filename)
+            else set()
+        )
+        visitor = SentryVisitor(self.filename, cy, _s015_msg(), eap_suite_classes)
         visitor.visit(self.tree)
 
         for e in visitor.errors:
