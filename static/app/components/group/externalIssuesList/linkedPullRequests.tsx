@@ -214,7 +214,7 @@ function PullRequestAttributionAvatar({
 
       const label = t(
         'Pull request created by %s via Seer',
-        CODING_AGENT_NAMES[attribution.agent]
+        CODING_AGENT_NAMES[attribution.agent] ?? CODING_AGENT_NAMES.unknown
       );
       return (
         <Tooltip title={label} skipWrapper>
