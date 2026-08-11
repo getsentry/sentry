@@ -226,10 +226,6 @@ CI_FAILED_AT_OPEN = "ci_failed_at_open"
 NO_CI_EVENTS = "no_ci_events"
 
 
-def _null_ci_head_summary_fields() -> dict[str, Any]:
-    return {"ci_head_results": None}
-
-
 def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
     """Whether any attribution means we actually wrote code on this PR.
 
@@ -242,12 +238,12 @@ def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
     return any((row.get("signal_type") or "") in authoring for row in attributions)
 
 
-def _ci_head_summary_fields(
+def _ci_head_results_json(
     attributions: list[dict[str, Any]],
     *,
     doc: activity_doc.ActivityDoc | None,
-) -> dict[str, Any]:
-    """Ordered per-head CI results, or null when unavailable.
+) -> str | None:
+    """Ordered per-head CI results as JSON, or ``None`` when unavailable.
 
     The JSON list follows ``sync_chain`` insertion order and retains SHA,
     predecessor, sender identity/type, derived actor, whole-head outcome, and
@@ -275,14 +271,12 @@ def _ci_head_summary_fields(
     unavailable.
     """
     if not _has_authoring_attribution(attributions):
-        return _null_ci_head_summary_fields()
+        return None
 
     if doc is None:
-        return _null_ci_head_summary_fields()
+        return None
 
-    results = activity_doc.ci_head_results_from_doc(doc)
-
-    return {"ci_head_results": json.dumps(results)}
+    return json.dumps(activity_doc.ci_head_results_from_doc(doc))
 
 
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
@@ -919,7 +913,7 @@ def build_pr_metrics_row(
         autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
-        **_ci_head_summary_fields(attributions, doc=doc),
+        ci_head_results=_ci_head_results_json(attributions, doc=doc),
         **_conversation_analysis_fields(conversation_analysis),
     )
 
