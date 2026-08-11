@@ -11,6 +11,8 @@ import itertools
 from typing import Any, cast
 from unittest.mock import patch
 
+import pytest
+
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.pr_metrics.activity_doc import (
     DOC_VERSION,
@@ -1662,6 +1664,15 @@ def test_ci_head_results_never_carry_the_pusher_identity() -> None:
 
 def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:
     assert classify_ci_head_actor("Copilot", "User") == "bot"
+
+
+def test_classify_ci_head_actor_rejects_a_typed_sender_with_no_login() -> None:
+    # Both fields come off the same webhook ``sender``, so a head carries both or
+    # neither: no login and no type is the ``unknown`` case, while a type with no
+    # login is malformed input that would otherwise be bucketed as ``human``.
+    assert classify_ci_head_actor("", "") == "unknown"
+    with pytest.raises(AssertionError):
+        classify_ci_head_actor("", "User")
 
 
 def test_ci_head_outcomes_aborted_runs_without_suite_are_unknown() -> None:

@@ -896,9 +896,19 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
 def classify_ci_head_actor(
     sender_login: str, sender_type: str
 ) -> Literal["seer", "human", "bot", "unknown"]:
-    """Bucket a head's webhook sender into seer / human / bot / unknown."""
+    """Bucket a head's webhook sender into seer / human / bot / unknown.
+
+    Both fields are read off the same webhook ``sender`` object and stored on the
+    head together, so a head carries both or neither: an empty ``sender_type`` is
+    the one "we don't know who pushed this" state, and past that guard the login
+    is non-empty too. A typed sender with a blank login is asserted against rather
+    than bucketed — ``sender_type`` alone would send it to ``human``, which is a
+    wrong answer where the input is really malformed.
+    """
     if not sender_type:
         return "unknown"
+
+    assert sender_login, "a head with a sender_type must carry a sender_login"
 
     if sender_type != "Bot" and not is_github_bot_login(sender_login):
         return "human"
