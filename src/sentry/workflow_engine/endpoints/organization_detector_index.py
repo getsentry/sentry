@@ -80,6 +80,26 @@ detector_search_config = SearchConfig.create_from(
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 
+def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+    """
+    Convert an assignee search value to a Django Q object for filtering detectors.
+    """
+    actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
+        value, projects, user, None
+    )
+    assignee_query = Q()
+    for actor in actors_or_none:
+        if isinstance(actor, (User, RpcUser)):
+            assignee_query |= Q(owner_user_id=actor.id)
+        elif isinstance(actor, Team):
+            assignee_query |= Q(owner_team_id=actor.id)
+        elif actor is None:
+            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+        else:
+            assert_never(actor)
+    return assignee_query
+
+
 # Maps API field name to database ordering expressions
 SORT_MAP = {
     "name": "name",
@@ -101,26 +121,6 @@ DETECTOR_TYPE_ALIASES = {
     "uptime": UptimeDomainCheckFailure.slug,
     "cron": MonitorIncidentType.slug,
 }
-
-
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
-    """
-    Convert an assignee search value to a Django Q object for filtering detectors.
-    """
-    actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
-        value, projects, user, None
-    )
-    assignee_query = Q()
-    for actor in actors_or_none:
-        if isinstance(actor, (User, RpcUser)):
-            assignee_query |= Q(owner_user_id=actor.id)
-        elif isinstance(actor, Team):
-            assignee_query |= Q(owner_team_id=actor.id)
-        elif actor is None:
-            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
-        else:
-            assert_never(actor)
-    return assignee_query
 
 
 def get_detector_validator(
