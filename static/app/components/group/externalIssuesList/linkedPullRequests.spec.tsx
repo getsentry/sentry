@@ -106,8 +106,12 @@ describe('LinkedPullRequests', () => {
       body: {
         pullRequests: [
           {
-            ...PullRequestFixture({id: '123', repository}),
-            attribution: {type: 'seer', id: 'seer', agent: 'claude_code'},
+            ...PullRequestFixture({
+              id: '123',
+              repository,
+              author: {name: 'cursor[bot]', email: 'cursor[bot]@localhost'},
+            }),
+            attribution: {type: 'seer', id: 'seer', agent: 'cursor'},
             dateLinked: '2026-06-08T23:11:32.000000Z',
             status: 'merged',
           },
@@ -119,9 +123,13 @@ describe('LinkedPullRequests', () => {
 
     expect(
       await screen.findByRole('img', {
-        name: 'Pull request created by Claude Code via Seer',
+        name: 'Pull request created by Cursor Cloud Agent via Seer',
       })
     ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'cursor'})).toHaveAttribute(
+      'src',
+      'https://github.com/cursor.png?s=120'
+    );
     expect(
       screen.queryByRole('img', {name: 'Pull request created by Seer'})
     ).not.toBeInTheDocument();

@@ -12,7 +12,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconBot, IconSeer} from 'sentry/icons';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -84,6 +83,7 @@ function LinkedPullRequestRow({
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
   const author = getPullRequestAuthor(pullRequest);
+  const githubAuthorLogin = getGithubPullRequestAuthorLogin(pullRequest);
 
   return (
     <Tooltip
@@ -162,7 +162,10 @@ function LinkedPullRequestRow({
               <PullRequestStatusBadge status={pullRequest.status} />
               <Flex align="center" gap="xs">
                 {pullRequest.attribution ? (
-                  <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
+                  <PullRequestAttributionAvatar
+                    attribution={pullRequest.attribution}
+                    githubAuthorLogin={githubAuthorLogin}
+                  />
                 ) : author ? (
                   <PullRequestAuthorAvatar author={author} />
                 ) : null}
@@ -191,8 +194,10 @@ function LinkedPullRequestRow({
 
 function PullRequestAttributionAvatar({
   attribution,
+  githubAuthorLogin,
 }: {
   attribution: PullRequestAttribution;
+  githubAuthorLogin: string | null;
 }) {
   switch (attribution.type) {
     case 'seer': {
@@ -201,35 +206,41 @@ function PullRequestAttributionAvatar({
       }
 
       const label = getCodingAgentAttributionLabel(attribution.agent);
-      const pluginId =
-        attribution.agent === 'claude_code' || attribution.agent === 'cursor'
-          ? attribution.agent
-          : null;
       return (
         <Tooltip title={label} skipWrapper>
-          <Flex
-            as="span"
-            align="center"
-            aria-label={label}
-            border="primary"
-            display="inline-flex"
-            height="18px"
-            justify="center"
-            radius="full"
-            role="img"
-            title={label}
-            width="18px"
-          >
-            {pluginId ? (
-              <PluginIcon pluginId={pluginId} size={16} />
-            ) : (
-              <IconBot aria-hidden size="xs" />
-            )}
-          </Flex>
+          {githubAuthorLogin ? (
+            <Flex as="span" aria-label={label} role="img">
+              <Avatar
+                identifier={githubAuthorLogin}
+                name={githubAuthorLogin}
+                round
+                size={18}
+                type="upload"
+                uploadUrl={`https://github.com/${githubAuthorLogin}.png`}
+              />
+            </Flex>
+          ) : (
+            <IconBot aria-label={label} size="xs" />
+          )}
         </Tooltip>
       );
     }
   }
+}
+
+function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string | null {
+  const author = pullRequest.author;
+  if (
+    pullRequest.repository.provider.id !== 'integrations:github' ||
+    !author ||
+    isSentryUserAuthor(author) ||
+    !author.email?.endsWith('@localhost')
+  ) {
+    return null;
+  }
+
+  const login = author.name || author.email.slice(0, -'@localhost'.length);
+  return login.replace(/\[bot\]$/, '');
 }
 
 function getCodingAgentAttributionLabel(agent: PullRequestAttributionAgent) {
@@ -299,7 +310,6 @@ function SeerAttributionAvatar() {
         justify="center"
         radius="full"
         role="img"
-        title={label}
         width="18px"
       >
         <IconSeer aria-hidden size="xs" />
