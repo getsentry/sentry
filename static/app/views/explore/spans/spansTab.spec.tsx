@@ -212,6 +212,37 @@ describe('SpansTabContent', () => {
     });
   });
 
+  it('does not render an error banner for aggregate table errors', async () => {
+    const aggregatesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'Invalid aggregate'},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.spans-aggregates-table',
+        }),
+      ],
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {mode: Mode.AGGREGATE},
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(aggregatesMock).toHaveBeenCalled();
+    });
+    await screen.findByText('No spans found');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('removes invalid selected columns and sorts after validation', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,

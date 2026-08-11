@@ -144,6 +144,23 @@ describe('AggregatesTable', () => {
     ProjectsStore.reset();
   });
 
+  it('renders the empty state when the query errors', () => {
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          result: {
+            isError: true,
+            isFetched: false,
+          },
+        })}
+      />,
+      {initialRouterConfig, organization}
+    );
+
+    expect(screen.getByText('No spans found')).toBeInTheDocument();
+    expect(screen.queryByTestId('error-indicator')).not.toBeInTheDocument();
+  });
+
   it('opens a view samples dropdown from the samples icon', async () => {
     render(
       <AggregatesTableWithParamsProvider

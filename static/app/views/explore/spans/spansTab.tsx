@@ -291,9 +291,7 @@ function SpanTabContentSectionInner({
       ? spansTableResult.result.error
       : queryType === 'traces'
         ? tracesTableResult.error
-        : queryType === 'aggregate'
-          ? aggregatesTableResult.result.error
-          : null;
+        : null;
 
   return (
     <ExploreContentSection gap="md">
