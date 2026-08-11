@@ -304,17 +304,6 @@ export declare namespace TraceTree {
     | 'root';
   type NodePath = `${NodeType}-${string}`;
 
-  type Metadata = {
-    event_id: string | undefined;
-    project_slug: string | undefined;
-    // This is used to track the traceslug associated with a trace in a replay.
-    // This is necessary because a replay has multiple traces and the current ui requires
-    // us to merge them into one trace. We still need to keep track of the original traceSlug
-    // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
-    replayTraceSlug?: string;
-    spans?: number;
-  };
-
   type OpsBreakdown = Array<{
     count: number;
     op: string;
@@ -383,15 +372,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static Loading(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'loading';
     trace.build();
     return trace;
   }
 
-  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static ErrorState(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'error';
     trace.build();
     return trace;
