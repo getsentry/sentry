@@ -31,7 +31,7 @@ from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
-from sentry.workflow_engine.endpoints.utils.filters import convert_assignee_values
+from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
     AlertRuleDetector,

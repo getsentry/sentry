@@ -1,6 +1,3 @@
-from collections.abc import Iterable, Sequence
-from typing import assert_never
-
 from django.db.models import BigIntegerField, Exists, Model, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 
@@ -9,36 +6,10 @@ from sentry.db.models.query import in_iexact
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.subscription_limits import get_disallowed_metric_datasets
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.issues.issue_search import convert_actor_or_none_value
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.models.team import Team
 from sentry.snuba.models import QuerySubscription
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
-
-
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
-    """
-    Convert an assignee search value to a Django Q object for filtering objects that inherit from
-    OwnerModel, like Detector or Workflow.
-    """
-    actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
-        value, projects, user, None
-    )
-    assignee_query = Q()
-    for actor in actors_or_none:
-        if isinstance(actor, (User, RpcUser)):
-            assignee_query |= Q(owner_user_id=actor.id)
-        elif isinstance(actor, Team):
-            assignee_query |= Q(owner_team_id=actor.id)
-        elif actor is None:
-            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
-        else:
-            assert_never(actor)
-    return assignee_query
 
 
 def exclude_disallowed_metric_detectors(

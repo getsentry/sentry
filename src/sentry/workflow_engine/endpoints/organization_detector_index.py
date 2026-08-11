@@ -1,5 +1,6 @@
+from collections.abc import Iterable, Sequence
 from functools import partial
-from typing import Any
+from typing import Any, assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
@@ -38,18 +39,21 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
+from sentry.issues.issue_search import convert_actor_or_none_value
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
-    convert_assignee_values,
     exclude_disallowed_metric_detectors,
 )
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -97,6 +101,26 @@ DETECTOR_TYPE_ALIASES = {
     "uptime": UptimeDomainCheckFailure.slug,
     "cron": MonitorIncidentType.slug,
 }
+
+
+def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+    """
+    Convert an assignee search value to a Django Q object for filtering detectors.
+    """
+    actors_or_none: list[RpcUser | Team | None] = convert_actor_or_none_value(
+        value, projects, user, None
+    )
+    assignee_query = Q()
+    for actor in actors_or_none:
+        if isinstance(actor, (User, RpcUser)):
+            assignee_query |= Q(owner_user_id=actor.id)
+        elif isinstance(actor, Team):
+            assignee_query |= Q(owner_team_id=actor.id)
+        elif actor is None:
+            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+        else:
+            assert_never(actor)
+    return assignee_query
 
 
 def get_detector_validator(

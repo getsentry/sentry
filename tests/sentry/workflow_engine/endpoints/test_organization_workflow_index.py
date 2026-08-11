@@ -672,6 +672,22 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_two.id),
         }
 
+    def test_query_by_assignee_multiple_values_with_me(self) -> None:
+        """`me` resolves to the requester no matter what precedes it in the list."""
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+        self.workflow_two.update(owner_user_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"assignee:[{user.email}, me]"},
+        )
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
     def test_query_by_assignee_negation(self) -> None:
         user = self.create_user(email="assignee@example.com")
         self.create_member(organization=self.organization, user=user)
@@ -694,6 +710,136 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             qs_params={"query": "assignee:nonexistent@example.com"},
         )
         assert len(response.data) == 0
+
+    def test_query_by_assignee_team_with_no_projects(self) -> None:
+        """
+        Workflows are organization-scoped, so a team that owns one need not be attached to
+        any project. Resolving teams through projects would fail to match this workflow
+        even though it is visible in the unfiltered list.
+        """
+        team = self.create_team(organization=self.organization, slug="projectless")
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:#{team.slug}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_team_without_membership(self) -> None:
+        """Filtering only narrows what is already visible, so team access is not checked."""
+        team = self.create_team(organization=self.organization, slug="not-my-team")
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:#{team.slug}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_team_slug_is_case_insensitive(self) -> None:
+        team = self.create_team(organization=self.organization, slug="mixed-case")
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:#Mixed-Case"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_unknown_team(self) -> None:
+        self.workflow.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:#does-not-exist"}
+        )
+        assert len(response.data) == 0
+
+    def test_query_by_assignee_team_from_another_organization(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org, slug="foreign-team")
+        self.workflow.update(owner_team_id=other_team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:#{other_team.slug}"}
+        )
+        assert len(response.data) == 0
+
+    def test_query_by_assignee_my_teams_without_project_access(self) -> None:
+        """
+        Team membership is read from auth rather than from accessible projects, so a user
+        with no project access still resolves their own teams against org-level workflows.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization, slug="projectless")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[team])
+        self.login_as(user)
+
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:my_teams"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_my_teams_negation_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization, slug="projectless")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[team])
+        self.login_as(user)
+
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!assignee:my_teams"}
+        )
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
+    def test_query_by_assignee_my_teams_with_no_teams(self) -> None:
+        """
+        A user who belongs to no teams matches nothing, rather than the filter silently
+        dropping out and returning every workflow.
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization, slug="someone-elses-team")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[])
+        self.login_as(user)
+
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:my_teams"}
+        )
+        assert len(response.data) == 0
+
+    def test_query_by_assignee_my_teams_negation_with_no_teams(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization, slug="someone-elses-team")
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[])
+        self.login_as(user)
+
+        self.workflow.update(owner_team_id=team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "!assignee:my_teams"}
+        )
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
 
 
 @cell_silo_test

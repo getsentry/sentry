@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import datetime
 from functools import partial
 from typing import Any
@@ -46,19 +47,22 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import Access
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.search.utils import parse_user_value
+from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.filters import apply_filter, convert_assignee_values
+from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -93,6 +97,50 @@ workflow_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
+
+
+def convert_assignee_values(
+    values: Iterable[str], organization: Organization, access: Access, user: User
+) -> Q:
+    """
+    Convert an assignee search value to a Django Q object for filtering workflows
+
+    Different than the one for detectors, because a workflow with no detectors attached is "org-level"
+    and should be visible to anyone with org-level workflow permissions
+
+    The "my_teams" value should show workflows owned by the user's teams even if the user can't access the projects they are in,
+    unlike detectors which determines your teams based on the projects you have access to
+    """
+
+    assignee_query = Q()
+
+    for value in values:
+        if value == "my_teams":
+            user_team_ids = access.team_ids_with_membership
+
+            assignee_query |= Q(owner_team_id__in=user_team_ids)
+
+        elif value == "none":
+            assignee_query |= Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
+
+        elif value.startswith("#"):
+            team_slug = value[1:]
+
+            team = Team.objects.filter(organization=organization, slug__iexact=team_slug).first()
+
+            # if invalid slug, use the team with id 0 the same way detectors do
+            team_id = team.id if team else 0
+
+            assignee_query |= Q(owner_team_id=team_id)
+
+        else:
+            parsed_user = parse_user_value(value, user)
+
+            user_id = parsed_user.id
+
+            assignee_query |= Q(owner_user_id=user_id)
+
+    return assignee_query
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):
@@ -176,10 +224,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             detector_ids = to_valid_int_id_list("detector", raw_detectorlist)
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
-        # Use include_all_accessible=True to get all projects the user can access,
-        # not just those explicitly requested
-        projects = self.get_projects(request, organization, include_all_accessible=True)
-
         if raw_query := request.GET.get("query"):
             try:
                 parsed_query = parse_workflow_query(raw_query)
@@ -220,7 +264,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             else [filter.value.value]
                         )
 
-                        assignee_q = convert_assignee_values(values, projects, request.user)
+                        assignee_q = convert_assignee_values(
+                            values, organization, request.access, request.user
+                        )
 
                         if filter.operator == "!=":
                             queryset = queryset.exclude(assignee_q)
@@ -240,7 +286,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         pass
 
         # This filter is ALWAYS applied to ensure users with no project access
-        # only see org-level workflows.
+        # only see org-level workflows. Use include_all_accessible=True to get all
+        # projects the user can access, not just those explicitly requested.
+        projects = self.get_projects(request, organization, include_all_accessible=True)
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
