@@ -136,7 +136,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     """
     if token is None:
         raise AtlassianConnectValidationError("No token parameter")
-    key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
+    key_response = requests.get(
+        f"https://connect-install-keys.atlassian.com/{key_id}", timeout=5
+    )
     public_key = key_response.content.decode("utf-8").strip()
     decoded_claims = jwt.decode(token, public_key, audience=absolute_uri(), algorithms=["RS256"])
     if not decoded_claims:
