@@ -54,7 +54,9 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
         project_ids = request.access.accessible_project_ids
-        if requested_project_ids is not None and not requested_project_ids.issubset(project_ids):
+        if requested_project_ids is not None and not set(requested_project_ids).issubset(
+            project_ids
+        ):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
