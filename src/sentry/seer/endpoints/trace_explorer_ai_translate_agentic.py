@@ -26,17 +26,6 @@ from sentry.seer.signed_seer_api import (
 logger = logging.getLogger(__name__)
 
 
-def _flag_or_none(flag: str, organization: Organization, actor: Any) -> bool | None:
-    """Return True when the flag is enabled, None otherwise.
-
-    Seer's ``TranslateRequestOptions`` defaults disabled flags to ``None``, so we
-    only send ``True`` (enabled) and omit the key when disabled.
-    """
-    if features.has(flag, organization, actor=actor):
-        return True
-    return None
-
-
 class SearchAgentTranslateSerializer(serializers.Serializer):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -77,10 +66,10 @@ def send_translate_agentic_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    cross_event: bool | None = None,
-    project_expansion: bool | None = None,
-    reflection_step: bool | None = None,
-    code_mode: bool | None = None,
+    cross_event: bool = False,
+    project_expansion: bool = False,
+    reflection_step: bool = False,
+    code_mode: bool = False,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -97,14 +86,10 @@ def send_translate_agentic_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    if cross_event is not None:
-        options["cross_event"] = cross_event
-    if project_expansion is not None:
-        options["project_expansion"] = project_expansion
-    if reflection_step is not None:
-        options["reflection_step"] = reflection_step
-    if code_mode is not None:
-        options["code_mode"] = code_mode
+    options["cross_event"] = cross_event
+    options["project_expansion"] = project_expansion
+    options["reflection_step"] = reflection_step
+    options["code_mode"] = code_mode
     body["options"] = options
 
     response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
@@ -175,17 +160,25 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             model_name=model_name,
             metric_context=metric_context,
             viewer_context=viewer_context,
-            cross_event=_flag_or_none(
-                "organizations:seer-assisted-query-cross-event-explorer", organization, request.user
+            cross_event=features.has(
+                "organizations:seer-assisted-query-cross-event-explorer",
+                organization,
+                actor=request.user,
             ),
-            project_expansion=_flag_or_none(
-                "organizations:seer-assisted-query-project-expansion", organization, request.user
+            project_expansion=features.has(
+                "organizations:seer-assisted-query-project-expansion",
+                organization,
+                actor=request.user,
             ),
-            reflection_step=_flag_or_none(
-                "organizations:seer-assisted-query-reflection", organization, request.user
+            reflection_step=features.has(
+                "organizations:seer-assisted-query-reflection",
+                organization,
+                actor=request.user,
             ),
-            code_mode=_flag_or_none(
-                "organizations:seer-assisted-query-codemode", organization, request.user
+            code_mode=features.has(
+                "organizations:seer-assisted-query-codemode",
+                organization,
+                actor=request.user,
             ),
         )
         return Response(data)
