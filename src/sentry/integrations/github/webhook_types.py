@@ -87,12 +87,13 @@ CELL_PROCESSED_ACTIONS: Mapping[str, ActionFilter] = {
     GithubWebhookType.CHECK_SUITE: ActionFilter(
         consumed=frozenset({"completed"}),
         known=frozenset({"completed", "requested", "rerequested"}),
-        # Deliberately empty, unlike check_run. Seer's
-        # `pr_iteration_from_check_suite_listener` also consumes `completed`, and it
-        # resolves runs by each entry's global `pull_requests[].id` without ever
-        # comparing `base.repo` — so a suite whose entries are all based in another
-        # repo is still work for it. Only the empty-list case would be safe here, and
-        # that is not what the own-repo predicate tests.
+        # Left empty, unlike check_run. `completed` has a second consumer beyond
+        # pr_metrics — Seer's `pr_iteration_from_check_suite_listener` — so the
+        # predicate rests on two filters here rather than one, and this event type's
+        # share of no-op deliveries has not been measured the way check_run's was.
+        # Both consumers do skip entries based in another repo
+        # (`_prs_from_check_payload`, `resolve_check_suite_autofix_run`), so adding
+        # `completed` is a measurement away, not a correctness question.
     ),
 }
 

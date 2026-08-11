@@ -986,8 +986,9 @@ def _record_check_activity_metric(github_event: GithubWebhookType) -> None:
     insert — so a wrong prediction would silently stop work with no signal anywhere.
     This is that signal: it must not move when a drop is enabled in control.
 
-    Sampled. The question it answers is "did the rate change", which 10% already
-    answers precisely at this volume (~90/s).
+    Left at the ambient sample rate rather than forced to 1.0: the question it
+    answers is "did the rate change", which any consistent sampling answers at this
+    volume (~90/s). Read it as a rate, never as an absolute count.
     """
     metrics.incr("pr_metrics.check.activity_recorded", tags={"github_event": github_event.value})
 
