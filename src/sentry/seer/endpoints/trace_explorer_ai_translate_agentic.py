@@ -81,15 +81,16 @@ def send_translate_agentic_request(
         natural_language_query=natural_language_query,
         strategy=strategy,
     )
-    options: dict[str, Any] = {}
+    options: dict[str, Any] = {
+        "cross_event": cross_event,
+        "project_expansion": project_expansion,
+        "reflection_step": reflection_step,
+        "code_mode": code_mode,
+    }
     if model_name is not None:
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    options["cross_event"] = cross_event
-    options["project_expansion"] = project_expansion
-    options["reflection_step"] = reflection_step
-    options["code_mode"] = code_mode
     body["options"] = options
 
     response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
