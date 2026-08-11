@@ -136,14 +136,17 @@ class SeerAutofixOperator[CachePayloadT]:
         Validates Seer access for the organization, the issue category, and autofix quota.
         """
         from sentry import quotas
-        from sentry.seer.autofix.utils import is_issue_category_eligible
+        from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
 
         return (
             has_seer_access(group.organization)
             and is_issue_category_eligible(group)
-            and quotas.backend.check_seer_quota(
-                org_id=group.organization.id,
-                data_category=DataCategory.SEER_AUTOFIX,
+            and (
+                is_free_cohort_org(group.organization)
+                or quotas.backend.check_seer_quota(
+                    org_id=group.organization.id,
+                    data_category=DataCategory.SEER_AUTOFIX,
+                )
             )
         )
 

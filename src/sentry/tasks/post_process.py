@@ -45,6 +45,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.tracing import start_span, trace
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -612,41 +613,48 @@ def post_process_group(
                 Organization.objects.get_from_cache(id=event.project.organization_id),
             )
 
-        is_reprocessed = is_reprocessed_event(event.data)
-        sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
-        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
-
-        metric_tags = {}
-        if group_id:
-            group_state: GroupState = {
-                "id": group_id,
-                "is_new": is_new,
-                "is_regression": bool(is_regression),
-                "is_new_group_environment": is_new_group_environment,
-            }
-
-            group_event = update_event_group(event, group_state)
-            bind_organization_context(event.project.organization)
-            _capture_event_stats(event)
-
-            group_event.occurrence = occurrence
-
-            run_post_process_job(
-                {
-                    "event": group_event,
-                    "group_state": group_state,
-                    "is_reprocessed": is_reprocessed,
-                    "has_reappeared": bool(not group_state["is_new"]),
-                    "has_escalated": kwargs.get("has_escalated", False),
-                }
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=event.project.organization_id,
+                project_id=event.project_id,
+                actor_type=ActorType.SYSTEM,
             )
-            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+        ):
+            is_reprocessed = is_reprocessed_event(event.data)
+            sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+            sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
-        track_event_since_received(
-            step="end_post_process",
-            event_data=event.data,
-            tags=metric_tags,
-        )
+            metric_tags = {}
+            if group_id:
+                group_state: GroupState = {
+                    "id": group_id,
+                    "is_new": is_new,
+                    "is_regression": bool(is_regression),
+                    "is_new_group_environment": is_new_group_environment,
+                }
+
+                group_event = update_event_group(event, group_state)
+                bind_organization_context(event.project.organization)
+                _capture_event_stats(event)
+
+                group_event.occurrence = occurrence
+
+                run_post_process_job(
+                    {
+                        "event": group_event,
+                        "group_state": group_state,
+                        "is_reprocessed": is_reprocessed,
+                        "has_reappeared": bool(not group_state["is_new"]),
+                        "has_escalated": kwargs.get("has_escalated", False),
+                    }
+                )
+                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
+            track_event_since_received(
+                step="end_post_process",
+                event_data=event.data,
+                tags=metric_tags,
+            )
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
@@ -1569,9 +1577,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         return
 
     if is_seer_seat_based_tier_enabled(group.organization):
-        # Guards to prevent thundering herd on issue summary generation.
-        if options.get("seer.post-process-issue-summary-killswitch.enabled"):
-            return
         if group.seer_fixability_score is not None:
             return
         # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
@@ -1643,6 +1648,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
+        kick_off_seer_automation,
         kick_off_lightweight_rca_cluster,
         process_workflow_engine,
         process_resource_change_bounds,
@@ -1671,6 +1677,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
 GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_snoozes,
     process_inbox_adds,
+    kick_off_seer_automation,
     process_workflow_engine,
     process_resource_change_bounds,
     process_data_forwarding,

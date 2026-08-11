@@ -6,12 +6,14 @@ interface UseExploreSuggestedAttributeOptions {
   booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
+  arrayAttributes?: TagCollection;
 }
 
 export function useExploreSuggestedAttribute({
   numberAttributes,
   stringAttributes,
   booleanAttributes,
+  arrayAttributes = {},
 }: UseExploreSuggestedAttributeOptions) {
   return useCallback(
     (key: string): string | null => {
@@ -24,6 +26,10 @@ export function useExploreSuggestedAttribute({
       }
 
       if (key in booleanAttributes) {
+        return key;
+      }
+
+      if (key in arrayAttributes) {
         return key;
       }
 
@@ -42,8 +48,15 @@ export function useExploreSuggestedAttribute({
         return explicitBooleanAttribute;
       }
 
+      // Array attributes are stored with the `[*]` membership suffix
+      // (eg. `tags[foo,array][*]`), so match that shape here.
+      const explicitArrayAttribute = `tags[${key},array][*]`;
+      if (explicitArrayAttribute in arrayAttributes) {
+        return explicitArrayAttribute;
+      }
+
       return null;
     },
-    [booleanAttributes, numberAttributes, stringAttributes]
+    [booleanAttributes, numberAttributes, stringAttributes, arrayAttributes]
   );
 }

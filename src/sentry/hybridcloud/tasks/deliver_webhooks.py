@@ -489,7 +489,10 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
-    tags = {"region_sent_to": payload.cell_name} | _get_github_delivery_time_tags(payload)
+    tags = {
+        "region_sent_to": payload.cell_name,
+        "provider": _provider_tag(payload),
+    } | _get_github_delivery_time_tags(payload)
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
         # e.g. 0.123 seconds → 123 milliseconds
