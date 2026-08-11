@@ -41,8 +41,8 @@ describe('ConversationsLayout', () => {
 
   it('renders the landing title on the list page', async () => {
     renderLayout(
-      {pathname: `/organizations/${organization.slug}/explore/conversations/`},
-      '/organizations/:orgId/explore/conversations/'
+      {pathname: `/organizations/${organization.slug}/explore/agents/`},
+      '/organizations/:orgId/explore/agents/'
     );
 
     const topBar = screen.getByRole('banner');
@@ -54,10 +54,10 @@ describe('ConversationsLayout', () => {
   it('renders saved query breadcrumbs on the list page', async () => {
     renderLayout(
       {
-        pathname: `/organizations/${organization.slug}/explore/conversations/`,
+        pathname: `/organizations/${organization.slug}/explore/agents/`,
         query: {id: 'abc', title: 'My saved query'},
       },
-      '/organizations/:orgId/explore/conversations/'
+      '/organizations/:orgId/explore/agents/'
     );
 
     const topBar = screen.getByRole('banner');
@@ -70,10 +70,10 @@ describe('ConversationsLayout', () => {
   it('renders saved query breadcrumbs with BreadcrumbList when the migration flag is on', async () => {
     renderLayout(
       {
-        pathname: `/organizations/${organization.slug}/explore/conversations/`,
+        pathname: `/organizations/${organization.slug}/explore/agents/`,
         query: {id: 'abc', title: 'My saved query'},
       },
-      '/organizations/:orgId/explore/conversations/',
+      '/organizations/:orgId/explore/agents/',
       ['ui-migration-breadcrumbs']
     );
 
@@ -90,9 +90,9 @@ describe('ConversationsLayout', () => {
   it('defers the title to the detail page on a conversation detail route', () => {
     renderLayout(
       {
-        pathname: `/organizations/${organization.slug}/explore/conversations/6c5b72fc/`,
+        pathname: `/organizations/${organization.slug}/explore/agents/conversations/6c5b72fc/`,
       },
-      '/organizations/:orgId/explore/conversations/:conversationId/'
+      '/organizations/:orgId/explore/agents/conversations/:conversationId/'
     );
 
     // The detail page renders its own breadcrumbs, so the layout leaves the

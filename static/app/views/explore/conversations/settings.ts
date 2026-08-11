@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
 
-export const CONVERSATIONS_LANDING_SUB_PATH = 'conversations';
+/** Landing (list) view: `/explore/agents/`. */
+export const EXPLORE_AGENTS_SUB_PATH = 'agents';
+/** Detail view segment nested under the landing path: `/explore/agents/conversations/:id/`. */
+export const CONVERSATIONS_DETAIL_SUB_PATH = 'conversations';
 export const CONVERSATIONS_LANDING_TITLE = t('Agents');
 export const CONVERSATIONS_SIDEBAR_LABEL = t('Agents');
 

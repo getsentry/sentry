@@ -76,9 +76,9 @@ function renderPage(features: string[] = []) {
     {
       organization: OrganizationFixture({features}),
       initialRouterConfig: {
-        route: '/organizations/:orgId/explore/conversations/:conversationId/',
+        route: '/organizations/:orgId/explore/agents/conversations/:conversationId/',
         location: {
-          pathname: `/organizations/org-slug/explore/conversations/${CONVERSATION_ID}/`,
+          pathname: `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`,
         },
       },
     }

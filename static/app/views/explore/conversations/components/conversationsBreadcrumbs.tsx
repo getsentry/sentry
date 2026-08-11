@@ -15,7 +15,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  CONVERSATIONS_LANDING_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -39,7 +39,7 @@ export function ConversationsBreadcrumbs({
   const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
 
   // Carry project/environment filters back to the landing page, then force the
