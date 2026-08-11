@@ -514,8 +514,9 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
         self, mock_resolve: MagicMock, mock_get_state: MagicMock
     ) -> None:
         """An entry we cannot place is skipped, on the same rule pr_metrics uses.
-        Resolving by global id could place it, but the control parser drops payloads
-        made only of these, so acting on them would act on events we no longer get."""
+        Resolving by global id could place it, but GitHub always sends base.repo, so
+        this is not a payload shape that reaches us — see the legacy test below for
+        why serialized feedback is not one either."""
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
 
         result = resolve_check_suite_autofix_run(

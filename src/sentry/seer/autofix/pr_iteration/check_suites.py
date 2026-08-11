@@ -218,9 +218,10 @@ def resolve_check_suite_autofix_run(
     ``repository`` below is this suite's repo, not the entry's, and the first
     match wins. Skipping them keeps the own-repo entry from being shadowed.
 
-    An entry with no ``base.repo`` is skipped on the same rule: a global ``pr.id``
-    could place it, but the control parser drops payloads made only of those, so
-    this path no longer receives them anyway.
+    An entry with no ``base.repo`` is skipped on the same rule. A global ``pr.id``
+    could place it, but GitHub always sends ``base.repo``, so such an entry is not
+    a payload this path receives — and resolving one anyway would re-admit, for the
+    entry we cannot place, exactly the shadowing above.
     """
     # `sentry.integrations.github` registers rule actions at import time, and this
     # module loads while the SCM stream listeners initialize in AppConfig.ready,
