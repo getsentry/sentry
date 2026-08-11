@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 import pytest
@@ -605,18 +606,13 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         )
 
     def _project_feature_results(self, enabled_project_ids: set[int]) -> Any:
-        def build_batch_results(
-            feature_names: list[str], *, projects: list[Any], organization: Any
-        ) -> dict[str, dict[str, bool]]:
-            feature_name = feature_names[0]
-            return {
-                f"project:{project.id}": {feature_name: project.id in enabled_project_ids}
-                for project in projects
-            }
+        def has_feature(feature_name: str, project: Any) -> bool:
+            assert feature_name == "projects:issue-action-log-write-to-db"
+            return project.id in enabled_project_ids
 
         return patch(
-            "sentry.tasks.backfill_group_action_log.features.batch_has",
-            side_effect=build_batch_results,
+            "sentry.tasks.backfill_group_action_log.features.has",
+            side_effect=has_feature,
         )
 
     def test_dispatches_enrollment_for_active_organizations(self) -> None:
@@ -645,16 +641,14 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         inactive_project.update(status=1)
         assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
-        with self._project_feature_results(
-            {pending_project.id, completed_project.id}
-        ) as mock_batch_has:
+        with self._project_feature_results({pending_project.id, completed_project.id}) as mock_has:
             enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
-        mock_batch_has.assert_called_once_with(
-            ["projects:issue-action-log-write-to-db"],
-            projects=[pending_project, ineligible_project, completed_project],
-            organization=organization,
-        )
+        assert mock_has.call_args_list == [
+            mock_call("projects:issue-action-log-write-to-db", pending_project),
+            mock_call("projects:issue-action-log-write-to-db", ineligible_project),
+            mock_call("projects:issue-action-log-write-to-db", completed_project),
+        ]
         assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
         assert completed_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
         assert not ProjectOption.objects.filter(
