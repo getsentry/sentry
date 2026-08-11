@@ -220,7 +220,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
       <SharedOnboardingPanel
         illustration={
           <ScrapsImage
-            width={{zero: '450px', '3xl': '480px', '4xl': '600px'}}
+            width={{zero: '150px', '3xl': '480px', '4xl': '600px'}}
             loading="eager"
             src={emptyStateImg}
             alt="Stylized line chart with purple and orange lines trending upward against a pink background"
