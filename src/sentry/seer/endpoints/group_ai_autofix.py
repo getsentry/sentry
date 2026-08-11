@@ -438,6 +438,22 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                if is_autofix_kickoff:
+                    actor = resolve_action_actor(request)
+                    with action_context_scope(
+                        source=resolve_action_source(request),
+                        actor=actor,
+                    ):
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=(
+                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
+                            ),
+                            data={"referrer": referrer.value},
+                            send_notification=False,
+                        )
+
                 try:
                     run = trigger_autofix_agent(
                         group=group,
@@ -464,20 +480,6 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                 run_id = run.seer_run_state_id
 
                 if is_autofix_kickoff:
-                    actor = resolve_action_actor(request)
-                    with action_context_scope(
-                        source=resolve_action_source(request),
-                        actor=actor,
-                    ):
-                        Activity.objects.create_group_activity(
-                            group,
-                            ActivityType.TRIGGER_AUTOFIX,
-                            user_id=(
-                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
-                            ),
-                            data={"referrer": referrer.value},
-                            send_notification=False,
-                        )
                     sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
