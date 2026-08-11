@@ -4,7 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -141,91 +141,96 @@ export function TeamStatsControls({
   const isOrgOwner = organization.access.includes('org:admin');
 
   return (
-    <Grid
-      align="center"
-      columns={{
-        xl: `246px ${showEnvironment ? '246px' : ''} 1fr`,
-      }}
-      gap="xl"
-      marginBottom="xl"
-    >
-      <TeamSelector
-        name="select-team"
-        inFieldLabel={t('Team: ')}
-        value={currentTeam?.slug}
-        onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
-        teamFilter={
-          isSuperuser || isOrgOwner ? undefined : (filterTeam: any) => filterTeam.isMember
-        }
-        styles={{
-          singleValue(provided: any) {
-            const custom = {
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: theme.font.size.md,
-              ':before': {
-                ...provided[':before'],
-                color: theme.tokens.content.primary,
-                marginRight: theme.space.lg,
-                marginLeft: theme.space.xs,
-              },
-            };
-            return {...provided, ...custom};
-          },
-          input: (provided: any) => ({
-            ...provided,
-            display: 'grid',
-            gridTemplateColumns: 'max-content 1fr',
-            alignItems: 'center',
-            gridGap: theme.space.md,
-            ':before': {
-              backgroundColor: theme.tokens.background.secondary,
-              height: 24,
-              width: 38,
-              borderRadius: 3,
-              content: '""',
-              display: 'block',
-            },
-          }),
+    <Container containerType="inline-size">
+      <Grid
+        align="center"
+        columns={{
+          zero: 'minmax(0, 1fr)',
+          xl: `246px ${showEnvironment ? '246px' : ''} 1fr`,
         }}
-      />
-      {showEnvironment && (
-        <Select
-          options={[
-            {
-              value: '',
-              label: t('All'),
+        gap="xl"
+        marginBottom="xl"
+      >
+        <TeamSelector
+          name="select-team"
+          inFieldLabel={t('Team: ')}
+          value={currentTeam?.slug}
+          onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
+          teamFilter={
+            isSuperuser || isOrgOwner
+              ? undefined
+              : (filterTeam: any) => filterTeam.isMember
+          }
+          styles={{
+            singleValue(provided: any) {
+              const custom = {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: theme.font.size.md,
+                ':before': {
+                  ...provided[':before'],
+                  color: theme.tokens.content.primary,
+                  marginRight: theme.space.lg,
+                  marginLeft: theme.space.xs,
+                },
+              };
+              return {...provided, ...custom};
             },
-            ...environmentOptions,
-          ]}
-          value={currentEnvironment ?? ''}
-          onChange={handleEnvironmentChange}
-          inFieldLabel={t('Environment:')}
+            input: (provided: any) => ({
+              ...provided,
+              display: 'grid',
+              gridTemplateColumns: 'max-content 1fr',
+              alignItems: 'center',
+              gridGap: theme.space.md,
+              ':before': {
+                backgroundColor: theme.tokens.background.secondary,
+                height: 24,
+                width: 38,
+                borderRadius: 3,
+                content: '""',
+                display: 'block',
+              },
+            }),
+          }}
         />
-      )}
-      <StyledTimeRangeSelector
-        relative={period ?? ''}
-        start={start ?? null}
-        end={end ?? null}
-        utc={utc ?? null}
-        onChange={handleUpdateDatetime}
-        showAbsolute={false}
-        relativeOptions={props => ({
-          ...relativeOptions,
-          ...props.arbitraryOptions,
-        })}
-        trigger={triggerProps => (
-          <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
-            {period
-              ? relativeOptions[period] ||
-                getArbitraryRelativePeriod(period)[period] ||
-                triggerProps.children
-              : triggerProps.children}
-          </TimeRangeSelectTrigger>
+        {showEnvironment && (
+          <Select
+            options={[
+              {
+                value: '',
+                label: t('All'),
+              },
+              ...environmentOptions,
+            ]}
+            value={currentEnvironment ?? ''}
+            onChange={handleEnvironmentChange}
+            inFieldLabel={t('Environment:')}
+          />
         )}
-      />
-    </Grid>
+        <StyledTimeRangeSelector
+          relative={period ?? ''}
+          start={start ?? null}
+          end={end ?? null}
+          utc={utc ?? null}
+          onChange={handleUpdateDatetime}
+          showAbsolute={false}
+          relativeOptions={props => ({
+            ...relativeOptions,
+            ...props.arbitraryOptions,
+          })}
+          trigger={triggerProps => (
+            <TimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
+              {period
+                ? relativeOptions[period] ||
+                  getArbitraryRelativePeriod(period)[period] ||
+                  triggerProps.children
+                : triggerProps.children}
+            </TimeRangeSelectTrigger>
+          )}
+        />
+      </Grid>
+    </Container>
   );
 }
 
