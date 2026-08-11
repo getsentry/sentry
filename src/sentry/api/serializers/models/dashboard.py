@@ -324,6 +324,10 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
                     },
                 )
                 sentry_sdk.capture_message("Widget has an unresolvable widget_type", level="error")
+                # Preserves the existing behaviour rather than the desired state. There is
+                # no correct dataset to report for these widgets, and `discover` is
+                # deprecated -- but clients already receive it, so keep it until the
+                # underlying rows are gone.
                 widget_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.DISCOVER)
 
         discover_widget_type = (
