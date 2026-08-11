@@ -27,6 +27,7 @@ from sentry.utils.hashlib import sha1_text
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
+# Must stay in sync with Symbolicator's `object_file_max_decompressed_source_size`
 MAX_SOURCE_FILE_SIZE = 190 * 1024 * 1024
 
 
