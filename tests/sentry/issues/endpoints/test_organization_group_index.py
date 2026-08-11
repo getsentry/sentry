@@ -192,9 +192,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
 
-    def test_sort_by_progress_requires_feature_flag(self) -> None:
+    def test_sort_by_progress(self) -> None:
         # group_1 has the newer event (wins last_seen / default sort); group_2 is older but
-        # diagnosed, so it wins the progress sort once the flag is on.
+        # diagnosed, so it wins the progress sort.
         group_1 = self.store_event(
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -206,13 +206,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_group_derived_data(group=group_2, progress="diagnosed")
         self.login_as(user=self.user)
 
-        # Without the flag, the sort falls back to the default (date) order.
         response = self.get_success_response(sort="progress", query="is:unresolved")
-        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
-
-        # With the flag, the diagnosed group is promoted above the more recently seen one.
-        with self.feature("organizations:issue-stream-progress-sort"):
-            response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
     def test_sort_by_progress_over_cap_uses_native_ordering(self) -> None:
@@ -231,10 +225,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.create_group_derived_data(group=group_2, progress="fix_applied")
         self.login_as(user=self.user)
 
-        with (
-            self.options({"snuba.search.max-pre-snuba-candidates": 0}),
-            self.feature("organizations:issue-stream-progress-sort"),
-        ):
+        with self.options({"snuba.search.max-pre-snuba-candidates": 0}):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 

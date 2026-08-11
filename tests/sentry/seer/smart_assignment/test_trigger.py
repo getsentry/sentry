@@ -125,7 +125,10 @@ class TriggerSmartAssignmentTest(TestCase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
+        ):
             trigger_smart_assignment(
                 self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
             )
@@ -143,7 +146,10 @@ class TriggerSmartAssignmentTest(TestCase):
         self._wire_client(mock_client_cls)
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
+        ):
             trigger_smart_assignment(
                 self.group, ActivityType.ASSIGNED, self._assigned_activity(team.id, "team")
             )
@@ -156,7 +162,10 @@ class TriggerSmartAssignmentTest(TestCase):
     def test_user_resolution_records_resolver_as_assignee(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         resolver = self.create_user()
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
+        ):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.SET_RESOLVED,
@@ -207,6 +216,80 @@ class TriggerSmartAssignmentTest(TestCase):
         ):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_eval_sample_rate_zero_skips_assignment_dispatch(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 0.0}),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
+            )
+
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_eval_sample_rate_does_not_gate_seer_starts(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 0.0}),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        assert len(self._mirrors()) == 1
+
+    @patch("sentry.seer.smart_assignment.trigger.random.random", return_value=0.05)
+    @patch(CLIENT_PATH)
+    def test_eval_sample_rate_admits_when_roll_is_below_rate(
+        self, mock_client_cls: MagicMock, _mock_random: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 0.10}),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
+            )
+
+        assert len(self._mirrors()) == 1
+
+    @patch("sentry.seer.smart_assignment.trigger.random.random", return_value=0.50)
+    @patch(CLIENT_PATH)
+    def test_eval_sample_rate_rejects_when_roll_is_at_or_above_rate(
+        self, mock_client_cls: MagicMock, _mock_random: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 0.10}),
+        ):
+            trigger_smart_assignment(
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
             )
 
         assert self._mirrors() == []
@@ -326,7 +409,10 @@ class TriggerSmartAssignmentTest(TestCase):
             group=self.group, project=self.group.project, team=team
         )
         human = self.create_user()
-        with self.feature("organizations:seer-smart-assignment-run"):
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.eval_sample_rate": 1.0}),
+        ):
             trigger_smart_assignment(
                 self.group,
                 ActivityType.ASSIGNED,

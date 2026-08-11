@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
 export async function updateUptimeRule(
   api: Client,

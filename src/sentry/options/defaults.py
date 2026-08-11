@@ -1303,14 +1303,21 @@ register(
 register(
     "seer.smart_assignment.max_dispatches_per_org_per_day",
     type=Int,
-    default=500,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.smart_assignment.max_dispatches_per_day",
     type=Int,
-    default=1500,
+    default=2000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The ratio of ASSIGNED / resolution activities that we sample for evaluation.
+register(
+    "seer.smart_assignment.eval_sample_rate",
+    type=Float,
+    default=0.10,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
