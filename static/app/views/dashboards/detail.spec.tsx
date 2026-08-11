@@ -2499,11 +2499,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the updated widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         expect(mockScrollIntoView).toHaveBeenCalled();
       });
@@ -2554,11 +2554,11 @@ describe('Dashboards > Detail', () => {
 
         // The update action is called with the new widget
         expect(mockUpdateDashboard).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.anything(),
+          'org-slug',
           expect.objectContaining({
             widgets: [expect.objectContaining({title: 'Totally new widget'})],
-          })
+          }),
+          {revisionSource: undefined}
         );
         await waitFor(() => {
           expect(addLoadingMessage).toHaveBeenCalledWith('Saving widget');
