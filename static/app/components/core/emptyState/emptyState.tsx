@@ -1,4 +1,4 @@
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<
@@ -22,7 +22,7 @@ export function EmptyState({
   const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
 
   return (
-    <Container containerType="inline-size" width="100%" flexGrow={1} minWidth={0}>
+    <Flex containerType="inline-size" width="100%" flexGrow={1} minWidth={0}>
       <Flex
         direction={{zero: 'column', [switchOn]: 'row'}}
         flexGrow={1}
@@ -55,6 +55,6 @@ export function EmptyState({
           )}
         </Stack>
       </Flex>
-    </Container>
+    </Flex>
   );
 }
