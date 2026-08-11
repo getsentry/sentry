@@ -186,6 +186,32 @@ class LinkSeerRunPullRequestsTest(TestCase):
             "ambiguous"
         )
 
+    def test_links_by_reported_repo_external_id(self) -> None:
+        """A GitLab reporter carries the URL path, never the stored display name, so the
+        payload's external id is the only thing that can resolve the repo."""
+        gitlab_repo = self.create_repo(
+            self.project,
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:28",
+        )
+
+        self._link(
+            [
+                {
+                    "provider": "gitlab",
+                    "repo_name": "my-group/my-project",
+                    "repo_external_id": "gitlab.example.com:28",
+                    "pull_request": {"pr_number": 42},
+                }
+            ]
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=gitlab_repo.id, key="42")
+        assert SeerRunPullRequest.objects.get(pull_request=pull_request).seer_run_id == (
+            self.seer_run.id
+        )
+
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
     def test_killswitch_disables_writes(self, mock_option: Mock) -> None:
         self._link(self._payload())

@@ -38,6 +38,12 @@ REPOSITORY_URL_LENGTH = 512
 
 RepoResolution = Literal["resolved", "not_found", "ambiguous"]
 
+# Which reported identity actually resolved the repo. ``external_id`` is the identity
+# Sentry itself issued to the reporter; ``name`` is a display string that some providers
+# transform on the way out (GitLab hands out ``path_with_namespace`` while ``name`` holds
+# ``name_with_namespace``), so it is the weaker of the two.
+RepoLookup = Literal["external_id", "name"]
+
 
 class RepositoryManager(BaseManager["Repository"]):
     def provider_match(self, provider: str) -> models.Q:
@@ -73,6 +79,33 @@ class RepositoryManager(BaseManager["Repository"]):
 
         # Fetch up to 2 to detect ambiguity — the same name can exist under multiple
         # providers (e.g. github & gitlab) within one org.
+        matches = list(candidates.order_by("id")[:2])
+        if len(matches) == 1:
+            return matches[0], "resolved"
+        return None, "ambiguous" if matches else "not_found"
+
+    def resolve_active_by_external_id(
+        self, *, organization_id: int, external_id: str, normalized_provider: str | None
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve the org-scoped active repository whose provider-side id is ``external_id``.
+
+        Prefer this over :meth:`resolve_active`: ``external_id`` is the identity Sentry
+        handed the reporter in the first place, so it round-trips exactly. Name matching
+        cannot -- GitLab reporters carry ``path_with_namespace`` while ``Repository.name``
+        holds the space-separated ``name_with_namespace``, which never compares equal.
+
+        ``(organization_id, provider, external_id)`` is unique, so a provider narrows this
+        to at most the two stored provider shapes; same "exactly one match" rule as
+        ``resolve_active``, and the same ``(repository, reason)`` return.
+        """
+        candidates = self.filter(
+            organization_id=organization_id,
+            external_id=external_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if normalized_provider is not None:
+            candidates = candidates.filter(self.provider_match(normalized_provider))
+
         matches = list(candidates.order_by("id")[:2])
         if len(matches) == 1:
             return matches[0], "resolved"
