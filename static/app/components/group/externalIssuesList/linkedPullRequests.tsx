@@ -229,18 +229,11 @@ function PullRequestAttributionAvatar({
 }
 
 function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string | null {
-  const author = pullRequest.author;
-  if (
-    pullRequest.repository.provider.id !== 'integrations:github' ||
-    !author ||
-    isSentryUserAuthor(author) ||
-    !author.email?.endsWith('@localhost')
-  ) {
+  if (pullRequest.repository.provider.id !== 'integrations:github') {
     return null;
   }
 
-  const login = author.name || author.email.slice(0, -'@localhost'.length);
-  return login.replace(/\[bot\]$/, '');
+  return pullRequest.author?.name?.replace(/\[bot\]$/, '') ?? null;
 }
 
 function getCodingAgentAttributionLabel(agent: PullRequestAttributionAgent) {
