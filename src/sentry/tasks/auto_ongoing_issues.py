@@ -30,7 +30,7 @@ CHILD_TASK_COUNT = 250
 )
 def schedule_auto_transition_to_ongoing() -> None:
     """
-    Triggered by cronjob every minute. This task will spawn subtasks
+    Triggered by cronjob every 3 minutes. This task will spawn subtasks
     that transition Issues to Ongoing according to their specific
     criteria.
     """
