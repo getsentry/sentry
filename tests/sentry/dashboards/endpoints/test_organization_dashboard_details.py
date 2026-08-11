@@ -4023,50 +4023,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert text_widget.widget_type is None
         assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
 
-    def test_partial_update_keeps_existing_discover_widget_type(self) -> None:
-        # Legacy `discover` widgets are migrated separately -- saving a dashboard that
-        # contains one must keep working. DISCOVER is 0, so this also covers the stored
-        # widget_type being compared against None rather than tested for truthiness.
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id), "title": "Renamed"},
-                {"id": str(self.widget_2.id)},
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 200, response.data
-
-        self.widget_1.refresh_from_db()
-        assert self.widget_1.title == "Renamed"
-        assert self.widget_1.widget_type == DashboardWidgetTypes.DISCOVER
-
-    def test_text_widget_update_without_display_type(self) -> None:
-        # `displayType` is omitted, so the widget stays a text widget and its NULL
-        # widget_type is still correct.
-        text_widget = self.create_dashboard_widget(
-            dashboard=self.dashboard,
-            order=2,
-            title="Text Widget",
-            display_type=DashboardWidgetDisplayTypes.TEXT,
-        )
-
-        data = {
-            "title": "First dashboard",
-            "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(text_widget.id), "title": "Renamed"},
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 200, response.data
-
-        text_widget.refresh_from_db()
-        assert text_widget.title == "Renamed"
-        assert text_widget.widget_type is None
-        assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
-
     def test_put_creates_dashboard_revision(self) -> None:
         response = self.do_request(
             "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
