@@ -1,66 +1,34 @@
-import styled from '@emotion/styled';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 
-interface Props extends React.ComponentProps<typeof Panel> {
-  children: React.ReactNode;
-  image?: React.ReactNode;
-  noCenter?: boolean;
-}
+type Props = Omit<React.ComponentProps<typeof Panel>, 'children' | 'title'> &
+  Pick<
+    React.ComponentProps<typeof EmptyState>,
+    'title' | 'action' | 'description' | 'illustration'
+  >;
 
-export function OnboardingPanel({image, noCenter, children, ...props}: Props) {
+export function OnboardingPanel({
+  title,
+  description,
+  action,
+  illustration,
+  ...panelProps
+}: Props) {
   return (
-    <Panel {...props}>
-      <Container>
-        {image ? <IlloBox>{image}</IlloBox> : null}
-        <StyledBox centered={!image && !noCenter}>{children}</StyledBox>
-      </Container>
-    </Panel>
+    <Container width="100%" flexGrow={1} minWidth={0}>
+      <Panel {...panelProps}>
+        <EmptyState
+          padding="3xl"
+          align="center"
+          justify="center"
+          title={title}
+          description={description}
+          action={action}
+          illustration={illustration}
+        />
+      </Panel>
+    </Container>
   );
 }
-
-const Container = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  position: relative;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    justify-content: center;
-    flex-wrap: wrap;
-    min-height: 300px;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    min-height: 350px;
-  }
-`;
-
-const StyledBox = styled('div')<{centered?: boolean}>`
-  min-width: 0;
-  z-index: 1;
-
-  ${p => (p.centered ? 'text-align: center;' : '')}
-  ${p => (p.centered ? 'max-width: 600px;' : '')}
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 2;
-  }
-`;
-
-const IlloBox = styled(StyledBox)`
-  position: relative;
-  min-height: 100px;
-  max-width: 300px;
-  min-width: 150px;
-  margin: ${p => p.theme.space.xl} auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-    margin: ${p => p.theme.space['2xl']};
-    max-width: auto;
-  }
-`;

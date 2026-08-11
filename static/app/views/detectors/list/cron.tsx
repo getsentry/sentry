@@ -5,8 +5,9 @@ import {PlatformIcon} from 'platformicons';
 import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -154,55 +155,60 @@ function CronEmptyState() {
   };
 
   return (
-    <OnboardingPanel image={<img src={onboardingImg} />}>
-      <Stack gap="2xl">
-        <Stack gap="md">
-          <Heading as="h2">{t('Monitor Your Cron Jobs')}</Heading>
-          <Text as="p">
-            {t(
-              "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-            )}
-          </Text>
+    <OnboardingPanel
+      illustration={
+        <Image
+          width={{zero: '100%', xs: '150px', lg: '250px', '2xl': 'auto'}}
+          src={onboardingImg}
+          alt="Purple bird emerging from an orange birdhouse with gears and a warning sign"
+        />
+      }
+      title={t('Monitor Your Cron Jobs')}
+      description={t(
+        "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+      )}
+      action={
+        <Stack gap="xl" width="100%">
+          <Flex gap="xl" wrap="wrap">
+            {platformGuides
+              .filter(({platform}) => !['cli', 'http'].includes(platform))
+              .map(({platform, label}) => (
+                <Stack key={platform} gap="xs" align="center">
+                  <PlatformLinkButton
+                    variant="secondary"
+                    to={makeCreateUrl(platform)}
+                    aria-label={t('Create %s Monitor', platform)}
+                  >
+                    <PlatformIcon platform={platform} format="lg" size="100%" />
+                  </PlatformLinkButton>
+                  <Text variant="muted">{label}</Text>
+                </Stack>
+              ))}
+          </Flex>
+          <Flex gap="md" wrap="wrap">
+            <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
+              Sentry CLI
+            </LinkButton>
+            <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
+              HTTP (cURL)
+            </LinkButton>
+            <LinkButton
+              size="sm"
+              to={{
+                pathname: baseUrl,
+                query: {
+                  detectorType: 'monitor_check_in_failure',
+                  project: defaultProject?.id ?? '',
+                  skipGuideDetection: true,
+                },
+              }}
+            >
+              {t('Manual Setup')}
+            </LinkButton>
+          </Flex>
         </Stack>
-        <Flex gap="xl" wrap="wrap">
-          {platformGuides
-            .filter(({platform}) => !['cli', 'http'].includes(platform))
-            .map(({platform, label}) => (
-              <Stack key={platform} gap="xs" align="center">
-                <PlatformLinkButton
-                  variant="secondary"
-                  to={makeCreateUrl(platform)}
-                  aria-label={t('Create %s Monitor', platform)}
-                >
-                  <PlatformIcon platform={platform} format="lg" size="100%" />
-                </PlatformLinkButton>
-                <Text variant="muted">{label}</Text>
-              </Stack>
-            ))}
-        </Flex>
-        <Flex gap="md">
-          <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
-            Sentry CLI
-          </LinkButton>
-          <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
-            HTTP (cURL)
-          </LinkButton>
-          <LinkButton
-            size="sm"
-            to={{
-              pathname: baseUrl,
-              query: {
-                detectorType: 'monitor_check_in_failure',
-                project: defaultProject?.id ?? '',
-                skipGuideDetection: true,
-              },
-            }}
-          >
-            {t('Manual Setup')}
-          </LinkButton>
-        </Flex>
-      </Stack>
-    </OnboardingPanel>
+      }
+    />
   );
 }
 

@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Image} from '@sentry/scraps/image';
 
 import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import * as Storybook from 'sentry/stories';
@@ -16,75 +15,53 @@ export default Storybook.story('OnboardingPanel', story => {
         <p>
           The <Storybook.JSXNode name="OnboardingPanel" /> component is used for creating
           an empty state layout or onboarding display. It can be used to show an empty
-          state image side-by-side with onboarding content.
+          state illustration side-by-side with onboarding content.
         </p>
         <p>
-          An example <Storybook.JSXNode name="OnboardingPanel" /> with an image looks like
-          this:
+          An example <Storybook.JSXNode name="OnboardingPanel" /> with an illustration
+          looks like this:
         </p>
 
-        <OnboardingPanel image={<img src={emptyStateImg} />}>
-          <h3>What do users think?</h3>
-          <p>
-            You can't read minds. At least we hope not. Ask users for feedback on the
-            impact of their crashes or bugs and you shall receive.
-          </p>
-          <ButtonList>
-            <Button variant="primary">Read the Docs</Button>
-            <Button>See an Example</Button>
-          </ButtonList>
-        </OnboardingPanel>
+        <Storybook.Demo resizable>
+          <OnboardingPanel
+            illustration={<Image src={emptyStateImg} width="150px" alt="" />}
+            title="What do users think?"
+            description="You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
+            action={
+              <Fragment>
+                <Button variant="primary">Read the Docs</Button>
+                <Button>See an Example</Button>
+              </Fragment>
+            }
+          />
+        </Storybook.Demo>
 
         <p>
-          The onboarding content on the right here is specified through the children of
-          the component.
+          The onboarding content is specified through the title, description, and action
+          props of the component.
         </p>
-        <p>The panel also automatically resizes correctly for narrow screens:</p>
-        <Storybook.SizingWindow>
-          <OnboardingPanel image={<img src={emptyStateImg} />}>
-            <h3>What do users think?</h3>
-            <p>
-              You can't read minds. At least we hope not. Ask users for feedback on the
-              impact of their crashes or bugs and you shall receive.
-            </p>
-          </OnboardingPanel>
-        </Storybook.SizingWindow>
       </Fragment>
     );
   });
 
-  story('Without an image', () => {
+  story('Without an illustration', () => {
     return (
       <Fragment>
         <p>
-          You're not required to specify an <Storybook.JSXProperty name="image" value />{' '}
-          with this component, in which case your{' '}
-          <Storybook.JSXNode name="OnboardingPanel" /> might look something like this.
+          You're not required to specify an{' '}
+          <Storybook.JSXProperty name="illustration" value /> with this component.
         </p>
-        <p>
-          Here, we've specified the optional property
-          <Storybook.JSXProperty name="noCenter" value="true" />, which makes the content
-          left-aligned. Note that the <Storybook.JSXProperty name="noCenter" value /> prop
-          is only valid if there isn't an image specified!
-        </p>
-        <OnboardingPanel noCenter>
-          <h3>What do users think?</h3>
-          <p>
-            You can't read minds. At least we hope not. Ask users for feedback on the
-            impact of their crashes or bugs and you shall receive.
-          </p>
-          <ButtonList>
-            <Button variant="primary">Read the Docs</Button>
-            <Button>See an Example</Button>
-          </ButtonList>
-        </OnboardingPanel>
+        <OnboardingPanel
+          title="What do users think?"
+          description="You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
+          action={
+            <Fragment>
+              <Button variant="primary">Read the Docs</Button>
+              <Button>See an Example</Button>
+            </Fragment>
+          }
+        />
       </Fragment>
     );
   });
 });
-
-const ButtonList = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
-`;
