@@ -1655,7 +1655,9 @@ def test_ci_head_results_never_carry_the_pusher_identity() -> None:
     assert "alice" not in json.dumps(results)
     assert "dependabot[bot]" not in json.dumps(results)
     # ...but the document still holds it, since that is what classifies the head.
-    assert doc["open_head"]["sender_login"] == "alice"
+    open_head = doc["open_head"]
+    assert open_head is not None
+    assert open_head["sender_login"] == "alice"
 
 
 def test_classify_ci_head_actor_copilot_is_bot_despite_user_sender_type() -> None:

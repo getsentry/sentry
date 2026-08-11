@@ -372,8 +372,8 @@ def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
 
     for entry in doc.get("events", []):
         if entry.get("event_type") == PullRequestActivityType.OPENED:
-            head_sha = (entry.get("payload") or {}).get("head_sha")
-            return head_sha or None
+            payload_head_sha = (entry.get("payload") or {}).get("head_sha")
+            return payload_head_sha or None
 
     return None
 
