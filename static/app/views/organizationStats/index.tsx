@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -304,15 +303,13 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       <Grid columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}>
         <PageFilterBar>
           <ProjectPageFilter />
-          <DropdownDataCategory
+          <CompactSelect
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
             )}
             value={this.dataCategory}
             options={options}
-            onChange={opt =>
-              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
-            }
+            onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
           />
           <DatePageFilter />
         </PageFilterBar>
@@ -414,21 +411,3 @@ export default function OrganizationStats() {
     />
   );
 }
-
-const DropdownDataCategory = styled(CompactSelect)`
-  width: auto;
-  position: relative;
-  grid-column: auto / span 1;
-
-  button[aria-haspopup='listbox'] {
-    width: 100%;
-    height: 100%;
-  }
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    grid-column: auto / span 2;
-  }
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-column: auto / span 1;
-  }
-`;
