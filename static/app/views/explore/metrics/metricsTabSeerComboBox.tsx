@@ -75,6 +75,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
+  const hasCodeMode = organization.features.includes('seer-assisted-query-codemode');
 
   const metricsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
@@ -89,6 +90,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           project_ids: selectedProjectIdsForMutation,
           strategy: 'Metrics',
           user_email: user?.email,
+          code_mode: hasCodeMode,
           options: {
             metric_context: {
               metric_name: traceMetric.name,

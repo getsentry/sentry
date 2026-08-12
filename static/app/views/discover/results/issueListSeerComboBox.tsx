@@ -46,6 +46,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
+  const hasCodeMode = organization.features.includes('seer-assisted-query-codemode');
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
@@ -70,6 +71,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
           project_ids: selectedProjectIdsForMutation,
           strategy: 'Errors',
           user_email: user?.email,
+          code_mode: hasCodeMode,
         },
       });
 

@@ -57,6 +57,7 @@ export function SpansTabSeerComboBox() {
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
+  const hasCodeMode = organization.features.includes('seer-assisted-query-codemode');
 
   const useTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
@@ -71,6 +72,7 @@ export function SpansTabSeerComboBox() {
           data: {
             natural_language_query: queryToSubmit,
             project_ids: selectedProjectIdsForMutation,
+            code_mode: hasCodeMode,
           },
         });
 

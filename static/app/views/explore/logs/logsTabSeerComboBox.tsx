@@ -156,6 +156,7 @@ export function LogsTabSeerComboBox() {
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
+  const hasCodeMode = organization.features.includes('seer-assisted-query-codemode');
 
   const logsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
@@ -170,6 +171,7 @@ export function LogsTabSeerComboBox() {
           project_ids: selectedProjectIdsForMutation,
           strategy: 'Logs',
           user_email: user?.email,
+          code_mode: hasCodeMode,
         },
       });
 

@@ -40,6 +40,7 @@ export function IssueListSeerComboBox({className}: {className?: string}) {
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
   const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
+  const hasCodeMode = organization.features.includes('seer-assisted-query-codemode');
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
@@ -60,6 +61,7 @@ export function IssueListSeerComboBox({className}: {className?: string}) {
           natural_language_query: queryToSubmit,
           project_ids: selectedProjectIdsForMutation,
           strategy: 'Issues',
+          code_mode: hasCodeMode,
         },
       });
 
