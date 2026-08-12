@@ -536,10 +536,8 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        assert result.workflows
-        assert all_projects_workflow in result.workflows
-        assert result.triggered_workflows
-        assert all_projects_workflow in result.triggered_workflows
+        assert all_projects_workflow.id in result.evaluations
+        assert all_projects_workflow.id in _triggered_workflow_ids(result)
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
