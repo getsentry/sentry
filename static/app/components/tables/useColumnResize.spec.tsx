@@ -154,6 +154,7 @@ describe('useColumnResize', () => {
 
     act(triggerResizeObservers);
 
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(resizer()).toHaveAttribute('aria-valuenow', '150');
   });

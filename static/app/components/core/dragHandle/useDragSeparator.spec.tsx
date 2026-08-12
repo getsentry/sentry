@@ -39,6 +39,7 @@ describe('useDragSeparator', () => {
   it('announces the size against its bounds', () => {
     render(<TestSeparator max={200} min={50} value={120} />);
 
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(separator()).toHaveAttribute('aria-valuenow', '120');
     expect(separator()).toHaveAttribute('aria-valuemin', '50');
