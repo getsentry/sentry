@@ -734,7 +734,6 @@ function buildRoutes(): RouteObject[] {
   const projectSettingsRoutes: SentryRouteObject = {
     path: 'projects/:projectId/',
     name: t('Project'),
-    handle: {settingsBreadcrumbMenu: 'project'},
     component: make(() => import('sentry/views/settings/project/projectSettingsLayout')),
     children: projectSettingsChildren,
   };
@@ -890,7 +889,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':teamId/',
           name: t('Team'),
-          handle: {settingsBreadcrumbMenu: 'team'},
           component: make(
             () => import('sentry/views/settings/organizationTeams/teamDetails')
           ),
@@ -993,7 +991,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':integrationSlug',
           name: t('Integration Details'),
-          handle: {settingsBreadcrumbMenu: 'integration'},
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/integrationDetailedView')
@@ -1002,7 +999,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':providerKey/:integrationId/',
           name: t('Configure Integration'),
-          handle: {settingsBreadcrumbMenu: 'integration'},
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/configureIntegration')

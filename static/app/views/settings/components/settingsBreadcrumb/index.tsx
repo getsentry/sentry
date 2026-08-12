@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -16,13 +17,11 @@ import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
-const MENUS: Record<
-  NonNullable<RouteWithName['settingsBreadcrumbMenu']>,
-  React.FC<SettingsBreadcrumbProps>
-> = {
-  integration: IntegrationCrumb,
-  project: ProjectCrumb,
-  team: TeamCrumb,
+const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
+  [t('Configure Integration')]: IntegrationCrumb,
+  [t('Integration Details')]: IntegrationCrumb,
+  Project: ProjectCrumb,
+  Team: TeamCrumb,
 } as const;
 
 type Props = {
@@ -48,12 +47,9 @@ export function SettingsBreadcrumb({params}: Props) {
         const pathTitle =
           pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
-        const Menu = route.settingsBreadcrumbMenu
-          ? MENUS[route.settingsBreadcrumbMenu]
-          : undefined;
-        const hasMenu = !!Menu;
+        const Menu = MENUS[route.name];
 
-        if (hasMenu) {
+        if (Menu) {
           return (
             <Menu
               key={`${route.name}:${route.path}`}

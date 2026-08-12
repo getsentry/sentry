@@ -70,6 +70,23 @@ function organizationIntegrationApiOptions({
   );
 }
 
+function organizationIntegrationsApiOptions({
+  organizationSlug,
+  providerKey,
+}: {
+  organizationSlug: string;
+  providerKey: string;
+}) {
+  return apiOptions.as<Integration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      query: {provider_key: providerKey, includeConfig: 0},
+      staleTime: 0,
+    }
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -130,13 +147,28 @@ function ConfigureIntegration() {
     data: integration,
     isPending: isLoadingIntegration,
     isError: isErrorIntegration,
+    isPlaceholderData,
     refetch: refetchIntegration,
-  } = useQuery(
-    organizationIntegrationApiOptions({
+  } = useQuery({
+    ...organizationIntegrationApiOptions({
       organizationSlug: organization.slug,
       integrationId,
-    })
-  );
+    }),
+    placeholderData: () => {
+      const listData = queryClient.getQueryData(
+        organizationIntegrationsApiOptions({
+          organizationSlug: organization.slug,
+          providerKey,
+        }).queryKey
+      );
+      const cachedIntegration = listData?.json.find(item => item.id === integrationId);
+
+      // The summary only supplies the breadcrumb while the full configuration loads.
+      return cachedIntegration
+        ? {json: cachedIntegration as OrganizationIntegration, headers: {}}
+        : undefined;
+    },
+  });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
@@ -174,8 +206,13 @@ function ConfigureIntegration() {
     }
   }, [navigate, organization, providerKey]);
 
-  if (isLoadingConfig || isLoadingIntegration) {
-    return <LoadingIndicator />;
+  if (isLoadingConfig || isLoadingIntegration || isPlaceholderData) {
+    return (
+      <Fragment>
+        {integration && <IntegrationNavigationHeader integration={integration} />}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (isErrorConfig || isErrorIntegration) {
