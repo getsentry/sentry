@@ -16,7 +16,6 @@ from urllib.parse import urlencode
 from uuid import UUID, uuid4
 from zlib import compress
 
-import httpx
 import pytest
 import requests
 import responses
@@ -36,6 +35,7 @@ from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 from google.protobuf.timestamp_pb2 import Timestamp
+from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -677,44 +677,37 @@ class APITestCaseMixin:
     def api_gateway_proxy_stubbed(self):
         """Mocks a fake api gateway proxy that redirects via Client objects"""
 
-        from asgiref.sync import sync_to_async
-        from django.test.client import Client
+        def proxy_raw_request(
+            method: str,
+            url: str,
+            headers: Mapping[str, str],
+            data: Any,
+            **kwds: Any,
+        ) -> requests.Response:
+            from django.test.client import Client
 
-        class MockedProxy:
-            def __init__(self):
-                self.client = Client()
+            client = Client()
+            extra: Mapping[str, Any] = {
+                f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+            }
+            with assume_test_silo_mode(SiloMode.CELL):
+                resp = getattr(client, method.lower())(
+                    url, b"".join(data), headers["Content-Type"], **extra
+                )
+            # The proxy streams this response via `iter_content()`, which reads
+            # from `.raw`. A Django test client response has no such stream, so
+            # `.raw` must be a real byte stream or streaming breaks here while
+            # still working against a live socket in production.
+            response = requests.Response()
+            response.status_code = resp.status_code
+            response.headers = CaseInsensitiveDict(resp.headers)
+            response.encoding = get_encoding_from_headers(response.headers)
+            response.raw = BytesIO(resp.content)
+            return response
 
-            @staticmethod
-            async def _consume_body(content):
-                ret = b""
-                async for chunk in content:
-                    ret += chunk
-                return ret
-
-            def build_request(self, method, url, *, headers, content, timeout, **kwargs):
-                target = getattr(self.client, method.lower())
-                content_type = headers.pop("Content-Type", "application/octet-stream")
-                extra: Mapping[str, Any] = {
-                    f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
-                }
-                return target, (url, content, content_type), extra
-
-            async def send(self, req, stream, follow_redirects):
-                with assume_test_silo_mode(SiloMode.CELL):
-                    url, content, content_type = req[1]
-                    content = await self._consume_body(content)
-                    resp = await sync_to_async(req[0])(url, content, content_type, **req[2])
-                    wresp = httpx.Response(
-                        status_code=resp.status_code,
-                        headers=dict(resp.headers),
-                        content=resp.content,
-                    )
-                    return wresp
-
-        mock_client = MockedProxy()
         with mock.patch(
-            "sentry.hybridcloud.apigateway_async.proxy.proxy_client",
-            new=mock_client,
+            "sentry.hybridcloud.apigateway.proxy.external_request",
+            new=proxy_raw_request,
         ):
             yield
 
@@ -1159,8 +1152,7 @@ class SnubaTestCase(BaseTestCase):
             files[f"item_{i}"] = trace_item.SerializeToString()
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                files=files,
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
             ).status_code
             == 200
         )
@@ -1232,8 +1224,7 @@ class SnubaTestCase(BaseTestCase):
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
         )
         assert response.status_code == 200
         # Reverse the ids since these are stored in little endian in
@@ -1247,6 +1238,7 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
                 data=json.dumps(issues),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -1314,6 +1306,7 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/events/insert",
                 data=json.dumps(events),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -1669,6 +1662,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
                 data=json.dumps(buckets),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -2154,7 +2148,10 @@ class BaseIncidentsTest(SnubaTestCase):
 class OutcomesSnubaTest(TestCase):
     def setUp(self):
         super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_outcomes(self, outcome, num_times=1):
         outcomes = []
@@ -2167,6 +2164,7 @@ class OutcomesSnubaTest(TestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
                 data=json.dumps(outcomes),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -2227,6 +2225,7 @@ class ProfilesSnubaTestCase(
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
             json=[functions_payload],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2287,6 +2286,7 @@ class ProfilesSnubaTestCase(
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
             json=[functions_payload],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2318,8 +2318,7 @@ class ProfilesSnubaTestCase(
             files[f"item_{i}"] = trace_item.SerializeToString()
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                files=files,
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
             ).status_code
             == 200
         )
@@ -2330,11 +2329,14 @@ class ProfilesSnubaTestCase(
 class ReplaysSnubaTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_replays(self, replay):
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay], timeout=30
         )
         assert response.status_code == 200
 
@@ -2360,6 +2362,7 @@ class UptimeCheckSnubaTestCase(TestCase):
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
             json=[uptime_check],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2435,14 +2438,17 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.addCleanup(patcher.stop)
 
     def drop_replays(self):
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_replays(self, replays):
         assert len(replays) >= 2, (
             "You need to store at least 2 replay events for the replay to be considered valid"
         )
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays, timeout=30
         )
         assert response.status_code == 200
 

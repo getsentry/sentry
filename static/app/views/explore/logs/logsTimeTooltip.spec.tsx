@@ -91,8 +91,51 @@ describe('TimestampTooltipBody', () => {
       </TimezoneProvider>
     );
 
-    expect(screen.getByText('Occurred')).toBeInTheDocument();
+    expect(screen.queryByText('Received')).not.toBeInTheDocument();
     expect(screen.queryAllByRole('time')).toHaveLength(2);
+  });
+
+  it('renders received time when the observed timestamp uses its internal name', () => {
+    const user = UserFixture();
+    user.options.timezone = 'America/New_York';
+    ConfigStore.set('user', user);
+
+    const attributes = {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
+      [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS]: '1705333540456789012',
+    };
+
+    render(
+      <TimezoneProvider timezone="America/New_York">
+        <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
+      </TimezoneProvider>
+    );
+
+    expect(screen.getByText('Received')).toBeInTheDocument();
+    expect(screen.queryAllByRole('time')).toHaveLength(3);
+  });
+
+  it('renders a loading received time when the trace item details are still pending', () => {
+    const user = UserFixture();
+    user.options.timezone = 'America/New_York';
+    ConfigStore.set('user', user);
+
+    const attributes = {
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
+    };
+
+    render(
+      <TimezoneProvider timezone="America/New_York">
+        <TimestampTooltipBody
+          timestamp={timestamp}
+          attributes={attributes}
+          isTraceItemDetailsPending
+        />
+      </TimezoneProvider>
+    );
+
+    expect(screen.getByText('Received')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('renders in 24h format when user preference is set', () => {

@@ -2,7 +2,7 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {CheckStatusBucket} from 'sentry/views/alerts/rules/uptime/types';
+import type {CheckStatusBucket} from 'sentry/views/detectors/components/uptime/types';
 
 interface Options {
   /**

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

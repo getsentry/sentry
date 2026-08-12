@@ -49,8 +49,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       p.isClickable &&
       css`
         &:active {
-          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
-            .active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.neutral.background.active
+          };
         }
       `}
 
@@ -97,8 +98,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
         background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
         &:hover {
-          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-            .background.active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.accent.selected.background.active
+          };
         }
       }
     `}

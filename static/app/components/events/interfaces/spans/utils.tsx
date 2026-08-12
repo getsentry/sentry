@@ -493,7 +493,7 @@ export function parseTrace(
       span = {
         type: 'orphan',
         ...span,
-      } as OrphanSpanType;
+      };
     }
 
     assert(span.parent_span_id);

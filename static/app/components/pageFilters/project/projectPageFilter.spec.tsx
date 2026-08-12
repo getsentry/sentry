@@ -590,6 +590,7 @@ describe('ProjectPageFilter', () => {
       memberCount: 52,
       nonMemberCount: 1,
       urlProjects: [] as number[],
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       urlQuery: {} as Record<string, string>,
       triggerName: 'My Projects',
     },

@@ -1,6 +1,7 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
+import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -51,18 +52,15 @@ export function getTraceDetailsUrl({
   spanId,
   eventId,
   targetId,
-  demo,
   location,
   source,
   view,
   tab,
 }: {
-  // @TODO add a type for dateSelection
-  dateSelection: any;
+  dateSelection: ReturnType<typeof normalizeDateTimeParams>;
   location: Location;
   organization: Organization;
   traceSlug: string;
-  demo?: string;
   eventId?: string;
   source?: TraceViewSources;
   spanId?: string;
@@ -98,7 +96,6 @@ export function getTraceDetailsUrl({
       timestamp: getTimeStampFromTableDateField(timestamp),
       eventId,
       targetId,
-      demo,
       source,
       tab,
     },

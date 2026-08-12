@@ -10,16 +10,16 @@ from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
-from sentry.dynamic_sampling.per_org.queries import (
-    get_outcomes_organization_sampled_volume,
-    get_outcomes_organization_volume,
-)
+from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import compute_sliding_window_sample_rate
+from sentry.dynamic_sampling.tasks.common import (
+    OrganizationDataVolume,
+    compute_sliding_window_sample_rate,
+)
 from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
@@ -110,26 +110,23 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
-    def recalibrate(self) -> RecalibrationFactor:
+    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> RecalibrationFactor:
         """Compute this organization's recalibration factor and store it in the shared cache.
+
+        The caller supplies the volume, because how it is measured is a query concern; see
+        ``get_recalibration_organization_volume``.
 
         Returns the new factor and leaves it on ``organization_recalibration_factor``, or
         None when there is not enough volume to compute one. A factor outside the rebalance
         bounds clears the cached factor instead, so that a stale one cannot keep being
         applied.
 
-        Callers drive this explicitly, because it both queries outcomes and writes the
-        cache. Building a configuration stays free of those side effects.
+        Callers drive this explicitly, because it writes the cache. Building a configuration
+        stays free of that side effect.
         """
         self.organization_recalibration_factor = None
 
         if not self.projects or self.get_sample_rate() is None:
-            return None
-
-        org_volume = get_outcomes_organization_sampled_volume(
-            self.organization.id, time_interval=timedelta(minutes=5)
-        )
-        if org_volume is None or not org_volume.is_valid_for_recalibration():
             return None
 
         adjusted_factor = calculate_recalibration_factor(

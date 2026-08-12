@@ -465,7 +465,7 @@ describe('ParentAutogroupNode', () => {
       );
 
       const tree = createMockTraceTree();
-      tree.list = [node as any];
+      tree.list = [node];
 
       node.expanded = false; // Start collapsed
       const result = node.expand(true, tree);
@@ -502,7 +502,7 @@ describe('ParentAutogroupNode', () => {
       );
 
       const tree = createMockTraceTree();
-      tree.list = [node as any];
+      tree.list = [node];
 
       node.expanded = true; // Start expanded
       const result = node.expand(false, tree);

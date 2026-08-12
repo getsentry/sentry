@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -44,7 +45,6 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
-import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -63,15 +63,19 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${groupId}/`
+  );
 
   useMarkPreviewedGroupSeen(group);
 
   return (
     <Fragment>
       <Container padding="xs 2xl" borderBottom="muted">
-        <Flex align="center" flex="1" gap="md">
+        <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
             <IssueIdBreadcrumb group={group} project={project} />
           ) : isPending ? (
@@ -80,6 +84,21 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
+          {group && (
+            <LinkButton
+              to={issueDetailsUrl}
+              size="xs"
+              analyticsEventKey="issue_inbox.open_issue_clicked"
+              analyticsEventName="Issue Inbox: Open Issue Clicked"
+              analyticsParams={{
+                group_id: group.id,
+                progress: group.derivedData?.progress,
+                source: 'button',
+              }}
+            >
+              {t('Open Issue')}
+            </LinkButton>
+          )}
         </Flex>
       </Container>
       <Container
@@ -136,18 +155,26 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Heading as="h3" size="lg" ellipsis>
-                    {primaryTitle}
-                  </Heading>
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
                 </Tooltip>
-                <LinkButton
-                  to={issueDetailsUrl}
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconOpen size="xs" variant="muted" />}
-                  aria-label={t('Open Issue')}
-                  tooltipProps={{title: t('Open Issue')}}
-                />
               </Flex>
               <IssueSeenTimes group={group} />
             </Flex>
@@ -162,9 +189,6 @@ function IssuePreviewContent() {
               <GroupStatusSubtitle group={group} project={project} />
             </Flex>
             <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
-              {group.derivedData?.progress && (
-                <IssueProgressTag state={group.derivedData.progress} />
-              )}
               <EventUserCounts group={group} project={project} />
             </Flex>
           </Flex>
@@ -213,7 +237,11 @@ function IssuePreviewContent() {
         <Dividers>
           <LinkedPullRequests group={group} showEmptyState={false} />
           {hasAutofix ? (
-            <IssuePreviewAutofixSummary key={group.id} runState={autofix.runState} />
+            <IssuePreviewAutofixSummary
+              key={group.id}
+              autofix={autofix}
+              groupId={group.id}
+            />
           ) : null}
           <Container>
             <ErrorBoundary mini>
@@ -248,5 +276,18 @@ const Dividers = styled('div')`
   & > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space.md};
+  }
+`;
+
+const TitleLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;

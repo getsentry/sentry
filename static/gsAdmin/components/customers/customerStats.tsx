@@ -434,335 +434,338 @@ type Props = {
   projectId?: Project['id'];
 };
 
-export const CustomerStats = memo(
-  ({orgSlug, projectId, dataType, onDemandPeriodStart, onDemandPeriodEnd}: Props) => {
-    const location = useLocation();
+export const CustomerStats = memo(function CustomerStatsComponent({
+  orgSlug,
+  projectId,
+  dataType,
+  onDemandPeriodStart,
+  onDemandPeriodEnd,
+}: Props) {
+  const location = useLocation();
 
-    const dataDatetime = useMemo((): DateTimeObject => {
-      const {
-        start,
-        end,
-        utc: utcString,
-        statsPeriod,
-      } = normalizeDateTimeParams(location.query, {
-        allowEmptyPeriod: true,
-        allowAbsoluteDatetime: true,
-        allowAbsolutePageDatetime: true,
-      });
-
-      const utc = utcString === 'true';
-
-      if (!start && !end && !statsPeriod && onDemandPeriodStart && onDemandPeriodEnd) {
-        return {
-          start: onDemandPeriodStart,
-          end: onDemandPeriodEnd,
-        };
-      }
-
-      if (start && end) {
-        return utc
-          ? {
-              start: moment.utc(start).format(),
-              end: moment.utc(end).format(),
-              utc,
-            }
-          : {
-              start: moment(start).utc().format(),
-              end: moment(end).utc().format(),
-              utc,
-            };
-      }
-
-      return {
-        period: statsPeriod ?? '90d',
-      };
-    }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
-
-    const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-      path: {organizationIdOrSlug: orgSlug},
+  const dataDatetime = useMemo((): DateTimeObject => {
+    const {
+      start,
+      end,
+      utc: utcString,
+      statsPeriod,
+    } = normalizeDateTimeParams(location.query, {
+      allowEmptyPeriod: true,
+      allowAbsoluteDatetime: true,
+      allowAbsolutePageDatetime: true,
     });
 
-    const {
-      isPending: loading,
-      error,
-      data: stats,
-      refetch,
-    } = useApiQuery<Stats>(
-      [
-        statsEndpointUrl,
-        {
-          query: {
-            start: dataDatetime.start,
-            end: dataDatetime.end,
-            utc: dataDatetime.utc,
-            statsPeriod: dataDatetime.period,
-            interval: getInterval(dataDatetime),
-            groupBy: ['outcome', 'reason'],
-            field: 'sum(quantity)',
-            category: dataType,
-            ...(projectId ? {project: projectId} : {}),
-          },
-        },
-      ],
-      {
-        staleTime: Infinity,
-        retry: false,
-      }
-    );
+    const utc = utcString === 'true';
 
-    const {data: abuseStats} = useApiQuery<Stats>(
-      [
-        statsEndpointUrl,
-        {
-          query: {
-            start: dataDatetime.start,
-            end: dataDatetime.end,
-            utc: dataDatetime.utc,
-            statsPeriod: dataDatetime.period,
-            interval: getInterval(dataDatetime),
-            groupBy: ['outcome', 'reason', 'category'],
-            field: 'sum(quantity)',
-            outcome: ['abuse'],
-            ...(projectId ? {project: projectId} : {}),
-          },
-        },
-      ],
-      {
-        staleTime: Infinity,
-        retry: false,
-      }
-    );
+    if (!start && !end && !statsPeriod && onDemandPeriodStart && onDemandPeriodEnd) {
+      return {
+        start: onDemandPeriodStart,
+        end: onDemandPeriodEnd,
+      };
+    }
 
-    const theme = useTheme();
-    const series = useSeries();
-    const abuseTooltipRef = useRef<HTMLDivElement>(null);
-
-    const abuseData = useMemo(
-      () =>
-        abuseStats
-          ? getAbuseData(abuseStats.intervals, abuseStats.groups)
-          : {
-              regions: [] as Array<{end: number; start: number}>,
-              valueByTimestamp: new Map<number, number>(),
-              intervals: [] as number[],
-              intervalMs: 0,
-            },
-      [abuseStats]
-    );
-
-    const abuseMarkArea = useAbuseMarkAreaSeries(abuseData.regions, abuseData.intervalMs);
-
-    const abuseDataRef = useRef(abuseData);
-    abuseDataRef.current = abuseData;
-
-    const activeAbuseRegionRef = useRef<number | null>(null);
-    const chartInstanceRef = useRef<ECharts | null>(null);
-
-    const updateAbuseRegionOpacity = useCallback(
-      (instance: ECharts, regionIndex: number | null) => {
-        const {regions} = abuseDataRef.current;
-        if (regions.length === 0) {
-          return;
-        }
-        // Get the total series count from the current chart option so we can
-        // pad the update array to the full length, preventing ECharts from
-        // accidentally merging markArea config into bar series
-        const seriesOption = instance.getOption?.()?.series;
-        const totalSeries = Array.isArray(seriesOption) ? seriesOption.length : 0;
-        if (totalSeries === 0) {
-          return;
-        }
-        const seriesUpdate = Array.from({length: totalSeries}, () => ({}));
-        regions.forEach((_, i) => {
-          seriesUpdate[i] = {
-            markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
-          };
-        });
-        instance.setOption({series: seriesUpdate}, {replaceMerge: []});
-      },
-      []
-    );
-
-    const dismissAbuseTooltip = useCallback(
-      (instance?: ECharts) => {
-        const el = abuseTooltipRef.current;
-        if (el) {
-          el.style.display = 'none';
-        }
-        if (instance && activeAbuseRegionRef.current !== null) {
-          activeAbuseRegionRef.current = null;
-          updateAbuseRegionOpacity(instance, null);
-        }
-      },
-      [updateAbuseRegionOpacity]
-    );
-
-    const handleChartMouseLeave = () => {
-      dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
-    };
-
-    const handleBarHighlight = useCallback(
-      (
-        params: {batch?: Array<{dataIndex: number; seriesIndex: number}>},
-        instance: ECharts
-      ) => {
-        const el = abuseTooltipRef.current;
-        if (!el || !instance) {
-          return;
-        }
-        chartInstanceRef.current = instance;
-
-        // Skip mark area series (first N entries) and find a bar series highlight
-        const {valueByTimestamp, regions} = abuseDataRef.current;
-        const barEntry = params.batch?.find(entry => entry.seriesIndex >= regions.length);
-        const dataIndex = barEntry?.dataIndex;
-        if (dataIndex === undefined) {
-          dismissAbuseTooltip(instance);
-          return;
-        }
-        // Use the main chart's intervals to resolve the timestamp from dataIndex,
-        // then look it up in the abuse data's valueByTimestamp Map. This avoids
-        // index mismatches between the two independent API queries.
-        const chartInterval = stats?.intervals[dataIndex];
-        if (chartInterval === undefined) {
-          dismissAbuseTooltip(instance);
-          return;
-        }
-        const ts = new Date(chartInterval).getTime();
-
-        const value = valueByTimestamp.get(ts);
-        if (!value) {
-          dismissAbuseTooltip(instance);
-          return;
-        }
-
-        const regionIndex = regions.findIndex(r => ts >= r.start && ts <= r.end);
-        if (regionIndex >= 0 && regionIndex !== activeAbuseRegionRef.current) {
-          activeAbuseRegionRef.current = regionIndex;
-          updateAbuseRegionOpacity(instance, regionIndex);
-        }
-
-        const pixelPos = instance.convertToPixel('grid', [ts, 0]);
-        if (pixelPos) {
-          el.style.left = `${pixelPos[0]}px`;
-          const textSpan = el.querySelector('[data-abuse-text]');
-          if (textSpan) {
-            textSpan.textContent = `Abuse: ${value.toLocaleString()}`;
+    if (start && end) {
+      return utc
+        ? {
+            start: moment.utc(start).format(),
+            end: moment.utc(end).format(),
+            utc,
           }
-          el.style.display = 'flex';
-        }
-      },
-      [dismissAbuseTooltip, updateAbuseRegionOpacity, stats]
-    );
-
-    if (loading) {
-      return <LoadingIndicator />;
+        : {
+            start: moment(start).utc().format(),
+            end: moment(end).utc().format(),
+            utc,
+          };
     }
 
-    if (error) {
-      return <LoadingError onRetry={refetch} />;
-    }
+    return {
+      period: statsPeriod ?? '90d',
+    };
+  }, [location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
-    if (!stats) {
-      return null;
-    }
+  const statsEndpointUrl = getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
 
-    const {intervals, groups} = stats;
-
-    const zeroFillStart =
-      Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
-
-    const chartSeries = [
-      // Abuse markArea first so bars render on top and get mouse events
-      ...abuseMarkArea,
-      ...populateChartData(intervals, groups, series),
-      zeroFillDates(
-        zeroFillStart,
-        new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
-        {color: theme.tokens.graphics.accent.moderate}
-      ),
-    ];
-
-    const {legend, subLabels} = chartSeries.reduce<{
-      legend: string[];
-      subLabels: TooltipSubLabel[];
-    }>(
-      (acc, serie) => {
-        if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
-          acc.legend.push(serie.seriesName);
-        }
-
-        if (!serie.subSeries) {
-          return acc;
-        }
-
-        for (const subSerie of serie.subSeries) {
-          acc.subLabels.push({
-            parentLabel: serie.seriesName,
-            label: subSerie.seriesName,
-            data: subSerie.data,
-          });
-        }
-
-        return acc;
-      },
+  const {
+    isPending: loading,
+    error,
+    data: stats,
+    refetch,
+  } = useApiQuery<Stats>(
+    [
+      statsEndpointUrl,
       {
-        legend: [],
-        subLabels: [],
-      }
-    );
+        query: {
+          start: dataDatetime.start,
+          end: dataDatetime.end,
+          utc: dataDatetime.utc,
+          statsPeriod: dataDatetime.period,
+          interval: getInterval(dataDatetime),
+          groupBy: ['outcome', 'reason'],
+          field: 'sum(quantity)',
+          category: dataType,
+          ...(projectId ? {project: projectId} : {}),
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
-    return (
-      <Fragment>
-        {getDynamicText({
-          value: (
-            <ChartZoom
-              period={dataDatetime.period}
-              start={dataDatetime.start}
-              end={dataDatetime.end}
-              utc={dataDatetime.utc}
-            >
-              {zoomRenderProps => (
-                <Fragment>
-                  <Container position="relative" onMouseLeave={handleChartMouseLeave}>
-                    <BarChart
-                      onHighlight={handleBarHighlight}
-                      onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
-                      isGroupedByDate
-                      stacked
-                      animation={false}
-                      series={chartSeries}
-                      colors={Object.values(series)
-                        .map(serie => serie.color)
-                        .filter(defined)}
-                      tooltip={{subLabels}}
-                      legend={Legend({
-                        right: 10,
-                        top: 0,
-                        data: legend,
-                        theme,
-                      })}
-                      grid={{top: 30, bottom: 0, left: 0, right: 0}}
-                      {...zoomRenderProps}
-                    />
-                    <AbuseTooltip ref={abuseTooltipRef}>
-                      <AbuseDot />
-                      <span data-abuse-text />
-                    </AbuseTooltip>
-                  </Container>
-                  <Footer>
-                    <FooterLegend points={stats} />
-                  </Footer>
-                </Fragment>
-              )}
-            </ChartZoom>
-          ),
-          fixed: 'Customer Stats Chart',
-        })}
-      </Fragment>
-    );
+  const {data: abuseStats} = useApiQuery<Stats>(
+    [
+      statsEndpointUrl,
+      {
+        query: {
+          start: dataDatetime.start,
+          end: dataDatetime.end,
+          utc: dataDatetime.utc,
+          statsPeriod: dataDatetime.period,
+          interval: getInterval(dataDatetime),
+          groupBy: ['outcome', 'reason', 'category'],
+          field: 'sum(quantity)',
+          outcome: ['abuse'],
+          ...(projectId ? {project: projectId} : {}),
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
+
+  const theme = useTheme();
+  const series = useSeries();
+  const abuseTooltipRef = useRef<HTMLDivElement>(null);
+
+  const abuseData = useMemo(
+    () =>
+      abuseStats
+        ? getAbuseData(abuseStats.intervals, abuseStats.groups)
+        : {
+            regions: [] as Array<{end: number; start: number}>,
+            valueByTimestamp: new Map<number, number>(),
+            intervals: [] as number[],
+            intervalMs: 0,
+          },
+    [abuseStats]
+  );
+
+  const abuseMarkArea = useAbuseMarkAreaSeries(abuseData.regions, abuseData.intervalMs);
+
+  const abuseDataRef = useRef(abuseData);
+  abuseDataRef.current = abuseData;
+
+  const activeAbuseRegionRef = useRef<number | null>(null);
+  const chartInstanceRef = useRef<ECharts | null>(null);
+
+  const updateAbuseRegionOpacity = useCallback(
+    (instance: ECharts, regionIndex: number | null) => {
+      const {regions} = abuseDataRef.current;
+      if (regions.length === 0) {
+        return;
+      }
+      // Get the total series count from the current chart option so we can
+      // pad the update array to the full length, preventing ECharts from
+      // accidentally merging markArea config into bar series
+      const seriesOption = instance.getOption?.()?.series;
+      const totalSeries = Array.isArray(seriesOption) ? seriesOption.length : 0;
+      if (totalSeries === 0) {
+        return;
+      }
+      const seriesUpdate = Array.from({length: totalSeries}, () => ({}));
+      regions.forEach((_, i) => {
+        seriesUpdate[i] = {
+          markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
+        };
+      });
+      instance.setOption({series: seriesUpdate}, {replaceMerge: []});
+    },
+    []
+  );
+
+  const dismissAbuseTooltip = useCallback(
+    (instance?: ECharts) => {
+      const el = abuseTooltipRef.current;
+      if (el) {
+        el.style.display = 'none';
+      }
+      if (instance && activeAbuseRegionRef.current !== null) {
+        activeAbuseRegionRef.current = null;
+        updateAbuseRegionOpacity(instance, null);
+      }
+    },
+    [updateAbuseRegionOpacity]
+  );
+
+  const handleChartMouseLeave = () => {
+    dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
+  };
+
+  const handleBarHighlight = useCallback(
+    (
+      params: {batch?: Array<{dataIndex: number; seriesIndex: number}>},
+      instance: ECharts
+    ) => {
+      const el = abuseTooltipRef.current;
+      if (!el || !instance) {
+        return;
+      }
+      chartInstanceRef.current = instance;
+
+      // Skip mark area series (first N entries) and find a bar series highlight
+      const {valueByTimestamp, regions} = abuseDataRef.current;
+      const barEntry = params.batch?.find(entry => entry.seriesIndex >= regions.length);
+      const dataIndex = barEntry?.dataIndex;
+      if (dataIndex === undefined) {
+        dismissAbuseTooltip(instance);
+        return;
+      }
+      // Use the main chart's intervals to resolve the timestamp from dataIndex,
+      // then look it up in the abuse data's valueByTimestamp Map. This avoids
+      // index mismatches between the two independent API queries.
+      const chartInterval = stats?.intervals[dataIndex];
+      if (chartInterval === undefined) {
+        dismissAbuseTooltip(instance);
+        return;
+      }
+      const ts = new Date(chartInterval).getTime();
+
+      const value = valueByTimestamp.get(ts);
+      if (!value) {
+        dismissAbuseTooltip(instance);
+        return;
+      }
+
+      const regionIndex = regions.findIndex(r => ts >= r.start && ts <= r.end);
+      if (regionIndex >= 0 && regionIndex !== activeAbuseRegionRef.current) {
+        activeAbuseRegionRef.current = regionIndex;
+        updateAbuseRegionOpacity(instance, regionIndex);
+      }
+
+      const pixelPos = instance.convertToPixel('grid', [ts, 0]);
+      if (pixelPos) {
+        el.style.left = `${pixelPos[0]}px`;
+        const textSpan = el.querySelector('[data-abuse-text]');
+        if (textSpan) {
+          textSpan.textContent = `Abuse: ${value.toLocaleString()}`;
+        }
+        el.style.display = 'flex';
+      }
+    },
+    [dismissAbuseTooltip, updateAbuseRegionOpacity, stats]
+  );
+
+  if (loading) {
+    return <LoadingIndicator />;
   }
-);
+
+  if (error) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!stats) {
+    return null;
+  }
+
+  const {intervals, groups} = stats;
+
+  const zeroFillStart = Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
+
+  const chartSeries = [
+    // Abuse markArea first so bars render on top and get mouse events
+    ...abuseMarkArea,
+    ...populateChartData(intervals, groups, series),
+    zeroFillDates(
+      zeroFillStart,
+      new Date(dataDatetime.end ?? moment().format()).valueOf() / 1000,
+      {color: theme.tokens.graphics.accent.moderate}
+    ),
+  ];
+
+  const {legend, subLabels} = chartSeries.reduce<{
+    legend: string[];
+    subLabels: TooltipSubLabel[];
+  }>(
+    (acc, serie) => {
+      if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
+        acc.legend.push(serie.seriesName);
+      }
+
+      if (!serie.subSeries) {
+        return acc;
+      }
+
+      for (const subSerie of serie.subSeries) {
+        acc.subLabels.push({
+          parentLabel: serie.seriesName,
+          label: subSerie.seriesName,
+          data: subSerie.data,
+        });
+      }
+
+      return acc;
+    },
+    {
+      legend: [],
+      subLabels: [],
+    }
+  );
+
+  return (
+    <Fragment>
+      {getDynamicText({
+        value: (
+          <ChartZoom
+            period={dataDatetime.period}
+            start={dataDatetime.start}
+            end={dataDatetime.end}
+            utc={dataDatetime.utc}
+          >
+            {zoomRenderProps => (
+              <Fragment>
+                <Container position="relative" onMouseLeave={handleChartMouseLeave}>
+                  <BarChart
+                    onHighlight={handleBarHighlight}
+                    onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
+                    isGroupedByDate
+                    stacked
+                    animation={false}
+                    series={chartSeries}
+                    colors={Object.values(series)
+                      .map(serie => serie.color)
+                      .filter(defined)}
+                    tooltip={{subLabels}}
+                    legend={Legend({
+                      right: 10,
+                      top: 0,
+                      data: legend,
+                      theme,
+                    })}
+                    grid={{top: 30, bottom: 0, left: 0, right: 0}}
+                    {...zoomRenderProps}
+                  />
+                  <AbuseTooltip ref={abuseTooltipRef}>
+                    <AbuseDot />
+                    <span data-abuse-text />
+                  </AbuseTooltip>
+                </Container>
+                <Footer>
+                  <FooterLegend points={stats} />
+                </Footer>
+              </Fragment>
+            )}
+          </ChartZoom>
+        ),
+        fixed: 'Customer Stats Chart',
+      })}
+    </Fragment>
+  );
+});
 
 const AbuseDot = styled('span')`
   width: 8px;

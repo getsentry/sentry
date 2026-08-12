@@ -62,6 +62,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const feedbackButton = isXsScreen ? null : (
     <FeedbackButton
+      variant="secondary"
       aria-label={t('Give feedback on the feature flag section')}
       size="xs"
       feedbackOptions={{

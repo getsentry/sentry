@@ -39,7 +39,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FilterOperatorProps {
@@ -130,7 +130,7 @@ export function getOperatorInfo({
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(filterToken);
+  const {operator} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
     return {
@@ -216,12 +216,43 @@ export function getOperatorInfo({
     };
   }
 
+  if (filterToken.filter === FilterType.ARRAY_INCLUDES) {
+    // Array membership uses the default operator; `[*]` on the key conveys
+    // membership and `!` negation reads as "does not include".
+    const includesLabel = 'includes';
+    const doesNotIncludeLabel = 'does not include';
+    const isNegated = operator === TermOperator.NOT_EQUAL;
+
+    return {
+      operator,
+      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      options: [
+        {
+          value: TermOperator.DEFAULT,
+          label: <OpLabel>{includesLabel}</OpLabel>,
+          textValue: includesLabel,
+        },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: <OpLabel>{doesNotIncludeLabel}</OpLabel>,
+                textValue: doesNotIncludeLabel,
+              },
+            ]),
+      ],
+    };
+  }
+
   const keyLabel = filterToken.key.text;
+
+  const validOps = getValidOpsForFilter({filterToken, fieldDefinition});
 
   return {
     operator,
-    label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter({filterToken, fieldDefinition})
+    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {

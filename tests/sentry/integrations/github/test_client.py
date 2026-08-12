@@ -17,7 +17,10 @@ from sentry.integrations.github.blame import create_blame_query, generate_file_p
 from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.github.pull_request_status import PULL_REQUEST_STATUS_FRAGMENT
+from sentry.integrations.github.pull_request_status import (
+    PULL_REQUEST_FILES_FRAGMENT,
+    PULL_REQUEST_STATUS_FRAGMENT,
+)
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
@@ -1104,6 +1107,7 @@ class GitHubApiClientTest(TestCase):
 
         body = orjson.loads(responses.calls[-1].request.body)
         assert PULL_REQUEST_STATUS_FRAGMENT in body["query"]
+        assert PULL_REQUEST_FILES_FRAGMENT not in body["query"]
         assert body["variables"] == {
             "owner0": "Test-Organization",
             "name0": "foo",
@@ -1192,6 +1196,19 @@ class GitHubApiClientTest(TestCase):
         # A different pull request keys separately, so it still reaches GitHub.
         self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="46")
         assert len(responses.calls) == 2
+
+    def test_pull_request_status_cache_separates_file_expansion(self) -> None:
+        status_only = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        with_files = PullRequestStatusRequest(
+            repo=self.repo.name, pull_number="45", include_files=True
+        )
+        previous_cache_data = orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode()
+
+        status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
+        assert status_only_key == self.github_client.get_cache_key(
+            "/graphql/pull-request-status", "", previous_cache_data
+        )
+        assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

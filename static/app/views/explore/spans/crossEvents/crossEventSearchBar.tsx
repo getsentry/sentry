@@ -26,7 +26,11 @@ interface SpansTabCrossEventSearchBarProps {
 }
 
 export const SpansTabCrossEventSearchBar = memo(
-  ({index, query, type}: SpansTabCrossEventSearchBarProps) => {
+  function SpansTabCrossEventSearchBarComponent({
+    index,
+    query,
+    type,
+  }: SpansTabCrossEventSearchBarProps) {
     const mode = useQueryParamsMode();
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();

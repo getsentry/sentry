@@ -166,8 +166,6 @@ interface AutoSaveFormProps<
 export function AutoSaveForm<
   TData,
   TContext,
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {

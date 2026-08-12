@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -24,6 +24,14 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.issues.formatting.formatter import Format
+from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
+from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
+from sentry.issues.formatting.sections import (
+    EVENT_SECTIONS,
+    breadcrumbs_section,
+    format_issue,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -241,7 +249,7 @@ def _validate_events_query_params(
             error_detail = _format_events_query_validation_errors(resp.data)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": organization.id, "error_detail": error_detail},
+                extra={"org_id": organization.id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         return None
@@ -250,7 +258,7 @@ def _validate_events_query_params(
             error_detail = _format_events_query_validation_errors(e.body)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": organization.id, "error_detail": error_detail},
+                extra={"org_id": organization.id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         logger.exception(
@@ -381,7 +389,7 @@ def execute_table_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": org_id, "error_detail": error_detail},
+                extra={"org_id": org_id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         raise
@@ -476,7 +484,7 @@ def execute_timeseries_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_timeseries_query: bad request",
-                extra={"org_id": org_id, "error_detail": error_detail},
+                extra={"org_id": org_id, "error_detail": error_detail, **params},
             )
             return ExecuteTimeseriesQueryErrorResponse(seer_error_detail=error_detail)
         raise
@@ -583,7 +591,7 @@ def execute_trace_table_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_trace_table_query: bad request",
-                extra={"org_id": organization_id, "error_detail": error_detail},
+                extra={"org_id": organization_id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         raise
@@ -711,7 +719,16 @@ def execute_replays_query(
         error_detail = str(e)
         logger.warning(
             "execute_replays_query: bad request",
-            extra={"org_id": organization_id, "query": query, "error_detail": error_detail},
+            extra={
+                "org_id": organization_id,
+                "error_detail": error_detail,
+                "query": query,
+                "start": start,
+                "end": end,
+                "project_ids": project_ids,
+                "sort": sort,
+                "fields": fields,
+            },
         )
         return ExecuteQueryErrorResponse(error=error_detail)
 
@@ -1528,7 +1545,7 @@ def get_issue_details(
             type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
         ).order_by("-datetime")[:50]
         serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer()
+            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
         logger.exception(
@@ -1975,6 +1992,9 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
+    format: Format | None = None,
+    format_limits: Literal["default", "low"] = "default",
+    include_breadcrumbs: bool = True,
 ) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
@@ -1987,12 +2007,22 @@ def get_event_details(
         start: ISO timestamp for the start of the time range to get recommended event for (optional).
         end: ISO timestamp for the end of the time range to get recommended event for (optional).
         project_slug: The slug of the project (optional).
+        format: When set (markdown | xml), also render the event through the shared formatter into
+            the ``formatted`` field. Requires the ``organizations:issue-standardized-markdown-for-llm`` feature.
+        format_limits: Truncation profile for the rendered output ("default" or "low").
+        include_breadcrumbs: Drop the breadcrumbs section from the rendered output when False.
 
     Returns:
-        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, or None if not found.
+        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, and
+        formatted (rendered text when a ``format`` is requested, else None), or None if not found.
     """
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")
+
+    # `format` arrives as an unvalidated RPC argument. Reject unknown values alongside the other
+    # argument checks, so a bad request is a 400 whatever the lookup finds or the rollout says.
+    if format is not None and format not in VALID_FORMATS:
+        raise ParseError(f"Unsupported format: {format!r}")
 
     organization = Organization.objects.get(id=organization_id)
 
@@ -2076,12 +2106,26 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
+    # Opt-in shared-formatter output for Seer, gated behind the rollout feature so it can be
+    # ramped gradually; when the feature is off, callers fall back to their own formatter.
+    formatted: str | None = None
+    if format is not None and features.has(FORMATTER_FEATURE, organization):
+        limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
+        # EVENT_SECTIONS holds back user identifiers, which Seer's prompts never carried
+        sections = (
+            EVENT_SECTIONS
+            if include_breadcrumbs
+            else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
+        )
+        formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
+
     return EventDetailsResponse(
         event=serialized_event,
         event_id=event.event_id,
         event_trace_id=event.trace_id,
         project_id=event.project_id,
         project_slug=event.project.slug,
+        formatted=formatted,
     )
 
 
