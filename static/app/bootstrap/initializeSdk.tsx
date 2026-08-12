@@ -21,6 +21,8 @@ import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
+import {getFirstPartyOrigins, isThirdPartyScriptEvent} from './thirdPartyScriptFilter';
+
 let lastEventId: string | undefined;
 
 export function getLastEventId(): string | undefined {
@@ -91,11 +93,12 @@ function getSentryIntegrations() {
  */
 export function initializeSdk(config: Config) {
   // NOTE: This config is mutated by `commonInitialization`
-  const {apmSampling, customerDomain, sentryConfig, userIdentity} = config;
+  const {apmSampling, customerDomain, distPrefix, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
     : [...sentryConfig.tracePropagationTargets];
+  const firstPartyOrigins = getFirstPartyOrigins(distPrefix);
 
   const sentryClient = Sentry.init({
     ...sentryConfig,
@@ -182,7 +185,11 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+      if (
+        isFilteredRequestErrorEvent(event) ||
+        isEventWithFileUrl(event) ||
+        isThirdPartyScriptEvent(event, firstPartyOrigins)
+      ) {
         return null;
       }
 

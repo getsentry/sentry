@@ -44,6 +44,54 @@ describe('initializeSdk', () => {
       })
     );
   });
+
+  describe('beforeSend', () => {
+    const initAndGetBeforeSend = () => {
+      initializeSdk({
+        ...window.__initialData,
+        distPrefix: 'https://s1.sentry-cdn.com/_static/dist/sentry/',
+        sentryConfig: {
+          allowUrls: [],
+          dsn: '',
+          release: '',
+          tracePropagationTargets: [],
+        },
+      });
+
+      const [options] = jest.mocked(Sentry.init).mock.calls.at(-1)!;
+
+      return options.beforeSend!;
+    };
+
+    const eventFromFrames = (...filenames: string[]) => ({
+      type: undefined,
+      exception: {
+        values: [{stacktrace: {frames: filenames.map(filename => ({filename}))}}],
+      },
+    });
+
+    it('drops an event whose frames are all third-party', () => {
+      const beforeSend = initAndGetBeforeSend();
+
+      const result = beforeSend(
+        eventFromFrames(`${window.location.origin}/issues/`, '<anonymous>'),
+        {}
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('keeps an event with a frame from our assets', () => {
+      const beforeSend = initAndGetBeforeSend();
+      const event = eventFromFrames(
+        'https://s1.sentry-cdn.com/_static/dist/sentry/chunks/56177.cad95fee92a5a772.js'
+      );
+
+      const result = beforeSend(event, {});
+
+      expect(result).toBe(event);
+    });
+  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
