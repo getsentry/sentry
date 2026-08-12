@@ -1,15 +1,14 @@
-import {type CSSProperties, useState} from 'react';
+import {type CSSProperties, type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -17,6 +16,12 @@ import type {Group} from 'sentry/types/group';
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
+  action?: {
+    icon: ReactNode;
+    label: string;
+    variant: ButtonProps['variant'];
+    style?: CSSProperties;
+  };
   /**
    * Called after a run has been successfully started. The sidebar uses this to
    * open the Seer drawer; surfaces that already render the autofix in place
@@ -24,15 +29,18 @@ interface AutofixStartCardProps {
    */
   onStarted?: () => void;
   referrer?: string;
-  startLabel?: string;
 }
 
 export function AutofixStartCard({
+  action = {
+    icon: <IconBug />,
+    label: t('Start Analysis'),
+    variant: 'primary',
+  },
   autofix,
   group,
   onStarted,
   referrer,
-  startLabel,
 }: AutofixStartCardProps) {
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
@@ -49,8 +57,6 @@ export function AutofixStartCard({
     }
     onStarted?.();
   };
-
-  const actionIcon = startLabel ? undefined : <IconBug />;
 
   return (
     <Stack gap="md">
@@ -81,17 +87,17 @@ export function AutofixStartCard({
       </Flex>
       <Button
         size="md"
-        style={{alignSelf: startLabel ? 'flex-start' : undefined}}
-        icon={startingRun ? <LoadingIndicator size={16} /> : actionIcon}
-        aria-label={startLabel ?? t('Start Analysis')}
-        variant={startLabel ? undefined : 'primary'}
+        style={action.style}
+        icon={action.icon}
+        aria-label={action.label}
+        variant={action.variant}
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
+        busy={startingRun}
       >
-        {startLabel ?? t('Start Analysis')}
+        {action.label}
       </Button>
     </Stack>
   );

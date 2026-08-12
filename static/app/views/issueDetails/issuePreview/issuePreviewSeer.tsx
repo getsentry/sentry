@@ -60,10 +60,15 @@ export function IssuePreviewSeerContent({
   if (state === 'start') {
     return (
       <AutofixStartCard
+        action={{
+          icon: null,
+          label: t('Find Root Cause'),
+          style: {width: 'fit-content'},
+          variant: 'secondary',
+        }}
         autofix={autofix}
         group={group}
         referrer="issue_inbox"
-        startLabel={t('Find Root Cause')}
       />
     );
   }
