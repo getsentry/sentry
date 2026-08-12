@@ -244,7 +244,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
     url_paths = []
     for http_span in spans:
         url = get_url_from_span(http_span)
-        if url and not is_filtered_url(url):
+        if url:
             parametrized_url = parameterize_url(url)
             path = safer_urlparse(parametrized_url).path
             if path not in url_paths:

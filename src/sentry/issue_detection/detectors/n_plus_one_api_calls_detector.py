@@ -13,7 +13,6 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
-    is_filtered_url,
     parameterize_url,
     parameterize_url_with_result,
     safer_urlparse,
@@ -123,9 +122,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return False
 
         if not url:
-            return False
-
-        if is_filtered_url(url):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
