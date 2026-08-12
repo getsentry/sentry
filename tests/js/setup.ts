@@ -74,10 +74,8 @@ jest.mock('lodash/debounce', () =>
 // their real scheduling and state behavior.
 jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
-  asyncDebounce: jest.fn(fn => fn),
-  debounce: jest.fn(fn => fn),
-  useAsyncDebouncedCallback: jest.fn(fn => fn),
-  useDebouncedCallback: jest.fn(fn => fn),
+  useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedCallback: <TFn>(fn: TFn) => fn,
   useDebouncedValue: <T>(value: T) => [value] as const,
 }));
 jest.mock('sentry/utils/recreateRoute');
