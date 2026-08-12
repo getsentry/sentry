@@ -189,6 +189,10 @@ def test_bootstrap_options_promotes_environment_backed_settings(settings) -> Non
     settings.SENTRY_URL_PREFIX = "https://example.com"
     settings.SENTRY_EMAIL_ENABLE_REPLIES = True
     settings.SENTRY_FLYIO_CLIENT_ID = "fly-client-id"
+    settings.SENTRY_GITHUB_APP_ID = 12345
+    settings.SENTRY_GITHUB_APP_NAME = "github-app"
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = "github-client-id"
+    settings.SENTRY_VERCEL_CLIENT_ID = "vercel-client-id"
     settings.SENTRY_SYMBOL_SERVER_ENABLED = False
     settings.SENTRY_SYMBOLICATOR_OPTIONS = {"url": "http://symbolicator"}
 
@@ -200,17 +204,25 @@ def test_bootstrap_options_promotes_environment_backed_settings(settings) -> Non
         {
             ("SENTRY_EMAIL_ENABLE_REPLIES", "SENTRY_OPTIONS['mail.enable-replies']"),
             ("SENTRY_FLYIO_CLIENT_ID", "SENTRY_OPTIONS['auth-fly.client-id']"),
+            ("SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_OPTIONS['github-app.client-id']"),
+            ("SENTRY_GITHUB_APP_ID", "SENTRY_OPTIONS['github-app.id']"),
+            ("SENTRY_GITHUB_APP_NAME", "SENTRY_OPTIONS['github-app.name']"),
             ("SENTRY_SYMBOL_SERVER_ENABLED", "SENTRY_OPTIONS['symbolserver.enabled']"),
             ("SENTRY_SYMBOLICATOR_OPTIONS", "SENTRY_OPTIONS['symbolicator.options']"),
             ("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']"),
+            ("SENTRY_VERCEL_CLIENT_ID", "SENTRY_OPTIONS['vercel.client-id']"),
         },
     )
 
     assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://example.com"
     assert settings.SENTRY_OPTIONS["mail.enable-replies"] is True
     assert settings.SENTRY_OPTIONS["auth-fly.client-id"] == "fly-client-id"
+    assert settings.SENTRY_OPTIONS["github-app.id"] == 12345
+    assert settings.SENTRY_OPTIONS["github-app.name"] == "github-app"
+    assert settings.SENTRY_OPTIONS["github-app.client-id"] == "github-client-id"
     assert settings.SENTRY_OPTIONS["symbolserver.enabled"] is False
     assert settings.SENTRY_OPTIONS["symbolicator.options"] == {"url": "http://symbolicator"}
+    assert settings.SENTRY_OPTIONS["vercel.client-id"] == "vercel-client-id"
 
 
 def test_bootstrap_options_missing_file(settings) -> None:
