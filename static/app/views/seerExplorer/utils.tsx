@@ -390,13 +390,13 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   edit_file: (args, isLoading) => {
     const repo = args.repo_name || 'repository';
     const path = args.path || 'file';
-    return isLoading ? `Editing ${path} from ${repo}...` : `Edited ${path} from ${repo}`;
+    return isLoading ? `Editing ${path} in ${repo}...` : `Edited ${path} in ${repo}`;
   },
 
   write_file: (args, isLoading) => {
     const repo = args.repo_name || 'repository';
     const path = args.path || 'file';
-    return isLoading ? `Writing ${path} from ${repo}...` : `Wrote ${path} from ${repo}`;
+    return isLoading ? `Writing ${path} in ${repo}...` : `Wrote ${path} in ${repo}`;
   },
 
   bash: (args, isLoading) => {
