@@ -51,10 +51,10 @@ describe('getPollInterval', () => {
     'org/repo': {pr_creation_status: 'completed'} as any,
   };
 
-  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+  it('polls slowly when pollPR is set and a PR has been created, even when idle', () => {
     const state = makeState({status: 'completed', repo_pr_states: completedPr});
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
-      1000
+      10000
     );
   });
 
@@ -70,9 +70,16 @@ describe('getPollInterval', () => {
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
   });
 
-  it('polls while processing regardless of pollPR', () => {
+  it('polls faster while processing regardless of pollPR', () => {
     const state = makeState({status: 'processing'});
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('polls faster while processing even when a PR has been created', () => {
+    const state = makeState({status: 'processing', repo_pr_states: completedPr});
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
       1000
     );

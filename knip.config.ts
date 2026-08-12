@@ -58,7 +58,7 @@ const config: KnipConfig = {
         'static/**/*.figma.{tsx,jsx}',
       ],
       project: [
-        'static/**/*.{js,ts,tsx}!',
+        'static/**/*.{js,ts,tsx,mdx,less}!',
         'config/**/*.ts',
         'tests/js/**/*.{js,ts,tsx}',
         // fixtures can be ignored in production - it's fine that they are only used in tests
@@ -78,6 +78,9 @@ const config: KnipConfig = {
         'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
       ],
+      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
+      // so do not report them as unused files.
+      ignoreFiles: ['static/**/*.less'],
     },
   },
   ignoreExportsUsedInFile: isProductionMode,

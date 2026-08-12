@@ -70,6 +70,8 @@ class AgentChatRequest(TypedDict):
     on_page_context: str | None
     external_idempotency_key: NotRequired[str]
     page_name: NotRequired[str | None]
+    page_location: NotRequired[dict[str, Any] | None]
+    sent_at: NotRequired[list[str] | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
@@ -576,6 +578,32 @@ def _get_priority(node: dict[str, Any]) -> int:
     return priority if isinstance(priority, int) else 0
 
 
+def _render_location(location: Any) -> str:
+    """Render the snapshot's location block, or "" when it carries nothing.
+
+    Seer also receives `page_location` as a structured field and renders it there;
+    this keeps it in the markdown too so a client that only sends the snapshot is
+    not silently missing it. Every field is optional.
+    """
+    if not isinstance(location, dict):
+        return ""
+
+    lines = []
+    for label, key in (("URL", "url"), ("Route", "name")):
+        value = location.get(key)
+        if isinstance(value, str) and value:
+            lines.append(f"- **{label}**: {value}")
+    for label, key in (("Route params", "params"), ("Query params", "query")):
+        value = location.get(key)
+        if isinstance(value, dict) and value:
+            lines.append(f"- **{label}**: {orjson.dumps(value).decode()}")
+
+    if not lines:
+        return ""
+
+    return "## Current Page\n" + "\n".join(lines) + "\n\n"
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
@@ -587,13 +615,16 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
+    location = _render_location(snapshot.get("location"))
     if not nodes:
-        return ""
+        # Most routes register no nodes, but they still know where the user is —
+        # returning "" here would throw that away.
+        return location
     sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
     top_priority = _get_priority(sorted_nodes[0])
     selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    result = preamble + "\n".join(_render_node(node, 0) for node in selected)
+    result = location + preamble + "\n".join(_render_node(node, 0) for node in selected)
     return _normalize_wildcard_operators(result)

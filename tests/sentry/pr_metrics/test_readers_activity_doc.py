@@ -178,6 +178,34 @@ class ActivityDocumentReadersTest(TestCase):
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
         assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is False
 
+    def test_ci_failing_at_close_failure_not_masked_by_sibling_suite(self) -> None:
+        # One app, two suites (two workflow runs) at the same head: the workflow
+        # that failed keeps its own group, so the other workflow's later green
+        # completion doesn't erase the failure.
+        self._write_doc(
+            _doc(
+                checks={
+                    "sha1|github-actions|1": _group(check_suite_id=1, suite_conclusion="failure"),
+                    "sha1|github-actions|2": _group(check_suite_id=2, suite_conclusion="success"),
+                }
+            )
+        )
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
+
+    def test_ci_failing_at_close_mixed_merged_and_suite_groups_keeps_frozen_failure(self) -> None:
+        # Rolling-deploy state: a failure frozen in the merged legacy group,
+        # suite-scoped greens beside it. Any-failure-wins keeps reporting it for
+        # the document's life — the accepted over-report, not an erasure.
+        self._write_doc(
+            _doc(
+                checks={
+                    "sha1|github-actions": _group(suite_conclusion="failure"),
+                    "sha1|github-actions|2": _group(check_suite_id=2, suite_conclusion="success"),
+                }
+            )
+        )
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
+
     # --- review_activity (requested_count, results) -------------------------
 
     def test_reviews_requested_count_from_doc(self) -> None:

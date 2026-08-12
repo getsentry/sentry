@@ -23,6 +23,10 @@ from sentry.replays.usecases.delete import (
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.utils import json
+
+# Stand-in for rows whose timestamp the test does not care about.
+EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC)
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -67,11 +71,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
+                    "timestamp": EPOCH,
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": 0,
+                    "timestamp": EPOCH,
                 },
             ],
             "has_more": True,
@@ -131,11 +137,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
+                    "timestamp": EPOCH,
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": None,
+                    "timestamp": EPOCH,
                 },
             ],
             "has_more": False,
@@ -278,7 +286,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a duplicate activation behind the checkpoint does not rewind progress"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -301,7 +311,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test an activation killed between checkpointing and enqueueing still finishes"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": False,
             "next_cursor": 1234,
         }
@@ -323,7 +335,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a checkpoint written by a further-along chain is not overwritten"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -441,7 +455,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a chain finishing after another completed the job leaves it completed"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -483,6 +499,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
+        # The replay's own timestamp comes back so the archive event can be stamped with it.
+        # `mock_replay` writes `int(timestamp.timestamp())` and the column is a ClickHouse
+        # `DateTime`, so `t3` arrives truncated to the second.
+        assert result["rows"][0]["timestamp"] == t3.replace(tzinfo=datetime.UTC, microsecond=0)
 
     def test_fetch_rows_matching_pattern_keyset_pagination(self) -> None:
         """Test paging by `cityHash64(replay_id)` returns every replay exactly once.
@@ -549,6 +569,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": retention_days,
                     "replay_id": str(uuid.UUID(replay_id)),
                     "max_segment_id": max_segment_id,
+                    "timestamp": EPOCH,
                 }
             ],
         )
@@ -566,6 +587,34 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 is None
             )
 
+    @patch("sentry.replays.usecases.delete.publish_replay_event")
+    def test_delete_matched_rows_archives_in_the_replays_own_range(
+        self, mock_publish: MagicMock
+    ) -> None:
+        """The archive event carries the replay's own timestamp, not "now".
+
+        Replay queries aggregate `is_archived` per replay within a timestamp window, so an archive
+        row stamped "now" leaves a replay deleted today still looking un-archived to anyone querying
+        the range it was actually recorded in.
+        """
+        timestamp = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=30)
+
+        delete_matched_rows(
+            self.project.id,
+            [
+                {
+                    "retention_days": 30,
+                    "replay_id": str(uuid.uuid4()),
+                    "max_segment_id": None,
+                    "timestamp": timestamp,
+                }
+            ],
+        )
+
+        message = json.loads(mock_publish.call_args[0][0])
+        assert message["payload"]["timestamp"] == timestamp.timestamp()
+        assert message["payload"]["is_archived"] is True
+
     @patch("sentry.replays.usecases.delete.make_replay_delete_request")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -582,11 +631,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "a",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                     {
                         "retention_days": 90,
                         "replay_id": "b",
                         "max_segment_id": 0,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": True,
@@ -598,6 +649,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "c",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": False,
@@ -742,13 +794,27 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         def row_generator() -> Generator[MatchedRows]:
             # Window 1, page 1: has_more=True triggers pagination within the same window
             yield {
-                "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "a",
+                        "max_segment_id": 1,
+                        "timestamp": EPOCH,
+                    }
+                ],
                 "has_more": True,
                 "next_cursor": 1234,
             }
             # Window 1, page 2: no more rows, advance to next window
             yield {
-                "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "b",
+                        "max_segment_id": 1,
+                        "timestamp": EPOCH,
+                    }
+                ],
                 "has_more": False,
                 "next_cursor": 1234,
             }
@@ -800,11 +866,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "a",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                     {
                         "retention_days": 90,
                         "replay_id": "b",
                         "max_segment_id": 0,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": True,
@@ -816,6 +884,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "c",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": False,
@@ -850,7 +919,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         still needs running.
         """
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": False,
             "next_cursor": None,
         }

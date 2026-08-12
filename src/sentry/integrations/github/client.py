@@ -1231,9 +1231,13 @@ class GitHubBaseClient(
         )
 
     def _get_pull_request_status_cache_key(self, pull_request: PullRequestStatusRequest) -> str:
-        cache_data = orjson.dumps(
-            {"repo": pull_request.repo, "pull_number": pull_request.pull_number}
-        ).decode()
+        cache_key_data: dict[str, str | bool] = {
+            "repo": pull_request.repo,
+            "pull_number": pull_request.pull_number,
+        }
+        if pull_request.include_files:
+            cache_key_data["include_files"] = True
+        cache_data = orjson.dumps(cache_key_data).decode()
         return self.get_cache_key("/graphql/pull-request-status", "", cache_data)
 
     def get_pull_request_statuses(

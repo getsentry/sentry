@@ -1,5 +1,5 @@
-import {useRef} from 'react';
 import {useHover} from '@react-aria/interactions';
+import {useDebouncer} from '@tanstack/react-pacer';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,24 +16,23 @@ export function useInboxPreviewPrefetch(groupId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const prefetchDebouncer = useDebouncer(
+    () => {
+      void queryClient.prefetchQuery(
+        groupApiOptions({
+          groupId,
+          organizationSlug: organization.slug,
+          environments,
+          expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+        })
+      );
+    },
+    {wait: PREFETCH_DELAY_MS}
+  );
 
   const {hoverProps} = useHover({
-    onHoverStart: () => {
-      timeoutRef.current = setTimeout(() => {
-        queryClient.prefetchQuery(
-          groupApiOptions({
-            groupId,
-            organizationSlug: organization.slug,
-            environments,
-            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
-          })
-        );
-      }, PREFETCH_DELAY_MS);
-    },
-    onHoverEnd: () => {
-      clearTimeout(timeoutRef.current);
-    },
+    onHoverStart: () => prefetchDebouncer.maybeExecute(),
+    onHoverEnd: () => prefetchDebouncer.cancel(),
   });
 
   return hoverProps;

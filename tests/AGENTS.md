@@ -27,6 +27,7 @@ Notice that we prefix `tests/` to the path and prefix `test_` to the module name
 # tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
 
+
 class OrganizationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-details"
 
@@ -48,6 +49,22 @@ Notes:
 Do not use the **current or future UTC calendar year** as a hardcoded test “now” at **module or class** scope (or in `freeze_time(datetime(...))`)—that date drifts into Snuba retention. Use **`before_now(...)`** (or `now - timedelta`) for relative time, or an older fixed year for intentional historical fixtures. Fixed timestamps in **function bodies** (fixtures, assertions) are fine.
 
 Flake8 **S015** flags literals with year greater than or equal to the current UTC year in those scopes.
+
+## EAP / Snuba endpoint tests (30d retention)
+
+Snuba EAP outcomes routing defaults **standard retention to 30 days** and forces **tier 8** when the query start is older than that window. Sentry APIs still default unset windows to **90d**, so Snuba-integration tests that omit an explicit window under-count recent data (and rate functions like `epm()`/`eps()`/`tpm()` divide by the wrong window).
+
+Shared defaults:
+
+- `EAPClient` / `EAP_DEFAULT_STATS_PERIOD` (`src/sentry/testutils/helpers/eap.py`) inject `statsPeriod` equal to `EAP_FULL_FIDELITY_QUERY_DAYS` (**30d**) for EAP datasets and known EAP paths.
+- Suites that inherit `OrganizationEventsEndpointTestBase` also default through `client_get()` / `do_request()` to that same **30d** window (covers paths EAPClient heuristics miss, e.g. some trace-meta routes).
+
+For those suites:
+
+- Prefer **`client_get()` / `do_request()`** (or local helpers that call them). Do **not** call raw `self.client.get(...)` — flake8 **S020** flags it.
+- Keep query windows **≤30d** unless the test intentionally covers long-term retention / downsampling.
+- Rate assertions (`epm`/`eps`/`tpm`/…) must use the **actual request window** (usually `EAP_FULL_FIDELITY_QUERY_DAYS`), not a shorter hardcoded period.
+- If you must query **>30d**, set the window **and** either send `standard_retention_days` (up to 90) or explicitly assert tier-8 / downsampled behavior. Do not weaken assertions just to make CI green.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 
