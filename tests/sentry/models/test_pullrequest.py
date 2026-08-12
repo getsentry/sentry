@@ -484,12 +484,14 @@ class GetOrCreateFromReferenceTest(TestCase):
         repo_name: str = "getsentry/sentry",
         provider: str | None = "github",
         key: int | str = 42,
+        repo_external_id: str | None = None,
     ):
         return PullRequest.objects.get_or_create_from_reference(
             organization_id=self.organization.id,
             repo_name=repo_name,
             provider=provider,
             key=key,
+            repo_external_id=repo_external_id,
         )
 
     def test_resolves_and_creates_pull_request(self) -> None:
@@ -497,9 +499,54 @@ class GetOrCreateFromReferenceTest(TestCase):
 
         assert resolved.repo_resolution == "resolved"
         assert resolved.provider_unmappable is False
+        assert resolved.resolved_by == "name"
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == self.repo.id
         assert resolved.pull_request.key == "42"
+
+    def test_resolves_by_external_id_when_name_cannot_match(self) -> None:
+        """GitLab reporters carry ``path_with_namespace`` while the row holds the
+        space-separated ``name_with_namespace``, so the name can never match."""
+        gitlab_repo = self.create_repo(
+            self.project,
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:28",
+        )
+
+        resolved = self._resolve(
+            repo_name="my-group/my-project",
+            provider="gitlab",
+            repo_external_id="gitlab.example.com:28",
+        )
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "external_id"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == gitlab_repo.id
+
+    def test_external_id_resolves_past_duplicate_names(self) -> None:
+        """Duplicate rows sharing a provider are ambiguous by name, and no provider value
+        can separate them -- only the external id can."""
+        duplicate = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        duplicate.update(external_id="99")
+
+        resolved = self._resolve(repo_external_id="99")
+
+        assert resolved.resolved_by == "external_id"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == duplicate.id
+
+    def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
+        """A repo re-added under a new external id must be no worse off than before."""
+        resolved = self._resolve(repo_external_id="no-longer-in-use")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
 
     def test_coerces_integer_key_to_string(self) -> None:
         resolved = self._resolve(key=7)

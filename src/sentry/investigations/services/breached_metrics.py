@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Iterable
@@ -80,7 +81,7 @@ def resolve_breached_metric_sources(
     *,
     organization: Organization,
     group_ids: Iterable[int],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
     now: datetime | None = None,
 ) -> dict[int, BreachedMetricSource]:
     """Resolve supported current metric breaches in bulk.

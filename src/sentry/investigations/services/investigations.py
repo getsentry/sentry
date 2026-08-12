@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from collections.abc import Iterable
+from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from typing import Any
 
@@ -45,6 +46,9 @@ def _reject_unsupported_fields(values: dict[str, Any], allowed: frozenset[str]) 
     unsupported = sorted(set(values) - allowed)
     if unsupported:
         raise InvestigationValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
+
+
+BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
 
 
 class InvestigationServiceError(Exception):
@@ -242,7 +246,10 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
 
 
 def _resolve_breached_metric_source(
-    *, organization: Organization, source_ref: dict[str, Any], accessible_project_ids: set[int]
+    *,
+    organization: Organization,
+    source_ref: dict[str, Any],
+    accessible_project_ids: AbstractSet[int],
 ) -> BreachedMetricSource:
     if set(source_ref) != {"groupId", "openPeriodId"}:
         raise InvestigationValidationError(
@@ -282,7 +289,7 @@ def create_template_investigation(
     template_version: int,
     source_ref: dict[str, Any],
     supplied_parameters: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
     title: str | None = None,
 ) -> Investigation:
     for attempt in range(3):
@@ -311,7 +318,7 @@ def _create_template_investigation(
     template_version: int,
     source_ref: dict[str, Any],
     supplied_parameters: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
     title: str | None = None,
 ) -> Investigation:
     template = get_investigation_template(template_key, template_version)
@@ -442,6 +449,7 @@ def _create_template_investigation(
 
 
 def lock_investigation(investigation: Investigation, expected_version: int) -> Investigation:
+    """Lock the aggregate root before subordinate rows in an Investigation-routed transaction."""
     try:
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
     except Investigation.DoesNotExist:
@@ -541,7 +549,7 @@ def update_block(
     user_id: int,
     values: dict[str, Any],
 ) -> InvestigationBlock:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
@@ -552,11 +560,16 @@ def update_block(
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
         _reject_unsupported_fields(values, UPDATABLE_BLOCK_FIELDS)
-        stale_fields = {"content", "prompt", "config"}
-        inputs_changed = bool(stale_fields.intersection(values))
+        changed_values = {
+            field: value for field, value in values.items() if getattr(locked, field) != value
+        }
+        if not changed_values:
+            return locked
+
+        inputs_changed = bool(BLOCK_EXECUTION_INPUT_FIELDS.intersection(changed_values))
         if inputs_changed:
             locked.stale_at = timezone.now()
-        for field, value in values.items():
+        for field, value in changed_values.items():
             setattr(locked, field, value)
         locked.last_edited_by_id = user_id
         locked.version += 1
@@ -597,7 +610,7 @@ def mark_downstream_blocks_stale(
 def delete_block(
     *, block: InvestigationBlock, expected_investigation_version: int, expected_block_version: int
 ) -> None:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
@@ -607,6 +620,7 @@ def delete_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        # Traverse before soft deletion because stale propagation only follows active endpoints.
         mark_downstream_blocks_stale(
             investigation_id=investigation.id, upstream_block_ids={locked.id}
         )
@@ -656,7 +670,7 @@ def update_parameter_values(
     investigation: Investigation,
     expected_version: int,
     values: dict[str, Any],
-    accessible_project_ids: set[int],
+    accessible_project_ids: AbstractSet[int],
 ) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
         locked = lock_investigation(investigation, expected_version)
@@ -677,15 +691,22 @@ def update_parameter_values(
         changed_parameter_ids: list[int] = []
         for key, value in values.items():
             parameter = parameters[key]
-            try:
-                validated = validate_parameter_value(
-                    parameter_type=parameter.type,
-                    value=value,
-                    constraints=parameter.validation_constraints,
-                    accessible_project_ids=accessible_project_ids,
-                )
-            except ParameterValidationError as error:
-                raise InvestigationValidationError({"values": {key: str(error)}})
+            if value is None:
+                if parameter.required:
+                    raise InvestigationValidationError(
+                        {"values": {key: f"Missing required parameter: {key}."}}
+                    )
+                validated = None
+            else:
+                try:
+                    validated = validate_parameter_value(
+                        parameter_type=parameter.type,
+                        value=value,
+                        constraints=parameter.validation_constraints,
+                        accessible_project_ids=accessible_project_ids,
+                    )
+                except ParameterValidationError as error:
+                    raise InvestigationValidationError({"values": {key: str(error)}})
             if parameter.saved_value != validated:
                 parameter.saved_value = validated
                 parameter.version += 1

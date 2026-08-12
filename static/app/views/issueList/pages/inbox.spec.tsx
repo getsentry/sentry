@@ -140,6 +140,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       body: {pullRequests: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -254,10 +258,6 @@ describe('InboxPage', () => {
       body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replay-count/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -315,12 +315,11 @@ describe('InboxPage', () => {
           expect.objectContaining({
             method: 'GET',
             query: {
-              project: [-1],
               query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
-              expand: ['derivedData'],
+              expand: ['derivedData', 'owners'],
             },
           })
         )
@@ -432,6 +431,41 @@ describe('InboxPage', () => {
     ).not.toBeInTheDocument();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
+  });
+
+  it('shows suggested owners on inbox cards', async () => {
+    const suggestedOwner = UserFixture({id: '11', name: 'John Smith'});
+    const groupWithSuggestedOwner = GroupFixture({
+      ...diagnosedGroup,
+      owners: [
+        {
+          type: 'seerSuggested',
+          owner: `user:${suggestedOwner.id}`,
+          date_added: '',
+        },
+      ],
+    });
+    mockSection('issue.progress:fix_proposed is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
+      groupWithSuggestedOwner,
+    ]);
+    mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
+    const suggestedOwnerRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      match: [MockApiClient.matchQuery({query: `user.id:${suggestedOwner.id}`})],
+      body: [MemberFixture({id: suggestedOwner.id, user: suggestedOwner})],
+    });
+    mockIssuePreview({group: groupWithSuggestedOwner});
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const issueCard = await screen.findByRole('link', {name: /Diagnosed issue/});
+    expect(
+      await within(issueCard).findByTestId('suggested-avatar-stack')
+    ).toHaveTextContent('JS');
+    expect(suggestedOwnerRequest).toHaveBeenCalledTimes(1);
   });
 
   it('restores the persisted Inbox pane width', () => {
@@ -718,6 +752,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${nextFixProposedGroup.id}/pull-requests/`,
       body: {pullRequests: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
     mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
       diagnosedGroup,
     ]);
@@ -878,9 +916,7 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
-    const seerButton = await within(preview).findByRole('button', {
-      name: 'Make a Plan',
-    });
+    await within(preview).findByRole('button', {name: 'Make a Plan'});
 
     // After starting the step, the refetch will see a processing state
     mockAutofixResponse(
@@ -889,7 +925,7 @@ describe('InboxPage', () => {
       })
     );
 
-    await userEvent.click(seerButton);
+    await userEvent.click(within(preview).getByRole('button', {name: 'Make a Plan'}));
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>

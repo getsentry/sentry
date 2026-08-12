@@ -15,7 +15,6 @@ from sentry.grouping.parameterization import (
     Parameterizer,
     _log_example_data,
     experimental_parameterizer,
-    is_valid_ip,
     parameterizer,
 )
 from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
@@ -23,6 +22,7 @@ from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results, count_matching_calls
+from sentry.utils.http import is_valid_ip
 
 standard_cases = [
     ("email", "maisey@dogsaregreat.com", "<email>"),

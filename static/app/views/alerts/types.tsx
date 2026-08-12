@@ -1,6 +1,5 @@
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
 
@@ -25,15 +24,6 @@ export type Incident = {
   statusMethod: IncidentStatusMethod;
   title: string;
   activities?: ActivityType[];
-};
-
-/** @internal exported for tests */
-export type IncidentStats = {
-  eventStats: {
-    data: Data;
-  };
-  totalEvents: number;
-  uniqueUsers: number;
 };
 
 type ActivityTypeDraft = {
@@ -66,16 +56,10 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
-export enum IncidentStatusMethod {
+enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
   RULE_TRIGGERED = 3,
-}
-
-export enum AlertRuleStatus {
-  PENDING = 0,
-  SNAPSHOT = 4,
-  DISABLED = 5,
 }
 
 export enum CombinedAlertType {
@@ -83,10 +67,6 @@ export enum CombinedAlertType {
   ISSUE = 'rule',
   UPTIME = 'uptime',
   CRONS = 'monitor',
-}
-
-export interface UptimeAlert extends UptimeRule {
-  type: CombinedAlertType.UPTIME;
 }
 
 export type Anomaly = {

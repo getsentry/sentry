@@ -11,7 +11,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.utils.rules import (
     get_key_from_rule_data,
-    get_rule_or_workflow_id,
     split_rules_by_rule_workflow_id,
 )
 from sentry.types.rules import NotificationRuleDetails
@@ -135,7 +134,6 @@ def get_rules_with_legacy_ids(
             NotificationRuleDetails(
                 rule_id,
                 rule.label,
-                f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/",
                 f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/",
             )
         )
@@ -153,22 +151,6 @@ def get_workflow_links(
                 int(workflow_id),
                 rule.label,
                 create_link_to_workflow(organization.slug, workflow_id),
-                # TODO(iamrajjoshi): Add status url (whatever it is)
-                create_link_to_workflow(organization.slug, workflow_id),
             )
         )
     return workflow_links
-
-
-def get_snooze_url(
-    rule: Rule,
-    organization: Organization,
-    project: Project,
-    sentry_query_params: str,
-    type_id: int,
-) -> str:
-    key, rule_id = get_rule_or_workflow_id(rule)
-    # should only be using rule
-    if key == "workflow_id":
-        rule_id = str(rule.id)
-    return f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"

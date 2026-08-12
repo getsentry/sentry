@@ -151,11 +151,12 @@ export function TracesTable({
   });
 
   const combinedQuery =
-    applyDashboardFilters(
-      useCombinedQuery(getHasAiSpansFilter()),
+    applyDashboardFilters({
+      baseQuery: useCombinedQuery(getHasAiSpansFilter()),
       dashboardFilters,
-      WidgetType.SPANS // This widget technically has its own widget type, but it uses the spans dataset
-    ) ?? '';
+      // This widget technically has its own widget type, but it uses the spans dataset
+      widgetType: WidgetType.SPANS,
+    }) ?? '';
 
   const {cursor, setCursor} = useTableCursor();
 

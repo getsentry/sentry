@@ -1,3 +1,4 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,16 @@ describe('useSeerExplorer', () => {
       getPageReferrer: () => '/issues/',
     });
     jest.spyOn(llmContextModule, 'useLLMContext').mockReturnValue({
-      getLLMContext: () => ({version: 0, nodes: []}),
+      getLLMContext: () => ({
+        version: 0,
+        nodes: [],
+        location: {
+          url: window.location.href,
+          name: '/issues/',
+          params: {},
+          query: {},
+        },
+      }),
     });
   });
 
@@ -228,6 +238,54 @@ describe('useSeerExplorer', () => {
         // /monitors/mobile-builds/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
         const ctx = postMock.mock.calls[0][1].data.on_page_context;
         expect(() => JSON.parse(ctx)).toThrow();
+      });
+    });
+
+    it('sends page_location even on a non-structured-context page', async () => {
+      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
+        getPageReferrer: () => '/monitors/mobile-builds/',
+      });
+      const org = OrganizationFixture({features: ['seer-explorer']});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'GET',
+        body: {session: null},
+      });
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/seer/explorer-chat/1/`,
+        method: 'GET',
+        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization: org,
+      });
+      act(() => {
+        result.current.sendMessage('q');
+      });
+
+      // Location is independent of the structured-context allowlist — the ASCII
+      // branch reports it too.
+      await waitFor(() => {
+        expect(postMock.mock.calls[0][1].data.page_location).toEqual(
+          expect.objectContaining({url: window.location.href})
+        );
+        // Local (zone name in brackets) then UTC, as display strings.
+        const sentAt = postMock.mock.calls[0][1].data.sent_at;
+        expect(sentAt).toHaveLength(2);
+        expect(sentAt[1]).toMatch(/(Z|\+00:00)$/);
+
+        // The offset and the bracketed zone name must describe the same zone.
+        // ConfigStore points moment's default at the account timezone preference,
+        // so deriving them from different sources yields a contradictory string.
+        const [, offset, zone] = sentAt[0].match(/([+-]\d{2}:\d{2}|Z)\[(.+)\]$/) ?? [];
+        expect(zone).toBeTruthy();
+        expect(moment.tz(zone).format('Z')).toBe(offset === 'Z' ? '+00:00' : offset);
       });
     });
 
