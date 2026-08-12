@@ -121,6 +121,7 @@ export function ReleaseCard({
       <Stack
         borderRight={{zero: 'none', '3xl': 'primary'}}
         flexShrink={1}
+        gap={{zero: 'md', '3xl': '0'}}
         maxWidth={{zero: 'none', '3xl': '300px'}}
         minWidth={{zero: '0', '3xl': '260px'}}
         padding="lg xl"
