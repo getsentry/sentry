@@ -5,6 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from scm.types import ReviewComment
 
+from sentry.integrations.source_code_management.pr_id_cache import (
+    get_cached_pr_id,
+    set_cached_pr_id,
+)
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -24,6 +28,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.seer.pr_iteration import (
     UnsupportedProviderError,
     _build_review_feedback,
@@ -147,6 +152,101 @@ class TriggerPrIterationFromCommentTest(TestCase):
             pr_number=7,
             comment_id=999,
             reaction="eyes",
+        )
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_resolves_pr_id_from_cache_without_calling_github(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # The issue_comment payload carries only the PR number; a warmed cache
+        # is what keeps that from costing a REST round-trip per mention.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = None
+        set_cached_pr_id(
+            provider=self.repo.provider,
+            repo_external_id=self.repo.external_id,
+            pr_number=7,
+            pr_id=555,
+        )
+
+        self._call()
+
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_populates_pr_id_cache_on_a_miss(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = None
+
+        self._call()
+
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_called_once_with("owner/repo", "7")
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            == 555
+        )
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_returns_when_get_pull_request_fails(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.side_effect = ApiError("boom")
+        mock_get_integration.return_value = mock_integration
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_does_not_cache_a_missing_pr_id(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        mock_get_integration.return_value = self._mock_integration(pr_id=None)
+        mock_get_state.return_value = None
+
+        self._call()
+
+        mock_get_state.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider=self.repo.provider,
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
         )
 
     @patch(f"{TASK_PATH}.make_scm")
