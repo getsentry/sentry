@@ -20,12 +20,7 @@ type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
 };
 
-export function IntegrationCrumb({
-  route,
-  routes: _routes,
-  isLast: _isLast,
-  ...props
-}: SettingsBreadcrumbProps) {
+export function IntegrationCrumb({route}: SettingsBreadcrumbProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -89,8 +84,8 @@ export function IntegrationCrumb({
         label: provider.name,
       }))}
       loading={isPending}
-      {...props}
-      isLast={false}
+      // The selected tab title follows this provider crumb, so it always needs a divider.
+      showDivider
     />
   );
 }

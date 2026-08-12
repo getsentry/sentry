@@ -5,6 +5,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 export interface RouteWithName {
   name?: string;
   path?: string;
+  settingsBreadcrumbMenu?: 'integration' | 'project' | 'team';
 }
 
 export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'routes'> & {
