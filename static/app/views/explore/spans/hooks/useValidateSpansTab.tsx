@@ -25,7 +25,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
 
-  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
+  const {data, error, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -42,6 +42,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
 
   return {
     data,
+    error,
     isFetching,
     isPlaceholderData,
     isLoading,
