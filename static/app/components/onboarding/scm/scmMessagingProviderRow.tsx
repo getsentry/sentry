@@ -9,6 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
@@ -39,6 +40,12 @@ import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
  */
 type RowVisualState =
   | 'installable'
+  /**
+   * User lacks org:integrations so they cannot start an installation.
+   * Distinct from 'permission-limited', which describes a tenant-level MS Teams
+   * integration that is ineligible for Issue Alert actions regardless of user scope.
+   */
+  | 'install-forbidden'
   /** OAuth modal is open / install in progress. */
   | 'installing'
   /** Install attempt ended with an error (or was closed after one). */
@@ -60,7 +67,9 @@ function deriveVisualState({
   messagingSetup,
   isConfiguring,
   isRemoving,
+  hasInstallAccess,
 }: {
+  hasInstallAccess: boolean;
   installState: ReturnType<typeof useAddIntegration>['state'];
   isConfiguring: boolean;
   isRemoving: boolean;
@@ -87,7 +96,7 @@ function deriveVisualState({
   }
 
   if (viewModel.status === 'installable') {
-    return 'installable';
+    return hasInstallAccess ? 'installable' : 'install-forbidden';
   }
 
   if (viewModel.status === 'permission-limited') {
@@ -146,6 +155,8 @@ export function ScmMessagingProviderRow({
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  const hasInstallAccess = hasEveryAccess(['org:integrations'], {organization});
+
   const isConfigured =
     messagingSetup.mode === 'selected' &&
     messagingSetup.providerKey === viewModel.providerKey &&
@@ -157,6 +168,7 @@ export function ScmMessagingProviderRow({
     messagingSetup,
     isConfiguring,
     isRemoving,
+    hasInstallAccess,
   });
 
   // When the integration goes away (e.g. removed externally), close any
@@ -326,6 +338,19 @@ function RowSubtitle({
     );
   }
 
+  if (visualState === 'install-forbidden') {
+    return (
+      <Stack gap="2xs">
+        <Text variant="muted" size="sm">
+          {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[viewModel.providerKey]}
+        </Text>
+        <Text variant="muted" size="sm">
+          {t('Ask an organization admin to connect %s.', viewModel.provider.name)}
+        </Text>
+      </Stack>
+    );
+  }
+
   if (visualState === 'permission-limited') {
     return (
       <Stack gap="2xs">
@@ -400,6 +425,14 @@ function RowActions({
         onClick={onConnect}
         aria-label={t('Connect %s', viewModel.provider.name)}
       >
+        {t('Connect')}
+      </Button>
+    );
+  }
+
+  if (visualState === 'install-forbidden') {
+    return (
+      <Button size="sm" disabled aria-label={t('Connect %s', viewModel.provider.name)}>
         {t('Connect')}
       </Button>
     );

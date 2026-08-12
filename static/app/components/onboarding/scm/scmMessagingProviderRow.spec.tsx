@@ -9,6 +9,7 @@ import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 import {ScmMessagingProviderRow} from './scmMessagingProviderRow';
 import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
@@ -102,12 +103,14 @@ function renderRow(
   overrides: {
     onInstallComplete?: jest.Mock;
     onMessagingSetupChange?: jest.Mock;
+    organization?: Partial<Organization>;
     renderChannelPicker?: jest.Mock;
   } = {}
 ) {
   const onInstallComplete = overrides.onInstallComplete ?? jest.fn();
   const onMessagingSetupChange = overrides.onMessagingSetupChange ?? jest.fn();
   const renderChannelPicker = overrides.renderChannelPicker;
+  const org = overrides.organization ?? organization;
 
   return render(
     <ScmMessagingProviderRow
@@ -117,7 +120,7 @@ function renderRow(
       onMessagingSetupChange={onMessagingSetupChange}
       renderChannelPicker={renderChannelPicker}
     />,
-    {organization}
+    {organization: org}
   );
 }
 
@@ -164,6 +167,54 @@ describe('ScmMessagingProviderRow', () => {
           variant: 'scm',
         })
       );
+    });
+  });
+
+  describe('install-forbidden state', () => {
+    const noAccessOrg = OrganizationFixture({access: []});
+
+    it('renders the description and a disabled Connect button', () => {
+      renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        organization: noAccessOrg,
+      });
+
+      expect(
+        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Ask an organization admin to connect Slack.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect Slack/})).toBeDisabled();
+    });
+
+    it('does not open the install pipeline when Connect is clicked', async () => {
+      mockPipeline();
+      renderRow(installableSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        organization: noAccessOrg,
+      });
+
+      // The button is disabled so the click is a no-op, but confirm openPipelineModal
+      // was never called regardless of how the disabled state is enforced.
+      await userEvent.click(screen.getByRole('button', {name: /Connect Slack/}));
+      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
+    });
+
+    it('still shows the channel picker for a connected provider', () => {
+      // A member without org:integrations cannot install, but can still configure
+      // a destination on an integration that is already connected.
+      // The auto-expanded channel picker fetches channels — provide an empty result.
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
+        organization: noAccessOrg,
+      });
+
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+      // Channel picker renders inline — the Workspace label is its first visible element.
+      expect(screen.getByText('Workspace')).toBeInTheDocument();
     });
   });
 
