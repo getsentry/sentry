@@ -95,43 +95,29 @@ class RecalibrationComparisonOutcome(StrEnum):
     EQUAL = "equal"
     DIFFERS = "differs"
     NO_EAP_FACTOR = "no_eap_factor"
-    NO_LEGACY_FACTOR = "no_legacy_factor"
-    NO_FACTORS = "no_factors"
 
 
-def _read_cached_factor(cache_key: str) -> float | None:
-    value = get_redis_client_for_ds().get(cache_key)
-    try:
-        return None if value is None else float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_cached_recalibration_factor(org_id: int) -> float | None:
+def get_cached_recalibration_factor(org_id: int) -> float:
     """
-    The recalibration factor the legacy pipeline currently serves, or None when it has none
-    cached.
+    The recalibration factor the legacy pipeline currently serves.
 
-    Reads the key directly rather than through ``legacy_recalibration_cache``, which reports a
-    missing factor as 1.0. The comparison has to tell the two apart, because a cache miss
-    logged as 1.0 is indistinguishable from a real factor of 1.0 and inflates the measured
-    disagreement.
+    A missing key is the stored form of 1.0, not an empty state: ``set_guarded_adjusted_factor``
+    deletes the key instead of writing the identity factor, and the serving path resolves the
+    miss back to 1.0. Reporting the miss as anything else would describe a converged
+    organization as one without a factor.
     """
-    return _read_cached_factor(
-        legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org_id)
-    )
+    return legacy_recalibration_cache.get_adjusted_factor(org_id)
 
 
-def get_cached_per_org_recalibration_factor(org_id: int) -> float | None:
+def get_cached_per_org_recalibration_factor(org_id: int) -> float:
     """
-    The factor the EAP pipeline cached on its previous pass, or None when it has none.
+    The factor the EAP pipeline cached on its previous pass, under the same identity rule as
+    the legacy factor.
 
-    Callers read this before ``recalibrate`` overwrites it, so that the comparison can report
-    the state each side started from.
+    Callers read this before ``recalibrate`` overwrites it, so that the comparison reports the
+    state each side started from. This is the value ``recalibrate`` itself seeds from.
     """
-    return _read_cached_factor(
-        per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org_id)
-    )
+    return per_org_recalibration_cache.get_adjusted_factor(org_id)
 
 
 def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
@@ -161,8 +147,8 @@ def compare_recalibration_factor_with_cache(
     config: BaseDynamicSamplingConfiguration,
     org_volume: OrganizationDataVolume | None,
     calculated_factor: float | None,
-    cached_factor: float | None,
-    previous_eap_factor: float | None = None,
+    cached_factor: float,
+    previous_eap_factor: float,
     legacy_volume: OrganizationDataVolume | None = None,
 ) -> None:
     """
@@ -178,23 +164,20 @@ def compare_recalibration_factor_with_cache(
 
     The ``*_same_seed`` fields re-run both sides from the legacy factor. That holds the state
     fixed, so what remains is the difference the volumes alone account for.
+
+    Both cached factors are always defined, because an uncached factor is 1.0; see
+    ``get_cached_recalibration_factor``.
     """
     target_sample_rate = config.get_sample_rate()
 
     def same_seed_factor(volume: OrganizationDataVolume | None) -> float | None:
-        if cached_factor is None:
-            return None
         return calculate_recalibration_factor(volume, cached_factor, target_sample_rate)
 
     eap_factor_same_seed = same_seed_factor(org_volume)
     generic_metrics_factor_same_seed = same_seed_factor(legacy_volume)
 
-    if calculated_factor is None and cached_factor is None:
-        outcome = RecalibrationComparisonOutcome.NO_FACTORS
-    elif calculated_factor is None:
+    if calculated_factor is None:
         outcome = RecalibrationComparisonOutcome.NO_EAP_FACTOR
-    elif cached_factor is None:
-        outcome = RecalibrationComparisonOutcome.NO_LEGACY_FACTOR
     elif is_within_relative_tolerance(
         cached_factor, calculated_factor, RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE
     ):
@@ -213,7 +196,6 @@ def compare_recalibration_factor_with_cache(
             "generic_metrics_factor": cached_factor,
             "eap_factor": calculated_factor,
             "previous_eap_factor": previous_eap_factor,
-            "eap_factor_was_reset": previous_eap_factor is None,
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
             "eap_effective_sample_rate": get_effective_sample_rate(org_volume),

@@ -507,7 +507,7 @@ class RunCalculationsPerOrgTest(TestCase):
                 TRANSACTION_BALANCING: {},
                 RECALIBRATION_VOLUME: None,
                 CACHED_FACTOR: 1.0,
-                PREVIOUS_EAP_FACTOR: None,
+                PREVIOUS_EAP_FACTOR: 1.0,
                 LEGACY_VOLUME: None,
                 SET_FACTOR: DEFAULT,
                 COMPARE_FACTOR: DEFAULT,
@@ -526,7 +526,7 @@ class RunCalculationsPerOrgTest(TestCase):
             None,
             None,
             1.0,
-            previous_eap_factor=None,
+            previous_eap_factor=1.0,
             legacy_volume=None,
         )
 

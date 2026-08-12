@@ -264,15 +264,15 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         assert get_cached_recalibration_factor(org.id) == 2.5
 
-    def test_get_cached_recalibration_factor_reports_a_cache_miss_as_none(self) -> None:
+    def test_get_cached_recalibration_factor_reports_a_cache_miss_as_the_identity(self) -> None:
         org = self.create_organization()
         cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        self.redis.delete(cache_key)
+        self.addCleanup(self.redis.delete, cache_key)
 
-        # The legacy helper reports a miss as 1.0, which the comparison cannot tell apart from
-        # a real factor of 1.0.
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
-        assert get_cached_recalibration_factor(org.id) is None
+        # Writing the identity factor deletes the key, so a miss is how 1.0 is stored.
+        legacy_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
+        assert self.redis.get(cache_key) is None
+        assert get_cached_recalibration_factor(org.id) == 1.0
 
     def test_get_cached_per_org_recalibration_factor_reads_the_per_org_cache(self) -> None:
         org = self.create_organization()
@@ -280,7 +280,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         self.redis.delete(cache_key)
         self.addCleanup(self.redis.delete, cache_key)
 
-        assert get_cached_per_org_recalibration_factor(org.id) is None
+        assert get_cached_per_org_recalibration_factor(org.id) == 1.0
 
         self.redis.set(cache_key, 3.5)
         assert get_cached_per_org_recalibration_factor(org.id) == 3.5
@@ -327,7 +327,6 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "generic_metrics_factor": 2.0,
                 "eap_factor": 2.8,
                 "previous_eap_factor": 1.4,
-                "eap_factor_was_reset": False,
                 "total_transactions": 772,
                 "stored_segments": 288,
                 "eap_effective_sample_rate": pytest.approx(0.3730569948186528),
@@ -351,7 +350,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         config = mock_configuration(org, sample_rate=0.5)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, None, None, 2.0)
+            compare_recalibration_factor_with_cache(config, None, None, 2.0, 1.4)
 
         assert logger_info.call_args.kwargs["extra"] == {
             "org_id": org.id,
@@ -359,8 +358,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             "sample_rate": 0.5,
             "generic_metrics_factor": 2.0,
             "eap_factor": None,
-            "previous_eap_factor": None,
-            "eap_factor_was_reset": True,
+            "previous_eap_factor": 1.4,
             "total_transactions": None,
             "stored_segments": None,
             "eap_effective_sample_rate": None,
@@ -376,21 +374,23 @@ class ProjectBalancingCalculationsTest(TestCase):
             "same_seed_is_equal": False,
         }
 
-    def test_compare_recalibration_factor_with_cache_separates_a_legacy_cache_miss(self) -> None:
+    def test_compare_recalibration_factor_with_cache_compares_an_identity_legacy_factor(
+        self,
+    ) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
         org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, org_volume, 2.8, None)
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 1.0, 1.0)
 
+        # A legacy factor of 1.0 is a converged organization, not a missing input, so it takes
+        # part in the comparison and seeds the same-seed pair.
         extra = logger_info.call_args.kwargs["extra"]
-        assert extra["comparison_outcome"] == "no_legacy_factor"
+        assert extra["comparison_outcome"] == "differs"
         assert extra["is_equal"] is False
-        assert extra["relative_deviation"] is None
-        # Without a legacy factor there is no shared seed, so the same-seed pair is undefined.
-        assert extra["eap_factor_same_seed"] is None
-        assert extra["generic_metrics_factor_same_seed"] is None
+        assert extra["relative_deviation"] == pytest.approx(0.6428571428571429)
+        assert extra["eap_factor_same_seed"] == pytest.approx(1.3402777777777777)
 
     def test_compare_recalibration_factor_with_cache_reports_equal_within_tolerance(self) -> None:
         org = self.create_organization()
@@ -398,7 +398,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.75)
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.75, 1.4)
 
         extra = logger_info.call_args.kwargs["extra"]
         assert extra["comparison_outcome"] == "equal"
