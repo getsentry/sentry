@@ -56,6 +56,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -573,12 +574,6 @@ def trigger_pr_iteration_from_comment(
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
         return None
-    if repo.provider is None:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.no_provider",
-            extra={"organization_id": organization_id, "repo_id": repo.id},
-        )
-        return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -602,8 +597,13 @@ def trigger_pr_iteration_from_comment(
         # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
         # The mapping is immutable, so it is cached; the fetch above only runs
         # when no webhook has warmed this PR yet.
+        #
+        # The provider is pinned to github.com: the entry point,
+        # ``handle_issue_comment_for_autofix_iteration`` in
+        # ``sentry/seer/autofix/pr_iteration/mention.py``, turns away everything
+        # but ``PR_ITERATION_PROVIDER_SLUG`` before dispatching this task.
         pr_id = get_or_fetch_pr_id(
-            provider=repo.provider,
+            provider=PR_ITERATION_PROVIDER,
             repo_external_id=repo.external_id,
             pr_number=pr_number,
             fetch=_fetch_pr_id,
@@ -618,7 +618,7 @@ def trigger_pr_iteration_from_comment(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
     if agent_state is None:
         # No-op: missing runs are expected on regions that don't own the session
         # when webhooks are fanned out everywhere. Do not react/comment as
@@ -890,9 +890,6 @@ def trigger_pr_iteration_from_review(
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
-    if repo.provider is None:
-        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
-        return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -913,8 +910,14 @@ def trigger_pr_iteration_from_review(
         # run lookup is keyed on GitHub's numeric PR id. A pull_request or
         # check_suite webhook on this PR has almost certainly warmed the cache
         # already, so the fetch above is the exception rather than the rule.
+        #
+        # The provider is pinned to github.com: the entry point,
+        # ``handle_pull_request_review_for_autofix_iteration`` in
+        # ``sentry/seer/autofix/pr_iteration/listeners/review.py``, turns away
+        # everything but ``PR_ITERATION_PROVIDER_SLUG`` before dispatching this
+        # task.
         pr_id = get_or_fetch_pr_id(
-            provider=repo.provider,
+            provider=PR_ITERATION_PROVIDER,
             repo_external_id=repo.external_id,
             pr_number=pr_number,
             fetch=_fetch_pr_id,
@@ -929,7 +932,7 @@ def trigger_pr_iteration_from_review(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(
