@@ -52,7 +52,7 @@ export const getImageAttachmentRenderer = (
 
 export const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
 
-export const getInlineAttachmentRenderer = (
+const getInlineAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
   if (nonPreviewableExtensions.some(ext => attachment.name.endsWith(ext))) {
