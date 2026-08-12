@@ -84,8 +84,13 @@ class GitHubIdentityProvider(OAuth2Provider):
     def get_oauth_client_id(self):
         return options.get("github-app.client-id")
 
-    def get_oauth_client_secret(self):
-        return settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+    def get_oauth_client_secret(self) -> str | None:
+        secret = (
+            settings.GITHUB_API_SECRET
+            if settings.SENTRY_SINGLE_ORGANIZATION
+            else settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        )
+        return secret if isinstance(secret, str) else None
 
     def build_identity(self, data):
         data = data["data"]

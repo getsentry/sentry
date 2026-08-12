@@ -32,6 +32,8 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
         github_id = str(options.get("github-app.id"))
     if github_private_key is None:
         github_private_key = settings.SENTRY_GITHUB_APP_PRIVATE_KEY
+    if not isinstance(github_private_key, str):
+        raise ValueError("GitHub App private key is not configured")
     exp_ = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
     exp = calendar.timegm(exp_.timetuple())
     # Generate the JWT
