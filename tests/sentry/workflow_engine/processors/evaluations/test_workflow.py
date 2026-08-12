@@ -24,7 +24,13 @@ class TestWorkflowEvaluationArtifact(TestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.event = self.store_event(data={}, project_id=self.project.id)
-        self.event_data = WorkflowEventData(event=self.event, group=self.event.group)
+        self.group = self.event.group
+        assert self.group is not None
+
+        self.event_data = WorkflowEventData(
+            event=self.event.for_group(self.group),
+            group=self.group,
+        )
         self.detector = self.create_detector(project=self.project)
 
     def _build_evaluation(
