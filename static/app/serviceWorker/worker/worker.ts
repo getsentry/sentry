@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 import type {ResponseMessage} from 'sentry/serviceWorker/types';
-import {fetchClientConfig} from 'sentry/serviceWorker/worker/client-config';
+import {fetchClientConfig} from 'sentry/serviceWorker/worker/clientConfig';
 import {DEBUG_LOGGING, log} from 'sentry/serviceWorker/worker/constants';
 import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
 import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';

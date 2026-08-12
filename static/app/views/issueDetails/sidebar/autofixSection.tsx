@@ -197,8 +197,8 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
     return <Placeholder height="160px" />;
   }
 
-  // non seat based seer plans are allowed to run autofix without the SCM integration
-  if (organization.features.includes('seat-based-seer-enabled')) {
+  // legacy seer plans are allowed to run autofix without the SCM integration
+  if (!organization.features.includes('seer-added')) {
     if (needOrgSetup || needProjSetup) {
       return (
         <Stack border="muted" radius="md" padding="lg" gap="lg">

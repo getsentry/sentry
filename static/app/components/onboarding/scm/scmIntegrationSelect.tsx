@@ -4,10 +4,14 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
+
 interface ScmIntegrationSelectProps {
+  analyticsFlow: ScmAnalyticsFlow;
   integrations: Integration[];
   onChange: (integration: Integration) => void;
   selectedIntegration: Integration;
@@ -21,6 +25,7 @@ interface ScmIntegrationSelectProps {
  * footer.
  */
 export function ScmIntegrationSelect({
+  analyticsFlow,
   integrations,
   onChange,
   selectedIntegration,
@@ -59,7 +64,13 @@ export function ScmIntegrationSelect({
         <MenuComponents.CTALinkButton
           icon={<IconSettings />}
           to={`/settings/${organization.slug}/integrations/?category=source%20code%20management`}
-          onClick={closeOverlay}
+          onClick={() => {
+            trackAnalytics('project_creation.manage_providers_clicked', {
+              organization,
+              ...scmFlowVariantParams(analyticsFlow),
+            });
+            closeOverlay();
+          }}
         >
           {t('Manage providers')}
         </MenuComponents.CTALinkButton>

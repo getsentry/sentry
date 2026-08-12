@@ -269,6 +269,11 @@ describe('getLogsSeerLocationQuery', () => {
         end: '2024-06-02T00:00:00.000Z',
         start: '2024-06-01T00:00:00.000Z',
         utc: 'true',
+        period: '7d',
+        pageStart: '2024-05-01T00:00:00.000Z',
+        pageEnd: '2024-05-02T00:00:00.000Z',
+        pageStatsPeriod: '30d',
+        pageUtc: 'true',
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
@@ -282,10 +287,20 @@ describe('getLogsSeerLocationQuery', () => {
     expect(relativeQuery.start).toBeUndefined();
     expect(relativeQuery.end).toBeUndefined();
     expect(relativeQuery.utc).toBeUndefined();
+    expect(relativeQuery.period).toBeUndefined();
+    expect(relativeQuery.pageStart).toBeUndefined();
+    expect(relativeQuery.pageEnd).toBeUndefined();
+    expect(relativeQuery.pageStatsPeriod).toBeUndefined();
+    expect(relativeQuery.pageUtc).toBeUndefined();
 
     const absoluteQuery = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({
         statsPeriod: '7d',
+        period: '14d',
+        pageStart: '2024-05-01T00:00:00.000Z',
+        pageEnd: '2024-05-02T00:00:00.000Z',
+        pageStatsPeriod: '30d',
+        pageUtc: 'false',
       }),
       currentAggregateFields: [new VisualizeFunction('count(message)')],
       pageDatetime,
@@ -298,6 +313,38 @@ describe('getLogsSeerLocationQuery', () => {
     expect(absoluteQuery.start).toBe('2024-06-01T00:00:00');
     expect(absoluteQuery.end).toBe('2024-06-02T00:00:00');
     expect(absoluteQuery.statsPeriod).toBeUndefined();
+    expect(absoluteQuery.period).toBeUndefined();
+    expect(absoluteQuery.pageStart).toBeUndefined();
+    expect(absoluteQuery.pageEnd).toBeUndefined();
+    expect(absoluteQuery.pageStatsPeriod).toBeUndefined();
+    expect(absoluteQuery.pageUtc).toBeUndefined();
+  });
+
+  it('clears absolute datetime params when Seer returns a stats period', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        end: '2024-01-02T00:00:00',
+        start: '2024-01-01T00:00:00',
+        utc: 'false',
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime: {
+        start: '2024-01-01T00:00:00',
+        end: '2024-01-02T00:00:00',
+        period: null,
+        utc: false,
+      },
+      result: seerResult({
+        end: '2024-06-02T00:00:00Z',
+        start: '2024-06-01T00:00:00Z',
+        statsPeriod: '24h',
+      }),
+    });
+
+    expect(query.statsPeriod).toBe('24h');
+    expect(query.start).toBeUndefined();
+    expect(query.end).toBeUndefined();
+    expect(query.utc).toBeUndefined();
   });
 
   it('preserves the current aggregate visualization when Seer omits one', () => {

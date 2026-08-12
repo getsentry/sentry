@@ -10,7 +10,7 @@ if (IS_ACCEPTANCE_TEST || NODE_ENV === 'test') {
 
 export function commonInitialization(config: Config) {
   if (NODE_ENV === 'development') {
-    import(/* webpackMode: "eager" */ 'sentry/utils/silence-react-unsafe-warnings');
+    import(/* webpackMode: "eager" */ 'sentry/utils/silenceReactUnsafeWarnings');
   }
 
   ConfigStore.loadInitialData(config);

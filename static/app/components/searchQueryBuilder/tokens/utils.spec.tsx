@@ -10,6 +10,15 @@ describe('getInitialFilterText', () => {
     );
   });
 
+  it('quotes typed filter keys containing colons', () => {
+    expect(
+      getInitialFilterText('imaginary.attribute:made_up_key', {
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+      })
+    ).toBe(`"imaginary.attribute:made_up_key":${WildcardOperators.CONTAINS}""`);
+  });
+
   it('defaults null value types to contains', () => {
     const fieldDefinition: FieldDefinition = {
       kind: FieldKind.FIELD,

@@ -1,19 +1,15 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
+import {getExplorerUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
 import {BLOCK_WRAPPER_SELECTOR, MessagePlaceholder, hasValidContent} from './shared';
@@ -32,9 +28,11 @@ export function AssistantBlock({
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {
       return (
-        <Container padding="xl" minWidth={0} overflow="hidden">
-          <SeerMarkdown raw={content} variant="streaming" />
-        </Container>
+        <MessageRow from="assistant">
+          <AssistantMessage>
+            <SeerMarkdown raw={content} variant="streaming" />
+          </AssistantMessage>
+        </MessageRow>
       );
     }
     return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
@@ -43,9 +41,11 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <Container padding="xl" minWidth={0} overflow="hidden">
-          <SeerMarkdown raw={content} />
-        </Container>
+        <MessageRow from="assistant">
+          <AssistantMessage>
+            <SeerMarkdown raw={content} />
+          </AssistantMessage>
+        </MessageRow>
       )}
       <BlockActionBar
         block={block}
@@ -77,7 +77,6 @@ function useBlockFeedback(
         run_id: runId,
         block_index: blockIndex,
         block_message: block.message.content?.slice(0, 100) ?? '',
-        langfuse_url: getLangfuseUrl(runId),
         explorer_url: getExplorerUrl(runId),
         conversations_url: getConversationsUrlForExternalUse('sentry', runId),
       });
@@ -104,75 +103,23 @@ function BlockActionBar({
   }
 
   return (
-    <ButtonBar
-      size="xs"
+    <AssistantActions
       position="absolute"
       bottom="2px"
       right="8px"
       visibility="hidden"
+      onFeedback={trackFeedback}
+      feedbackDisabled={feedbackSubmitted}
+      copyText={showCopy ? (block.message.content ?? '') : undefined}
+      onCopy={() => {
+        trackAnalytics('seer.explorer.block_copied', {organization});
+      }}
       css={css`
         ${BLOCK_WRAPPER_SELECTOR}:hover &,
         ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
           visibility: visible;
         }
       `}
-    >
-      <FeedbackButton
-        type="positive"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
-      />
-      <FeedbackButton
-        type="negative"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
-      />
-      {showCopy && (
-        <CopyToClipboardButton
-          aria-label={t('Copy block content')}
-          text={block.message.content ?? ''}
-          tooltipProps={{title: t('Copy to clipboard')}}
-          onCopy={() => {
-            trackAnalytics('seer.explorer.block_copied', {organization});
-          }}
-          onClick={e => {
-            e.stopPropagation();
-          }}
-        />
-      )}
-    </ButtonBar>
-  );
-}
-
-function FeedbackButton({
-  type,
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: (type: 'positive' | 'negative') => void;
-  type: 'positive' | 'negative';
-}) {
-  return (
-    <Button
-      aria-label={
-        type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
-      }
-      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-      disabled={disabled}
-      tooltipProps={{
-        title: disabled
-          ? t('Feedback submitted')
-          : type === 'positive'
-            ? t('I like this response')
-            : t("I don't like this response"),
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        onClick(type);
-      }}
-    >
-      {undefined}
-    </Button>
+    />
   );
 }

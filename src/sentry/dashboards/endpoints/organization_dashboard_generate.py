@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -159,11 +158,6 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         has_access, error = has_seer_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)

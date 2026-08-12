@@ -54,6 +54,7 @@ export const enum SectionKey {
    * Also called images loaded
    */
   DEBUGMETA = 'debugmeta',
+  PROGUARD = 'proguard',
   REQUEST = 'request',
 
   TAGS = 'tags',

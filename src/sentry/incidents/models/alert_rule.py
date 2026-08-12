@@ -423,7 +423,10 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
         elif self.target_type == self.TargetType.TEAM.value:
             try:
-                return Team.objects.get(id=int(self.target_identifier))
+                return Team.objects.get(
+                    id=int(self.target_identifier),
+                    organization_id=self.alert_rule_trigger.alert_rule.organization_id,
+                )
             except Team.DoesNotExist:
                 pass
 

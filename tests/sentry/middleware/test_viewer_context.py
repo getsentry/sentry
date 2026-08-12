@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
+from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.viewer_context import ViewerContextMiddleware, _viewer_context_from_request
+from sentry.seer import agent_token
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
     ActorType,
@@ -198,6 +202,39 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.user_id is None
         assert ctx.organization_id is None
         assert ctx.token is None
+
+    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
+    @override_settings(SEER_API_SHARED_SECRET="test-secret")
+    def test_agent_token_sets_agent_context(self):
+        # Through the real chain: AuthenticationMiddleware resolves the agent bearer,
+        # then this middleware derives user + org + agent actor from it.
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+
+        captured: list = []
+
+        def get_response(request):
+            captured.append(get_viewer_context())
+            return MagicMock(status_code=200)
+
+        request = self.factory.get("/api/0/organizations/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        with self.feature(agent_token.FEATURE_FLAG):
+            AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(
+                cast(Request, request)
+            )
+        ViewerContextMiddleware(get_response)(request)
+
+        assert len(captured) == 1
+        ctx = captured[0]
+        assert ctx is not None
+        assert ctx.user_id == self.user.id
+        assert ctx.organization_id == self.organization.id
+        assert ctx.actor_type is ActorType.AGENT
+        assert ctx.token is not None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")

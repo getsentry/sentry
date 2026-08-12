@@ -69,7 +69,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                     "parent_span_ids": [],
                     "cause_span_ids": [],
                     "offender_span_ids": [span_id],
-                    "transaction_name": self.event().get("description", ""),
+                    "transaction_name": self.event().get("transaction", ""),
                     "slow_span_description": span.get("description", ""),
                     "slow_span_duration": self._get_duration(span),
                     "transaction_duration": self._get_duration(self._event),

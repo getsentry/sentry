@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 

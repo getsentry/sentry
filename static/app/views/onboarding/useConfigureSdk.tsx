@@ -146,7 +146,7 @@ export function useConfigureSdk({
               platform: selectedPlatform.key,
               organization,
             });
-            onboardingContext.setSelectedPlatform(undefined);
+            onboardingContext.resetOnboarding();
           },
         }
       );

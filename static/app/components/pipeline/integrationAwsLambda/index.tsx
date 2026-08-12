@@ -40,7 +40,7 @@ function ProjectSelectStep({
 }: PipelineStepProps<Record<string, never>, ProjectSelectAdvanceData>) {
   const {projects} = useProjects();
   const sortedProjects = useMemo(
-    () => [...projects].sort((a, b) => a.slug.localeCompare(b.slug)),
+    () => projects.toSorted((a, b) => a.slug.localeCompare(b.slug)),
     [projects]
   );
 

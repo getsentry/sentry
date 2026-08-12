@@ -1,11 +1,9 @@
-import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {EventTransaction} from 'sentry/types/event';
 
 import {ReplayPreview} from './replayPreview';
 
@@ -26,17 +24,14 @@ describe('ReplayPreview', () => {
   });
 
   it('should render replay preview when user has access', () => {
-    const event = EventFixture({
-      contexts: {
-        replay: {
-          replay_id: 'test-replay-id',
-        },
-      },
-    }) as EventTransaction;
-
-    render(<ReplayPreview event={event} organization={organization} />, {
-      organization,
-    });
+    render(
+      <ReplayPreview
+        replayId="test-replay-id"
+        eventTimestampMs={1000}
+        organization={organization}
+      />,
+      {organization}
+    );
 
     expect(screen.getByText('Session Replay')).toBeInTheDocument();
   });
@@ -45,37 +40,29 @@ describe('ReplayPreview', () => {
     const orgWithGranularPermissions = OrganizationFixture({
       features: ['session-replay'],
       hasGranularReplayPermissions: true,
-      replayAccessMembers: [999], // User ID 1 is not in this list
+      replayAccessMembers: [999],
     });
 
-    const event = EventFixture({
-      contexts: {
-        replay: {
-          replay_id: 'test-replay-id',
-        },
-      },
-    }) as EventTransaction;
-
     const {container} = render(
-      <ReplayPreview event={event} organization={orgWithGranularPermissions} />,
-      {
-        organization: orgWithGranularPermissions,
-      }
+      <ReplayPreview
+        replayId="test-replay-id"
+        eventTimestampMs={1000}
+        organization={orgWithGranularPermissions}
+      />,
+      {organization: orgWithGranularPermissions}
     );
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('should return null when event has no replay id', () => {
-    const event = EventFixture({
-      contexts: {},
-    }) as EventTransaction;
-
+  it('should return null when there is no replay id', () => {
     const {container} = render(
-      <ReplayPreview event={event} organization={organization} />,
-      {
-        organization,
-      }
+      <ReplayPreview
+        replayId={undefined}
+        eventTimestampMs={1000}
+        organization={organization}
+      />,
+      {organization}
     );
 
     expect(container).toBeEmptyDOMElement();

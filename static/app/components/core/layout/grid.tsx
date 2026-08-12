@@ -100,7 +100,7 @@ export const Grid = styled(Container, {
     return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
   },
 })<GridProps<any> | GridPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'grid', p.theme, v => v ?? 'grid')}
+  ${p => rc('display', p.display ?? 'grid', p.theme)}
 
   ${p => rc('gap', p.gap, p.theme, getSpacing)};
 

@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any, ClassVar, Self
 
 from django.db import models
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedAutoField,
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -27,6 +32,9 @@ class OrganizationMemberTeam(ReplicatedCellModel):
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
 
     id = BoundedAutoField(primary_key=True)
+    # Shadow column for the in-progress widening of `id` to int8; swapped into the
+    # primary key once backfilled. Nothing reads or writes it yet.
+    new_id = BoundedBigIntegerField(null=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
@@ -48,27 +56,6 @@ class OrganizationMemberTeam(ReplicatedCellModel):
                 if shard_identifier is None
                 else shard_identifier
             )
-        )
-
-    def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.hybridcloud.services.replica.service import control_replica_service
-        from sentry.organizations.services.organization.serial import (
-            serialize_rpc_organization_member_team,
-        )
-
-        control_replica_service.upsert_replicated_organization_member_team(
-            omt=serialize_rpc_organization_member_team(self)
-        )
-
-    @classmethod
-    def handle_async_deletion(
-        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
-    ) -> None:
-        from sentry.hybridcloud.services.replica.service import control_replica_service
-
-        control_replica_service.remove_replicated_organization_member_team(
-            organization_id=shard_identifier,
-            organization_member_team_id=identifier,
         )
 
     def get_audit_log_data(self) -> dict[str, Any]:

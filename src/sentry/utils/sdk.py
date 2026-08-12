@@ -65,6 +65,12 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event_transaction": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    # Mirror the rate the process-segments consumer used for its
+    # per-message transaction, now that the work runs as a task.
+    "sentry.spans.process_segments.process_segment": (
+        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
+        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+    ),
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
@@ -202,31 +208,6 @@ def traces_sampler(sampling_context):
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]
-
-    if "taskworker" in sampling_context:
-        task_name = sampling_context["taskworker"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
-
-    # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
-
-
-def span_streaming_traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
-
-    # Apply sample_rate from custom_sampling_context
-    custom_sample_rate = sampling_context.get("sample_rate")
-    if custom_sample_rate is not None:
-        return float(custom_sample_rate)
-
-    # If there's already a sampling decision, just use that
-    parent_sampled = sampling_context["span_context"]["parent_sampled"]
-    if parent_sampled is not None:
-        return parent_sampled
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
@@ -439,13 +420,12 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
-        def _should_drop_s4s(self, method_name, *args) -> bool:
+        def _should_drop_s4s(self, method_name, sample_rate, *args) -> bool:
             """
             Deterministically drop transaction/span data sent to S4S
             based on trace_id. Rate is controlled by the
             store.s4s-transaction-sample-rate option. Errors are never dropped.
             """
-            sample_rate = options.get("store.s4s-transaction-sample-rate")
             if sample_rate >= 1.0:
                 return False
 
@@ -477,7 +457,8 @@ def configure_sdk():
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                if self._should_drop_s4s(method_name, *args):
+                s4s_sample_rate = options.get("store.s4s-transaction-sample-rate")
+                if self._should_drop_s4s(method_name, s4s_sample_rate, *args):
                     metrics.incr("internal.captured.events.upstream.s4s_dropped", sample_rate=0.01)
                 else:
                     metrics.incr("internal.captured.events.upstream", sample_rate=0.01)
@@ -488,24 +469,48 @@ def configure_sdk():
                     #     event.setdefault('tags', {})['install-id'] = install_id
                     s4s_args = args
                     # We want to control whether we want to send metrics at the s4s upstream.
-                    if (
-                        not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                        and method_name == "capture_envelope"
-                    ):
+                    if method_name == "capture_envelope":
                         args_list = list(args)
                         envelope = args_list[0]
-                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                        # unless we allow them via a separate sample rate.
-                        safe_items = [
-                            x
-                            for x in envelope.items
-                            if x.data_category != "statsd"
-                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                        ]
-                        if len(safe_items) != len(envelope.items):
-                            relay_envelope = copy.copy(envelope)
-                            relay_envelope.items = safe_items
-                            s4s_args = (relay_envelope, *args_list[1:])
+
+                        relay_envelope = copy.copy(envelope)
+                        s4s_args = (relay_envelope, *args_list[1:])
+
+                        if not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED:
+                            # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                            # unless we allow them via a separate sample rate.
+                            safe_items = [
+                                x
+                                for x in envelope.items
+                                if x.data_category != "statsd"
+                                or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                            ]
+                            if len(safe_items) != len(relay_envelope.items):
+                                relay_envelope.items = safe_items
+
+                        # Only transactions are sampled at a lower rate.
+                        if relay_envelope.get_transaction_event() is not None:
+                            trace = relay_envelope.headers.get("trace")
+
+                            prior_sample_rate = None
+                            try:
+                                prior_sample_rate = float(trace["sample_rate"])
+                            except Exception:
+                                pass
+
+                            if (
+                                isinstance(trace, dict)
+                                and isinstance(prior_sample_rate, float)
+                                and isinstance(s4s_sample_rate, float)
+                            ):
+                                # Maintain accurate extrapolation by incorporating "store.s4s-transaction-sample-rate"
+                                relay_envelope.headers = {
+                                    **relay_envelope.headers,
+                                    "trace": {
+                                        **trace,
+                                        "sample_rate": str(prior_sample_rate * s4s_sample_rate),
+                                    },
+                                }
 
                     getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
@@ -586,11 +591,7 @@ def configure_sdk():
         disabled_integrations.append(ThreadingIntegration())
 
     if dsns.sentry_mirror:
-        sdk_options.setdefault("_experiments", {}).update(
-            trace_lifecycle="stream",
-        )
-
-        sdk_options["traces_sampler"] = span_streaming_traces_sampler
+        sdk_options["trace_lifecycle"] = "stream"
 
         sentry_sdk.init(
             dsn=dsns.sentry_mirror,

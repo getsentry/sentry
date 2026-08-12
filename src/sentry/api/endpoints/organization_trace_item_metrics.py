@@ -1,5 +1,6 @@
 from typing import Never, NotRequired, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +16,15 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 )
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
     TraceItemTypes,
@@ -26,12 +36,28 @@ from sentry.search.eap.constants import (
     METRIC_TYPE_ALIAS,
     METRIC_UNIT_ALIAS,
 )
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
+from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
+
+# Sortable response fields mapped to their underlying query aliases. Keeps the
+# public `sort` param decoupled from the internal aggregate expressions.
+_SORT_FIELDS = {
+    "name": METRIC_NAME_ALIAS,
+    "type": METRIC_TYPE_ALIAS,
+    "unit": METRIC_UNIT_ALIAS,
+    "count": _COUNT_ALIAS,
+    "lastSeen": _LAST_SEEN_ALIAS,
+}
+
+# The full grouping key — appended after any sort so pagination always has a
+# stable total order (a single field like count isn't unique across rows).
+_GROUPING_ORDER = [METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS]
 
 # Metrics count is small; a generous cap avoids paginating in practice.
 MAX_METRICS_PER_PAGE = 1000
@@ -39,14 +65,18 @@ MAX_METRICS_PER_PAGE = 1000
 
 class TraceMetricContext(TypedDict):
     brief: NotRequired[str]
-    additionalContext: NotRequired[str]
+    # Longer-form notes, normalized to a list to match the attributes context
+    # shape (see TraceItemAttributeContext.details).
+    details: NotRequired[list[str]]
 
 
 class TraceMetricItem(TypedDict):
     name: str
-    type: str
+    type: TraceMetricType
     unit: str | None
-    count: int
+    # The EAP aggregate declares an integer search type but the value arrives as
+    # a float, so declare what is actually emitted.
+    count: float
     lastSeen: float | None
     # Only present when `expand=context` is requested and the
     # data-browsing-attribute-context feature is enabled.
@@ -56,8 +86,76 @@ class TraceMetricItem(TypedDict):
 class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     query = serializers.CharField(required=False)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
+    # A response field to sort by, optionally prefixed with `-` for descending
+    # (e.g. `-count`). Defaults to metric name.
+    sort = serializers.CharField(required=False)
+    # Overrides the referrer attached to the underlying query so callers (e.g.
+    # Seer tools) remain distinguishable in query analytics. Falls back to the
+    # endpoint default when absent or not a recognized referrer.
+    referrer = serializers.CharField(required=False)
+    # Restrict results to metrics that have authored context. Gated behind the
+    # data-browsing-attribute-context feature (a no-op without it).
+    contextOnly = serializers.BooleanField(required=False, default=False, source="context_only")
+
+    def validate_sort(self, value: str) -> str:
+        field = value[1:] if value.startswith("-") else value
+        if field not in _SORT_FIELDS:
+            raise serializers.ValidationError(
+                f"Invalid sort field `{field}`. Must be one of: {', '.join(_SORT_FIELDS)}."
+            )
+        return value
 
 
+QUERY_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Search query to filter metrics, using the same syntax as the metrics dataset.",
+)
+
+SORT_QUERY_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=sorted(_SORT_FIELDS) + [f"-{field}" for field in sorted(_SORT_FIELDS)],
+    description=(
+        "Response field to sort by, prefixed with `-` for descending. "
+        "Defaults to metric name ascending."
+    ),
+)
+
+EXPAND_QUERY_PARAM = OpenApiParameter(
+    name="expand",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    enum=["context"],
+    description=(
+        "Optional fields to expand. Pass `context` to include each metric's authored "
+        "context (brief and details), which describes what the metric measures. "
+        "Requires the `data-browsing-attribute-context` feature; without it the "
+        "`context` field is omitted."
+    ),
+)
+
+CONTEXT_ONLY_QUERY_PARAM = OpenApiParameter(
+    name="contextOnly",
+    location="query",
+    required=False,
+    type=bool,
+    description=(
+        "Return only metrics that have authored context, and include that context in the "
+        "response. Use this to discover the metrics that are described well enough to query "
+        "confidently. Requires the `data-browsing-attribute-context` feature; without it this "
+        "is a no-op."
+    ),
+)
+
+
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -65,14 +163,41 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceMetrics",
+        summary="List an Organization's Trace Metrics",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            QUERY_QUERY_PARAM,
+            SORT_QUERY_PARAM,
+            EXPAND_QUERY_PARAM,
+            CONTEXT_ONLY_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationTraceMetricsResponse", list[TraceMetricItem]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TraceMetricItem]] | Response[ValidationErrorResponse]:
         """List trace metrics (name, type, unit, count, last seen) with optional context."""
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemMetricsSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         serialized = serializer.validated_data
 
         try:
@@ -86,12 +211,51 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 
+        # Allowlist the caller-supplied referrer; fall back to the endpoint
+        # default when absent or unrecognized so query analytics stay clean.
+        referrer = serialized.get("referrer")
+        if not referrer or not is_valid_referrer(referrer):
+            referrer = Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
+
         query_string = serialized.get("query", "")
-        # Authored context is joined from TraceItemAttributeValueContext, gated
+        # Authored context lives in TraceItemAttributeValueContext and is gated
         # behind the feature; conventions don't apply to custom metrics.
-        include_context = "context" in serialized.get("expand", set()) and features.has(
+        has_context_feature = features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
+        # context_only restricts results to metrics that have authored context.
+        context_only = serialized.get("context_only", False) and has_context_feature
+        include_context = has_context_feature and (
+            "context" in serialized.get("expand", set()) or context_only
+        )
+
+        if context_only:
+            context_names = list(
+                TraceItemAttributeValueContext.objects.filter(
+                    organization=organization,
+                    item_type=TraceItemTypes.TRACEMETRICS,
+                    attribute_name=METRIC_NAME_ALIAS,
+                )
+                .values_list("attribute_value", flat=True)
+                .distinct()
+            )
+            if not context_names:
+                return self.paginate(request=request, paginator=ChainPaginator([]))
+            # Restrict the metrics query to names that have context, so count,
+            # sort, and pagination all operate on the filtered set.
+            name_filter = build_escaped_term_filter(METRIC_NAME_ALIAS, context_names)
+            query_string = f"{query_string} {name_filter}".strip()
+
+        # Resolve the requested sort to a query orderby, always appending the
+        # grouping key so pagination has a stable total order.
+        sort = serialized.get("sort")
+        if sort:
+            descending = sort.startswith("-")
+            sort_alias = _SORT_FIELDS[sort.lstrip("-")]
+            sort_column = ("-" if descending else "") + sort_alias
+            orderby = [sort_column] + [column for column in _GROUPING_ORDER if column != sort_alias]
+        else:
+            orderby = list(_GROUPING_ORDER)
 
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
             with handle_query_errors():
@@ -105,12 +269,10 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                         _COUNT_ALIAS,
                         _LAST_SEEN_ALIAS,
                     ],
-                    # Order by the full grouping key so pagination has a stable
-                    # total order (a name alone isn't unique across type/unit).
-                    orderby=[METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS],
+                    orderby=orderby,
                     offset=offset,
                     limit=limit,
-                    referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
+                    referrer=referrer,
                     config=SearchResolverConfig(),
                     sampling_mode=snuba_params.sampling_mode,
                 )
@@ -126,6 +288,10 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             ]
             if include_context:
                 self._attach_context(metrics, organization)
+            if context_only:
+                # The query filters by name only, but context is keyed by
+                # (name, type) — drop rows whose specific type has no context.
+                metrics = [metric for metric in metrics if "context" in metric]
             return metrics
 
         return self.paginate(
@@ -166,6 +332,6 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             context: TraceMetricContext = {}
             if context_row.brief is not None:
                 context["brief"] = context_row.brief
-            if context_row.additional_context is not None:
-                context["additionalContext"] = context_row.additional_context
+            if context_row.additional_context:
+                context["details"] = [context_row.additional_context]
             metric["context"] = context

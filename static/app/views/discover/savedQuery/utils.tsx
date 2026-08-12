@@ -28,6 +28,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 export function handleCreateQuery(
   api: Client,
@@ -198,11 +199,17 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(savedQuery => {
-      addSuccessMessage(t('Saved as Discover default'));
+      addSuccessMessage(
+        getDiscoverDeprecation(organization)
+          ? t('Saved as Errors default')
+          : t('Saved as Discover default')
+      );
       return savedQuery;
     })
     .catch((e: RequestError) => {
-      let errorMessage = t('Unable to set query as Discover default');
+      let errorMessage = getDiscoverDeprecation(organization)
+        ? t('Unable to set query as Errors default')
+        : t('Unable to set query as Discover default');
 
       if ('responseJSON' in e) {
         const response = e.responseJSON;
@@ -219,10 +226,18 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Successfully removed Discover default'));
+      addSuccessMessage(
+        getDiscoverDeprecation(organization)
+          ? t('Successfully removed Errors default')
+          : t('Successfully removed Discover default')
+      );
     })
     .catch(() => {
-      addErrorMessage(t('Unable to remove Discover default'));
+      addErrorMessage(
+        getDiscoverDeprecation(organization)
+          ? t('Unable to remove Errors default')
+          : t('Unable to remove Discover default')
+      );
     });
 }
 

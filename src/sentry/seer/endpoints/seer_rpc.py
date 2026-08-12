@@ -53,20 +53,11 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.models.pullrequest import (
-    PullRequest,
-    PullRequestAttributionSignalType,
-    PullRequestAttributionSource,
-)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
-from sentry.pr_metrics.attribution import (
-    DELEGATED_SIGNAL_TYPES,
-    DelegatedAgentSignalDetails,
-    record_attribution_signal,
-)
 from sentry.pr_metrics.judge import update_pr_metrics
 from sentry.replays.usecases.summarize import rpc_get_replay_summary_logs
 from sentry.search.eap.resolver import SearchResolver
@@ -94,7 +85,6 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
-    get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -126,11 +116,16 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
@@ -146,7 +141,6 @@ from sentry.seer.sentry_data_models import (
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
-    PrAttributionResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
     SendSeerWebhookErrorResponse,
@@ -702,18 +696,37 @@ def send_seer_webhook(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "seer.webhook_organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
         return SendSeerWebhookErrorResponse(error="Organization not found or not active")
 
     if SeerAutofixOperator.has_access(organization=organization):
+        activity_already_recorded = False
+        group_id = payload.get("group_id")
+        if group_id:
+            try:
+                group = Group.objects.get(
+                    id=group_id,
+                    project__organization_id=organization_id,
+                )
+            except Group.DoesNotExist:
+                pass
+            else:
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=payload,
+                )
+                activity_already_recorded = True
+
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": organization_id,
+                "activity_already_recorded": activity_already_recorded,
             }
         )
 
@@ -840,7 +853,12 @@ def deliver_feature_result(
         )
         return
 
-    handler(organization_id, run_uuid, status, result, error)
+    try:
+        parsed_run_uuid = uuid.UUID(run_uuid)
+    except (TypeError, ValueError):
+        raise ParseError("Invalid run uuid")
+
+    handler(organization_id, parsed_run_uuid, status, result, error)
 
 
 def get_monitoring_provider_connections(
@@ -928,8 +946,8 @@ def refresh_monitoring_provider_token(
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
-    encrypted_access_token = encrypt_access_token_for_seer(access_token)
-    if not encrypted_access_token:
+    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+    if not encrypted_auth_header:
         logger.error(
             "monitoring_provider.refresh.access_token_encryption_failed",
             extra={"identity_id": identity.id},
@@ -937,86 +955,9 @@ def refresh_monitoring_provider_token(
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_access_token=encrypted_access_token,
+        encrypted_auth_headers={"Authorization": encrypted_auth_header},
         expires=identity.data.get("expires"),
     )
-
-
-def record_pr_attribution(
-    *,
-    organization_id: int,
-    pull_request_id: int,
-    signal_type: str,
-    signal_details: dict[str, Any] | None = None,
-) -> PrAttributionResponse:
-    """Record a PR attribution signal on behalf of Seer.
-
-    Idempotent via the unique constraint on
-    PullRequestAttribution(pull_request, signal_type, source).
-
-    Args:
-        organization_id: Sentry organization that owns the PR.
-        pull_request_id: Sentry-internal PullRequest.id.
-        signal_type: A PullRequestAttributionSignalType value.
-        signal_details: Arbitrary provider-specific metadata to store on the row.
-
-    Returns:
-        {"attribution_id": int} on success, or {"attribution_id": None} when the
-        pr-metrics-attribution feature is disabled for the org.
-    """
-    try:
-        signal = PullRequestAttributionSignalType(signal_type)
-    except ValueError:
-        raise ParseError(detail=f"Unknown signal_type: {signal_type!r}")
-
-    try:
-        organization = Organization.objects.get(
-            id=organization_id, status=OrganizationStatus.ACTIVE
-        )
-    except Organization.DoesNotExist:
-        raise ObjectDoesNotExist(f"Organization {organization_id} not found or inactive")
-
-    if not features.has("organizations:pr-metrics-attribution", organization):
-        logger.info(
-            "seer.record_pr_attribution.feature_disabled",
-            extra={"organization_id": organization_id, "pull_request_id": pull_request_id},
-        )
-        return PrAttributionResponse(attribution_id=None)
-
-    try:
-        pull_request = PullRequest.objects.get(
-            id=pull_request_id,
-            organization_id=organization_id,
-        )
-    except PullRequest.DoesNotExist:
-        raise ObjectDoesNotExist(
-            f"PullRequest {pull_request_id} not found in org {organization_id}"
-        )
-
-    if signal in DELEGATED_SIGNAL_TYPES:
-        try:
-            signal_details = DelegatedAgentSignalDetails.parse_obj(signal_details or {}).dict()
-        except Exception:
-            raise ParseError(
-                detail="signal_details does not match DelegatedAgentSignalDetails schema"
-            )
-
-    attribution = record_attribution_signal(
-        pull_request=pull_request,
-        signal_type=signal,
-        source=PullRequestAttributionSource.SEER_DATA,
-        signal_details=signal_details,
-    )
-    logger.info(
-        "seer.record_pr_attribution.recorded",
-        extra={
-            "organization_id": organization_id,
-            "pull_request_id": pull_request_id,
-            "signal_type": signal_type,
-            "attribution_id": attribution.id,
-        },
-    )
-    return PrAttributionResponse(attribution_id=attribution.id)
 
 
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
@@ -1072,7 +1013,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_profiles_for_trace": seer_rpc(rpc_get_profiles_for_trace),
     "get_issues_for_transaction": seer_rpc(rpc_get_issues_for_transaction),
     "get_trace_waterfall": seer_rpc(rpc_get_trace_waterfall),
-    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
@@ -1088,7 +1028,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "call_custom_tool": seer_rpc(call_custom_tool),
     "call_on_completion_hook": seer_rpc(call_on_completion_hook),
     "deliver_feature_result": seer_rpc(deliver_feature_result),
-    "record_pr_attribution": seer_rpc(record_pr_attribution),
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
@@ -1103,6 +1042,9 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # PR metrics (judge path)
     "update_pr_metrics": seer_rpc(update_pr_metrics),
+    #
+    # PR created (attribution + run link)
+    "notify_seer_pr_created": seer_rpc(notify_seer_pr_created),
     #
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),

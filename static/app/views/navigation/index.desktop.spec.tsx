@@ -32,7 +32,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -200,7 +199,7 @@ describe('desktop navigation', () => {
           <Navigation />
         </PrimaryNavigationContextProvider>,
         navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES, 'workflow-engine-ui']},
+          organization: {features: [...ALL_AVAILABLE_FEATURES]},
         })
       );
 
@@ -377,7 +376,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
           [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
           // Dashboards
-          [`${ORG}/dashboards/`, 'Dashboards', 'Custom Dashboards'],
+          [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
           [`${ORG}/insights/frontend/`, 'Insights', 'Frontend'],
           [`${ORG}/insights/backend/`, 'Insights', 'Backend'],
@@ -478,7 +477,7 @@ describe('desktop navigation', () => {
           ['/explore/logs/', 'Explore', 'Logs'],
           ['/explore/replays/', 'Explore', 'Replays'],
           // Dashboards
-          ['/dashboards/', 'Dashboards', 'Custom Dashboards'],
+          ['/dashboards/', 'Dashboards', 'All Dashboards'],
           // Insights
           ['/insights/frontend/', 'Insights', 'Frontend'],
           ['/insights/backend/', 'Insights', 'Backend'],

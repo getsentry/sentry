@@ -9,7 +9,7 @@ export {
   type SelectKey,
 } from './compactSelect';
 
-export {CompositeSelect, type CompositeSelectProps} from './composite';
+export {CompositeSelect} from './composite';
 
 export {ControlContext} from './control';
 

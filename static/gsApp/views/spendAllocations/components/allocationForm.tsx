@@ -329,7 +329,7 @@ export function AllocationForm({
                     }
                   />
                   &nbsp;
-                  {showPrice ? '$' : metricUnit === BigNumUnits.KILO_BYTES && 'KB'}
+                  {showPrice ? '$' : metricUnit === BigNumUnits.KILO_BYTES && 'kB'}
                 </Flex>
                 <Button
                   aria-label="increase-allocation"

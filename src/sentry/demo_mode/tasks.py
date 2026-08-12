@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -239,17 +239,24 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                source_fileobj = (
-                    source_project_debug_file._get_objectstore_session()
-                    .get(source_project_debug_file.storage_path)
-                    .payload
+                response = source_project_debug_file.get_objectstore_session().get(
+                    source_project_debug_file.storage_path
                 )
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
+                source_fileobj = response.payload
                 try:
                     target_storage_path = get_debug_files_session(
                         target_org.id, target_project.id
                     ).put(
                         source_fileobj,
-                        compression="none",
+                        compression=(
+                            "zstd"
+                            if features.has(
+                                "organizations:objectstore-debugfiles-compression", target_org
+                            )
+                            else "none"
+                        ),
                         content_type=source_project_debug_file.get_content_type(),
                     )
                 finally:

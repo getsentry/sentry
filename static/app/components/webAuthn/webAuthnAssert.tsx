@@ -8,6 +8,7 @@ import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
@@ -153,13 +154,13 @@ export function WebAuthnAssert({
   }
 
   return (
-    <Container>
+    <WebAuthnContainer>
       <DeviceAnimation activated={activated} role="presentation" />
       {MESSAGES[mode]}
 
       <input type="hidden" name="challenge" value={challenge} />
       <input type="hidden" name="response" value={response ?? ''} ref={inputRef} />
-    </Container>
+    </WebAuthnContainer>
   );
 }
 
@@ -190,27 +191,35 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
   );
 
   return (
-    <Container>
+    <AlertContainer>
       <Alert variant="danger" trailingItems={retry}>
         {errorMessages[error]}
       </Alert>
-    </Container>
+    </AlertContainer>
   );
 }
 
 function UnsupportedError() {
   return (
-    <Container>
+    <AlertContainer>
       <Alert variant="warning">
         {t(
           'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge).'
         )}
       </Alert>
+    </AlertContainer>
+  );
+}
+
+function AlertContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="2xl 0" margin="0 0 xl 0">
+      {children}
     </Container>
   );
 }
 
-const Container = styled('div')`
+const WebAuthnContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};

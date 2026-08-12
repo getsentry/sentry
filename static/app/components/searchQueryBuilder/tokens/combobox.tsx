@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  type FocusEvent,
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
@@ -42,7 +43,7 @@ import {
   findItemInSections,
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,9 +56,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   items: T[];
   /**
    * Called when the input is blurred.
-   * Passes the current input value.
+   * Passes the current input value and blur event.
    */
-  onCustomValueBlurred: (value: string) => void;
+  onCustomValueBlurred: (value: string, event?: FocusEvent<HTMLInputElement>) => void;
   /**
    * Called when the user commits a value with the enter key.
    * Passes the current input value.
@@ -382,6 +383,7 @@ export function SearchQueryBuilderCombobox<
   children,
   description,
   items,
+  token,
   inputValue,
   filterValue = inputValue,
   placeholder,
@@ -412,7 +414,7 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {clearSearchQuery} = useSearchQueryBuilderState();
+  const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
@@ -430,7 +432,7 @@ export function SearchQueryBuilderCombobox<
     showAskSeerOption: enableAISearch,
   });
 
-  const onSelectionChange = useCallback(
+  const onValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -448,8 +450,8 @@ export function SearchQueryBuilderCombobox<
     items,
     autoFocus,
     inputValue: filterValue,
-    selectedKey: null,
-    onSelectionChange,
+    value: null,
+    onChange: onValueChange,
     allowsCustomValue: true,
     disabledKeys,
     isDisabled: disabled,
@@ -474,6 +476,8 @@ export function SearchQueryBuilderCombobox<
       inputRef,
       popoverRef,
       tabTargetRef: askSeerButtonRef,
+      // This component supplies a custom ariaHideOutside allowlist below.
+      shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -485,7 +489,7 @@ export function SearchQueryBuilderCombobox<
         if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
           return;
         }
-        onCustomValueBlurred(inputValue);
+        onCustomValueBlurred(inputValue, e);
         state.close();
       },
       onKeyDown: e => {
@@ -664,12 +668,28 @@ export function SearchQueryBuilderCombobox<
         disabled={disabled}
         onKeyDownCapture={e => {
           if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            e.preventDefault();
-            e.stopPropagation();
-            onSearchQueryClear?.();
-            state.close();
-            clearSearchQuery({reopenDropdown: true});
-            return;
+            if (token.type === Token.FREE_TEXT) {
+              e.preventDefault();
+              e.stopPropagation();
+              state.close();
+              dispatch({
+                type: 'DELETE_TO_CURSOR',
+                token,
+                cursorPosition: e.currentTarget.selectionStart ?? 0,
+                inputValue,
+                direction: e.key === 'Backspace' ? 'before' : 'after',
+              });
+              return;
+            }
+
+            if (!inputValue) {
+              e.preventDefault();
+              e.stopPropagation();
+              onSearchQueryClear?.();
+              state.close();
+              clearSearchQuery({reopenDropdown: true});
+              return;
+            }
           }
 
           onKeyDownCapture?.(e, {state});

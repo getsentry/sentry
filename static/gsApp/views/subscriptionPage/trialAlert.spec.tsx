@@ -21,7 +21,7 @@ describe('Subscription > TrialAlert', () => {
   it('does not render not on trial', () => {
     const sub = {
       ...subscription,
-      isTrial: false,
+      trialPlan: null,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
     };
@@ -32,7 +32,7 @@ describe('Subscription > TrialAlert', () => {
   it('renders 1 day left', () => {
     const sub = {
       ...subscription,
-      isTrial: true,
+      trialPlan: 'am1_business',
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
       trialEnd: '2021-01-02',
@@ -45,7 +45,7 @@ describe('Subscription > TrialAlert', () => {
   it('renders 14 days left', () => {
     const sub = {
       ...subscription,
-      isTrial: true,
+      trialPlan: 'am1_business',
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
       trialEnd: '2021-01-15',
@@ -58,7 +58,7 @@ describe('Subscription > TrialAlert', () => {
   it('does not render negative days left', () => {
     const sub = {
       ...subscription,
-      isTrial: true,
+      trialPlan: 'am1_business',
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
       trialEnd: '2020-12-01',
@@ -70,7 +70,7 @@ describe('Subscription > TrialAlert', () => {
   it('renders enterprise trial', () => {
     const sub = {
       ...subscription,
-      isTrial: true,
+      trialPlan: 'am1_business',
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
@@ -88,7 +88,7 @@ describe('Subscription > TrialAlert', () => {
     const am3_sub = SubscriptionFixture({organization, plan: 'am3_f'});
     const sub = {
       ...am3_sub,
-      isTrial: true,
+      trialPlan: 'am1_business',
       isEnterpriseTrial: true,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
@@ -105,9 +105,8 @@ describe('Subscription > TrialAlert', () => {
   it('renders plan trial', () => {
     const sub = {
       ...subscription,
-      isTrial: true,
+      trialPlan: 'am1_business',
       isEnterpriseTrial: false,
-      isPerformancePlanTrial: false,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
     };
@@ -119,23 +118,5 @@ describe('Subscription > TrialAlert', () => {
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/unlimited errors/)).not.toBeInTheDocument();
-  });
-
-  it('renders performance trial', () => {
-    const sub = {
-      ...subscription,
-      isTrial: true,
-      isEnterpriseTrial: false,
-      isPerformancePlanTrial: true,
-      onDemandMaxSpend: 1000,
-      onDemandSpendUsed: 0,
-    };
-    render(<TrialAlert subscription={sub} organization={organization} />);
-    expect(screen.getByText('Performance Trial')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "With your trial you have access to Sentry's performance features."
-      )
-    ).toBeInTheDocument();
   });
 });

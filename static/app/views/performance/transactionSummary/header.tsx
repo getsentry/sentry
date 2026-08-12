@@ -215,9 +215,6 @@ export function TransactionHeader({
                   referrer="performance"
                   alertType="trans_duration"
                   aria-label={t('Create Alert')}
-                  disableMetricDataset={
-                    metricsCardinality?.outcome?.forceTransactionsOnly
-                  }
                 />
               ) : null
             }
@@ -290,7 +287,6 @@ export function TransactionHeader({
                 referrer="performance"
                 alertType="trans_duration"
                 aria-label={t('Create Alert')}
-                disableMetricDataset={metricsCardinality?.outcome?.forceTransactionsOnly}
               />
             ) : null
           }

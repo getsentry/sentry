@@ -17,8 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjects} from 'sentry/utils/useProjects';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
@@ -35,11 +34,6 @@ type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label' | 'to'>
   projects: Project[];
   alertType?: AlertType;
   className?: string;
-  /**
-   * Passed in value to override any metrics decision and switch back to transactions dataset.
-   * We currently do a few checks on metrics data on performance pages and this passes the decision onward to alerts.
-   */
-  disableMetricDataset?: boolean;
 
   /**
    * Called when the user is redirected to the alert builder
@@ -59,7 +53,6 @@ export function CreateAlertFromViewButton({
   referrer,
   onClick,
   alertType,
-  disableMetricDataset,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
   const project = projects.find(p => p.id === `${eventView.project[0]}`);
@@ -76,49 +69,27 @@ export function CreateAlertFromViewButton({
       AlertWizardRuleTemplates[alertType]
     : DEFAULT_WIZARD_TEMPLATE;
 
-  const shouldDirectToMonitors = organization.features.includes('workflow-engine-ui');
-
-  const to = shouldDirectToMonitors
-    ? getMetricMonitorUrl({
-        project,
-        environment: queryParams.environment,
-        aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-        dataset: alertTemplate.dataset,
-        organization,
-        query: decodeScalar(queryParams.query),
-        referrer,
-        eventTypes: alertTemplate.eventTypes,
-      })
-    : {
-        pathname: makeAlertsPathname({
-          path: '/new/metric/',
-          organization,
-        }),
-        query: {
-          ...queryParams,
-          createFromDiscover: true,
-          disableMetricDataset,
-          referrer,
-          ...alertTemplate,
-          project: project?.slug,
-          aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
-        },
-      };
+  const to = getMetricMonitorUrl({
+    project,
+    environment: queryParams.environment,
+    aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+    dataset: alertTemplate.dataset,
+    organization,
+    query: decodeScalar(queryParams.query),
+    referrer,
+    eventTypes: alertTemplate.eventTypes,
+  });
 
   const handleClick = () => {
     onClick?.();
   };
-
-  const createButtonLabel = shouldDirectToMonitors
-    ? t('Create Monitor')
-    : t('Create Alert');
 
   return (
     <CreateAlertButton
       organization={organization}
       onClick={handleClick}
       to={to}
-      aria-label={createButtonLabel}
+      aria-label={t('Create Monitor')}
       {...buttonProps}
     />
   );
@@ -126,7 +97,6 @@ export function CreateAlertFromViewButton({
 
 type CreateAlertButtonProps = {
   organization: Organization;
-  alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
   /**
@@ -146,7 +116,6 @@ export function CreateAlertButton({
   iconProps,
   referrer,
   hideIcon,
-  alertOption,
   onEnter,
   to,
   ...buttonProps
@@ -154,10 +123,6 @@ export function CreateAlertButton({
   const navigate = useNavigate();
   const location = useLocation();
   const {projects} = useProjects();
-  const shouldDirectToMonitors = organization.features.includes('workflow-engine-ui');
-  const defaultButtonLabel = shouldDirectToMonitors
-    ? t('Create Monitor')
-    : t('Create Alert');
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
     if (referrer) {
@@ -166,20 +131,9 @@ export function CreateAlertButton({
     if (providedProj !== ':projectId') {
       params.append('project', providedProj);
     }
-    if (alertOption && !shouldDirectToMonitors) {
-      params.append('alert_option', alertOption);
-    }
     const queryString = params.toString();
-    if (shouldDirectToMonitors) {
-      const basePath = makeMonitorCreatePathname(organization.slug);
-      return queryString ? `${basePath}?${queryString}` : basePath;
-    }
-    return (
-      makeAlertsPathname({
-        path: '/wizard/',
-        organization,
-      }) + (queryString ? `?${queryString}` : '')
-    );
+    const basePath = makeMonitorCreatePathname(organization.slug);
+    return queryString ? `${basePath}?${queryString}` : basePath;
   };
 
   function handleClickWithoutProject(event: React.MouseEvent) {
@@ -215,7 +169,7 @@ export function CreateAlertButton({
       onClick={projectSlug ? onEnter : handleClickWithoutProject}
       {...buttonProps}
     >
-      {buttonProps.children ?? defaultButtonLabel}
+      {buttonProps.children ?? t('Create Monitor')}
     </LinkButton>
   );
 }

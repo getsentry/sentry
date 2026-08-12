@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -62,7 +62,11 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
-from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    SNAPSHOT_ARCHIVE_MANIFEST_FEATURE,
+    SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
+)
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
@@ -377,6 +381,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
+            if get_response is None:
+                raise FileNotFoundError("Manifest does not exist in objectstore")
             with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                 raw_manifest = get_response.payload.read()
             with start_span(
@@ -426,10 +432,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
+                    response = session.get(comparison_key)
+                    if response is None:
+                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
                     with start_span(
                         op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
                     ):
-                        raw_comparison_manifest = session.get(comparison_key).payload.read()
+                        raw_comparison_manifest = response.payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
@@ -450,8 +459,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
+                    response = session.get(base_manifest_key)
+                    if response is None:
+                        raise FileNotFoundError("Base manifest does not exist in objectstore")
                     with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
-                        raw_base_manifest = session.get(base_manifest_key).payload.read()
+                        raw_base_manifest = response.payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
                     ) as span:
@@ -723,6 +735,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         images = data.get("images", {})
         diff_threshold = data.get("diff_threshold")
 
+        if features.has(SNAPSHOT_ARCHIVE_MANIFEST_FEATURE, project.organization) and (
+            SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images
+        ):
+            return Response(
+                {"detail": f"The filename {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME} is reserved."},
+                status=400,
+            )
+
         # VCS info
         head_sha = data.get("head_sha")
         base_sha = data.get("base_sha")
@@ -825,8 +845,10 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest_json = manifest.json(exclude_none=True)
-            session.put(manifest_json.encode(), key=manifest_key)
+            manifest_bytes = manifest.json(exclude_none=True).encode()
+            manifest_size_bytes = len(manifest_bytes)
+            session.put(manifest_bytes, key=manifest_key)
+            del manifest_bytes
 
         logger.info(
             "Created preprod artifact and stored snapshot manifest",
@@ -838,6 +860,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
+                "manifest_size_bytes": manifest_size_bytes,
             },
         )
 

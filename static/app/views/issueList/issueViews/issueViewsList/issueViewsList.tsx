@@ -4,7 +4,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -232,11 +232,15 @@ function NoViewsBanner({
   return (
     <Banner>
       <BannerTitle>{t('Create your first view')}</BannerTitle>
-      <BannerText>
+      <Container
+        maxWidth={{zero: '100%', '3xl': '75%', '4xl': '60%', '5xl': '50%'}}
+        flexShrink={0}
+        style={{fontSize: '14px', fontWeight: 400}}
+      >
         {t(
           'Your haven’t saved any issue views yet — saving views makes it easier to return to your most frequent search queries, like high priority, assigned to you, or most recent.'
         )}
-      </BannerText>
+      </Container>
       <Feature
         features="organizations:issue-views"
         overrideName="feature-disabled:issue-views"
@@ -495,24 +499,6 @@ const Banner = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerText = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  flex-shrink: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 75%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    max-width: 60%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    max-width: 50%;
-  }
 `;
 
 const BannerAddViewButton = styled(Button)`

@@ -5,6 +5,7 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {
+  ErrorsUpsellFooter,
   getBestMaxPickableDays,
   getMaxPickableDays,
   SpansUpsellFooter,
@@ -115,6 +116,13 @@ function getMaxPickableDaysBySubscription(
       return {
         maxPickableDays: subscription?.planDetails?.retentionDays ?? MAX_PICKABLE_DAYS,
         maxUpgradableDays: MAX_PICKABLE_DAYS,
+      };
+    case DataCategory.ERRORS:
+      return {
+        // we're trying to emulate the spans behavior which uses 30 as a default
+        maxPickableDays: subscription?.planDetails?.retentionDays ?? 30,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
+        upsellFooter: ErrorsUpsellFooter,
       };
     default:
       return undefined;

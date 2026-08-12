@@ -1,4 +1,4 @@
-import {Activity, Fragment, useRef, useState} from 'react';
+import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
@@ -133,6 +133,15 @@ export function MetricPanel({
     }
     return;
   });
+
+  useEffect(() => {
+    if (isVisualizeEquation(visualize)) {
+      setTitle(
+        visualize.internalExpression ??
+          unresolveExpression(visualize.expression.text, referenceMap)
+      );
+    }
+  }, [visualize, referenceMap]);
 
   const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty

@@ -34,11 +34,13 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
   overflow: hidden;
   text-overflow: ellipsis;
 
-  background-color: ${type === 'error'
-    ? theme.colors.red100 + ' !important'
-    : type === 'warning'
-      ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
-      : 'inherit'};
+  background-color: ${
+    type === 'error'
+      ? theme.colors.red100 + ' !important'
+      : type === 'warning'
+        ? 'var(--background-warning-default, rgba(245, 176, 0, 0.09)) !important'
+        : 'inherit'
+  };
   &:nth-of-type(2n-1) {
     background-color: ${theme.tokens.background.secondary};
   }

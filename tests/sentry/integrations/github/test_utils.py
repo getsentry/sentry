@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.integrations.github.utils import (
     get_last_page_number,
+    is_github_bot_login,
     is_github_rate_limit_sensitive,
     parse_github_blob_url,
 )
@@ -73,6 +74,29 @@ def test_parse_github_blob_url(repo_url, source_url, expected_branch, expected_p
 def test_get_last_page_number(link: str | None, expected: int | None) -> None:
     response = Response(headers={"link": link} if link is not None else {})
     assert get_last_page_number(response) == expected
+
+
+@pytest.mark.parametrize(
+    "login,expected",
+    [
+        # GitHub App identities carry a "[bot]" suffix.
+        ("dependabot[bot]", True),
+        ("github-actions[bot]", True),
+        # Copilot acts as a bot but has no suffix or "Bot" user type.
+        ("Copilot", True),
+        # Ordinary logins (including coverage/CI reviewers on user accounts).
+        ("octocat", False),
+        ("codecov-user", False),
+        # "bot" only counts as the bracketed suffix, not a substring.
+        ("robot", False),
+        ("copilot", False),
+        # Missing/empty login is not a bot.
+        (None, False),
+        ("", False),
+    ],
+)
+def test_is_github_bot_login(login: str | None, expected: bool) -> None:
+    assert is_github_bot_login(login) is expected
 
 
 class IsGithubRateLimitSensitiveTest(TestCase):
