@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -322,8 +323,8 @@ export function ReleaseIssues({
   return (
     <Fragment>
       <Flex
-        align={{zero: 'stretch', xl: 'center'}}
-        direction={{zero: 'column', xl: 'row'}}
+        align={{zero: 'stretch', sm: 'center'}}
+        direction={{zero: 'column', sm: 'row'}}
         justify="between"
         wrap="wrap"
       >
@@ -336,7 +337,15 @@ export function ReleaseIssues({
           position="top-start"
         >
           {tourProps => (
-            <div {...tourProps}>
+            <Container
+              {...tourProps}
+              width={{zero: '100%', sm: 'max-content'}}
+              css={css`
+                & > [role='radiogroup'] {
+                  width: 100%;
+                }
+              `}
+            >
               <SegmentedControl
                 aria-label={t('Issue type')}
                 size="xs"
@@ -355,11 +364,16 @@ export function ReleaseIssues({
                   </SegmentedControl.Item>
                 ))}
               </SegmentedControl>
-            </div>
+            </Container>
           )}
         </DemoTourElement>
 
-        <OpenInButtonBar>
+        <Grid
+          align="center"
+          columns={{zero: '1fr', sm: 'repeat(2, max-content)'}}
+          gap="md"
+          margin="md 0"
+        >
           <LinkButton
             to={getIssuesUrl(
               version,
@@ -373,8 +387,10 @@ export function ReleaseIssues({
             {t('Open in Issues')}
           </LinkButton>
 
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
-        </OpenInButtonBar>
+          <Container justifySelf="end">
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+          </Container>
+        </Grid>
       </Flex>
       <div data-test-id="release-wrapper">
         <GroupList
@@ -394,12 +410,6 @@ export function ReleaseIssues({
     </Fragment>
   );
 }
-
-const OpenInButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin: ${p => p.theme.space.md} 0;
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0;

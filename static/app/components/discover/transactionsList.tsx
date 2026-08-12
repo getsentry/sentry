@@ -4,6 +4,7 @@ import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -255,14 +256,19 @@ function TableRender({
 
   return (
     <Fragment>
-      <Header>
+      <Grid
+        align="center"
+        columns={{zero: '1fr', md: '1fr auto'}}
+        gap="md"
+        marginBottom="md"
+      >
         {header}
         <StyledPagination
           pageLinks={pageLinks}
           onCursor={onCursor}
           size={paginationCursorSize}
         />
-      </Header>
+      </Grid>
       <DemoTourElement
         id={DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE}
         title={t('Breakdown event spans')}
@@ -344,17 +350,25 @@ class _TransactionsList extends Component<Props> {
       breakdown,
     } = this.props;
     return (
-      <Fragment>
-        <div>
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
-            )}
-            value={selected.value}
-            options={options}
-            onChange={opt => handleDropdownChange(opt.value)}
-          />
-        </div>
+      <Grid columns={{zero: '1fr', md: 'repeat(2, max-content)'}} gap="md">
+        <Container width={{zero: '100%', md: 'max-content'}}>
+          {({className}) => (
+            <CompactSelect
+              className={className}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  prefix={t('Filter')}
+                  size="xs"
+                  style={{width: '100%'}}
+                />
+              )}
+              value={selected.value}
+              options={options}
+              onChange={opt => handleDropdownChange(opt.value)}
+            />
+          )}
+        </Container>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -398,7 +412,7 @@ class _TransactionsList extends Component<Props> {
               </DiscoverButton>
             </GuideAnchor>
           ))}
-      </Fragment>
+      </Grid>
     );
   }
 
@@ -538,15 +552,8 @@ class _TransactionsList extends Component<Props> {
   }
 }
 
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${p => p.theme.space.md};
+  margin: 0;
 `;
 
 export function TransactionsList(

@@ -459,20 +459,24 @@ function ReleasesListInnerPage() {
           <ReleasesBodySearch>
             <Layout.Main width="full">
               <Stack gap="md">
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter
-                    disabled={
-                      selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
-                    }
-                  />
-                  <DatePageFilter
-                    disallowArbitraryRelativeRanges
-                    menuFooterMessage={t(
-                      'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                    )}
-                  />
-                </PageFilterBar>
+                <Container width={{zero: '100%', md: 'max-content'}}>
+                  {({className}) => (
+                    <PageFilterBar className={className} condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter
+                        disabled={
+                          selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
+                        }
+                      />
+                      <DatePageFilter
+                        disallowArbitraryRelativeRanges
+                        menuFooterMessage={t(
+                          'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
+                        )}
+                      />
+                    </PageFilterBar>
+                  )}
+                </Container>
                 <Tabs value={selectedTab} onChange={handleTabChange}>
                   <TabList aria-label={t('Releases tab selector')}>
                     <TabList.Item
@@ -559,12 +563,12 @@ function ReleasesListInnerPage() {
                     <Grid
                       columns={{
                         zero: 'minmax(0, 1fr)',
-                        xl: 'repeat(3, 1fr)',
-                        '3xl': '1fr repeat(3, max-content)',
+                        md: 'repeat(3, 1fr)',
+                        '2xl': '1fr repeat(3, max-content)',
                       }}
                       gap="xl"
                     >
-                      <Container column={{zero: 'auto', xl: '1 / -1', '3xl': 'auto'}}>
+                      <Container column={{zero: 'auto', md: '1 / -1', '2xl': 'auto'}}>
                         {({className}) => (
                           <SearchQueryBuilder
                             className={className}

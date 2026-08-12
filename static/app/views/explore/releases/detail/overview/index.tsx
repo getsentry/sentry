@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -308,51 +308,69 @@ function ReleaseOverview() {
             <ReleaseArchivedNotice onRestore={() => handleRestore(refetchData)} />
           )}
           <Grid
-            columns={{zero: 'auto', xl: 'minmax(0, max-content) 1fr'}}
+            columns={{zero: 'auto', md: 'minmax(0, max-content) 1fr'}}
             gap="xl"
             marginBottom="xl"
           >
-            <EnvironmentPageFilter />
-            <TimeRangeSelector
-              relative={period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              onChange={handleDateChange}
-              menuTitle={t('Filter Time Range')}
-              trigger={triggerProps => (
-                <TimeRangeSelectTrigger {...triggerProps}>
-                  {defaultDateTimeSelected ? releaseBoundsLabel : triggerProps.children}
-                </TimeRangeSelectTrigger>
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {({className}) => (
+                <EnvironmentPageFilter
+                  className={className}
+                  triggerProps={{style: {width: '100%'}}}
+                />
               )}
-              relativeOptions={({defaultOptions, arbitraryOptions}) =>
-                releaseBounds.type === 'ancient'
-                  ? {...defaultOptions, ...arbitraryOptions}
-                  : {
-                      [RELEASE_PERIOD_KEY]: (
-                        <Fragment>
-                          {releaseBoundsLabel}
-                          <br />
-                          <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
-                            <DateTime date={releaseBounds.releaseStart} />
-                            –<DateTime date={releaseBounds.releaseEnd} />
-                          </ReleaseBoundsDescription>
-                        </Fragment>
-                      ),
-                      ...defaultOptions,
-                      ...arbitraryOptions,
-                    }
-              }
-              defaultPeriod={
-                releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
-              }
-              defaultAbsolute={{
-                start: moment(releaseBounds.releaseStart).subtract(1, 'hour').toDate(),
-                end: releaseBounds.releaseEnd
-                  ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
-                  : undefined,
-              }}
-            />
+            </Container>
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {({className}) => (
+                <TimeRangeSelector
+                  className={className}
+                  relative={
+                    period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
+                  }
+                  start={start ?? null}
+                  end={end ?? null}
+                  utc={utc ?? null}
+                  onChange={handleDateChange}
+                  menuTitle={t('Filter Time Range')}
+                  trigger={triggerProps => (
+                    <TimeRangeSelectTrigger {...triggerProps} style={{width: '100%'}}>
+                      {defaultDateTimeSelected
+                        ? releaseBoundsLabel
+                        : triggerProps.children}
+                    </TimeRangeSelectTrigger>
+                  )}
+                  relativeOptions={({defaultOptions, arbitraryOptions}) =>
+                    releaseBounds.type === 'ancient'
+                      ? {...defaultOptions, ...arbitraryOptions}
+                      : {
+                          [RELEASE_PERIOD_KEY]: (
+                            <Fragment>
+                              {releaseBoundsLabel}
+                              <br />
+                              <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
+                                <DateTime date={releaseBounds.releaseStart} />
+                                –<DateTime date={releaseBounds.releaseEnd} />
+                              </ReleaseBoundsDescription>
+                            </Fragment>
+                          ),
+                          ...defaultOptions,
+                          ...arbitraryOptions,
+                        }
+                  }
+                  defaultPeriod={
+                    releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
+                  }
+                  defaultAbsolute={{
+                    start: moment(releaseBounds.releaseStart)
+                      .subtract(1, 'hour')
+                      .toDate(),
+                    end: releaseBounds.releaseEnd
+                      ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
+                      : undefined,
+                  }}
+                />
+              )}
+            </Container>
           </Grid>
           {(hasDiscover || hasPerformance || hasHealthData) && (
             <DemoTourElement
