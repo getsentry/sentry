@@ -1311,14 +1311,11 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
-                    error_body = _decode_response_body(response.data)
                     logger.warning(
                         "snuba.query.invalid-json",
-                        extra={
-                            "response.status": response.status,
-                            "response.data": error_body[:1000],
-                        },
+                        extra={"response.data": response.data},
                     )
+                    error_body = response.data.decode("utf-8", errors="replace")
                     # First line only, so that grouping stays stable across bodies that embed
                     # per-request detail on later lines.
                     summary = error_body.splitlines()[0][:128] if error_body else "<empty body>"
@@ -1417,18 +1414,6 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             results.append(body)
 
         return results
-
-
-def _decode_response_body(data: bytes) -> str:
-    """Decode a response body for logging, falling back to a placeholder.
-
-    Callers must not pass raw bytes to the logger: log records are serialized as JSON, and a
-    body that isn't valid UTF-8 raises during serialization and drops the whole log line.
-    """
-    try:
-        return data.decode("utf-8")
-    except (UnicodeDecodeError, AttributeError):
-        return "<non-text response body>"
 
 
 def _log_request_query(req: Request) -> None:

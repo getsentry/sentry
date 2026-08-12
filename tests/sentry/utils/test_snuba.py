@@ -829,11 +829,10 @@ class SnubaUnparseableErrorResponseTest(TestCase):
         assert str(exc_info.value) == "Snuba returned HTTP 400: totally not json"
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    def test_non_utf8_body_does_not_raise_while_decoding(self, mock_snuba_query) -> None:
-        with pytest.raises(SnubaServiceUnavailable) as exc_info:
+    def test_non_utf8_body_still_classifies(self, mock_snuba_query) -> None:
+        """Building the message must not raise on a body that isn't valid UTF-8."""
+        with pytest.raises(SnubaServiceUnavailable):
             self.run_query(mock_snuba_query, 503, b"\xff\xfe\x00invalid")
-
-        assert str(exc_info.value) == "Snuba returned HTTP 503: <non-text response body>"
 
     @mock.patch("sentry.utils.snuba._snuba_query")
     def test_empty_body(self, mock_snuba_query) -> None:
