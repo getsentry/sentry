@@ -422,7 +422,7 @@ function ConfigureIntegration() {
       <Fragment>
         <TabsContainer>
           <Tabs value={tab} onChange={onTabChange}>
-            <TabList variant="floating">
+            <TabList>
               {allTabs.map(tabTuple => (
                 <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
               ))}
