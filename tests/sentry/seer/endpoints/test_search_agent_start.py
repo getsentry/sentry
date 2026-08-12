@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -124,7 +125,7 @@ class SearchAgentStartEndpointTest(APITestCase):
         self.seer_access_patcher.stop()
         super().tearDown()
 
-    def _post(self, **extra_data: object) -> object:
+    def _post(self, **extra_data: Any) -> Any:
         return self.client.post(
             self.url,
             data={
