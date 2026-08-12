@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
@@ -10,6 +10,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
 
 import {
   type EditorSelection,
@@ -64,7 +65,8 @@ export function MentionInput<TSuggestion>({
   const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
   const [nativeEditVersion, setNativeEditVersion] = useState(0);
 
-  const mergedInputRef = useMemo(() => mergeRefs(inputRef, ref), [ref]);
+  const mergeInputRef = useStableMergeRef(inputRef);
+  const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
   const activeSource = activeMention
     ? sources.find(source => source.id === activeMention.sourceId)
     : undefined;
@@ -122,11 +124,6 @@ export function MentionInput<TSuggestion>({
     shouldCloseOnInteractOutside: element => !inputRef.current?.contains(element),
     onInteractOutside: () => setActiveMention(null),
   });
-
-  const mergedCaretAnchorRef = useMemo(
-    () => mergeRefs<HTMLSpanElement>(caretAnchorRef, triggerProps.ref),
-    [triggerProps.ref]
-  );
 
   const positionCaretAnchor = useCallback(() => {
     const input = inputRef.current;
@@ -267,7 +264,6 @@ export function MentionInput<TSuggestion>({
   };
 
   const inputProps = mergeProps(editorProps, {
-    ref: mergedInputRef,
     style: {minHeight, ...style},
     role: 'combobox',
     'aria-activedescendant': activeDescendant,
@@ -355,8 +351,8 @@ export function MentionInput<TSuggestion>({
 
   return (
     <Container position="relative" width="100%" minWidth="0">
-      <MentionEditor {...inputProps} />
-      <CaretAnchor aria-hidden ref={mergedCaretAnchorRef} />
+      <MentionEditor {...inputProps} ref={mergeInputRef(ref)} />
+      <CaretAnchor aria-hidden ref={mergeCaretAnchorRef(triggerProps.ref)} />
       {isOpen ? (
         <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>
           <Overlay>
