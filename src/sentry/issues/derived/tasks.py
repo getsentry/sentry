@@ -4,7 +4,7 @@ import logging
 import time
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import TYPE_CHECKING
 
 from django.db.models import Exists, OuterRef, Q
 
@@ -12,7 +12,8 @@ from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.db.models.manager.base_query_set import BaseQuerySet
-    from sentry.issues.derived.processing import GenerationId, PromotionResult
+    from sentry.issues.derived.processing import GenerationId
+    from sentry.issues.derived.promote import PromotionResult
     from sentry.models.group import Group
 
 from sentry.tasks.base import instrumented_task
@@ -65,90 +66,6 @@ def _chunk_group_ids_into_ranges(
     starts = [group_ids[i] for i in range(0, len(group_ids), batch_size)]
     ends = starts[1:] + [group_ids[-1] + 1]
     return list(zip(starts, ends))
-
-
-class BatchRunResult(NamedTuple):
-    """Outcome of running build-and-promote across a batch of groups."""
-
-    # Counts keyed by the terminal ``PromotionResult`` of each group.
-    processed: dict[PromotionResult, int]
-    # If the batch stopped early due to a timeout, the ID to resume from.
-    resume_from_group_id: int | None
-    # If the batch stopped early on a per-group timeout, the generation
-    # to pass through to the next run so it can resume from cached progress.
-    resume_generation_id: GenerationId | None
-    timeout_reason: Literal["group_timeout", "batch_timeout"] | None
-
-
-def _run_build_and_promote_batch(
-    group_ids: Sequence[int],
-    *,
-    timeout: timedelta,
-    initial_generation_id: GenerationId | None = None,
-    log_key: str,
-    project_id: int | None = None,
-) -> BatchRunResult:
-    """Run build-and-promote for each group with a wall-clock ``timeout``.
-
-    Stops early on batch or per-group timeout; callers self-reschedule
-    using the returned resume hints. ``initial_generation_id`` is applied
-    only to the group it identifies (``initial_generation_id.group_id``)
-    so a resumed batch picks up cached progress for exactly that group.
-    ``project_id`` is only used in log records.
-    """
-    from sentry.issues.derived.processing import (
-        GroupLogTimeout,
-        PromotionFailed,
-        PromotionResult,
-        build_and_promote_derived_data,
-    )
-    from sentry.models.group import Group
-
-    timeout_seconds = timeout.total_seconds()
-    start = time.monotonic()
-
-    processed: dict[PromotionResult, int] = {}
-    resume_group_id = initial_generation_id.group_id if initial_generation_id is not None else None
-
-    for group_id in group_ids:
-        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
-        try:
-            build_and_promote_derived_data(
-                group_id,
-                generation_id=(initial_generation_id if group_id == resume_group_id else None),
-                time_limit=remaining,
-            )
-            processed[PromotionResult.PROMOTED] = processed.get(PromotionResult.PROMOTED, 0) + 1
-        except Group.DoesNotExist:
-            logger.info(
-                f"{log_key}.group_not_found",
-                extra={"group_id": group_id, "project_id": project_id},
-            )
-        except PromotionFailed as e:
-            processed[e.result] = processed.get(e.result, 0) + 1
-            logger.exception(f"{log_key}.promotion_failed")
-        except GroupLogTimeout as e:
-            return BatchRunResult(
-                processed=processed,
-                resume_from_group_id=group_id,
-                resume_generation_id=e.generation_id,
-                timeout_reason="group_timeout",
-            )
-
-        if time.monotonic() - start >= timeout_seconds:
-            return BatchRunResult(
-                processed=processed,
-                resume_from_group_id=group_id + 1,
-                resume_generation_id=None,
-                timeout_reason="batch_timeout",
-            )
-
-    return BatchRunResult(
-        processed=processed,
-        resume_from_group_id=None,
-        resume_generation_id=None,
-        timeout_reason=None,
-    )
 
 
 def _record_batch_metrics(
@@ -222,11 +139,8 @@ def generate_group_derived_data(
     """Generate derived data for a group by draining its action log."""
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.processing import (
-        GroupLogTimeout,
-        PromotionFailed,
-        build_and_promote_derived_data,
-    )
+    from sentry.issues.derived.processing import GroupLogTimeout
+    from sentry.issues.derived.promote import PromotionFailed, build_and_promote_derived_data
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
@@ -404,6 +318,7 @@ def generate_project_derived_data_batch(
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
@@ -434,7 +349,7 @@ def generate_project_derived_data_batch(
         qs = _stale_pipeline_filter(qs, PIPELINE.pipeline_hash)
     group_ids = list(qs.order_by("id").values_list("id", flat=True))
 
-    result = _run_build_and_promote_batch(
+    result = build_and_promote_batch(
         group_ids,
         timeout=BATCH_RETRIGGER_TIMEOUT,
         initial_generation_id=generation_id,
@@ -491,6 +406,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     NULL is always stale, so we don't bother finding it here.
     """
     from sentry.issues.models.groupderiveddata import GroupDerivedData
+
     # A simple select distinct works here, but Postgres isn't (yet?) smart enough to
     # do it without O(stale rows) work. So instead, we just loop through the pipeline
     # hashes in the table, doing one very fast btree lookup each, and ignore the current
@@ -596,6 +512,7 @@ def regenerate_stale_derived_data_batch(
     """
     from taskbroker_client.state import current_task
 
+    from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
@@ -630,7 +547,7 @@ def regenerate_stale_derived_data_batch(
         .values_list("group_id", flat=True)
     )
 
-    result = _run_build_and_promote_batch(
+    result = build_and_promote_batch(
         group_ids,
         timeout=BATCH_RETRIGGER_TIMEOUT,
         initial_generation_id=generation_id,
