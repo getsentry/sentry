@@ -7,13 +7,13 @@ from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
-from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import is_free_cohort_org
 from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
+    from sentry.seer.autofix.constants import AutofixReferrer
     from sentry.seer.autofix.utils import AutofixStoppingPoint
     from sentry.seer.models.run import SeerRun
 
@@ -29,10 +29,11 @@ def trigger_autofix_rca_feature(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
     flush: bool = True,
+    allow_free_cohort: bool = False,
 ) -> SeerRun:
-    # Free cohort orgs bypass quota only for night shift runs — they can
-    # view results but cannot manually trigger autofix.
-    skip_quota = is_free_cohort_org(group.organization) and referrer == AutofixReferrer.NIGHT_SHIFT
+    # Free cohort orgs bypass quota only when called from night shift
+    # (allow_free_cohort=True). Not exposed via the API.
+    skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
     if not skip_quota:
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
