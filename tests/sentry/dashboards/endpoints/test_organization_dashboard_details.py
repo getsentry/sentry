@@ -3982,6 +3982,47 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert "queries" in response.data["widgets"][1], response.data
         assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
+    def test_text_widget_to_chart_widget_requires_widget_type(self) -> None:
+        text_widget = self.create_dashboard_widget(
+            dashboard=self.dashboard,
+            order=2,
+            title="Text Widget",
+            display_type=DashboardWidgetDisplayTypes.TEXT,
+        )
+        assert text_widget.widget_type is None
+
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {"id": str(self.widget_2.id)},
+                {
+                    "id": str(text_widget.id),
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "errors",
+                            "conditions": "event.type:error",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert (
+            response.data["widget_type"]
+            == "`widgetType` is required for widgets that are not text widgets"
+        )
+
+        # The write happens inside a transaction, so the rejection rolls it back.
+        text_widget.refresh_from_db()
+        assert text_widget.widget_type is None
+        assert text_widget.display_type == DashboardWidgetDisplayTypes.TEXT
+
     def test_put_creates_dashboard_revision(self) -> None:
         response = self.do_request(
             "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
