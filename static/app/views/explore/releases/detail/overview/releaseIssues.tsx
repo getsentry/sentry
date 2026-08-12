@@ -323,8 +323,8 @@ export function ReleaseIssues({
   return (
     <Fragment>
       <Flex
-        align={{zero: 'stretch', sm: 'center'}}
-        direction={{zero: 'column', sm: 'row'}}
+        align={{zero: 'stretch', md: 'center'}}
+        direction={{zero: 'column', md: 'row'}}
         justify="between"
         wrap="wrap"
       >
@@ -339,7 +339,7 @@ export function ReleaseIssues({
           {tourProps => (
             <Container
               {...tourProps}
-              width={{zero: '100%', sm: 'max-content'}}
+              width={{zero: '100%', md: 'max-content'}}
               css={css`
                 & > [role='radiogroup'] {
                   width: 100%;
@@ -370,22 +370,27 @@ export function ReleaseIssues({
 
         <Grid
           align="center"
-          columns={{zero: '1fr', sm: 'repeat(2, max-content)'}}
+          columns={{zero: '1fr', md: 'repeat(2, max-content)'}}
           gap="md"
           margin="md 0"
         >
-          <LinkButton
-            to={getIssuesUrl(
-              version,
-              location,
-              releaseBounds,
-              issuesType,
-              organization.slug
+          <Container width={{zero: '100%', md: 'max-content'}}>
+            {({className}) => (
+              <LinkButton
+                className={className}
+                to={getIssuesUrl(
+                  version,
+                  location,
+                  releaseBounds,
+                  issuesType,
+                  organization.slug
+                )}
+                size="xs"
+              >
+                {t('Open in Issues')}
+              </LinkButton>
             )}
-            size="xs"
-          >
-            {t('Open in Issues')}
-          </LinkButton>
+          </Container>
 
           <Container justifySelf="end">
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
