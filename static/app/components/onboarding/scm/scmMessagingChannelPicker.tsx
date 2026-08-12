@@ -8,7 +8,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  providerDetails,
+  RAW_CHANNEL_FIELD,
+  type IntegrationChannel,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type Channel,
   ChannelField,
@@ -36,15 +40,15 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const providerKey = integration.provider.key as ScmMessagingProviderKey;
 
+  const {channelSelectedBy, channelTargetedBy} = providerDetails[providerKey];
+
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(() => {
     if (existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey) {
-      // Seed by whatever field this provider's options are keyed on: Slack by
-      // display name, Discord and msteams by id. Seeding the wrong one resolves
-      // to no option and handleSave rewrites the stored identifiers.
+      // Seed by whatever field this provider's options are keyed on. Seeding the
+      // wrong one resolves to no option and handleSave rewrites the identifiers.
       return {
         label: existingSetup.channelName,
-        value:
-          providerKey === 'slack' ? existingSetup.channelName : existingSetup.channelId,
+        value: existingSetup[channelSelectedBy],
       };
     }
     return;
@@ -85,28 +89,25 @@ export function ScmMessagingChannelPicker({
       return;
     }
 
-    // Look up the real backend channel ID by matching the selected value in
-    // the raw channel list. Manual entries (channel.new) have no raw match.
+    // Match the selected value against whichever field this provider's options
+    // are keyed on. Manual entries (channel.new) are not in the list.
     const rawChannel = channel.new
       ? undefined
-      : channelsData?.results.find((ch: Channel) =>
-          providerKey === 'slack' ? ch.display === channel.value : ch.id === channel.value
+      : channelsData?.results.find(
+          (ch: Channel) => ch[RAW_CHANNEL_FIELD[channelSelectedBy]] === channel.value
         );
 
-    // Slack revalidation and alert-rule actions both use the display name, so
-    // channelId falls back to channel.value for Slack without losing anything.
-    const channelId = rawChannel?.id ?? channel.value;
-    const channelName =
-      providerKey === 'slack' ? channel.value : (rawChannel?.display ?? channel.value);
-    const actionTarget = providerKey === 'slack' ? channelName : channelId;
+    const stored = {
+      channelId: rawChannel?.id ?? channel.value,
+      channelName: rawChannel?.display ?? channel.value,
+    };
 
     onConfigured({
       mode: 'selected',
       providerKey,
       integrationId: integration.id,
-      channelId,
-      channelName,
-      actionTarget,
+      ...stored,
+      actionTarget: stored[channelTargetedBy],
     });
   };
 

@@ -10,9 +10,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  getChannelSelectedBy,
+  providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-  providerDetails,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
@@ -113,15 +114,16 @@ export function useMessagingIntegrationAlertRule(
     [providersToIntegrations, provider]
   );
 
-  const channelOptions = useMemo(
-    () =>
-      channels?.results.map(ch =>
-        provider === 'slack'
-          ? {label: ch.display, value: ch.display}
-          : {label: `${ch.display} (${ch.id})`, value: ch.id}
-      ),
-    [channels, provider]
-  );
+  const channelOptions = useMemo(() => {
+    // Id-keyed providers show the id alongside the name, since the name alone
+    // cannot tell two same-named channels apart.
+    const keyedByName = getChannelSelectedBy(provider) === 'channelName';
+    return channels?.results.map(ch =>
+      keyedByName
+        ? {label: ch.display, value: ch.display}
+        : {label: `${ch.display} (${ch.id})`, value: ch.id}
+    );
+  }, [channels, provider]);
 
   useEffect(() => {
     // A restored channel (e.g. from persisted/default actions) only has a raw
