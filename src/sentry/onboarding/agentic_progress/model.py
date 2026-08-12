@@ -108,8 +108,8 @@ class ProgressUpdateField(StrEnum):
 
     EVENT_NOTE = "event_note"
     STATUS = "status"
-    PROJECT_SLUG = "project_slug"
-    ISSUE_ID = "issue_id"
+    PROJECT_SLUGS = "project_slugs"
+    ISSUE_IDS = "issue_ids"
     RUN_STATUS = "run_status"
 
 
@@ -156,11 +156,11 @@ class ProgressUpdate:
     event_note: str | None = None
     """Optional user-visible context for the update."""
 
-    project_slug: str | None = None
-    """Validated project selected during the create-project stage."""
+    project_slugs: tuple[str, ...] = ()
+    """Validated projects selected during the create-project stage."""
 
-    issue_id: str | None = None
-    """Validated issue received during the receive-verification-error stage."""
+    issue_ids: tuple[str, ...] = ()
+    """Validated issues received during the receive-verification-error stage."""
 
     run_status: RunStatus | None = None
     """Optional terminal transition for the complete run."""
@@ -206,11 +206,11 @@ class OnboardingRun:
     run_status: RunStatus = RunStatus.ACTIVE
     """Lifecycle state of the complete onboarding run."""
 
-    project_slug: str | None = None
-    """Validated Sentry project selected for instrumentation."""
+    project_slugs: tuple[str, ...] = ()
+    """Validated Sentry projects selected for instrumentation."""
 
-    issue_id: str | None = None
-    """Validated Sentry issue proving end-to-end event delivery."""
+    issue_ids: tuple[str, ...] = ()
+    """Validated Sentry issues proving end-to-end event delivery."""
 
     schema_version: int = SCHEMA_VERSION
     """Version of the Redis and public snapshot representation."""
@@ -283,8 +283,8 @@ class OnboardingRun:
                 sequence=value["sequence"],
                 stages=stages,
                 run_status=run_status,
-                project_slug=value.get("project_slug"),
-                issue_id=value.get("issue_id"),
+                project_slugs=tuple(value.get("project_slugs", [])),
+                issue_ids=tuple(value.get("issue_ids", [])),
                 schema_version=value["schema_version"],
             )
         except InvalidOnboardingRun:
@@ -346,15 +346,15 @@ def validate_update(update: ProgressUpdate) -> None:
         raise InvalidProgressUpdate(
             ProgressUpdateField.STATUS, "Bypassed stages are inferred by the backend"
         )
-    if update.project_slug is not None and update.stage is not Stage.CREATE_PROJECT:
+    if update.project_slugs and update.stage is not Stage.CREATE_PROJECT:
         raise InvalidProgressUpdate(
-            ProgressUpdateField.PROJECT_SLUG,
-            "Project slug is only valid for the create-project stage",
+            ProgressUpdateField.PROJECT_SLUGS,
+            "Project slugs are only valid for the create-project stage",
         )
-    if update.issue_id is not None and update.stage is not Stage.RECEIVE_VERIFICATION_ERROR:
+    if update.issue_ids and update.stage is not Stage.RECEIVE_VERIFICATION_ERROR:
         raise InvalidProgressUpdate(
-            ProgressUpdateField.ISSUE_ID,
-            "Issue ID is only valid for the receive-verification-error stage",
+            ProgressUpdateField.ISSUE_IDS,
+            "Issue IDs are only valid for the receive-verification-error stage",
         )
     if update.run_status not in {None, RunStatus.COMPLETED, RunStatus.FAILED}:
         raise InvalidProgressUpdate(
@@ -405,15 +405,15 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate, now: datetime) -> O
         StageStatus.BYPASSED,
     }
     if current.status in frozen_statuses and update.status is not current.status:
-        project_slug = update.project_slug or run.project_slug
-        issue_id = update.issue_id or run.issue_id
-        if project_slug == run.project_slug and issue_id == run.issue_id:
+        project_slugs = tuple(dict.fromkeys((*run.project_slugs, *update.project_slugs)))
+        issue_ids = tuple(dict.fromkeys((*run.issue_ids, *update.issue_ids)))
+        if project_slugs == run.project_slugs and issue_ids == run.issue_ids:
             return run
 
         return replace(
             run,
-            project_slug=project_slug,
-            issue_id=issue_id,
+            project_slugs=project_slugs,
+            issue_ids=issue_ids,
             updated_at=now.astimezone(timezone.utc),
             sequence=run.sequence + 1,
         )
@@ -431,8 +431,8 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate, now: datetime) -> O
         run,
         stages=tuple(stages[definition.stage] for definition in STAGE_DEFINITIONS),
         run_status=update.run_status or run.run_status,
-        project_slug=update.project_slug or run.project_slug,
-        issue_id=update.issue_id or run.issue_id,
+        project_slugs=tuple(dict.fromkeys((*run.project_slugs, *update.project_slugs))),
+        issue_ids=tuple(dict.fromkeys((*run.issue_ids, *update.issue_ids))),
     )
     if candidate == run:
         return run

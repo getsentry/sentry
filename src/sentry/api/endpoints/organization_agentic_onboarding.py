@@ -1,4 +1,6 @@
-from typing import Literal, NotRequired, TypedDict
+import logging
+from collections.abc import Mapping
+from typing import Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -16,10 +18,13 @@ from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.conduit.api import add_conduit_response_headers
+from sentry.conduit.tasks import publish_onboarding_progress
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
     InvalidProgressUpdate,
+    OnboardingRun,
     OnboardingRunExpired,
     OnboardingRunTerminal,
     ProgressUpdate,
@@ -34,7 +39,30 @@ from sentry.onboarding.agentic_progress.service import (
     get_onboarding_progress_service,
 )
 
+logger = logging.getLogger(__name__)
+
 INVALID_PROGRESS_UPDATE_DETAIL = "Invalid onboarding progress update"
+
+
+def enqueue_onboarding_progress(
+    organization_id: int,
+    run: OnboardingRun,
+    snapshot: Mapping[str, Any],
+) -> None:
+    """Publish an API mutation without making Conduit part of its success path."""
+    try:
+        publish_onboarding_progress.delay(
+            organization_id,
+            run.channel_id,
+            run.sequence,
+            dict(snapshot),
+        )
+    except Exception:
+        logger.exception(
+            "conduit.enqueue_onboarding_progress.failed",
+            extra={"organization_id": organization_id},
+        )
+
 
 StageValue = Literal[
     "connect_mcp",
@@ -62,8 +90,8 @@ class AgenticOnboardingStatusRequest(TypedDict):
     status: StageStatusValue
     run_status: NotRequired[Literal["completed", "failed"]]
     event_note: NotRequired[str]
-    project_slug: NotRequired[str]
-    issue_id: NotRequired[str]
+    project_slugs: NotRequired[list[str]]
+    issue_ids: NotRequired[list[str]]
 
 
 class AgenticOnboardingStatusData(TypedDict):
@@ -100,16 +128,20 @@ class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboa
     event_note = serializers.CharField(
         required=False, allow_blank=False, max_length=MAX_EVENT_NOTE_LENGTH
     )
-    project_slug = serializers.SlugField(required=False)
-    issue_id = serializers.CharField(required=False)
+    project_slugs = serializers.ListField(
+        child=serializers.SlugField(), required=False, allow_empty=False, max_length=100
+    )
+    issue_ids = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=False, max_length=100
+    )
 
     def validate(self, attrs: AgenticOnboardingStatusRequest) -> AgenticOnboardingStatusData:
         update = ProgressUpdate(
             stage=Stage(attrs["stage"]),
             status=StageStatus(attrs["status"]),
             event_note=attrs.get("event_note"),
-            project_slug=attrs.get("project_slug"),
-            issue_id=attrs.get("issue_id"),
+            project_slugs=tuple(attrs.get("project_slugs", [])),
+            issue_ids=tuple(attrs.get("issue_ids", [])),
             run_status=(RunStatus(attrs["run_status"]) if "run_status" in attrs else None),
         )
         try:
@@ -147,7 +179,7 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"detail": "Onboarding code is unavailable"}, status=409)
 
-        return Response(
+        response = Response(
             serialize(
                 run,
                 request.user,
@@ -156,6 +188,8 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
             ),
             status=status.HTTP_201_CREATED,
         )
+        add_conduit_response_headers(response, organization.id, channel_id=run.channel_id)
+        return response
 
 
 @cell_silo_endpoint
@@ -176,7 +210,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         assert user_id is not None
 
         try:
-            run, _ = get_onboarding_progress_service().update(
+            run, changed = get_onboarding_progress_service().update(
                 token=values["run_token"],
                 user_id=user_id,
                 organization_id=organization.id,
@@ -192,4 +226,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 
         snapshot = serialize(run, request.user, AgenticOnboardingRunSerializer())
+        if changed:
+            enqueue_onboarding_progress(organization.id, run, snapshot)
+
         return Response(snapshot)
