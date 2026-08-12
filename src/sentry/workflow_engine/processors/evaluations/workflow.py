@@ -30,15 +30,18 @@ type WorkflowEvaluationResult = Sequence[Action] | DeferredWorkflowEvaluationRes
 
 
 class WorkflowEvaluationOutcome(StrEnum):
-    COMPLETED = "completed"
-    NO_DETECTOR = "no_detector"
+    # Error Outcomes
     ENVIRONMENT_NOT_FOUND = "environment_not_found"
+    ERROR = "error"
+    NO_DETECTOR = "no_detector"
     NO_WORKFLOWS = "no_workflows"
-    NOT_TRIGGERED = "not_triggered"
+
+    # Finished evaluation outcomes
+    ACTIONS_TRIGGERED = "actions_triggered"
+    COMPLETED = "completed"
     DEFERRED = "deferred"
     NO_ACTIONS = "no_actions"
-    ACTIONS_TRIGGERED = "actions_triggered"
-    ERROR = "error"
+    NOT_TRIGGERED = "not_triggered"
 
 
 class WorkflowEvaluationData(TypedDict):

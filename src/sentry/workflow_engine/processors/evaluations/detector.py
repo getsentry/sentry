@@ -42,9 +42,10 @@ class DetectorEvaluation(
 
     @property
     def artifact_fields(self) -> dict[str, Any]:
+        # Each trigger group evaluation will log the value used in evaluation
+        # We only need to extract the top level detector items for tracking here.
         return {
             "group_key": self.data["group_key"],
             "priority": self.priority.value,
-            "result_type": type(self.result).__name__ if self.result is not None else None,
             "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
         }

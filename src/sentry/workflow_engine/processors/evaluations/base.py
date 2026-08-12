@@ -51,9 +51,9 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
 
     def to_artifact(self) -> dict[str, Any]:
         return {
+            **self.artifact_fields,
             "triggered": self.triggered,
             "error": self.error.msg if self.error else None,
-            **self.artifact_fields,
         }
 
     @property

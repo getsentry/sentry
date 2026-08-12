@@ -619,7 +619,6 @@ def process_workflows(
             "payload": event_data,
             "group_id": event_data.group.id,
             "event_id": event_id,
-            "event_data": asdict(event_data),
             "event_environment_id": environment.id if environment else None,
             "workflows": [workflow.id for workflow in workflows],
             "detector_types": [d.type for d in event_detectors.detectors],
