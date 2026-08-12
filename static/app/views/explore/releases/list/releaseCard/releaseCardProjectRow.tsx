@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -41,7 +42,6 @@ import {
   getReleaseProjectColumns,
   NewIssuesColumn,
   ReleaseProjectColumn,
-  ReleaseProjectsLayout,
 } from '.';
 
 const CRASH_FREE_DANGER_THRESHOLD = 98;
@@ -121,7 +121,7 @@ export function ReleaseCardProjectRow({
       })}
       data-test-id="release-card-project-row"
     >
-      <ReleaseProjectsLayout
+      <Grid
         columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
         gap="md"
         align="center"
@@ -269,7 +269,7 @@ export function ReleaseCardProjectRow({
             </LinkButton>
           </GuideAnchor>
         </ViewColumn>
-      </ReleaseProjectsLayout>
+      </Grid>
     </PanelItem>
   );
 }

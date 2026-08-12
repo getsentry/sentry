@@ -223,7 +223,7 @@ export function ReleaseCard({
       <Grid borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout
+          <Grid
             align="center"
             columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
             gap="md"
@@ -240,7 +240,7 @@ export function ReleaseCard({
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
             <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          </ReleaseProjectsLayout>
+          </Grid>
         </ReleaseProjectsHeader>
 
         <Container position="relative">
@@ -392,8 +392,6 @@ const ExpandButtonWrapper = styled('div')`
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
-
-export const ReleaseProjectsLayout = Grid;
 
 export function getReleaseProjectColumns(showReleaseAdoptionStages: boolean) {
   const adoptionStagesSize = showReleaseAdoptionStages ? '0.7fr' : '';
