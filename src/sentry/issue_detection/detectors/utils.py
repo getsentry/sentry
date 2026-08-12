@@ -5,21 +5,12 @@ from datetime import timedelta
 from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
 
+from sentry.utils.http import is_valid_ip
+
 from ..types import Span
 
 logger = logging.getLogger("issue_detectors")
 
-
-FILTERED_KEYWORDS = [
-    "[Filtered]",
-    "[ip]",
-    "[REDACTED]",
-    "[id]",
-    "[Filtered Email]",
-    "[filtered]",
-    "[Filtered email]",
-    "[Email]",
-]
 
 URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
     r"""
@@ -55,6 +46,19 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
         # trailing punctuation)
         [^'"`\\<>{}|\^\s.,;]
     )?
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+# Regex for bracketed URL values, which can come from data scrubbing (things like `[Filtered]`,
+# `[REDACTED]`, `[filtered UUID]`, etc.) or from parameterization (things like `[id]` and `[email]`)
+BRACKETED_URL_PLACEHOLDER_REGEX = re.compile(
+    r"""
+    \[
+    # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
+    # `[Filtered UUID]` and `[REDACTED IP]`.
+    [^'"`\\<>{}|\^\[\]]{0,32}
+    \]
     """,
     re.IGNORECASE | re.VERBOSE,
 )
@@ -118,8 +122,26 @@ def escape_transaction(transaction: str) -> str:
     return transaction
 
 
-def is_filtered_url(url: str) -> bool:
-    return any(keyword in url for keyword in FILTERED_KEYWORDS)
+def span_has_obfuscated_hostname(span: Span) -> bool:
+    """
+    Check if the span's URL has a hostname we can use for matching up request spans.
+
+    If two spans have parameterized and/or scrubbed hostnames in their URLs (indicated by the
+    presence of any non-IP bracketed value), it's impossible to tell if they originally pointed to
+    the same domain. This presents an obvious problem in detectors where we do hostname matching, so
+    we need to be able to recognize such spans so we can skip over them in those detectors.
+    """
+    url = get_url_from_span(span)
+    bracketed_hostname_match = URL_WITH_BRACKETED_HOSTNAME_REGEX.search(url)
+
+    # If there are no bracketed values, we can definitely use the hostname
+    if not bracketed_hostname_match:
+        return False
+
+    # If there are brackets, we can still use the hostname as long as the bracketed value is a valid
+    # IP address.
+    maybe_ip = bracketed_hostname_match.group("bracketed_value")
+    return not is_valid_ip(maybe_ip)
 
 
 def safer_urlparse(url: str) -> ParseResult:

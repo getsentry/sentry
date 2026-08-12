@@ -10,10 +10,9 @@ from sentry.issue_detection.detectors.utils import (
     does_overlap_previous_span,
     get_notification_attachment_body,
     get_span_evidence_value,
-    get_url_from_span,
-    is_filtered_url,
     log_invalid_span_data,
     safer_urlparse,
+    span_has_obfuscated_hostname,
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -148,9 +147,9 @@ class HTTPOverheadDetector(PerformanceDetector):
         if not span_op or not span_op == "http.client" or not protocol_version == "1.1":
             return False
 
-        # Check if any spans have filtered URLs
-        url = get_url_from_span(span)
-        if is_filtered_url(url):
+        # We match spans based on hostname, so make sure we have a value we can use (not one masked
+        # by data scurbbing or parameterization)
+        if span_has_obfuscated_hostname(span):
             return False
 
         return True

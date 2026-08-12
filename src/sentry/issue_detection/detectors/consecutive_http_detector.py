@@ -13,8 +13,8 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
-    is_filtered_url,
     safer_urlparse,
+    span_has_obfuscated_hostname,
 )
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -188,8 +188,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
             return False
 
-        url = get_url_from_span(span)
-        if is_filtered_url(url):
+        # We match spans based on hostname, so make sure we have a value we can use (not one masked
+        # by data scurbbing or parameterization)
+        if span_has_obfuscated_hostname(span):
             return False
 
         return True
