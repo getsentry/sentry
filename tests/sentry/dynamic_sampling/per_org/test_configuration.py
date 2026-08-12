@@ -8,6 +8,7 @@ from unittest.mock import DEFAULT, patch
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.dynamic_sampling.cache import SamplingPipeline
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
@@ -182,9 +183,9 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.organization_recalibration_factor == 0.7
-        mocks[GET_FACTOR].assert_called_once_with(org.id)
+        mocks[GET_FACTOR].assert_called_once_with(org, pipeline=SamplingPipeline.PER_ORG)
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.7)
+        mocks[SET_FACTOR].assert_called_once_with(SamplingPipeline.PER_ORG, org.id, 0.7)
 
     def test_subscription_backed_org_skips_recalibration_without_an_org_volume(self) -> None:
         org = self.create_organization()
@@ -229,7 +230,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.organization_recalibration_factor is None
-        mocks[DELETE_FACTOR].assert_called_once_with(org.id)
+        mocks[DELETE_FACTOR].assert_called_once_with(SamplingPipeline.PER_ORG, org.id)
         mocks[SET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(
@@ -300,7 +301,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
         assert configuration.organization_recalibration_factor == 0.9
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.2, 0.3)
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.9)
+        mocks[SET_FACTOR].assert_called_once_with(SamplingPipeline.PER_ORG, org.id, 0.9)
 
     def test_project_mode_custom_dynamic_sampling_does_not_recalibrate(self) -> None:
         org = self.create_organization()

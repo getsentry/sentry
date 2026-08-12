@@ -5,8 +5,17 @@ from unittest.mock import DEFAULT, Mock, patch
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.cache import (
+    SamplingCacheEntry,
+    SamplingPipeline,
+    get_all_project_sample_rates,
+    get_all_transaction_sample_rates,
+    get_organization_recalibration_factor,
+    get_organization_sample_rate,
+    set_organization_recalibration_factor,
+    was_pipeline_executed,
+)
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
@@ -17,16 +26,15 @@ from sentry.dynamic_sampling.per_org.scheduler import (
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     LEGACY_GET_FACTOR,
+    OUTCOMES_VOLUME,
     SET_FACTOR,
+    SLIDING_WINDOW_RATE,
     make_project_volume,
     patch_configuration,
 )
@@ -42,6 +50,8 @@ COMPARE_PROJECTS = f"{SCHEDULER}.compare_rebalanced_projects_with_cache"
 RECALIBRATION_VOLUME = f"{SCHEDULER}.get_recalibration_organization_volume"
 CACHED_FACTOR = f"{SCHEDULER}.get_cached_recalibration_factor"
 COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibration_factor_with_cache"
+INVALIDATE_PROJECT_CONFIG = f"{SCHEDULER}.schedule_invalidate_project_config"
+PER_ORG_SERVING = "organizations:dynamic-sampling-per-org-serving"
 
 
 def _assert_called_once_with_config(
@@ -59,34 +69,37 @@ class PerOrgRecalibrationCacheTest(TestCase):
     def test_per_org_cache_does_not_cross_pollinate_with_legacy_cache(self) -> None:
         org = self.create_organization()
         redis = get_redis_client_for_ds()
-        legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        per_org_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        entry = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR
+        legacy_key = entry.key(SamplingPipeline.LEGACY, org_id=org.id)
+        per_org_key = entry.key(SamplingPipeline.PER_ORG, org_id=org.id)
         self.addCleanup(redis.delete, legacy_key, per_org_key)
         redis.delete(legacy_key, per_org_key)
 
         assert legacy_key != per_org_key
 
         redis.set(legacy_key, 2.5)
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 2.5
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert get_organization_recalibration_factor(org, SamplingPipeline.LEGACY) == 2.5
+        assert get_organization_recalibration_factor(org, SamplingPipeline.PER_ORG) == 1.0
 
         redis.delete(legacy_key)
         redis.set(per_org_key, 3.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
-        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert get_organization_recalibration_factor(org, SamplingPipeline.PER_ORG) == 3.5
+        assert get_organization_recalibration_factor(org, SamplingPipeline.LEGACY) == 1.0
 
     def test_per_org_cache_sets_and_deletes_adjusted_factor(self) -> None:
         org = self.create_organization()
         redis = get_redis_client_for_ds()
-        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+            SamplingPipeline.PER_ORG, org_id=org.id
+        )
         self.addCleanup(redis.delete, cache_key)
         redis.delete(cache_key)
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 2.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 2.5
+        set_organization_recalibration_factor(SamplingPipeline.PER_ORG, org.id, 2.5)
+        assert get_organization_recalibration_factor(org, SamplingPipeline.PER_ORG) == 2.5
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        set_organization_recalibration_factor(SamplingPipeline.PER_ORG, org.id, 1.0)
+        assert get_organization_recalibration_factor(org, SamplingPipeline.PER_ORG) == 1.0
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -373,7 +386,7 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[TRANSACTION_BALANCING].assert_called_once_with(
             transaction_config, project_volumes, transaction_volumes
         )
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
+        mocks[SET_FACTOR].assert_called_once_with(SamplingPipeline.PER_ORG, org.id, 4.0)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
@@ -459,7 +472,7 @@ class RunCalculationsPerOrgTest(TestCase):
         # stored count is reused rather than fetched again.
         assert mocks[RECALIBRATION_VOLUME].call_args.args[1] is org_volume
         assert project_config.organization_recalibration_factor == 4.0
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
+        mocks[SET_FACTOR].assert_called_once_with(SamplingPipeline.PER_ORG, org.id, 4.0)
         mocks[COMPARE_FACTOR].assert_called_once_with(
             project_config, recalibration_volume, 4.0, 1.0
         )
@@ -595,3 +608,141 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         mocks[ORG_VOLUME].assert_not_called()
+
+
+class PerOrgCacheWritesTest(TestCase):
+    """The rates the per-organization pipeline computes must land in its own cache namespace."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        get_redis_client_for_ds().flushdb()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_writes_project_and_transaction_sample_rates(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                SLIDING_WINDOW_RATE: 0.4,
+                OUTCOMES_VOLUME: org_volume,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: [make_project_volume(project.id)],
+                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.25)],
+                CACHED_PROJECT_RATES: {},
+                COMPARE_PROJECTS: DEFAULT,
+                TRANSACTION_VOLUMES: [
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
+                ],
+                TRANSACTION_BALANCING: {
+                    project.id: (
+                        [RebalancedItem(id="checkout", count=1, new_sample_rate=0.8)],
+                        0.2,
+                    )
+                },
+            }
+        ):
+            assert run_calculations_per_org_task(org.id) is None
+
+        assert get_all_project_sample_rates(SamplingPipeline.PER_ORG, org.id) == {project.id: 0.25}
+        assert get_all_transaction_sample_rates(SamplingPipeline.PER_ORG, org.id, [project.id]) == {
+            project.id: ({"checkout": 0.8}, 0.2)
+        }
+        assert get_organization_sample_rate(org, pipeline=SamplingPipeline.PER_ORG) == 0.4
+        assert was_pipeline_executed(SamplingPipeline.PER_ORG, org.id)
+
+        # The legacy namespace is left untouched, so serving keeps its current source until the
+        # feature flag moves the organization over.
+        assert get_all_project_sample_rates(SamplingPipeline.LEGACY, org.id) == {}
+        assert get_organization_sample_rate(org, pipeline=SamplingPipeline.LEGACY) is None
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_writes_project_sample_rates_when_every_project_is_sampled_fully(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 1.0,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: [make_project_volume(project.id)],
+                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)],
+                CACHED_PROJECT_RATES: {},
+                COMPARE_PROJECTS: DEFAULT,
+                TRANSACTION_VOLUMES: DEFAULT,
+            }
+        ) as mocks:
+            result = run_calculations_per_org_task(org.id)
+
+        assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
+        mocks[TRANSACTION_VOLUMES].assert_not_called()
+        # The early return happens after the write, so the rates are still cached.
+        assert get_all_project_sample_rates(SamplingPipeline.PER_ORG, org.id) == {project.id: 1.0}
+        assert was_pipeline_executed(SamplingPipeline.PER_ORG, org.id)
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_invalidates_project_configs_only_for_a_served_org(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        def targets(sample_rate: float) -> dict[str, object]:
+            return {
+                BLENDED_SAMPLE_RATE: 0.5,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: [make_project_volume(project.id)],
+                PROJECT_BALANCING: [
+                    RebalancedItem(id=project.id, count=100, new_sample_rate=sample_rate)
+                ],
+                CACHED_PROJECT_RATES: {},
+                COMPARE_PROJECTS: DEFAULT,
+                TRANSACTION_VOLUMES: DEFAULT,
+            }
+
+        # Shadowing the legacy pipeline: the rate is cached, but nothing serves it.
+        with patch(INVALIDATE_PROJECT_CONFIG) as invalidate, patch_configuration(targets(0.25)):
+            run_calculations_per_org_task(org.id)
+        invalidate.assert_not_called()
+
+        with (
+            self.feature(PER_ORG_SERVING),
+            patch(INVALIDATE_PROJECT_CONFIG) as invalidate,
+            patch_configuration(targets(0.5)),
+        ):
+            run_calculations_per_org_task(org.id)
+        invalidate.assert_called_once_with(
+            project_id=project.id, trigger="dynamic_sampling_per_org"
+        )
+
+        # The rate is unchanged on the next cycle, so there is nothing for Relay to pick up.
+        with (
+            self.feature(PER_ORG_SERVING),
+            patch(INVALIDATE_PROJECT_CONFIG) as invalidate,
+            patch_configuration(targets(0.5)),
+        ):
+            run_calculations_per_org_task(org.id)
+        invalidate.assert_not_called()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_does_not_mark_the_pipeline_executed_without_project_volumes(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: [],
+            }
+        ):
+            assert run_calculations_per_org_task(org.id) == DynamicSamplingStatus.NO_PROJECT_VOLUMES
+
+        assert not was_pipeline_executed(SamplingPipeline.PER_ORG, org.id)

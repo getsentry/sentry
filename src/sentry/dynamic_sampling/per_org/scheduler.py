@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
@@ -9,6 +10,14 @@ from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    mark_pipeline_executed,
+    serving_pipeline,
+    set_organization_sample_rate,
+    set_project_sample_rates,
+    set_transaction_sample_rates,
+)
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
@@ -52,10 +61,12 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
+from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils.cursored_scheduler import CursoredScheduler
 
@@ -99,6 +110,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not project_volumes:
         return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
+    if config.sliding_window_sample_rate is not None:
+        set_organization_sample_rate(
+            SamplingPipeline.PER_ORG, config.organization.id, config.sliding_window_sample_rate
+        )
+
     log_summary = is_org_in_sample_rates_summary_log_rollout(config.organization.id)
 
     # Read outside the balancing branch when the summary log is on, so orgs that skip project
@@ -107,13 +123,28 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if config.should_balance_projects or log_summary:
         cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
 
+    # Only an organization served by this pipeline needs its Relay configs rebuilt from what the
+    # pipeline just wrote. While it is still shadowing the legacy one, the writes change nothing
+    # that Relay reads, and invalidating on every cycle would be pure config churn.
+    is_served = serving_pipeline(config.organization) is SamplingPipeline.PER_ORG
+
     if config.should_balance_projects:
         rebalanced_projects = run_project_balancing(config, project_volumes)
         rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
         config.set_rebalanced_project_sample_rates(rebalanced_projects)
+        previous_sample_rates = set_project_sample_rates(
+            SamplingPipeline.PER_ORG, config.organization.id, rebalanced_projects
+        )
+        if is_served:
+            invalidate_changed_project_configs(rebalanced_projects, previous_sample_rates)
         compare_rebalanced_projects_with_cache(
             config, rebalanced_projects, cached_sample_rates, project_volumes
         )
+
+    # From here on this organization's entries are fresh. Serving reads the marker to tell an
+    # absent project rate ("no volume, sample at 100%") from a stalled pipeline, in which case it
+    # falls back instead of promoting every project to full sampling.
+    mark_pipeline_executed(SamplingPipeline.PER_ORG, config.organization.id)
 
     if (
         isinstance(config, AutomaticDynamicSamplingConfiguration)
@@ -151,6 +182,18 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     rebalanced_transactions = run_transaction_balancing(
         config, project_volumes, transaction_volumes
     )
+    for project_id, (named_rates, implicit_rate) in rebalanced_transactions.items():
+        set_transaction_sample_rates(
+            SamplingPipeline.PER_ORG,
+            org_id=config.organization.id,
+            project_id=project_id,
+            named_rates=named_rates,
+            default_rate=implicit_rate,
+        )
+        if is_served:
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="dynamic_sampling_per_org"
+            )
     # When the summary log is on, the cache is read for every project rather than only the
     # EAP-rebalanced ones, so the log can report a generic metrics side even where EAP
     # produced no transaction rates.
@@ -183,7 +226,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             end=org_volume_end,
         )
         calculated_factor = config.recalibrate(recalibration_volume)
-        cached_factor = get_cached_recalibration_factor(config.organization.id)
+        cached_factor = get_cached_recalibration_factor(config.organization)
         compare_recalibration_factor_with_cache(
             config, recalibration_volume, calculated_factor, cached_factor
         )
@@ -191,12 +234,31 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     return None
 
 
+def invalidate_changed_project_configs(
+    rebalanced_projects: list[RebalancedItem],
+    previous_sample_rates: dict[int, float | None],
+) -> None:
+    """Rebuilds the Relay config of every project whose sample rate actually moved.
+
+    Projects with no volume keep the same rate cycle after cycle, and they are the majority, so
+    invalidating unconditionally would flood the system with rebuilds that change nothing.
+    """
+    for project in rebalanced_projects:
+        project_id = int(project.id)
+        if not are_equal_with_epsilon(
+            previous_sample_rates.get(project_id), project.new_sample_rate
+        ):
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="dynamic_sampling_per_org"
+            )
+
+
 def log_sample_rates_summary(
     config: BaseDynamicSamplingConfiguration,
     project_sample_rates: ProjectSampleRates,
     cached_project_sample_rates: dict[int, float | None],
     rebalanced_transactions: dict[int, tuple[list[RebalancedItem], float]],
-    cached_transaction_sample_rates: dict[int, tuple[dict[str, float], float] | None],
+    cached_transaction_sample_rates: dict[int, tuple[Mapping[str, float], float] | None],
 ) -> None:
     """
     One line per org per cycle with the org, project and transaction sample rates of both
