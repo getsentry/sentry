@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {getRelativeDate, type UnitStyle} from 'sentry/components/timeSince';
 import {useTimezone} from 'sentry/components/timezoneProvider';
+import {t} from 'sentry/locale';
 
 /**
  * The card is designed at a fixed 240px, border included.
@@ -28,7 +29,7 @@ export const RELATIVE_TIME_TOOLTIP_PROPS = {
   overlayStyle: {padding: 0, textAlign: 'left', width: WIDTH},
 } satisfies {maxWidth: number; overlayStyle: React.CSSProperties};
 
-export interface RelativeTimeProps {
+interface RelativeTimeProps {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
@@ -40,6 +41,8 @@ export interface RelativeTimeProps {
   label: React.ReactNode;
   /**
    * Prefix before upcoming time (when the date is in the future)
+   *
+   * @default "in"
    */
   prefix?: string;
   /**
@@ -49,6 +52,8 @@ export interface RelativeTimeProps {
   showMarker?: boolean;
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
+   *
+   * @default "ago"
    */
   suffix?: string;
   /**
@@ -76,8 +81,10 @@ export interface RelativeTimeProps {
 export function RelativeTime({
   date,
   label,
-  prefix,
-  suffix,
+  // Defaulted to match <TimeSince>, so a card that omits them reads the same
+  // as the trigger that also omitted them.
+  prefix = t('in'),
+  suffix = t('ago'),
   unitStyle,
   showMarker = false,
 }: RelativeTimeProps) {

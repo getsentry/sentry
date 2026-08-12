@@ -74,6 +74,22 @@ describe('RelativeTime', () => {
     expect(screen.getByText('06:40')).toBeInTheDocument();
   });
 
+  it('matches the trigger for dates in the future', () => {
+    // The header must read the same as the <TimeSince> it expands on, which
+    // defaults prefix to "in" — omitting it here must not print `undefined`.
+    renderInTimezone(
+      <RelativeTime
+        date="2027-04-01T00:00:00Z"
+        label="Last Seen"
+        suffix="ago"
+        unitStyle="short"
+      />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('in 3d')).toBeInTheDocument();
+  });
+
   it('matches the trigger by respecting unitStyle', () => {
     renderInTimezone(
       <RelativeTime date={DATE} label="Last Seen" suffix="ago" unitStyle="short" />,
