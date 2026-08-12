@@ -25,45 +25,40 @@ have to use durable transition state.
 flowchart LR
     subgraph Detection
         Producer[Product producer] --> Packet[DataPacket]
-        Packet -.->|Generic source path| Source[DataSource lookup]
-        Source --> Detector[DetectorHandler]
-        Packet -.->|Direct selection path| Detector
-        Detector -.->|Stateful handler| State[(Detector state)]
+        Packet -->|DataSource lookup| Detector[DetectorHandler]
+        Packet -->|Direct selection| Detector
         Detector --> Result{Detector result?}
         Result -->|Triggered| Occurrence[IssueOccurrence]
         Result -->|Resolved| Status[StatusChangeMessage]
         Result -->|No change| Stop[No output]
     end
 
-    Occurrence --> Kafka[(Issue Platform Kafka)]
+    Occurrence --> Kafka[Issue Platform]
     Status --> Kafka
-    Kafka --> Ingest[Issue Platform ingestion]
 
-    subgraph Workflows
-        Ingest --> Event[Issue event or activity]
-        Existing[Existing issue event] --> Event
-        Event --> Lookup[Detector and workflow lookup]
-        Lookup --> When[Evaluate WHEN conditions]
+    subgraph Workflow_processing[Workflow processing]
+        Kafka --> Event[Issue event or activity]
+        Event --> When[Evaluate WHEN conditions]
         When --> If[Evaluate IF action filters]
-        If -->|Fast conditions pass| Actions[Select actions]
-        If -->|Slow conditions remain| Buffer[(Delayed workflow buffer)]
+        If -->|Fast conditions pass| Actions[Select, dedupe, and dispatch actions]
+        If -->|Slow conditions remain| Buffer[(Delayed buffer)]
         Buffer --> Delayed[Bulk delayed evaluation]
         Delayed --> Actions
-        Actions --> Dispatch[Dispatch action tasks]
     end
 ```
 
+A detector is the common way in, but existing issue events can enter Workflow
+processing directly through post-processing (error and issue-stream workflows).
+
 ## Start Here
 
-- Read [Data model](docs/data-model.md) to understand the persistent graph and its
-  invariants.
-- Read [Conditions](docs/conditions.md) for the shared evaluation contract, explicit
-  Detector/Workflow differences, and the complete condition-handler extension path.
-- Read [Execution](docs/execution.md) to trace packets, issue events, delayed
-  conditions, and actions through the processors.
-- Read [Adding detectors](docs/adding-detectors.md) before implementing a detector.
-- Read [Legacy API backport](docs/legacy_backport.md) only when working on legacy
-  alert endpoint compatibility.
+| You're working on…                  | Read                                                                                            |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Orienting / new to the system       | [Data model](docs/data-model.md), then [Execution](docs/execution.md) (skim)                    |
+| A **condition** or its handler      | [Conditions](docs/conditions.md) (full)                                                         |
+| A **detector**                      | [Adding detectors](docs/adding-detectors.md) (full), [Conditions](docs/conditions.md) as needed |
+| Tracing a missing action            | [Execution](docs/execution.md) → “Observability and Debugging” checklist                        |
+| Legacy alert endpoint compatibility | [Legacy API backport](docs/legacy_backport.md)                                                  |
 
 ## Core Concepts
 

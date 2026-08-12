@@ -383,6 +383,7 @@ class MyNewConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        # `group.some_field` is illustrative; use a real Group property.
         return comparison and event_data.group.some_field
 ```
 

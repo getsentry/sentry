@@ -248,12 +248,12 @@ sequenceDiagram
     Scheduler->>Redis: Select due project cohorts
     Scheduler->>Task: Schedule project or project batch
     Task->>Redis: Load buffered items
-    Task->>Task: Collapse equivalent condition queries
     Task->>Snuba: Execute bulk queries
     Snuba-->>Task: Results by issue group
-    Task->>Task: Reconstruct group evaluations
     Task->>Action: Fire passing groups
     Task->>Redis: Delete successfully processed items
+
+    Note over Task,Snuba: Equivalent condition queries are collapsed into bulk queries;<br/>results are combined with fast results before firing.
 ```
 
 ### Buffering
@@ -267,10 +267,10 @@ event.
 
 ### Scheduling
 
-[`process_buffered_workflows`](../processors/schedule.py) runs under a global scheduler
-lock, divides projects into cohorts, and schedules due work. Large project hashes are
-split into batches so asynchronous task messages contain identifiers rather than large
-payloads.
+The [`schedule_delayed_workflows`](../tasks/workflows.py) task acquires a global
+scheduler lock around [`process_buffered_workflows`](../processors/schedule.py), which
+divides projects into cohorts and schedules due work. Large project hashes are split into
+batches so asynchronous task messages contain identifiers rather than large payloads.
 
 ### Evaluation
 
@@ -350,10 +350,10 @@ handlers must handle deleted integrations and other expected external-state chan
 
 - Database graph mutations and cache invalidation are coordinated with
   `transaction.on_commit()` where stale repopulation would be unsafe.
-- Detector state and Issue Platform publication are not atomic. The stateful handler
-  commits PostgreSQL state and then Redis state before `process_detectors` publishes. A
-  failure after state commit but before publication can cause a retry to be skipped by
-  the committed dedupe watermark.
+- Detector state and Issue Platform publication are not atomic. PostgreSQL and Redis
+  state commit before `process_detectors` publishes, so a failure in between can cause a
+  retry to be skipped by the committed dedupe watermark. See
+  [Conditions](conditions.md) for the commit ordering.
 - Issue Platform publication is asynchronous. There is no transaction spanning detector
   state, Kafka, group creation, workflow evaluation, and external actions.
 - Workflow action frequency and deduplication reduce repeated side effects but do not

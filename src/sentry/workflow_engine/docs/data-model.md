@@ -42,7 +42,11 @@ erDiagram
 ```
 
 The diagram is conceptual. Some relationships use join models rather than direct
-foreign keys, and compatibility models are omitted from the main graph.
+foreign keys, and compatibility models are omitted from the main graph. The abbreviated
+names are condition roles, not model names: `WHEN_GROUP`/`WHEN_CONDITION` correspond to
+the `DataConditionGroup`/`DataCondition` on `Workflow.when_condition_group`;
+`IF_GROUP`/`IF_CONDITION` to those on `WorkflowDataConditionGroup.condition_group`;
+`DETECTOR_TRIGGER_GROUP` to `Detector.workflow_condition_group`.
 
 ## Detection Graph
 
