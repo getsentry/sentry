@@ -900,10 +900,25 @@ def trigger_pr_iteration_from_review(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
-    try:
+
+    def _fetch_pr_id() -> int | None:
         # Async task: the PR may be deleted, made private, or GitHub may return a
         # transient error between webhook receipt and execution.
         pull_request = client.get_pull_request(repo.name, str(pr_number))
+        pr_id: int | None = pull_request.get("id")
+        return pr_id
+
+    try:
+        # The pull_request_review payload carries only the PR number, but Seer's
+        # run lookup is keyed on GitHub's numeric PR id. A pull_request or
+        # check_suite webhook on this PR has almost certainly warmed the cache
+        # already, so the fetch above is the exception rather than the rule.
+        pr_id = get_or_fetch_pr_id(
+            provider=repo.provider,
+            repo_external_id=repo.external_id,
+            pr_number=pr_number,
+            fetch=_fetch_pr_id,
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.review_trigger.get_pull_request_failed",
@@ -911,7 +926,6 @@ def trigger_pr_iteration_from_review(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
