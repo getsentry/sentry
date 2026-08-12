@@ -1751,19 +1751,27 @@ class TestWebhookRequests(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
-    def test_uses_app_specific_timeout_override(
+    def test_uses_installation_organization_specific_timeout_override(
         self, timeout_alarm: MagicMock, safe_urlopen: MagicMock
     ) -> None:
+        installation_organization = self.create_organization()
+        installation = self.create_sentry_app_installation(
+            organization=installation_organization, slug=self.sentry_app.slug
+        )
+        assert installation.organization_id != self.sentry_app.owner_id
+
         with override_options(
             {
-                "sentry-apps.override.app_slugs.webhook.timeout.sec": {self.sentry_app.slug: 3.0},
-                "sentry-apps.override.app_slugs.webhook.hard-timeout.sec": {
-                    self.sentry_app.slug: 8.0
+                "sentry-apps.override.organization_ids.webhook.timeout.sec": {
+                    installation.organization_id: 3.0
+                },
+                "sentry-apps.override.organization_ids.webhook.hard-timeout.sec": {
+                    installation.organization_id: 8.0
                 },
             }
         ):
             send_webhooks(
-                installation=self.install,
+                installation=installation,
                 event="issue.assigned",
                 data={"issue": serialize(self.issue)},
                 actor=self.user,

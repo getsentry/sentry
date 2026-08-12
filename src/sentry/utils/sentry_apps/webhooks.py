@@ -202,6 +202,8 @@ def _send_webhook_request(
     url: str,
     app_platform_event: AppPlatformEvent[T],
 ) -> Response:
+    organization_id = app_platform_event.install.organization_id
+
     # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
     # Also that we aren't guaranteed to be in main thread
     context_wrapper: contextlib.AbstractContextManager[None]
@@ -211,21 +213,22 @@ def _send_webhook_request(
         context_wrapper = contextlib.nullcontext()
     else:
         hard_timeout_override = options.get(
-            "sentry-apps.override.app_slugs.webhook.hard-timeout.sec"
-        ).get(app_platform_event.install.sentry_app.slug, None)
+            "sentry-apps.override.organization_ids.webhook.hard-timeout.sec"
+        ).get(organization_id, None)
 
         timeout_seconds = hard_timeout_override or options.get(
             "sentry-apps.webhook.hard-timeout.sec"
         )
         context_wrapper = timeout_alarm(timeout_seconds, _handle_webhook_timeout)
 
-    timeout_override = options.get("sentry-apps.override.app_slugs.webhook.timeout.sec").get(
-        app_platform_event.install.sentry_app.slug, None
+    timeout_override = options.get("sentry-apps.override.organization_ids.webhook.timeout.sec").get(
+        organization_id, None
     )
 
     if timeout_override is not None:
         with sentry_sdk.start_span(op="sentry-app.webhook.overriden_timeout") as span:
             span.set_tag("app_slug", app_platform_event.install.sentry_app.slug)
+            span.set_tag("organization_id", organization_id)
             span.set_tag("timeout_seconds", timeout_override)
             span.set_tag("hard_timeout_seconds", timeout_seconds)
 
