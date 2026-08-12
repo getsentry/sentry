@@ -21,8 +21,6 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {preload} from 'sentry/router/preload';
-import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -58,7 +56,6 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import {organizationIntegrationApiOptions} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
@@ -122,7 +119,6 @@ const tabTitles: Record<IntegrationTab, string> = {
 
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
-  const routeConfig = useRouteConfig();
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
@@ -165,18 +161,6 @@ export default function IntegrationDetailedView() {
       retry: false,
     }
   );
-
-  useEffect(() => {
-    const firstConfiguration = configurations[0];
-    if (!routeConfig || !firstConfiguration) {
-      return;
-    }
-
-    preload(
-      routeConfig,
-      `/settings/${organization.slug}/integrations/${integrationSlug}/${firstConfiguration.id}/`
-    );
-  }, [configurations, integrationSlug, organization.slug, routeConfig]);
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
@@ -384,19 +368,6 @@ export default function IntegrationDetailedView() {
     window.open(url, '_blank');
   }, []);
 
-  const onPreloadConfiguration = useCallback(
-    (integration: Integration) => {
-      void queryClient.prefetchQuery({
-        ...organizationIntegrationApiOptions({
-          organizationSlug: organization.slug,
-          integrationId: integration.id,
-        }),
-        staleTime: 30_000,
-      });
-    },
-    [organization.slug, queryClient]
-  );
-
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
       const queryParams = new URLSearchParams(location.search);
@@ -484,7 +455,6 @@ export default function IntegrationDetailedView() {
                 integration={integration}
                 onRemove={onRemove}
                 onDisable={onDisable}
-                onPreloadConfiguration={onPreloadConfiguration}
                 data-test-id={integration.id}
                 trackIntegrationAnalytics={eventKey => {
                   trackIntegrationAnalytics(eventKey, {
@@ -507,7 +477,6 @@ export default function IntegrationDetailedView() {
     provider,
     onRemove,
     onDisable,
-    onPreloadConfiguration,
     featureData,
     installationStatus,
     integrationSlug,

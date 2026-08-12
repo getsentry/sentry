@@ -155,7 +155,7 @@ describe('IntegrationDetailedView', () => {
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
 
-  it('shows the selected tab in the header while loading data', () => {
+  it('shows the selected tab in the breadcrumb while loading data', () => {
     render(<IntegrationDetailedView />, {
       initialRouterConfig: createRouterConfig('bitbucket'),
       organization,

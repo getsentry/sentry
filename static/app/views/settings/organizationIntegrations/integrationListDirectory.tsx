@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -22,8 +22,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import {preload} from 'sentry/router/preload';
-import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -53,10 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import {
-  docIntegrationApiOptions,
-  sentryAppFeaturesApiOptions,
-} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
@@ -225,8 +219,6 @@ function useIntegrationList() {
 export default function IntegrationListDirectory() {
   const title = t('Integrations');
   const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const routeConfig = useRouteConfig();
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -243,17 +235,6 @@ export default function IntegrationListDirectory() {
   const search = decodeScalar(location.query.search) ?? '';
 
   const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
-
-  useEffect(() => {
-    if (!routeConfig) {
-      return;
-    }
-
-    preload(
-      routeConfig,
-      `/settings/${organization.slug}/integrations/__preload_integration_details__/`
-    );
-  }, [organization.slug, routeConfig]);
 
   const {displayList, showLegacyWebhookRow} = useMemo(() => {
     const results = getDisplayedResults(list, search, category, !!legacyWebhooks);
@@ -403,18 +384,11 @@ export default function IntegrationListDirectory() {
           publishStatus={app.status}
           configurations={0}
           categories={categories}
-          onPreload={() => {
-            void queryClient.prefetchQuery({
-              ...sentryAppApiOptions({appSlug: app.slug}),
-              staleTime: Infinity,
-            });
-            void queryClient.prefetchQuery(sentryAppFeaturesApiOptions(app.slug));
-          }}
           customIcon={<SentryAppAvatar sentryApp={app} size={36} />}
         />
       );
     },
-    [organization, getAppInstall, queryClient]
+    [organization, getAppInstall]
   );
 
   const renderDocIntegration = useCallback(
@@ -430,14 +404,11 @@ export default function IntegrationListDirectory() {
           publishStatus="published"
           configurations={0}
           categories={getCategoriesForIntegration(doc)}
-          onPreload={() => {
-            void queryClient.prefetchQuery(docIntegrationApiOptions(doc.slug));
-          }}
           customIcon={<DocIntegrationAvatar docIntegration={doc} size={36} />}
         />
       );
     },
-    [organization, queryClient]
+    [organization]
   );
 
   const renderIntegration = useCallback(

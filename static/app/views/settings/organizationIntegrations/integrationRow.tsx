@@ -36,7 +36,6 @@ type Props = {
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
-  onPreload?: () => void;
   outdatedConfigurations?: number;
   status?: IntegrationInstallationStatus;
 };
@@ -61,7 +60,6 @@ export function IntegrationRow(props: Props) {
     customAlert,
     customIcon,
     disabledConfigurations,
-    onPreload,
   } = props;
 
   const baseUrl =
@@ -102,11 +100,7 @@ export function IntegrationRow(props: Props) {
     }
     return (
       <Flex align="center" gap="xs">
-        <StyledLink
-          to={`${baseUrl}?tab=configurations`}
-          onMouseEnter={onPreload}
-          onFocus={onPreload}
-        >
+        <StyledLink to={`${baseUrl}?tab=configurations`}>
           {tn('%s Configuration', '%s Configurations', configurations)}
         </StyledLink>
         {disabledConfigurations ? (
@@ -123,11 +117,7 @@ export function IntegrationRow(props: Props) {
     if (status) {
       return <IntegrationStatus status={status} />;
     }
-    return (
-      <LearnMore to={baseUrl} onMouseEnter={onPreload} onFocus={onPreload}>
-        {t('Learn More')}
-      </LearnMore>
-    );
+    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
   };
 
   const getUpgradeTooltipTitle = () => {
@@ -145,8 +135,6 @@ export function IntegrationRow(props: Props) {
         link: (
           <Link
             to={resolveNowHref}
-            onMouseEnter={onPreload}
-            onFocus={onPreload}
             onClick={() =>
               trackAnalytics('integrations.resolve_now_clicked', {
                 integration_type: convertIntegrationTypeToSnakeCase(type),
@@ -166,9 +154,7 @@ export function IntegrationRow(props: Props) {
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <Flex gap="xs" align="center">
-            <IntegrationName to={baseUrl} onMouseEnter={onPreload} onFocus={onPreload}>
-              {displayName}
-            </IntegrationName>
+            <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
             {outdatedConfigurations > 0 && (
               <Tooltip
                 isHoverable

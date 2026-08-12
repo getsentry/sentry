@@ -438,12 +438,16 @@ function IntegrationNavigationHeader({
             <Text as="span">{t('Configurations')}</Text>
             <Divider />
             <IntegrationIcon size={18} integration={integration} />
-            <ExternalLink
-              href={`https://${integration.domainName}`}
-              style={{color: 'inherit'}}
-            >
-              {integration.name}
-            </ExternalLink>
+            <Text>
+              {({className}) => (
+                <ExternalLink
+                  className={className}
+                  href={`https://${integration.domainName}`}
+                >
+                  {integration.name}
+                </ExternalLink>
+              )}
+            </Text>
           </Flex>
         }
         action={action}

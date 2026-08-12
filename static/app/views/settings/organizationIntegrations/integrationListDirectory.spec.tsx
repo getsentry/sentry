@@ -8,7 +8,7 @@ import {
 } from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
@@ -72,26 +72,6 @@ describe('IntegrationListDirectory', () => {
 
       expect(screen.getByText('Bitbucket')).toBeInTheDocument();
       expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
-    });
-
-    it('prefetches Sentry App details before navigation', async () => {
-      const appRequest = MockApiClient.addMockResponse({
-        url: '/sentry-apps/clickup/',
-        body: PublishedAppsFixture()[0],
-      });
-      const featuresRequest = MockApiClient.addMockResponse({
-        url: '/sentry-apps/clickup/features/',
-        body: [],
-      });
-
-      render(<IntegrationListDirectory />, {organization});
-
-      await userEvent.hover(await screen.findByRole('link', {name: 'ClickUp'}));
-
-      await waitFor(() => {
-        expect(appRequest).toHaveBeenCalled();
-        expect(featuresRequest).toHaveBeenCalled();
-      });
     });
 
     it('tracks searches with the number of results shown', async () => {
