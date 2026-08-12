@@ -331,11 +331,11 @@ function VisualizationWidgetContent({
             aggregateField: [
               {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
             ],
-            query: applyDashboardFilters(
-              exploreQuery.formatString(),
+            query: applyDashboardFilters({
+              baseQuery: exploreQuery.formatString(),
               dashboardFilters,
-              widget.widgetType
-            ),
+              widgetType: widget.widgetType,
+            }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
