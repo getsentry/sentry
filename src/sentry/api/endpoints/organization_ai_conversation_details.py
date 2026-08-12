@@ -24,7 +24,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.iterators import chunked
 from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
@@ -35,15 +34,13 @@ _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RET
 
 CONVERSATION_PARENT_SPAN = "conversation_parent_span"
 
-# How many generations of missing ancestors to look up. Gaps observed in real data
-# are a single span, so this leaves room to spare without unbounded round trips.
-MAX_ANCESTOR_GENERATIONS = 4
+# Rows per page of the parent-link query, and the total it will read. A trace can
+# hold far more spans than this, so the cap bounds the work at the cost of leaving
+# some parents unresolved on very large traces.
+TRACE_LINK_PAGE_SIZE = 10_000
+MAX_TRACE_LINK_ROWS = 20_000
 
-# Span ids per ancestor lookup. Each id is a point lookup, but the query string
-# holds them all, so keep any single one a reasonable size.
-MAX_ANCESTORS_PER_QUERY = 500
-
-ANCESTOR_ATTRIBUTES = ["span_id", "parent_span", "trace", "gen_ai.conversation.id"]
+TRACE_LINK_ATTRIBUTES = ["span_id", "parent_span", "trace", "gen_ai.conversation.id"]
 
 # A span, identified within its trace. Span ids are only unique per trace.
 SpanKey = tuple[str, str]
@@ -291,10 +288,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         span, so an agent and the span it produced are routinely separated by ordinary
         db or http spans. Those spans are not in this response, which leaves
         ``parent_span`` pointing at a span the client does not have and no way to
-        rebuild the agent tree. Looking the missing ancestors up here restores it.
+        rebuild the agent tree. Reading the parent links of every span in the
+        conversation's traces restores it.
 
-        Membership is read from each ancestor's own conversation id rather than from
-        this page, so an ancestor returned on a later page still resolves.
+        Membership is read from each span's own conversation id rather than from this
+        page, so an ancestor returned on a later page still resolves.
 
         Best-effort: an unresolved chain leaves ``conversation_parent_span`` null,
         which is what the client already handles.
@@ -302,55 +300,49 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         for span in spans:
             span.setdefault(CONVERSATION_PARENT_SPAN, None)
 
-        if not spans:
-            return
-
-        # Every span we know the parent of. None means "no parent, or never found".
-        parent_of: dict[SpanKey, str | None] = {}
-        in_conversation: set[SpanKey] = set()
         page: list[tuple[dict, SpanKey]] = []
-
+        trace_ids: set[str] = set()
         for span in spans:
             key = self._span_key(span)
             if key is None:
                 continue
-            parent_of[key] = span.get("parent_span") or None
-            in_conversation.add(key)
             page.append((span, key))
+            trace_ids.add(key[0])
+
+        if not trace_ids:
+            return
+
+        # Every span we know the parent of. None means "no parent".
+        parent_of: dict[SpanKey, str | None] = {}
+        in_conversation: set[SpanKey] = set()
 
         try:
-            for _ in range(MAX_ANCESTOR_GENERATIONS):
-                # Only chains that have not reached an ancestor in the conversation
-                # need another hop, so a span stops costing lookups once it resolves.
-                wanted: set[SpanKey] = set()
-                for _span, key in page:
-                    _ancestor, missing = self._walk_ancestors(key, parent_of, in_conversation)
-                    if missing is not None:
-                        wanted.add((key[0], missing))
-                if not wanted:
-                    break
-
-                for row in self._fetch_ancestors(snuba_params, wanted):
-                    key = self._span_key(row)
-                    if key is None:
-                        continue
-                    parent_of[key] = row.get("parent_span") or None
-                    if row.get("gen_ai.conversation.id") == conversation_id:
-                        in_conversation.add(key)
-
-                # Whatever did not come back is outside the queried window. Mark it
-                # so the next generation does not ask for it again.
-                for key in wanted:
-                    parent_of.setdefault(key, None)
+            rows = self._fetch_trace_links(snuba_params, trace_ids)
         except Exception:
             logger.exception(
-                "Failed to resolve ancestors for AI conversation spans",
+                "Failed to read parent links for AI conversation spans",
                 extra={"conversation_id": conversation_id},
             )
+            rows = []
+
+        for row in rows:
+            key = self._span_key(row)
+            if key is None:
+                continue
+            parent_of[key] = row.get("parent_span") or None
+            if row.get("gen_ai.conversation.id") == conversation_id:
+                in_conversation.add(key)
+
+        # The page is authoritative for its own spans, which matters when the link
+        # query was truncated or a span landed outside its window.
+        for span, key in page:
+            parent_of[key] = span.get("parent_span") or None
+            in_conversation.add(key)
 
         for span, key in page:
-            ancestor, _missing = self._walk_ancestors(key, parent_of, in_conversation)
-            span[CONVERSATION_PARENT_SPAN] = ancestor
+            span[CONVERSATION_PARENT_SPAN] = self._nearest_conversation_ancestor(
+                key, parent_of, in_conversation
+            )
 
     @staticmethod
     def _span_key(span: Mapping[str, Any]) -> SpanKey | None:
@@ -359,18 +351,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         return (trace, span_id) if trace and span_id else None
 
     @staticmethod
-    def _walk_ancestors(
+    def _nearest_conversation_ancestor(
         key: SpanKey,
         parent_of: Mapping[SpanKey, str | None],
         in_conversation: set[SpanKey],
-    ) -> tuple[str | None, str | None]:
-        """Walk up from a span as far as the known parent links allow.
-
-        Returns ``(ancestor, missing)``. ``ancestor`` is the nearest ancestor that
-        belongs to the conversation, and is None when the chain ends without one.
-        ``missing`` is the first ancestor that has not been looked up yet, and is
-        None once the walk has seen every link the trace records.
-        """
+    ) -> str | None:
+        """The closest ancestor of a span that belongs to the conversation, walking
+        up through spans that do not, or None when the chain holds none."""
         trace, span_id = key
         visited = {span_id}
         current = parent_of.get(key)
@@ -379,36 +366,46 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             visited.add(current)
             ancestor = (trace, current)
             if ancestor in in_conversation:
-                return current, None
-            if ancestor not in parent_of:
-                return None, current
-            current = parent_of[ancestor]
+                return current
+            current = parent_of.get(ancestor)
 
-        return None, None
+        return None
 
     @trace
-    def _fetch_ancestors(
-        self, snuba_params: SnubaParams, keys: set[SpanKey]
+    def _fetch_trace_links(
+        self, snuba_params: SnubaParams, trace_ids: set[str]
     ) -> list[dict[str, Any]]:
-        """Look the given spans up by id. ``span_id`` is the item id, so these are
-        point lookups rather than a scan of the traces."""
-        trace_filter = f"trace:[{','.join(sorted({trace for trace, _ in keys}))}]"
-        span_ids = sorted({span_id for _, span_id in keys})
+        """Parent link of every span in the given traces, not only the gen_ai ones.
+
+        Reads at most ``MAX_TRACE_LINK_ROWS``. Large traces run past that, which
+        leaves the parents beyond it unresolved rather than growing the query without
+        bound, so a truncated read is logged.
+        """
+        query_string = f"trace:[{','.join(sorted(trace_ids))}]"
 
         rows: list[dict[str, Any]] = []
-        for chunk in chunked(span_ids, MAX_ANCESTORS_PER_QUERY):
+        while len(rows) < MAX_TRACE_LINK_ROWS:
             result = Spans.run_table_query(
                 params=snuba_params,
-                query_string=f"{trace_filter} span_id:[{','.join(chunk)}]",
-                selected_columns=ANCESTOR_ATTRIBUTES,
-                orderby=None,
-                offset=0,
-                limit=len(chunk),
-                referrer=Referrer.API_AI_CONVERSATION_DETAILS_ANCESTORS.value,
+                query_string=query_string,
+                selected_columns=TRACE_LINK_ATTRIBUTES,
+                # Offset paging needs a total order, and span_id is already selected.
+                orderby=["span_id"],
+                offset=len(rows),
+                limit=min(TRACE_LINK_PAGE_SIZE, MAX_TRACE_LINK_ROWS - len(rows)),
+                referrer=Referrer.API_AI_CONVERSATION_DETAILS_TRACE_LINKS.value,
                 config=SearchResolverConfig(auto_fields=True),
                 sampling_mode="HIGHEST_ACCURACY",
             )
-            rows.extend(result.get("data", []))
+            page = result.get("data", [])
+            rows.extend(page)
+            if len(page) < TRACE_LINK_PAGE_SIZE:
+                return rows
+
+        logger.warning(
+            "Truncated the parent link read for an AI conversation",
+            extra={"trace_count": len(trace_ids), "rows": len(rows)},
+        )
         return rows
 
     @trace

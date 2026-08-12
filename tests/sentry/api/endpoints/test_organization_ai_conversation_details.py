@@ -1162,7 +1162,47 @@ class ConversationParentSpanTest(BaseAIConversationsTestCase):
         assert response.status_code == 200
         assert self._parents_by_span_id(response) == {"c" * 16: None}
 
-    def test_survives_a_failing_ancestor_lookup(self) -> None:
+    def test_resolves_each_trace_separately(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        first_trace = uuid4().hex
+        second_trace = uuid4().hex
+
+        for index, trace_id in enumerate((first_trace, second_trace)):
+            agent_id = f"{index}a" * 8
+            tool_id = f"{index}c" * 8
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                op="gen_ai.invoke_agent",
+                operation_type="agent",
+                trace_id=trace_id,
+                span_id=agent_id,
+                parent_span_id="f" * 16,
+            )
+            self._store_plain_span(trace_id, f"{index}b" * 8, agent_id, now)
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                span_id=tool_id,
+                parent_span_id=f"{index}b" * 8,
+            )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+
+        parents = self._parents_by_span_id(response)
+        assert parents == {
+            "0a" * 8: None,
+            "0c" * 8: "0a" * 8,
+            "1a" * 8: None,
+            "1c" * 8: "1a" * 8,
+        }
+
+    def test_survives_a_failing_parent_link_read(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
@@ -1179,7 +1219,7 @@ class ConversationParentSpanTest(BaseAIConversationsTestCase):
 
         with patch(
             "sentry.api.endpoints.organization_ai_conversation_details."
-            "OrganizationAIConversationDetailsEndpoint._fetch_ancestors",
+            "OrganizationAIConversationDetailsEndpoint._fetch_trace_links",
             side_effect=Exception("snuba unavailable"),
         ):
             response = self.do_request(conversation_id, self._window(now))
