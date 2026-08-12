@@ -13,7 +13,7 @@ from rest_framework import serializers
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
@@ -30,7 +30,6 @@ from sentry.models.dashboard_widget import (
     DatasetSourcesTypes,
     get_max_widget_limit,
 )
-from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
@@ -52,8 +51,6 @@ from sentry.utils.tracing import set_span_data, start_span
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
-
-_FALLBACK_PROJECT_IDS_KEY = "_validation_fallback_project_ids"
 
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_choices()}
@@ -365,44 +362,14 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     def _get_validation_project_ids(self) -> list[int]:
         """Project ids used only to satisfy the query builder during validation.
 
-        Which projects are in scope doesn't affect the outcome, so any project
-        the requester can reach will do when the context list is empty. That
-        happens routinely: `get_projects` filters on team membership, while
-        `allow_joinleave` orgs grant project access without it, so any teamless
-        member of an open-membership org lands here despite seeing everything.
+        `validation_projects` is resolved with `include_all_accessible`, so it
+        keeps the projects an `allow_joinleave` org grants without team
+        membership — the ones `projects` drops, leaving a teamless member with
+        nothing despite seeing everything. Non-request callers supply only
+        `projects`.
         """
-        project_ids = [p.id for p in self.context["projects"]]
-        if project_ids:
-            return project_ids
-
-        # Cached in the (request-scoped, tree-wide) serializer context because
-        # this runs once per widget query, up to MAX_WIDGETS times per request.
-        if _FALLBACK_PROJECT_IDS_KEY not in self.context:
-            self.context[_FALLBACK_PROJECT_IDS_KEY] = self._borrow_accessible_project_id()
-
-        return self.context[_FALLBACK_PROJECT_IDS_KEY]
-
-    def _borrow_accessible_project_id(self) -> list[int]:
-        """One active project the requester can access, or none.
-
-        Decided by `Access.has_project_access`, the same predicate `get_projects`
-        applies under `include_all_accessible`, so a requester with no route to
-        any project borrows nothing and validation reports that instead.
-        """
-        access = getattr(self.context.get("request"), "access", None)
-        if access is None:
-            return []
-
-        candidates = Project.objects.filter(
-            organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
-        )
-        if not access.has_global_access:
-            # Only team projects can match; narrow in the database rather than
-            # scanning the org. has_project_access still decides.
-            candidates = candidates.filter(id__in=access.project_ids_with_team_membership)
-
-        project = candidates.first()
-        return [project.id] if project is not None and access.has_project_access(project) else []
+        projects = self.context.get("validation_projects") or self.context["projects"]
+        return [p.id for p in projects]
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)

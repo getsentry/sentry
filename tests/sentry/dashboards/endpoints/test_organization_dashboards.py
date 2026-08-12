@@ -2767,10 +2767,10 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validate_only_looks_up_fallback_project_once(
+    def test_post_validate_only_resolves_projects_once_per_request(
         self, mock_in_test_environment
     ) -> None:
-        """The fallback runs per widget query, so its lookup must be cached."""
+        """Validation runs per widget query but resolves projects per request."""
         assert self.project  # the fixture is lazy; the org needs a project
         teamless_user = self.create_user()
         self.create_member(
@@ -2804,12 +2804,16 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             response = self.do_request("post", self.url + "?validateOnly=1", data=data)
         assert response.status_code == 200, response.data
 
-        fallback_lookups = [
+        # One membership pass plus the include_all_accessible retry, regardless
+        # of how many widget queries validate against the result.
+        # One membership pass plus the include_all_accessible retry, regardless
+        # of how many widget queries validate against the result.
+        resolutions = [
             q["sql"]
             for q in queries.captured_queries
-            if 'FROM "sentry_project"' in q["sql"] and "LIMIT 1" in q["sql"]
+            if 'FROM "sentry_project"' in q["sql"] and '"status" =' in q["sql"]
         ]
-        assert len(fallback_lookups) == 1, fallback_lookups
+        assert len(resolutions) == 2, resolutions
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validate_only_does_not_error_for_organization_without_projects(

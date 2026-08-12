@@ -47,6 +47,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
+from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
@@ -405,7 +406,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
-class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardsEndpoint(DashboardSerializerContextMixin, OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -695,12 +696,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         serializer = DashboardSerializer(
             data=request.data,
-            context={
-                "organization": organization,
-                "request": request,
-                "projects": self.get_projects(request, organization),
-                "environment": self.request.GET.getlist("environment"),
-            },
+            context=self.get_dashboard_serializer_context(
+                request,
+                organization,
+                environment=self.request.GET.getlist("environment"),
+            ),
         )
 
         if not serializer.is_valid():

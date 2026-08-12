@@ -35,6 +35,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -73,7 +74,7 @@ def _take_dashboard_snapshot(
         return None
 
 
-class OrganizationDashboardBase(OrganizationEndpoint):
+class OrganizationDashboardBase(DashboardSerializerContextMixin, OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
@@ -197,12 +198,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
-            context={
-                "organization": organization,
-                "request": request,
-                "projects": self.get_projects(request, organization),
-                "environment": self.request.GET.getlist("environment"),
-            },
+            context=self.get_dashboard_serializer_context(
+                request,
+                organization,
+                environment=self.request.GET.getlist("environment"),
+            ),
         )
 
         if not serializer.is_valid():

@@ -7,12 +7,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
+from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.organization import Organization
 
 
 @cell_silo_endpoint
-class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
+class OrganizationDashboardWidgetDetailsEndpoint(
+    DashboardSerializerContextMixin, OrganizationEndpoint
+):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -33,13 +36,12 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
 
         serializer = DashboardWidgetSerializer(
             data=request.data,
-            context={
-                "organization": organization,
-                "projects": self.get_projects(request, organization),
-                "displayType": request.data.get("displayType"),
-                "environment": request.GET.getlist("environment"),
-                "request": request,
-            },
+            context=self.get_dashboard_serializer_context(
+                request,
+                organization,
+                displayType=request.data.get("displayType"),
+                environment=request.GET.getlist("environment"),
+            ),
         )
         if not serializer.is_valid():
             errors = serializer.errors.copy()

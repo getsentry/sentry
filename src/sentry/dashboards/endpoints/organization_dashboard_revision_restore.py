@@ -79,12 +79,11 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
         serializer = DashboardDetailsSerializer(
             data=restore_data,
             instance=dashboard,
-            context={
-                "organization": organization,
-                "request": request,
-                "projects": self.get_projects(request, organization),
-                "environment": self.request.GET.getlist("environment"),
-            },
+            context=self.get_dashboard_serializer_context(
+                request,
+                organization,
+                environment=self.request.GET.getlist("environment"),
+            ),
         )
 
         if not serializer.is_valid():

@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
+from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.dashboard import Dashboard
@@ -140,7 +141,7 @@ class OrganizationDashboardGeneratePermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
-class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
+class OrganizationDashboardGenerateEndpoint(DashboardSerializerContextMixin, OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -174,11 +175,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         if current_dashboard is not None:
             dashboard_serializer = DashboardDetailsSerializer(
                 data=current_dashboard,
-                context={
-                    "organization": organization,
-                    "request": request,
-                    "projects": self.get_projects(request, organization),
-                },
+                context=self.get_dashboard_serializer_context(request, organization),
             )
             if not dashboard_serializer.is_valid():
                 return Response(dashboard_serializer.errors, status=400)
