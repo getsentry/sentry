@@ -42,7 +42,6 @@ interface ReadonlyChipProps extends BaseChipProps {
 
 type ChipProps = DismissableChipProps | ReadonlyChipProps;
 
-
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},
   sm: {height: '24px', radius: 'xs', pad: 'sm', font: 'md', dismiss: '20px'},
