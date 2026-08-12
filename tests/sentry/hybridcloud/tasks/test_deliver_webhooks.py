@@ -1868,10 +1868,8 @@ class PushTriggerTest(TestCase):
             deliver_webhooks._refresh_drain_lock(webhook.mailbox_name)
         refresh_ttl = mock_set.call_args.kwargs["timeout"]
 
-        # A lease drain refreshes once per record, right before delivering it, so
-        # both the TTL it inherits from the trigger and the one it writes have to
-        # outlast a single delivery — the cell client's connect plus read timeout.
-        # Below that the lock expires mid-drain and the scheduler dispatches a
+        # Both the TTL the drain inherits and the one it writes must outlast a single
+        # delivery, or the lock expires mid-drain and the scheduler dispatches a
         # second drain over the same records.
         assert trigger_ttl > 2 * CellSiloClient.timeout
         assert refresh_ttl > 2 * CellSiloClient.timeout
@@ -1884,9 +1882,8 @@ class PushTriggerTest(TestCase):
         with patch.object(cache, "add", wraps=cache.add) as mock_add:
             maybe_trigger_drain(webhook.mailbox_name)
 
-        # Claim mode releases the lock before returning, so its TTL is only crash
-        # cover. Sizing it for a delivery would strand the mailbox for that long
-        # whenever a dispatcher dies mid-claim.
+        # Claim mode releases the lock before returning. Sizing its TTL for a delivery
+        # would strand the mailbox that long whenever a dispatcher dies mid-claim.
         assert mock_add.call_args.kwargs["timeout"] == DRAIN_LOCK_TTL
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
