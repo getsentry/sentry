@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -117,12 +117,12 @@ export function ReleaseCard({
 
   return (
     <ResponsivePanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-      <ReleaseInfo
+      <Stack
         borderRight={{zero: 'none', '3xl': 'primary'}}
-        direction="column"
         flexShrink={1}
         maxWidth={{zero: 'none', '3xl': '300px'}}
         minWidth={{zero: '0', '3xl': '260px'}}
+        padding="lg xl"
         width={{zero: 'auto', '3xl': '22%'}}
       >
         {/* Header/info is the table sidecard */}
@@ -217,9 +217,9 @@ export function ReleaseCard({
             </FinalizeWrapper>
           </Flex>
         </ReleaseInfoSubheader>
-      </ReleaseInfo>
+      </Stack>
 
-      <ReleaseProjects borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
+      <Grid borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
           <ReleaseProjectsLayout
@@ -294,7 +294,7 @@ export function ReleaseCard({
             </Tooltip>
           </HiddenProjectsMessage>
         )}
-      </ReleaseProjects>
+      </Grid>
     </ResponsivePanel>
   );
 }
@@ -319,11 +319,6 @@ function ResponsivePanel(props: React.ComponentProps<typeof StyledPanel>) {
     </Container>
   );
 }
-
-const ReleaseInfo = styled(Flex)`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  justify-content: stretch;
-`;
 
 const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
@@ -354,8 +349,6 @@ const PackageName = styled('div')`
   gap: ${p => p.theme.space.xs};
   max-width: 100%;
 `;
-
-const ReleaseProjects = styled(Grid)``;
 
 const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.xl};

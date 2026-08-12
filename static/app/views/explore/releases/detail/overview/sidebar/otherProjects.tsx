@@ -1,7 +1,7 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {Collapsible} from 'sentry/components/collapsible';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -42,7 +42,20 @@ export function OtherProjects({projects, location, version, organization}: Props
           )}
         >
           {projects.map(project => (
-            <Row key={project.id}>
+            <Grid
+              key={project.id}
+              align="center"
+              columns="1fr max-content"
+              css={theme => ({
+                fontSize: theme.font.size.md,
+                [`@container (min-width: ${theme.container['3xl']}) and (max-width: ${theme.container['4xl']})`]:
+                  {
+                    gridTemplateColumns: '200px max-content',
+                  },
+              })}
+              justify="between"
+              marginBottom="sm"
+            >
               <IdBadge project={project} avatarSize={16} />
               <LinkButton
                 size="xs"
@@ -60,24 +73,10 @@ export function OtherProjects({projects, location, version, organization}: Props
               >
                 {t('View')}
               </LinkButton>
-            </Row>
+            </Grid>
           ))}
         </Collapsible>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
-
-const Row = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.md};
-
-  @container (min-width: ${p => p.theme.container['3xl']}) and (max-width: ${p =>
-    p.theme.container['4xl']}) {
-    grid-template-columns: 200px max-content;
-  }
-`;

@@ -112,7 +112,15 @@ export function ReleaseCardProjectRow({
       : null;
 
   return (
-    <ProjectRow data-test-id="release-card-project-row">
+    <PanelItem
+      css={cssTheme => ({
+        padding: `${cssTheme.space.md} ${cssTheme.space.xl}`,
+        [`@container (min-width: ${cssTheme.container['3xl']})`]: {
+          fontSize: cssTheme.font.size.md,
+        },
+      })}
+      data-test-id="release-card-project-row"
+    >
       <ReleaseProjectsLayout
         columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
         gap="md"
@@ -262,16 +270,9 @@ export function ReleaseCardProjectRow({
           </GuideAnchor>
         </ViewColumn>
       </ReleaseProjectsLayout>
-    </ProjectRow>
+    </PanelItem>
   );
 }
-
-const ProjectRow = styled(PanelItem)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
 
 const StyledPlaceholder = styled(Placeholder)`
   height: 15px;
