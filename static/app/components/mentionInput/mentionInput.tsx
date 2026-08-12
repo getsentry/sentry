@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useReducer,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useLayoutEffect, useReducer, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
@@ -47,11 +40,13 @@ function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.Reac
   }
 }
 
-/** Keeps the browser-managed contenteditable in sync with the controlled value. */
+/**
+ * Keeps the browser-managed contenteditable in sync with the controlled value.
+ */
 function useEditorValueSync({mentions, text}: MentionInputValue) {
   const inputRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
-  const pendingSelectionRef = useRef<EditorSelection | null>(null);
+  const selectionToRestoreRef = useRef<EditorSelection | null>(null);
   const [nativeEditVersion, requestValueSync] = useReducer(version => version + 1, 0);
 
   useLayoutEffect(() => {
@@ -64,18 +59,20 @@ function useEditorValueSync({mentions, text}: MentionInputValue) {
       writeEditorValue(input, text, mentions);
     }
 
-    const pendingSelection = pendingSelectionRef.current;
-    if (pendingSelection !== null) {
+    const selectionToRestore = selectionToRestoreRef.current;
+    if (selectionToRestore !== null) {
       input.focus({preventScroll: true});
-      setEditorSelection(input, pendingSelection);
-      pendingSelectionRef.current = null;
+      setEditorSelection(input, selectionToRestore);
+      selectionToRestoreRef.current = null;
     }
   }, [mentions, nativeEditVersion, text]);
 
-  return {inputRef, isComposingRef, pendingSelectionRef, requestValueSync};
+  return {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef};
 }
 
-/** Positions the Popper anchor over the active trigger as the editor moves or resizes. */
+/**
+ * Positions the Popper anchor over the active trigger as the editor moves or resizes.
+ */
 function useCaretAnchorPosition({
   activeMention,
   inputRef,
@@ -151,7 +148,7 @@ export function MentionInput<TSuggestion>({
 }: MentionInputProps<TSuggestion>) {
   const {mentions, text: value} = inputValue;
   const theme = useTheme();
-  const {inputRef, isComposingRef, pendingSelectionRef, requestValueSync} =
+  const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
     useEditorValueSync(inputValue);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const dismissedRequestKeyRef = useRef<string | null>(null);
@@ -223,24 +220,25 @@ export function MentionInput<TSuggestion>({
       updateOverlayPosition,
       value,
     });
+  const setOverlayElement = overlayProps.ref;
+  const setOverlayRef = useCallback(
+    (overlay: HTMLDivElement | null) => {
+      setOverlayElement(overlay);
+      const input = inputRef.current;
+      if (!input || !overlay) {
+        return;
+      }
+
+      const restoreAriaHidden = ariaHideOutside([input, overlay]);
+      return () => {
+        restoreAriaHidden();
+        setOverlayElement(null);
+      };
+    },
+    [inputRef, setOverlayElement]
+  );
   const mergeInputRef = useStableMergeRef(inputRef);
   const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const visibleElements: Element[] = [];
-    if (inputRef.current) {
-      visibleElements.push(inputRef.current);
-    }
-    if (overlayRef.current) {
-      visibleElements.push(overlayRef.current);
-    }
-
-    return ariaHideOutside(visibleElements);
-  }, [inputRef, isOpen, overlayRef]);
 
   const selectSuggestion = (key: React.Key | null) => {
     if (!activeMention || !activeSource || key === null) {
@@ -268,7 +266,7 @@ export function MentionInput<TSuggestion>({
 
     const nextCaret = activeMention.start + insertedText.length;
     const afterSelection = {start: nextCaret, end: nextCaret};
-    pendingSelectionRef.current = afterSelection;
+    selectionToRestoreRef.current = afterSelection;
     dismissedRequestKeyRef.current = null;
     setActiveMention(null);
     onChange({
@@ -287,7 +285,7 @@ export function MentionInput<TSuggestion>({
     const nextMentions = reconcileMentions(value, nextValue, mentions);
     const selection = getEditorSelection(input);
     if (selection) {
-      pendingSelectionRef.current = selection;
+      selectionToRestoreRef.current = selection;
     }
     requestValueSync();
     onChange({text: nextValue, mentions: nextMentions});
@@ -389,7 +387,11 @@ export function MentionInput<TSuggestion>({
       <MentionEditor {...inputProps} ref={mergeInputRef(ref)} />
       <CaretAnchor aria-hidden ref={mergeCaretAnchorRef(triggerProps.ref)} />
       {isOpen ? (
-        <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>
+        <PositionWrapper
+          {...overlayProps}
+          ref={setOverlayRef}
+          zIndex={theme.zIndex.dropdown}
+        >
           <Overlay>
             <Container
               minWidth="220px"
