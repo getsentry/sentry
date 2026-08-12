@@ -66,6 +66,7 @@ export function IntegrationRow(props: Props) {
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
+
   const hasIntegrationAccess = canManageIntegrations(organization);
 
   // When exactly one workspace is outdated there's nothing to disambiguate, so
