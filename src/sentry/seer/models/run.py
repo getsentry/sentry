@@ -189,9 +189,6 @@ class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # Deep link to the agent's session on the provider's own site (e.g. Cursor).
     # Not every provider supplies one.
     agent_url: str | None
-    # The branch the agent pushed. PRs are only linked on a status transition, so once
-    # the final sync has run this is the only handle on a PR that opens afterwards.
-    branch_name: str | None
 
 
 @cell_silo_model
