@@ -101,9 +101,20 @@ interface GroupActionsProps {
   event: Event | null;
   group: Group;
   project: Project;
+  /**
+   * Visual priority of the Resolve button. Defaults to 'primary'; pass 'default'
+   * to de-emphasize it (e.g. when another primary CTA is shown).
+   */
+  resolvePriority?: 'primary' | 'default';
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  resolvePriority = 'primary',
+}: GroupActionsProps) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -525,7 +536,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 onUpdate={onUpdate}
                 project={project}
                 size="sm"
-                priority="primary"
+                priority={resolvePriority === 'primary' ? 'primary' : undefined}
               />
             )}
             <ArchiveActions

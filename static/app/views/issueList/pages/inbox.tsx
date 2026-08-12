@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -10,6 +11,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -26,6 +28,8 @@ import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
@@ -96,6 +100,10 @@ export default function InboxPage() {
   );
 }
 
+const LIST_MIN_WIDTH = 320;
+const PREVIEW_MIN_WIDTH = 400;
+const SPLIT_STORAGE_KEY = 'inbox-split-size';
+
 function InboxContent() {
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
@@ -108,87 +116,114 @@ function InboxContent() {
     parseAsString.withOptions({history: 'replace'})
   );
 
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: measureRef});
+  const defaultSize = Math.max(LIST_MIN_WIDTH, Math.round(width * 0.4));
+  const [storedSize, setStoredSize] = useLocalStorageState(
+    SPLIT_STORAGE_KEY,
+    defaultSize
+  );
+
+  const hasAutoSelected = useRef(false);
+  const handleFirstGroupAvailable = useCallback(
+    (groupId: string) => {
+      if (!hasAutoSelected.current) {
+        hasAutoSelected.current = true;
+        void setSelectedIssueId(groupId);
+      }
+    },
+    [setSelectedIssueId]
+  );
+
+  const listPanel = (
+    <Stack
+      as="section"
+      aria-label={t('Issue inbox')}
+      minHeight={0}
+      height="100%"
+      background="primary"
+      borderRight="muted"
+    >
+      <Flex
+        as="header"
+        align="center"
+        justify="between"
+        padding="md lg"
+        background="secondary"
+        borderBottom="muted"
+        flexShrink={0}
+      >
+        <Heading as="h2" size="md">
+          {t('Issues')}
+        </Heading>
+        <SegmentedControl
+          aria-label={t('Issue assignee')}
+          size="xs"
+          value={assignmentFilter}
+          onChange={setAssignmentFilter}
+        >
+          <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="my_teams">{t('My Teams')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </Flex>
+      <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
+        {SECTIONS.map(section => (
+          <InboxSection
+            key={section.key}
+            section={section}
+            assignmentFilter={assignmentFilter}
+            selectedIssueId={selectedIssueId}
+            onFirstGroupAvailable={
+              selectedIssueId === null ? handleFirstGroupAvailable : undefined
+            }
+          />
+        ))}
+      </Stack>
+    </Stack>
+  );
+
+  const previewPanel = (
+    <Stack
+      as="aside"
+      aria-label={t('Issue preview')}
+      minHeight={0}
+      height="100%"
+      overflow="hidden"
+    >
+      {selectedIssueId && (
+        <MobileBackButton padding="md" borderBottom="muted">
+          <Button
+            size="xs"
+            variant="link"
+            icon={<IconArrow direction="left" size="xs" />}
+            onClick={() => void setSelectedIssueId(null)}
+          >
+            {t('Back to inbox')}
+          </Button>
+        </MobileBackButton>
+      )}
+      {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+    </Stack>
+  );
+
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
-      <Grid
-        flex={1}
-        minHeight={0}
-        columns={{
-          'screen:xs': 'minmax(0, 1fr)',
-          'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
-        }}
-      >
-        <Stack
-          as="section"
-          aria-label={t('Issue inbox')}
-          minHeight={0}
-          display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
-          background="primary"
-          borderRight="muted"
-        >
-          <Flex
-            as="header"
-            align="center"
-            justify="between"
-            padding="md lg"
-            background="secondary"
-            borderBottom="muted"
-            flexShrink={0}
-          >
-            <Heading as="h2" size="md">
-              {t('Issues')}
-            </Heading>
-            <SegmentedControl
-              aria-label={t('Issue assignee')}
-              size="xs"
-              value={assignmentFilter}
-              onChange={setAssignmentFilter}
-            >
-              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="my_teams">
-                {t('My Teams')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
-            </SegmentedControl>
-          </Flex>
-          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.map(section => (
-              <InboxSection
-                key={section.key}
-                section={section}
-                assignmentFilter={assignmentFilter}
-                selectedIssueId={selectedIssueId}
-              />
-            ))}
-          </Stack>
-        </Stack>
-        <Stack
-          as="aside"
-          aria-label={t('Issue preview')}
-          minHeight={0}
-          overflow="hidden"
-          display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
-        >
-          {selectedIssueId && (
-            <Container
-              display={{'screen:xs': 'block', 'screen:md': 'none'}}
-              padding="md"
-              borderBottom="muted"
-            >
-              <Button
-                size="xs"
-                variant="link"
-                icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
-              >
-                {t('Back to inbox')}
-              </Button>
-            </Container>
-          )}
-          {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
-        </Stack>
-      </Grid>
+      <SplitWrapper ref={measureRef} data-has-selection={!!selectedIssueId}>
+        {width > 0 && (
+          <SplitPanel
+            orientation="horizontal"
+            defaultSize={defaultSize}
+            initialSize={storedSize}
+            minSize={LIST_MIN_WIDTH}
+            fillMinSize={PREVIEW_MIN_WIDTH}
+            onResizeEnd={({endSize}) => setStoredSize(endSize)}
+            sized={listPanel}
+            fill={previewPanel}
+          />
+        )}
+      </SplitWrapper>
     </Stack>
   );
 }
@@ -197,9 +232,15 @@ interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
+  onFirstGroupAvailable?: (groupId: string) => void;
 }
 
-function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  section,
+  selectedIssueId,
+  onFirstGroupAvailable,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
@@ -217,6 +258,15 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
+
+  const reportedRef = useRef(false);
+  const firstGroupId = groups[0]?.id;
+  useEffect(() => {
+    if (!reportedRef.current && firstGroupId && onFirstGroupAvailable) {
+      reportedRef.current = true;
+      onFirstGroupAvailable(firstGroupId);
+    }
+  }, [firstGroupId, onFirstGroupAvailable]);
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
@@ -373,6 +423,36 @@ function InboxIssueCard({
     </IssueCardLink>
   );
 }
+
+const SplitWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    [role='separator'] {
+      display: none;
+    }
+
+    &[data-has-selection='true'] > div > :first-child {
+      display: none;
+    }
+    &[data-has-selection='false'] > div > :last-child {
+      display: none;
+    }
+    &[data-has-selection='false'] > div > :first-child {
+      flex: 1 1 auto !important;
+    }
+  }
+`;
+
+const MobileBackButton = styled(Container)`
+  display: none;
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    display: block;
+  }
+`;
 
 const InboxSectionContent = styled(Disclosure.Content)`
   padding: 0;

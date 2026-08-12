@@ -35,6 +35,15 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  avatarSize?: number;
+  /**
+   * Render just the avatar with no surrounding tag pill / background.
+   */
+  bare?: boolean;
+  /**
+   * Show the dropdown chevron next to the avatar. Defaults to true.
+   */
+  showChevron?: boolean;
   /**
    * Show the assignee name next to the avatar. Defaults to true.
    */
@@ -102,7 +111,10 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
+  avatarSize,
   showLabel = true,
+  showChevron = true,
+  bare = false,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -135,7 +147,10 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
+      avatarSize={avatarSize}
       showLabel={showLabel}
+      showChevron={showChevron}
+      bare={bare}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton

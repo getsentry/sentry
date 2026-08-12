@@ -34,32 +34,63 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignedUser?: User | undefined;
   assignmentDetails?: AssignmentDetails;
+  avatarSize?: number;
+  /**
+   * Render just the avatar with no surrounding tag pill / background — matches a
+   * plain avatar. Defaults to false.
+   */
+  bare?: boolean;
   chevronDirection?: 'up' | 'down';
   loading?: boolean;
+  /**
+   * Whether to show the dropdown chevron next to the avatar. Defaults to true.
+   * Set to false for a compact, avatar-only trigger.
+   */
+  showChevron?: boolean;
   showLabel?: boolean;
 };
 
-const AVATAR_SIZE = 16;
+const DEFAULT_AVATAR_SIZE = 16;
 const ASSIGNED_TOOLTIP_MAX_WIDTH = 300;
 
 export function AssigneeBadge({
   assignedTo,
   assignedUser,
   assignmentDetails,
+  avatarSize = DEFAULT_AVATAR_SIZE,
   showLabel = false,
+  showChevron = true,
+  bare = false,
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
   if (loading) {
-    return (
-      <StyledTag
-        icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
-        variant="muted"
+    const loadingIcon = (
+      <LoadingIcon
+        avatarSize={avatarSize}
+        showLabel={showLabel}
+        showChevron={showChevron}
+        chevronDirection={chevronDirection}
       />
+    );
+    return bare ? (
+      <BareBadge>{loadingIcon}</BareBadge>
+    ) : (
+      <StyledTag icon={loadingIcon} variant="muted" />
     );
   }
 
   if (assignedTo) {
+    const assignedIcon = (
+      <AssignedIcon
+        assignedTo={assignedTo}
+        assignedUser={assignedUser}
+        avatarSize={avatarSize}
+        chevronDirection={chevronDirection}
+        showLabel={showLabel}
+        showChevron={showChevron}
+      />
+    );
     return (
       <Tooltip
         isHoverable
@@ -72,29 +103,30 @@ export function AssigneeBadge({
         }
         skipWrapper
       >
-        <StyledTag
-          icon={
-            <AssignedIcon
-              assignedTo={assignedTo}
-              assignedUser={assignedUser}
-              chevronDirection={chevronDirection}
-              showLabel={showLabel}
-            />
-          }
-          variant="muted"
-        />
+        {bare ? (
+          <BareBadge>{assignedIcon}</BareBadge>
+        ) : (
+          <StyledTag icon={assignedIcon} variant="muted" />
+        )}
       </Tooltip>
     );
   }
 
+  const unassignedIcon = (
+    <UnassignedIcon
+      avatarSize={avatarSize}
+      showLabel={showLabel}
+      showChevron={showChevron}
+      chevronDirection={chevronDirection}
+    />
+  );
   return (
     <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
-      <UnassignedTag
-        icon={
-          <UnassignedIcon showLabel={showLabel} chevronDirection={chevronDirection} />
-        }
-        variant="muted"
-      />
+      {bare ? (
+        <BareBadge>{unassignedIcon}</BareBadge>
+      ) : (
+        <UnassignedTag icon={unassignedIcon} variant="muted" />
+      )}
     </Tooltip>
   );
 }
@@ -121,17 +153,23 @@ function getAssignmentSourceLabel(source: AssignmentDetails['source']) {
 }
 
 function LoadingIcon({
+  avatarSize,
   showLabel,
+  showChevron,
   chevronDirection,
 }: {
+  avatarSize: number;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showChevron: boolean;
   showLabel: boolean;
 }) {
   return (
     <Fragment>
-      <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
+      <StyledLoadingIndicator mini relative size={avatarSize} />
       {showLabel && 'Loading...'}
-      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      {showChevron && (
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      )}
     </Fragment>
   );
 }
@@ -139,11 +177,15 @@ function LoadingIcon({
 function AssignedIcon({
   assignedTo,
   assignedUser,
+  avatarSize,
   chevronDirection,
   showLabel,
+  showChevron,
 }: {
   assignedTo: Actor;
+  avatarSize: number;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showChevron: boolean;
   showLabel: boolean;
   assignedUser?: User;
 }) {
@@ -154,7 +196,7 @@ function AssignedIcon({
       <UserAvatar
         user={assignedUser ?? assignedTo}
         className="avatar"
-        size={AVATAR_SIZE}
+        size={avatarSize}
         hasTooltip={false}
         data-test-id="assigned-avatar"
       />
@@ -162,7 +204,7 @@ function AssignedIcon({
       <ActorAvatar
         actor={assignedTo}
         className="avatar"
-        size={AVATAR_SIZE}
+        size={avatarSize}
         hasTooltip={false}
         data-test-id="assigned-avatar"
         style={{marginLeft: theme.space.xs}}
@@ -173,7 +215,9 @@ function AssignedIcon({
     <Fragment>
       {avatar}
       {showLabel && <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>}
-      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      {showChevron && (
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      )}
     </Fragment>
   );
 }
@@ -218,10 +262,14 @@ function AssignedTooltip({
 }
 
 function UnassignedIcon({
+  avatarSize,
   showLabel,
+  showChevron,
   chevronDirection,
 }: {
+  avatarSize: number;
   chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showChevron: boolean;
   showLabel: boolean;
 }) {
   return (
@@ -229,11 +277,13 @@ function UnassignedIcon({
       <Placeholder
         shape="circle"
         testId="unassigned-avatar"
-        width={`${AVATAR_SIZE}px`}
-        height={`${AVATAR_SIZE}px`}
+        width={`${avatarSize}px`}
+        height={`${avatarSize}px`}
       />
       {showLabel && <Fragment>Unassigned</Fragment>}
-      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      {showChevron && (
+        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+      )}
     </Fragment>
   );
 }
@@ -275,6 +325,13 @@ const StyledTag = styled(Tag)`
 const UnassignedTag = styled(StyledTag)`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   background-color: transparent;
+`;
+
+// Bare variant: just the avatar (+ optional chevron) with no tag pill/background.
+const BareBadge = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`

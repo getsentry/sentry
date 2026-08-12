@@ -22,6 +22,11 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
+  /**
+   * Whether to show the dropdown chevron next to the priority badge. Defaults
+   * to true. Set to false for a compact, icon-only trigger.
+   */
+  showChevron?: boolean;
 };
 
 const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
@@ -83,7 +88,11 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   };
 }
 
-export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+export function GroupPriority({
+  group,
+  onChange,
+  showChevron = true,
+}: GroupDetailsPriorityProps) {
   const onChangePriority = useChangePriority(group, onChange);
 
   // We can assume that when there is not `priorityLockedAt`, there were no
@@ -97,6 +106,7 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
       onChange={onChangePriority}
       value={group.priority ?? PriorityLevel.MEDIUM}
       lastEditedBy={lastEditedBy}
+      showChevron={showChevron}
     />
   );
 }

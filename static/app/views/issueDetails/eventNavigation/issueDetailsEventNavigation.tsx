@@ -36,13 +36,19 @@ const EventNavOrder = [
 interface IssueDetailsEventNavigationProps {
   event: Event | undefined;
   group: Group;
+  baseEventsPath?: string;
+  eventId?: string;
   isSmallNav?: boolean;
+  onEventChange?: (eventId: string) => void;
 }
 
 export function IssueDetailsEventNavigation({
   event,
   group,
+  baseEventsPath: baseEventsPathProp,
+  eventId: eventIdProp,
   isSmallNav,
+  onEventChange,
 }: IssueDetailsEventNavigationProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -50,6 +56,8 @@ export function IssueDetailsEventNavigation({
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
+
+  const currentEventId = eventIdProp ?? params.eventId;
 
   // Reset shouldPreload when the groupId changes
   useEffect(() => {
@@ -79,17 +87,17 @@ export function IssueDetailsEventNavigation({
   );
 
   const selectedOption = useMemo(() => {
-    switch (params.eventId) {
+    switch (currentEventId) {
       case EventNavOptions.RECOMMENDED:
       case EventNavOptions.LATEST:
       case EventNavOptions.OLDEST:
-        return params.eventId;
+        return currentEventId;
       case undefined:
         return defaultIssueEvent;
       default:
         return EventNavOptions.CUSTOM;
     }
-  }, [params.eventId, defaultIssueEvent]);
+  }, [currentEventId, defaultIssueEvent]);
 
   const EventNavLabels = {
     [EventNavOptions.RECOMMENDED]: isSmallNav ? t('Rec.') : t('Recommended'),
@@ -109,9 +117,14 @@ export function IssueDetailsEventNavigation({
       organization,
       content: EventNavLabels[tabKey as keyof typeof EventNavLabels],
     });
+    if (onEventChange && tabKey !== EventNavOptions.CUSTOM) {
+      onEventChange(tabKey);
+    }
   };
 
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
+  const baseEventsPath =
+    baseEventsPathProp ??
+    `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
     color: ${theme.tokens.content.secondary};
@@ -140,9 +153,12 @@ export function IssueDetailsEventNavigation({
             'previous',
             defined(event?.previousEventID)
           )}
-          onClick={() => {
-            // Assume they will continue to paginate
+          onClick={e => {
             setShouldPreload({next: true, previous: true});
+            if (onEventChange && event?.previousEventID) {
+              e.preventDefault();
+              onEventChange(event.previousEventID);
+            }
           }}
         />
         <LinkButton
@@ -161,9 +177,12 @@ export function IssueDetailsEventNavigation({
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
-          onClick={() => {
-            // Assume they will continue to paginate
+          onClick={e => {
             setShouldPreload({next: true, previous: true});
+            if (onEventChange && event?.nextEventID) {
+              e.preventDefault();
+              onEventChange(event.nextEventID);
+            }
           }}
         />
       </Navigation>
@@ -171,7 +190,7 @@ export function IssueDetailsEventNavigation({
         <TabList variant="floating">
           {EventNavOrder.map(label => {
             const eventPath =
-              label === selectedOption
+              label === selectedOption || onEventChange
                 ? undefined
                 : {
                     pathname: normalizeUrl(baseEventsPath + label + '/'),

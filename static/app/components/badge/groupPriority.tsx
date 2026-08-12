@@ -32,6 +32,11 @@ type GroupPriorityDropdownProps = {
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
+  /**
+   * Whether to show the dropdown chevron next to the priority badge. Defaults
+   * to true. Set to false for a compact, icon-only trigger.
+   */
+  showChevron?: boolean;
 };
 
 type GroupPriorityBadgeProps = {
@@ -191,6 +196,7 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
   disabled = false,
+  showChevron = true,
 }: GroupPriorityDropdownProps) {
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
@@ -219,7 +225,9 @@ export function GroupPriorityDropdown({
           }}
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            {showChevron ? (
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            ) : null}
           </GroupPriorityBadge>
         </DropdownButton>
       )}

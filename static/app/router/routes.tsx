@@ -2556,6 +2556,15 @@ function buildRoutes(): RouteObject[] {
       }:tagKey/`,
     },
     {
+      // Experimental redesigned issue details page (Investigation / Telemetry
+      // tabs). Standalone page reachable from the inbox external-link icon; it
+      // does not go through GroupDetails, so it must be matched before the
+      // `:groupId/` route below.
+      path: 'redesign/:groupId/',
+      component: make(() => import('sentry/views/issueDetailsRedesign')),
+      children: [{path: 'events/:eventId/'}],
+    },
+    {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
       children: [

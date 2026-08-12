@@ -35,8 +35,17 @@ interface AssigneeSelectorProps {
   ) => void;
   additionalMenuFooterItems?: React.ReactNode;
   assignmentDetails?: AssignmentDetails;
+  avatarSize?: number;
+  /**
+   * Render just the avatar with no surrounding tag pill / background.
+   */
+  bare?: boolean;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  /**
+   * Whether to show the dropdown chevron next to the avatar. Defaults to true.
+   */
+  showChevron?: boolean;
   showLabel?: boolean;
   useOwnerAssignmentDetails?: boolean;
 }
@@ -120,7 +129,10 @@ export function AssigneeSelector({
   owners,
   additionalMenuFooterItems,
   assignmentDetails,
+  avatarSize,
   showLabel = false,
+  showChevron = true,
+  bare = false,
   useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
@@ -158,8 +170,11 @@ export function AssigneeSelector({
             assignedTo={group.assignedTo ?? undefined}
             assignedUser={assignedUser}
             assignmentDetails={currentAssignmentDetails}
+            avatarSize={avatarSize}
             loading={assigneeLoading}
             showLabel={showLabel}
+            showChevron={showChevron}
+            bare={bare}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
         </StyledTrigger>
@@ -176,6 +191,16 @@ const StyledTrigger = styled(OverlayTrigger.Button)`
   height: unset;
   border-radius: 20px;
   box-shadow: none;
+  background: transparent;
+
+  &::before,
+  &::after {
+    display: none;
+  }
+
+  &:hover {
+    background: transparent;
+  }
 
   > span > div {
     border-radius: 20px;
