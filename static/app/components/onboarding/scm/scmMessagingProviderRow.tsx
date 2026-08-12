@@ -11,6 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {IconSound} from 'sentry/icons/iconSound';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -254,9 +255,16 @@ export function ScmMessagingProviderRow({
                       </Flex>
                     </Tooltip>
                   )}
-                  {viewModel.status === 'connected' && visualState !== 'removing' && (
-                    <Tag variant="info" icon={<IconSound />}>
-                      {t('Alerts enabled')}
+                  {viewModel.status === 'connected' &&
+                    visualState !== 'removing' &&
+                    visualState !== 'configuring' && (
+                      <Tag variant="info" icon={<IconSound />}>
+                        {t('Alerts enabled')}
+                      </Tag>
+                    )}
+                  {visualState === 'configuring' && viewModel.status === 'connected' && (
+                    <Tag variant="success" icon={<IconCheckmark />}>
+                      {t('Connected')}
                     </Tag>
                   )}
                 </Flex>
