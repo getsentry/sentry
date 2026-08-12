@@ -454,5 +454,5 @@ const IconWrapper = styled('div')`
 
 const ChannelPickerSlot = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space['lg']};
+  padding: ${p => p.theme.space.lg};
 `;

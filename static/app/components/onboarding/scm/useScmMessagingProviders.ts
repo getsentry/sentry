@@ -23,10 +23,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * - `connected`          An active, eligible integration is present and ready to
  *                        have a destination configured.
  */
-export type ScmMessagingProviderStatus =
-  | 'installable'
-  | 'permission-limited'
-  | 'connected';
+type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
 export type ScmMessagingProviderViewModel = {
   /** Defined when status is `connected` or `permission-limited`. */

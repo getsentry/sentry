@@ -1,7 +1,5 @@
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 
-export type {ScmMessagingProviderKey};
-
 export type ScmMessagingSetup =
   | {mode: 'unconfigured'}
   | {mode: 'skipped'}
