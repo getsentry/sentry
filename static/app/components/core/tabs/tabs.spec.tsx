@@ -308,7 +308,7 @@ describe('Tabs overflow', () => {
           x: 0,
           y: 0,
           toJSON: () => ({}),
-        } as DOMRect;
+        };
       });
 
     // Only the tab list wrapper (whose direct child is the tablist) reports the
@@ -330,7 +330,7 @@ describe('Tabs overflow', () => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    } as unknown as typeof ResizeObserver;
+    };
   });
 
   afterEach(() => {

@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import yaml from 'js-yaml';
 import JsonRefs from 'json-refs';
+import {parse} from 'yaml';
 
 function dictToString(dict) {
   const res: string[] = [];
@@ -13,16 +13,14 @@ function dictToString(dict) {
 }
 
 function bundle(originalFile) {
-  // @ts-expect-error: Types do not match the version of js-yaml installed
-  const root = yaml.safeLoad(fs.readFileSync(originalFile, 'utf8'));
+  const root = parse(fs.readFileSync(originalFile, 'utf8'));
   const options = {
     filter: ['relative', 'remote', 'local'],
     resolveCirculars: true,
     location: originalFile,
     loaderOptions: {
       processContent: function (res, callback) {
-        // @ts-expect-error: Types do not match the version of js-yaml installed
-        callback(undefined, yaml.safeLoad(res.text));
+        callback(undefined, parse(res.text));
       },
     },
   };

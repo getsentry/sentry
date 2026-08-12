@@ -149,6 +149,7 @@ const projectSettingsSchema = z.object({
   subjectPrefix: z.string(),
   allowedDomains: z.string(),
   scrapeJavaScript: z.boolean(),
+  enableAutoReleaseCreation: z.boolean(),
   scmSourceContextEnabled: z.boolean(),
   verifySSL: z.boolean(),
   debugFilesRole: z.string().nullable(),
@@ -344,7 +345,7 @@ function AutoResolveForm({
 }
 
 const SECURITY_TOKEN_HELP = t(
-  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended. This does not apply to sourcemap scraping when Allowed Domains is *.'
 );
 
 function SecurityTokenForm({
@@ -678,7 +679,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           value: id,
           label: (
             <Flex align="center" gap="md">
-              <PlatformIcon platform={id} />
+              <PlatformIcon platform={id} alt="" />
               {name}
             </Flex>
           ),
@@ -805,6 +806,41 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
         <FieldGroup title={t('Event Settings')}>
           <AutoResolveForm project={project} disabled={disabled} />
+          {organization.features.includes('auto-release-creation') && (
+            <AutoSaveForm
+              name="enableAutoReleaseCreation"
+              schema={projectSettingsSchema}
+              initialValue={project.enableAutoReleaseCreation}
+              mutationOptions={projectMutationOptions}
+              confirm={value =>
+                value
+                  ? undefined
+                  : tct(
+                      'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/cli/releases/" />
+                        ),
+                      }
+                    )
+              }
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable release auto-creation from telemetry')}
+                  hintText={t(
+                    'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={disabled}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          )}
         </FieldGroup>
 
         <FieldGroup title={t('Membership')}>

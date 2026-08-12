@@ -7,7 +7,7 @@ import {ReplayRequestsThrottledAlert} from 'sentry/components/replays/alerts/rep
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ReplayReaderResult = ReturnType<typeof useLoadReplayReader>;
@@ -34,11 +34,8 @@ export function ReplayLoadingState({
   const organization = useOrganization();
 
   const throttledErrorExists =
-    (readerResult.fetchError instanceof RequestError &&
-      readerResult.fetchError.status === 429) ||
-    readerResult.attachmentError?.find(
-      error => error instanceof RequestError && error.status === 429
-    );
+    isRateLimitError(readerResult.fetchError) ||
+    readerResult.attachmentError?.find(isRateLimitError);
 
   if (throttledErrorExists) {
     return renderThrottled ? (

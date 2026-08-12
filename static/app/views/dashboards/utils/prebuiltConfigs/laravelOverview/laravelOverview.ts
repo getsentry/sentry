@@ -9,7 +9,10 @@ import {
   BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -178,6 +181,7 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   widgets: [
     ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
     ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,

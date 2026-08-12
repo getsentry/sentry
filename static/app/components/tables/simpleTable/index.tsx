@@ -1,4 +1,5 @@
 import type {ComponentProps, HTMLAttributes, RefObject} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +8,11 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {IconArrow} from 'sentry/icons';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+  type SortDirection,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {defined} from 'sentry/utils/defined';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
@@ -45,30 +50,23 @@ function HeaderCell({
   children?: React.ReactNode;
   divider?: boolean;
   handleSortClick?: () => void;
-  sort?: 'asc' | 'desc';
+  sort?: SortDirection;
 }) {
-  const isSorted = sort !== undefined;
-  const canSort = handleSortClick !== undefined;
-
   return (
     <ColumnHeaderCell
       {...props}
-      isSorted={isSorted}
-      onClick={handleSortClick}
+      aria-sort={getAriaSort(sort)}
+      direction={sort}
+      onSort={handleSortClick}
+      overlays={
+        <Fragment>
+          {divider && <HeaderDivider />}
+          {handleSortClick && <InteractionStateLayer />}
+        </Fragment>
+      }
       role="columnheader"
-      as={canSort ? 'button' : 'div'}
     >
-      {divider && <HeaderDivider />}
-      {canSort && <InteractionStateLayer />}
-      <Flex align="center">{children}</Flex>
-      {isSorted && (
-        <SortIndicator
-          aria-hidden
-          size="xs"
-          direction={sort === 'asc' ? 'up' : 'down'}
-          isSorted={isSorted}
-        />
-      )}
+      {children}
     </ColumnHeaderCell>
   );
 }
@@ -147,22 +145,15 @@ const HeaderDivider = styled('div')`
   height: 14px;
 `;
 
-const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
-  background: none;
+const ColumnHeaderCell = styled(SortableHeaderCell)`
   outline: none;
-  border: none;
   padding: 0 ${p => p.theme.space.xl};
-  text-transform: inherit;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-align: left;
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 
   position: relative;
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: ${p => p.theme.space.md};
   height: 100%;
 
   &:focus-visible {
@@ -175,11 +166,9 @@ const ColumnHeaderCell = styled('div')<{isSorted?: boolean}>`
     }
   }
 
-  ${p =>
-    p.isSorted &&
-    css`
-      color: ${p.theme.tokens.content.primary};
-    `}
+  &[aria-sort] {
+    color: ${p => p.theme.tokens.content.primary};
+  }
 `;
 
 const rowLinkStyle = (p: {theme: Theme}) => css`
@@ -195,18 +184,6 @@ const rowLinkStyle = (p: {theme: Theme}) => css`
     position: absolute;
     inset: 0;
   }
-`;
-
-const SortIndicator = styled(IconArrow, {
-  shouldForwardProp: prop => prop !== 'isSorted',
-})<{isSorted?: boolean}>`
-  visibility: hidden;
-
-  ${p =>
-    p.isSorted &&
-    css`
-      visibility: visible;
-    `}
 `;
 
 const StyledEmptyMessage = styled('div')`

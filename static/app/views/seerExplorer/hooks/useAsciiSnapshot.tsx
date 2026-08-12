@@ -15,6 +15,7 @@ import {
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {useProjects} from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
+import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 // Types
 type SeriesData = {
@@ -891,9 +892,26 @@ function renderTextNodes(
 export function buildResult(
   gridHelpers: GridHelpers,
   chartTables: string[],
-  projectSlugs: string[]
+  projectSlugs: string[],
+  location?: LLMContextLocation
 ): string {
-  const url = window.location.href;
+  // The URL alone leaves the reader to infer what each path segment means. When
+  // the caller has the full location, lead with all of it — the route pattern
+  // plus params says `123` is a groupId, which a bare URL does not.
+  const header = location
+    ? [
+        location.url,
+        location.name ? `Route: ${location.name}` : '',
+        Object.keys(location.params).length > 0
+          ? `Route params: ${JSON.stringify(location.params)}`
+          : '',
+        Object.keys(location.query).length > 0
+          ? `Query params: ${JSON.stringify(location.query)}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : window.location.href;
 
   // Step 1: Strip trailing spaces from each row. The grid is initialized as
   // all-space cells so rows are always full-width;
@@ -912,7 +930,7 @@ export function buildResult(
   // Step 3: Drop all blank rows
   const nonBlank = lines.filter(l => l.length > 0);
 
-  let result = url + '\n' + nonBlank.join('\n');
+  let result = header + '\n' + nonBlank.join('\n');
 
   if (chartTables.length > 0 || projectSlugs.length > 0) {
     result += '\n\n=== FOOTNOTES ===\n\n';
@@ -943,53 +961,56 @@ export function useAsciiSnapshot() {
   const {selection} = usePageFilters();
   const {projects} = useProjects();
 
-  const capture = useCallback(() => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      return '';
-    }
+  const capture = useCallback(
+    (location?: LLMContextLocation) => {
+      if (typeof document === 'undefined' || typeof window === 'undefined') {
+        return '';
+      }
 
-    const viewportWidth = Math.max(0, Math.floor(window.innerWidth));
-    const viewportHeight = Math.max(0, Math.floor(window.innerHeight));
+      const viewportWidth = Math.max(0, Math.floor(window.innerWidth));
+      const viewportHeight = Math.max(0, Math.floor(window.innerHeight));
 
-    const cellWidthPx = 6;
-    const cellHeightPx = 14;
+      const cellWidthPx = 6;
+      const cellHeightPx = 14;
 
-    const cols = Math.max(1, Math.floor(viewportWidth / cellWidthPx));
-    const rows = Math.max(1, Math.floor(viewportHeight / cellHeightPx));
+      const cols = Math.max(1, Math.floor(viewportWidth / cellWidthPx));
+      const rows = Math.max(1, Math.floor(viewportHeight / cellHeightPx));
 
-    const leftShiftPx = computeLeftShiftPx(viewportWidth);
-    const gridHelpers = createGridHelpers(rows, cols);
-    const isExcluded = createIsExcluded();
-    const isVisible = createIsVisible(viewportWidth, viewportHeight);
+      const leftShiftPx = computeLeftShiftPx(viewportWidth);
+      const gridHelpers = createGridHelpers(rows, cols);
+      const isExcluded = createIsExcluded();
+      const isVisible = createIsVisible(viewportWidth, viewportHeight);
 
-    const context: ChartProcessingContext = {
-      gridHelpers,
-      viewportWidth,
-      viewportHeight,
-      cellWidthPx,
-      cellHeightPx,
-      leftShiftPx,
-      isExcluded,
-      isVisible,
-    };
+      const context: ChartProcessingContext = {
+        gridHelpers,
+        viewportWidth,
+        viewportHeight,
+        cellWidthPx,
+        cellHeightPx,
+        leftShiftPx,
+        isExcluded,
+        isVisible,
+      };
 
-    const chartTables: string[] = [];
-    const chartContainers = processCharts(context, chartTables);
-    renderTextNodes(context, chartContainers);
+      const chartTables: string[] = [];
+      const chartContainers = processCharts(context, chartTables);
+      renderTextNodes(context, chartContainers);
 
-    const projectSlugs: string[] = [];
-    if (selection.projects.length > 0) {
-      const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
-      for (const projectId of selection.projects) {
-        const slug = projectIdToSlug.get(projectId);
-        if (slug) {
-          projectSlugs.push(slug);
+      const projectSlugs: string[] = [];
+      if (selection.projects.length > 0) {
+        const projectIdToSlug = new Map(projects.map(p => [parseInt(p.id, 10), p.slug]));
+        for (const projectId of selection.projects) {
+          const slug = projectIdToSlug.get(projectId);
+          if (slug) {
+            projectSlugs.push(slug);
+          }
         }
       }
-    }
 
-    return buildResult(gridHelpers, chartTables, projectSlugs);
-  }, [selection.projects, projects]);
+      return buildResult(gridHelpers, chartTables, projectSlugs, location);
+    },
+    [selection.projects, projects]
+  );
 
   return capture;
 }

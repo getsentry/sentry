@@ -192,7 +192,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -202,7 +202,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 99,  # crash free rate
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -236,7 +236,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -246,7 +246,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 99,  # crash free rate
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -284,7 +284,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -294,7 +294,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 99,  # crash free rate
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -327,7 +327,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
         # current threshold within series
         mock_threshold: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -337,7 +337,7 @@ class CrashFreeRateThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            "threshold_type": ReleaseThresholdType.CRASH_FREE_SESSION_RATE_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 99,  # crash free rate
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method

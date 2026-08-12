@@ -198,6 +198,60 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_errors_dataset_has_trace(self) -> None:
+        """The has:trace filters limit error stats to events containing the requested ID."""
+        traced_event = self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "message": "event with a trace",
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
+                "fingerprint": ["has-trace-group"],
+                "tags": {"sentry:user": self.user.email},
+                "contexts": {
+                    "trace": {
+                        "trace_id": uuid4().hex,
+                        "span_id": uuid4().hex[:16],
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+        untraced_event = self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "message": "event without a trace",
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
+                "fingerprint": ["has-trace-group"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project.id,
+        )
+        assert untraced_event.group_id == traced_event.group_id
+
+        for trace_field in ["trace", "trace.span"]:
+            response = self.do_request(
+                {
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "interval": "1h",
+                    "dataset": "errors",
+                    "project": self.project.id,
+                    "query": f"issue:{traced_event.group.qualified_short_id} has:{trace_field}",
+                    "yAxis": ["count()", "count_unique(user)"],
+                    "partial": "1",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert [attrs for _time, attrs in response.data["count()"]["data"]] == [
+                [{"count": 1}],
+                [{"count": 0}],
+            ]
+            assert [attrs for _time, attrs in response.data["count_unique(user)"]["data"]] == [
+                [{"count": 1}],
+                [{"count": 0}],
+            ]
+
     def test_errors_dataset_with_environment(self) -> None:
         environment = self.create_environment(project=self.project)
         self.store_event(

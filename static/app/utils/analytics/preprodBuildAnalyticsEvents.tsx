@@ -78,6 +78,14 @@ export type PreprodBuildEventParameters = {
   'preprod.releases.snapshots.tab-clicked': {
     organization: Organization;
   };
+  'preprod.settings.pr_comment_rule_created': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_deleted': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_updated': PreprodSettingsEvent & {
+    artifact_type: ArtifactType;
+    measurement: string;
+    metric: string;
+    value: number;
+  };
   'preprod.settings.status_check_rule_created': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_deleted': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_updated': PreprodSettingsEvent & {
@@ -169,4 +177,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
     'Preprod Settings: Status Check Rule Deleted',
   'preprod.settings.status_check_rule_updated':
     'Preprod Settings: Status Check Rule Updated',
+  'preprod.settings.pr_comment_rule_created': 'Preprod Settings: PR Comment Rule Created',
+  'preprod.settings.pr_comment_rule_deleted': 'Preprod Settings: PR Comment Rule Deleted',
+  'preprod.settings.pr_comment_rule_updated': 'Preprod Settings: PR Comment Rule Updated',
 };

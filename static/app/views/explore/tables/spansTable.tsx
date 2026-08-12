@@ -1,16 +1,17 @@
 import {Fragment, useMemo, useRef} from 'react';
 
 import {Pagination} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
@@ -20,7 +21,6 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -112,24 +112,15 @@ export function SpansTable({
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
+                <TableHeadCell
+                  align={align}
+                  aria-sort={getAriaSort(direction)}
+                  key={i}
+                  isFirst={i === 0}
+                >
+                  <SortableHeaderCell direction={direction} onSort={updateSort}>
+                    {label}
+                  </SortableHeaderCell>
                   {i !== visibleFields.length - 1 && (
                     <GridResizer
                       dataRows={

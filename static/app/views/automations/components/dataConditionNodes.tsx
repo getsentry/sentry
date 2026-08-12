@@ -142,9 +142,16 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.EVERY_EVENT,
+    {
+      label: t('An event or issue activity is captured'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
-      label: t('A resolved issue becomes unresolved'),
+      label: t('A resolved issue regresses'),
       validate: undefined,
     },
   ],
@@ -175,7 +182,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Seer runs on an issue and reaches the stage...'),
       dataCondition: SeerActivityTriggerNode,
       details: SeerActivityTriggerDetails,
-      defaultComparison: [],
+      defaultComparison: ['pr_created'],
       validate: validateSeerActivityTriggerCondition,
     },
   ],

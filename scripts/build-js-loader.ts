@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 'use strict';
 
 import fs from 'node:fs';

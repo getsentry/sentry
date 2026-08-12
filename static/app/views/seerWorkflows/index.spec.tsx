@@ -212,6 +212,39 @@ describe('SeerWorkflows', () => {
     ).toBeInTheDocument();
   });
 
+  it('appends the skip reason to the Skipped tag when one was recorded', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'skip',
+              skipReason: 'insufficient_info',
+              seerRunId: null,
+              pullRequests: [],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByText('Skipped: insufficient info')).toBeInTheDocument();
+  });
+
   it('shows nothing extra when no reason is recorded for an issue', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,

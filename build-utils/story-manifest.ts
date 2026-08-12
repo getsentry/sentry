@@ -6,7 +6,6 @@ import rspack from '@rspack/core';
 import {parse as parseYaml} from 'yaml';
 
 const appDir = path.resolve(import.meta.dirname, '../static/app');
-const modulePath = 'app/stories/storyManifest.generated.ts';
 const PLUGIN_NAME = 'StoryManifestPlugin';
 const STORY_GLOB = '**/*.{stories.tsx,mdx}';
 const STORY_FILE_PATTERN = /(?:\.stories\.tsx|\.mdx)$/;
@@ -53,6 +52,8 @@ if (import.meta.webpackHot) {
 }
 
 export class StoryManifestPlugin implements RspackPluginInstance {
+  static readonly modulePath = 'app/stories/storyManifest.generated.ts';
+
   private manifest = createManifest();
   private pending = new Set<string>();
   private timer?: NodeJS.Timeout;
@@ -60,7 +61,7 @@ export class StoryManifestPlugin implements RspackPluginInstance {
   // Rust compiler is initialized.
   // https://rspack.rs/plugins/rspack/virtual-modules-plugin#dynamic-module-creation
   private readonly virtualModules = new rspack.experiments.VirtualModulesPlugin({
-    [modulePath]: this.manifest.source,
+    [StoryManifestPlugin.modulePath]: this.manifest.source,
   });
   private watcher?: fs.FSWatcher;
 
@@ -121,7 +122,7 @@ export class StoryManifestPlugin implements RspackPluginInstance {
       manifestChanged = next.source !== this.manifest.source;
       if (manifestChanged) {
         this.manifest = next;
-        this.virtualModules.writeModule(modulePath, next.source);
+        this.virtualModules.writeModule(StoryManifestPlugin.modulePath, next.source);
       }
     }
     if (!manifestChanged || changedExistingStory) {

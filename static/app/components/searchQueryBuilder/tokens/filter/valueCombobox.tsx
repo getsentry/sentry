@@ -434,7 +434,6 @@ function useFilterSuggestions({
   const isDebouncingTagKeys = tagKeysBaseQueryKey !== tagKeysQueryKey;
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isFetching} = useQuery({
     queryKey,
     queryFn: ctx =>
@@ -444,7 +443,6 @@ function useFilterSuggestions({
   });
 
   // TODO(malwilley): Display error states
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isFetching: isFetchingTagKeys} = useQuery({
     queryKey: tagKeysQueryKey,
     queryFn: ctx => {
@@ -1444,6 +1442,8 @@ export function SearchQueryBuilderValueCombobox({
           gap="2xs"
           minWidth="0"
           height="100%"
+          overflowX={canSelectMultipleValues ? 'auto' : undefined}
+          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >
@@ -1457,8 +1457,6 @@ export function SearchQueryBuilderValueCombobox({
 const ValueEditingChips = styled(Flex)`
   max-width: 100%;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;

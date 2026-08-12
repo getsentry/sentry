@@ -5,11 +5,18 @@ from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.db.models import prefetch_related_objects
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
+)
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -305,20 +312,34 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
             widget_type = None
         else:
-            widget_type = (
-                DashboardWidgetTypes.get_type_name(obj.widget_type)
-                or DashboardWidgetTypes.TYPE_NAMES[0]
-            )
+            widget_type = DashboardWidgetTypes.get_type_name(obj.widget_type)
+            if widget_type is None:
+                sentry_sdk.set_context(
+                    "dashboard",
+                    {
+                        "dashboard_id": obj.dashboard_id,
+                        "widget_id": obj.id,
+                        "widget_type": obj.widget_type,
+                        "discover_widget_split": obj.discover_widget_split,
+                    },
+                )
+                sentry_sdk.capture_message("Widget has an unresolvable widget_type", level="error")
+                # Preserves the existing behaviour rather than the desired state. There is
+                # no correct dataset to report for these widgets, and `discover` is
+                # deprecated -- but clients already receive it, so keep it until the
+                # underlying rows are gone.
+                widget_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.DISCOVER)
 
-        if (
-            obj.widget_type == DashboardWidgetTypes.DISCOVER
-            and obj.discover_widget_split is not None
-        ):
+        discover_widget_type = (
+            obj.widget_type == DashboardWidgetTypes.DISCOVER or obj.widget_type is None
+        )
+
+        if discover_widget_type and obj.discover_widget_split is not None:
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
         if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
-            obj.widget_type == DashboardWidgetTypes.DISCOVER
+            discover_widget_type
             and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             try:
@@ -455,7 +476,7 @@ class _Widget(TypedDict):
     projects: list[int]
     environment: list[str]
     filters: DashboardFilters
-    last_visited: str | None
+    last_visited: datetime | None
 
 
 class PageFiltersOptional(TypedDict, total=False):
@@ -510,6 +531,20 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
+
+        organization = (kwargs.get("context") or {}).get("organization")
+        use_user_last_visited = organization is not None and features.has(
+            "organizations:dashboards-user-last-visited", organization, actor=user
+        )
+        user_last_visited_map: dict[int, datetime] = {}
+        if use_user_last_visited:
+            user_last_visited_map = {
+                dlv.dashboard_id: dlv.last_visited
+                for dlv in DashboardLastVisited.objects.filter(
+                    user_id=user.id,
+                    dashboard_id__in=item_dict.keys(),
+                )
+            }
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
@@ -571,7 +606,11 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             result[dashboard]["permissions"] = serialize(permission)
 
         for dashboard in item_dict.values():
-            result[dashboard]["last_visited"] = dashboard.last_visited
+            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+            if use_user_last_visited:
+                result[dashboard]["last_visited"] = user_last_visited_map.get(dashboard.id)
+            else:
+                result[dashboard]["last_visited"] = dashboard.last_visited
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids

@@ -9,9 +9,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
-import {GroupList} from './groupList';
+import {GroupList, RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from './groupList';
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();

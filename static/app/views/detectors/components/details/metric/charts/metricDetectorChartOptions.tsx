@@ -15,8 +15,6 @@ import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions'
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
-import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -27,6 +25,8 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {getAnomalyMarkerSeries} from 'sentry/views/detectors/utils/anomalyChart';
+import {isCrashFreeAlert} from 'sentry/views/detectors/utils/isCrashFreeAlert';
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return moment(date).format(format);

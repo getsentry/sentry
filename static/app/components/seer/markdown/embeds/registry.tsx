@@ -15,22 +15,13 @@ export type SeerEmbedComponent = (props: SeerEmbedProps) => ReactNode;
 interface RegisteredEmbed {
   component: SeerEmbedComponent;
   name: string;
-  example?: SeerEmbedProps;
 }
 
 const registry = new Map<string, RegisteredEmbed>();
 
 export const SeerEmbedRegistry = {
-  register(
-    name: string,
-    component: SeerEmbedComponent,
-    example?: Omit<SeerEmbedProps, 'name'>
-  ): void {
-    registry.set(name, {
-      name,
-      component,
-      example: example ? {name, ...example} : undefined,
-    });
+  register(name: string, component: SeerEmbedComponent): void {
+    registry.set(name, {name, component});
   },
 
   get(name: string): SeerEmbedComponent | undefined {

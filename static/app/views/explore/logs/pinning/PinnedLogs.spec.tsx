@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -21,7 +22,7 @@ import {
 } from 'sentry/views/explore/logs/types';
 
 const organization = OrganizationFixture({
-  features: ['ourlogs-enabled', 'ourlogs-pinning'],
+  features: ['ourlogs-enabled'],
 });
 
 const allRows: OurLogsResponseItem[] = [

@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
+    ATTRIBUTE_NAMES,
     AttributeMetadata,
     DeprecationStatus,
 )
@@ -214,6 +215,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.links",
             search_type="string",
             private=True,
+        ),
+        ResolvedAttribute(
+            public_alias="trace_lifecycle",
+            internal_name="sentry.trace_lifecycle",
+            search_type="string",
         ),
         ResolvedAttribute(
             public_alias="ai.total_tokens.used",
@@ -792,7 +798,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
-        "sentry.segment_name": "transaction",
+        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias

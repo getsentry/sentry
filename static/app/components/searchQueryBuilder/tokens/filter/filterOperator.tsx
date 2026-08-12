@@ -30,6 +30,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
+  negationOperators,
   TermOperator,
   type ParseResultToken,
   type Token,
@@ -38,7 +39,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FilterOperatorProps {
@@ -92,12 +93,18 @@ function FilterKeyOperatorLabel({
   );
 }
 
+function isNegationOperator(op: TermOperator) {
+  return negationOperators.includes(op);
+}
+
 export function getOperatorInfo({
   filterToken,
   fieldDefinition,
+  disallowNegation,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
+  disallowNegation?: boolean;
 }): {
   label: ReactNode;
   operator: TermOperator;
@@ -123,7 +130,7 @@ export function getOperatorInfo({
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(filterToken);
+  const {operator} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
     return {
@@ -148,18 +155,22 @@ export function getOperatorInfo({
           ),
           textValue: 'is',
         },
-        {
-          value: TermOperator.NOT_EQUAL,
-          label: (
-            <FilterKeyOperatorLabel
-              keyLabel={filterToken.key.text}
-              keyValue={filterToken.key.value}
-              opLabel="not"
-              includeKeyLabel
-            />
-          ),
-          textValue: 'is not',
-        },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: (
+                  <FilterKeyOperatorLabel
+                    keyLabel={filterToken.key.text}
+                    keyValue={filterToken.key.value}
+                    opLabel="not"
+                    includeKeyLabel
+                  />
+                ),
+                textValue: 'is not',
+              },
+            ]),
       ],
     };
   }
@@ -186,28 +197,64 @@ export function getOperatorInfo({
           ),
           textValue: 'has',
         },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: (
+                  <FilterKeyOperatorLabel
+                    keyLabel="does not have"
+                    keyValue={filterToken.key.value}
+                    includeKeyLabel
+                  />
+                ),
+                textValue: 'does not have',
+              },
+            ]),
+      ],
+    };
+  }
+
+  if (filterToken.filter === FilterType.ARRAY_INCLUDES) {
+    // Array membership uses the default operator; `[*]` on the key conveys
+    // membership and `!` negation reads as "does not include".
+    const includesLabel = 'includes';
+    const doesNotIncludeLabel = 'does not include';
+    const isNegated = operator === TermOperator.NOT_EQUAL;
+
+    return {
+      operator,
+      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      options: [
         {
-          value: TermOperator.NOT_EQUAL,
-          label: (
-            <FilterKeyOperatorLabel
-              keyLabel="does not have"
-              keyValue={filterToken.key.value}
-              includeKeyLabel
-            />
-          ),
-          textValue: 'does not have',
+          value: TermOperator.DEFAULT,
+          label: <OpLabel>{includesLabel}</OpLabel>,
+          textValue: includesLabel,
         },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: <OpLabel>{doesNotIncludeLabel}</OpLabel>,
+                textValue: doesNotIncludeLabel,
+              },
+            ]),
       ],
     };
   }
 
   const keyLabel = filterToken.key.text;
 
+  const validOps = getValidOpsForFilter({filterToken, fieldDefinition});
+
   return {
     operator,
-    label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter({filterToken, fieldDefinition})
+    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    options: validOps
       .filter(op => op !== TermOperator.EQUAL)
+      .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
@@ -223,7 +270,7 @@ export function getOperatorInfo({
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
   const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
-  const {searchSource, recentSearches, disabled, getFieldDefinition} =
+  const {searchSource, recentSearches, disabled, disallowNegation, getFieldDefinition} =
     useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
   const {focusWithinProps} = useFocusWithin({});
@@ -233,8 +280,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
       getOperatorInfo({
         filterToken: token,
         fieldDefinition: getFieldDefinition(token.key.text),
+        disallowNegation,
       }),
-    [token, getFieldDefinition]
+    [token, getFieldDefinition, disallowNegation]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;

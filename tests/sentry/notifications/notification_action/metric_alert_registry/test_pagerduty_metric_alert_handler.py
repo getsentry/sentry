@@ -60,8 +60,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -69,7 +69,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -99,7 +99,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
         self.assert_notification_context(
@@ -139,7 +139,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -224,5 +224,5 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

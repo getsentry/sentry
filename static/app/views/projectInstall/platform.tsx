@@ -9,7 +9,10 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsFlow,
+  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
@@ -19,7 +22,10 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeList} from 'sentry/utils/queryString';
+import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,14 +43,49 @@ type Props = {
   project: Project;
 };
 
+type ProjectCreationGettingStartedAnalyticsProps = {
+  platform: string;
+  products: ProductSolution[];
+  projectId: string;
+  variant: ProjectCreationVariant;
+};
+
+function ProjectCreationGettingStartedAnalytics({
+  platform,
+  products,
+  projectId,
+  variant,
+}: ProjectCreationGettingStartedAnalyticsProps) {
+  useRouteAnalyticsEventNames(
+    'project_creation.getting_started_viewed',
+    'Project Creation: Getting Started Viewed'
+  );
+  useRouteAnalyticsParams({platform, products, project_id: projectId, variant});
+
+  return null;
+}
+
 export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const variantQuery = decodeScalar(location.query.projectCreationVariant);
+  const projectCreationVariant =
+    variantQuery === 'scm' || variantQuery === 'legacy' ? variantQuery : undefined;
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const onProductSelectionSync = useScmCreateProjectProductSync(project);
+
+  // Attribute setup-docs analytics from the flow that actually created this
+  // project. Experiment enrollment alone is insufficient: users can visit
+  // getting-started for older or unrelated projects while still enrolled.
+  const docsFlow: DocsFlow | undefined =
+    projectCreationVariant === 'scm'
+      ? 'project-creation-scm'
+      : projectCreationVariant === 'legacy'
+        ? 'project-creation'
+        : undefined;
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -82,10 +123,22 @@ export function ProjectInstallPlatform({project, platform}: Props) {
 
   return (
     <Fragment>
+      {projectCreationVariant && (
+        <ProjectCreationGettingStartedAnalytics
+          platform={platform.name ?? 'unknown'}
+          products={products}
+          projectId={project.id}
+          variant={projectCreationVariant}
+        />
+      )}
       {!isSelfHosted && showDocsWithProductSelection && (
         <ProductUnavailableCTA organization={organization} />
       )}
-      <PlatformDocHeader projectSlug={project.slug} platform={platform} />
+      <PlatformDocHeader
+        projectSlug={project.slug}
+        platform={platform}
+        projectCreationVariant={projectCreationVariant}
+      />
       {platform.id === 'other' ? (
         <OtherPlatformsInfo
           projectSlug={project.slug}
@@ -98,6 +151,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           project={project}
           activeProductSelection={products}
           onProductSelectionSync={onProductSelectionSync}
+          docsFlow={docsFlow}
         />
       )}
       <div>
@@ -126,12 +180,20 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           <Button
             variant="primary"
             onClick={() => {
-              trackAnalytics('onboarding.take_me_to_issues_clicked', {
+              const analyticsParams = {
                 organization,
                 platform: platform.name ?? 'unknown',
                 project_id: project.id,
                 products,
-              });
+              };
+              if (projectCreationVariant) {
+                trackAnalytics('project_creation.take_me_to_issues_clicked', {
+                  ...analyticsParams,
+                  variant: projectCreationVariant,
+                });
+              } else {
+                trackAnalytics('onboarding.take_me_to_issues_clicked', analyticsParams);
+              }
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
               });

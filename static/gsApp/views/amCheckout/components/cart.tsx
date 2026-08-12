@@ -738,7 +738,7 @@ function TotalSummary({
               aria-label={t('Migrate Now')}
               variant="danger"
               onClick={() => onSubmit(true)}
-              disabled={buttonDisabled || previewDataLoading}
+              disabled={buttonDisabled || previewDataLoading || isSubmitting}
               tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
               icon={<IconLightning />}
             >
@@ -749,7 +749,7 @@ function TotalSummary({
             aria-label={buttonText}
             variant="primary"
             onClick={() => onSubmit()}
-            disabled={buttonDisabled || previewDataLoading}
+            disabled={buttonDisabled || previewDataLoading || isSubmitting}
             tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
             icon={<IconLock locked />}
           >

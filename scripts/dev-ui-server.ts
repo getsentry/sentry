@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {spawn} from 'node:child_process';
 import * as net from 'node:net';
 

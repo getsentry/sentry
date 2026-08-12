@@ -60,6 +60,38 @@ const makeIntegrationQuery = (
   ];
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function withJiraStatusMappingRemovals(
+  data: Record<string, unknown>,
+  previousMappings: unknown
+): Record<string, unknown> {
+  if (!Object.hasOwn(data, 'sync_status_forward')) {
+    return data;
+  }
+
+  const submittedMappings = data.sync_status_forward;
+  if (!isRecord(submittedMappings) || !isRecord(previousMappings)) {
+    return data;
+  }
+
+  const removedMappings = Object.fromEntries(
+    Object.keys(previousMappings)
+      .filter(key => !Object.hasOwn(submittedMappings, key))
+      .map(key => [key, null])
+  );
+
+  return {
+    ...data,
+    sync_status_forward: {
+      ...submittedMappings,
+      ...removedMappings,
+    },
+  };
+}
+
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -141,6 +173,10 @@ function ConfigureIntegration() {
   if (!provider || !integration) {
     return null;
   }
+
+  const usesExplicitMappingRemovals =
+    provider.key === 'jira' &&
+    organization.features.includes('jira-explicit-mapping-removals');
 
   // The Settings tab only has content when there is something to render in
   // renderMainTab(). When empty, the tab is hidden entirely.
@@ -258,8 +294,21 @@ function ConfigureIntegration() {
       {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     );
     const integrationMutationOptions = mutationOptions({
-      mutationFn: (data: Record<string, unknown>) =>
-        fetchMutation({method: 'POST', url: integrationEndpoint, data}),
+      mutationFn: (data: Record<string, unknown>) => {
+        let requestData = data;
+        if (usesExplicitMappingRemovals) {
+          requestData = withJiraStatusMappingRemovals(
+            data,
+            integration.configData?.sync_status_forward
+          );
+        }
+
+        return fetchMutation({
+          method: 'POST',
+          url: integrationEndpoint,
+          data: requestData,
+        });
+      },
       onSuccess: () => {
         // it's important that we keep the mutation pending while the refetch is happening by returning it.
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.

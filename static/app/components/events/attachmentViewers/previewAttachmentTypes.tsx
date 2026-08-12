@@ -38,7 +38,7 @@ type AttachmentRenderer =
   | typeof RRWebJsonViewer
   | typeof VideoViewer;
 
-export const getImageAttachmentRenderer = (
+const getImageAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
   if (imageMimeTypes.includes(attachment.mimetype)) {

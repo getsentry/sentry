@@ -7,6 +7,7 @@
 
 export type KnownGetsentryApiUrls =
   | '/_admin/cells/$region/admin-invoices/$invoiceId/'
+  | '/_admin/cells/$region/customers/'
   | '/_admin/cells/$region/invoice-comparison/'
   | '/audit-logs/'
   | '/beacons/'
@@ -60,6 +61,7 @@ export type KnownGetsentryApiUrls =
   | '/organizations/$organizationIdOrSlug/console-sdk-invites/'
   | '/organizations/$organizationIdOrSlug/data-consent/'
   | '/organizations/$organizationIdOrSlug/issues/force-auto-assignment/'
+  | '/organizations/$organizationIdOrSlug/low-value-spans-costs/'
   | '/organizations/$organizationIdOrSlug/monitor-count/'
   | '/organizations/$organizationIdOrSlug/partnership-agreements/'
   | '/organizations/$organizationIdOrSlug/payments/$paymentId/new/'

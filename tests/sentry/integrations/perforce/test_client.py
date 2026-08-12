@@ -957,6 +957,43 @@ class PerforceClientTest(TestCase):
             with pytest.raises(P4Exception):
                 p4._dispatch()
 
+    def test_dispatch_flush2_puts_func_last(self) -> None:
+        """The flush2 duplex-ack must place `func` LAST, after the echoed
+        flow-control vars. The Perforce RPC dispatcher reads vars until it hits
+        `func`, then invokes the handler; a P4 Broker's forwarder enforces this
+        strictly, so a flush2 that leads with `func` desyncs the forwarder and it
+        never relays the command's response -> the client hangs (issue #120783).
+        A directly-connected p4d is lenient, which is why broker-less setups
+        worked. Verified live against a p4broker -> p4d testbed."""
+        from sentry.integrations.perforce.p4protocol.protocol import P4
+
+        p4 = P4()
+        written: list[bytes] = []
+        with (
+            mock.patch.object(p4, "_write", side_effect=written.append),
+            mock.patch.object(
+                p4,
+                "_read_message",
+                side_effect=[
+                    {b"func": b"flush1", b"himark": b"0", b"flushHard": b"", b"fseq": b"188"},
+                    {b"func": b"release"},
+                ],
+            ),
+        ):
+            p4._dispatch()
+
+        assert len(written) == 1
+        payload = written[0][5:]  # strip the 1-byte checksum + 4-byte length header
+        # `func` must come after the echoed flow-control fields, not before them.
+        func_pos = payload.rfind(b"func\x00")
+        assert func_pos > payload.find(b"himark\x00")
+        assert func_pos > payload.find(b"fseq\x00")
+        # and it must still echo the server's flow-control vars back
+        fields = P4._parse_fields(payload)
+        assert fields[b"func"] == b"flush2"
+        assert fields[b"himark"] == b"0"
+        assert fields[b"fseq"] == b"188"
+
 
 class _P4AttributeRecorder:
     """

@@ -7,6 +7,13 @@ from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    GroupActorType,
+    action_context_scope,
+)
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
@@ -15,7 +22,7 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_reprocessing_tasks, issues_tasks
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
@@ -24,7 +31,8 @@ from sentry.utils.tracing import start_span
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
 )
@@ -61,13 +69,19 @@ def reprocess_group(
         metrics.incr("events.reprocessing.start_group_reprocessing", sample_rate=1.0)
         sentry_sdk.set_tag("is_start", "true")
         sentry_sdk.set_attribute("is_start", "true")
-        new_group_id = start_group_reprocessing(
-            project_id,
-            group_id,
-            max_events=max_events,
-            acting_user_id=acting_user_id,
-            remaining_events=remaining_events,
+        group_action_actor = (
+            GroupActionActor(GroupActorType.USER, acting_user_id)
+            if acting_user_id is not None
+            else SYSTEM_ACTOR
         )
+        with action_context_scope(ActionSource.SYSTEM, group_action_actor):
+            new_group_id = start_group_reprocessing(
+                project_id,
+                group_id,
+                max_events=max_events,
+                acting_user_id=acting_user_id,
+                remaining_events=remaining_events,
+            )
 
     assert new_group_id is not None
 
@@ -144,7 +158,8 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60 * 5,
     retry=Retry(times=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
@@ -231,7 +246,8 @@ def handle_remaining_events(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=(60 * 5) + 5,
 )
 def finish_reprocessing(project_id: int, group_id: int) -> None:

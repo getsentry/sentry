@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Count
+from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.db.models.functions import TruncDay
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -15,7 +15,7 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
-from sentry.constants import DataCategory
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.issues.grouptype import (
     PERFORMANCE_ISSUE_CATEGORIES,
     GroupCategory,
@@ -24,22 +24,30 @@ from sentry.issues.grouptype import (
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
 from sentry.models.team import TeamStatus
+from sentry.pr_metrics.attribution import is_seer_attribution
 from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
+from sentry.seer.models import SeerRunPullRequest
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
+SIX_HOURS = int(timedelta(hours=6).total_seconds())
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +65,13 @@ class OrganizationReportContext:
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
+
+        # Top spans data for the spans chart
+        self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
+        self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
+        self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
+        self.spans_count_by_project: dict[int, int] = {}  # {project_id: count}
+        self.prev_week_spans_count_by_project: dict[int, int] = {}  # {project_id: count}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -89,8 +104,8 @@ class ProjectContext:
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
-        # Array of (Group, event_count, has_linked_pr_or_commit)
-        self.past_resolved_issues: list[tuple[Group, int, bool]] = []
+        # Array of (Group, event_count, resolution_label, resolution_url)
+        self.past_resolved_issues: list[tuple[Group, int, str, str | None]] = []
 
         self.key_replay_events = []
 
@@ -129,7 +144,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-_KEY_ERROR_ISSUES_CHUNK_SIZE = 100
+_KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE = 25
 
 
 def _org_key_error_issues_chunk(
@@ -210,8 +225,8 @@ def org_key_error_issues(
             return {}
 
         results: dict[int, list[dict[str, Any]]] = {}
-        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
-            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
+        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE):
+            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE]
             chunk_results = _org_key_error_issues_chunk(ctx, chunk, referrer, per_project_limit)
             results.update(chunk_results)
 
@@ -438,8 +453,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     query = Query(
         match=Entity("outcomes"),
         select=[
-            Column("outcome"),
-            Column("category"),
             Function("sum", [Column("quantity")], "total"),
         ],
         where=[
@@ -453,7 +466,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
                 [*DataCategory.error_categories()],
             ),
         ],
-        groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
+        groupby=[Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
         limit=Limit(10000),
@@ -468,6 +481,9 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     return data
 
 
+ISSUE_SUMMARY_BATCH_SIZE = 50
+
+
 def organization_project_issue_summaries(
     start: datetime, end: datetime, ctx: OrganizationReportContext
 ) -> list[dict[str, Any]]:
@@ -475,17 +491,22 @@ def organization_project_issue_summaries(
 
     Returns raw rows; callers roll up by substatus or by day as needed.
     """
-    return list(
-        Group.objects.filter(
-            project__organization_id=ctx.organization.id,
-            last_seen__gte=start,
-            last_seen__lt=end,
-            status=GroupStatus.UNRESOLVED,
+    project_ids = list(ctx.projects_context_map.keys())
+    results: list[dict[str, Any]] = []
+    for i in range(0, len(project_ids), ISSUE_SUMMARY_BATCH_SIZE):
+        batch = project_ids[i : i + ISSUE_SUMMARY_BATCH_SIZE]
+        results.extend(
+            Group.objects.filter(
+                project_id__in=batch,
+                last_seen__gte=start,
+                last_seen__lt=end,
+                status=GroupStatus.UNRESOLVED,
+            )
+            .annotate(day=TruncDay("last_seen"))
+            .values("project_id", "substatus", "day")
+            .annotate(total=Count("id"))
         )
-        .annotate(day=TruncDay("last_seen"))
-        .values("project_id", "substatus", "day")
-        .annotate(total=Count("id"))
-    )
+    return results
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50
@@ -494,7 +515,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 def project_past_resolved_issues(
     ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[tuple[Group, int, bool]]:
+) -> list[tuple[Group, int, str, str | None]]:
     if not project.first_event:
         return []
 
@@ -559,13 +580,13 @@ def project_past_resolved_issues(
             )
             event_counts.update(performance_counts)
 
-        # has_link is initially False; updated by fetch_past_resolved_issue_links at org level
-        scored = []
+        # resolution_label defaults to "Resolved"; enriched by fetch_past_resolved_issue_links at org level
+        scored: list[tuple[Group, int, str, str | None]] = []
         for group_id, count in event_counts.items():
             group = group_id_to_group.get(group_id)
             if group is None:
                 continue
-            scored.append((group, count, False))
+            scored.append((group, count, "Resolved", None))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored
@@ -646,34 +667,329 @@ def _past_resolved_performance_counts(
     return {row["group_id"]: row["count()"] for row in rows}
 
 
+def _pick_resolution(
+    group_id: int,
+    resolution_labels: dict[int, str],
+    pr_resolution_info: dict[int, tuple[bool, str | None]],
+) -> tuple[str, str | None]:
+    label = resolution_labels.get(group_id, "Resolved")
+    pr_info = pr_resolution_info.get(group_id)
+    if pr_info is None:
+        return (label, None)
+
+    is_seer_fix, url = pr_info
+    return ("Resolved by Seer Fix" if is_seer_fix else label, url)
+
+
+def _pull_request_url(pull_request: PullRequest, repository: Repository) -> str | None:
+    if not repository.url:
+        return None
+    provider = repository.get_provider()
+    if provider is None:
+        return None
+    return provider.pull_request_url(repository, pull_request)
+
+
 def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
         all_group_ids.extend(
-            group.id for group, _count, _has_link in project_ctx.past_resolved_issues
+            group.id for group, _count, _label, _url in project_ctx.past_resolved_issues
         )
 
     if not all_group_ids:
         return
 
-    groups_with_links = set(
-        GroupLink.objects.filter(
-            group_id__in=all_group_ids,
-            linked_type__in=[GroupLink.LinkedType.commit, GroupLink.LinkedType.pull_request],
-            relationship=GroupLink.Relationship.resolves,
-        ).values_list("group_id", flat=True)
-    )
+    resolution_labels: dict[int, str] = {}
+    resolution_release_by_group: dict[int, int] = {}
+
+    # GroupResolution.group is unique, so there is at most one row per group
+    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
+        if gr.current_release_version or gr.type in (
+            None,
+            GroupResolution.Type.in_next_release,
+        ):
+            resolution_labels[gr.group_id] = "Resolved in next release"
+        else:
+            resolution_labels[gr.group_id] = "Resolved in release"
+
+        if gr.status == GroupResolution.Status.resolved:
+            resolution_release_by_group[gr.group_id] = gr.release_id
+
+    pr_resolution_info: dict[int, tuple[bool, str | None]] = {}
+    release_ids = set(resolution_release_by_group.values())
+    if release_ids:
+        release_ids_by_repo_and_sha: dict[tuple[int, str], set[int]] = {}
+        for release_id, repository_id, commit_sha in ReleaseCommit.objects.filter(
+            release_id__in=release_ids,
+            organization_id=ctx.organization.id,
+        ).values_list("release_id", "commit__repository_id", "commit__key"):
+            release_ids_by_repo_and_sha.setdefault((repository_id, commit_sha), set()).add(
+                release_id
+            )
+
+        repository_ids = {key[0] for key in release_ids_by_repo_and_sha}
+        commit_shas = {key[1] for key in release_ids_by_repo_and_sha}
+        pull_requests: dict[int, PullRequest] = {}
+        release_ids_by_pr: dict[int, set[int]] = {}
+        for pull_request in PullRequest.objects.filter(
+            organization_id=ctx.organization.id,
+            repository_id__in=repository_ids,
+            merge_commit_sha__in=commit_shas,
+        ):
+            if pull_request.merge_commit_sha is None:
+                continue
+            matching_release_ids = release_ids_by_repo_and_sha.get(
+                (pull_request.repository_id, pull_request.merge_commit_sha)
+            )
+            if matching_release_ids is None:
+                continue
+            pull_requests[pull_request.id] = pull_request
+            release_ids_by_pr[pull_request.id] = matching_release_ids
+
+        repositories = Repository.objects.filter(
+            id__in={pull_request.repository_id for pull_request in pull_requests.values()},
+            organization_id=ctx.organization.id,
+            status=ObjectStatus.ACTIVE,
+        ).in_bulk()
+        pull_requests = {
+            pull_request_id: pull_request
+            for pull_request_id, pull_request in pull_requests.items()
+            if pull_request.repository_id in repositories
+        }
+
+        selected_pr_by_group: dict[int, int] = {}
+        for group_id, pull_request_id in (
+            GroupLink.objects.filter(
+                group_id__in=resolution_release_by_group,
+                project_id__in=ctx.projects_context_map,
+                linked_id__in=pull_requests,
+                linked_type=GroupLink.LinkedType.pull_request,
+                relationship=GroupLink.Relationship.resolves,
+            )
+            .order_by("-datetime", "-id")
+            .values_list("group_id", "linked_id")
+        ):
+            if resolution_release_by_group[group_id] not in release_ids_by_pr[pull_request_id]:
+                continue
+            selected_pr_by_group.setdefault(group_id, pull_request_id)
+
+        selected_pr_ids = set(selected_pr_by_group.values())
+        selected_pull_requests = [
+            pull_requests[pull_request_id] for pull_request_id in selected_pr_ids
+        ]
+        prefetch_related_objects(
+            selected_pull_requests,
+            Prefetch(
+                "pullrequestattribution_set",
+                queryset=PullRequestAttribution.objects.filter(is_valid=True),
+            ),
+        )
+        seer_pr_ids = set(
+            pull_request.id
+            for pull_request in selected_pull_requests
+            if any(
+                is_seer_attribution(attribution)
+                for attribution in pull_request.pullrequestattribution_set.all()
+            )
+        )
+        seer_pr_ids.update(
+            SeerRunPullRequest.objects.filter(pull_request_id__in=selected_pr_ids).values_list(
+                "pull_request_id", flat=True
+            )
+        )
+
+        for group_id, pull_request_id in selected_pr_by_group.items():
+            pull_request = pull_requests[pull_request_id]
+            repository = repositories[pull_request.repository_id]
+            pr_resolution_info[group_id] = (
+                pull_request_id in seer_pr_ids,
+                _pull_request_url(pull_request, repository),
+            )
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, count, group.id in groups_with_links)
-            for group, count, _has_link in project_ctx.past_resolved_issues
+            (group, count, *_pick_resolution(group.id, resolution_labels, pr_resolution_info))
+            for group, count, _label, _url in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues.sort(
-            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] else 1),
+            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] != "Resolved" else 1),
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
+
+
+TOP_SPANS_LIMIT = 5
+TOP_SPANS_QUERY_LIMIT = 50
+
+
+def _build_span_name_filter(names: list[str]) -> str:
+    escaped = [name.replace("\\", "\\\\").replace('"', '\\"') for name in names]
+    return "span.name:[{}]".format(", ".join(f'"{n}"' for n in escaped))
+
+
+def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
+    return [
+        pctx.project
+        for pctx in ctx.projects_context_map.values()
+        if pctx.project.flags.has_transactions
+    ]
+
+
+def spans_count_by_project(
+    projects: Sequence[Project],
+    organization: Organization,
+    start: datetime,
+    end: datetime,
+    referrer: str,
+) -> dict[int, int]:
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string="is_transaction:1",
+        selected_columns=["project.id", "count()"],
+        orderby=None,
+        offset=0,
+        limit=len(projects),
+        referrer=referrer,
+        config=config,
+        sampling_mode=None,
+    )
+    counts: dict[int, int] = {}
+    for row in result.get("data", []):
+        project_id = row.get("project.id")
+        if project_id:
+            counts[int(project_id)] = row.get("count()") or 0
+    return counts
+
+
+def organization_top_spans(
+    ctx: OrganizationReportContext,
+    referrer: str,
+) -> None:
+    """Fetch top spans by total duration and per-project span counts.
+
+    Runs two EAP queries:
+    1. Top spans grouped by (span.name, project.id), ordered by sum(span.duration).
+       Each span is assigned to the project with the highest sum. Populates
+       ctx.top_spans (top 5) and ctx.top_spans_projects.
+    2. Per-project count() to populate ctx.spans_count_by_project, used to
+       compute per-user total spans in the weekly report.
+
+    The timeseries (6-hour granularity p95) is fetched separately via
+    organization_top_spans_timeseries.
+    """
+    projects = _get_transaction_projects(ctx)
+    if not projects:
+        return
+
+    snuba_params = SnubaParams(
+        start=ctx.start,
+        end=ctx.end,
+        projects=projects,
+        organization=ctx.organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    with start_span(op="weekly_reports.top_spans_table", name="weekly_reports.top_spans_table"):
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:1 has:span.name",
+            selected_columns=[
+                "span.name",
+                "project.id",
+                "sum(span.duration)",
+                "p95(span.duration)",
+            ],
+            orderby=["-sum(span.duration)"],
+            offset=0,
+            limit=TOP_SPANS_QUERY_LIMIT,
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    with start_span(
+        op="weekly_reports.spans_count_by_project",
+        name="weekly_reports.spans_count_by_project",
+    ):
+        ctx.spans_count_by_project = spans_count_by_project(
+            projects, ctx.organization, ctx.start, ctx.end, referrer
+        )
+
+    for row in result.get("data", []):
+        span_name = row.get("span.name", "")
+        project_id = row.get("project.id")
+        if not span_name or not project_id:
+            continue
+        if span_name not in ctx.top_spans_projects:
+            if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
+                break
+            ctx.top_spans_projects[span_name] = int(project_id)
+            ctx.top_spans.append(
+                {
+                    "name": span_name,
+                    "p95": row.get("p95(span.duration)", 0),
+                    "sum": row.get("sum(span.duration)", 0),
+                }
+            )
+
+
+def organization_top_spans_timeseries(
+    ctx: OrganizationReportContext,
+    referrer: str,
+) -> None:
+    """Fetch p95(span.duration) timeseries for top spans with 6 hour granularity."""
+    projects = _get_transaction_projects(ctx)
+    if not projects or not ctx.top_spans:
+        return
+
+    snuba_params = SnubaParams(
+        start=ctx.start,
+        end=ctx.end,
+        projects=projects,
+        organization=ctx.organization,
+        granularity_secs=SIX_HOURS,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+
+    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
+    with start_span(
+        op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
+    ):
+        ts_result = Spans.run_top_events_timeseries_query(
+            params=snuba_params,
+            query_string=f"is_transaction:1 ({span_name_filter})",
+            y_axes=["p95(span.duration)", "sum(span.duration)"],
+            raw_groupby=["span.name"],
+            orderby=["-sum(span.duration)"],
+            limit=TOP_SPANS_LIMIT,
+            include_other=False,
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    for span_key, ts_data in ts_result.items():
+        span_name = span_key
+        interval_p95: dict[int, float] = {}
+        for point in ts_data.data.get("data", []):
+            timestamp = point.get("time")
+            p95_value = point.get("p95(span.duration)", 0)
+            if timestamp:
+                ts_int = (
+                    int(timestamp.timestamp())
+                    if isinstance(timestamp, datetime)
+                    else int(timestamp)
+                )
+                interval_p95[ts_int] = p95_value or 0
+        ctx.top_spans_timeseries[span_name] = interval_p95

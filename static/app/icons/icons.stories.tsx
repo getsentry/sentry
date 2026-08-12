@@ -997,6 +997,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'copyId',
+        groups: ['action'],
+        keywords: ['duplicate', 'clone', 'clipboard', 'id', 'identifier'],
+        name: 'CopyId',
+        defaultProps: {},
+      },
+      {
         id: 'delete',
         groups: ['action'],
         keywords: ['trash', 'can', 'dumpster', 'remove', 'erase', 'clear'],

@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("feedback", "0001_squashed_0004_index_together"),
-        ("sentry", "0980_integrations_json_field"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [

@@ -4,11 +4,15 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {ButtonVariant} from '@sentry/scraps/button/types';
+import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
+
 import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
   extends
     React.RefAttributes<HTMLAnchorElement>,
+    AnalyticsProps,
     Pick<
       ReactRouterLinkProps,
       'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
@@ -62,8 +66,18 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
-export const Link = styled((props: LinkProps) => {
+type LinkPropsWithButtonBehavior = LinkProps & {
+  busy?: boolean;
+  variant?: ButtonVariant;
+};
+
+function LinkBase(props: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);
+  // LinkButton reuses this component for router links and passes these
+  // button-only props through at runtime. They are consumed by tracking and
+  // removed before reaching the router or DOM element.
+  const propsWithBehavior = behavior();
+  const {handleClick} = useClickTracking(propsWithBehavior, 'link');
 
   if (props.disabled) {
     // Removing the "to" prop here to prevent the anchor from being rendered with to="
@@ -73,10 +87,25 @@ export const Link = styled((props: LinkProps) => {
     return <Anchor {...restProps} />;
   }
 
-  return <Component {...behavior()} />;
-})`
+  const {
+    analyticsEventKey: _analyticsEventKey,
+    analyticsEventName: _analyticsEventName,
+    analyticsParams: _analyticsParams,
+    busy: _busy,
+    variant: _variant,
+    ...linkProps
+  } = propsWithBehavior;
+
+  return <Component {...linkProps} onClick={handleClick} />;
+}
+
+const StyledLink = styled(LinkBase)`
   ${getLinkStyles}
 `;
+
+export function Link(props: LinkProps) {
+  return <StyledLink {...props} />;
+}
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   disabled?: LinkProps['disabled'];

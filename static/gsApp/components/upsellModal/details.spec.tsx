@@ -31,7 +31,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 
@@ -56,7 +55,7 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_t',
       canTrial: false,
-      isTrial: true,
+      trialPlan: 'am1_t',
       isFree: false,
     });
 
@@ -83,7 +82,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 
@@ -110,7 +108,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am1_team',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -134,7 +131,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'mm2_a_100k',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -158,7 +154,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'mm2_a_100k',
       canTrial: true,
-      isTrial: false,
       isFree: false,
     });
 
@@ -194,7 +189,6 @@ describe('Upsell Modal Details', () => {
       organization,
       plan: 'am3_f',
       canTrial: true,
-      isTrial: false,
       isFree: true,
     });
 

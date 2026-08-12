@@ -1,15 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import type {Location} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
-
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Organization} from 'sentry/types/organization';
-import type {EventView} from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
-  canUseMetricsData,
   MEPState,
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -18,10 +12,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface MetricDataSwitchProps {
   children: (props: MetricDataSwitcherOutcome) => React.ReactNode;
-  eventView: EventView;
   location: Location;
-  organization: Organization;
-  hideLoadingIndicator?: boolean;
 }
 
 /**
@@ -30,35 +21,13 @@ interface MetricDataSwitchProps {
  * may or may not have sampling rules, compatible sdk's etc. This can be simplified post rollout.
  */
 export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
-  const isUsingMetrics = canUseMetricsData(props.organization);
   const metricsCardinality = useMetricsCardinalityContext();
-
-  if (!isUsingMetrics) {
-    return (
-      <Fragment>
-        {props.children({
-          forceTransactionsOnly: true,
-        })}
-      </Fragment>
-    );
-  }
-
-  if (metricsCardinality?.isLoading && !props.hideLoadingIndicator) {
-    return (
-      <Fragment>
-        <Flex justify="center">
-          <LoadingIndicator />
-        </Flex>
-      </Fragment>
-    );
-  }
 
   // Always use MetricsSwitchHandler for consistent component structure
   // to prevent remounting children when outcome changes
   return (
     <Fragment>
       <MetricsSwitchHandler
-        eventView={props.eventView}
         location={props.location}
         outcome={metricsCardinality?.outcome ?? {forceTransactionsOnly: false}}
         switcherChildren={props.children}
@@ -68,7 +37,6 @@ export function MetricsDataSwitcher(props: MetricDataSwitchProps) {
 }
 
 interface SwitcherHandlerProps {
-  eventView: EventView;
   location: Location;
   outcome: MetricDataSwitcherOutcome;
   switcherChildren: MetricDataSwitchProps['children'];
@@ -78,7 +46,6 @@ function MetricsSwitchHandler({
   switcherChildren,
   outcome,
   location,
-  eventView,
 }: SwitcherHandlerProps) {
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
@@ -102,10 +69,6 @@ function MetricsSwitchHandler({
       });
     }
   }, [shouldAdjustQuery, location, navigate]);
-
-  if (hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly) {
-    eventView.query = ''; // TODO: Create switcher provider and move it to the route level to remove the need for this.
-  }
 
   return <Fragment>{switcherChildren(outcome)}</Fragment>;
 }

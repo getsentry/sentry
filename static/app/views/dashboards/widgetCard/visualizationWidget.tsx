@@ -32,7 +32,6 @@ import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TimeSeries,
@@ -332,11 +331,11 @@ function VisualizationWidgetContent({
             aggregateField: [
               {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
             ],
-            query: applyDashboardFilters(
-              exploreQuery.formatString(),
+            query: applyDashboardFilters({
+              baseQuery: exploreQuery.formatString(),
               dashboardFilters,
-              widget.widgetType
-            ),
+              widgetType: widget.widgetType,
+            }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
@@ -422,7 +421,7 @@ function VisualizationWidgetContent({
   const hasNoPlottableData = !plottablesCanBeVisualized(plottables);
 
   if (hasNoPlottableData) {
-    return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;
+    return <TimeSeriesWidgetVisualization.NoData />;
   }
 
   const confidenceFooter = showConfidenceWarning ? (
