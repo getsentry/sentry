@@ -29,13 +29,6 @@ const ctx = {organization, projects};
  * A rule added without an entry fails `coverage`, by name.
  */
 const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
-  update_issues: {
-    kind: 'api',
-    method: 'PUT',
-    path: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    params: {organization_id_or_slug: 'org-slug'},
-    status: 200,
-  },
   get_event_details: {
     kind: 'api',
     method: 'GET',
@@ -86,11 +79,6 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     name: 'telemetry_live_search',
     params: {dataset: 'issues', query: 'is:unresolved'},
   },
-  code_search: {kind: 'lib', name: 'code_search', params: {}},
-  git_search: {kind: 'lib', name: 'git_search', params: {}},
-  bash: {kind: 'lib', name: 'bash', params: {}},
-  ask_user_question: {kind: 'lib', name: 'ask_user_question', params: {}},
-  review_code_changes: {kind: 'lib', name: 'review_code_changes', params: {}},
 };
 
 function matches(rule: (typeof LINK_RULES)[number], subject: LinkSubject) {
@@ -126,18 +114,21 @@ describe('LINK_RULES', () => {
     }
   );
 
-  // What holds the render gate now that there is no separate label table: a bus link has no title to
-  // fall back on, so a rule returning a url without a label would render an anchor with no text.
+  // Producing a link is the only reason to be in this table. Renaming a row is seer's job, and a row
+  // with no rule already falls back to the title it ships — so a rule that resolves to a label alone
+  // is a worse copy of something that works, and one that resolves to a url alone would render an
+  // anchor with no text, since a link seer emits directly carries no title. The type says both; this
+  // says neither is blank.
   it.each(LINK_RULES.map(rule => [rule.id] as const))(
-    '%s labels every link it builds',
+    '%s resolves to a labeled link, the only reason to be in the table',
     id => {
       const result = LINK_RULES.find(rule => rule.id === id)!.resolve(
         LINK_RULE_EXAMPLES[id]!,
         ctx
       );
-      if (result?.url) {
-        expect(result.label).toBeTruthy();
-      }
+
+      expect(result?.label).toBeTruthy();
+      expect(result?.url).toBeTruthy();
     }
   );
 });
@@ -175,7 +166,10 @@ describe('resolveLink', () => {
     });
   });
 
-  it('drops the destination on a DELETE, keeping the label', () => {
+  // The issue rule matches this route and would happily build `/issues/54/`, which is guaranteed to
+  // 404 by the time anyone clicks it. The row still renders — `Remove an Issue` is seer's title, and
+  // `callRecordLabel` supplies it — it just is not a link.
+  it('claims nothing on a DELETE, however well the route matches', () => {
     expect(
       resolveLink(
         {
@@ -187,7 +181,7 @@ describe('resolveLink', () => {
         },
         ctx
       )
-    ).toEqual({id: 'get_issue_details', label: 'Remove an Issue'});
+    ).toBeNull();
   });
 
   // A literal segment where an entity rule expects a param: this route ends at `latest/`, so it names
@@ -305,10 +299,7 @@ describe('project links', () => {
       method: 'DELETE',
       title: 'Delete a Project',
     });
-    expect(resolveLink(subject, ctx)).toEqual({
-      id: 'get_project_details',
-      label: 'Delete a Project',
-    });
+    expect(resolveLink(subject, ctx)).toBeNull();
   });
 
   // The other half of the routes ending at `{project_id_or_slug}`: a row about a weekly-report
@@ -321,7 +312,7 @@ describe('project links', () => {
       params: {organization_id_or_slug: 'org-slug', project_id_or_slug: 'python'},
       title: 'Remove a Weekly Report Exclusion',
     };
-    expect(resolveLink(subject, ctx)?.url).toBeUndefined();
+    expect(resolveLink(subject, ctx)).toBeNull();
   });
 });
 
@@ -388,18 +379,16 @@ describe('search links', () => {
     ).toBeNull();
   });
 
-  // A search row reports a search that already ran; only the link seer emits alongside carries the
-  // query to re-run. Same name, two channels, and the row must not manufacture a destination.
-  it('reports a search as a row without sending anyone anywhere', () => {
+  // Same name on both channels, and only the link carries the query. The row records that a search
+  // ran and carries nothing to re-run it with, so the rule declines rather than manufacturing a
+  // destination out of the name alone.
+  it('does not link a search row, only the link seer emitted alongside it', () => {
     const subject = subjectFromCallRecord({
       id: 1,
       kind: 'lib',
       name: 'telemetry_live_search',
     });
-    expect(resolveLink(subject, ctx)).toEqual({
-      id: 'telemetry_live_search',
-      label: 'Queried telemetry',
-    });
+    expect(resolveLink(subject, ctx)).toBeNull();
   });
 });
 

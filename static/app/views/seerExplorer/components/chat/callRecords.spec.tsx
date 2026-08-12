@@ -169,13 +169,22 @@ describe('call record rendering', () => {
   });
 
   it('keeps a lib row that made no api calls of its own', () => {
-    // code_search never touches the transport, so its row is the only trace it leaves.
+    // code_search never touches the transport, so its row is the only trace it leaves. Seer titles
+    // it, as it does every call — nothing in the frontend renames a row.
     const block = codeModeBlock([
-      {id: 1, parent: null, kind: 'lib', name: 'code_search'},
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'code_search',
+        title: 'Searching code in repository getsentry/sentry',
+      },
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByText('Searched code')).toBeInTheDocument();
+    expect(
+      screen.getByText('Searching code in repository getsentry/sentry')
+    ).toBeInTheDocument();
   });
 
   it('renders calls from separate tool calls the same as calls from one', () => {

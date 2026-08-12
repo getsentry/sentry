@@ -28,10 +28,11 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
- * Where a Code Mode call sends you, and what its row is called.
+ * Where a Code Mode call sends you.
  *
- * `LINK_RULES` below is the only place in the app that knows either. One table, one entry shape,
- * read top to bottom, first rule that resolves wins.
+ * `LINK_RULES` below is the only place in the app that knows. One table, one entry shape, read top
+ * to bottom, first rule that resolves wins. A call no rule claims still renders as a row — it just
+ * is not a link.
  *
  * ## Adding a link
  *
@@ -41,7 +42,7 @@ import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
  *    `src/seer/experimental/mcp/call_title_lock.json` in the seer repo — grep the phrase there and
  *    the key is the `"<METHOD> <templated path>"` you need.
  * 2. Add a rule. `match` is a plain predicate over the call; write a comparison or a regex inline.
- *    `resolve` returns `{label}`, `{label, url}`, or `null` to decline and let a later rule try.
+ *    `resolve` returns `{label, url}`, or `null` to decline and let a later rule try.
  * 3. Add its example to `LINK_RULE_EXAMPLES` in `links.spec.tsx`. The spec asserts every rule has
  *    one, that the example actually reaches the rule (nothing above it matches first), and that it
  *    resolves — so a rule buried under a more generic one fails by name.
@@ -51,11 +52,13 @@ import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
  *
  * ## Two things a rule must honor
  *
- * A `url` requires a `label`. Links arriving straight from seer have no title to fall back on, so a
- * url without a label would render an anchor with no text; `resolveLink` drops it instead.
+ * Every rule produces a link. A rule that only wants to rename a row does not belong here: row text
+ * is seer's to write, and `callRecords.tsx` renders the title it ships for every call. So `resolve`
+ * returns a `label` and a `url` together — a link seer emits directly carries no title to fall back
+ * on, and an anchor with no text is not a link.
  *
  * Fail closed. When a rule cannot construct a destination it is sure of, return `null` — the row
- * still renders with its title, unlinked. A dead link is worse than no link.
+ * still renders with seer's title, unlinked. A dead link is worse than no link.
  */
 
 export type LinkContext = {
@@ -89,8 +92,9 @@ export type LinkSubject = {
 };
 
 export type LinkResult = {
-  label?: string;
-  url?: LocationDescriptor;
+  /** Anchor text. Seer's title for the call when it has one, since it names the subject. */
+  label: string;
+  url: LocationDescriptor;
 };
 
 export type LinkRule = {
@@ -158,20 +162,6 @@ const ISSUE_RULE: LinkRule = {
 };
 
 export const LINK_RULES: LinkRule[] = [
-  // --- Specific routes. These refine the entity rules below, so they have to sit above them. ---
-
-  {
-    id: 'update_issues',
-    match: ({method, path}) =>
-      method === 'PUT' &&
-      path === '/api/0/organizations/{organization_id_or_slug}/issues/',
-    // A bulk update names no single issue, so there is nowhere to send anyone — but the row can at
-    // least say whether it took.
-    resolve: ({status}) => ({
-      label: status && status < 300 ? t('Updated issues') : t('Update issues'),
-    }),
-  },
-
   // --- Entities. A route earns one of these by *ending* at the param that names its subject:
   // `/issues/{issue_id}/` is about an issue, `/issues/{issue_id}/tags/` is about tags, and there is
   // no tags page to send anyone to. ---
@@ -354,28 +344,22 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'telemetry_live_search',
     resolve: ({kind, params, title}, {projects}) => {
-      // The one name that arrives on both channels. As a row it is a report of a search that
-      // already happened; only the link seer emitted alongside carries the query to re-run.
+      // The one name that arrives on both channels, and only one of them can be re-run. The call
+      // record reports a search that already happened and carries no query; the link seer emits
+      // alongside it carries the query, so that is the one with somewhere to point.
       if (kind !== 'link') {
-        return {label: t('Queried telemetry')};
+        return null;
       }
 
       const url = searchUrl(params, projects);
       return url ? {label: title ?? t('View results'), url} : null;
     },
   },
-
-  // --- Lib methods that report what they did and have nowhere to point. ---
-
-  {id: 'code_search', resolve: () => ({label: t('Searched code')})},
-  {id: 'git_search', resolve: () => ({label: t('Searched commit history')})},
-  {id: 'bash', resolve: () => ({label: t('Ran a command')})},
-  {id: 'ask_user_question', resolve: () => ({label: t('Asked a question')})},
-  {id: 'review_code_changes', resolve: () => ({label: t('Reviewed code changes')})},
 ];
 
 /**
- * What a call links to and what its row is called, or null when no rule claims it.
+ * Where a call links to, or null when no rule claims it — which is the common case, and not a
+ * failure: a row with no link is still a row, labeled by the title seer shipped.
  *
  * Rules run in order. One that matches but returns null has declined, and the search continues —
  * so a generic rule can sit under a specific one without swallowing it.
@@ -384,6 +368,12 @@ export function resolveLink(
   subject: LinkSubject,
   ctx: LinkContext
 ): ({id: string} & LinkResult) | null {
+  // A DELETE's subject no longer exists by the time the row is on screen, so no rule can have
+  // anywhere to send anyone. Checked once here rather than in each rule.
+  if (subject.method === 'DELETE') {
+    return null;
+  }
+
   for (const rule of LINK_RULES) {
     if (subject.name !== rule.id && rule.match?.(subject) !== true) {
       continue;
@@ -394,21 +384,11 @@ export function resolveLink(
       continue;
     }
 
-    // A DELETE's subject no longer exists by the time the row is on screen, so the label stands and
-    // the destination goes. Nothing else in here needs to think about the method.
-    const url = subject.method === 'DELETE' ? undefined : result.url;
-
-    if (result.label && url) {
-      return {
-        id: rule.id,
-        label: result.label,
-        url: scopeToOrganization(url, ctx.organization),
-      };
-    }
-    if (result.label) {
-      return {id: rule.id, label: result.label};
-    }
-    // A url with no label has no anchor text. Treated as a decline rather than rendered blank.
+    return {
+      id: rule.id,
+      label: result.label,
+      url: scopeToOrganization(result.url, ctx.organization),
+    };
   }
   return null;
 }

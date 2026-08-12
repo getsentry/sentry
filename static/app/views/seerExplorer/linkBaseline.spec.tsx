@@ -457,57 +457,89 @@ const RECORD_CASES: RecordCase[] = [
     }),
     {label: 'List an Issue’s Tags', link: null},
   ],
+  // Re-pinned, and the inputs with them: these eight rows were labeled by hardcoded overrides that
+  // paraphrased what seer already sends, so the overrides are gone and the label is seer's title.
+  // The old expectations needed no `title` on the fixture — the override invented one — which is why
+  // the rows now carry the title seer actually ships for each call. Two consequences are visible
+  // here: the strings are specific where the overrides were generic (a repo name, a command), and
+  // the bulk-update rows no longer read differently by outcome, which the row's status tick shows
+  // without spending the label on it.
   [
-    'bulk issue update reports its outcome, and links nowhere',
+    'bulk issue update links nowhere',
     record({
       method: 'PUT',
       path: '/api/0/organizations/{organization_id_or_slug}/issues/',
       path_params: {organization_id_or_slug: 'org-slug'},
-      title: 'Update an Issue',
+      title: 'Bulk mutating organization issues',
       status: 200,
     }),
-    {label: 'Updated issues', link: null},
+    {label: 'Bulk mutating organization issues', link: null},
   ],
   [
-    'a failed bulk issue update reads as an attempt',
+    'a failed bulk issue update reads the same, since the status tick carries the outcome',
     record({
       method: 'PUT',
       path: '/api/0/organizations/{organization_id_or_slug}/issues/',
       path_params: {organization_id_or_slug: 'org-slug'},
-      title: 'Update an Issue',
+      title: 'Bulk mutating organization issues',
       status: 400,
     }),
-    {label: 'Update issues', link: null},
+    {label: 'Bulk mutating organization issues', link: null},
   ],
   [
     'lib: code_search',
-    record({kind: 'lib', name: 'code_search', method: undefined}),
-    {label: 'Searched code', link: null},
+    record({
+      kind: 'lib',
+      name: 'code_search',
+      method: undefined,
+      title: 'Searching code in repository getsentry/sentry',
+    }),
+    {label: 'Searching code in repository getsentry/sentry', link: null},
   ],
   [
     'lib: git_search',
-    record({kind: 'lib', name: 'git_search', method: undefined}),
-    {label: 'Searched commit history', link: null},
+    record({
+      kind: 'lib',
+      name: 'git_search',
+      method: undefined,
+      title: 'Searching commit history for repository getsentry/sentry',
+    }),
+    {label: 'Searching commit history for repository getsentry/sentry', link: null},
   ],
   [
     'lib: bash',
-    record({kind: 'lib', name: 'bash', method: undefined}),
-    {label: 'Ran a command', link: null},
+    record({kind: 'lib', name: 'bash', method: undefined, title: 'Running command ls'}),
+    {label: 'Running command ls', link: null},
   ],
   [
     'lib: ask_user_question',
-    record({kind: 'lib', name: 'ask_user_question', method: undefined}),
-    {label: 'Asked a question', link: null},
+    record({
+      kind: 'lib',
+      name: 'ask_user_question',
+      method: undefined,
+      title: 'Asking user which environment to check',
+    }),
+    {label: 'Asking user which environment to check', link: null},
   ],
   [
     'lib: review_code_changes',
-    record({kind: 'lib', name: 'review_code_changes', method: undefined}),
-    {label: 'Reviewed code changes', link: null},
+    record({
+      kind: 'lib',
+      name: 'review_code_changes',
+      method: undefined,
+      title: 'Reviewing code changes',
+    }),
+    {label: 'Reviewing code changes', link: null},
   ],
   [
     'lib: telemetry_live_search',
-    record({kind: 'lib', name: 'telemetry_live_search', method: undefined}),
-    {label: 'Queried telemetry', link: null},
+    record({
+      kind: 'lib',
+      name: 'telemetry_live_search',
+      method: undefined,
+      title: 'Searching errors',
+    }),
+    {label: 'Searching errors', link: null},
   ],
   [
     'a call with nothing bespoke about it keeps the title seer shipped',
@@ -531,8 +563,9 @@ describe('links from a call record', () => {
  * change is visible rather than folded into a table of things that stayed the same.
  *
  * Both link today to a resource the same call just destroyed. A destination that is guaranteed to
- * 404 by the time it is clicked is worse than no link, so `DELETE` keeps its label and loses its
- * URL. Nothing about the method was consulted before, which is how these got links at all.
+ * 404 by the time it is clicked is worse than no link, so no rule claims a `DELETE`. The row still
+ * renders with the title seer shipped. Nothing about the method was consulted before, which is how
+ * these got links at all.
  */
 const DELETE_CASES: RecordCase[] = [
   [

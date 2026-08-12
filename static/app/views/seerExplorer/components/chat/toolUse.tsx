@@ -337,13 +337,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           .flatMap(link => {
             // Fail closed: a kind no rule resolves, or one whose rule declines, renders nothing.
             // Label and destination arrive together from the rule, so a link can no longer show up
-            // with an internal function name like `get_log_attributes` as its visible text —
-            // `resolveLink` never returns a url without a label.
+            // with an internal function name like `get_log_attributes` as its visible text.
             const resolved = resolveLink(subjectFromToolLink(link), {
               organization,
               projects,
             });
-            return resolved?.label && resolved.url
+            return resolved
               ? [{kind: resolved.id, label: resolved.label, url: resolved.url}]
               : [];
           });
