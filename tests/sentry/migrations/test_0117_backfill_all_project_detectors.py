@@ -1,3 +1,4 @@
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.cases import TestMigrations
 
 
@@ -10,9 +11,10 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
         Organization = apps.get_model("sentry", "Organization")
         Detector = apps.get_model("workflow_engine", "Detector")
 
-        self.org_with_detector = Organization.objects.create(
-            slug="with-detector", name="With Detector"
-        )
+        with assume_test_silo_mode_of(Organization):
+            self.org_with_detector = Organization.objects.create(
+                slug="with-detector", name="With Detector"
+            )
         Detector.objects.create(
             type="issue_stream",
             project=None,
@@ -21,9 +23,10 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
             enabled=True,
         )
 
-        self.org_without_detector = Organization.objects.create(
-            slug="without-detector", name="Without Detector"
-        )
+        with assume_test_silo_mode_of(Organization):
+            self.org_without_detector = Organization.objects.create(
+                slug="without-detector", name="Without Detector"
+            )
 
     def test(self):
         Detector = self.apps.get_model("workflow_engine", "Detector")
