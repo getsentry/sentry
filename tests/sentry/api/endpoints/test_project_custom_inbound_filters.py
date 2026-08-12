@@ -48,12 +48,14 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert first_data == {
             "id": str(first_filter.id),
+            "outcomesId": first_filter.get_outcomes_id(),
             "name": "Release filter",
             "active": True,
             "conditions": [{"type": "release", "value": ["1.*"]}],
         }
         assert second_data == {
             "id": str(second_filter.id),
+            "outcomesId": second_filter.get_outcomes_id(),
             "name": "Error filter",
             "active": False,
             "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
