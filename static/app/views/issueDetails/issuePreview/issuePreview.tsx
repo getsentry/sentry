@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,6 +14,7 @@ import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/lin
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -91,6 +93,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               analyticsParams={{
                 group_id: group.id,
                 progress: group.derivedData?.progress,
+                source: 'button',
               }}
             >
               {t('Open Issue')}
@@ -152,9 +155,20 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Heading as="h3" size="lg" ellipsis>
-                    {primaryTitle}
-                  </Heading>
+                  <Link
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Heading as="h3" size="lg" ellipsis>
+                      {primaryTitle} <IconOpen size="xs" />
+                    </Heading>
+                  </Link>
                 </Tooltip>
               </Flex>
               <IssueSeenTimes group={group} />
