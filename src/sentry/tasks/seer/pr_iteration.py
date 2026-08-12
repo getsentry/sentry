@@ -75,6 +75,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -844,6 +845,7 @@ def trigger_pr_iteration_from_review(
     author_username: str | None = None,
     author_external_id: str | int | None = None,
     author_is_bot: bool = False,
+    delivery_authenticated: bool = True,
 ) -> None:
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
@@ -852,9 +854,9 @@ def trigger_pr_iteration_from_review(
     to recover its GitHub id, looks up the agent run keyed on that id, fetches the
     review's inline comments and summary body, and triggers the iteration with the
     whole review as feedback. Unlike the comment path there is no ``@sentry``
-    command gate — any submitted review with content is acted on — but the review
-    author must have repo write/admin access, so an untrusted reviewer can't spend
-    Autofix quota or inject feedback that rewrites the PR.
+    command gate — any submitted review with content is acted on — but a human
+    review author must have repo write/admin access, so an untrusted reviewer can't
+    spend Autofix quota or inject feedback that rewrites the PR.
 
     ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
     automated-iteration streak cap and are dropped once it's reached; human
@@ -937,24 +939,23 @@ def trigger_pr_iteration_from_review(
         logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
         return None
 
-    # Gate on repo write access before fetching, enqueueing, or acking: a review
-    # from someone without write/admin is silently dropped so an untrusted
-    # reviewer can't spend Autofix quota or inject feedback that rewrites the PR.
-    if not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
+    # Bots skip the write-access gate: a bot account is never a repo collaborator.
+    # An unauthenticated delivery can forge the bot flag, so it stays gated.
+    actor_user: RpcUser | None = None
+    if author_is_bot and delivery_authenticated:
+        metrics.incr("autofix.pr_iteration.review_trigger.write_access_gate_skipped")
+    elif not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
         metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")
         logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
         return None
-
-    actor_user = (
-        find_user_for_scm_actor(
+    else:
+        actor_user = find_user_for_scm_actor(
             organization_id=organization_id,
             integration_id=integration_id,
             username=author_username,
             external_id=author_external_id,
         )
-        if not author_is_bot
-        else None
-    )
+
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None

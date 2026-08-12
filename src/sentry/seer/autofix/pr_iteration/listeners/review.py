@@ -17,9 +17,9 @@ another, and take a single ``PullRequestReviewEvent`` argument.
 The listener filters to submitted reviews, resolves org/integration/repo context
 from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
 which fetches the review's inline comments and summary body and dispatches an
-Autofix PR iteration. The task gates on the review author's repo write access, so
-a review only drives an iteration when its author could push the change
-themselves.
+Autofix PR iteration. The task gates human review authors on repo write access, so
+a human review only drives an iteration when its author could push the change
+themselves; bot reviews are instead bounded by the automated-iteration cap.
 """
 
 from __future__ import annotations
@@ -66,6 +66,9 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     extra = subscription.get("extra") or {}
     installation_id = extra.get("installation_id")
     repository_id = extra.get("repository_id")
+    # Legacy GitHub Enterprise hosts may deliver without a verified signature, so
+    # the payload's author fields are unattested.
+    delivery_authenticated = not extra.get("skipped-authentication", False)
 
     provider = subscription.get("type")
     author_id = event.author.get("id")
@@ -160,6 +163,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             author_username=event.author.get("username"),
             author_external_id=event.author.get("id"),
             author_is_bot=event.is_bot,
+            delivery_authenticated=delivery_authenticated,
         )
         dispatched = True
 
