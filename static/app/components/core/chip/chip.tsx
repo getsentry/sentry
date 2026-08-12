@@ -9,13 +9,8 @@ import {t} from 'sentry/locale';
 
 type ChipSize = 'xs' | 'sm' | 'md';
 
-interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
+interface BaseChipProps extends React.HTMLAttributes<HTMLDivElement> {
   value: string;
-  /**
-   * Called when the dismiss affordance is activated. Providing it renders a
-   * trailing ✕ button; omit it for a static chip.
-   */
-  onDismiss?: () => void;
   /**
    * The comparison operator shown between property and value (e.g. `is`).
    */
@@ -24,13 +19,29 @@ interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
    * The filter key, shown first.
    */
   property?: string;
-  /**
-   * Renders a non-interactive summary: the value reads as secondary and the
-   * dismiss affordance is suppressed.
-   */
-  readonly?: boolean;
   size?: ChipSize;
 }
+
+interface DismissableChipProps extends BaseChipProps {
+  /**
+   * Called when the dismiss affordance is activated. Providing it renders a
+   * trailing ✕ button; omit it for a static chip.
+   */
+  onDismiss?: () => void;
+  readonly?: false;
+}
+
+interface ReadonlyChipProps extends BaseChipProps {
+  /**
+   * Renders a non-interactive summary: the value reads as secondary and the
+   * dismiss affordance is suppressed. Readonly chips cannot be dismissed.
+   */
+  readonly: true;
+  onDismiss?: never;
+}
+
+type ChipProps = DismissableChipProps | ReadonlyChipProps;
+
 
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},
@@ -81,7 +92,7 @@ export function Chip({
           </Text>
         )}
       </Flex>
-      {!readonly && onDismiss ? (
+      {onDismiss ? (
         <DismissButton
           chipSize={size}
           size="zero"
