@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 
+from sentry.integrations.source_code_management.pr_id_cache import get_cached_pr_id
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -431,6 +432,46 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
             metadata={"group_id": 1},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_warms_pr_id_cache_for_kept_entries(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # The mention path only ever receives the PR number, so this event —
+        # which holds both halves — is one of the two places that can warm it.
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = None
+
+        resolve_check_suite_autofix_run(
+            self._event(
+                pull_requests=[
+                    {"id": 111, "number": 7, "base": {"repo": {"id": OWN_REPO_ID}}},
+                    {"id": 222, "number": 8, "base": {"repo": {"id": 456}}},
+                ],
+                repository_id=OWN_REPO_ID,
+            )
+        )
+
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=str(OWN_REPO_ID),
+                pr_number=7,
+            )
+            == 111
+        )
+        # The entry based in another repo was dropped before the warm.
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=str(OWN_REPO_ID),
+                pr_number=8,
+            )
+            is None
         )
 
     @patch(f"{CHECK_SUITES_PATH}.logger")

@@ -32,6 +32,7 @@ from sentry.integrations.github_enterprise.webhook import (
     get_host,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pr_id_cache import get_cached_pr_id
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import PullRequestMergedAction
 from sentry.middleware.integrations.parsers.github_enterprise import (
@@ -706,6 +707,30 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author.name == "baxterthehacker"
 
         assert_success_metric(mock_record)
+
+    def test_does_not_warm_pr_id_cache(self, mock_get_installation_metadata: MagicMock) -> None:
+        # GHE shares github.com's handler, but its repo ids restart at 1 on every
+        # instance, so an entry keyed on them could name another host's repo.
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self._post_pull_request_event(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github_enterprise",
+                repo_external_id=self.repo.external_id,
+                pr_number=1,
+            )
+            is None
+        )
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=self.repo.external_id,
+                pr_number=1,
+            )
+            is None
+        )
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

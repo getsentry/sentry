@@ -39,6 +39,7 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pr_id_cache import get_or_fetch_pr_id
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -588,10 +589,25 @@ def trigger_pr_iteration_from_comment(
         return None
 
     client = integration.get_installation(organization_id=organization_id).get_client()
-    try:
+
+    def _fetch_pr_id() -> int | None:
         # Async task: the PR may be deleted, made private, or GitHub may return a
         # transient error between webhook receipt and execution.
         pull_request = client.get_pull_request(repo.name, str(pr_number))
+        pr_id: int | None = pull_request.get("id")
+        return pr_id
+
+    try:
+        # The issue_comment payload behind an `@sentry` mention carries only the
+        # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
+        # The mapping is immutable, so it is cached; the fetch above only runs
+        # when no webhook has warmed this PR yet.
+        pr_id = get_or_fetch_pr_id(
+            provider=repo.provider,
+            repo_external_id=repo.external_id,
+            pr_number=pr_number,
+            fetch=_fetch_pr_id,
+        )
     except ApiError:
         logger.warning(
             "autofix.pr_iteration.comment_trigger.get_pull_request_failed",
@@ -599,7 +615,6 @@ def trigger_pr_iteration_from_comment(
             exc_info=True,
         )
         return None
-    pr_id = pull_request.get("id")
     if pr_id is None:
         return None
 
