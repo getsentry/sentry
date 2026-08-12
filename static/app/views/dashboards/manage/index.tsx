@@ -8,7 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -464,16 +464,16 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')`
-  display: grid;
-  grid-template-columns: auto max-content max-content;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
+function StyledActions(props: GridProps) {
+  return (
+    <Grid
+      columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+      gap="md"
+      marginBottom="xl"
+      {...props}
+    />
+  );
+}
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${p => p.theme.space['2xl']};

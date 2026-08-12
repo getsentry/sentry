@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {QueryClient, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -11,7 +10,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import {
   createDashboard,
@@ -1514,19 +1513,18 @@ class DashboardDetail extends Component<Props, State> {
   }
 }
 
-const StyledPageHeader = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${p => p.theme.space.xl};
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${p => p.theme.space.xl};
-    height: 40px;
-  }
-`;
+function StyledPageHeader(props: GridProps) {
+  return (
+    <Grid
+      columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
+      gap="xl"
+      align="center"
+      marginBottom="xl"
+      height={{zero: 'auto', '3xl': '40px'}}
+      {...props}
+    />
+  );
+}
 
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
