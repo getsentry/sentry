@@ -44,7 +44,7 @@ import {getHasTag} from 'sentry/utils/tag';
 
 jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
-  useDebouncedValue: jest.fn(value => [value]),
+  useDebouncedValue: <T,>(value: T) => [value] as const,
 }));
 
 const FILTER_KEYS: TagCollection = {

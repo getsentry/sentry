@@ -78,7 +78,7 @@ jest.mock('@tanstack/react-pacer', () => ({
   debounce: jest.fn(fn => fn),
   useAsyncDebouncedCallback: jest.fn(fn => fn),
   useDebouncedCallback: jest.fn(fn => fn),
-  useDebouncedValue: jest.fn(value => [value]),
+  useDebouncedValue: <T>(value: T) => [value] as const,
 }));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
