@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import timedelta
 from typing import Any, TypedDict
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import ParseResult, parse_qs, urlparse
 
 from ..types import Span
 
@@ -20,6 +20,44 @@ FILTERED_KEYWORDS = [
     "[Filtered email]",
     "[Email]",
 ]
+
+URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
+    r"""
+    ^
+    # Scheme (`http`, `https`, `ftp`, `mailto`, `file`, etc). Everything before the `//` is optional
+    # to handle the legacy case where it used to be left off to allow for both `http` and `https`
+    # (before `https` was the default).
+    ([a-z][a-z0-9+.-]{1,32}:)?//
+    # The full hostname - everything between the `//` after the scheme and the `/` which marks the
+    # start of the path
+    (?P<full_hostname>
+        # Zero or more non-bracket, non-slash, legal hostname characters
+        [^\[\]/'"`\\<>{}|\^\s?#]*
+        (?P<value_with_brackets>
+            \[
+            (?P<bracketed_value>
+                # One or more such characters. Allows spaces in order to catch values like
+                # `[Filtered UUID]` and `[REDACTED IP]`.
+                [^\[\]/'"`\\<>{}|\^?#]+
+            )
+            \]
+        )
+        # Zero or more such characters
+        [^\[\]/'"`\\<>{}|\^\s?#]* # Zero or more such characters
+    )
+    # The rest of the URL (path, query string, and fragment) is technically optional
+    (
+        /
+        # Any number of copies of anything not globally invalid - slashes and brackets allowed now
+        # that we've gotten to the path
+        [^'"`\\<>{}|\^\s]*
+        # Final character - must be both valid in general and allowable in the last spot (so no
+        # trailing punctuation)
+        [^'"`\\<>{}|\^\s.,;]
+    )?
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 PARAMETERIZED_URL_REGEX = re.compile(
     r"""(?x)
@@ -82,6 +120,46 @@ def escape_transaction(transaction: str) -> str:
 
 def is_filtered_url(url: str) -> bool:
     return any(keyword in url for keyword in FILTERED_KEYWORDS)
+
+
+def safer_urlparse(url: str) -> ParseResult:
+    """
+    `urlparse`, but tolerant of hostnames which include bracketed values as a result of having been
+    scrubbed and/or parameterized.
+
+    `urlparse` reads `[...]` in a URL's hostname as an IPv6 literal and errors out if it isn't a
+    valid IP. In cases where that happens, this temporarily strips the brackets for parsing, then
+    restores them in the final result.
+
+    Reraises parsing errors caused by other invalid URL patterns.
+    """
+    try:
+        return urlparse(url)
+    except ValueError:
+        bracketed_hostname_match = URL_WITH_BRACKETED_HOSTNAME_REGEX.search(url)
+
+        if bracketed_hostname_match:
+            match_groups = bracketed_hostname_match.groupdict()
+            orig_hostname = match_groups["full_hostname"]
+            value_with_brackets = match_groups["value_with_brackets"]
+            bracketed_value = match_groups["bracketed_value"]
+
+            # Strip the brackets (and any spaces between them) and try parsing again
+            debracketed_url = url.replace(
+                value_with_brackets,
+                bracketed_value.replace(" ", ""),
+                # In case the same parameterization exists later in the URL, too, only replace the
+                # one in the hostname
+                count=1,
+            )
+            parsed = urlparse(debracketed_url)
+
+            # Restore the original hostname value before returning the result
+            return parsed._replace(netloc=orig_hostname)
+
+        # If the problem isn't a bracketed hostname, reraise to surface the issue
+        else:
+            raise
 
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
