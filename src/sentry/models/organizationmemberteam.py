@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Self
+from collections.abc import Iterable
+from typing import Any, ClassVar
 
-from django.db import models
+from django.db import connections, models, router
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
@@ -19,19 +20,46 @@ from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
+def _reserve_ids(model: type[Model], count: int) -> list[int]:
+    """Claim `count` values from the model's primary key sequence ahead of insert."""
+    using = router.db_for_write(model)
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            "SELECT nextval(%s) FROM generate_series(1,%s);",
+            [f"{model._meta.db_table}_id_seq", count],
+        )
+        return [row_id for (row_id,) in cursor.fetchall()]
+
+
+class OrganizationMemberTeamManager(BaseManager["OrganizationMemberTeam"]):
+    def bulk_create(
+        self, objs: Iterable[OrganizationMemberTeam], *args: Any, **kwds: Any
+    ) -> list[OrganizationMemberTeam]:
+        rows = list(objs)
+        if not rows:
+            return super().bulk_create(rows, *args, **kwds)
+
+        # Claim the pks up front so `new_id` can be written in the same INSERT.
+        for row, row_id in zip(rows, _reserve_ids(self.model, len(rows))):
+            row.id = row_id
+            row.new_id = row_id
+        return super().bulk_create(rows, *args, **kwds)
+
+
 @cell_silo_model
 class OrganizationMemberTeam(Model):
     """
     Identifies relationships between organization members and the teams they are on.
     """
 
-    objects: ClassVar[BaseManager[Self]] = BaseManager()
+    objects: ClassVar[OrganizationMemberTeamManager] = OrganizationMemberTeamManager()
 
     __relocation_scope__ = RelocationScope.Organization
 
     id = BoundedAutoField(primary_key=True)
-    # Shadow column for the in-progress widening of `id` to int8; swapped into the
-    # primary key once backfilled. Nothing reads or writes it yet.
+    # Shadow column for the in-progress widening of `id` to int8. Writing it as rows are
+    # inserted keeps new rows in step, so a one-off backfill only has to cover rows
+    # predating the deploy; it is swapped into the primary key once backfilled.
     new_id = BoundedBigIntegerField(null=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
@@ -46,6 +74,19 @@ class OrganizationMemberTeam(Model):
         unique_together = (("team", "organizationmember"),)
 
     __repr__ = sane_repr("team_id", "organizationmember_id")
+
+    def save(self, *args: Any, **kwds: Any) -> None:
+        if self.id is None:
+            # Claim the pk up front so `new_id` can be written in the same INSERT.
+            self.id = _reserve_ids(type(self), 1)[0]
+            self.new_id = self.id
+            # The pk was just claimed from the sequence, so the row cannot exist yet.
+            # Without force_insert Django probes with an UPDATE before inserting,
+            # costing a wasted round trip on every create.
+            # Skipped when the caller passed force_insert positionally.
+            if not args:
+                kwds["force_insert"] = True
+        super().save(*args, **kwds)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {

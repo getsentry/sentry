@@ -1,4 +1,8 @@
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import team_roles
 from sentry.testutils.cases import TestCase
@@ -57,3 +61,81 @@ class OrganizationMemberTeamOutboxTest(TestCase):
             OrganizationMemberTeam.objects.filter(id__in=[o.id for o in omts]).delete()
 
         assert CellOutbox.objects.count() == 0
+
+
+class OrganizationMemberTeamShadowIdTest(TestCase):
+    def setUp(self) -> None:
+        self.organization = self.create_organization()
+        self.team = self.create_team(organization=self.organization)
+
+    def new_member(self) -> OrganizationMember:
+        return self.create_member(organization=self.organization, user=self.create_user())
+
+    def omt_updates(self, queries: CaptureQueriesContext) -> list[str]:
+        return [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].lstrip().upper().startswith("UPDATE")
+            and "sentry_organizationmember_teams" in query["sql"]
+        ]
+
+    def test_create_populates_new_id(self) -> None:
+        omt = self.create_team_membership(team=self.team, member=self.new_member())
+
+        omt.refresh_from_db()
+        assert omt.new_id == omt.id
+
+    # Built directly: no fixture exercises bulk_create, which is the path under test.
+    def test_bulk_create_populates_new_id(self) -> None:
+        members = [self.new_member() for _ in range(3)]
+
+        omts = OrganizationMemberTeam.objects.bulk_create(
+            [
+                OrganizationMemberTeam(organizationmember=member, team=self.team)
+                for member in members
+            ]
+        )
+
+        assert len(omts) == 3
+        for omt in omts:
+            omt.refresh_from_db()
+            assert omt.new_id == omt.id
+
+    # Built directly: no fixture exercises a bare save(), which is the path under test.
+    def test_bare_save_populates_new_id(self) -> None:
+        omt = OrganizationMemberTeam(organizationmember=self.new_member(), team=self.team)
+
+        omt.save()
+
+        omt.refresh_from_db()
+        assert omt.new_id == omt.id
+
+    def test_update_preserves_new_id(self) -> None:
+        omt = self.create_team_membership(team=self.team, member=self.new_member())
+
+        omt.role = "admin"
+        omt.save()
+
+        omt.refresh_from_db()
+        assert omt.new_id == omt.id
+
+    def test_create_issues_no_follow_up_update(self) -> None:
+        member = self.new_member()
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            self.create_team_membership(team=self.team, member=member)
+
+        assert self.omt_updates(queries) == []
+
+    def test_bare_save_issues_no_follow_up_update(self) -> None:
+        omt = OrganizationMemberTeam(organizationmember=self.new_member(), team=self.team)
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            omt.save()
+
+        assert self.omt_updates(queries) == []
+
+    def test_bulk_create_with_no_objects(self) -> None:
+        assert list(OrganizationMemberTeam.objects.bulk_create([])) == []
