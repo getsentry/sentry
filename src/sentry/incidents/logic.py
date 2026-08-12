@@ -1736,29 +1736,6 @@ def get_available_action_integrations_for_org(
     )
 
 
-def get_pagerduty_services(organization_id: int, integration_id: int) -> list[tuple[int, str]]:
-    from sentry.integrations.pagerduty.utils import get_services
-
-    org_int = integration_service.get_organization_integration(
-        organization_id=organization_id, integration_id=integration_id
-    )
-    services = get_services(org_int)
-    return [(s["id"], s["service_name"]) for s in services]
-
-
-def get_opsgenie_teams(organization_id: int, integration_id: int) -> list[tuple[str, str]]:
-    org_int = integration_service.get_organization_integration(
-        organization_id=organization_id, integration_id=integration_id
-    )
-    if org_int is None:
-        return []
-    teams = []
-    team_table = org_int.config.get("team_table")
-    if team_table:
-        teams = [(team["id"], team["team"]) for team in team_table]
-    return teams
-
-
 # TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
 # Uses a function from discover to break the aggregate down into parts, and then compare the "field"
 # to a list of accepted fields, or a list of fields we need to translate.
