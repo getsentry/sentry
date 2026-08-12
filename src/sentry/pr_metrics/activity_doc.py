@@ -916,15 +916,13 @@ def opening_head_from_doc(doc: ActivityDoc) -> tuple[str, str | None, str | None
     the entry is the PR's oldest event and the events cap drops the NEWEST arrivals,
     so it outlives every later entry it shares the document with.
 
-    A document that never recorded one — activity tracking enabled after the PR
-    opened — falls back to the first ``sync_chain`` link's ``before_sha``, which
-    names the very commit the first push replaced. That recovers the SHA but no
-    sender: a synchronize's sender pushed the head that *superseded* this one, and
-    attributing their login to a push they didn't make is a wrong answer where
-    ``unknown`` is the honest one.
-
-    Returns ``None`` when neither source has it, i.e. there is no reliable opening
-    head to key checks off.
+    Returns ``None`` when the document never recorded one — activity tracking
+    enabled after the PR opened — i.e. there is no reliable opening head to key
+    checks off. The first ``sync_chain`` link's ``before_sha`` is deliberately not
+    used as a fallback: it names the head the PR opened with only if that
+    synchronize was the first push after open, and a document with no ``OPENED``
+    entry is exactly the one that cannot promise it — the oldest links may have
+    been evicted at ``MAX_SYNC_CHAIN``, or tracking may have begun mid-PR.
     """
     for entry in doc.get("events") or ():
         if entry.get("event_type") != PullRequestActivityType.OPENED:
@@ -937,12 +935,6 @@ def opening_head_from_doc(doc: ActivityDoc) -> tuple[str, str | None, str | None
                 payload.get("sender_login") or None,
                 payload.get("sender_type") or None,
             )
-
-    chain = doc.get("sync_chain") or []
-    if chain:
-        first_before = (chain[0][1] if len(chain[0]) > 1 else None) or ""
-        if first_before:
-            return first_before, None, None
 
     return None
 

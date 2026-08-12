@@ -477,26 +477,21 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
 
-    def test_ci_failed_at_open_from_doc_survives_events_cap(self) -> None:
-        # Fill the entries cap before the OPENED delivery arrives, so its entry is
-        # dropped from ``events`` and the opening head has to come from the first
-        # ``sync_chain`` link's ``before_sha`` — folded before the cap, and the same
-        # source ``ci_head_results_from_doc`` falls back to, so both readers still
-        # scope to ``open1`` rather than disagreeing here.
-        doc = self._doc_at_events_cap()
+    def test_ci_failed_at_open_from_doc_scopes_to_the_opening_head(self) -> None:
+        # The OPENED entry names the head, and the rollup's ``head_sha`` keys the
+        # failure to it — the later push's own checks are a different head.
+        doc = new_document()
         _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
         _doc_sync(
             doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
         )
         _doc_suite(doc, head_sha="open1", conclusion="failure")
-        assert doc["events_dropped"] == 2
+        _doc_suite(doc, head_sha="push2", conclusion="success")
 
         assert _ci_failed_at_open(self.pull_request, doc=doc) is True
 
-    def test_ci_failed_at_open_from_doc_past_cap_still_excludes_later_head(self) -> None:
-        # Same capped document, but the failure belongs to a pushed head: recovering
-        # the opening head must not widen the scope to every recorded check.
-        doc = self._doc_at_events_cap()
+    def test_ci_failed_at_open_from_doc_excludes_a_later_head(self) -> None:
+        doc = new_document()
         _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
         _doc_sync(
             doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
@@ -506,13 +501,20 @@ class PrMetricsEmissionTest(TestCase):
 
         assert _ci_failed_at_open(self.pull_request, doc=doc) is False
 
-    def test_ci_failed_at_open_from_doc_past_cap_with_no_push_reports_nothing(self) -> None:
-        # Nothing survived that names the opening head: its entry was dropped by the
-        # cap and no push ever recorded it as a ``before_sha``. With no head to scope
-        # to, the checks on record can't be attributed to the open.
+    def test_ci_failed_at_open_from_doc_past_cap_reports_nothing(self) -> None:
+        # Fill the entries cap before the OPENED delivery arrives, so its entry is
+        # dropped from ``events`` and nothing left on the document names the opening
+        # head: the first ``sync_chain`` link's ``before_sha`` is the head that push
+        # replaced, which is the opening head only if that push was the first one —
+        # unknowable here. With no head to scope to, the recorded failure can't be
+        # attributed to the open.
         doc = self._doc_at_events_cap()
         _doc_open(doc, head_sha="open1", sender_login="alice", sender_type="User")
+        _doc_sync(
+            doc, after_sha="push2", before_sha="open1", sender_login="alice", sender_type="User"
+        )
         _doc_suite(doc, head_sha="open1", conclusion="failure")
+        assert doc["events_dropped"] == 2
 
         assert _ci_failed_at_open(self.pull_request, doc=doc) is False
 
@@ -1153,10 +1155,10 @@ class PrMetricsEmissionTest(TestCase):
         # Pushed-head attribution reads ``sync_chain`` senders, not ``events``. Fill
         # the entries cap first so both head-bearing deliveries are dropped from
         # ``events`` on arrival: the pushed head keeps its sender slot on the chain
-        # and still buckets under ``seer``, while the opening head — recoverable only
-        # as the first link's ``before_sha`` once its entry is gone — is reported
-        # ``unknown`` rather than attributed to the sender of the push that
-        # superseded it.
+        # and still buckets under ``seer``, while the opening head no longer has a
+        # source that names it as the opening head — its checks are still reported,
+        # but as an unsequenced head with an ``unknown`` actor rather than
+        # attributed to the sender of the push that superseded it.
         doc = self._doc_at_events_cap()
         _doc_open(doc, head_sha="seer1", sender_login="seer-by-sentry[bot]", sender_type="Bot")
         _doc_sync(
@@ -1179,9 +1181,9 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.ci_head_results is not None
         results = json.loads(row.ci_head_results)
-        assert [(item["outcome"], item["actor"]) for item in results] == [
-            ("failure", "unknown"),
-            ("success", "seer"),
+        assert [(item["sequence"], item["outcome"], item["actor"]) for item in results] == [
+            (0, "success", "seer"),
+            (None, "failure", "unknown"),
         ]
 
     def _ci_head_doc(self) -> None:

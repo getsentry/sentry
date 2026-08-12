@@ -277,8 +277,10 @@ class ActivityDocumentReadersTest(TestCase):
         assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_ci_failed_at_open_from_doc_without_an_open_entry(self) -> None:
-        # Tracking started after the PR opened, so the opening head comes from the
-        # first sync link's ``before_sha`` — the head that push replaced.
+        # Tracking started after the PR opened, so nothing names the opening head:
+        # the first sync link's ``before_sha`` is the head that push replaced, which
+        # is the opening head only if it was the first push. With no head to scope
+        # to, the failing suite on record can't be attributed to the open.
         self._write_doc(
             _doc(
                 events=[_entry("synchronized", "s1", after_sha="sha2", before_sha="sha1")],
@@ -286,7 +288,7 @@ class ActivityDocumentReadersTest(TestCase):
                 checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
             )
         )
-        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
 
     def test_ci_failed_at_open_from_doc_excludes_later_head(self) -> None:
         # The failing check belongs to a later push's head, not the opening one.

@@ -1573,10 +1573,12 @@ def test_opening_head_is_read_from_the_open_entry_not_the_sync_chain() -> None:
     assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot", "s1"]]
 
 
-def test_opening_head_falls_back_to_the_first_sync_link_without_a_sender() -> None:
-    # No OPENED entry — activity tracking started after the PR opened. The first
-    # push names the head it replaced, but its sender pushed the head that
-    # superseded that one, so the opening head is recovered unattributed.
+def test_opening_head_is_not_inferred_from_the_first_sync_link() -> None:
+    # No OPENED entry — activity tracking started after the PR opened, or the
+    # entry was evicted. The first link's ``before_sha`` names the head that push
+    # replaced, which is the opening head only if it was the first push after
+    # open — precisely what a document missing its OPENED entry can't promise. So
+    # the PR has no opening head, and the results list starts at the first push.
     doc = new_document()
     _entry(
         doc,
@@ -1597,11 +1599,10 @@ def test_opening_head_falls_back_to_the_first_sync_link_without_a_sender() -> No
         sender_type="User",
     )
 
-    assert opening_head_from_doc(doc) == ("open1", None, None)
-    assert [result["actor"] for result in ci_head_results_from_doc(doc)] == [
-        "unknown",
-        "bot",
-        "human",
+    assert opening_head_from_doc(doc) is None
+    assert [(result["head_sha"], result["actor"]) for result in ci_head_results_from_doc(doc)] == [
+        ("sync1", "bot"),
+        ("sync2", "human"),
     ]
 
 
