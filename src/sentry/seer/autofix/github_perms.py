@@ -170,7 +170,7 @@ def get_out_of_date_github_permissions(
             name__in=repo_names,
             status=ObjectStatus.ACTIVE,
         )
-        .order_by("name")
+        .order_by("name", "integration_id")
         .values_list("name", "integration_id")
     )
 
