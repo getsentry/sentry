@@ -66,4 +66,29 @@ describe('InputGroup', () => {
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
   });
+
+  it('does not remeasure items when their parent rerenders', () => {
+    const offsetWidthSpy = jest
+      .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+      .mockReturnValue(24);
+
+    const renderGroup = (label: string) => (
+      <InputGroup>
+        <InputGroup.LeadingItems>
+          <Button>{label}</Button>
+        </InputGroup.LeadingItems>
+        <InputGroup.Input />
+      </InputGroup>
+    );
+
+    try {
+      const {rerender} = render(renderGroup('initial'));
+      expect(offsetWidthSpy).toHaveBeenCalledTimes(1);
+
+      rerender(renderGroup('updated'));
+      expect(offsetWidthSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      offsetWidthSpy.mockRestore();
+    }
+  });
 });

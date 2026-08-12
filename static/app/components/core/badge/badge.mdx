@@ -12,6 +12,7 @@ resources:
 
 import {useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
 import {
   AlertBadge,
   DeployBadge,
@@ -109,6 +110,7 @@ The `FeatureBadge` component should be used to annotate new features as they mov
   <FeatureBadge type="beta" />
   <FeatureBadge type="new" />
   <FeatureBadge type="experimental" />
+  <FeatureBadge type="debug" />
 </Storybook.Demo>
 ```jsx import {FeatureBadge} from '@sentry/scraps/badge';
 
@@ -116,6 +118,28 @@ The `FeatureBadge` component should be used to annotate new features as they mov
 <FeatureBadge type="beta" />
 <FeatureBadge type="new" />
 <FeatureBadge type="experimental" />
+<FeatureBadge type="debug" />
+```
+
+### Nested interactive controls
+
+When a `FeatureBadge` is nested inside an interactive element such as a button, link, or menu item, it detects the parent and does not add a second tab stop. This keeps keyboard navigation on the parent control while still making the badge tooltip available.
+
+When the parent receives keyboard focus, the badge tooltip is shown after the standard tooltip open delay. Do not add a separate `tabIndex` to a nested `FeatureBadge`.
+
+<Storybook.Demo>
+  <Button>
+    <Flex gap="md" align="center">
+      Recommended
+      <FeatureBadge type="new" />
+    </Flex>
+  </Button>
+</Storybook.Demo>
+```jsx
+<Button>
+  Recommended
+  <FeatureBadge type="new" />
+</Button>
 ```
 
 Generally, the default tooltip should suffice, but if your special feature requires additional context, you can customize the `tooltipProps`.

@@ -157,6 +157,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         environments = set(request.GET.getlist("environment"))
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
@@ -192,6 +194,8 @@ class EventJsonEndpoint(ProjectEndpoint):
 
         if not event:
             return Response({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         event_dict = event.as_dict()
         if isinstance(event_dict["datetime"], datetime):

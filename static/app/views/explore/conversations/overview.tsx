@@ -24,14 +24,14 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
-import {ConversationsTableRedesign} from 'sentry/views/explore/conversations/components/conversationsTableRedesign';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -51,6 +51,18 @@ function ConversationsOverviewPage() {
     isLoading: isOnboardingLoading,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
+  const {
+    data: conversations,
+    isFetching: isConversationsFetching,
+    error: conversationsError,
+  } = useConversations();
+  const showMissingMessagesAlert =
+    !isConversationsFetching &&
+    !conversationsError &&
+    conversations.length > 0 &&
+    conversations.every(
+      conversation => !conversation.firstInput && !conversation.lastOutput
+    );
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -164,14 +176,9 @@ function ConversationsOverviewPage() {
             <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
             <Fragment>
-              {hasGenAiConversationsRedesignFeature(organization) ? (
-                <Fragment>
-                  <ConversationsChart />
-                  <ConversationsTableRedesign />
-                </Fragment>
-              ) : (
-                <ConversationsTable />
-              )}
+              {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+              <ConversationsChart />
+              <ConversationsTable />
             </Fragment>
           )}
         </Stack>

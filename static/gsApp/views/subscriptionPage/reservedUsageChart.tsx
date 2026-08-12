@@ -387,7 +387,7 @@ export function mapStatsToChart({
           other: sumOther,
           overQuota: sumOverQuota,
           spikeProtection: sumSpikeProtection,
-        } as DroppedBreakdown,
+        },
       });
     }
   });

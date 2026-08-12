@@ -24,25 +24,38 @@ import {
   getLogsUrl,
 } from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type UseTraceViewLogsDataProps = {
+type ProviderProps = {
   children: React.ReactNode;
-  traceSlug: string;
 };
 
-export function TraceViewLogsDataProvider({
+type PageDataProviderProps = ProviderProps & {
+  disabled?: boolean;
+};
+
+export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: UseTraceViewLogsDataProps) {
+}: ProviderProps & {traceSlug: string}) {
+  const {timestamp} = useTraceQueryParams();
+
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
       source="location"
-      freeze={{traceId: traceSlug}}
+      freeze={{traceId: traceSlug, traceTimestamp: timestamp}}
     >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      {children}
     </LogsQueryParamsProvider>
   );
+}
+
+export function TraceViewLogsPageDataProvider({
+  children,
+  disabled,
+}: PageDataProviderProps) {
+  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
 }
 
 interface TraceViewLogsSectionProps {

@@ -73,7 +73,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Sets the range of the Y axis.
    *
    * - `auto`: The Y axis starts at 0, and ends at the maximum value of the data.
-   * - `dataMin`: The Y axis starts at the minimum value of the data, and ends at the maximum value of the data.
+   * - `dataMin`: The Y axis starts at a round tick value at or just below the minimum value of the data, and ends at the maximum value of the data.
    * Default: `auto`
    */
   axisRange?: AxisRange;

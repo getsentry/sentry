@@ -106,7 +106,7 @@ export function ErroredBanner() {
   );
 }
 
-export const PairCard = memo(function PairCard({
+export const PairCard = memo(function PairCardImpl({
   pair,
   imageBaseUrl,
   headBranch,
@@ -221,7 +221,7 @@ export const PairCard = memo(function PairCard({
   );
 });
 
-export const ImageCard = memo(function ImageCard({
+export const ImageCard = memo(function ImageCardImpl({
   image,
   cardType,
   copyData,
@@ -307,7 +307,7 @@ export const ImageCard = memo(function ImageCard({
   );
 });
 
-export const CardHeader = memo(function CardHeader({
+export const CardHeader = memo(function CardHeaderImpl({
   displayName,
   fileName,
   tags,
@@ -392,7 +392,7 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
+const METADATA_BLOCKLIST = new Set(['diff_image_key']);
 
 function MetadataInfoButton({
   copyData,
@@ -440,7 +440,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.SKIPPED]: 'muted',
 };
 
-const StatusBadge = memo(function StatusBadge({
+const StatusBadge = memo(function StatusBadgeImpl({
   status,
   diffPercent,
 }: {

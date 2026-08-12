@@ -129,7 +129,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   // Grouped widgets stack in order, with the "Other" bucket pinned to a
   // neutral color. Ungrouped widgets keep the response order.
   const sorted = hasGroups
-    ? timeSeries.slice().sort((a, b) => (a.meta?.order ?? 0) - (b.meta?.order ?? 0))
+    ? timeSeries.toSorted((a, b) => (a.meta?.order ?? 0) - (b.meta?.order ?? 0))
     : timeSeries;
   const hasOther = hasGroups && sorted.some(ts => ts.meta?.isOther);
   const color = theme.chart

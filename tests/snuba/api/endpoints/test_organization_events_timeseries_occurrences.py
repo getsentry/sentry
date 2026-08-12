@@ -46,7 +46,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def _store_occurrences_and_request_timeseries(
         self,

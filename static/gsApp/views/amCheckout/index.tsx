@@ -500,7 +500,7 @@ function AMCheckout(props: Props) {
       if (!isEqual(validData.reserved, data.reserved)) {
         Sentry.withScope(scope => {
           scope.setExtras({validData, updatedData, previous: formData});
-          scope.setLevel('warning' as any);
+          scope.setLevel('warning');
           Sentry.captureException(new Error('Plan event levels do not match'));
         });
       }

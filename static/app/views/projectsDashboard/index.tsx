@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -15,6 +15,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TeamFilter} from 'sentry/components/teamFilter';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,7 +35,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {TeamFilter} from 'sentry/views/alerts/list/rules/teamFilter';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -141,10 +141,10 @@ function Dashboard() {
   });
   const user = useUser();
   const [projectQuery, setProjectQuery] = useState('');
-  const debouncedSearchQuery = useMemo(
-    () => debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
-    []
-  );
+  const [debouncedProjectQuery] = useDebouncedValue(projectQuery, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+    leading: true,
+  });
   const {projects, fetching, fetchError} = useProjects();
   const canUserCreateProject = useCanCreateProject();
 
@@ -171,7 +171,7 @@ function Dashboard() {
     isAllTeams,
     showNonMemberProjects,
     projects,
-    projectQuery,
+    projectQuery: debouncedProjectQuery,
   });
 
   setGroupedEntityTag('projects.total', 1000, projects.length);
@@ -179,10 +179,6 @@ function Dashboard() {
   const showResources = projects.length === 1 && !projects[0]!.firstEvent;
 
   const canJoinTeam = organization.access.includes('team:read');
-
-  function handleSearch(searchQuery: string) {
-    setProjectQuery(searchQuery);
-  }
 
   function handleChangeFilter(activeFilters: string[]) {
     navigate({
@@ -250,7 +246,7 @@ function Dashboard() {
             <StyledSearchBar
               defaultQuery=""
               placeholder={t('Search for projects by name')}
-              onChange={debouncedSearchQuery}
+              onChange={setProjectQuery}
               query={projectQuery}
             />
           </SearchAndSelectorWrapper>

@@ -20,6 +20,7 @@ class PromptBuilder(Protocol):
         culprit: str,
         artifact_key: str | None,
         run_state: "SeerRunState | None" = None,
+        enable_bash_tools: bool = False,
     ) -> str: ...
 
 
@@ -30,6 +31,7 @@ def root_cause_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     return dedent(
         f"""\
@@ -51,6 +53,7 @@ def root_cause_prompt(
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
         - relevant_repo: The full repository name (e.g. "owner/repo") where the fix should be made. Pick the one repo most directly responsible for the root cause.
+        - fixability: Assess whether this root cause is fixable through code changes. Use "fixable" if a code fix can address it, "needs_more_context" if the analysis is plausible but too vague to act on, or "not_actionable" if it cannot be fixed through code (e.g. infrastructure, third-party outage, user misconfiguration). Include a brief reason.
         """
     )
 
@@ -62,6 +65,7 @@ def solution_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     return dedent(
         f"""\
@@ -96,8 +100,9 @@ def code_changes_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
-    return dedent(
+    prompt = dedent(
         f"""\
         Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
 
@@ -114,6 +119,11 @@ def code_changes_prompt(
         """
     )
 
+    if enable_bash_tools:
+        prompt = f"{prompt}Use the bash tool to test and lint the changes you make according to repo standards.\n"
+
+    return prompt
+
 
 def pr_iteration_prompt(
     *,
@@ -122,6 +132,7 @@ def pr_iteration_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     prompt = dedent(
         f"""\

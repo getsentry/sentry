@@ -109,7 +109,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         "user_misery()",
     }
     non_nullable_keys = {"event.type"}
-    nullable_context_keys = {"thread.id"}
+    nullable_context_keys = {"thread.id", "trace", "trace.span"}
     use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):

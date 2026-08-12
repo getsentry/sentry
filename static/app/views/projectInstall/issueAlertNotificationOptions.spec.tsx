@@ -26,7 +26,6 @@ import {
 
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
-  const integrations: OrganizationIntegration[] = [];
   const mockSetAction = jest.fn();
 
   const notificationProps: IssueAlertNotificationProps = {
@@ -84,24 +83,12 @@ describe('MessagingIntegrationAlertRule', () => {
   });
 
   it('renders alert configuration if integration is installed', async () => {
-    integrations.push(
-      OrganizationIntegrationsFixture({
-        name: "Moo Toon's Workspace",
-        status: 'active',
-      })
-    );
     render(getComponent(), {organization});
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
   });
 
   it('calls setter when new integration option is selected', async () => {
-    integrations.push(
-      OrganizationIntegrationsFixture({
-        name: "Moo Toon's Workspace",
-        status: 'active',
-      })
-    );
     render(getComponent(), {organization});
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
@@ -207,9 +194,11 @@ describe('useCreateNotificationAction', () => {
     });
 
     // Query resolves but no integrations: setup button should show, guard not latched.
-    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    await waitFor(() =>
+      expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true)
+    );
+    expect(result.current.notificationProps.querySuccess).toBe(true);
     expect(result.current.notificationProps.provider).toBeUndefined();
-    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
 
     // User connects an integration. Regaining focus refetches the active query.
     MockApiClient.clearMockResponses();
@@ -474,9 +463,11 @@ describe('useScmNotificationAction', () => {
 
     // Query resolved but integration list empty: setup CTA shown, guard not
     // latched, INTEGRATION must NOT be in actions (picker not half-applied).
-    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    await waitFor(() =>
+      expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true)
+    );
+    expect(result.current.notificationProps.querySuccess).toBe(true);
     expect(result.current.notificationProps.provider).toBeUndefined();
-    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
     expect(result.current.notificationProps.actions).not.toContain(
       MultipleCheckboxOptions.INTEGRATION
     );
@@ -514,8 +505,10 @@ describe('useScmNotificationAction', () => {
       {organization}
     );
 
-    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
-    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
+    await waitFor(() =>
+      expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true)
+    );
+    expect(result.current.notificationProps.querySuccess).toBe(true);
     expect(result.current.notificationProps.actions).not.toContain(
       MultipleCheckboxOptions.INTEGRATION
     );

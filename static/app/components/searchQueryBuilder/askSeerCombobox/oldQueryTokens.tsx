@@ -47,7 +47,7 @@ export function OldQueryTokens({
           .filter(({text}) => text.trim() !== '')
           .map(({text}) => (
             <FormattedQueryWrapper key={text}>
-              <ProvidedFormattedQuery query={text} wrapTokens />
+              <ProvidedFormattedQuery query={text} />
             </FormattedQueryWrapper>
           ))}
       </Flex>
@@ -195,7 +195,7 @@ export function OldQueryTokens({
                   ?.filter(({text}) => text.trim() !== '')
                   .map(({text}) => (
                     <FormattedQueryWrapper key={text}>
-                      <ProvidedFormattedQuery query={text} wrapTokens />
+                      <ProvidedFormattedQuery query={text} />
                     </FormattedQueryWrapper>
                   ))}
               </Flex>

@@ -43,7 +43,7 @@ function ConversationDetailPage() {
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -79,12 +79,14 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
+      <ConversationsBreadcrumbs conversationId={conversationId} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
+          title={title}
+          project={project}
           isLoading={isLoading}
         />
       </Container>

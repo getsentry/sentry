@@ -39,41 +39,38 @@ export function AutomationBuilder() {
       <Stack gap="md">
         <Step>
           <StepLead>
-            {tct(
-              '[when:When] an issue event is captured and [selector] of the following occur',
-              {
-                when: <ConditionBadge />,
-                selector: showTriggerLogicTypeSelector ? (
-                  <Container width="80px">
-                    <EmbeddedSelectField
-                      styles={{
-                        control: (provided: any) => ({
-                          ...provided,
-                          minHeight: '21px',
-                          height: '21px',
-                        }),
-                      }}
-                      isSearchable={false}
-                      isClearable={false}
-                      name={`${state.triggers.id}.logicType`}
-                      value={
-                        // We do not expose ANY as a valid option, but it is
-                        state.triggers.logicType === DataConditionGroupLogicType.ANY
-                          ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
-                          : state.triggers.logicType
-                      }
-                      onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
-                        actions.updateWhenLogicType(option.value)
-                      }
-                      options={TRIGGER_MATCH_OPTIONS}
-                      size="xs"
-                    />
-                  </Container>
-                ) : (
-                  <strong>{t('any')}</strong>
-                ),
-              }
-            )}
+            {tct('[when:When] [selector] of the following occur', {
+              when: <ConditionBadge />,
+              selector: showTriggerLogicTypeSelector ? (
+                <Container width="80px">
+                  <EmbeddedSelectField
+                    styles={{
+                      control: (provided: any) => ({
+                        ...provided,
+                        minHeight: '21px',
+                        height: '21px',
+                      }),
+                    }}
+                    isSearchable={false}
+                    isClearable={false}
+                    name={`${state.triggers.id}.logicType`}
+                    value={
+                      // We do not expose ANY as a valid option, but it is
+                      state.triggers.logicType === DataConditionGroupLogicType.ANY
+                        ? DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
+                        : state.triggers.logicType
+                    }
+                    onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
+                      actions.updateWhenLogicType(option.value)
+                    }
+                    options={TRIGGER_MATCH_OPTIONS}
+                    size="xs"
+                  />
+                </Container>
+              ) : (
+                <strong>{t('any')}</strong>
+              ),
+            })}
           </StepLead>
         </Step>
         <DataConditionNodeList

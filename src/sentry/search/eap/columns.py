@@ -114,6 +114,13 @@ class ResolvedColumn:
                     return
             raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
+    def allows_value(self, value: Any) -> bool:
+        try:
+            self.validate(value)
+        except InvalidSearchQuery:
+            return False
+        return True
+
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
         """The proto's AttributeKey type for this column"""
