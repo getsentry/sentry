@@ -517,15 +517,19 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
     """
     # check billing quota for triggering a new autofix run
-    # Free cohort orgs have no Subscription so check_seer_quota returns False.
-    # Bypass the check for them — they get autofix without billing.
-    if run_id is None and not is_free_cohort_org(group.organization):
-        has_budget: bool = quotas.backend.check_seer_quota(
-            org_id=group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
+    # Free cohort orgs bypass quota only for night shift runs — they can
+    # view results but cannot manually trigger autofix.
+    if run_id is None:
+        skip_quota = (
+            is_free_cohort_org(group.organization) and referrer == AutofixReferrer.NIGHT_SHIFT
         )
-        if not has_budget:
-            raise NoSeerQuotaException()
+        if not skip_quota:
+            has_budget: bool = quotas.backend.check_seer_quota(
+                org_id=group.organization.id,
+                data_category=DataCategory.SEER_AUTOFIX,
+            )
+            if not has_budget:
+                raise NoSeerQuotaException()
 
     use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
