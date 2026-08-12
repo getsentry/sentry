@@ -225,6 +225,14 @@ relay_tasks = app.taskregistry.create_namespace(
     "relay",
     app_feature="shared",
 )
+# Namespace used for lower priority project config invalidations.
+#
+# Project configs requested by Relay must be computed as soon as possible to serve traffic,
+# invalidations can be slightly delayed.
+relay_invalidation_tasks = app.taskregistry.create_namespace(
+    "relay.invalidation",
+    app_feature="shared",
+)
 
 relocation_tasks = app.taskregistry.create_namespace(
     "relocation",
