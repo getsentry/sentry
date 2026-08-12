@@ -44,3 +44,50 @@ describe('buildResult whitespace trimming', () => {
     expect(trimmedBody.length).toBeLessThan(naiveResult.length);
   });
 });
+
+describe('buildResult location header', () => {
+  it('falls back to the bare URL when no location is passed', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], []);
+
+    expect(result.split('\n')[0]).toBe(window.location.href);
+  });
+
+  it('leads with the full location so the reader need not parse the URL', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], [], {
+      url: 'https://sentry.io/issues/123/?statsPeriod=14d',
+      name: '/issues/:groupId/',
+      params: {groupId: '123'},
+      query: {statsPeriod: '14d'},
+    });
+
+    expect(result).toContain('https://sentry.io/issues/123/?statsPeriod=14d');
+    expect(result).toContain('Route: /issues/:groupId/');
+    expect(result).toContain('Route params: {"groupId":"123"}');
+    expect(result).toContain('Query params: {"statsPeriod":"14d"}');
+    // Body still follows the header.
+    expect(result).toContain('hi');
+  });
+
+  it('omits empty location fields rather than emitting blank lines', () => {
+    const grid = createGridHelpers(2, 4);
+    grid.writeOverlay(0, 0, 'hi');
+
+    const result = buildResult(grid, [], [], {
+      url: 'https://sentry.io/insights/',
+      name: '',
+      params: {},
+      query: {},
+    });
+
+    expect(result.split('\n')[0]).toBe('https://sentry.io/insights/');
+    expect(result).not.toContain('Route:');
+    expect(result).not.toContain('Route params:');
+    expect(result).not.toContain('Query params:');
+  });
+});

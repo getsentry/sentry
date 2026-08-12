@@ -13,6 +13,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationDetailPage from './conversationDetail';
+import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -75,9 +76,9 @@ function renderPage(features: string[] = []) {
     {
       organization: OrganizationFixture({features}),
       initialRouterConfig: {
-        route: '/organizations/:orgId/explore/conversations/:conversationId/',
+        route: '/organizations/:orgId/explore/agents/conversations/:conversationId/',
         location: {
-          pathname: `/organizations/org-slug/explore/conversations/${CONVERSATION_ID}/`,
+          pathname: `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`,
         },
       },
     }
@@ -150,7 +151,7 @@ describe('ConversationDetailPage breadcrumbs', () => {
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {name: 'Conversations'})
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.

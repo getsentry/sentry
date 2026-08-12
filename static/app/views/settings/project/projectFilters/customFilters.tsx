@@ -501,13 +501,19 @@ export function CustomFilters({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasWriteAccess = hasEveryAccess(['project:write'], {
+    organization,
+    project,
+  });
   const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
     {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+      },
       staleTime: 0,
     }
   );
@@ -515,7 +521,12 @@ export function CustomFilters({project}: {project: Project}) {
 
   const listUrl = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
-    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+      },
+    }
   );
   const detailUrl = (filterId: string) =>
     getApiUrl(
@@ -538,7 +549,10 @@ export function CustomFilters({project}: {project: Project}) {
       fetchMutation<CustomInboundFilter>({
         method: 'POST',
         url: listUrl,
-        data: {name: values.name.trim(), conditions: formValuesToConditions(values)},
+        data: {
+          name: values.name.trim(),
+          conditions: formValuesToConditions(values),
+        },
       }),
     onSuccess: () => {
       addSuccessMessage(t('Filter created'));
@@ -588,7 +602,10 @@ export function CustomFilters({project}: {project: Project}) {
   const handleEdit = (id: string, values: FilterFormValues) =>
     updateMutation.mutateAsync({
       id,
-      data: {name: values.name.trim(), conditions: formValuesToConditions(values)},
+      data: {
+        name: values.name.trim(),
+        conditions: formValuesToConditions(values),
+      },
     });
 
   const handleToggleActive = (filter: CustomInboundFilter) =>
@@ -696,11 +713,11 @@ export function CustomFilters({project}: {project: Project}) {
                   )}
                 </Stack>
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <TimeSince date={filter.dateCreated} />
+              <SimpleTable.RowCell whiteSpace="nowrap">
+                <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <TimeSince date={filter.dateUpdated} />
+              <SimpleTable.RowCell whiteSpace="nowrap">
+                <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
                 <Flex gap="sm">
@@ -748,7 +765,6 @@ export function CustomFilters({project}: {project: Project}) {
 }
 
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns:
-    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
-    max-content;
+  grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 100px 100px 110px;
+  overflow-x: auto;
 `;

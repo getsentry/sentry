@@ -24,7 +24,8 @@ class TestCreateOrganizationWorkflows(TestCase):
         ).exists()
 
     @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    def test_creates_workflow(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_creates_workflow(self, mock_is_self_hosted: mock.MagicMock) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
@@ -32,7 +33,8 @@ class TestCreateOrganizationWorkflows(TestCase):
         assert workflow.enabled
 
     @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    def test_connects_workflow_to_detector(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_connects_workflow_to_detector(self, mock_is_self_hosted: mock.MagicMock) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
@@ -40,7 +42,8 @@ class TestCreateOrganizationWorkflows(TestCase):
         assert DetectorWorkflow.objects.filter(workflow=workflow).exists()
 
     @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    def test_no_duplicates_ever(self) -> None:
+    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
+    def test_no_duplicates_ever(self, mock_is_self_hosted: mock.MagicMock) -> None:
         # Multiple signal emissions
         self.send_signal()
         self.send_signal()

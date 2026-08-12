@@ -6,18 +6,16 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  CONVERSATIONS_LANDING_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -27,7 +25,6 @@ const COPY_ID_LABEL = t('Copy conversation ID');
 
 interface ConversationsBreadcrumbsProps {
   conversationId: string;
-  project?: AvatarProject;
 }
 
 /** UUIDs are shown truncated, so the full value needs a tooltip to stay readable. */
@@ -35,27 +32,14 @@ function getDisplayId(conversationId: string) {
   return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 }
 
-function ConversationProjectBadge({project}: {project: AvatarProject}) {
-  return (
-    <ProjectBadge
-      project={project}
-      avatarSize={16}
-      disableLink
-      hideName
-      avatarProps={{hasTooltip: true, tooltip: project.slug}}
-    />
-  );
-}
-
 export function ConversationsBreadcrumbs({
   conversationId,
-  project,
 }: ConversationsBreadcrumbsProps) {
   const organization = useOrganization();
   const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
 
   // Carry project/environment filters back to the landing page, then force the
@@ -87,11 +71,8 @@ export function ConversationsBreadcrumbs({
           <BreadcrumbList.Title
             item={{
               type: 'page-title',
-              label: getDisplayId(conversationId),
+              label: t('Conversation %s', getDisplayId(conversationId)),
               labelTooltip: isUUID(conversationId) ? conversationId : undefined,
-              leadingGraphic: project ? (
-                <ConversationProjectBadge project={project} />
-              ) : undefined,
               trailingActions: {
                 type: 'copy',
                 text: conversationId,
@@ -131,7 +112,6 @@ export function ConversationsBreadcrumbs({
             label: (
               <ConversationCrumb
                 conversationId={conversationId}
-                project={project}
                 organization={organization}
               />
             ),
@@ -144,22 +124,19 @@ export function ConversationsBreadcrumbs({
 
 function ConversationCrumb({
   conversationId,
-  project,
   organization,
 }: {
   conversationId: string;
   organization: Organization;
-  project?: AvatarProject;
 }) {
   return (
     <RevealOnHover minWidth={0}>
-      {project && <ConversationProjectBadge project={project} />}
       <InfoText
         title={conversationId}
         mode={isUUID(conversationId) ? undefined : 'overflowOnly'}
         variant="inherit"
       >
-        {getDisplayId(conversationId)}
+        {t('Conversation %s', getDisplayId(conversationId))}
       </InfoText>
       <RevealOnHover.Action>
         <CopyToClipboardButton

@@ -163,7 +163,6 @@ export default Storybook.story('Form', story => {
       </Form>
     );
 
-    // TODO: Missing SelectAsyncField
     // TODO: Missing TableField
     // TODO: Missing ProjectMapperField
   });
