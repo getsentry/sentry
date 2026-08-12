@@ -1791,8 +1791,6 @@ class TestWebhookRequests(TestCase):
     ) -> None:
         with override_options(
             {
-                "sentry-apps.webhook.timeout.sec": 1.0,
-                "sentry-apps.webhook.hard-timeout.sec": 5.0,
                 "sentry-apps.override.organization_ids.webhook.timeouts.sec": {
                     str(self.install.organization_id): {
                         "webhook_timeout_override": 9.0,
@@ -1811,7 +1809,6 @@ class TestWebhookRequests(TestCase):
         warning.assert_called_once_with(
             "sentry_app.webhook.invalid_timeout_overrides",
             extra={
-                "app_slug": self.sentry_app.slug,
                 "organization_id": self.install.organization_id,
                 "webhook_timeout_override": 9.0,
                 "hard_timeout_override": 8.0,
