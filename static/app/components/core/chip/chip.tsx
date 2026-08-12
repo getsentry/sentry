@@ -137,7 +137,6 @@ const DismissButton = styled(Button)<{chipSize: ChipSize}>`
   height: auto;
   min-height: 0;
   padding: 0 ${p => p.theme.space.xs};
-  border: 0;
   border-radius: 0;
   color: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.content.secondary};
 
