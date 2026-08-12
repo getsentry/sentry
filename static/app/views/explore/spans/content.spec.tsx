@@ -10,9 +10,20 @@ import type {Organization} from 'sentry/types/organization';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ExploreContent} from './content';
+
+const validValidationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
+};
 
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
@@ -71,6 +82,11 @@ describe('ExploreContent', () => {
       url: `/organizations/${organizationSlug}/events/`,
       method: 'GET',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organizationSlug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/events-timeseries/`,

@@ -63,6 +63,33 @@ const invalidAttributeValidationBody: EventValidationData = {
   valid: false,
 };
 
+const validValidationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
+};
+
+const invalidQueryValidationBody: EventValidationData = {
+  ...validValidationBody,
+  query: {
+    error: 'unknown attribute',
+    fields: [
+      {
+        attrType: null,
+        error: 'unknown attribute',
+        name: 'missing.key',
+        valid: false,
+      },
+    ],
+    valid: false,
+  },
+  valid: false,
+};
+
 describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg({
     organization: {
@@ -115,6 +142,11 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
       body: {
@@ -148,6 +180,157 @@ describe('SpansTabContent', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+  });
+
+  it('waits for validation before running spans queries', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+      asyncDelay: 100_000,
+    });
+    const eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {},
+    });
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: []},
+    });
+    const tracesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/traces/`,
+      method: 'GET',
+      body: {},
+    });
+    const attributeBreakdownsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/stats/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(validateMock).toHaveBeenCalled());
+    expect(eventsMock).not.toHaveBeenCalled();
+    expect(eventsTimeseriesMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Trace Samples'}));
+    expect(tracesMock).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: /Attribute Breakdowns/}));
+    expect(attributeBreakdownsMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves previous results while validating and clears them when invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+      match: [MockApiClient.matchQuery({query: 'span.op:http'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            id: 'old-span-id',
+            'span.name': 'old span',
+            timestamp: '2026-08-10T12:00:00Z',
+          },
+        ],
+        meta: {fields: {id: 'string', 'span.name': 'string', timestamp: 'date'}},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          query: 'span.op:http',
+          referrer: 'api.explore.spans-samples-table',
+        }),
+      ],
+    });
+    const delayedValidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+      asyncDelay: 100_000,
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    const unvalidatedEventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}}},
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    const invalidValidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: invalidQueryValidationBody,
+      statusCode: 400,
+      match: [MockApiClient.matchQuery({query: 'missing.key:foo'})],
+    });
+
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {query: 'span.op:http'},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('old span')).toBeInTheDocument();
+
+    router.navigate('/organizations/org-slug/explore/traces/?query=span.op%3Adb');
+    await waitFor(() => expect(delayedValidationMock).toHaveBeenCalled());
+    expect(screen.getByText('old span')).toBeInTheDocument();
+    expect(unvalidatedEventsMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+
+    router.navigate('/organizations/org-slug/explore/traces/?query=missing.key%3Afoo');
+    await waitFor(() => expect(invalidValidationMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('old span')).not.toBeInTheDocument());
+    expect(screen.getByText('No spans found')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Collapse chart'})).toBeInTheDocument();
+    expect(unvalidatedEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('shows unexpected validation failures without running spans queries', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {detail: 'Validation unavailable'},
+      statusCode: 500,
+    });
+    const eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {},
+    });
+    const eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: []},
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    expect(await screen.findByText('Validation unavailable')).toBeInTheDocument();
+    expect(eventsMock).not.toHaveBeenCalled();
+    expect(eventsTimeseriesMock).not.toHaveBeenCalled();
   });
 
   it('should fire analytics once per change', async () => {
