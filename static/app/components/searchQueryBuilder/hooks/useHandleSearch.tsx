@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
-import {useAsyncDebouncedCallback} from '@tanstack/react-pacer';
+import {useAsyncDebouncedCallback} from '@tanstack/react-pacer/async-debouncer';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
