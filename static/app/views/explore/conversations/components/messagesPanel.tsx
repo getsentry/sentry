@@ -230,13 +230,21 @@ const AssistantTurn = memo(function AssistantTurnImpl({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="compact">
-          <ReasoningSection reasoning={message.reasoning} />
+          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+           * the turn's cost/duration in the thinking row's own meta column. */}
+          <ReasoningSection
+            reasoning={message.reasoning}
+            meta={message.content === '' && hasMeta ? meta : undefined}
+          />
         </MessageRow>
       )}
       {message.content === '' ? (
-        // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
-        // and duration, right-aligned to the meta column like other assistant turns.
-        hasMeta && (
+        // Tool-only turn (no reasoning row to carry it): no bubble, but still
+        // surface the turn's cost and duration, right-aligned to the meta column
+        // like other assistant turns. A reasoning row, when present, shows the
+        // meta itself, so skip this fallback then.
+        hasMeta &&
+        !message.reasoning && (
           <MessageRow from="assistant" density="compact">
             <Flex justify="end" width="100%">
               {meta}
@@ -353,11 +361,18 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   );
 });
 
-function ReasoningSection({reasoning}: {reasoning: string}) {
+function ReasoningSection({
+  reasoning,
+  meta,
+}: {
+  reasoning: string;
+  meta?: React.ReactNode;
+}) {
   const organization = useOrganization();
 
   return (
     <CollapsibleChatRow
+      meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
           {t('Thinking...')} {isOpen ? null : reasoning}

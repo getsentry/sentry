@@ -12,12 +12,17 @@ from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.tasks.backfill_group_action_log import (
+    GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+    _reset_project,
+    backfill_group_action_log_for_all_projects,
     backfill_group_action_log_for_group,
     backfill_group_action_log_for_project,
     reset_and_backfill_group_action_log,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 TEST_BATCH_SIZE = 5
@@ -482,6 +487,64 @@ class BackfillGroupActionLogForProjectTest(TestCase):
 
         mock_derived.assert_called_once_with(project_id=self.project.id)
 
+    def test_sets_completion_option_on_empty_batch(self) -> None:
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+
+        with (
+            self._options(batch_size=10),
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_project(self.project.id)
+
+        self.project.refresh_from_db()
+        assert self.project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+
+    def test_sets_completion_option_on_final_partial_batch(self) -> None:
+        for _ in range(3):
+            self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+
+        with (
+            self._options(batch_size=5),
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_project(self.project.id)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 3
+        self.project.refresh_from_db()
+        assert self.project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+
+    def test_does_not_set_completion_option_mid_chain(self) -> None:
+        for _ in range(3):
+            self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
+
+        with (
+            self._options(batch_size=2),
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_project(self.project.id)
+
+        self.project.refresh_from_db()
+        assert self.project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+
+    def test_reset_marks_completion_option_incomplete(self) -> None:
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+
+        _reset_project(self.project)
+
+        self.project.refresh_from_db()
+        assert self.project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+
+    def test_missing_completion_option_is_not_created(self) -> None:
+        with self._options():
+            backfill_group_action_log_for_project(self.project.id)
+
+        assert not ProjectOption.objects.filter(
+            project=self.project, key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+        ).exists()
+
     def test_chains_pr_lifecycle_instead_of_derived_data_on_completion(self) -> None:
         with (
             self._options(),
@@ -522,3 +585,156 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
         mock_pr_lifecycle.assert_called_once_with(project_id=self.project.id)
         mock_derived.assert_not_called()
+
+
+class BackfillGroupActionLogForAllProjectsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(
+            override_options(
+                {
+                    "issues.backfill_group_action_log.coordinator_killswitch": False,
+                    "issues.backfill_group_action_log.coordinator_batch_size": 50,
+                    "issues.backfill_group_action_log.coordinator_inter_batch_delay_s": 0,
+                }
+            )
+        )
+
+    def _set_backfill_complete(self, project: Any, value: bool) -> ProjectOption:
+        project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, value)
+        return ProjectOption.objects.get(
+            project=project, key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+        )
+
+    def test_dispatches_only_explicitly_incomplete_project_options(self) -> None:
+        incomplete_project = self.create_project(organization=self.organization)
+        complete_project = self.create_project(organization=self.organization)
+        project_without_option = self.create_project(organization=self.organization)
+        self._set_backfill_complete(incomplete_project, False)
+        self._set_backfill_complete(complete_project, True)
+
+        with (
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_apply.assert_called_once_with(
+            kwargs={
+                "project_id": incomplete_project.id,
+                "reset": False,
+                "chain_pr_lifecycle": True,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+        assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
+
+    def test_skips_inactive_projects(self) -> None:
+        active_project = self.create_project(organization=self.organization)
+        inactive_project = self.create_project(organization=self.organization)
+        inactive_project.update(status=1)
+        self._set_backfill_complete(active_project, False)
+        self._set_backfill_complete(inactive_project, False)
+
+        with (
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert active_project.id in dispatched_project_ids
+        assert inactive_project.id not in dispatched_project_ids
+
+    def test_self_chains_when_more_projects_remain(self) -> None:
+        for _ in range(3):
+            project = self.create_project(organization=self.organization)
+            self._set_backfill_complete(project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_coordinator_apply.assert_called_once()
+
+    def test_does_not_self_chain_when_all_dispatched(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_coordinator_apply.assert_not_called()
+
+    def test_project_option_cursor_resumes_from_last_position(self) -> None:
+        p1 = self.create_project(organization=self.organization)
+        p2 = self.create_project(organization=self.organization)
+        option1 = self._set_backfill_complete(p1, False)
+        self._set_backfill_complete(p2, False)
+
+        with (
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects(last_project_option_id=option1.id)
+
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert p1.id not in dispatched_project_ids
+        assert p2.id in dispatched_project_ids
+
+    def test_passes_project_reset_flag_to_per_project_tasks(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects(project_reset=True)
+
+        for call in mock_apply.call_args_list:
+            assert call.kwargs["kwargs"]["reset"] is True
+
+    def test_self_chain_preserves_project_reset_flag(self) -> None:
+        for _ in range(3):
+            project = self.create_project(organization=self.organization)
+            self._set_backfill_complete(project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects(project_reset=True)
+
+        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["project_reset"] is True
+
+        assert "last_project_option_id" in mock_coordinator_apply.call_args.kwargs["kwargs"]
+
+    def test_invalid_batch_size_aborts(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 0}),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_apply.assert_not_called()

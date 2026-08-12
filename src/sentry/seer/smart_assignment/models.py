@@ -30,14 +30,26 @@ SEER_FEATURE_ID = "smart_assignment"
 # who should have owned it.
 # SET_RESOLVED_BY_AGE is excluded (auto-resolve cron, no acting user, so no signal).
 # SET_RESOLVED_IN_PULL_REQUEST is excluded (it will trigger ASSIGNED in practice, which we already capture).
-# Other ground-truth activities include ASSIGNED and SEER_*_STARTED,
-# configured in workflow_activity_handlers.py
 RESOLUTION_ACTIVITIES = frozenset(
     {
         ActivityType.SET_RESOLVED,
         ActivityType.SET_RESOLVED_IN_RELEASE,
         ActivityType.SET_RESOLVED_IN_COMMIT,
     }
+)
+
+# Seer workflow steps that need an assignee for notification. Never sampled.
+SEER_START_ACTIVITIES = frozenset(
+    {
+        ActivityType.SEER_RCA_STARTED,
+        ActivityType.SEER_SOLUTION_STARTED,
+        ActivityType.SEER_CODING_STARTED,
+    }
+)
+
+# Every activity the smart assignment feature reacts to.
+SMART_ASSIGNMENT_ACTIVITIES = (
+    RESOLUTION_ACTIVITIES | SEER_START_ACTIVITIES | frozenset({ActivityType.ASSIGNED})
 )
 
 # We invalidate scoring against "ground truth" assignments from these sources, because they're

@@ -49,6 +49,7 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     SeerApiError,
@@ -388,6 +389,8 @@ class SeerAgentClient:
         prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -435,6 +438,8 @@ class SeerAgentClient:
             insert_index=None,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
@@ -669,6 +674,8 @@ class SeerAgentClient:
         insert_index: int | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
@@ -718,6 +725,8 @@ class SeerAgentClient:
             insert_index=insert_index,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
@@ -955,6 +964,7 @@ class SeerAgentClient:
         verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
+        author: SeerCommitAuthor | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -967,6 +977,7 @@ class SeerAgentClient:
             repo_name: Specific repo to push, or None for all repos with changes
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
+            author: Git commit author; None lets Seer pick one
 
         Returns:
             SeerRunState: Final state with PR info
@@ -995,6 +1006,8 @@ class SeerAgentClient:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
             payload["pr_description_suffix"] = pr_description_suffix
+        if author:
+            payload["author"] = author
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = AgentUpdateRequest(
