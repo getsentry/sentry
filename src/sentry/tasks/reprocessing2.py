@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import TYPE_CHECKING
 
@@ -5,6 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import eventstream, nodestore
 from sentry.issues.action_log import (
@@ -23,10 +25,16 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.taskworker.namespaces import issues_reprocessing_tasks, issues_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 from sentry.utils.tracing import start_span
+
+logger = logging.getLogger(__name__)
+
+
+REPROCRESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
 
 
 @instrumented_task(
@@ -46,11 +54,6 @@ def reprocess_group(
     max_events: int | None = None,
     acting_user_id: int | None = None,
 ) -> None:
-    sentry_sdk.set_tag("project", project_id)
-    sentry_sdk.set_attribute("project", project_id)
-    sentry_sdk.set_tag("group_id", group_id)
-    sentry_sdk.set_attribute("group_id", group_id)
-
     from sentry.reprocessing2 import (
         CannotReprocess,
         buffered_handle_remaining_events,
@@ -59,8 +62,18 @@ def reprocess_group(
         start_group_reprocessing,
     )
 
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
+    sentry_sdk.set_tag("group_id", group_id)
+    sentry_sdk.set_attribute("group_id", group_id)
     sentry_sdk.set_tag("is_start", "false")
     sentry_sdk.set_attribute("is_start", "false")
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(REPROCRESS_GROUP_TASK_NAME, activation_id):
+        logger.info("reprocessing.reprocess_group.already_spawned")
+        return
 
     # Only executed once during reprocessing
     if start_time is None:
@@ -154,6 +167,8 @@ def reprocess_group(
         max_events=max_events,
         remaining_events=remaining_events,
     )
+    if activation_id:
+        mark_spawned(REPROCRESS_GROUP_TASK_NAME, activation_id)
 
 
 @instrumented_task(
