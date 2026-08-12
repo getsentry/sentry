@@ -49,93 +49,32 @@ interface AutofixActionProps {
 }
 
 interface AutofixActionButtonProps {
-  analyticsAction: string;
   analyticsEventKey: string;
   analyticsEventName: string;
-  children: ReactNode;
   group: Group;
-  onClick: () => void | Promise<void>;
+  analyticsAction?: string;
   analyticsParams?: ButtonProps['analyticsParams'];
-  busy?: boolean;
-  disabled?: boolean;
-  icon?: ReactNode;
-  tooltip?: string | null;
 }
 
-function AutofixActionButton({
+function getAutofixActionProps({
   analyticsEventKey,
   analyticsEventName,
   analyticsAction,
   analyticsParams,
-  busy,
-  children,
-  disabled,
   group,
-  icon,
-  onClick,
-  tooltip,
 }: AutofixActionButtonProps) {
-  return (
-    <Button
-      variant="primary"
-      size="sm"
-      icon={icon}
-      busy={busy}
-      disabled={disabled || busy}
-      onClick={onClick}
-      tooltipProps={tooltip ? {title: tooltip} : undefined}
-      analyticsEventKey={analyticsEventKey}
-      analyticsEventName={analyticsEventName}
-      analyticsParams={{
-        action: analyticsAction,
-        group_id: group.id,
-        progress: group.derivedData?.progress,
-        ...analyticsParams,
-      }}
-    >
-      {children}
-    </Button>
-  );
-}
-
-function LinkAction({
-  analyticsEventKey,
-  analyticsEventName,
-  analyticsParams,
-  children,
-  disabled,
-  group,
-  href,
-  icon = <IconOpen />,
-}: {
-  analyticsEventKey: string;
-  analyticsEventName: string;
-  children: ReactNode;
-  group: Group;
-  href: string;
-  analyticsParams?: ButtonProps['analyticsParams'];
-  disabled?: boolean;
-  icon?: ReactNode;
-}) {
-  return (
-    <LinkButton
-      external
-      variant="primary"
-      size="sm"
-      icon={icon}
-      href={href}
-      disabled={disabled}
-      analyticsEventKey={analyticsEventKey}
-      analyticsEventName={analyticsEventName}
-      analyticsParams={{
-        group_id: group.id,
-        progress: group.derivedData?.progress,
-        ...analyticsParams,
-      }}
-    >
-      {children}
-    </LinkButton>
-  );
+  return {
+    variant: 'primary',
+    size: 'sm',
+    analyticsEventKey,
+    analyticsEventName,
+    analyticsParams: {
+      ...(analyticsAction ? {action: analyticsAction} : {}),
+      group_id: group.id,
+      progress: group.derivedData?.progress,
+      ...analyticsParams,
+    },
+  } as const;
 }
 
 function StartAutofixAction({
@@ -209,20 +148,22 @@ function StartAutofixAction({
   });
 
   const primaryButton = (
-    <AutofixActionButton
-      analyticsAction={analyticsAction}
-      analyticsEventKey={analyticsEventKey}
-      analyticsEventName={analyticsEventName}
-      analyticsParams={analyticsParams}
+    <Button
+      {...getAutofixActionProps({
+        analyticsAction,
+        analyticsEventKey,
+        analyticsEventName,
+        analyticsParams,
+        group,
+      })}
       icon={icon}
       busy={busy}
-      disabled={disabled}
-      group={group}
+      disabled={disabled || busy}
       onClick={handleClick}
-      tooltip={tooltip}
+      tooltipProps={tooltip ? {title: tooltip} : undefined}
     >
       {label}
-    </AutofixActionButton>
+    </Button>
   );
 
   if (!codingAgentStep || codingAgentIntegrations === undefined) {
@@ -286,23 +227,26 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
   // The run is paused waiting on the user, so continue in the full Seer drawer.
   if (runState.status === 'awaiting_user_input') {
     return (
-      <AutofixActionButton
-        analyticsAction="view_autofix"
-        analyticsEventKey="issue_inbox.seer_cta_clicked"
-        analyticsEventName="Issue Inbox: Continue in Seer Clicked"
-        analyticsParams={{
-          destination: 'seer',
-          input_type: runState.pending_user_input?.input_type,
-        }}
-        disabled={disabled}
-        group={group}
+      <Button
+        {...getAutofixActionProps({
+          analyticsAction: 'view_autofix',
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
+          analyticsParams: {
+            destination: 'seer',
+            input_type: runState.pending_user_input?.input_type,
+          },
+          group,
+        })}
+        busy={autofix.isPolling}
+        disabled={disabled || autofix.isPolling}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
       >
         {runState.pending_user_input?.input_type === 'file_change_approval'
           ? t('Review Changes')
           : t('Continue in Seer')}
-      </AutofixActionButton>
+      </Button>
     );
   }
 
@@ -316,17 +260,20 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
   // Show the view pull request button
   if (completedPullRequestLink) {
     return (
-      <LinkAction
-        analyticsEventKey="issue_inbox.seer_cta_clicked"
-        analyticsEventName="Issue Inbox: Seer CTA Clicked"
-        analyticsParams={{destination: 'pull_request'}}
+      <LinkButton
+        {...getAutofixActionProps({
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+          analyticsParams: {destination: 'pull_request'},
+          group,
+        })}
+        external
         disabled={disabled}
-        group={group}
         href={completedPullRequestLink.url}
         icon={<IconGithub data-test-id="pull-request-github" />}
       >
         {completedPullRequestLink.label}
-      </LinkAction>
+      </LinkButton>
     );
   }
 
@@ -360,36 +307,47 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
 
   if (resultLink) {
     return (
-      <LinkAction
-        analyticsEventKey="issue_inbox.seer_cta_clicked"
-        analyticsEventName="Issue Inbox: Seer CTA Clicked"
-        analyticsParams={{
-          destination: 'coding_agent_result',
-          provider: codingAgentWithResult?.provider,
-          repo_provider: codingAgentResult?.repo_provider,
-        }}
+      <LinkButton
+        {...getAutofixActionProps({
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+          analyticsParams: {
+            destination: 'coding_agent_result',
+            provider: codingAgentWithResult?.provider,
+            repo_provider: codingAgentResult?.repo_provider,
+          },
+          group,
+        })}
+        external
         disabled={disabled}
-        group={group}
         href={resultLink.url}
+        icon={<IconOpen />}
       >
         {resultLink.label}
-      </LinkAction>
+      </LinkButton>
     );
   }
 
   const codingAgent = codingAgents.find(agent => agent.agent_url);
   if (codingAgent?.agent_url) {
     return (
-      <LinkAction
-        analyticsEventKey="issue_inbox.seer_cta_clicked"
-        analyticsEventName="Issue Inbox: Open in Coding Agent Clicked"
-        analyticsParams={{destination: 'coding_agent', provider: codingAgent.provider}}
+      <LinkButton
+        {...getAutofixActionProps({
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Open in Coding Agent Clicked',
+          analyticsParams: {
+            destination: 'coding_agent',
+            provider: codingAgent.provider,
+          },
+          group,
+        })}
+        external
         disabled={disabled}
-        group={group}
         href={codingAgent.agent_url}
+        icon={<IconOpen />}
       >
         {t('Open in %s', getCodingAgentName(codingAgent.provider))}
-      </LinkAction>
+      </LinkButton>
     );
   }
 
@@ -443,18 +401,21 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
       );
     case 'pr_iteration':
       return (
-        <AutofixActionButton
-          analyticsAction="view_autofix"
-          analyticsEventKey="issue_inbox.seer_cta_clicked"
-          analyticsEventName="Issue Inbox: Continue in Seer Clicked"
-          analyticsParams={{destination: 'seer', next_step: 'pr_iteration'}}
-          disabled={disabled}
-          group={group}
+        <Button
+          {...getAutofixActionProps({
+            analyticsAction: 'view_autofix',
+            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+            analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
+            analyticsParams: {destination: 'seer', next_step: 'pr_iteration'},
+            group,
+          })}
+          busy={autofix.isPolling}
+          disabled={disabled || autofix.isPolling}
           icon={<IconSeer />}
           onClick={onContinueInSeer}
         >
           {t('Continue in Seer')}
-        </AutofixActionButton>
+        </Button>
       );
     default:
       return null;
