@@ -424,7 +424,7 @@ describe('useConversation', () => {
     expect(value?.name).toBe('My AI Agent');
   });
 
-  it('sorts nodes by start timestamp for AI spans list', async () => {
+  it('sorts sibling nodes by start timestamp', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-sort/`,
       body: envelope([
@@ -470,6 +470,91 @@ describe('useConversation', () => {
     // Sorted by start timestamp: span-a (1000) before span-b (1001)
     expect(result.current.nodes[0]?.id).toBe('span-a');
     expect(result.current.nodes[1]?.id).toBe('span-b');
+  });
+
+  it('keeps each agent next to the spans it produced', async () => {
+    const span = (
+      spanId: string,
+      parentSpan: string,
+      operationType: string,
+      startTs: number
+    ) => ({
+      ...BASE_SPAN,
+      'gen_ai.conversation.id': 'conv-nesting',
+      span_id: spanId,
+      parent_span: parentSpan,
+      'gen_ai.operation.type': operationType,
+      'precise.start_ts': startTs,
+      'precise.finish_ts': startTs + 1,
+      trace: 'trace-nesting',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-nesting/`,
+      body: envelope([
+        span('lead', 'outside-the-conversation', 'agent', 1000),
+        span('read-diff', 'lead', 'tool', 1001),
+        // The two subagents run in parallel, so start time alone interleaves them.
+        span('correctness-reviewer', 'lead', 'agent', 1002),
+        span('style-reviewer', 'lead', 'agent', 1002.001),
+        span('correctness-chat', 'correctness-reviewer', 'ai_client', 1003),
+        span('style-chat', 'style-reviewer', 'ai_client', 1003.5),
+        span('search-issues', 'lead', 'tool', 1004),
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-nesting'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes.map(node => node.id)).toEqual([
+      'lead',
+      'read-diff',
+      'correctness-reviewer',
+      'correctness-chat',
+      'style-reviewer',
+      'style-chat',
+      'search-issues',
+    ]);
+  });
+
+  it('keeps spans whose parent links form a cycle', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-cycle/`,
+      body: envelope([
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-cycle',
+          span_id: 'span-a',
+          parent_span: 'span-b',
+        },
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-cycle',
+          span_id: 'span-b',
+          parent_span: 'span-a',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-cycle'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes.map(node => node.id).sort()).toEqual([
+      'span-a',
+      'span-b',
+    ]);
   });
 
   it('uses project from page filters, not hardcoded -1', async () => {
