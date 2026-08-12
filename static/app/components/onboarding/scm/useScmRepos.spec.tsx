@@ -1,7 +1,13 @@
+import {focusManager} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useScmRepos} from './useScmRepos';
 
@@ -10,6 +16,9 @@ describe('useScmRepos', () => {
   const integrationId = '1';
 
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
   });
 
@@ -28,6 +37,34 @@ describe('useScmRepos', () => {
     renderHook();
 
     await waitFor(() => expect(request).toHaveBeenCalled());
+  });
+
+  it('refetches repos when the window regains focus', async () => {
+    focusManager.setFocused(false);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
+      body: {
+        repos: [{identifier: 'getsentry/sentry', name: 'sentry', isInstalled: false}],
+      },
+    });
+
+    const {result} = renderHook();
+    await waitFor(() => expect(result.current.dropdownItems).toHaveLength(1));
+
+    MockApiClient.clearMockResponses();
+    const refetchRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/repos/`,
+      body: {
+        repos: [
+          {identifier: 'getsentry/sentry', name: 'sentry', isInstalled: false},
+          {identifier: 'getsentry/new-repo', name: 'new-repo', isInstalled: false},
+        ],
+      },
+    });
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.dropdownItems).toHaveLength(2));
   });
 
   it('transforms API response into reposByIdentifier and dropdownItems', async () => {

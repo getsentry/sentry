@@ -1,9 +1,15 @@
+import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useScmProviders} from './useScmProviders';
 
@@ -11,6 +17,9 @@ describe('useScmProviders', () => {
   const organization = OrganizationFixture();
 
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
   });
 
@@ -351,5 +360,34 @@ describe('useScmProviders', () => {
         }),
       })
     );
+  });
+
+  it('refetches providers and integrations when the window regains focus', async () => {
+    focusManager.setFocused(false);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() => useScmProviders(), {organization});
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    MockApiClient.clearMockResponses();
+    const providersRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
+    const integrationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(providersRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(integrationsRequest).toHaveBeenCalledTimes(1));
   });
 });
