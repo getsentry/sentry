@@ -399,8 +399,10 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Writing ${path} from ${repo}` : `Wrote ${path} from ${repo}`;
   },
 
-  bash: args => {
-    return args.description[0] + args.description.slice(1);
+  bash: (args, isLoading) => {
+    const description =
+      args.description || (isLoading ? 'Using bash tool' : 'Used bash tool');
+    return description[0] + description.slice(1);
   },
 };
 
