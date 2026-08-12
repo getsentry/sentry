@@ -218,6 +218,76 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
+/**
+ * Orders the conversation's spans so that an agent is always followed by its own
+ * descendants, the way the trace drawer reads them off the trace tree. Sorting by
+ * start time alone interleaves agents that run in parallel, which separates each
+ * agent from the spans it produced.
+ *
+ * Spans whose parent is not part of the conversation become roots. Roots and
+ * siblings are ordered by start time, so reading order stays chronological at
+ * every level.
+ */
+function orderDepthFirst(
+  nodes: AITraceSpanNode[],
+  nodeMap: Map<string, AITraceSpanNode>
+): AITraceSpanNode[] {
+  const byStartTimestamp = (a: AITraceSpanNode, b: AITraceSpanNode) =>
+    (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0);
+
+  const roots: AITraceSpanNode[] = [];
+  const childrenByParentId = new Map<string, AITraceSpanNode[]>();
+
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    const parent = parentId ? nodeMap.get(parentId) : undefined;
+    if (!parentId || !parent || parent === node) {
+      roots.push(node);
+      continue;
+    }
+    const siblings = childrenByParentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByParentId.set(parentId, [node]);
+    }
+  }
+
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort(byStartTimestamp);
+  }
+
+  const ordered: AITraceSpanNode[] = [];
+  const visited = new Set<string>();
+  const stack = roots.toSorted(byStartTimestamp).reverse();
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (visited.has(node.id)) {
+      continue;
+    }
+    visited.add(node.id);
+    ordered.push(node);
+
+    const children = childrenByParentId.get(node.id);
+    if (children) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]!);
+      }
+    }
+  }
+
+  // A cycle in the parent links leaves spans unreachable from any root. Keep them
+  // rather than dropping rows from the timeline.
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      ordered.push(node);
+    }
+  }
+
+  return ordered;
+}
+
 const MAX_PAGES = 10;
 
 export function useConversation(
@@ -310,9 +380,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
-
-    return {nodes: transformedNodes, nodeTraceMap: traceMap};
+    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
   }, [allSpans]);
 
   if (!conversation.conversationId) {
