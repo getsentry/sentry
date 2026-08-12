@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -13,6 +15,10 @@ from sentry.testutils.cases import SnubaTestCase, TestMigrations
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 
 
+@pytest.mark.skip(
+    reason="Test fixtures build rows with the current model, which fails once a model "
+    "gains a field newer than migrate_from's schema"
+)
 class MigrateTransactionsToSpansAlertsSelfHostedTest(TestMigrations, SnubaTestCase):
     migrate_from = "1124_weeklyreportprojectexclusion"
     migrate_to = "1125_transactions_to_spans_alerts_self_hosted"

@@ -3,6 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
@@ -174,6 +175,66 @@ describe('TransactionsList', () => {
 
       const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
+    });
+
+    it('links "Open in Explore" to Explore > Traces when Discover is deprecated', async () => {
+      initialize({
+        organization: {
+          features: [
+            'discover-basic',
+            'deprecate-discover',
+            'discover-saved-queries-deprecation',
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          meta: {fields: {transaction: 'string', 'failure_count()': 'number'}},
+          data: [{transaction: '/a', 'failure_count()': 1}],
+        },
+      });
+      const spansEventView = EventView.fromSavedQuery({
+        id: '',
+        name: 'test query',
+        version: 2,
+        fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+        query: 'is_transaction:true release:"1.0" failure_count():>0',
+        orderby: '-failure_count',
+        projects: [Number(project.id)],
+        dataset: DiscoverDatasets.SPANS,
+      });
+
+      render(
+        <WrapperComponent
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={spansEventView}
+          selected={{sort: {kind: 'desc', field: 'failure_count'}, value: 'count'}}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />
+      );
+
+      expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+
+      const link = screen.getByRole('button', {name: 'Open in Explore'});
+      const href = link.getAttribute('href')!;
+      expect(href).toContain('/organizations/org-slug/explore/traces/');
+      expect(href).toContain('mode=aggregate');
+
+      const query = new URLSearchParams(href.split('?')[1]);
+      expect(query.get('groupBy')).toBe('transaction');
+      // Aggregate HAVING conditions are dropped; row-level filters are kept.
+      expect(query.get('query')).toBe('is_transaction:true release:1.0');
+      // Columns stay in the list's field order; `p50()` gains its required
+      // column argument for the spans dataset.
+      expect(query.getAll('visualize')).toEqual([
+        JSON.stringify({yAxes: ['failure_count()', 'epm()', 'p50(span.duration)']}),
+      ]);
+      // The list's sort is preserved via the aggregate sort param.
+      expect(query.get('aggregateSort')).toBe('-failure_count()');
     });
 
     it('renders a trend view', async () => {

@@ -37,7 +37,7 @@ function makeStackTraceData(): {
           ...frame,
           inApp: index >= 2,
         })) ?? [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 

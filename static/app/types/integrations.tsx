@@ -156,9 +156,16 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
+export type PullRequestAttributionAgent =
+  | 'cursor'
+  | 'github_copilot'
+  | 'claude_code'
+  | 'unknown';
+
 type SeerAttribution = {
   id: 'seer';
   type: 'seer';
+  agent?: PullRequestAttributionAgent | null;
 };
 
 export type PullRequestAttribution = SeerAttribution;
@@ -334,12 +341,20 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
-  errorUrl?: string;
+  error_id?: string | null;
   organization?: {
-    id: string;
+    id: number;
     name: string;
     slug: string;
   };
+  project_id?: number | null;
+  request_body?: string | null;
+  /**
+   * Values of custom headers are masked before they reach the buffer, so only
+   * the header names are meaningful for those.
+   */
+  request_headers?: Record<string, string> | null;
+  response_body?: string | null;
 };
 
 /**

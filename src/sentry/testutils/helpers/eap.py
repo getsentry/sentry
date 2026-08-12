@@ -58,7 +58,7 @@ def is_eap_dataset(dataset: str | None) -> bool:
 
 
 def _dataset_from_query(query: Mapping[str, Any]) -> str | None:
-    for key in ("dataset", "itemType", "item_type"):
+    for key in ("dataset", "itemType", "item_type", "data_source"):
         value = query.get(key)
         if value is None:
             continue

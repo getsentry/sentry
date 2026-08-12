@@ -100,10 +100,6 @@ describe('GroupActions', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events//committers/`,
-      body: {committers: []},
-    });
-    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events//owners/`,
       body: {owners: [], rules: []},
     });

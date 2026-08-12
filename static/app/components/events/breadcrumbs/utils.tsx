@@ -198,15 +198,38 @@ export interface EnhancedCrumb {
 export function getEnhancedBreadcrumbs(event: Event, theme: Theme): EnhancedCrumb[] {
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs: any[] = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
-
-  if (breadcrumbs.length === 0) {
-    return [];
-  }
+  const breadcrumbs: RawCrumb[] =
+    event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
 
   // Mapping of breadcrumb index -> breadcrumb meta
   const meta: Record<number, any> =
     event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values ?? {};
+
+  return getEnhancedBreadcrumbsFromValues({
+    breadcrumbs,
+    theme,
+    meta,
+    virtualCrumb: getVirtualCrumb(event),
+  });
+}
+
+/**
+ * Prefer `getEnhancedBreadcrumbs` when an `Event` is available.
+ */
+export function getEnhancedBreadcrumbsFromValues({
+  breadcrumbs,
+  theme,
+  meta = {},
+  virtualCrumb,
+}: {
+  breadcrumbs: RawCrumb[];
+  theme: Theme;
+  meta?: Record<number, any>;
+  virtualCrumb?: RawCrumb;
+}): EnhancedCrumb[] {
+  if (breadcrumbs.length === 0) {
+    return [];
+  }
 
   const enhancedCrumbs = breadcrumbs.map<
     Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>
@@ -217,9 +240,6 @@ export function getEnhancedBreadcrumbs(event: Event, theme: Theme): EnhancedCrum
     breadcrumb: convertCrumbType(raw),
   }));
 
-  // The virtual crumb is a representation of this event, displayed alongside
-  // the rest of the breadcrumbs for more additional context.
-  const virtualCrumb = getVirtualCrumb(event);
   const allCrumbs = virtualCrumb
     ? [...enhancedCrumbs, {breadcrumb: virtualCrumb}]
     : enhancedCrumbs;

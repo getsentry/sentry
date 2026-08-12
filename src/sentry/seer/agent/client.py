@@ -49,6 +49,7 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     SeerApiError,
@@ -353,8 +354,11 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        if enable_pr_context_tools and not features.has(
-            "organizations:autofix-pr-iteration", organization, actor=user
+        # PR context tools back both the automated CI and the manual iteration flows,
+        # so either flag grants them.
+        if enable_pr_context_tools and not (
+            features.has("organizations:autofix-pr-iteration", organization, actor=user)
+            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
         ):
             raise SeerPermissionError("PR context tools are not enabled for this organization")
 
@@ -385,6 +389,8 @@ class SeerAgentClient:
         prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -432,6 +438,8 @@ class SeerAgentClient:
             insert_index=None,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
@@ -582,6 +590,27 @@ class SeerAgentClient:
             flush=flush,
         )
 
+    def _embed_widgets_enabled(self) -> bool:
+        """Whether to tell the agent it may emit embed widgets.
+
+        Code Mode ships the embed surface itself, so a run using it renders the same
+        widgets whether or not the org holds the embeds flag. Gating on the flag alone
+        would leave those runs emitting plain text where the rest of the product shows a
+        widget — a difference the user sees but cannot explain.
+
+        Widening this changes only what the agent is told it may emit: rendering is not
+        flag-gated on the frontend, and per-widget flags still apply in
+        ``get_embed_widgets``. ``enable_embeds`` remains the hard opt-out for surfaces
+        that cannot render Markdoc, such as Slack.
+        """
+        if not self.enable_embeds:
+            return False
+        if self.enable_code_mode_tools != "off":
+            return True
+        return features.has(
+            "organizations:seer-explorer-embeds", self.organization, actor=self.user
+        )
+
     def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
@@ -618,11 +647,7 @@ class SeerAgentClient:
         ):
             opts["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
@@ -649,6 +674,8 @@ class SeerAgentClient:
         insert_index: int | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
@@ -698,6 +725,8 @@ class SeerAgentClient:
             insert_index=insert_index,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
@@ -761,11 +790,7 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
@@ -936,8 +961,10 @@ class SeerAgentClient:
         blocking: bool = True,
         pr_description_suffix: str | None = None,
         ready_for_review: bool = True,
+        verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
+        author: SeerCommitAuthor | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -950,6 +977,7 @@ class SeerAgentClient:
             repo_name: Specific repo to push, or None for all repos with changes
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
+            author: Git commit author; None lets Seer pick one
 
         Returns:
             SeerRunState: Final state with PR info
@@ -968,6 +996,7 @@ class SeerAgentClient:
         payload: dict[str, Any] = {
             "type": "create_pr",
             "ready_for_review": ready_for_review,
+            "verify_content": verify_content,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.
@@ -977,6 +1006,8 @@ class SeerAgentClient:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
             payload["pr_description_suffix"] = pr_description_suffix
+        if author:
+            payload["author"] = author
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = AgentUpdateRequest(

@@ -46,6 +46,8 @@ export interface SpanSearchQueryBuilderProps extends UseSpanSearchQueryBuilderPr
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  arrayAttributes?: TagCollection;
+  arraySecondaryAliases?: TagCollection;
 }
 
 type UseTraceItemSearchQueryBuilderPropsReturnType = ReturnType<
@@ -62,6 +64,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     useSpanItemAttributes({}, 'number');
   const {attributes: spanStringAttributes, secondaryAliases: stringSecondaryAliases} =
     useSpanItemAttributes({}, 'string');
+  const {attributes: spansArrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useSpanItemAttributes({}, 'array');
 
   const spanStringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in spanStringAttributes) {
@@ -73,61 +77,77 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     return spanStringAttributes;
   }, [spanStringAttributes]);
 
-  const {booleanAttributes, numberAttributes, stringAttributes, invalidFilterKeys} =
-    useMemo(() => {
-      const localInvalidFilterKeys: string[] = [];
-      const localBooleanAttributes = {...spanBooleanAttributes};
-      const localNumberAttributes = {...spanNumberAttributes};
-      const localStringAttributes = {...spanStringAttributesWithSemver};
+  const {
+    booleanAttributes,
+    numberAttributes,
+    stringAttributes,
+    arrayAttributes,
+    invalidFilterKeys,
+  } = useMemo(() => {
+    const localInvalidFilterKeys: string[] = [];
+    const localBooleanAttributes = {...spanBooleanAttributes};
+    const localNumberAttributes = {...spanNumberAttributes};
+    const localStringAttributes = {...spanStringAttributesWithSemver};
+    const localArrayAttributes = {...spansArrayAttributes};
 
-      if (props.validatedSearchQueryData?.query.fields.length) {
-        for (const item of props.validatedSearchQueryData.query.fields) {
-          if (item.valid) {
-            if (item.attrType === 'boolean' && item.name) {
-              localBooleanAttributes[item.name] ??= {
-                key: item.name,
-                name: prettifyAttributeName(item.name),
-                kind: FieldKind.BOOLEAN,
-              };
-            }
-
-            if (item.attrType === 'number' && item.name) {
-              localNumberAttributes[item.name] ??= {
-                key: item.name,
-                name: prettifyAttributeName(item.name),
-                kind: FieldKind.MEASUREMENT,
-              };
-            }
-
-            if (item.attrType === 'string' && item.name) {
-              localStringAttributes[item.name] ??= {
-                key: item.name,
-                name: prettifyAttributeName(item.name),
-                kind: FieldKind.TAG,
-              };
-            }
-
-            continue;
+    if (props.validatedSearchQueryData?.query.fields.length) {
+      for (const item of props.validatedSearchQueryData.query.fields) {
+        if (item.valid) {
+          if (item.attrType === 'boolean' && item.name) {
+            localBooleanAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.BOOLEAN,
+            };
           }
 
-          if (item.name) {
-            localInvalidFilterKeys.push(item.name);
+          if (item.attrType === 'number' && item.name) {
+            localNumberAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.MEASUREMENT,
+            };
           }
+
+          if (item.attrType === 'string' && item.name) {
+            localStringAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.TAG,
+            };
+          }
+
+          if (item.attrType === 'array' && item.name) {
+            localArrayAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.ARRAY,
+            };
+          }
+
+          continue;
+        }
+
+        if (item.name) {
+          localInvalidFilterKeys.push(item.name);
         }
       }
+    }
 
-      return {
-        booleanAttributes: localBooleanAttributes,
-        numberAttributes: localNumberAttributes,
-        stringAttributes: localStringAttributes,
-        invalidFilterKeys: localInvalidFilterKeys,
-      };
-    }, [
-      props.validatedSearchQueryData?.query.fields,
-      spanBooleanAttributes,
-      spanNumberAttributes,
-      spanStringAttributesWithSemver,
-    ]);
+    return {
+      booleanAttributes: localBooleanAttributes,
+      numberAttributes: localNumberAttributes,
+      stringAttributes: localStringAttributes,
+      arrayAttributes: localArrayAttributes,
+      invalidFilterKeys: localInvalidFilterKeys,
+    };
+  }, [
+    props.validatedSearchQueryData?.query.fields,
+    spanBooleanAttributes,
+    spanNumberAttributes,
+    spanStringAttributesWithSemver,
+    spansArrayAttributes,
+  ]);
 
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
     ...props,
@@ -136,8 +156,10 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     booleanSecondaryAliases,
     numberAttributes,
     stringAttributes,
+    arrayAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
+    arraySecondaryAliases,
     caseInsensitive: props.caseInsensitive ? true : undefined,
     onCaseInsensitiveClick: props.onCaseInsensitiveClick,
     invalidFilterKeys,
@@ -150,8 +172,10 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     booleanSecondaryAliases,
     numberAttributes,
     stringAttributes,
+    arrayAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
+    arraySecondaryAliases,
     caseInsensitive: props.caseInsensitive ? true : undefined,
     invalidFilterKeys,
   };

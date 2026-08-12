@@ -3,16 +3,13 @@ import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   getOrderedAutofixSections,
-  isCodeChangesSection,
-  isPullRequestsSection,
-  isRootCauseSection,
-  isSolutionSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconSeer} from 'sentry/icons';
@@ -42,26 +39,12 @@ function useSeerState(group: Group, project: Project) {
     [autofix.runState]
   );
 
-  const completedRootCause = sections.some(
-    s => isRootCauseSection(s) && s.status === 'completed'
-  );
-  const completedSolution = sections.some(
-    s => isSolutionSection(s) && s.status === 'completed'
-  );
-  const completedCodeChanges = sections.some(
-    s => isCodeChangesSection(s) && s.status === 'completed'
-  );
-  const hasPR = sections.some(isPullRequestsSection);
-
   return {
     organization,
     aiConfig,
     issueTypeSupportsSeer,
     autofix,
-    completedRootCause,
-    completedSolution,
-    completedCodeChanges,
-    hasPR,
+    sections,
   };
 }
 
@@ -76,16 +59,10 @@ export function SeerCommandPaletteActions({
   project,
   event,
 }: SeerCommandPaletteActionsProps) {
-  const {
-    organization,
-    aiConfig,
-    issueTypeSupportsSeer,
-    autofix,
-    completedRootCause,
-    completedSolution,
-    completedCodeChanges,
-    hasPR,
-  } = useSeerState(group, project);
+  const {organization, aiConfig, issueTypeSupportsSeer, autofix, sections} = useSeerState(
+    group,
+    project
+  );
 
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
@@ -100,8 +77,13 @@ export function SeerCommandPaletteActions({
 
   const {runState, isPolling} = autofix;
   const runId = getAutofixRunId(runState);
-
+  const nextStep = getAutofixNextStep({sections});
   const canContinue = !isPolling && defined(runId);
+  const canHandOff =
+    canContinue &&
+    sections.some(
+      section => section.step === 'root_cause' && section.status === 'completed'
+    );
 
   function handleCodingAgentHandoff(integration: CodingAgentIntegration) {
     if (!defined(runId)) {
@@ -129,7 +111,7 @@ export function SeerCommandPaletteActions({
         />
       )}
 
-      {canContinue && completedRootCause && !completedSolution && (
+      {canContinue && nextStep?.action === 'solution' && (
         <CMDKAction
           display={{label: t('Seer: Generate solution'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'solution']}
@@ -140,7 +122,7 @@ export function SeerCommandPaletteActions({
         />
       )}
 
-      {canContinue && completedSolution && !completedCodeChanges && (
+      {canContinue && nextStep?.action === 'code_changes' && (
         <CMDKAction
           display={{label: t('Seer: Generate code changes'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'code', 'changes']}
@@ -151,7 +133,7 @@ export function SeerCommandPaletteActions({
         />
       )}
 
-      {canContinue && completedCodeChanges && !hasPR && (
+      {canContinue && nextStep?.action === 'create_pr' && (
         <CMDKAction
           display={{label: t('Seer: Open pull request'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'pr', 'pull request', 'open pr']}
@@ -162,8 +144,7 @@ export function SeerCommandPaletteActions({
         />
       )}
 
-      {canContinue &&
-        completedRootCause &&
+      {canHandOff &&
         codingAgentIntegrations?.map(integration => (
           <CMDKAction
             key={`coding-agent:${integration.id ?? integration.provider}`}

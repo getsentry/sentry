@@ -346,6 +346,7 @@ export function useModal(): UseModalReturn {
   };
 }
 
+/** @internal only used in tests & stories */
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
 const fullPageCss = css`

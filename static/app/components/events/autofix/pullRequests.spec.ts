@@ -41,7 +41,12 @@ describe('getCodingAgentResultLink', () => {
       getCodingAgentResultLink(
         makeResult({pr_number: 99, pr_url: 'https://github.com/org/repo/pull/99'})
       )
-    ).toEqual({label: 'View org/repo#99', url: 'https://github.com/org/repo/pull/99'});
+    ).toEqual({
+      label: 'View org/repo#99',
+      repoName: 'org/repo',
+      prNumber: 99,
+      url: 'https://github.com/org/repo/pull/99',
+    });
   });
 
   it.each([
@@ -50,6 +55,8 @@ describe('getCodingAgentResultLink', () => {
   ])('names the repo alone for %s recorded without a number', (_case, pr_url) => {
     expect(getCodingAgentResultLink(makeResult({pr_url}))).toEqual({
       label: 'View org/repo',
+      repoName: 'org/repo',
+      prNumber: null,
       url: pr_url,
     });
   });
@@ -63,6 +70,8 @@ describe('getRepoPullRequestLink', () => {
   it('names the PR Seer opened', () => {
     expect(getRepoPullRequestLink(makeRepoPRState())).toEqual({
       label: 'View org/repo#7',
+      repoName: 'org/repo',
+      prNumber: 7,
       url: 'https://github.com/org/repo/pull/7',
     });
   });

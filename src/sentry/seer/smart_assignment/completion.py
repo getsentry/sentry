@@ -27,25 +27,6 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
     run = (
         SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None
     )
-    if run is not None:
-        # Save the prediction to the run so it can be scored, either now (if ground truth
-        # already landed) or later (if ground truth hasn't landed yet).
-        record_prediction(run, predicted_assignee_user_ids)
-
-    _apply_prediction(group, predicted_assignee_user_ids, run_uuid=data.get("run_uuid"))
-
-
-def _apply_prediction(
-    group: Group,
-    predicted_assignee_user_ids: list[int | None],
-    run_uuid: str | None,
-) -> None:
-    """If the feature flag is enabled and we predicted an acutal org user,
-    create a (suggested) GroupOwner for them. Then promote the suggestion to an
-    assignment iff the project auto-assigns to owners."""
-    if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
-        return
-
     # We need someone who actually resolves to a Sentry user, so pick one further
     # down the list of suggestions if necessary.
     top_user_id, used_rank = next(
@@ -56,6 +37,27 @@ def _apply_prediction(
         ),
         (None, None),
     )
+
+    if run is not None:
+        # Save the prediction to the run so it can be scored, either now (if ground truth
+        # already landed) or later (if ground truth hasn't landed yet).
+        record_prediction(run, predicted_assignee_user_ids, top_user_id)
+
+    _apply_prediction(group, top_user_id, used_rank, run_uuid=data.get("run_uuid"))
+
+
+def _apply_prediction(
+    group: Group,
+    top_user_id: int | None,
+    used_rank: int | None,
+    run_uuid: str | None,
+) -> None:
+    """If the feature flag is enabled and we predicted an acutal org user,
+    create a (suggested) GroupOwner for them. Then promote the suggestion to an
+    assignment iff the project auto-assigns to owners."""
+    if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
+        return
+
     if top_user_id is None:
         # Agent abstained, or none of its candidates mapped to an org user.
         metrics.incr(

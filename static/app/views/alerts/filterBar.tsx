@@ -1,30 +1,26 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar} from 'sentry/components/searchBar';
-import {IconOpen} from 'sentry/icons';
+import {TeamFilter} from 'sentry/components/teamFilter';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {TeamFilter} from './list/rules/teamFilter';
-import {CombinedAlertType} from './types';
-import {getQueryAlertType, getQueryStatus, getTeamParams} from './utils';
+import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
   location: Location<any>;
   onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
   hasStatusFilters?: boolean;
-  hasTypeFilter?: boolean;
-  onChangeAlertType?: (types: CombinedAlertType[]) => void;
   onChangeStatus?: (status: string) => void;
 }
 
@@ -33,61 +29,23 @@ export function FilterBar({
   onChangeSearch,
   onChangeFilter,
   onChangeStatus,
-  onChangeAlertType,
   hasStatusFilters,
-  hasTypeFilter,
 }: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
-  const selectedAlertTypes = getQueryAlertType(location.query.alertType);
 
   return (
-    <Wrapper>
-      <FilterButtons gap="lg">
+    <Grid columns={{zero: '1fr', '4xl': 'min-content 1fr'}} gap="lg" marginBottom="xl">
+      <Flex
+        gap="lg"
+        align={{zero: 'start', '4xl': 'center'}}
+        wrap={{zero: 'wrap', '4xl': 'nowrap'}}
+        width={{zero: '100%', '4xl': 'max-content'}}
+      >
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
-        {hasTypeFilter && (
-          <CompactSelect
-            multiple
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Alert Type')}>
-                {selectedAlertTypes.length === 0 ? t('All') : triggerProps.children}
-              </OverlayTrigger.Button>
-            )}
-            menuFooter={
-              <Flex gap="md" align="center" justify="end">
-                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/crons/">
-                  {t('Crons Overview')}
-                </MenuComponents.CTALinkButton>
-                <MenuComponents.CTALinkButton icon={<IconOpen />} to="/insights/uptime/">
-                  {t('Uptime Overview')}
-                </MenuComponents.CTALinkButton>
-              </Flex>
-            }
-            options={[
-              {
-                value: CombinedAlertType.ISSUE,
-                label: t('Issue Alerts'),
-              },
-              {
-                value: CombinedAlertType.METRIC,
-                label: t('Metric Alerts'),
-              },
-              {
-                value: CombinedAlertType.UPTIME,
-                label: t('Uptime Monitors'),
-              },
-              {
-                value: CombinedAlertType.CRONS,
-                label: t('Cron Monitors'),
-              },
-            ]}
-            value={selectedAlertTypes}
-            onChange={value => onChangeAlertType?.(value.map(v => v.value))}
-          />
-        )}
         {hasStatusFilters && onChangeStatus && (
           <CompactSelect
             trigger={triggerProps => (
@@ -111,7 +69,7 @@ export function FilterBar({
             onChange={({value}) => onChangeStatus(value)}
           />
         )}
-      </FilterButtons>
+      </Flex>
       <Grid minWidth={0} width="100%" gap="md" align="center" columns="1fr min-content">
         <Flex minWidth={0} width="100%">
           <FullWidthSearchBar
@@ -135,35 +93,9 @@ export function FilterBar({
           {t('Create Alert')}
         </CreateAlertButton>
       </Grid>
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: min-content 1fr;
-  }
-`;
-
-const FilterButtons = styled((props: GridProps) => (
-  <Grid flow="column" align="center" {...props} />
-))`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: ${p => p.theme.space.lg};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: grid;
-    grid-auto-columns: max-content;
-  }
-`;
 
 const FullWidthSearchBar = styled(SearchBar)`
   width: 100%;

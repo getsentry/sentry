@@ -1,9 +1,4 @@
-import {
-  CollapsibleSection,
-  type CollapsibleSectionProps,
-} from 'sentry/components/forms/collapsibleSection';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
-import {SentryMemberSelectorField} from 'sentry/components/forms/fields/sentryMemberSelectorField';
 import {SeparatorField} from 'sentry/components/forms/fields/separatorField';
 import type {Field} from 'sentry/components/forms/types';
 import type {Scope} from 'sentry/types/core';
@@ -20,18 +15,12 @@ import {ProjectMapperField, type ProjectMapperProps} from './fields/projectMappe
 import {RadioField, type RadioFieldProps} from './fields/radioField';
 import {RangeField, type RangeFieldProps} from './fields/rangeField';
 import {SecretField, type SecretFieldProps} from './fields/secretField';
-import {SelectAsyncField, type SelectAsyncFieldProps} from './fields/selectAsyncField';
 import {SelectField, type SelectFieldProps} from './fields/selectField';
-import {SentryOrganizationRoleSelectorField} from './fields/sentryOrganizationRoleSelectorField';
-import {
-  SentryProjectSelectorField,
-  type RenderFieldProps,
-} from './fields/sentryProjectSelectorField';
 import {TableField, type TableFieldProps} from './fields/tableField';
 import {TextareaField, type TextareaFieldProps} from './fields/textareaField';
 import {TextField, type TextFieldProps} from './fields/textField';
 
-export interface FieldFromConfigProps {
+interface FieldFromConfigProps {
   field: Field;
   access?: Set<Scope>;
 
@@ -95,24 +84,12 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
       return <TableField {...(componentProps as TableFieldProps)} />;
     case 'project_mapper':
       return <ProjectMapperField {...(componentProps as ProjectMapperProps)} />;
-    case 'sentry_project_selector':
-      return <SentryProjectSelectorField {...(componentProps as RenderFieldProps)} />;
-    case 'sentry_organization_role_selector':
-      return (
-        <SentryOrganizationRoleSelectorField {...(componentProps as RenderFieldProps)} />
-      );
-    case 'sentry_member_selector':
-      return <SentryMemberSelectorField {...(componentProps as RenderFieldProps)} />;
-    case 'select_async':
-      return <SelectAsyncField {...(componentProps as SelectAsyncFieldProps)} />;
     case 'file':
       return <FileField {...(componentProps as FileFieldProps)} />;
     case 'datetime':
       return <DateTimeField {...(componentProps as DateTimeFieldProps)} />;
     case 'custom':
       return field.Component(field);
-    case 'collapsible':
-      return <CollapsibleSection {...(componentProps as CollapsibleSectionProps)} />;
     default:
       return null;
   }

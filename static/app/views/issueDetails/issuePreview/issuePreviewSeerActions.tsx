@@ -1,7 +1,12 @@
 import {useState} from 'react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
+import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
   findCodingAgentResultLink,
   getRepoPullRequestLink,
@@ -9,14 +14,23 @@ import {
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
-  type ExplorerAutofixState,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
+import {
+  IconAdd,
+  IconChevron,
+  IconGithub,
+  IconOpen,
+  IconRefresh,
+  IconSeer,
+} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -34,6 +48,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
+  isPullRequest?: boolean;
   repoName?: string;
   tooltip?: string | null;
 }
@@ -68,15 +83,11 @@ const AUTOFIX_ANALYTICS = {
   },
 } as const;
 
-function getAutofixPrimaryAction(
-  runState: ExplorerAutofixState | null
-): SeerAction | null {
+function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
+  const {runState} = autofix;
   const sections = getOrderedAutofixSections(runState);
-  const lastCompletedSection = sections.findLast(
-    section => section.status === 'completed'
-  );
 
-  if (!runState || !lastCompletedSection) {
+  if (!runState || sections.length === 0) {
     return {
       ...AUTOFIX_ANALYTICS.root_cause,
       kind: 'root_cause',
@@ -110,6 +121,7 @@ function getAutofixPrimaryAction(
       kind: 'link',
       label: completedPullRequestLink.label,
       href: completedPullRequestLink.url,
+      isPullRequest: true,
     };
   }
 
@@ -125,75 +137,49 @@ function getAutofixPrimaryAction(
     };
   }
 
-  switch (lastCompletedSection.step) {
-    case 'pull_request': {
-      const pullRequest = pullRequests[0];
-      if (!pullRequest) {
-        return null;
-      }
+  const codingAgents = Object.values(runState.coding_agents ?? {});
+  const resultLink = findCodingAgentResultLink(codingAgents);
 
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Retry PR in %s', pullRequest.repo_name),
-        repoName: pullRequest.repo_name,
-        tooltip: pullRequest.pr_creation_error,
-      };
-    }
+  if (resultLink) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: resultLink.label,
+      href: resultLink.url,
+    };
+  }
 
-    case 'coding_agents': {
-      const codingAgents = Object.values(runState.coding_agents ?? {});
-      const resultLink = findCodingAgentResultLink(codingAgents);
+  const codingAgent = codingAgents.find(agent => agent.agent_url);
+  if (codingAgent?.agent_url) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
+      href: codingAgent.agent_url,
+    };
+  }
 
-      if (resultLink) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: resultLink.label,
-          href: resultLink.url,
-        };
-      }
+  const nextStep = getAutofixNextStep({sections});
 
-      const codingAgent = codingAgents.find(agent => agent.agent_url);
-      if (codingAgent?.agent_url) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
-          href: codingAgent.agent_url,
-        };
-      }
-
-      return null;
-    }
-
+  switch (nextStep?.action) {
+    case 'create_pr':
+      return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Create PR')};
     case 'code_changes':
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Draft a PR'),
-      };
-
-    case 'solution':
       return {
         ...AUTOFIX_ANALYTICS.code_changes,
         kind: 'code_changes',
         label: t('Write a Code Fix'),
       };
-
-    case 'root_cause':
+    case 'solution':
+      return {...AUTOFIX_ANALYTICS.solution, kind: 'solution', label: t('Make a Plan')};
+    case 'pr_iteration':
       return {
-        ...AUTOFIX_ANALYTICS.solution,
-        kind: 'solution',
-        label: t('Make a Plan'),
+        ...AUTOFIX_ANALYTICS.view,
+        kind: 'view_autofix',
+        label: t('Continue in Seer'),
       };
-
     default:
-      return {
-        ...AUTOFIX_ANALYTICS.root_cause,
-        kind: 'root_cause',
-        label: t('Find Root Cause'),
-      };
+      return null;
   }
 }
 
@@ -223,17 +209,31 @@ function IssuePreviewSeerButton({
   group,
   onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
+  const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
-  const action = getAutofixPrimaryAction(autofix.runState);
+  const action = getAutofixPrimaryAction(autofix);
   const runId = autofix.runState?.run_id;
   const busy = autofix.isPolling || isStartingAction;
+  const canHandOff = action?.kind === 'solution' || action?.kind === 'code_changes';
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      group,
+      runId: runId ?? 0,
+      step: action?.kind === 'solution' ? 'root_cause' : 'solution',
+      referrer: 'issue_inbox',
+      enabled: canHandOff && defined(runId),
+      onHandoff: onContinueInSeer,
+    });
 
   if (!action) {
     return null;
   }
 
   const analyticsParams = {
+    action: action.kind,
     group_id: group.id,
+    progress: group.derivedData?.progress,
     referrer: 'issue_inbox',
   };
 
@@ -261,13 +261,38 @@ function IssuePreviewSeerButton({
     }
   };
 
+  const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
+    const actionLabel =
+      integration.requires_identity && !integration.has_identity
+        ? t('Setup %s', integration.name)
+        : t('Send to %s', integration.name);
+
+    return {
+      key: `agent:${integration.id ?? integration.provider}`,
+      textValue: actionLabel,
+      label: (
+        <Flex gap="md" align="center">
+          <PluginIcon pluginId={integration.provider} size={16} />
+          <span>{actionLabel}</span>
+        </Flex>
+      ),
+      onAction: () => handleCodingAgentHandoff(integration),
+    };
+  });
+
   if (action.href) {
     return (
       <LinkButton
         external
         variant="primary"
         size="sm"
-        icon={<IconOpen />}
+        icon={
+          action.isPullRequest ? (
+            <IconGithub data-test-id="pull-request-github" />
+          ) : (
+            <IconOpen />
+          )
+        }
         href={action.href}
         disabled={disabled}
         tooltipProps={action.tooltip ? {title: action.tooltip} : undefined}
@@ -280,7 +305,7 @@ function IssuePreviewSeerButton({
     );
   }
 
-  return (
+  const primaryButton = (
     <Button
       variant="primary"
       size="sm"
@@ -295,5 +320,42 @@ function IssuePreviewSeerButton({
     >
       {action.label}
     </Button>
+  );
+
+  if (!canHandOff || codingAgentIntegrations === undefined) {
+    return primaryButton;
+  }
+
+  return (
+    <ButtonBar>
+      {primaryButton}
+      <DropdownMenu
+        items={codingAgentOptions}
+        isDisabled={defined(codingAgentDisabledReason)}
+        trigger={(triggerProps, isOpen) => (
+          <Button
+            {...triggerProps}
+            variant="primary"
+            size="sm"
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More code fix options')}
+            disabled={disabled || busy || defined(codingAgentDisabledReason)}
+            tooltipProps={{title: codingAgentDisabledReason}}
+          />
+        )}
+        position="bottom-end"
+        shouldCloseOnBlur={false}
+        menuFooter={
+          <DropdownMenuFooter>
+            <MenuComponents.CTALinkButton
+              icon={<IconAdd />}
+              to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+            >
+              {t('Add Integration')}
+            </MenuComponents.CTALinkButton>
+          </DropdownMenuFooter>
+        }
+      />
+    </ButtonBar>
   );
 }
