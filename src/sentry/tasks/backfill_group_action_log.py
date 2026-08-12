@@ -1,10 +1,11 @@
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 
 from django.utils import timezone
 from taskbroker_client.state import current_task
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
@@ -14,6 +15,7 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -29,7 +31,11 @@ logger = logging.getLogger(__name__)
 
 _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
+_ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
+_ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
 GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
+
+_GROUP_ACTION_LOG_ROLLOUT_FEATURE = "organizations:issue-action-log-seer-rollout"
 
 
 @instrumented_task(
@@ -364,6 +370,206 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
         from sentry.issues.derived.tasks import generate_project_derived_data
 
         generate_project_derived_data.delay(project_id=project.id)
+
+
+def _get_eligible_organization_ids(organizations: Sequence[Organization]) -> set[int]:
+    rollout = features.batch_has_for_organizations(_GROUP_ACTION_LOG_ROLLOUT_FEATURE, organizations)
+    if rollout is None:
+        raise RuntimeError("Unable to evaluate group action log rollout feature")
+
+    return {
+        organization.id
+        for organization in organizations
+        if rollout.get(f"organization:{organization.id}", False)
+    }
+
+
+@instrumented_task(
+    name=(
+        "sentry.tasks.backfill_group_action_log."
+        "enroll_organization_projects_for_group_action_log_backfill"
+    ),
+    namespace=issues_tasks,
+    processing_deadline_duration=15 * 60,
+    silo_mode=SiloMode.CELL,
+)
+def enroll_organization_projects_for_group_action_log_backfill(
+    organization_id: int,
+    last_project_id: int = 0,
+    **kwargs: object,
+) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_ORGANIZATION_ENROLLMENT_TASK_KEY, activation_id):
+        logger.info(
+            "backfill_group_action_log.organization_enrollment.duplicate_redelivery.skipped",
+            extra={"activation_id": activation_id, "organization_id": organization_id},
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped",
+            tags={"task": _ORGANIZATION_ENROLLMENT_TASK_KEY},
+        )
+        return
+
+    if options.get("issues.backfill_group_action_log.enrollment_killswitch"):
+        logger.info("backfill_group_action_log.organization_enrollment.killswitch_enabled")
+        return
+
+    batch_size: int = options.get("issues.backfill_group_action_log.enrollment_project_batch_size")
+    inter_batch_delay_s: int = options.get(
+        "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s"
+    )
+    if batch_size <= 0:
+        logger.error(
+            "backfill_group_action_log.organization_enrollment.invalid_batch_size",
+            extra={"batch_size": batch_size, "organization_id": organization_id},
+        )
+        return
+
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=organization_id,
+            organization__status=ObjectStatus.ACTIVE,
+            status=ObjectStatus.ACTIVE,
+            id__gt=last_project_id,
+        )
+        .order_by("id")
+        .values_list("id", flat=True)[:batch_size]
+    )
+    if not project_ids:
+        logger.info(
+            "backfill_group_action_log.organization_enrollment.completed",
+            extra={"organization_id": organization_id, "last_project_id": last_project_id},
+        )
+        return
+
+    # Track missing rows so we only invalidate caches for newly enrolled projects.
+    project_ids_with_option = set(
+        ProjectOption.objects.filter(
+            project_id__in=project_ids,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).values_list("project_id", flat=True)
+    )
+    project_ids_to_enroll = [
+        project_id for project_id in project_ids if project_id not in project_ids_with_option
+    ]
+    ProjectOption.objects.bulk_create(
+        [
+            ProjectOption(
+                project_id=project_id,
+                key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+                value=False,
+            )
+            for project_id in project_ids_to_enroll
+        ],
+        ignore_conflicts=True,
+    )
+    for project_id in project_ids_to_enroll:
+        ProjectOption.objects.reload_cache(
+            project_id,
+            "group_action_log_backfill.enrollment",
+            GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        )
+
+    logger.info(
+        "backfill_group_action_log.organization_enrollment.batch_completed",
+        extra={
+            "organization_id": organization_id,
+            "batch_size": len(project_ids),
+            "first_project_id": project_ids[0],
+            "last_project_id": project_ids[-1],
+        },
+    )
+
+    if len(project_ids) == batch_size:
+        enroll_organization_projects_for_group_action_log_backfill.apply_async(
+            kwargs={
+                "organization_id": organization_id,
+                "last_project_id": project_ids[-1],
+            },
+            countdown=inter_batch_delay_s,
+            headers={"sentry-propagate-traces": False},
+        )
+        if activation_id:
+            mark_spawned(_ORGANIZATION_ENROLLMENT_TASK_KEY, activation_id)
+
+
+@instrumented_task(
+    name="sentry.tasks.backfill_group_action_log.enroll_projects_for_group_action_log_backfill",
+    namespace=issues_tasks,
+    processing_deadline_duration=15 * 60,
+    silo_mode=SiloMode.CELL,
+)
+def enroll_projects_for_group_action_log_backfill(
+    last_organization_id: int = 0,
+    **kwargs: object,
+) -> None:
+    """Dispatch project enrollment for active organizations in the rollout."""
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_ENROLLMENT_TASK_KEY, activation_id):
+        logger.info(
+            "backfill_group_action_log.enrollment.duplicate_redelivery.skipped",
+            extra={"activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _ENROLLMENT_TASK_KEY})
+        return
+
+    if options.get("issues.backfill_group_action_log.enrollment_killswitch"):
+        logger.info("backfill_group_action_log.enrollment.killswitch_enabled")
+        return
+
+    batch_size: int = options.get(
+        "issues.backfill_group_action_log.enrollment_organization_batch_size"
+    )
+    inter_batch_delay_s: int = options.get(
+        "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s"
+    )
+    if batch_size <= 0:
+        logger.error(
+            "backfill_group_action_log.enrollment.invalid_batch_size",
+            extra={"batch_size": batch_size},
+        )
+        return
+
+    organizations = list(
+        Organization.objects.filter(
+            status=ObjectStatus.ACTIVE,
+            id__gt=last_organization_id,
+        ).order_by("id")[:batch_size]
+    )
+    if not organizations:
+        logger.info(
+            "backfill_group_action_log.enrollment.completed",
+            extra={"last_organization_id": last_organization_id},
+        )
+        return
+
+    eligible_organization_ids = _get_eligible_organization_ids(organizations)
+    for organization_id in eligible_organization_ids:
+        enroll_organization_projects_for_group_action_log_backfill.apply_async(
+            kwargs={"organization_id": organization_id},
+            headers={"sentry-propagate-traces": False},
+        )
+
+    logger.info(
+        "backfill_group_action_log.enrollment.batch_completed",
+        extra={
+            "batch_size": len(organizations),
+            "eligible_organizations": len(eligible_organization_ids),
+            "first_organization_id": organizations[0].id,
+            "last_organization_id": organizations[-1].id,
+        },
+    )
+
+    if len(organizations) == batch_size:
+        enroll_projects_for_group_action_log_backfill.apply_async(
+            kwargs={"last_organization_id": organizations[-1].id},
+            countdown=inter_batch_delay_s,
+            headers={"sentry-propagate-traces": False},
+        )
+        if activation_id:
+            mark_spawned(_ENROLLMENT_TASK_KEY, activation_id)
 
 
 @instrumented_task(
