@@ -12,6 +12,7 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -28,7 +29,11 @@ type UserFeedbackSchema = z.infer<typeof userFeedbackSchema>;
 
 export default function ProjectUserFeedback() {
   const organization = useOrganization();
-  const {project} = useProjectSettingsOutlet();
+  const {project: outletProject} = useProjectSettingsOutlet();
+  const {data: project = outletProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: outletProject.slug,
+  });
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed;
   const updateProject = useUpdateProject(project);

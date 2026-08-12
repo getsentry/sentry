@@ -1,10 +1,8 @@
-import {Outlet} from 'react-router-dom';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
 
 describe('ProjectUserFeedback', () => {
@@ -30,6 +28,11 @@ describe('ProjectUserFeedback', () => {
       url: `${url}keys/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: DetailedProjectFixture(project),
     });
     seerSetupMock = mockSeerSetup();
   });
@@ -121,13 +124,6 @@ describe('ProjectUserFeedback', () => {
     seerSetupMock = mockSeerSetup();
 
     const detailedProject = DetailedProjectFixture(project);
-    let savedProject = detailedProject;
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      body: () => savedProject,
-    });
-
     const update = Promise.withResolvers<typeof detailedProject>();
     const mock = MockApiClient.addMockResponse({
       url,
@@ -135,22 +131,9 @@ describe('ProjectUserFeedback', () => {
       body: () => update.promise,
     });
 
-    function TestRoute() {
-      const {data: currentProject} = useDetailedProject({
-        orgSlug: organization.slug,
-        projectSlug: detailedProject.slug,
-      });
-
-      return currentProject ? <Outlet context={{project: currentProject}} /> : null;
-    }
-
-    render(<TestRoute />, {
+    render(<ProjectUserFeedback />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/'},
-        route: '/',
-        children: [{index: true, element: <ProjectUserFeedback />}],
-      },
+      outletContext: {project: detailedProject},
     });
 
     await waitFor(() => {
@@ -173,14 +156,19 @@ describe('ProjectUserFeedback', () => {
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeDisabled();
 
-    savedProject = {
+    const updatedProject = {
       ...detailedProject,
       options: {
         ...detailedProject.options,
         'sentry:feedback_ai_spam_detection': true,
       },
     };
-    update.resolve(savedProject);
+    MockApiClient.addMockResponse({
+      url,
+      method: 'GET',
+      body: updatedProject,
+    });
+    update.resolve(updatedProject);
 
     await waitFor(() => expect(checkbox).toBeEnabled());
     expect(checkbox).toBeChecked();
