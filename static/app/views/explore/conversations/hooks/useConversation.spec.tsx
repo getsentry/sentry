@@ -126,7 +126,7 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+    const attrs = (node!.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(inputMessages);
   });
@@ -167,7 +167,7 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+    const attrs = (node!.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
@@ -209,8 +209,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.SPAN_OP]).toBe('gen_ai.embeddings');
     expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('ai_client');
   });
@@ -248,8 +249,9 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
+    const attrs = (
+      node?.value as {additional_attributes?: Record<string, unknown>} | undefined
+    )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
   });
 
@@ -289,7 +291,7 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+    const attrs = (node!.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(requestMessages);
   });
@@ -326,7 +328,7 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toHaveLength(1);
     const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+    const attrs = (node!.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     // Should default to empty string for missing fields
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe('');

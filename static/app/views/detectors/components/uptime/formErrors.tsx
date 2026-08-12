@@ -187,7 +187,6 @@ function resolveErroredOpFromAssertPath(
     }
 
     if (current.op === UptimeOpType.AND || current.op === UptimeOpType.OR) {
-      // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
       const next: UptimeOp | undefined = current.children[index];
       if (!next) {
         return null;

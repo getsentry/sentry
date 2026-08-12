@@ -1,7 +1,7 @@
 import {ESLintUtils} from '@typescript-eslint/utils';
 
-import {shouldAnalyze} from '../ast/extractor/index';
-import {getStyledCallInfo} from '../ast/utils/styled';
+import {shouldAnalyze} from '../ast/extractor/index.ts';
+import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
 export const noDoubleDollarInterpolation = ESLintUtils.RuleCreator.withoutDocs({
   meta: {

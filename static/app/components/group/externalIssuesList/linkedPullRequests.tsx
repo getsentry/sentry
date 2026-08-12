@@ -247,11 +247,15 @@ function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string
 }
 
 function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {
-  if (!pullRequest.author || pullRequest.author.email?.endsWith('@localhost')) {
+  const {author} = pullRequest;
+  if (!author) {
+    return null;
+  }
+  if (author.email?.endsWith('@localhost')) {
     return null;
   }
 
-  return pullRequest.author;
+  return author;
 }
 
 function isSentryUserAuthor(author: PullRequestAuthor): author is User {

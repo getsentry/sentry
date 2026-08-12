@@ -67,6 +67,7 @@ export class RenderField extends Component<RenderProps, State> {
     const newProjects = difference(projectIds, prevProjectIds);
 
     if (newProjects.length === 1) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         selectedSentryProjectId: newProjects[0]!,
       });

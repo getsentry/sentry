@@ -222,11 +222,11 @@ function getPageParam(
   highFidelity?: boolean
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
-  return (
+  return function (
     result: ApiResponse<EventsLogsResult>,
     _: unknown,
     pageParam: LogPageParam
-  ): LogPageParam => {
+  ): LogPageParam {
     const pageData = result.json;
     const sortBy = getTimeBasedSortBy(sortBys);
 

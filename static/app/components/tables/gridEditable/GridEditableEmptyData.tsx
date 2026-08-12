@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 

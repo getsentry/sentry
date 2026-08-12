@@ -1,7 +1,7 @@
 import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
 import type {TSESTree} from '@typescript-eslint/utils';
 
-import {isStyledOrCssTemplate} from './utils/styled';
+import {isStyledOrCssTemplate} from './utils/styled.ts';
 
 const CSS_DECLARATION_RE = /[\w-]+\s*:\s*[^;]+;/;
 

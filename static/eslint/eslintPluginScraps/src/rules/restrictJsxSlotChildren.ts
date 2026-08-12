@@ -1,6 +1,6 @@
 import {AST_NODE_TYPES, ESLintUtils, TSESTree} from '@typescript-eslint/utils';
 
-import {createImportTracker} from '../ast/tracker/imports';
+import {createImportTracker} from '../ast/tracker/imports.ts';
 
 /**
  * ESLint rule: restrict-jsx-slot-children
@@ -30,7 +30,7 @@ import {createImportTracker} from '../ast/tracker/imports';
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
  *   - Variable references (`slotProp={someVar}`) are not checked.
  *
- * Example configuration (in eslint.config.ts):
+ * Example configuration (in oxlint.config.ts):
  *
  *   '@sentry/scraps/restrict-jsx-slot-children': [
  *     'warn',

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import type {ReactElement} from 'react';
 
 import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';

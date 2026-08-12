@@ -11,7 +11,7 @@ export type ButtonVariant =
   | 'link'
   | 'transparent';
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line @sentry/naming-convention
 export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
   /**
    * Indicates that the button is "doing" something.
@@ -63,7 +63,7 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
   children?: never;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line @sentry/naming-convention
 export type DO_NOT_USE_ButtonProps =
   | ButtonPropsWithoutAriaLabel
   | ButtonPropsWithAriaLabel;
@@ -106,5 +106,5 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
   replace?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
+// eslint-disable-next-line @sentry/naming-convention
 export type DO_NOT_USE_LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;

@@ -53,6 +53,10 @@ updates:
           - '@tanstack/eslint-plugin-query'
           - '@tanstack/query-*'
           - '@tanstack/react-query*'
+      oxlint-dependencies:
+        patterns:
+          - 'oxlint'
+          - 'oxlint-*'
       react-dependencies:
         patterns:
           - 'react'

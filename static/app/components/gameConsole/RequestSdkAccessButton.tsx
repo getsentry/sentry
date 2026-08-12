@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';

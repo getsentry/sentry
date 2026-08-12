@@ -1,11 +1,11 @@
 import {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-import {createThemeTracker} from '../tracker/theme';
+import {createThemeTracker} from '../tracker/theme.ts';
 
-import {createCssPropExtractor} from './cssProp';
-import {createStyledExtractor} from './styled';
-import {createStylePropExtractor} from './styleProp';
-import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
+import {createCssPropExtractor} from './cssProp.ts';
+import {createStyledExtractor} from './styled.ts';
+import {createStylePropExtractor} from './styleProp.ts';
+import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types.ts';
 
 /**
  * @file Aggregates all style extractors and provides the collector factory.

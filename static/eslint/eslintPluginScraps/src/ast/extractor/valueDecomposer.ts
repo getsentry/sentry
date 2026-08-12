@@ -7,7 +7,7 @@
 
 import type {TSESTree} from '@typescript-eslint/utils';
 
-import type {StyleValue, ThemeTracker, TokenInfo} from './types';
+import type {StyleValue, ThemeTracker, TokenInfo} from './types.ts';
 
 /**
  * Decompose an expression into all possible StyleValue entries.

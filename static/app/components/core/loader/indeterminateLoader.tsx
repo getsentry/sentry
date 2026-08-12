@@ -8,7 +8,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Stack} from '@sentry/scraps/layout';
 
 // required to break import cycle
-// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+// eslint-disable-next-line @sentry/no-relative-import-paths
 import {Text} from '../text/text';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {

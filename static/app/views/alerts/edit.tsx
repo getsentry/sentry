@@ -37,18 +37,17 @@ export default function ProjectAlertsEditor() {
   // `InjectedRouter` interface. Build a minimal compatible shim until they're
   // migrated to use the navigate / location hooks directly.
   const router = useMemo<InjectedRouter>(
-    () =>
-      ({
-        go: delta => navigate(delta),
-        push: path => navigate(path),
-        replace: path => navigate(path, {replace: true}),
-        goBack: () => navigate(-1),
-        goForward: () => navigate(1),
-        location,
-        params,
-        routes,
-        isActive: () => false,
-      }) as InjectedRouter,
+    () => ({
+      go: delta => navigate(delta),
+      push: path => navigate(path),
+      replace: path => navigate(path, {replace: true}),
+      goBack: () => navigate(-1),
+      goForward: () => navigate(1),
+      location,
+      params,
+      routes,
+      isActive: () => false,
+    }),
     [location, navigate, params, routes]
   );
 

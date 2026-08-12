@@ -9,10 +9,10 @@
 
 import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-import {normalizePropertyName} from '../utils/normalizePropertyName';
+import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 
-import type {ExtractorContext, StyleDeclaration} from './types';
-import {decomposeValue} from './valueDecomposer';
+import type {ExtractorContext, StyleDeclaration} from './types.ts';
+import {decomposeValue} from './valueDecomposer.ts';
 
 /**
  * Creates the style prop extractor with ESLint visitors.

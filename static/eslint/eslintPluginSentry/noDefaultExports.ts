@@ -1,11 +1,12 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import ts from 'typescript';
-
-import {lazy} from './utils/lazy';
 
 // Comment-separated static imports are harmless false positives.
 const possibleDynamicImportPattern = /\bimport\s*(?:\(|\/[/*])/u;
+
+function getDirectory(fileName: string): string {
+  return fileName.replace(/[/\\][^/\\]+$/u, '');
+}
 
 export function mayContainDynamicImport(source: string): boolean {
   return possibleDynamicImportPattern.test(source);
@@ -15,59 +16,57 @@ function unwrapParenthesized(node: ts.Node): ts.Node {
   return ts.isParenthesizedExpression(node) ? unwrapParenthesized(node.expression) : node;
 }
 
-function collectResolvedImportFiles(program: ts.Program) {
-  const allowedFiles = new Set<string>();
-  const compilerOptions = program.getCompilerOptions();
+/**
+ * Parse only files that pass the cheap source prefilter. This avoids building a
+ * Program or type checker while retaining the exact lazy-import semantics.
+ */
+export function collectLazyImportSpecifiers(
+  source: string,
+  fileName = 'lazyImports.tsx'
+): string[] {
+  if (!mayContainDynamicImport(source)) {
+    return [];
+  }
 
-  function addResolvedModuleFromImportCall(
-    callExpr: ts.CallExpression,
-    sourceFile: ts.SourceFile
-  ) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    fileName.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const specifiers: string[] = [];
+
+  function addImport(call: ts.CallExpression): void {
+    const argument = call.arguments[0];
     if (
-      callExpr.expression.kind !== ts.SyntaxKind.ImportKeyword ||
-      callExpr.arguments.length !== 1
+      call.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      call.arguments.length === 1 &&
+      argument &&
+      ts.isStringLiteralLike(argument)
     ) {
-      return;
-    }
-    const argument = callExpr.arguments[0]!;
-    if (ts.isStringLiteralLike(argument)) {
-      const resolved = ts.resolveModuleName(
-        argument.text,
-        sourceFile.fileName,
-        compilerOptions,
-        ts.sys
-      );
-      if (resolved.resolvedModule?.resolvedFileName) {
-        allowedFiles.add(resolved.resolvedModule.resolvedFileName);
-      }
+      specifiers.push(argument.text);
     }
   }
 
-  function visit(node: ts.Node, sourceFile: ts.SourceFile): void {
+  function visit(node: ts.Node): void {
     if (ts.isArrowFunction(node)) {
       const body = unwrapParenthesized(node.body);
       if (ts.isCallExpression(body)) {
-        addResolvedModuleFromImportCall(body, sourceFile);
+        addImport(body);
       }
     }
-
     if (ts.isAwaitExpression(node)) {
-      const expr = unwrapParenthesized(node.expression);
-      if (ts.isCallExpression(expr)) {
-        addResolvedModuleFromImportCall(expr, sourceFile);
+      const expression = unwrapParenthesized(node.expression);
+      if (ts.isCallExpression(expression)) {
+        addImport(expression);
       }
     }
-
-    ts.forEachChild(node, child => visit(child, sourceFile));
+    ts.forEachChild(node, visit);
   }
 
-  for (const sourceFile of program.getSourceFiles()) {
-    if (!sourceFile.isDeclarationFile && mayContainDynamicImport(sourceFile.text)) {
-      ts.forEachChild(sourceFile, child => visit(child, sourceFile));
-    }
-  }
-
-  return allowedFiles;
+  ts.forEachChild(sourceFile, visit);
+  return specifiers;
 }
 
 function findTopLevelDeclaration(body: TSESTree.ProgramStatement[], name: string) {
@@ -91,7 +90,74 @@ function findTopLevelDeclaration(body: TSESTree.ProgramStatement[], name: string
   });
 }
 
-const allowedFilesLazy = lazy(collectResolvedImportFiles);
+const allowedFilesByConfig = new Map<string, Set<string> | null>();
+
+function collectAllowedFiles(configPath: string): Set<string> | undefined {
+  const config = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (config.error) {
+    return undefined;
+  }
+
+  const configDirectory = getDirectory(configPath);
+  const parsed = ts.parseJsonConfigFileContent(
+    config.config,
+    ts.sys,
+    configDirectory,
+    undefined,
+    configPath
+  );
+  if (parsed.errors.length) {
+    return undefined;
+  }
+
+  const allowedFiles = new Set<string>();
+  const resolutionCache = ts.createModuleResolutionCache(
+    configDirectory,
+    fileName => (ts.sys.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
+    parsed.options
+  );
+
+  for (const fileName of parsed.fileNames) {
+    if (/\.d\.[cm]?ts$/u.test(fileName)) {
+      continue;
+    }
+    const source = ts.sys.readFile(fileName);
+    if (!source || !mayContainDynamicImport(source)) {
+      continue;
+    }
+
+    for (const specifier of collectLazyImportSpecifiers(source, fileName)) {
+      const resolved = ts.resolveModuleName(
+        specifier,
+        fileName,
+        parsed.options,
+        ts.sys,
+        resolutionCache
+      ).resolvedModule?.resolvedFileName;
+      if (resolved) {
+        allowedFiles.add(ts.sys.resolvePath(resolved));
+      }
+    }
+  }
+
+  return allowedFiles;
+}
+
+function getAllowedFiles(fileName: string): Set<string> | undefined {
+  const configPath = ts.findConfigFile(
+    getDirectory(fileName),
+    ts.sys.fileExists,
+    'tsconfig.json'
+  );
+  if (!configPath) {
+    return undefined;
+  }
+
+  if (!allowedFilesByConfig.has(configPath)) {
+    allowedFilesByConfig.set(configPath, collectAllowedFiles(configPath) ?? null);
+  }
+  return allowedFilesByConfig.get(configPath) ?? undefined;
+}
 
 export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
@@ -108,9 +174,11 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
   },
 
   create(context) {
-    const parserServices = getParserServices(context);
-    const allowedFiles = allowedFilesLazy(parserServices.program);
     const currentFileName = ts.sys.resolvePath(context.filename);
+    const allowedFiles = getAllowedFiles(currentFileName);
+    if (!allowedFiles) {
+      return {};
+    }
 
     if (allowedFiles.has(currentFileName)) {
       return {};

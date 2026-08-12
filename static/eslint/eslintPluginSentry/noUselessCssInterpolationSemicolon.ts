@@ -1,6 +1,6 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 
-import {isCssTaggedTemplate, isStyledOrCssTemplate} from './utils/styled';
+import {isCssTaggedTemplate, isStyledOrCssTemplate} from './utils/styled.ts';
 
 function isCssInterpolationExpression(node: TSESTree.Node): boolean {
   if (isCssTaggedTemplate(node)) {

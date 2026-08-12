@@ -1,18 +1,27 @@
-import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions';
-import {noDefaultExports} from './noDefaultExports';
-import {noDigitsInTn} from './noDigitsInTn';
-import {noDynamicTranslations} from './noDynamicTranslations';
-import {noFlagComments} from './noFlagComments';
-import {noQueryDataTypeParameters} from './noQueryDataTypeParameters';
-import {noRawCssInStyled} from './noRawCssInStyled';
-import {noStaticTranslations} from './noStaticTranslations';
-import {noStyledShortcut} from './noStyledShortcut';
-import {noUnnecessaryTypeAnnotation} from './noUnnecessaryTypeAnnotation';
-import {noUnnecessaryTypeNarrowing} from './noUnnecessaryTypeNarrowing';
-import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
-import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon';
+import {
+  emotionStyledImport,
+  emotionSyntaxPreference,
+  noVanillaEmotion,
+} from './emotionRules.ts';
+import {namingConvention} from './namingConvention.ts';
+import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions.ts';
+import {noDefaultExports} from './noDefaultExports.ts';
+import {noDigitsInTn} from './noDigitsInTn.ts';
+import {noDynamicTranslations} from './noDynamicTranslations.ts';
+import {noFlagComments} from './noFlagComments.ts';
+import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
+import {noRawCssInStyled} from './noRawCssInStyled.ts';
+import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
+import {noStaticTranslations} from './noStaticTranslations.ts';
+import {noStyledShortcut} from './noStyledShortcut.ts';
+import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
+import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
 export const rules = {
+  'emotion-styled-import': emotionStyledImport,
+  'emotion-syntax-preference': emotionSyntaxPreference,
+  'naming-convention': namingConvention,
   'no-calling-components-as-functions': noCallingComponentsAsFunctions,
   'no-default-exports': noDefaultExports,
   'no-digits-in-tn': noDigitsInTn,
@@ -20,10 +29,21 @@ export const rules = {
   'no-flag-comments': noFlagComments,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
+  'no-relative-import-paths': noRelativeImportPaths,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
   'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
-  'no-unnecessary-type-annotation': noUnnecessaryTypeAnnotation,
-  'no-unnecessary-type-narrowing': noUnnecessaryTypeNarrowing,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
+  'no-vanilla-emotion': noVanillaEmotion,
+  'sort-interface-keys': sortInterfaceKeys,
 };
+
+const sentryPlugin = {
+  meta: {
+    name: '@sentry-internal/eslint-plugin-sentry',
+    version: '1.0.0',
+  },
+  rules,
+};
+
+export default sentryPlugin;
