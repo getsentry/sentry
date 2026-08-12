@@ -773,8 +773,9 @@ def test_selfchain_skips_when_already_spawned(mock_current_task, default_project
 def test_selfchain_marks_and_dedupes_across_deliveries(
     mock_current_task, default_project, reset_snuba, process_and_save
 ) -> None:
-    # First delivery processes a page and spawns the continuation once. A re-pend of the same
-    # activation must not spawn again.
+    # First delivery processes a page and spawns the continuation once. A re-pend must use the
+    # mid-chain payload (new_group_id/query_state/start_time) — not another start hop — because
+    # that is the production fork path.
     event_id = process_and_save({"message": "hello world"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None and event.group_id is not None
@@ -789,8 +790,12 @@ def test_selfchain_marks_and_dedupes_across_deliveries(
         assert mock_delay.call_count == 1
         assert already_spawned(REPROCESS_GROUP_TASK_NAME, "reprocess-act-dedupe") is True
 
-        # Broker re-pend: same activation id, same original payload -> no-op, no new spawn.
-        reprocess_group(default_project.id, event.group_id)
+        continuation_kwargs = mock_delay.call_args.kwargs
+        assert continuation_kwargs["start_time"] is not None
+        assert continuation_kwargs["new_group_id"] is not None
+
+        # Broker re-pend of the same activation with the same mid-chain payload -> no new spawn.
+        reprocess_group(**continuation_kwargs)
         assert mock_delay.call_count == 1
 
 

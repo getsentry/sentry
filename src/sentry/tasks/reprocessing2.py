@@ -68,7 +68,8 @@ def reprocess_group(
 
     # Self-chain idempotency guard. If this activation already produced its continuation in a
     # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain.
-    # Only effective inside a worker (current_task() set).
+    # Only effective inside a worker (current_task() set). Best-effort de-amplification, not
+    # exactly-once: concurrent overlap before mark_spawned can still double-spawn.
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(REPROCESS_GROUP_TASK_NAME, activation_id):
