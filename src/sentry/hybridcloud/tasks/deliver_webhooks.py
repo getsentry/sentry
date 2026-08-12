@@ -199,6 +199,16 @@ def _use_claim_dispatch(mailbox_name: str) -> bool:
     return in_rollout_group("hybridcloud.webhookpayload.claim_dispatch_rollout", integration_prefix)
 
 
+def _is_due(schedule_for: datetime.datetime) -> bool:
+    """
+    Whether a payload is ready to deliver — the in-Python form of the
+    `schedule_for__lte=timezone.now()` filter that `_claim_and_dispatch` and the
+    scheduler select on. Dispatchers call this rather than restating the bound,
+    so the push path cannot drift from the rows the scheduler picks up.
+    """
+    return schedule_for <= timezone.now()
+
+
 def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
     """
     Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
@@ -282,7 +292,7 @@ def _maybe_trigger_drain_claim(mailbox_name: str) -> None:
             .values_list("id", "schedule_for")
             .first()
         )
-        if head is None or head[1] > timezone.now():
+        if head is None or not _is_due(head[1]):
             # Mailbox is empty, drained by a claim already in flight, or in a retry
             # backoff — the scheduler covers it when schedule_for comes due.
             metrics.incr(
@@ -338,7 +348,7 @@ def _maybe_trigger_drain_lease(mailbox_name: str) -> None:
                 .values_list("id", "schedule_for")
                 .first()
             )
-            if head is None or head[1] > timezone.now():
+            if head is None or not _is_due(head[1]):
                 # Mailbox is empty or head is in backoff — release the lock and let
                 # the scheduler handle it when schedule_for comes due.
                 _release_drain_lock(mailbox_name)
