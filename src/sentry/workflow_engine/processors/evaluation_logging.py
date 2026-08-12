@@ -4,9 +4,8 @@ import random
 from logging import Logger
 from typing import TYPE_CHECKING
 
-from sentry_sdk import logger as sentry_logger
-
 from sentry import features, options
+from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
 
 if TYPE_CHECKING:
@@ -41,7 +40,7 @@ def emit_workflow_evaluation_logs(
         artifact["organization_id"] = organization.id
 
         if direct_to_sentry:
-            sentry_logger.info(log_prefix, attributes=artifact)
+            sdk_logger.info(log_prefix, attributes=artifact)
         else:
             logger.info(log_prefix, extra=artifact)
 

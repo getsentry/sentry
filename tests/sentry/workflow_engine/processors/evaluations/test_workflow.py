@@ -240,7 +240,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         with (
             Feature({"organizations:workflow-engine-log-evaluations": True}),
             override_options({"workflow_engine.evaluation_logs_direct_to_sentry": True}),
-            mock.patch(f"{LOGGING_MODULE}.sentry_logger") as mock_sentry_logger,
+            mock.patch(f"{LOGGING_MODULE}.sdk_logger") as mock_sentry_logger,
         ):
             assert emit_workflow_evaluation_logs(
                 mock_logger,
