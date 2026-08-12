@@ -569,27 +569,3 @@ have explicit frontend nodes, defaults, details, and validation.
 | Actions are interpreted through `.triggered`, not result truthiness                        | Runtime contract in evaluation objects                                             |
 | Handler generic input matches the value passed at its placement                            | Static annotation and convention; runtime dispatch does not check it               |
 | Direct non-boolean handler results use the expected semantic type                          | Static annotation and focused tests; runtime accepts the broader result union      |
-
-## Open Questions
-
-- The intended group/subgroup hierarchy is subsystem then UI control placement, but the
-  current enums encode trigger/action-filter placement in `Group` and attribute/frequency
-  sections in `Subgroup`. It is unclear whether the types and availability API should be
-  refactored to match the intended hierarchy.
-- Handler `group` controls discovery but not backend placement validation. It is unclear
-  whether generic Detector and Workflow validators should enforce it.
-- The inherited comparison and result schemas are `{}`, which accepts any JSON. It is
-  unclear whether strict schemas should become mandatory for registered handlers.
-- `TRIGGER_CONDITIONS` is a manual subset of `WORKFLOW_TRIGGER`; the intended criterion
-  for adding future trigger handlers is not encoded.
-- `IssueOpenDurationConditionHandler` is imported at startup but has no registry
-  decorator, and its tests are skipped. Its intended support status is unclear.
-- Adding a `Condition` changes Django field choices but not database storage constraints.
-  The migration history does not establish a consistent rule for whether every new enum
-  value needs a model-state migration.
-- The condition availability GET endpoint's schema declares `201` while its tests and
-  runtime behavior use `200`; the intended documentation status needs correction.
-- Current batched data acquisition is implemented through
-  `BaseEventFrequencyQueryHandler` and Snuba-oriented query grouping. Supporting a slow
-  input that does not fit that query model would require extending the acquisition
-  layer, while preserving the shared condition evaluation contract.
