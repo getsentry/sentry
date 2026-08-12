@@ -24,6 +24,7 @@ interface AutofixStartCardProps {
    */
   onStarted?: () => void;
   referrer?: string;
+  startLabel?: string;
 }
 
 export function AutofixStartCard({
@@ -31,6 +32,7 @@ export function AutofixStartCard({
   group,
   onStarted,
   referrer,
+  startLabel,
 }: AutofixStartCardProps) {
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
@@ -47,6 +49,8 @@ export function AutofixStartCard({
     }
     onStarted?.();
   };
+
+  const actionIcon = startLabel ? undefined : <IconBug />;
 
   return (
     <Stack gap="md">
@@ -77,16 +81,17 @@ export function AutofixStartCard({
       </Flex>
       <Button
         size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
-        aria-label={t('Start Analysis')}
-        variant="primary"
+        style={{alignSelf: startLabel ? 'flex-start' : undefined}}
+        icon={startingRun ? <LoadingIndicator size={16} /> : actionIcon}
+        aria-label={startLabel ?? t('Start Analysis')}
+        variant={startLabel ? undefined : 'primary'}
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
         disabled={startingRun}
       >
-        {t('Start Analysis')}
+        {startLabel ?? t('Start Analysis')}
       </Button>
     </Stack>
   );

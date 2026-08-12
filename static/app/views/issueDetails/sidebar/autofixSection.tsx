@@ -98,12 +98,12 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContentHook aiConfig={aiConfig} group={group} project={project} />
+      <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
   );
 }
 
-const AutofixContentHook = registerLLMContext(
+export const AutofixQuotaContent = registerLLMContext(
   'autofix',
   OverrideOrDefault({
     overrideName: 'component:ai-configure-seer-quota-sidebar',

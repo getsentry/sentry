@@ -4,6 +4,7 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -200,10 +201,16 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
+    autofixSetup = AutofixSetupFixture({
+      billing: {hasAutofixQuota: false},
+      integration: {ok: false, reason: null},
+      seerReposLinked: false,
+    }),
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
+    autofixSetup?: ReturnType<typeof AutofixSetupFixture>;
     group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
@@ -226,11 +233,7 @@ describe('InboxPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
-      body: {
-        integration: {ok: false, reason: null},
-        billing: {hasAutofixQuota: false},
-        seerReposLinked: false,
-      },
+      body: autofixSetup,
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -283,6 +286,33 @@ describe('InboxPage', () => {
     await userEvent.click(issueLink);
 
     return preview;
+  }
+
+  function mockAssignedPreview(autofixSetup: ReturnType<typeof AutofixSetupFixture>) {
+    mockSuccessfulSections();
+    mockIssuePreview({group: assignedGroup, autofixSetup});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+  }
+
+  async function openAssignedPreview() {
+    const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+
+    await userEvent.click(
+      within(assignedSection).getByRole('button', {name: 'Assigned'})
+    );
+    await userEvent.click(
+      within(assignedSection).getByRole('link', {name: /Assigned issue/})
+    );
+
+    return screen.getByRole('complementary', {name: 'Issue preview'});
   }
 
   it('loads and renders the three progress sections with filtered issue metadata', async () => {
@@ -889,6 +919,51 @@ describe('InboxPage', () => {
         })
       )
     );
+  });
+
+  it('shows the Seer empty state for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      within(preview).getAllByRole('button', {name: 'Find Root Cause'})
+    ).toHaveLength(2);
+  });
+
+  it('shows project setup for an assigned issue with paid Seer', async () => {
+    mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByText('Finish Configuring Seer')
+    ).toBeInTheDocument();
+    expect(
+      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
+    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
+    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+  });
+
+  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+    mockAssignedPreview(
+      AutofixSetupFixture({
+        billing: {hasAutofixQuota: false},
+      })
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
   });
 
   it('starts making a plan in Autofix when the root cause is complete', async () => {
