@@ -79,6 +79,7 @@ export function MentionInput<TSuggestion>({
     focusedKey,
     getSuggestion,
     listBoxId,
+    listBoxRef: setListBoxRef,
     listState,
     requestKey,
     status: suggestionStatus,
@@ -86,7 +87,6 @@ export function MentionInput<TSuggestion>({
     activeMention,
     activeSource,
     inputRef,
-    isOpen,
     listBoxRef,
   });
 
@@ -369,7 +369,8 @@ export function MentionInput<TSuggestion>({
                 <ListBox
                   id={listBoxId}
                   aria-label={t('%s suggestions', activeSource.label)}
-                  ref={listBoxRef}
+                  autoFocus="first"
+                  ref={setListBoxRef}
                   listState={listState}
                   overlayIsOpen
                   onAction={selectSuggestion}

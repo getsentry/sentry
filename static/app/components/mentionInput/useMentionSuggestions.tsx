@@ -1,5 +1,12 @@
-import {useId, useLayoutEffect, useMemo, useRef} from 'react';
-import {getItemId, listData} from '@react-aria/listbox';
+import {
+  useCallback,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {getItemId} from '@react-aria/listbox';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
@@ -22,7 +29,6 @@ interface UseMentionSuggestionsOptions<T> {
   activeMention: ActiveMention | null;
   activeSource: MentionSource<T> | undefined;
   inputRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
 }
 
@@ -76,10 +82,8 @@ export function useMentionSuggestions<T>({
   activeMention,
   activeSource,
   inputRef,
-  isOpen,
   listBoxRef,
 }: UseMentionSuggestionsOptions<T>) {
-  const initializedFocusRequestRef = useRef<string | null>(null);
   const activeQuery = activeMention?.query;
   const requestKey = activeSource ? getRequestKey(activeMention) : null;
   const {suggestions: currentSuggestions, queryStatus} = useSourceSuggestions(
@@ -112,7 +116,16 @@ export function useMentionSuggestions<T>({
   });
 
   const listBoxId = useId();
-  listData.set(listState, {id: listBoxId});
+  const [isListBoxMounted, setIsListBoxMounted] = useState(false);
+  const [activeDescendant, setActiveDescendant] = useState<string>();
+  const focusedKey = listState.selectionManager.focusedKey;
+  const setListBoxRef = useCallback(
+    (element: HTMLUListElement | null) => {
+      listBoxRef.current = element;
+      setIsListBoxMounted(element !== null);
+    },
+    [listBoxRef]
+  );
 
   const keyboardDelegate = useMemo(
     () =>
@@ -133,35 +146,25 @@ export function useMentionSuggestions<T>({
     ref: inputRef,
   });
 
+  const syncActiveDescendant = useEffectEvent(() => {
+    const key = listState.selectionManager.focusedKey;
+    setActiveDescendant(
+      isListBoxMounted && key !== null ? getItemId(listState, key) : undefined
+    );
+  });
+
   useLayoutEffect(() => {
-    if (!isOpen) {
-      initializedFocusRequestRef.current = null;
-      listState.selectionManager.setFocusedKey(null);
-      return;
-    }
-
-    if (
-      listState.collection.size === 0 ||
-      initializedFocusRequestRef.current === requestKey
-    ) {
-      return;
-    }
-
-    initializedFocusRequestRef.current = requestKey;
-    listState.selectionManager.setFocused(true);
-    listState.selectionManager.setFocusedKey(listState.collection.getFirstKey());
-  }, [isOpen, listState.collection, listState.selectionManager, requestKey]);
-
-  const focusedKey = listState.selectionManager.focusedKey;
+    syncActiveDescendant();
+  }, [focusedKey, isListBoxMounted]);
 
   return {
-    activeDescendant:
-      isOpen && focusedKey !== null ? getItemId(listState, focusedKey) : undefined,
+    activeDescendant,
     collectionProps,
     focusedKey,
     getSuggestion: (key: React.Key) => items.find(item => item.key === key)?.suggestion,
     count: items.length,
     listBoxId,
+    listBoxRef: setListBoxRef,
     listState,
     requestKey,
     status: getSuggestionStatus(queryStatus, items.length > 0),

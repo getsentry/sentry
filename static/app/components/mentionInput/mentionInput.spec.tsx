@@ -99,8 +99,11 @@ describe('MentionInput', () => {
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
 
-    expect(await screen.findByRole('option', {name: 'Alice Example'})).toBeVisible();
+    const aliceOption = await screen.findByRole('option', {name: 'Alice Example'});
+    const alexOption = screen.getByRole('option', {name: 'Alex Engineer'});
+    expect(textbox).toHaveAttribute('aria-activedescendant', aliceOption.id);
     await userEvent.keyboard('{ArrowDown}');
+    expect(textbox).toHaveAttribute('aria-activedescendant', alexOption.id);
     await userEvent.keyboard('{Enter}');
 
     expect(textbox).toHaveTextContent('@Alex Engineer');
