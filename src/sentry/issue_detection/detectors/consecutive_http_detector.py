@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import urlparse
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
@@ -15,6 +14,7 @@ from sentry.issue_detection.detectors.utils import (
     get_total_span_duration,
     get_url_from_span,
     is_filtered_url,
+    safer_urlparse,
 )
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -197,7 +197,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _extract_host_from_span(self, span: Span) -> str:
         """Extract the host from a span's URL."""
         url = get_url_from_span(span)
-        return urlparse(url).netloc
+        return safer_urlparse(url).netloc
 
     def _fingerprint(self) -> str:
         hashed_url_paths = fingerprint_http_spans(self.consecutive_http_spans)

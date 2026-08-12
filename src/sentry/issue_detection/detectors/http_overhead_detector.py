@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
@@ -14,6 +13,7 @@ from sentry.issue_detection.detectors.utils import (
     get_url_from_span,
     is_filtered_url,
     log_invalid_span_data,
+    safer_urlparse,
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -106,7 +106,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         if url.startswith("/"):
             location = "/"
         else:
-            parsed_url = urllib.parse.urlparse(url)
+            parsed_url = safer_urlparse(url)
             location = parsed_url.netloc
 
         if not location:

@@ -164,7 +164,7 @@ def safer_urlparse(url: str) -> ParseResult:
 
 # Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
 def fingerprint_resource_span(span: Span) -> str:
-    url = urlparse(span.get("description") or "")
+    url = safer_urlparse(span.get("description") or "")
     path = url.path
     path = UUID_REGEX.sub("*", path)
     path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
@@ -187,7 +187,7 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
     Given a URL, return the URL with parsed path and query parameters replaced with '*',
     a list of the path parameters, and a dict of the query parameters.
     """
-    parsed_url = urlparse(str(url))
+    parsed_url = safer_urlparse(str(url))
 
     protocol_fragments = []
     if parsed_url.scheme:
@@ -246,7 +246,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
         url = get_url_from_span(http_span)
         if url and not is_filtered_url(url):
             parametrized_url = parameterize_url(url)
-            path = urlparse(parametrized_url).path
+            path = safer_urlparse(parametrized_url).path
             if path not in url_paths:
                 url_paths.append(path)
     url_paths.sort()
