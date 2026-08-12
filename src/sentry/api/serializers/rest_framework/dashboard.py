@@ -335,8 +335,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
         except UnqualifiedQueryError:
-            # Fixed message: sibling SnubaError types carry Snuba/ClickHouse
-            # internals that must not reach API consumers.
+            # Fixed message: sibling SnubaError types leak Snuba internals.
             data["discover_query_error"] = {
                 "conditions": ["Could not validate query: no project available."]
             }
@@ -360,14 +359,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         return data
 
     def _get_validation_project_ids(self) -> list[int]:
-        """Project ids used only to satisfy the query builder during validation.
-
-        `validation_projects` is resolved with `include_all_accessible`, so it
-        keeps the projects an `allow_joinleave` org grants without team
-        membership — the ones `projects` drops, leaving a teamless member with
-        nothing despite seeing everything. Non-request callers supply only
-        `projects`.
-        """
+        """Project ids for the query builder. Non-request callers supply only `projects`."""
         projects = self.context.get("validation_projects")
         if projects is None:
             projects = self.context["projects"]

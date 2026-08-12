@@ -700,8 +700,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "request": request,
                 "projects": projects,
-                # Validation only needs a project the requester can reach;
-                # membership filtering hides those granted by allow_joinleave.
+                # allow_joinleave grants project access without team membership.
                 "validation_projects": projects
                 or self.get_projects(request, organization, include_all_accessible=True)[:1],
                 "environment": self.request.GET.getlist("environment"),

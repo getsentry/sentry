@@ -2669,8 +2669,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, title="Invalid Dashboard"
         ).exists()
 
-    # resolve_params only raises on an empty project list outside the test
-    # environment, so these patch in_test_environment to reach that path.
+    # resolve_params only raises on an empty project list outside tests.
 
     def _single_widget_dashboard(self, title: str) -> dict[str, Any]:
         return {
@@ -2698,7 +2697,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self, mock_in_test_environment
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
-        assert self.project  # the fixture is lazy; the org needs a project
+        assert self.project  # lazy fixture; the org needs a project
         teamless_user = self.create_user()
         self.create_member(
             organization=self.organization, user=teamless_user, role="member", teams=[]
@@ -2717,11 +2716,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
         self, mock_in_test_environment
     ) -> None:
-        """allow_joinleave grants project access without team membership.
-
-        These users resolve to an empty list but can see every project, so
-        creation must still work — not just validation.
-        """
+        """Creation must work too, not just validation."""
         org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
         team = self.create_team(organization=org)
         self.create_project(organization=org, teams=[team])
@@ -2741,11 +2736,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_post_validation_errors_when_no_project_is_accessible(
         self, mock_in_test_environment
     ) -> None:
-        """Without allow_joinleave a teamless member can reach no project.
-
-        include_all_accessible resolves nothing rather than handing validation a
-        project the requester cannot see, so this hits the backstop.
-        """
+        """Without allow_joinleave a teamless member can reach no project."""
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
         team = self.create_team(organization=org)
         self.create_project(organization=org, teams=[team])
@@ -2771,7 +2762,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self, mock_in_test_environment
     ) -> None:
         """Validation runs per widget query but resolves projects per request."""
-        assert self.project  # the fixture is lazy; the org needs a project
+        assert self.project  # lazy fixture; the org needs a project
         teamless_user = self.create_user()
         self.create_member(
             organization=self.organization, user=teamless_user, role="member", teams=[]
@@ -2804,8 +2795,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             response = self.do_request("post", self.url + "?validateOnly=1", data=data)
         assert response.status_code == 200, response.data
 
-        # One membership pass plus the include_all_accessible retry, regardless
-        # of how many widget queries validate against the result.
+        # Membership pass plus the include_all_accessible retry, once each.
         resolutions = [
             q["sql"]
             for q in queries.captured_queries
@@ -2818,7 +2808,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self, mock_in_test_environment
     ) -> None:
         """A non-empty membership list short-circuits the second resolution."""
-        assert self.project  # the fixture is lazy; self.user needs a team project
+        assert self.project  # lazy fixture; self.user needs a team project
 
         with CaptureQueriesContext(connection) as queries:
             response = self.do_request(
