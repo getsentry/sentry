@@ -84,6 +84,10 @@ from sentry.stacktraces.functions import (
         ["<T as core::convert::Into<U>>::into", "core::convert::Into<T>::into"],
         ["ThreadStartWhatever@16", "ThreadStartWhatever"],
         ["@ThreadStartWhatever@16", "ThreadStartWhatever"],
+        [
+            "NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4",
+            "NativeButtons_DoSomeWorkHere",
+        ],
         ["@objc ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         ["ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         [
