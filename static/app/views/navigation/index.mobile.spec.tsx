@@ -177,9 +177,7 @@ describe('mobile navigation', () => {
 
     // The org dropdown menu is portaled to document.body, so clicking it
     // triggers click-outside on the nav panel. The nav should stay open.
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Organization Settings'})
-    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
 
     expect(
       screen.getByRole('navigation', {name: 'Primary Navigation'})

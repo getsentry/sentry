@@ -63,6 +63,11 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   /**
+   * Maximum menu height, in pixels. Inherited by any submenus so that a long
+   * list of items scrolls rather than running off the screen.
+   */
+  maxMenuHeight?: number;
+  /**
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
@@ -83,6 +88,7 @@ export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
+  maxMenuHeight,
   menuTitle,
   menuFooter,
   disableTextSelection,
@@ -202,6 +208,7 @@ export function DropdownMenuList({
         position={submenuOptions.position ?? 'right-start'}
         offset={-4}
         size={size}
+        maxMenuHeight={maxMenuHeight}
       />
     );
   };
@@ -250,7 +257,7 @@ export function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
+          <StyledOverlay style={{maxHeight: overlayPositionProps.style?.maxHeight}}>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
               ref={menuRef}
@@ -258,7 +265,10 @@ export function DropdownMenuList({
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
+                // The overlay above is already capped, so the list only needs to
+                // shrink within it — a hard maxHeight here would let the list
+                // claim the full cap and push a title/footer past it.
+                minHeight: 0,
               }}
             >
               {renderCollection(stateCollection)}
@@ -314,6 +324,13 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+
+  /* Titles are usually a short string, but may hold interactive content such as
+  a search field, which needs the full width to lay out. */
+  &:has(input) {
+    white-space: normal;
+    padding: ${p => p.theme.space.xs};
+  }
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;

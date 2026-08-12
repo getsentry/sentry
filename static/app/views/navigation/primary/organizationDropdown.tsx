@@ -1,9 +1,9 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -12,31 +12,38 @@ import {Text} from '@sentry/scraps/text';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconAllProjects, IconBuilding, IconSettings} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {ProjectStarToggle} from 'sentry/views/navigation/primary/projectStarToggle';
+import {useSearchableMenuItems} from 'sentry/views/navigation/primary/useSearchableMenuItems';
+
+/**
+ * How many projects the menu will list directly before it stops trying to show
+ * them all. At or below this count, starring is pointless overhead — there is no
+ * list to curate — so every project is listed and the section never sits empty.
+ * Above it, only starred projects are listed and "All Projects" is the way in.
+ */
+const MAX_INLINE_PROJECTS = 8;
 
 interface OrganizationDropdownProps {
   /**
-   * When true, hides settings, projects, members, teams, and billing links for the current organization.
+   * When true, hides the settings and project links for the current
+   * organization, leaving only the organization switcher.
    */
   hideCurrentOrganizationLinks?: boolean;
   onClick?: () => void;
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
-  const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
@@ -54,7 +61,56 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
+
+  // Most organizations have only a handful of projects, where starring is pure
+  // overhead — list them all so the section is never empty. Past that the list
+  // would crowd out the rest of the menu, so it narrows to starred projects and
+  // "All Projects" carries the remainder.
+  const {inlineProjects, isShowingAllProjects} = useMemo(() => {
+    const sorted = orderBy(projects, ['slug']);
+
+    if (sorted.length <= MAX_INLINE_PROJECTS) {
+      return {inlineProjects: sorted, isShowingAllProjects: true};
+    }
+
+    return {
+      inlineProjects: sorted
+        .filter(project => project.isBookmarked)
+        .slice(0, MAX_INLINE_PROJECTS),
+      isShowingAllProjects: false,
+    };
+  }, [projects]);
+
+  const allProjectsSearch = useSearchableMenuItems({
+    items: useMemo(
+      () =>
+        orderBy(projects, ['slug']).map(project => ({
+          item: makeProjectMenuItem(project, organization, {starrable: true}),
+          searchText: project.slug,
+        })),
+      [projects, organization]
+    ),
+    placeholder: t('Search projects'),
+    emptyMessage: t('No projects found'),
+  });
+
+  const switchOrganizationSearch = useSearchableMenuItems({
+    items: useMemo(
+      () => [
+        ...orderBy(activeOrgs, ['name']).map(org => ({
+          item: makeOrganizationMenuItem(org),
+          searchText: `${org.name} ${org.slug}`,
+        })),
+        ...orderBy(inactiveOrgs, ['name']).map(org => ({
+          item: makeInactiveOrganizationMenuItem(org),
+          searchText: `${org.name} ${org.slug}`,
+        })),
+      ],
+      [activeOrgs, inactiveOrgs]
+    ),
+    placeholder: t('Search organizations'),
+    emptyMessage: t('No organizations found'),
+  });
 
   const letterAvatarProps = {
     identifier: organization.slug,
@@ -99,7 +155,10 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         />
       )}
       position="right-start"
-      minMenuWidth={200}
+      minMenuWidth={274}
+      // Organizations and projects are unbounded lists, so cap the height and
+      // let them scroll. Inherited by the submenus.
+      maxMenuHeight={600}
       items={[
         {
           key: 'organization',
@@ -123,65 +182,81 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               : [
                   {
                     key: 'organization-settings',
-                    label: t('Organization Settings'),
+                    label: t('Settings'),
+                    leadingItems: <IconSettings />,
                     to: `/settings/${organization.slug}/`,
                     hidden: !organization.access?.includes('org:read'),
-                  },
-                  {
-                    key: 'projects',
-                    label: t('Projects'),
-                    onAction: () => {
-                      setReferrer('org-dropdown');
-                      navigate(makeProjectsPathname({path: '/', organization}));
-                    },
-                  },
-                  {
-                    key: 'members',
-                    label: t('Members'),
-                    to: `/settings/${organization.slug}/members/`,
-                    hidden: !organization.access?.includes('member:read'),
-                  },
-                  {
-                    key: 'teams',
-                    label: t('Teams'),
-                    to: `/settings/${organization.slug}/teams/`,
-                    hidden: !organization.access?.includes('team:read'),
-                  },
-                  {
-                    key: 'billing',
-                    label: t('Usage & Billing'),
-                    to: `/settings/${organization.slug}/billing/`,
-                    hidden: !organization.access?.includes('org:billing'),
                   },
                 ]),
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
-              submenu: true,
+              leadingItems: <IconBuilding />,
+              submenu: {title: switchOrganizationSearch.title},
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                {
-                  key: 'active-orgs',
-                  children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
-                  // Hide entire submenu if there are no active organizations
-                  hidden: activeOrgs.length === 0,
-                },
-                {
-                  key: 'inactive-ogs',
-                  children: orderBy(inactiveOrgs, ['name']).map(
-                    makeInactiveOrganizationMenuItem
-                  ),
-                  // Hide entire submenu if there are no inactive organizations
-                  hidden: inactiveOrgs.length === 0,
-                },
+                ...switchOrganizationSearch.items,
                 makeCreateOrganizationMenuItem(),
               ],
+            },
+          ],
+        },
+        {
+          key: 'project-settings',
+          // Reflect what the list below actually is, so the heading does not
+          // promise starred projects when it is showing all of them.
+          label: isShowingAllProjects ? t('Project Settings') : t('Starred Projects'),
+          // Project settings belong to the current organization, so they follow
+          // the same access rules as the links above.
+          hidden: props.hideCurrentOrganizationLinks,
+          children: [
+            ...inlineProjects.map(project => makeProjectMenuItem(project, organization)),
+            {
+              key: 'all-projects',
+              label: t('All Projects'),
+              leadingItems: <IconAllProjects />,
+              // Set expectations before the click: a small number says the
+              // submenu is trivial, a large one says to expect the search field.
+              trailingItems: (
+                <Text size="sm" variant="muted" tabular>
+                  {projects.length}
+                </Text>
+              ),
+              // When every project is already listed above, a submenu would just
+              // repeat those rows, so link straight to the projects index
+              // instead. Otherwise it opens the full searchable list.
+              ...(isShowingAllProjects
+                ? {to: `/settings/${organization.slug}/projects/`}
+                : {
+                    submenu: {title: allProjectsSearch.title},
+                    children: allProjectsSearch.items,
+                  }),
             },
           ],
         },
       ]}
     />
   );
+}
+
+function makeProjectMenuItem(
+  project: Project,
+  organization: Organization,
+  {starrable = false}: {starrable?: boolean} = {}
+): MenuItemProps {
+  return {
+    key: `project-${project.id}`,
+    label: project.slug,
+    textValue: project.slug,
+    leadingItems: <ProjectAvatar project={project} />,
+    // Starring is offered where the user is browsing the full list, which is
+    // where they can act on what they find. Pinned rows omit it: the star would
+    // only ever unpin, and the row would vanish from under the cursor.
+    trailingItems: starrable ? (
+      <ProjectStarToggle organization={organization} project={project} />
+    ) : undefined,
+    to: `/settings/${organization.slug}/projects/${project.slug}/`,
+  };
 }
 
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {

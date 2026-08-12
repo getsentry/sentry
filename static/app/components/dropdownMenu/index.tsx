@@ -103,10 +103,6 @@ export interface DropdownMenuProps
    */
   isDisabled?: boolean;
   /**
-   * Maximum menu width
-   */
-  maxMenuHeight?: number;
-  /**
    * Title for the current menu.
    */
   menuTitle?: React.ReactNode;
@@ -266,6 +262,7 @@ function DropdownMenu({
         {...props}
         {...resolvedMenuProps}
         size={size}
+        maxMenuHeight={maxMenuHeight}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={{
           ...overlayProps,

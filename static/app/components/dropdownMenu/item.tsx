@@ -60,8 +60,12 @@ export interface MenuItemProps extends MenuListItemProps {
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
+   *
+   * `title` may be any node, so it can hold interactive content such as a
+   * search field. It renders outside the menu's `ul`, so keystrokes there are
+   * not intercepted by the menu's typeahead and arrow-key handling.
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?: boolean | {position?: UseOverlayProps['position']; title?: React.ReactNode};
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
