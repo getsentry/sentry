@@ -81,6 +81,12 @@ class SSOSignupVerificationViewTest(TestCase):
         signed = _make_signed_blob(email=email or self.email, **blob_kwargs)
         return reverse(self.endpoint, args=[signed])
 
+    def _get_pipeline_state(self) -> dict[str, Any]:
+        auth_key = "auth:pipeline:test-sso-verification"
+        local_client = clusters.get(REDIS_CLUSTER).get_local_client_for_key(auth_key)
+        raw = local_client.get(auth_key)
+        return json.loads(raw)
+
     def test_stores_verified_email_and_redirects_to_pipeline(self) -> None:
         self._setup_pipeline()
         self._set_pending_email()
@@ -126,3 +132,36 @@ class SSOSignupVerificationViewTest(TestCase):
         assert resp.status_code == 400
         assert "Could not find your signup data" in resp.content.decode()
         assert not User.objects.filter(email=self.email).exists()
+
+    def test_missing_session_data_leaves_pipeline_state_untouched(self) -> None:
+        self._setup_pipeline()
+
+        resp = self.client.get(self._get_verify_url())
+
+        assert resp.status_code == 400
+        assert "verified_email" not in self._get_pipeline_state()
+
+    def test_email_mismatch_leaves_pipeline_state_unverified(self) -> None:
+        self._setup_pipeline()
+        self._set_pending_email(email="different@example.com")
+
+        resp = self.client.get(self._get_verify_url(email="different@example.com"))
+
+        assert resp.status_code == 400
+        assert "verified_email" not in self._get_pipeline_state()
+
+    @mock.patch("sentry.auth.helper.auth")
+    def test_clicking_verification_link_twice_only_works_once(
+        self, mock_auth: mock.MagicMock
+    ) -> None:
+        mock_auth.login.return_value = True
+        mock_auth.get_login_redirect.return_value = "/organizations/test-org/issues/"
+
+        self._setup_pipeline()
+        self._set_pending_email()
+
+        first = self.client.get(self._get_verify_url())
+        assert first.status_code == 302
+
+        second = self.client.get(self._get_verify_url())
+        assert second.status_code == 400

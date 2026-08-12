@@ -123,7 +123,7 @@ class NewUserTransactionFailed(Exception):
 
 def _sso_verification_required(email: str) -> bool:
     """Check if email verification at signup is required for this email"""
-    force_emails = options.get("auth.email-verification-at-signup.force-in-experiment")
+    force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
     return features.has("auth:email-verification-at-sso-signup") or in_allowlist
@@ -704,14 +704,14 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
-                if not trusted and _sso_verification_required(self.identity["email"]):
+                is_trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state
                     )
-                auth_identity = self.handle_new_user(email_verified=trusted)
+                auth_identity = self.handle_new_user(email_verified=is_trusted)
                 created_new_user = True
-            elif self._has_verified_signup_email(state):
+            elif op is None and self._has_verified_signup_email(state):
                 try:
                     auth_identity = self.handle_new_user(email_verified=True)
                 except NewUserTransactionFailed:

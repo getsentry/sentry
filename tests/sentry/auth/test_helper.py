@@ -1401,7 +1401,10 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         user = User.objects.get(email=self.email)
         assert UserEmail.objects.get(user=user, email=self.email).is_verified is False
 
-    def test_flag_on_trust_check_passes_creates_user_with_verified_email(self) -> None:
+    @mock.patch("sentry.auth.helper.send_signup_verification_email")
+    def test_flag_on_trust_check_passes_creates_user_with_verified_email(
+        self, mock_send: mock.MagicMock
+    ) -> None:
         identity: _Identity = {
             "id": "google-123",
             "email": self.email,
@@ -1417,8 +1420,57 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
                 mock_provider.key = "google"
                 handler.handle_unknown_identity(self.state)
 
+        mock_send.assert_not_called()
         user = User.objects.get(email=self.email)
         assert UserEmail.objects.get(user=user, email=self.email).is_verified is True
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.messages")
+    def test_confirm_op_does_not_trigger_verified_user_creation(
+        self, mock_messages: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+
+        self.request.POST = {"op": "confirm"}
+        self.handler.handle_unknown_identity(self.state)
+
+        assert not User.objects.filter(email=self.email).exists()
+        assert getattr(self.state, "verified_email", None) == self.email
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.auth")
+    def test_login_op_does_not_trigger_verified_user_creation(
+        self, mock_auth: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+
+        self.request.POST = {"op": "login", "username": self.email}
+        self.handler.handle_unknown_identity(self.state)
+
+        assert not User.objects.filter(email=self.email).exists()
+        assert getattr(self.state, "verified_email", None) == self.email
+
+    def test_resubmitting_after_verification_does_not_create_duplicate_user(self) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+
+        self.request.POST = {}
+        self.handler.handle_unknown_identity(self.state)
+        assert User.objects.filter(email=self.email).count() == 1
+
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert isinstance(response, HttpResponseRedirect)
+        assert response.url == reverse("sentry-login")
+        assert User.objects.filter(email=self.email).count() == 1
+        assert (
+            AuthIdentity.objects.filter(
+                auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+            ).count()
+            == 1
+        )
 
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
     def test_flag_on_untrusted_provider_sends_verification_email(
@@ -1477,6 +1529,26 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
             with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
                 handler.handle_unknown_identity(self.state)
         mock_send.assert_called_once()
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.messages")
+    def test_retry_after_failed_verification_does_not_bypass_pipeline(
+        self, mock_messages: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+
+        handler = self.handler
+        self.request.POST = {}
+        with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
+            handler.handle_unknown_identity(self.state)
+
+        assert getattr(self.state, "verified_email", None) is None
+
+        self.request.POST = {}
+        handler.handle_unknown_identity(self.state)
+
+        assert not User.objects.filter(email=self.email).exists()
 
     @mock.patch("sentry.auth.helper.messages")
     def test_membership_error_after_verification_does_not_reset_sent_marker(
