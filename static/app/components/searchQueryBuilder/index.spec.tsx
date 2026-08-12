@@ -42,7 +42,10 @@ import {
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
-jest.unmock('@tanstack/react-pacer/async-debouncer');
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useDebouncedValue: jest.fn(value => [value]),
+}));
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},

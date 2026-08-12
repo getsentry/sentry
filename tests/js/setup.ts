@@ -80,10 +80,6 @@ jest.mock('@tanstack/react-pacer', () => ({
   useDebouncedCallback: jest.fn(fn => fn),
   useDebouncedValue: jest.fn(value => [value]),
 }));
-jest.mock('@tanstack/react-pacer/async-debouncer', () => ({
-  ...jest.requireActual('@tanstack/react-pacer/async-debouncer'),
-  useAsyncDebouncedCallback: jest.fn(fn => fn),
-}));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest
