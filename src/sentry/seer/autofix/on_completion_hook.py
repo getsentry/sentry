@@ -542,30 +542,31 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls,
         state: SeerRunState,
     ) -> list[dict]:
-        return [
-            {
-                "provider": pull_request.provider or "unknown",
-                "repo_name": pull_request.repo_name,
-                "status": (
-                    "completed" if pull_request.pr_creation_status == "completed" else "error"
-                ),
-                "error": (
-                    cls._classify_pr_creation_failure(pull_request.pr_creation_error)
-                    if pull_request.pr_creation_status != "completed"
-                    else None
-                ),
-                "pull_request": (
-                    {
-                        "pr_id": pull_request.pr_id,
-                        "pr_number": pull_request.pr_number,
-                        "pr_url": pull_request.pr_url,
-                    }
-                    if pull_request.pr_id is not None
-                    else None
-                ),
-            }
-            for pull_request in state.repo_pr_states.values()
-        ]
+        entries = []
+        for pull_request in state.repo_pr_states.values():
+            status = "completed" if pull_request.pr_creation_status == "completed" else "error"
+            entries.append(
+                {
+                    "provider": pull_request.provider or "unknown",
+                    "repo_name": pull_request.repo_name,
+                    "status": status,
+                    "error_code": (
+                        cls._classify_pr_creation_failure(pull_request.pr_creation_error)
+                        if status == "error"
+                        else None
+                    ),
+                    "pull_request": (
+                        {
+                            "pr_id": pull_request.pr_id,
+                            "pr_number": pull_request.pr_number,
+                            "pr_url": pull_request.pr_url,
+                        }
+                        if pull_request.pr_id is not None
+                        else None
+                    ),
+                }
+            )
+        return entries
 
     @staticmethod
     def _classify_pr_creation_failure(error: str | None) -> str:
