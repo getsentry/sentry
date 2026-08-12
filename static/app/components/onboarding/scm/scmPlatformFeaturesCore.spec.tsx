@@ -1,23 +1,17 @@
 import {useState} from 'react';
-import debounce from 'lodash/debounce';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
 
-type MockDebouncedFunction = ReturnType<typeof jest.fn> & {
-  callback: () => void;
-};
-
-jest.mock('lodash/debounce', () =>
-  jest.fn((callback: () => void) => Object.assign(jest.fn(), {callback}))
-);
+jest.unmock('@tanstack/react-pacer');
 
 // Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
 // engine).
@@ -82,11 +76,8 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(() => {
-    jest.mocked(debounce).mockClear();
-  });
-
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -197,6 +188,8 @@ describe('ScmPlatformFeaturesCore', () => {
   });
 
   it('tracks one debounced manual platform search with its result count', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     render(
       <ScmPlatformFeaturesCore
@@ -208,22 +201,14 @@ describe('ScmPlatformFeaturesCore', () => {
       {organization}
     );
 
-    await userEvent.type(screen.getByRole('textbox'), 'java ');
+    await user.type(screen.getByRole('textbox'), 'java ');
 
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
       'growth.platformpicker_search',
       expect.anything()
     );
 
-    const activeDebouncedCallbacks = jest
-      .mocked(debounce)
-      .mock.results.map(({value}) => value as unknown as MockDebouncedFunction)
-      .filter(debounced => debounced.mock.calls.length > 0);
-    expect(activeDebouncedCallbacks).toHaveLength(1);
-
-    act(() => {
-      activeDebouncedCallbacks[0]!.callback();
-    });
+    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
 
     expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
 

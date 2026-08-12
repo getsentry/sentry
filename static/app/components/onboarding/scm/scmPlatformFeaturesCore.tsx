@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
-import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -362,51 +362,29 @@ export function ScmPlatformFeaturesCore({
     [manualPickerFilter, manualPickerOptions]
   );
 
-  const latestSearchValuesRef = useRef({
-    filter: manualPickerFilter,
-    options: manualPickerFilteredOptions,
-    organization,
-    analyticsFlow,
-  });
-
-  useEffect(() => {
-    latestSearchValuesRef.current = {
-      filter: manualPickerFilter,
-      options: manualPickerFilteredOptions,
-      organization,
-      analyticsFlow,
-    };
-  });
-
-  const debounceManualPickerSearch = useRef(
-    debounce(() => {
-      const {
-        filter,
-        options,
-        organization: currentOrganization,
-        analyticsFlow: flow,
-      } = latestSearchValuesRef.current;
-
-      if (!filter || flow !== 'project-creation') {
+  const debouncedManualPickerSearch = useDebouncedCallback(
+    () => {
+      if (!manualPickerFilter || analyticsFlow !== 'project-creation') {
         return;
       }
 
       trackAnalytics('growth.platformpicker_search', {
-        organization: currentOrganization,
-        search: filter.toLowerCase(),
-        num_results: options.length,
+        organization,
+        search: manualPickerFilter.toLowerCase(),
+        num_results: manualPickerFilteredOptions.length,
         source: 'project-creation',
         variant: 'scm',
       });
-    }, DEFAULT_DEBOUNCE_DURATION)
-  ).current;
+    },
+    {wait: DEFAULT_DEBOUNCE_DURATION}
+  );
 
   function handleManualPickerSearch(query: string, {action}: {action: string}) {
     if (action !== 'input-change') {
       return;
     }
     setManualPickerFilter(query);
-    debounceManualPickerSearch();
+    debouncedManualPickerSearch();
   }
 
   // When the active platform is a manual (non-detected) pick, show the manual
