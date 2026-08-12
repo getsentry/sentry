@@ -61,7 +61,6 @@ class SentryAppEventType(StrEnum):
     SEER_CODING_STARTED = "seer.coding_started"
     SEER_CODING_COMPLETED = "seer.coding_completed"
     SEER_PR_CREATED = "seer.pr_created"
-    SEER_PR_FAILED = "seer.pr_failed"
     SEER_ITERATION_STARTED = "seer.iteration_started"
     SEER_ITERATION_COMPLETED = "seer.iteration_completed"
 
