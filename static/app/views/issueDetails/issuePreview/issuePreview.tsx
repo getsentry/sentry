@@ -36,8 +36,8 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
 import {IssuePreviewAutofixSummary} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofixSummary';
-import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeerActions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -204,7 +204,7 @@ function IssuePreviewContent() {
         gap="md"
       >
         {hasAutofix ? (
-          <IssuePreviewSeerActions
+          <IssuePreviewActions
             autofix={autofix}
             group={group}
             disabled={disableActions}
