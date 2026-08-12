@@ -616,7 +616,6 @@ def process_workflows(
     logger.debug(
         "workflow_engine.process_workflows",
         extra={
-            "payload": event_data,
             "group_id": event_data.group.id,
             "event_id": event_id,
             "event_environment_id": environment.id if environment else None,
