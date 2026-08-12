@@ -41,7 +41,7 @@ enum DebugIdBundleArtifactType {
   INDEXED_RAM_BUNDLE = 4,
 }
 
-const debugIdBundleTypeLabels = {
+const debugIdBundleTypeLabels: Record<number, string> = {
   [DebugIdBundleArtifactType.INVALID]: t('Invalid'),
   [DebugIdBundleArtifactType.SOURCE]: t('Source'),
   [DebugIdBundleArtifactType.MINIFIED_SOURCE]: t('Minified'),
@@ -285,9 +285,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                   key={data.id}
                   size={data.fileSize}
                   name={data.filePath}
-                  type={
-                    debugIdBundleTypeLabels[data.fileType as DebugIdBundleArtifactType]
-                  }
+                  type={debugIdBundleTypeLabels[data.fileType]}
                   downloadUrl={downloadUrl}
                   orgSlug={organization.slug}
                   artifactColumnDetails={

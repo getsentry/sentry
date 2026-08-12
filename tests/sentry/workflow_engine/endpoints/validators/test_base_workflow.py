@@ -139,7 +139,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
                 "conditions": [
                     {
                         "type": Condition.SEER_ACTIVITY_TRIGGER,
-                        "comparison": ["rca_started"],
+                        "comparison": ["rca_completed"],
                         "conditionResult": True,
                     }
                 ],
@@ -253,7 +253,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=["rca_completed"],
             condition_result=True,
         )
         workflow = self.create_workflow(
@@ -301,7 +301,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=["rca_completed"],
             condition_result=True,
         )
         workflow = self.create_workflow(
@@ -809,10 +809,24 @@ class TestWorkflowValidatorUpdate(TestCase):
         }
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
-        assert validator.is_valid() is True
 
-        with pytest.raises(ValidationError):
-            validator.update(self.workflow, validator.validated_data)
+        with pytest.raises(ValidationError) as excinfo:
+            validator.is_valid(raise_exception=True)
+
+        assert excinfo.value.detail == {
+            "triggers": [
+                ErrorDetail(
+                    string=f"Invalid Condition Group ID {fake_dcg.id}",
+                    code="invalid",
+                )
+            ]
+        }
+
+        # The workflow keeps its own trigger group, and the other group is untouched
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.when_condition_group_id != fake_dcg.id
+        assert fake_dcg.conditions.count() == 0
 
     def test_update__remove_action_filter(self, mock_action_validator: mock.MagicMock) -> None:
         self.valid_saved_data["actionFilters"] = []

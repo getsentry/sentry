@@ -9,7 +9,11 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.integrations.jira.integration import (
+    JiraIntegrationProvider,
+    _build_project_mapping_audit_data,
+    _ProjectStatusMapping,
+)
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -19,6 +23,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
@@ -27,6 +32,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -34,10 +40,82 @@ from sentry.utils import json
 from sentry.utils.signing import sign
 
 pytestmark = [requires_snuba]
+EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
 def get_client():
     return StubJiraApiClient()
+
+
+def test_build_project_mapping_audit_data() -> None:
+    upserts = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"resolve-{external_id}", on_unresolve=f"unresolve-{external_id}"
+        )
+        for external_id in ("1", "2", "3")
+    }
+    existing = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"previous-resolve-{external_id}",
+            on_unresolve=f"previous-unresolve-{external_id}",
+        )
+        for external_id in ("2", "3", "4", "5", "6")
+    }
+
+    assert _build_project_mapping_audit_data(
+        additions=["1"],
+        updates=["2", "3"],
+        removals=["4", "5", "6"],
+        upserts=upserts,
+        existing=existing,
+    ) == {
+        "added_count": 1,
+        "updated_count": 2,
+        "removed_count": 3,
+        "added_project_mappings": [
+            {"external_id": "1", "on_resolve": "resolve-1", "on_unresolve": "unresolve-1"}
+        ],
+        "updated_project_mappings": [
+            {
+                "external_id": "2",
+                "on_resolve": "resolve-2",
+                "on_unresolve": "unresolve-2",
+                "previous_on_resolve": "previous-resolve-2",
+                "previous_on_unresolve": "previous-unresolve-2",
+            },
+            {
+                "external_id": "3",
+                "on_resolve": "resolve-3",
+                "on_unresolve": "unresolve-3",
+                "previous_on_resolve": "previous-resolve-3",
+                "previous_on_unresolve": "previous-unresolve-3",
+            },
+        ],
+        "removed_project_mappings": [
+            {
+                "external_id": "4",
+                "on_resolve": "previous-resolve-4",
+                "on_unresolve": "previous-unresolve-4",
+            },
+            {
+                "external_id": "5",
+                "on_resolve": "previous-resolve-5",
+                "on_unresolve": "previous-unresolve-5",
+            },
+            {
+                "external_id": "6",
+                "on_resolve": "previous-resolve-6",
+                "on_unresolve": "previous-unresolve-6",
+            },
+        ],
+    }
+
+    assert (
+        _build_project_mapping_audit_data(
+            additions=[], updates=[], removals=[], upserts={}, existing={}
+        )
+        is None
+    )
 
 
 class RegionJiraIntegrationTest(APITestCase):
@@ -1131,7 +1209,8 @@ class JiraIntegrationTest(APITestCase):
             == 1
         )
 
-        # test disable forward
+        # Without explicit removals enabled, the payload is a complete replacement. An empty
+        # payload removes every mapping and disables forward sync.
         data = {
             "sync_comments": True,
             "sync_forward_assignment": True,
@@ -1209,11 +1288,71 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(self.organization, self.user)
 
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",
             json=[{"id": "12345", "name": "Example Project"}],
         )
+
+        # Create a valid project mapping
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        # Create a project mapping that is missing from the projects list response. It is
+        # hidden from the config response, but the row itself is left alone.
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="67890",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        assert installation.get_config_data() == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
+        }
+
+        # Building the response must not rewrite the stored config, which keeps a bool here.
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    def test_get_config_data_returns_mappings_when_jira_api_fails(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration_id=integration.id
@@ -1228,32 +1367,38 @@ class JiraIntegrationTest(APITestCase):
         }
         org_integration.save()
 
-        # Create a valid project mapping
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
             external_id="12345",
             unresolved_status="in_progress",
             resolved_status="done",
         )
 
-        # Create a project mapping that is missing from the projects list response.
-        # We expect this to be "healed" by the config query, and removed as the
-        # project is no longer visible in our integration.
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
             external_id="67890",
-            unresolved_status="in_progress",
-            resolved_status="done",
+            unresolved_status="todo",
+            resolved_status="resolved",
         )
 
         installation = integration.get_installation(self.organization.id)
 
-        assert installation.get_config_data() == {
+        with mock.patch.object(
+            installation, "_filter_active_projects", side_effect=ApiError("Jira is down")
+        ):
+            config = installation.get_config_data()
+
+        assert config == {
             "sync_comments": True,
             "sync_forward_assignment": True,
             "sync_reverse_assignment": True,
             "sync_status_reverse": True,
-            "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "sync_status_forward": {
+                "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                "67890": {"on_resolve": "resolved", "on_unresolve": "todo"},
+            },
             "issues_ignored_fields": "",
         }
 
@@ -1284,18 +1429,14 @@ class JiraIntegrationTest(APITestCase):
         }
         org_integration.save()
 
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="12345",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
-        IntegrationExternalProject.objects.create(
-            organization_integration_id=org_integration.id,
-            external_id="67890",
-            unresolved_status="in_progress",
-            resolved_status="done",
-        )
+        for external_id in ("12345", "67890"):
+            self.create_integration_external_project(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                external_id=external_id,
+                unresolved_status="in_progress",
+                resolved_status="done",
+            )
 
         responses.add(
             responses.GET,
@@ -1315,6 +1456,441 @@ class JiraIntegrationTest(APITestCase):
         assert "rest/api/2/project/search" in responses.calls[0].request.url
         assert "id=12345" in responses.calls[0].request.url
         assert "id=67890" in responses.calls[0].request.url
+
+    def _mappings(self, org_integration_id: int) -> dict[str, tuple[str, str]]:
+        return {
+            iep.external_id: (iep.resolved_status, iep.unresolved_status)
+            for iep in IntegrationExternalProject.objects.filter(
+                organization_integration_id=org_integration_id
+            )
+        }
+
+    def _jira_installation_with_mappings(self, *external_ids: str):
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        for external_id in external_ids:
+            self.create_integration_external_project(
+                organization_id=self.organization.id,
+                integration_id=integration.id,
+                external_id=external_id,
+                resolved_status="done",
+                unresolved_status="in_progress",
+            )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        return integration.get_installation(self.organization.id), org_integration
+
+    def test_update_organization_config_replaces_omitted_mappings_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            audit_data = installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"}
+                    }
+                }
+            )
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+        mock_logger.info.assert_not_called()
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 0,
+                "removed_count": 1,
+                "added_project_mappings": [],
+                "updated_project_mappings": [],
+                "removed_project_mappings": [
+                    {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"}
+                ],
+            }
+        }
+
+    def test_update_organization_config_rejects_explicit_removal_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"sync_status_forward": {"1": None}})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_only_touches_changed_mappings(self) -> None:
+        """
+        A mapping the payload doesn't mention is left alone -- absence is not a delete.
+
+        Untouched rows also keep their row rather than being deleted and recreated.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
+        unchanged_row_id = IntegrationExternalProject.objects.get(
+            organization_integration_id=org_integration.id, external_id="1"
+        ).id
+
+        audit_data = installation.update_organization_config(
+            {
+                "sync_status_forward": {
+                    # unchanged
+                    "1": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                    # status changed
+                    "2": {"on_resolve": "closed", "on_unresolve": "open"},
+                    # "3" omitted -> untouched
+                    # new
+                    "4": {"on_resolve": "shipped", "on_unresolve": "todo"},
+                }
+            }
+        )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("closed", "open"),
+            "3": ("done", "in_progress"),
+            "4": ("shipped", "todo"),
+        }
+
+        # An untouched mapping keeps its row instead of being deleted and recreated.
+        assert (
+            IntegrationExternalProject.objects.get(
+                organization_integration_id=org_integration.id, external_id="1"
+            ).id
+            == unchanged_row_id
+        )
+
+        # "3" was omitted, so it is absent from the audit entry -- nothing happened to it.
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 1,
+                "updated_count": 1,
+                "removed_count": 0,
+                "added_project_mappings": [
+                    {"external_id": "4", "on_resolve": "shipped", "on_unresolve": "todo"}
+                ],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "2",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
+                "removed_project_mappings": [],
+            }
+        }
+
+        # Removing "3" now takes an explicit removal.
+        audit_data = installation.update_organization_config({"sync_status_forward": {"3": None}})
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("closed", "open"),
+            "4": ("shipped", "todo"),
+        }
+        assert audit_data is not None
+        assert audit_data["sync_status_forward"]["removed_project_mappings"] == [
+            {"external_id": "3", "on_resolve": "done", "on_unresolve": "in_progress"}
+        ]
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_removes_only_explicit_removals(self) -> None:
+        """One explicit removal removes exactly one mapping and records its prior statuses."""
+        installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
+
+        audit_data = installation.update_organization_config({"sync_status_forward": {"2": None}})
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "3": ("done", "in_progress"),
+        }
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 0,
+                "removed_count": 1,
+                "added_project_mappings": [],
+                "updated_project_mappings": [],
+                "removed_project_mappings": [
+                    {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"}
+                ],
+            }
+        }
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_empty_payload_leaves_mappings_alone(self) -> None:
+        """
+        The payload that caused the original incident -- a subset of the stored mappings, in
+        the limit case an empty one. It must not delete anything, and must not flip the bool.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        # Nothing changed, so there is nothing to audit. The omission is recorded by the
+        # metric and log instead.
+        assert installation.update_organization_config({"sync_status_forward": {}}) is None
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_empty_payload_with_no_mappings(self) -> None:
+        """With nothing stored, an empty payload leaves the derived bool off."""
+        installation, org_integration = self._jira_installation_with_mappings()
+
+        assert installation.update_organization_config({"sync_status_forward": {}}) is None
+
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is False
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_upsert_only_payload_keeps_sync_enabled(self) -> None:
+        """
+        The config bool is derived from the surviving rows, not from the payload.
+
+        Deriving it from the payload would let a single-row upsert disable outbound sync for
+        every mapping it omitted -- a quieter replay of the original incident.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        installation.update_organization_config(
+            {"sync_status_forward": {"3": {"on_resolve": "shipped", "on_unresolve": "todo"}}}
+        )
+
+        assert set(self._mappings(org_integration.id)) == {"1", "2", "3"}
+        assert installation.org_integration is not None
+        assert installation.org_integration.config["sync_status_forward"] is True
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_ignores_removal_for_unknown_mapping(self) -> None:
+        """
+        The settings form produces a stale removal by deleting a row twice before the
+        refetch lands, so an unknown id is a silent no-op rather than an error.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        assert (
+            installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                        "999": None,
+                    }
+                }
+            )
+            is None
+        )
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_logs_omitted_mappings(self) -> None:
+        """
+        A payload that omits stored mappings leaves no audit entry, so the log is the only
+        record that a caller still expects absence to delete.
+        """
+        installation, _ = self._jira_installation_with_mappings("1", "2")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            installation.update_organization_config(
+                {"sync_status_forward": {"3": {"on_resolve": "shipped", "on_unresolve": "todo"}}}
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "jira.sync_status_forward.omits_existing_mappings",
+            extra={
+                "organization_id": self.organization.id,
+                "integration_id": installation.model.id,
+                "omitted_count": 2,
+                "upsert_count": 1,
+                "removal_count": 0,
+            },
+        )
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_does_not_log_a_complete_payload(self) -> None:
+        installation, _ = self._jira_installation_with_mappings("1")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            installation.update_organization_config(
+                {"sync_status_forward": {"1": None, "999": None}}
+            )
+
+        mock_logger.info.assert_not_called()
+
+    def test_update_organization_config_audits_a_status_only_change(self) -> None:
+        """
+        Overwriting an existing mapping's statuses is audited too.
+
+        Nothing is added or removed in this case, but the prior statuses are gone from the
+        database -- so they have to be recorded or the change is unrecoverable.
+        """
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="1",
+            resolved_status="done",
+            unresolved_status="in_progress",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        audit_data = installation.update_organization_config(
+            {"sync_status_forward": {"1": {"on_resolve": "closed", "on_unresolve": "open"}}}
+        )
+
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 1,
+                "removed_count": 0,
+                "added_project_mappings": [],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "1",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
+                "removed_project_mappings": [],
+            }
+        }
+
+    def test_update_organization_config_returns_no_audit_data_when_unchanged(self) -> None:
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="1",
+            resolved_status="done",
+            unresolved_status="in_progress",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        assert (
+            installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"}
+                    }
+                }
+            )
+            is None
+        )
+
+    def test_update_organization_config_rejects_incomplete_mappings(self) -> None:
+        """
+        An incomplete mapping is rejected before any row is touched.
+
+        `{}` in particular is an unfilled row in the settings form, so it has to keep raising
+        rather than being read as a delete -- only `None` deletes.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        payload: dict[str, Any]
+        for payload in (
+            {"2": {}},
+            {"2": {"on_resolve": "done"}},
+            {"2": {"on_resolve": "done", "on_unresolve": ""}},
+            {"2": {"on_resolve": "", "on_unresolve": "open"}},
+        ):
+            with pytest.raises(IntegrationError):
+                installation.update_organization_config({"sync_status_forward": payload})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    def test_update_organization_config_rejects_malformed_mapping_payloads(self) -> None:
+        """
+        These all used to reach `.items()` or `.get()` and surface as an `AttributeError`,
+        which the endpoint doesn't catch -- so a malformed payload was a 500, not a 400.
+
+        `False` and `""` in particular must raise rather than being read as a delete.
+        """
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        payload: Any
+        for payload in (
+            # The stored value of this key is a bool, so a caller round-tripping the raw
+            # config lands here.
+            True,
+            False,
+            "sync_status_forward",
+            ["1"],
+            5,
+            # Row values that aren't objects.
+            {"1": "done"},
+            {"1": []},
+            {"1": 5},
+            {"1": False},
+            {"1": ""},
+            # Blank project ids.
+            {"": {"on_resolve": "done", "on_unresolve": "open"}},
+            {"   ": None},
+            # Two keys that collide once normalized -- ambiguous, and would let one payload
+            # both upsert and remove the same mapping.
+            {10100: {"on_resolve": "done", "on_unresolve": "open"}, "10100": None},
+        ):
+            with pytest.raises(IntegrationError):
+                installation.update_organization_config({"sync_status_forward": payload})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_organization_config_mapping_write_is_atomic(self) -> None:
+        """A failure part-way through must not leave the mappings half-written."""
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        # The explicitly removed row is deleted before anything is written, so a failing
+        # insert has to bring it back.
+        with patch.object(
+            IntegrationExternalProject.objects,
+            "bulk_create",
+            side_effect=OSError("boom"),
+        ):
+            with pytest.raises(OSError):
+                installation.update_organization_config(
+                    {
+                        "sync_status_forward": {
+                            "1": None,
+                            "3": {"on_resolve": "closed", "on_unresolve": "open"},
+                        }
+                    }
+                )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
+
+        # Same boundary, reached through the update path instead.
+        with patch.object(
+            IntegrationExternalProject.objects,
+            "bulk_update",
+            side_effect=OSError("boom"),
+        ):
+            with pytest.raises(OSError):
+                installation.update_organization_config(
+                    {
+                        "sync_status_forward": {
+                            "1": None,
+                            "2": {"on_resolve": "closed", "on_unresolve": "open"},
+                        }
+                    }
+                )
+
+        assert self._mappings(org_integration.id) == {
+            "1": ("done", "in_progress"),
+            "2": ("done", "in_progress"),
+        }
 
     @responses.activate
     def test_get_config_data_issue_keys(self) -> None:
@@ -1459,6 +2035,105 @@ class JiraIntegrationTest(APITestCase):
 
         assert config[0]["disabled"] is True
         assert "Unable to communicate" in config[0]["disabledReason"]
+
+    def _setup_jira_with_status_responses(
+        self,
+        projects: list[dict[str, str]] | None = None,
+        statuses: list[dict[str, str]] | None = None,
+    ) -> tuple[Integration, Any]:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        if projects is None:
+            projects = [{"id": "10000", "name": "Project A"}]
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=projects,
+        )
+
+        if statuses is not None:
+            responses.add(
+                responses.GET,
+                "https://example.atlassian.net/rest/api/2/statuses/search",
+                json={"values": statuses},
+            )
+
+        return integration, installation
+
+    @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
+    def test_get_organization_config_lazy_status_with_configured_projects(self) -> None:
+        integration, installation = self._setup_jira_with_status_responses(
+            projects=[
+                {"id": "10000", "name": "Project A"},
+                {"id": "10001", "name": "Project B"},
+            ],
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="10000",
+            name="Project A",
+            resolved_status="6",
+            unresolved_status="1",
+        )
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
+        assert "10001" not in config[0]["mappedSelectors"]
+
+    @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
+    def test_get_organization_config_lazy_status_no_configured_projects(self) -> None:
+        _integration, installation = self._setup_jira_with_status_responses()
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"] == {}
+
+    @responses.activate
+    def test_get_organization_config_flag_off_uses_existing_behavior(self) -> None:
+        _integration, installation = self._setup_jira_with_status_responses(
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
+        )
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" not in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
 
     def test_error_fields_from_json_issue_not_found(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")

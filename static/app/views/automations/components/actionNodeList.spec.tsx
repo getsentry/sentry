@@ -53,7 +53,7 @@ const actionHandlers: ActionHandler[] = [
 ];
 
 describe('ActionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
@@ -209,7 +209,7 @@ describe('ActionNodeList', () => {
               {
                 id: 'condition-1',
                 type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-                comparison: ['rca_started'],
+                comparison: ['pr_created'],
                 conditionResult: true,
               },
             ],

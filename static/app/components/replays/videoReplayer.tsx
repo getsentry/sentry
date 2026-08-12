@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {Timer} from 'sentry/utils/replays/timer';
 import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
@@ -545,7 +547,7 @@ export class VideoReplayer {
         videoElem.videoHeight === nextVideo.videoHeight &&
         videoElem.videoWidth === nextVideo.videoWidth
       ) {
-        if (videoElem.duration) {
+        if (Number.isFinite(videoElem.duration) && videoElem.duration > 0) {
           // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
           // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
           this.setVideoTime(videoElem, videoElem.duration * 1000 - 1);
@@ -597,6 +599,13 @@ export class VideoReplayer {
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
     // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
     // Setting currentTime will cause a side-effect of resetting 'ended' to false.
+    if (!Number.isFinite(timeMs)) {
+      Sentry.captureException(
+        new Error(`Attempted to set a non-finite video currentTime: ${timeMs}`)
+      );
+      return;
+    }
+
     // The additional assignment of currentTime is required to make sure ended is reset before we assign the actual currentTime
     if (video.ended && timeMs > 0) {
       // we set it to 1ms before to reduce flickering

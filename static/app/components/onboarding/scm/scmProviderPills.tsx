@@ -9,17 +9,31 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {partitionScmProviders} from './scmProviderOrder';
 
+// The install view identifies the host surface. These providers only render in SCM
+// flows, so both install paths always set the variant to `scm`.
+const INSTALL_VIEW = {
+  onboarding: 'onboarding',
+  'project-creation': 'project_creation',
+} as const;
+
 interface ScmProviderPillsProps {
+  analyticsFlow: ScmAnalyticsFlow;
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
 }
 
-export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
+export function ScmProviderPills({
+  analyticsFlow,
+  providers,
+  onInstall,
+}: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
+  const view = INSTALL_VIEW[analyticsFlow];
   const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
   const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
@@ -48,7 +62,8 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
               type: 'first_party',
               installStatus: 'Not Installed',
               analyticsParams: {
-                view: 'onboarding_scm',
+                view,
+                variant: 'scm',
                 already_installed: false,
               },
               suppressSuccessMessage: true,
@@ -79,7 +94,8 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                   organization,
                   onInstall,
                   analyticsParams: {
-                    view: 'onboarding_scm',
+                    view,
+                    variant: 'scm',
                     already_installed: false,
                   },
                   suppressSuccessMessage: true,

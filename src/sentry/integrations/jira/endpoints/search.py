@@ -59,6 +59,26 @@ class JiraSearchEndpoint(IntegrationEndpoint):
 
         if field is None:
             return Response({"detail": "field is a required parameter"}, status=400)
+
+        if field == "status":
+            project_id = request.GET.get("project")
+            if not project_id:
+                return Response(
+                    {"detail": "project is a required parameter for status search"}, status=400
+                )
+            with ProjectManagementEvent(
+                action_type=ProjectManagementActionType.SEARCH_STATUSES,
+                integration=integration,
+            ).capture() as lifecycle:
+                lifecycle.add_extra("field", field)
+                try:
+                    response = jira_client.get_project_statuses(project_id)
+                except (ApiUnauthorized, ApiError) as e:
+                    lifecycle.record_halt(e)
+                    return Response({"detail": "Unable to fetch statuses from Jira"}, status=400)
+            statuses = [{"value": s["id"], "label": s["name"]} for s in response.get("values", [])]
+            return Response(statuses)
+
         if not query:
             return Response({"detail": "query is a required parameter"}, status=400)
 

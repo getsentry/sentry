@@ -9,6 +9,7 @@ import {
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -31,6 +32,8 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   allowedAttributeKeys?: string[];
+  arrayAttributes?: TagCollection;
+  arraySecondaryAliases?: TagCollection;
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
@@ -39,6 +42,7 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
@@ -81,7 +85,14 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ): FieldDefinitionGetter {
   return (key, options) => {
-    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
+    // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
+    // field definition resolves to the attribute's stored backend key.
+    const baseKey = stripArrayMembershipOperator(key);
+    return getFieldDefinition(
+      baseKey,
+      typeMap[itemType],
+      options?.kind ?? tags[baseKey]?.kind
+    );
   };
 }
 
@@ -93,6 +104,8 @@ export function useTraceItemSearchQueryBuilderProps({
   numberSecondaryAliases,
   stringAttributes,
   stringSecondaryAliases,
+  arrayAttributes = {},
+  arraySecondaryAliases = {},
   initialQuery,
   searchSource,
   getFilterTokenWarning,
@@ -111,6 +124,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   disabled,
   defaultToAskSeerOnFreeTextSearch,
@@ -132,6 +146,7 @@ export function useTraceItemSearchQueryBuilderProps({
     stringAttributes,
     functionTags,
     booleanAttributes,
+    arrayAttributes,
     disallowHas: disallowHas ?? false,
   });
 
@@ -147,6 +162,7 @@ export function useTraceItemSearchQueryBuilderProps({
     numberAttributes,
     stringAttributes,
     booleanAttributes,
+    arrayAttributes,
   });
 
   const dynamicTagKeys = useGetTraceItemAttributeTagKeys({
@@ -210,6 +226,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       defaultToAskSeerOnFreeTextSearch,
       recentSearches: disableRecentSearches
         ? undefined
@@ -223,6 +240,7 @@ export function useTraceItemSearchQueryBuilderProps({
         ...numberSecondaryAliases,
         ...stringSecondaryAliases,
         ...booleanSecondaryAliases,
+        ...arraySecondaryAliases,
       },
       caseInsensitive,
       disabled,
@@ -238,6 +256,7 @@ export function useTraceItemSearchQueryBuilderProps({
       defaultToAskSeerOnFreeTextSearch,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -259,6 +278,7 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       searchSource,
       stringSecondaryAliases,
+      arraySecondaryAliases,
     ]
   );
 }
@@ -271,6 +291,8 @@ export function TraceItemSearchQueryBuilder({
   numberSecondaryAliases,
   numberAttributes,
   stringSecondaryAliases,
+  arrayAttributes,
+  arraySecondaryAliases,
   searchSource,
   stringAttributes,
   itemType,
@@ -292,6 +314,7 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
@@ -307,6 +330,8 @@ export function TraceItemSearchQueryBuilder({
     stringAttributes,
     numberSecondaryAliases,
     stringSecondaryAliases,
+    arrayAttributes,
+    arraySecondaryAliases,
     initialQuery,
     placeholder,
     searchSource,
@@ -325,6 +350,7 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disableRecentSearches,
     disabled,
     defaultToAskSeerOnFreeTextSearch,
@@ -354,9 +380,11 @@ function useFilterTags({
   numberAttributes,
   stringAttributes,
   booleanAttributes,
+  arrayAttributes,
   functionTags,
   disallowHas,
 }: {
+  arrayAttributes: TagCollection;
   booleanAttributes: TagCollection;
   disallowHas: boolean;
   functionTags: TagCollection;
@@ -369,6 +397,7 @@ function useFilterTags({
       ...numberAttributes,
       ...stringAttributes,
       ...booleanAttributes,
+      ...arrayAttributes,
     };
 
     if (!disallowHas) {
@@ -376,10 +405,18 @@ function useFilterTags({
         ...numberAttributes,
         ...stringAttributes,
         ...booleanAttributes,
+        ...arrayAttributes,
       });
     }
     return tags;
-  }, [booleanAttributes, disallowHas, functionTags, numberAttributes, stringAttributes]);
+  }, [
+    booleanAttributes,
+    disallowHas,
+    functionTags,
+    numberAttributes,
+    stringAttributes,
+    arrayAttributes,
+  ]);
 }
 
 function useFilterKeySections(

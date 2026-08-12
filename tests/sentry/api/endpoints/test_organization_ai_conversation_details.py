@@ -20,6 +20,20 @@ from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversation-details"
 
+    def test_agents_conversation_details_url(self) -> None:
+        conversation_id = "123"
+
+        assert (
+            reverse(
+                "sentry-api-0-organization-agent-conversation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "conversation_id": conversation_id,
+                },
+            )
+            == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
+        )
+
     def do_request(self, conversation_id, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:gen-ai-conversations"]
@@ -39,6 +53,17 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 format="json",
                 **kwargs,
             )
+
+    def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
+        """One minimal span, enough for the conversation to resolve to a project."""
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=uuid4().hex,
+            project=project,
+        )
 
     def test_no_feature(self) -> None:
         conversation_id = uuid4().hex
@@ -69,7 +94,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert response.data["conversationId"] == conversation_id
+        assert response.data["title"] is None
+        assert response.data["spans"] == []
 
     def test_single_trace_conversation(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
@@ -108,12 +135,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 3
+        assert len(response.data["spans"]) == 3
 
-        for span in response.data:
+        for span in response.data["spans"]:
             assert span["gen_ai.conversation.id"] == conversation_id
 
-        trace_ids = {span["trace"] for span in response.data}
+        trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
 
@@ -160,9 +187,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 4
+        assert len(response.data["spans"]) == 4
 
-        trace_ids = {span["trace"] for span in response.data}
+        trace_ids = {span["trace"] for span in response.data["spans"]}
         assert trace_ids == {trace_id_1, trace_id_2}
 
     def test_returns_conversation_attributes(self) -> None:
@@ -192,9 +219,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
-        span = response.data[0]
+        span = response.data["spans"][0]
         assert "span_id" in span
         assert span["trace"] == trace_id
         assert "precise.start_ts" in span
@@ -236,7 +263,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data["spans"]) == 2
 
         links = parse_link_header(response.headers["Link"])
         next_link = next(link for link in links.values() if link["rel"] == "next")
@@ -246,14 +273,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         query["cursor"] = next_link["cursor"]
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data["spans"]) == 2
 
         links = parse_link_header(response.headers["Link"])
         next_link = next(link for link in links.values() if link["rel"] == "next")
         query["cursor"] = next_link["cursor"]
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
     def test_span_ordering(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -282,9 +309,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 3
+        assert len(response.data["spans"]) == 3
 
-        span_timestamps = [span["precise.start_ts"] for span in response.data]
+        span_timestamps = [span["precise.start_ts"] for span in response.data["spans"]]
         assert span_timestamps == sorted(span_timestamps)
 
     def test_only_returns_matching_conversation(self) -> None:
@@ -320,14 +347,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id_1, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
-        for span in response.data:
+        assert len(response.data["spans"]) == 2
+        for span in response.data["spans"]:
             assert span["gen_ai.conversation.id"] == conversation_id_1
 
         response = self.do_request(conversation_id_2, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["gen_ai.conversation.id"] == conversation_id_2
+        assert len(response.data["spans"]) == 1
+        assert response.data["spans"][0]["gen_ai.conversation.id"] == conversation_id_2
 
     def test_returns_tool_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -353,14 +380,43 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
-        span = response.data[0]
+        span = response.data["spans"][0]
         assert span["span.op"] == "gen_ai.execute_tool"
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
         assert span["gen_ai.tool.output"] == "tool output payload"
+
+    def test_returns_embeddings_attributes(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.embeddings",
+            operation_type="embeddings",
+            trace_id=trace_id,
+            embeddings_input="search query text",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["span.op"] == "gen_ai.embeddings"
+        assert span["gen_ai.operation.type"] == "embeddings"
+        assert span["gen_ai.embeddings.input"] == "search query text"
 
     def test_stats_period_is_tried_first_then_widened(self) -> None:
         timestamp_15d = before_now(days=15).replace(microsecond=0)
@@ -381,8 +437,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+        assert len(response.data["spans"]) == 1
+        assert response.data["spans"][0]["gen_ai.conversation.id"] == conversation_id
 
     def test_stats_period_recent_conversation_returned_without_widening(self) -> None:
         timestamp_1h = before_now(minutes=30).replace(microsecond=0)
@@ -403,7 +459,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
     def test_no_time_params_falls_back_to_30d(self) -> None:
         timestamp = before_now(days=15).replace(microsecond=0)
@@ -421,8 +477,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+        assert len(response.data["spans"]) == 1
+        assert response.data["spans"][0]["gen_ai.conversation.id"] == conversation_id
 
     def test_tokens_on_multiple_span_types(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -458,9 +514,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data["spans"]) == 2
 
-        spans = sorted(response.data, key=lambda s: s["precise.start_ts"])
+        spans = sorted(response.data["spans"], key=lambda s: s["precise.start_ts"])
 
         agent_span = spans[0]
         assert agent_span["gen_ai.operation.type"] == "invoke_agent"
@@ -516,9 +572,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["errors"] == []
-        assert response.data[0]["occurrences"] == []
+        assert len(response.data["spans"]) == 1
+        assert response.data["spans"][0]["errors"] == []
+        assert response.data["spans"][0]["occurrences"] == []
 
     def test_links_error_issue_to_span(self) -> None:
         now = before_now(days=10).replace(microsecond=0)
@@ -545,9 +601,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
-        span_data = response.data[0]
+        span_data = response.data["spans"][0]
         assert span_data["span_id"] == span_id
         assert span_data["occurrences"] == []
         assert len(span_data["errors"]) == 1
@@ -589,9 +645,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data["spans"]) == 2
 
-        by_span = {span["span_id"]: span for span in response.data}
+        by_span = {span["span_id"]: span for span in response.data["spans"]}
         assert len(by_span[failing_span["span_id"]]["errors"]) == 1
         assert by_span[healthy_span["span_id"]]["errors"] == []
 
@@ -629,9 +685,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data["spans"]) == 2
 
-        by_span = {span["span_id"]: span for span in response.data}
+        by_span = {span["span_id"]: span for span in response.data["spans"]}
         assert len(by_span[span_1["span_id"]]["errors"]) == 1
         assert len(by_span[span_2["span_id"]]["errors"]) == 1
 
@@ -681,12 +737,233 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data["spans"]) == 1
 
-        span_data = response.data[0]
+        span_data = response.data["spans"][0]
         assert span_data["span_id"] == span_id
         assert len(span_data["occurrences"]) == 1
         occurrence_issue = span_data["occurrences"][0]
         assert occurrence_issue["event_type"] == "occurrence"
         assert occurrence_issue["issue_id"] == group_info.group.id
         assert occurrence_issue["description"] == "File IO on Main Thread"
+
+    def test_response_envelope_shape(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert response.data["conversationId"] == conversation_id
+        assert len(response.data["spans"]) == 1
+
+    def test_returns_stored_title(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Refund a duplicate charge",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Refund a duplicate charge"
+        assert len(response.data["spans"]) == 1
+
+    def test_title_is_null_without_metadata(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_title_is_null_when_row_is_untitled(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title=None,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_title_not_taken_from_unrelated_project(self) -> None:
+        """A same-named conversation in a project without spans must not supply the title."""
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id=conversation_id,
+            title="Someone else's conversation",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id, other_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_earliest_titled_project_wins(self) -> None:
+        """A conversation spanning projects is titled from the earliest title source."""
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        self._store_conversation_span(conversation_id, now - timedelta(seconds=2))
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=other_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Started here",
+            title_source_timestamp=now - timedelta(seconds=2),
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id=conversation_id,
+            title="Continued here",
+            title_source_timestamp=now - timedelta(seconds=1),
+        )
+
+        query = {
+            "project": [self.project.id, other_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 2
+        assert response.data["title"] == "Started here"
+
+    def test_empty_conversation_returns_envelope(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(uuid4().hex, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["conversationId"] == conversation_id
+        assert response.data["title"] is None
+        assert response.data["spans"] == []
+
+    def test_paginates_with_title(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        for i in range(3):
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=i),
+                op="gen_ai.chat",
+                trace_id=trace_id,
+            )
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Long conversation",
+            title_source_timestamp=now,
+        )
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Long conversation"
+        assert len(response.data["spans"]) == 2
+
+        links = parse_link_header(response.headers["Link"])
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        assert next_link["results"] == "true"
+
+        query["cursor"] = next_link["cursor"]
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Long conversation"
+        assert len(response.data["spans"]) == 1
+
+    @patch(
+        "sentry.api.endpoints.organization_ai_conversation_details.fetch_conversation_title",
+        side_effect=Exception("metadata unavailable"),
+    )
+    def test_survives_a_failing_title_lookup(
+        self, mock_fetch_conversation_title: MagicMock
+    ) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+        assert len(response.data["spans"]) == 1
+        assert mock_fetch_conversation_title.call_count == 1

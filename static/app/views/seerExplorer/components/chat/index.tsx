@@ -3,7 +3,11 @@ import {motion} from 'framer-motion';
 import {Container} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
-import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 
 import {AssistantBlock} from './assistant';
 import {ToolUseBlock} from './toolUse';
@@ -16,8 +20,10 @@ interface BlockProps {
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   onClick?: () => void;
+  pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
+  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }
@@ -51,6 +57,9 @@ function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
           block={block}
           blocks={props.blocks}
           getPageReferrer={props.getPageReferrer}
+          pendingInput={props.pendingInput}
+          readOnly={props.readOnly}
+          respondToUserInput={props.respondToUserInput}
           showThinking={props.showThinking}
         />
       );

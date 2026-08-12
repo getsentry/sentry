@@ -129,6 +129,47 @@ describe('transformWidgetSeriesToTimeSeries', () => {
       expect(result?.label).toBe('browser:Chrome : prod');
     });
 
+    it('matches the correct query by alias prefix when there is a group by (DAIN-1784)', () => {
+      const dbQuery = WidgetQueryFixture({
+        name: 'db',
+        conditions: 'span.op:db',
+        aggregates: ['count(span.duration)', 'avg(span.duration)'],
+        columns: ['project_id'],
+        fields: ['project_id', 'count(span.duration)', 'avg(span.duration)'],
+      });
+      const httpQuery = WidgetQueryFixture({
+        name: 'http',
+        conditions: 'span.op:http.client',
+        aggregates: ['count(span.duration)', 'avg(span.duration)'],
+        columns: ['project_id'],
+        fields: ['project_id', 'count(span.duration)', 'avg(span.duration)'],
+      });
+      const widget = WidgetFixture({queries: [dbQuery, httpQuery]});
+
+      // Alias with a group-by uses ' > ' to separate the alias from the
+      // group-by value (from transformEventsResponseToSeries).
+      const dbCount = transformWidgetSeriesToTimeSeries(
+        makeSeries('db > (no value) : count(span.duration)'),
+        widget
+      );
+      expect(dbCount?.widgetQuery).toBe(dbQuery);
+      expect(dbCount?.label).toBe('db : (no value) : count(span.duration)');
+
+      const httpCount = transformWidgetSeriesToTimeSeries(
+        makeSeries('http > (no value) : count(span.duration)'),
+        widget
+      );
+      expect(httpCount?.widgetQuery).toBe(httpQuery);
+      expect(httpCount?.label).toBe('http : (no value) : count(span.duration)');
+
+      const httpAvg = transformWidgetSeriesToTimeSeries(
+        makeSeries('http > (no value) : avg(span.duration)'),
+        widget
+      );
+      expect(httpAvg?.widgetQuery).toBe(httpQuery);
+      expect(httpAvg?.label).toBe('http : (no value) : avg(span.duration)');
+    });
+
     it('uses query alias from the : delimited series name when available', () => {
       const widget = WidgetFixture({
         queries: [

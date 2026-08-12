@@ -23,7 +23,7 @@ import type {
   SeerRawResponse,
   SeerRawResponseItem,
 } from './types';
-import {getExpandedProjectIds} from './utils';
+import {getExpandedProjectIds, normalizeSeerDateTimeParams} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
@@ -237,23 +237,31 @@ export function buildSeerDateTimeSelection(
   statsPeriod: string,
   pageFiltersDatetime: PageFilters['datetime']
 ): SeerDateTimeSelection {
-  let start: DateString = null;
-  let end: DateString = null;
+  const normalized = normalizeSeerDateTimeParams({
+    start: resultStart,
+    end: resultEnd,
+    statsPeriod,
+  });
 
-  if (resultStart && resultEnd) {
-    start = getUtcDateString(resultStart);
-    end = getUtcDateString(resultEnd);
-  } else {
-    start = pageFiltersDatetime.start;
-    end = pageFiltersDatetime.end;
+  if (normalized.statsPeriod) {
+    return {
+      start: null,
+      end: null,
+      period: normalized.statsPeriod,
+      utc: null,
+    };
   }
 
-  return {
-    start,
-    end,
-    // Seer returns absolute ranges as UTC, so display them in UTC to match the
-    // suggestion preview the user accepted.
-    utc: resultStart && resultEnd ? true : pageFiltersDatetime.utc,
-    period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
-  };
+  if (normalized.start && normalized.end) {
+    return {
+      start: getUtcDateString(normalized.start),
+      end: getUtcDateString(normalized.end),
+      period: null,
+      // Seer returns absolute ranges as UTC, so display them in UTC to match
+      // the suggestion preview the user accepted.
+      utc: true,
+    };
+  }
+
+  return {...pageFiltersDatetime};
 }

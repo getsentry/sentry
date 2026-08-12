@@ -257,6 +257,7 @@ function FrameLocationTooltip({
 
 const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>`
   display: grid;
+  container-type: inline-size;
   grid-template-columns: minmax(0, 1fr) min-content;
   gap: ${p => p.theme.space.sm};
   align-items: center;

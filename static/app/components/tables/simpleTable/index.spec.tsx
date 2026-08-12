@@ -1,4 +1,4 @@
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -37,5 +37,57 @@ describe('SimpleTable component', () => {
     expect(within(row2).getByRole('cell', {name: '3'})).toBeInTheDocument();
     expect(within(row2).getByRole('cell', {name: '4'})).toBeInTheDocument();
     expect(within(row2).getByRole('cell', {name: '5'})).toBeInTheDocument();
+  });
+
+  it('announces the sort direction when a column is sorted', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell sort="asc" handleSortClick={jest.fn()}>
+            A
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>B</SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+      </SimpleTable>
+    );
+
+    expect(screen.getByRole('columnheader', {name: 'A'})).toHaveAttribute(
+      'aria-sort',
+      'ascending'
+    );
+    expect(screen.getByRole('columnheader', {name: 'B'})).not.toHaveAttribute(
+      'aria-sort'
+    );
+  });
+
+  it('keeps the interaction state layer a direct child of the header cell when sortable', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+      </SimpleTable>
+    );
+
+    const header = screen.getByRole('columnheader', {name: 'A'});
+
+    expect(within(header).getByRole('presentation').parentElement).toBe(header);
+  });
+
+  it('sorts when a sortable header is clicked', async () => {
+    const handleSortClick = jest.fn();
+    render(
+      <SimpleTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
+            A
+          </SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+      </SimpleTable>
+    );
+
+    await userEvent.click(screen.getByRole('columnheader', {name: 'A'}));
+
+    expect(handleSortClick).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,6 @@
 from types import ModuleType
 from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -36,13 +37,11 @@ def test_benchmark_grouping(config_name: str, benchmark: ModuleType) -> None:
     def setup() -> tuple[tuple[GroupingInput, str], dict[str, Any]]:
         return (next(input_iter), config_name), {}
 
-    benchmark.pedantic(run_configuration, setup=setup, rounds=len(GROUPING_INPUTS))
+    with mock.patch("sentry.grouping.context.in_rollout_group", return_value=False):
+        benchmark.pedantic(run_configuration, setup=setup, rounds=len(GROUPING_INPUTS))
 
 
 def run_configuration(grouping_input: GroupingInput, config_name: str) -> None:
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
-
-    # This ensures we won't try to touch the DB when getting event hashes
-    event.project = None  # type: ignore[assignment]
 
     event.get_hashes()

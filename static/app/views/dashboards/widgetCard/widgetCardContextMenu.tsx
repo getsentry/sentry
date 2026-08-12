@@ -41,6 +41,7 @@ import {
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -160,6 +161,26 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
   return null;
 };
 
+export const useDiscoverSplitWarning = (widget: Widget): React.JSX.Element | null => {
+  // make sure there's widget queries so we know it's not a text widget
+  if (
+    (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) &&
+    widget.queries.length > 0
+  ) {
+    return (
+      <div>
+        <StyledText as="p">
+          {t(
+            "We're splitting up the Discover dataset to be either Errors or Transactions. This widget's dataset will be adjusted."
+          )}
+        </StyledText>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
@@ -203,7 +224,9 @@ export function getMenuOptions(
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: t('Open in Discover'),
+        label: getDiscoverDeprecation(organization)
+          ? t('Open in Explore')
+          : t('Open in Discover'),
         to: optionDisabled
           ? undefined
           : widget.queries.length === 1
@@ -271,9 +294,7 @@ export function getMenuOptions(
     usesTimeSeriesData(widget.displayType) &&
     timeseriesResults?.length
   ) {
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Create a Monitor for')
-      : t('Create an Alert for');
+    const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
       .map((series, index) => {
@@ -290,11 +311,11 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
             dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);

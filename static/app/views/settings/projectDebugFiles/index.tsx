@@ -147,7 +147,6 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Sources
-          api={api}
           location={location}
           project={project}
           organization={organization}
@@ -177,7 +176,7 @@ export default function ProjectDebugSymbols() {
                 <Checkbox
                   checked={showDetails}
                   onChange={e => {
-                    setShowDetails((e.target as HTMLInputElement).checked);
+                    setShowDetails(e.target.checked);
                   }}
                 />
                 {t('show details')}

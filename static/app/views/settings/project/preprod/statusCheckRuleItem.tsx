@@ -11,7 +11,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 
-import {StatusCheckRuleForm} from './statusCheckRuleForm';
+import {type RuleFormCopy, StatusCheckRuleForm} from './statusCheckRuleForm';
 import type {StatusCheckFilter, StatusCheckRule} from './types';
 import {
   bytesToMB,
@@ -27,6 +27,7 @@ interface Props {
   onSave: (rule: StatusCheckRule) => void;
   onToggleExpanded: (isExpanded: boolean) => void;
   rule: StatusCheckRule;
+  formCopy?: RuleFormCopy;
 }
 
 function FilterSummary({filters}: {filters: StatusCheckFilter[]}) {
@@ -61,6 +62,7 @@ export function StatusCheckRuleItem({
   onDelete,
   onToggleExpanded,
   isExpanded,
+  formCopy,
 }: Props) {
   const filters = parseFiltersForDisplay(rule.filterQuery);
 
@@ -91,6 +93,7 @@ export function StatusCheckRuleItem({
             rule={rule}
             onSave={onSave}
             onDelete={onDelete}
+            copy={formCopy}
           />
         </ItemContent>
       )}

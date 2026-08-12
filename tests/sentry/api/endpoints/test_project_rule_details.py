@@ -198,7 +198,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         self.workflow_triggers = self.create_data_condition_group()
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             config={"frequency": 30},
         )
         self.detector_workflow = self.create_detector_workflow(

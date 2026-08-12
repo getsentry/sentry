@@ -1,7 +1,7 @@
 import type {SavedQuery} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
-export function DiscoverSavedQueryFixture(params = {}): SavedQuery {
+export function DiscoverSavedQueryFixture(params: Partial<SavedQuery> = {}): SavedQuery {
   return {
     id: '1',
     name: 'Saved query #1',

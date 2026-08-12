@@ -15,7 +15,7 @@
     "skipLibCheck": true,
 
     // Explicitly list which @types/* packages to include as global types
-    "types": ["gtag.js", "jest", "node", "webpack-env"],
+    "types": ["gtag.js", "jest", "node", "@rspack/core/module"],
 
     // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,

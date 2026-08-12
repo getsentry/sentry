@@ -164,9 +164,7 @@ export function Slider({
 
     if (ticks) {
       const range = max - min;
-      return [...Array.from({length: ticks})].map(
-        (_, i) => min + i * (range / (ticks - 1))
-      );
+      return Array.from({length: ticks}, (_, i) => min + i * (range / (ticks - 1)));
     }
 
     return [];
@@ -188,7 +186,7 @@ export function Slider({
       if (allowedValues) {
         return formatLabel
           ? formatLabel(allowedValues[val]!)
-          : state.getFormattedValue(allowedValues[val]!);
+          : state.getFormattedValue(allowedValues[val]);
       }
 
       return formatLabel ? formatLabel(val) : state.getFormattedValue(val);
@@ -269,7 +267,7 @@ export function Slider({
             </SliderTick>
           ))}
 
-          {[...Array.from({length: nThumbs})].map((_, index) => (
+          {Array.from(Array.from({length: nThumbs}), (_, index) => (
             <SliderThumb
               ref={node => {
                 if (!node) {
@@ -398,11 +396,13 @@ const SliderTick = styled('div')<{
     p.inSelection &&
     css`
       /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-      background: ${p.disabled
-        ? p.theme.tokens.content.disabled
-        : p.error
-          ? p.theme.tokens.content.danger
-          : p.theme.tokens.interactive.link.accent.active};
+      background: ${
+        p.disabled
+          ? p.theme.tokens.content.disabled
+          : p.error
+            ? p.theme.tokens.content.danger
+            : p.theme.tokens.interactive.link.accent.active
+      };
     `}
 `;
 

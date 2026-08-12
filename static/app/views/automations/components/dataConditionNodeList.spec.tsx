@@ -39,7 +39,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
 ];
 
 describe('DataConditionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
@@ -197,6 +197,21 @@ describe('DataConditionNodeList', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
+  });
+
+  it('hides delete button for the last remaining workflow trigger condition', () => {
+    render(
+      <AutomationBuilderTestProvider>
+        <DataConditionNodeList
+          {...defaultProps}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          conditions={[DataConditionFixture()]}
+        />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Delete row'})).not.toBeInTheDocument();
   });
 
   it('shows conflicting condition warning for action filters', () => {

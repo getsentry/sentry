@@ -157,6 +157,7 @@ function startGroupCoolDown(group: DelayGroup) {
 }
 
 type OverlayStatus = 'idle' | 'warming' | 'open' | 'cooling';
+type UnderlineColor = 'warning' | 'danger' | 'success' | 'muted' | 'primary';
 
 interface UseHoverOverlayProps {
   /**
@@ -177,9 +178,10 @@ interface UseHoverOverlayProps {
    */
   displayTimeout?: number;
   /**
-   * Force the overlay to be visible without hovering
+   * Force the overlay to be visible without hovering. `true` opens
+   * immediately, while `delayed` uses the normal open delay.
    */
-  forceVisible?: boolean;
+  forceVisible?: boolean | 'delayed';
   /**
    * If true, user is able to hover overlay without it disappearing. (nice if
    * you want the overlay to be interactive)
@@ -232,7 +234,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: 'warning' | 'danger' | 'success' | 'muted';
+  underlineColor?: UnderlineColor;
 }
 
 export function isOverflown(el: Element): boolean {
@@ -243,6 +245,9 @@ export function isOverflown(el: Element): boolean {
       ? 2
       : 0;
   return (
+    // Components that truncate text in JavaScript can expose logical overflow
+    // even when the rendered text fits its box.
+    el.getAttribute('data-overflowing') === 'true' ||
     el.scrollWidth - el.clientWidth > tolerance ||
     Array.from(el.children).some(isOverflown)
   );
@@ -255,10 +260,7 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
   }
 }
 
-const tooltipUnderline = (
-  theme: Theme,
-  underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-) =>
+const tooltipUnderline = (theme: Theme, underlineColor: UnderlineColor = 'muted') =>
   ({
     textDecoration: 'underline',
     textDecorationThickness: '0.75px',
@@ -272,7 +274,9 @@ const tooltipUnderline = (
             ? theme.tokens.content.success
             : underlineColor === 'muted'
               ? theme.tokens.content.secondary
-              : undefined,
+              : underlineColor === 'primary'
+                ? theme.tokens.content.primary
+                : undefined,
     textDecorationStyle: 'dotted',
   }) as const;
 
@@ -337,7 +341,7 @@ function useHoverOverlay({
   // form-field validation errors anchored to a warning icon. They must not
   // be snap-closed when another overlay in the group opens.
   useEffect(() => {
-    if (forceVisible) {
+    if (forceVisible !== undefined && forceVisible !== false) {
       return;
     }
     const listener: OpenListener = origin => {
@@ -364,7 +368,12 @@ function useHoverOverlay({
     };
   }, [group, forceVisible, commitStatus]);
 
-  const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
+  const isOpen =
+    forceVisible === true
+      ? true
+      : forceVisible === false
+        ? false
+        : status === 'open' || status === 'cooling';
 
   // Fire onHover / onBlur on open/close transitions only. Read the callbacks
   // from refs so that a new callback identity on re-render does not retrigger
@@ -426,8 +435,10 @@ function useHoverOverlay({
 
       const mutationObserver = new MutationObserver(() => updateOverflow(element));
       mutationObserver.observe(element, {
+        attributes: true,
         characterData: true,
         childList: true,
+        attributeFilter: ['data-overflowing'],
         subtree: true,
       });
 
@@ -525,6 +536,19 @@ function useHoverOverlay({
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout, commitStatus, group]);
 
+  const previousForceVisibleRef = useRef<boolean | 'delayed' | undefined>(undefined);
+  useEffect(() => {
+    const wasDelayed = previousForceVisibleRef.current === 'delayed';
+
+    if (forceVisible === 'delayed' && !wasDelayed) {
+      handleMouseEnter();
+    } else if (forceVisible !== 'delayed' && wasDelayed) {
+      handleMouseLeave();
+    }
+
+    previousForceVisibleRef.current = forceVisible;
+  }, [forceVisible, handleMouseEnter, handleMouseLeave]);
+
   /**
    * Wraps the passed in react elements with a container that has the proper
    * event handlers to trigger the overlay.
@@ -534,7 +558,11 @@ function useHoverOverlay({
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
-      const shouldInteract = !showOnlyOnOverflow || isOverflowing || forceVisible;
+      const shouldInteract =
+        !showOnlyOnOverflow ||
+        isOverflowing ||
+        forceVisible === true ||
+        forceVisible === 'delayed';
       const providedProps = {
         // !!These props are always overridden!!
         'aria-describedby': shouldInteract ? describeById : undefined,

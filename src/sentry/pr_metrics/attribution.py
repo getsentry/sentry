@@ -25,23 +25,10 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     ResolvedPullRequest,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 
 logger = logging.getLogger(__name__)
-
-# Precedence for picking a PR's primary attribution when more than one valid
-# signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference.
-SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SENTRY_APP: 100,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
-    PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.UNKNOWN: 0,
-}
 
 
 class SentryAppSignalDetails(BaseModel):
@@ -166,23 +153,6 @@ def record_attribution_signal(
         return attribution
 
 
-def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
-    """Return the highest-confidence valid attribution signal for a PR.
-
-    Returns the winning ``signal_type``, or ``None`` when the PR has no valid
-    signals.
-    """
-    valid_signal_types = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).values_list("signal_type", flat=True)
-
-    return max(
-        valid_signal_types,
-        key=lambda signal_type: SIGNAL_TYPE_CONFIDENCE.get(signal_type, -1),
-        default=None,
-    )
-
-
 def _log_unresolved_reported_pull_request(
     resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
 ) -> None:
@@ -209,6 +179,7 @@ def _attribute_pull_request(
     source: PullRequestAttributionSource,
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
+    repo_external_id: str | None = None,
 ) -> None:
     """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
     record one attribution signal. Shared by the Seer-native and delegated-agent paths.
@@ -224,6 +195,7 @@ def _attribute_pull_request(
             repo_name=repo_name,
             provider=provider,
             key=pr_number,
+            repo_external_id=repo_external_id,
         )
     except Exception:
         logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
@@ -271,6 +243,7 @@ def attribute_seer_created_pull_requests(
     for entry in pull_requests:
         repo_name = entry.get("repo_name")
         provider = entry.get("provider")
+        repo_external_id = entry.get("repo_external_id")
         pr_payload = entry.get("pull_request") or {}
         pr_number = pr_payload.get("pr_number")
         pr_url = pr_payload.get("pr_url")
@@ -281,6 +254,7 @@ def attribute_seer_created_pull_requests(
             "group_id": group_id,
             "repo_name": repo_name,
             "provider": provider,
+            "repo_external_id": repo_external_id,
             "pr_number": pr_number,
         }
 
@@ -301,6 +275,7 @@ def attribute_seer_created_pull_requests(
                 run_id=int(run_id) if run_id is not None else None,
             ).dict(),
             log_context=log_context,
+            repo_external_id=repo_external_id,
         )
 
 
@@ -340,7 +315,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = parse_pull_request_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,

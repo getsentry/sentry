@@ -18,6 +18,9 @@ from sentry.scm.types import (
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener as pr_iteration_from_check_suite_listener,
 )
+from sentry.seer.autofix.pr_iteration.listeners.review import (  # noqa: F401
+    handle_pull_request_review_for_autofix_iteration,
+)
 
 # DEFAULT LISTENERS
 #

@@ -65,6 +65,14 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
         )
 
     @patch(ENQUEUE_TARGET)
+    def test_post_enqueues_manifest_archive_when_feature_enabled(self, mock_task):
+        artifact = self._artifact()
+        with self.feature("organizations:preprod-snapshot-archive-manifest"):
+            response = self.client.post(self._url(artifact.id))
+        assert response.status_code == 202
+        assert mock_task.apply_async.call_args.kwargs["kwargs"]["include_manifest"] is True
+
+    @patch(ENQUEUE_TARGET)
     def test_post_returns_503_when_enqueue_fails(self, mock_task):
         artifact = self._artifact()
         mock_task.apply_async.side_effect = RuntimeError("broker down")
@@ -89,12 +97,13 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is True
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_get_reports_not_ready_when_archive_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
@@ -125,12 +134,13 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         assert response.status_code == 200
         assert response["Content-Type"] == "application/zip"
         assert b"".join(response.streaming_content) == b"ZIPBYTES"
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_download_returns_409_when_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409

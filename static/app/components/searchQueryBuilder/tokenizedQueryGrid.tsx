@@ -117,7 +117,7 @@ function Grid(props: GridProps) {
         undo={undo}
         gridRef={ref}
       />
-      {[...state.collection].map(item => {
+      {Array.from(state.collection, item => {
         const token = item.value;
 
         switch (token?.type) {

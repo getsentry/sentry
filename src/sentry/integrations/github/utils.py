@@ -10,6 +10,21 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.utils import jwt
 
+# Copilot acts as a bot but has no ``[bot]`` suffix or ``Bot`` user type.
+GITHUB_COPILOT_LOGIN = "Copilot"
+
+
+def is_github_bot_login(login: str | None) -> bool:
+    """Whether a GitHub login belongs to a bot, inferred from the login alone.
+
+    Use this when the webhook ``user.type`` field is unavailable or unreliable:
+    it is only ``"Bot"`` for GitHub App identities, so Copilot and user-typed
+    automation slip through.
+    """
+    if not login:
+        return False
+    return login.endswith("[bot]") or login == GITHUB_COPILOT_LOGIN
+
 
 def get_jwt(github_id: str | None = None, github_private_key: str | None = None) -> str:
     if github_id is None:

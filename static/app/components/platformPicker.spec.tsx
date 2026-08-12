@@ -56,6 +56,20 @@ describe('PlatformPicker', () => {
     );
   });
 
+  it('records picker selections as manual', async () => {
+    render(<PlatformPicker {...baseProps} defaultCategory="all" />);
+
+    await userEvent.click(screen.getByTestId('platform-python'));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'growth.select_platform',
+      expect.objectContaining({
+        platform_id: 'python',
+        selection_source: 'manual',
+      })
+    );
+  });
+
   it('should clear the platform when clear is clicked', async () => {
     const props = {
       ...baseProps,

@@ -116,7 +116,7 @@ describe('ProjectDetail > ProjectLatestAlerts', () => {
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/alerts/wizard/?referrer=project_detail&project=project-slug`
+      `/organizations/${organization.slug}/monitors/new/?referrer=project_detail&project=project-slug`
     );
 
     expect(screen.getByRole('button', {name: 'Learn More'})).toHaveAttribute(

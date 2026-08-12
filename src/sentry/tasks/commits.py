@@ -16,6 +16,9 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.issues.action_log import GroupActionActor
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import Release
@@ -388,7 +391,9 @@ def fetch_commits(
         return
 
     try:
-        release.set_commits(commit_list)
+        group_action_actor = GroupActionActor.user(user_id) if user_id is not None else SYSTEM_ACTOR
+        with action_context_scope(ActionSource.SYSTEM, group_action_actor):
+            release.set_commits(commit_list)
     except ReleaseCommitError:
         # Another task or webworker is currently setting commits on this
         # release. Return early as that task will do the remaining work.

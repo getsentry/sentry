@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -285,6 +286,62 @@ class HTTPOverheadDetectorTest(TestCase):
         event["spans"] = [span]
 
         assert self.find_problems(event) == []
+
+    def test_handles_valid_string_request_start_values(self) -> None:
+        event = _valid_http_overhead_event("/api/endpoint/123")
+        event["spans"][0]["data"]["http.request.request_start"] = "0.1"
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1016-/",
+                op="http",
+                desc="/api/endpoint/123",
+                type=PerformanceHTTPOverheadGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"] * 5,
+                evidence_data={
+                    "op": "http",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"] * 5,
+                },
+                evidence_display=[],
+            )
+        ]
+
+    @patch("sentry.issue_detection.detectors.utils.logger.warning")
+    def test_handles_invalid_request_start_values(self, mock_logger_warning: MagicMock) -> None:
+        url = "https://example.com/api/endpoint/123"
+        event = _valid_http_overhead_event("/api/endpoint/123")
+        span = create_span(
+            "http.client",
+            desc=url,
+            duration=1000,
+            data={"url": url, "network.protocol.version": "1.1"},
+        )
+        span["start_timestamp"] = 1121
+        span["project_id"] = self.project.id
+        span["organization_id"] = self.project.organization.id
+        event["spans"] = [span]
+
+        for invalid_value in ["dogs are great", "NaN", "[Filtered]"]:
+            event["spans"][0]["data"]["http.request.request_start"] = invalid_value
+
+            assert self.find_problems(event) == []
+            mock_logger_warning.assert_called_with(
+                "issue_detectors.invalid_data",
+                extra={
+                    "detector": "http_overhead",
+                    "span_id": span["span_id"],
+                    "trace_id": span["trace_id"],
+                    "project_id": span["project_id"],
+                    "org_id": span["organization_id"],
+                    "key": "http.request.request_start",
+                    "value": invalid_value,
+                    "error": f"ValueError(\"could not convert string to `request_start` value: '{invalid_value}'\")",
+                },
+            )
 
     def test_filtered_url(self) -> None:
         injection_event = get_event("http-overhead/http-overhead-filtered-url")

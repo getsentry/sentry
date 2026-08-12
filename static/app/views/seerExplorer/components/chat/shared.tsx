@@ -1,9 +1,13 @@
-import {Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
+import {MessageRow, Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
-import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
   block: Block;
@@ -21,6 +25,9 @@ export interface AssistantBlockProps extends BlockVariantProps {
 export interface ToolUseBlockProps extends BlockVariantProps {
   blocks?: Block[];
   getPageReferrer?: () => string;
+  pendingInput?: PendingUserInput | null;
+  readOnly?: boolean;
+  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
   showThinking?: boolean;
 }
 
@@ -66,19 +73,12 @@ export function hasValidContent(content: string | null | undefined): content is 
 
 export function MessagePlaceholder({content}: {content?: string}) {
   return (
-    <Flex align="center" gap="md" padding="xl" width="100%">
-      <Flex
-        display="inline-flex"
-        align="center"
-        justify="center"
-        width="12px"
-        height="12px"
-        flexShrink={0}
-      >
+    <MessageRow from="assistant">
+      <Flex align="center" gap="md">
         <Spinner role="status" aria-label={t('Loading')} />
+        {hasValidContent(content) && <SeerMarkdown raw={content} />}
       </Flex>
-      {hasValidContent(content) && <SeerMarkdown raw={content} />}
-    </Flex>
+    </MessageRow>
   );
 }
 

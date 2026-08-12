@@ -58,10 +58,16 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
-from sentry.snuba.utils import RPC_DATASETS, dataset_split_decision_inferred_from_query, get_dataset
+from sentry.snuba.utils import (
+    DATASET_LABELS,
+    RPC_DATASETS,
+    dataset_split_decision_inferred_from_query,
+    get_dataset,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaError
 from sentry.utils.tracing import trace
 
@@ -132,6 +138,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:dynamic-sampling",
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
+            "organizations:events-endpoint-transactions-discover-blocked",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -204,6 +211,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             )
 
         referrer = request.GET.get("referrer")
+        sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
 
         try:
             snuba_params = self.get_snuba_params(
@@ -262,6 +270,29 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
+        sentry_sdk.set_tag("query.referrer", referrer)
+        sentry_sdk.set_attribute("query.referrer", referrer)
+
+        # We are going to start ratcheting usage of this endpoint for legacy
+        # datasets. For now, log usage from blocked orgs but still permit the
+        # request.
+        is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
+        is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
+        is_blocked = batch_features.get(
+            "organizations:events-endpoint-transactions-discover-blocked", False
+        )
+        if is_external_api_request and is_legacy_dataset and is_blocked:
+            sdk_logger.warning(
+                "events endpoint called by blocked org",
+                attributes={
+                    "org_id": organization.id,
+                    "org_slug": organization.slug,
+                    "effective_dataset": DATASET_LABELS.get(dataset, ""),
+                    "requested_dataset": request.GET.get("dataset", ""),
+                    "endpoint_name": "organization-events",
+                },
+            )
+
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") in ("1", "true")
 
         max_string_length: int | None = None
@@ -290,7 +321,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 )
                 if orderby:
                     orderby = transform_orderby_for_error_upsampling(orderby)
+
             query_source = self.get_request_source(request)
+            sentry_sdk.set_tag("query.query_source", query_source.value)
+            sentry_sdk.set_attribute("query.query_source", query_source.value)
+
             return dataset_query(
                 selected_columns=selected_columns,
                 query=query or "",

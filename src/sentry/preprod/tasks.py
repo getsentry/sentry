@@ -38,6 +38,7 @@ from sentry.preprod.size_analysis.tasks import (
     maybe_emit_issues_from_absolute_size_results,
 )
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
@@ -65,7 +66,9 @@ logger = logging.getLogger(__name__)
     retry=Retry(times=3),
     processing_deadline_duration=60 * 15,
 )
-def process_artifact(artifact_id: str, project_id: str, organization_id: str) -> None:
+def process_artifact(
+    artifact_id: str, project_id: str, organization_id: str, **kwargs: Any
+) -> None:
     pass
 
 
@@ -643,6 +646,12 @@ def _assemble_preprod_artifact_size_analysis(
                 "caller": "assemble_completion",
             }
         )
+        create_preprod_size_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
+            }
+        )
 
     # Ideally we want to report an outcome at most once per
     # preprod_artifact. This isn't yet robust to:
@@ -827,7 +836,7 @@ def assemble_preprod_artifact_installable_app(
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
-def detect_expired_preprod_artifacts() -> None:
+def detect_expired_preprod_artifacts(**kwargs: Any) -> None:
     """
     Detects PreprodArtifacts and related entities that have been processing for more than 30 minutes
     and updates their state to errored.
