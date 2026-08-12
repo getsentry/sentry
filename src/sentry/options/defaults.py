@@ -511,13 +511,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
