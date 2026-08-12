@@ -40,6 +40,7 @@ export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingP
   );
 
   useEffect(() => {
+    // Only track once per group
     trackEngagedView(group.id);
   }, [group.id, trackEngagedView]);
 }
