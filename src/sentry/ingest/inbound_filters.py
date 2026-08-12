@@ -10,6 +10,7 @@ from sentry.models.custominboundfilter import (
     CustomInboundFilter,
     CustomInboundFilterConditionType,
     CustomInboundFilterDataType,
+    custom_inbound_filter_id,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -508,9 +509,6 @@ def get_generic_filters(
     }
 
 
-CUSTOM_INBOUND_FILTER_ID_PREFIX = "cif-"
-
-
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     """
     Matches events whose exception type, exception value, or log entry message
@@ -640,7 +638,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
         condition = _custom_filter_condition(custom_filter.conditions)
         if condition is not None:
             generic_filters.append(
-                _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)
+                _generic_filter(custom_inbound_filter_id(project.id, custom_filter.id), condition)
             )
 
     return generic_filters
