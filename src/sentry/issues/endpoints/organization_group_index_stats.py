@@ -8,6 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
@@ -109,9 +110,12 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         )
 
         environments = self.get_environments(request, organization)
-        query_kwargs = build_query_params_from_request(
-            request, organization, projects, environments
-        )
+        try:
+            query_kwargs = build_query_params_from_request(
+                request, organization, projects, environments
+            )
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=400)
         context = serialize(
             groups,
             request.user,
