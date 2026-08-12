@@ -59,6 +59,7 @@ describe('ProjectFilters', () => {
     dateUpdated: string;
     id: string;
     name: string | null;
+    outcomesId: string;
   };
 
   function CustomInboundFilterFixture(
@@ -67,6 +68,7 @@ describe('ProjectFilters', () => {
     return {
       id: '1',
       name: 'A filter',
+      outcomesId: 'custom-inbound-filter:aaaa1111bbbb',
       active: true,
       conditions: [{type: 'error_message', value: ['*Error*']}],
       dateCreated: '2024-01-01T00:00:00Z',
@@ -498,6 +500,49 @@ describe('ProjectFilters', () => {
     await userEvent.type(searchInput, 'ConnectionError');
     expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
+  });
+
+  it('shows the volume each filter dropped, and none for a filter with no outcomes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      body: {
+        intervals: ['2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'],
+        groups: [
+          // A filter on errors reports its volume under the error category, and the
+          // same filter on logs under the log category, so both have to be summed.
+          {
+            by: {reason: 'custom-inbound-filter:aaaa1111bbbb', category: 'error'},
+            series: {'sum(quantity)': [4, 6]},
+          },
+          {
+            by: {reason: 'custom-inbound-filter:aaaa1111bbbb', category: 'log_item'},
+            series: {'sum(quantity)': [1, 1]},
+          },
+          // A reason belonging to a built-in filter must not land on a row.
+          {
+            by: {reason: 'react-hydration-errors', category: 'error'},
+            series: {'sum(quantity)': [99, 99]},
+          },
+        ],
+      },
+    });
+
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Has outcomes',
+        outcomesId: 'custom-inbound-filter:aaaa1111bbbb',
+      }),
+      CustomInboundFilterFixture({
+        id: '2',
+        name: 'Never matched',
+        outcomesId: 'custom-inbound-filter:cccc2222dddd',
+      }),
+    ]);
+
+    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
+    expect(screen.queryByText('99')).not.toBeInTheDocument();
   });
 
   it('keeps a condition type it does not know', async () => {

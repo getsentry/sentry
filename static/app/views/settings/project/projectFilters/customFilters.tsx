@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -17,9 +17,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
@@ -28,9 +30,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly. `CONDITIONS` below
@@ -55,6 +59,9 @@ type CustomInboundFilter = {
   dateUpdated: string;
   id: string;
   name: string | null;
+  // The reason this filter reports under in ingest outcomes, which is how its
+  // dropped volume is looked up.
+  outcomesId: string;
 };
 
 type PropertyOption = {label: string; value: ConditionType};
@@ -478,6 +485,86 @@ function CustomFilterModal({
   );
 }
 
+// Window of the per-row sparkline, matching the chart above the table.
+const STATS_PERIOD = '30d';
+const STATS_INTERVAL = '1d';
+const STATS_FIELD = 'sum(quantity)';
+
+// Sums the filtered volume per outcome reason. Outcomes come grouped by category as
+// well, because a filter drops errors, logs, or metrics, and each of those counts
+// under its own category.
+function getSeriesByReason(stats: UsageSeries | undefined): Map<string, number[]> {
+  const seriesByReason = new Map<string, number[]>();
+
+  for (const group of stats?.groups ?? []) {
+    const reason = String(group.by.reason ?? '');
+    const series = group.series[STATS_FIELD] ?? [];
+    const summed = seriesByReason.get(reason);
+
+    if (summed) {
+      series.forEach((value, index) => {
+        summed[index] = (summed[index] ?? 0) + value;
+      });
+    } else {
+      seriesByReason.set(reason, [...series]);
+    }
+  }
+
+  return seriesByReason;
+}
+
+function FilteredVolume({
+  intervals,
+  series,
+  isPending,
+  isError,
+}: {
+  intervals: string[];
+  isError: boolean;
+  isPending: boolean;
+  series: number[] | undefined;
+}) {
+  if (isPending) {
+    return <Placeholder height="30px" width="80px" />;
+  }
+
+  if (isError) {
+    return <Text variant="muted">{'—'}</Text>;
+  }
+
+  const total = series?.reduce((sum, value) => sum + value, 0) ?? 0;
+  if (total === 0) {
+    return (
+      <Text variant="muted" size="sm">
+        {t('None')}
+      </Text>
+    );
+  }
+
+  return (
+    <Flex align="center" gap="sm">
+      <Container width="80px">
+        <MiniBarChart
+          height={30}
+          isGroupedByDate
+          showTimeInTooltip
+          hideZeros
+          series={[
+            {
+              seriesName: t('Filtered'),
+              data: intervals.map((name, index) => ({
+                name,
+                value: series?.[index] ?? 0,
+              })),
+            },
+          ]}
+        />
+      </Container>
+      <Text size="sm">{formatAbbreviatedNumber(total)}</Text>
+    </Flex>
+  );
+}
+
 function matchesQuery(filter: CustomInboundFilter, query: string) {
   const needle = query.trim().toLowerCase();
   if (needle === '') {
@@ -541,6 +628,28 @@ export function CustomFilters({project}: {project: Project}) {
     );
 
   const {data: filters = [], isPending, isError, refetch} = useQuery(queryOptions);
+
+  // One request covers the whole table: outcomes are grouped by reason, and each row
+  // picks out the reason it reports under.
+  const {
+    data: stats,
+    isPending: isStatsPending,
+    isError: isStatsError,
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: project.id,
+        outcome: 'filtered',
+        field: STATS_FIELD,
+        groupBy: ['reason', 'category'],
+        interval: STATS_INTERVAL,
+        statsPeriod: STATS_PERIOD,
+      },
+      staleTime: Infinity,
+    })
+  );
+  const seriesByReason = useMemo(() => getSeriesByReason(stats), [stats]);
 
   const invalidate = () => queryClient.invalidateQueries({queryKey});
 
@@ -672,6 +781,9 @@ export function CustomFilters({project}: {project: Project}) {
               {t('Conditions')}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>
+              {t('Filtered (30d)')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>
               {t('Created')}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
@@ -712,6 +824,14 @@ export function CustomFilters({project}: {project: Project}) {
                     ))
                   )}
                 </Stack>
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <FilteredVolume
+                  intervals={stats?.intervals ?? []}
+                  series={seriesByReason.get(filter.outcomesId)}
+                  isPending={isStatsPending}
+                  isError={isStatsError}
+                />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell whiteSpace="nowrap">
                 <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
@@ -765,6 +885,8 @@ export function CustomFilters({project}: {project: Project}) {
 }
 
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 100px 100px 110px;
+  grid-template-columns:
+    90px minmax(160px, 1fr) minmax(240px, 2fr) 150px 100px
+    100px 110px;
   overflow-x: auto;
 `;
