@@ -1112,8 +1112,15 @@ export function ReleaseComparisonChart({
         }}
       >
         {({className}) => (
-          <ChartTable
+          <PanelTable
             className={className}
+            css={cssTheme => ({
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+              '> *': {
+                borderBottom: `1px solid ${cssTheme.tokens.border.primary}`,
+              },
+            })}
             headers={getTableHeaders(withExpanders)}
             data-test-id="release-comparison-table"
           >
@@ -1138,7 +1145,7 @@ export function ReleaseComparisonChart({
                 </Flex>
               </ShowMoreWrapper>
             )}
-          </ChartTable>
+          </PanelTable>
         )}
       </Grid>
     </Fragment>
@@ -1169,15 +1176,6 @@ const DescriptionCell = styled(Cell)`
 const Change = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
-`;
-
-const ChartTable = styled(PanelTable)`
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-
-  > * {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`
