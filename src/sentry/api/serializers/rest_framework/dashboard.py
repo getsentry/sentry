@@ -368,7 +368,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         nothing despite seeing everything. Non-request callers supply only
         `projects`.
         """
-        projects = self.context.get("validation_projects") or self.context["projects"]
+        projects = self.context.get("validation_projects")
+        if projects is None:
+            projects = self.context["projects"]
         return [p.id for p in projects]
 
     def _get_attr(self, data, attr, empty_value=None):
