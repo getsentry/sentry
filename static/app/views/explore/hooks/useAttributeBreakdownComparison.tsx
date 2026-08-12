@@ -1,4 +1,4 @@
-import {useQuery, skipToken} from '@tanstack/react-query';
+import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -33,18 +33,22 @@ export type AttributeBreakdownsComparison = {
 
 export function useAttributeBreakdownComparison({
   aggregateFunction,
+  enabled = true,
   range,
   query,
   dataset = DiscoverDatasets.SPANS,
   extrapolate = '1',
+  preservePreviousData = false,
   pageFilters: pageFiltersProp,
 }: {
   aggregateFunction: string;
   query: string;
   range: [number, number];
   dataset?: DiscoverDatasets;
+  enabled?: boolean;
   extrapolate?: string;
   pageFilters?: PageFilters;
+  preservePreviousData?: boolean;
 }) {
   const organization = useOrganization();
   const {selection: contextPageFilters} = usePageFilters();
@@ -74,7 +78,7 @@ export function useAttributeBreakdownComparison({
       '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/',
       {
         path:
-          !!aggregateFunction && !!range
+          enabled && !!aggregateFunction && !!range
             ? {organizationIdOrSlug: organization.slug}
             : skipToken,
         query: {
@@ -91,5 +95,6 @@ export function useAttributeBreakdownComparison({
       }
     ),
     select: selectJsonWithHeaders,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
   });
 }

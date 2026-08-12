@@ -27,6 +27,8 @@ import {AttributeBreakdownsComponent} from './styles';
 import {tooltipActionsHtmlRenderer} from './utils';
 
 interface CohortComparisonProps {
+  enabled: boolean;
+  preservePreviousData: boolean;
   query: string;
   selection: Selection;
   yAxis: string;
@@ -35,11 +37,13 @@ interface CohortComparisonProps {
 }
 
 export function CohortComparison({
+  enabled,
   selection,
   yAxis,
   query,
   dataset,
   extrapolate,
+  preservePreviousData,
 }: CohortComparisonProps) {
   const theme = useTheme();
   const onAction = useAttributeBreakdownsTooltipAction();
@@ -49,13 +53,19 @@ export function CohortComparison({
   const searchQuery = breakdownQuery ?? '';
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
 
-  const {data, isLoading, error} = useAttributeBreakdownComparison({
+  const queryResult = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,
+    enabled,
     range: selection.range,
     query,
     dataset,
     extrapolate,
+    preservePreviousData,
   });
+  const showValidatedResults = enabled || preservePreviousData;
+  const data = showValidatedResults ? queryResult.data : undefined;
+  const error = showValidatedResults ? queryResult.error : null;
+  const isLoading = showValidatedResults ? queryResult.isLoading : false;
 
   const {
     filteredRankedAttributes,

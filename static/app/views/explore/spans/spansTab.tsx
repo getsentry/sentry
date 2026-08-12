@@ -1,7 +1,7 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useEffectEvent, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -63,13 +63,14 @@ import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
 import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
+import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
 import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import {type RawCounts, useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -108,6 +109,11 @@ interface SpanTabProps {
 }
 
 const SPANS_TOOLBAR_STORAGE_KEY = 'explore-spans-toolbar';
+
+const EMPTY_RAW_COUNTS: RawCounts = {
+  normal: {count: null, isLoading: false},
+  total: {count: null, isLoading: false},
+};
 
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
@@ -198,6 +204,19 @@ function SpanTabContentSectionInner({
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
+  const {
+    data: validationData,
+    error: validationError,
+    isFetching: isValidationFetching,
+    isLoading: isValidationLoading,
+    isPlaceholderData: isValidationPlaceholderData,
+  } = useValidateSpansTab();
+
+  const isValidationPending =
+    isValidationFetching || isValidationLoading || isValidationPlaceholderData;
+  const queriesEnabled =
+    !isValidationPending && !validationError && validationData?.valid === true;
+  const preservePreviousData = isValidationPending || queriesEnabled;
 
   // In aggregate mode the table is driven by aggregateSortBys, not the
   // samples sort (which falls back to `-timestamp`), so pick accordingly.
@@ -226,12 +245,16 @@ function SpanTabContentSectionInner({
           ? 'attribute_breakdowns'
           : 'samples';
 
-  const rawSpanCounts = useRawCounts({dataset: DiscoverDatasets.SPANS});
+  const queriedRawSpanCounts = useRawCounts({
+    dataset: DiscoverDatasets.SPANS,
+    enabled: isReady && queriesEnabled,
+  });
+  const rawSpanCounts = preservePreviousData ? queriedRawSpanCounts : EMPTY_RAW_COUNTS;
 
   const aggregatesTableResult = useExploreAggregatesTable({
     query,
     limit: SPANS_TABLE_LIMIT,
-    enabled: isReady && queryType === 'aggregate',
+    enabled: isReady && queriesEnabled && queryType === 'aggregate',
     queryExtras: {
       caseInsensitive,
       ...crossEventQueries,
@@ -240,7 +263,7 @@ function SpanTabContentSectionInner({
   const spansTableResult = useExploreSpansTable({
     query,
     limit: SPANS_TABLE_LIMIT,
-    enabled: isReady && queryType === 'samples',
+    enabled: isReady && queriesEnabled && queryType === 'samples',
     queryExtras: {
       caseInsensitive,
       ...crossEventQueries,
@@ -256,7 +279,8 @@ function SpanTabContentSectionInner({
       },
     }),
     select: selectJsonWithHeaders,
-    enabled: isReady && queryType === 'traces',
+    enabled: isReady && queriesEnabled && queryType === 'traces',
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
   });
   const tracesTableResult = {
     result: tracesTableQuery,
@@ -266,12 +290,60 @@ function SpanTabContentSectionInner({
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
-      enabled: isReady,
+      enabled: isReady && queriesEnabled,
       queryExtras: {
         caseInsensitive,
         ...crossEventQueries,
       },
     });
+
+  const displayedAggregatesTableResult = usePreserveQueryResult(
+    aggregatesTableResult,
+    preservePreviousData,
+    aggregatesTableResult.result
+  );
+  const displayedSpansTableResult = usePreserveQueryResult(
+    spansTableResult,
+    preservePreviousData,
+    spansTableResult.result
+  );
+  const displayedTracesTableResult = usePreserveQueryResult(
+    tracesTableResult,
+    preservePreviousData,
+    tracesTableResult.result
+  );
+  const displayedTimeseriesResult = usePreserveQueryResult(
+    timeseriesResult,
+    preservePreviousData,
+    timeseriesResult
+  );
+  const aggregatesTableResultForDisplay = preservePreviousData
+    ? displayedAggregatesTableResult
+    : {
+        ...displayedAggregatesTableResult,
+        result: getEmptyQueryResult(
+          {...displayedAggregatesTableResult.result, pageLinks: undefined},
+          []
+        ),
+      };
+  const spansTableResultForDisplay = preservePreviousData
+    ? displayedSpansTableResult
+    : {
+        ...displayedSpansTableResult,
+        result: getEmptyQueryResult(
+          {...displayedSpansTableResult.result, pageLinks: undefined},
+          []
+        ),
+      };
+  const tracesTableResultForDisplay = preservePreviousData
+    ? displayedTracesTableResult
+    : {
+        error: null,
+        result: getEmptyQueryResult(displayedTracesTableResult.result, undefined),
+      };
+  const timeseriesResultForDisplay = preservePreviousData
+    ? displayedTimeseriesResult
+    : getEmptyQueryResult({...displayedTimeseriesResult, meta: undefined}, {});
 
   const [interval] = useChartInterval();
 
@@ -285,15 +357,17 @@ function SpanTabContentSectionInner({
     crossEventQueries,
   });
 
-  const error = defined(timeseriesResult.error)
-    ? null // if the timeseries errors, we prefer to show that error in the chart
-    : queryType === 'samples'
-      ? spansTableResult.result.error
-      : queryType === 'traces'
-        ? tracesTableResult.error
-        : queryType === 'aggregate'
-          ? aggregatesTableResult.result.error
-          : null;
+  const error = defined(validationError)
+    ? parseError(validationError)
+    : defined(timeseriesResult.error)
+      ? null // if the timeseries errors, we prefer to show that error in the chart
+      : queryType === 'samples'
+        ? spansTableResult.result.error
+        : queryType === 'traces'
+          ? tracesTableResult.error
+          : queryType === 'aggregate'
+            ? aggregatesTableResult.result.error
+            : null;
 
   return (
     <ExploreContentSection gap="md">
@@ -317,8 +391,9 @@ function SpanTabContentSectionInner({
         </ChevronButton>
         <Flex gap="xs">
           <TracesExportModalButton
-            aggregatesTableResult={aggregatesTableResult}
-            spansTableResult={spansTableResult}
+            aggregatesTableResult={aggregatesTableResultForDisplay}
+            disabled={!queriesEnabled}
+            spansTableResult={spansTableResultForDisplay}
             rawSpanCounts={rawSpanCounts}
           />
           <SettingsDropdown />
@@ -347,16 +422,18 @@ function SpanTabContentSectionInner({
             <ExploreCharts
               query={query}
               extrapolate={extrapolate}
-              timeseriesResult={timeseriesResult}
+              timeseriesResult={timeseriesResultForDisplay}
               visualizes={visualizes}
               setVisualizes={setVisualizes}
               samplingMode={timeseriesSamplingMode}
               rawSpanCounts={rawSpanCounts}
             />
             <ExploreTables
-              aggregatesTableResult={aggregatesTableResult}
-              spansTableResult={spansTableResult}
-              tracesTableResult={tracesTableResult}
+              aggregatesTableResult={aggregatesTableResultForDisplay}
+              spansTableResult={spansTableResultForDisplay}
+              tracesTableResult={tracesTableResultForDisplay}
+              queriesEnabled={queriesEnabled}
+              preservePreviousData={preservePreviousData}
               tab={tab}
               setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {
@@ -378,6 +455,48 @@ function SpanTabContentSectionInner({
       </TourElement>
     </ExploreContentSection>
   );
+}
+
+function getEmptyQueryResult<
+  TResult extends {
+    data: unknown;
+    error: unknown;
+    isError: boolean;
+    isFetching: boolean;
+    isLoading: boolean;
+    isPending: boolean;
+  },
+>(result: TResult, data: TResult['data']): TResult {
+  return {
+    ...result,
+    data,
+    error: null,
+    isError: false,
+    isFetching: false,
+    isLoading: false,
+    isPending: false,
+  };
+}
+
+function usePreserveQueryResult<T>(
+  result: T,
+  preservePreviousData: boolean,
+  queryState: {
+    dataUpdatedAt: number;
+    errorUpdatedAt: number;
+    isPending: boolean;
+  }
+): T {
+  const [lastSettledResult, setLastSettledResult] = useState(result);
+  const updateLastSettledResult = useEffectEvent(() => setLastSettledResult(result));
+
+  useEffect(() => {
+    if (!queryState.isPending) {
+      updateLastSettledResult();
+    }
+  }, [queryState.dataUpdatedAt, queryState.errorUpdatedAt, queryState.isPending]);
+
+  return preservePreviousData && queryState.isPending ? lastSettledResult : result;
 }
 
 const SpanTabContentSection = registerLLMContext(

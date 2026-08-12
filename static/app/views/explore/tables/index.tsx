@@ -34,6 +34,8 @@ interface BaseExploreTablesProps {
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  preservePreviousData: boolean;
+  queriesEnabled: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -185,7 +187,12 @@ export function ExploreTables(props: ExploreTablesProps) {
           validatedFieldTypes={validatedFieldTypes}
         />
       )}
-      {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
+      {tab === Tab.ATTRIBUTE_BREAKDOWNS && (
+        <AttributeBreakdownsContent
+          queriesEnabled={props.queriesEnabled}
+          preservePreviousData={props.preservePreviousData}
+        />
+      )}
     </Fragment>
   );
 }
