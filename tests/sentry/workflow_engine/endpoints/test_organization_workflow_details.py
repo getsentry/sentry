@@ -1004,8 +1004,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
+        assert other_workflow.when_condition_group is not None
         assert other_workflow.when_condition_group.conditions.count() == 1
-        assert other_workflow.when_condition_group.conditions.first().id == other_data_condition.id
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
 
     def test_update_trigger_conditions_from_same_organization_without_data_condition_group(
         self,
@@ -1064,8 +1065,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
+        assert other_workflow.when_condition_group is not None
         assert other_workflow.when_condition_group.conditions.count() == 1
-        assert other_workflow.when_condition_group.conditions.first().id == other_data_condition.id
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
 
     def test_update_trigger_conditions_from_different_organization(self) -> None:
         other_organization = self.create_organization()
@@ -1115,8 +1117,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
+        assert other_workflow.when_condition_group is not None
         assert other_workflow.when_condition_group.conditions.count() == 1
-        assert other_workflow.when_condition_group.conditions.first().id == other_data_condition.id
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
 
     def test_update_trigger_conditions_from_different_organization_without_data_condition_group(
         self,
@@ -1173,8 +1176,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
+        assert other_workflow.when_condition_group is not None
         assert other_workflow.when_condition_group.conditions.count() == 1
-        assert other_workflow.when_condition_group.conditions.first().id == other_data_condition.id
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
 
     def test_update_triggers_from_same_organization(self) -> None:
         other_data_condition_group = self.create_data_condition_group(
@@ -1209,7 +1213,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
-        assert other_workflow.when_condition_group.id == other_data_condition_group.id
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
 
     def test_update_triggers_from_same_organization_without_data_condition_group(self) -> None:
         workflow = self.create_workflow(
@@ -1253,7 +1257,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         other_workflow.refresh_from_db()
 
-        assert other_workflow.when_condition_group.id == other_data_condition_group.id
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
 
     def test_update_triggers_from_different_organization(self) -> None:
         other_organization = self.create_organization()
