@@ -41,7 +41,7 @@ COMPARE_PROJECTS = f"{SCHEDULER}.compare_rebalanced_projects_with_cache"
 RECALIBRATION_VOLUME = f"{SCHEDULER}.get_recalibration_organization_volume"
 CACHED_FACTOR = f"{SCHEDULER}.get_cached_recalibration_factor"
 PREVIOUS_EAP_FACTOR = f"{SCHEDULER}.get_cached_per_org_recalibration_factor"
-LEGACY_VOLUME = f"{SCHEDULER}.get_legacy_recalibration_volume"
+LEGACY_VOLUME = f"{SCHEDULER}.get_organization_volume"
 COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibration_factor_with_cache"
 
 

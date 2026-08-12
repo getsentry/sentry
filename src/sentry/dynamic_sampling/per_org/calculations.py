@@ -4,7 +4,6 @@ import logging
 from collections.abc import Iterable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum
 from typing import TYPE_CHECKING, cast
 
 import orjson
@@ -36,7 +35,6 @@ from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrid
 from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
-    get_organization_volume,
     sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.helpers import (
@@ -91,32 +89,13 @@ def calculate_recalibration_factor(
     return new_factor
 
 
-class RecalibrationComparisonOutcome(StrEnum):
-    EQUAL = "equal"
-    DIFFERS = "differs"
-    NO_EAP_FACTOR = "no_eap_factor"
-
-
 def get_cached_recalibration_factor(org_id: int) -> float:
-    """
-    The recalibration factor the legacy pipeline currently serves.
-
-    A missing key is the stored form of 1.0, not an empty state: ``set_guarded_adjusted_factor``
-    deletes the key instead of writing the identity factor, and the serving path resolves the
-    miss back to 1.0. Reporting the miss as anything else would describe a converged
-    organization as one without a factor.
-    """
+    # A missing key is the stored form of 1.0: set_guarded_adjusted_factor deletes the key
+    # instead of writing the identity factor, and the serving path resolves a miss back to 1.0.
     return legacy_recalibration_cache.get_adjusted_factor(org_id)
 
 
 def get_cached_per_org_recalibration_factor(org_id: int) -> float:
-    """
-    The factor the EAP pipeline cached on its previous pass, under the same identity rule as
-    the legacy factor.
-
-    Callers read this before ``recalibrate`` overwrites it, so that the comparison reports the
-    state each side started from. This is the value ``recalibrate`` itself seeds from.
-    """
     return per_org_recalibration_cache.get_adjusted_factor(org_id)
 
 
@@ -124,23 +103,6 @@ def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | 
     if volume is None or volume.indexed is None or volume.total <= 0:
         return None
     return volume.indexed / volume.total
-
-
-def get_legacy_recalibration_volume(org_id: int) -> OrganizationDataVolume | None:
-    """
-    The generic metrics volume the legacy recalibration task computes its factor from, over the
-    same window the EAP pipeline uses.
-
-    Guarded, because this runs only to produce comparison logs: a failing query must not stop
-    the recalibration itself. The window is anchored at the current time rather than at the
-    caller's end, because the underlying query takes no end parameter, so the two sides can
-    cover slightly different intervals.
-    """
-    try:
-        return get_organization_volume(org_id, time_interval=timedelta(minutes=5))
-    except Exception as exc:
-        sentry_sdk.capture_exception(exc)
-        return None
 
 
 def compare_recalibration_factor_with_cache(
@@ -151,23 +113,9 @@ def compare_recalibration_factor_with_cache(
     previous_eap_factor: float,
     legacy_volume: OrganizationDataVolume | None = None,
 ) -> None:
-    """
-    Log both pipelines' recalibration factors, the state they started from and the volumes
-    that produced them.
-
-    The factor is a feedback loop: each pass multiplies the pipeline's own previously cached
-    factor by ``target / effective_sample_rate``. The two pipelines keep that state in
-    separate cache keys, and only the legacy factor is served, so the loops accumulate
-    independently. Comparing the two factors directly therefore mixes a difference in the
-    volumes with drift the loops built up over earlier passes, and cannot attribute the
-    result to either.
-
-    The ``*_same_seed`` fields re-run both sides from the legacy factor. That holds the state
-    fixed, so what remains is the difference the volumes alone account for.
-
-    Both cached factors are always defined, because an uncached factor is 1.0; see
-    ``get_cached_recalibration_factor``.
-    """
+    # Each pipeline seeds its next factor from its own cached factor, so the two also differ by
+    # drift accumulated over earlier passes. The same_seed fields re-run both sides from the
+    # legacy factor, leaving only the difference the volumes explain.
     target_sample_rate = config.get_sample_rate()
 
     def same_seed_factor(volume: OrganizationDataVolume | None) -> float | None:
@@ -177,13 +125,13 @@ def compare_recalibration_factor_with_cache(
     generic_metrics_factor_same_seed = same_seed_factor(legacy_volume)
 
     if calculated_factor is None:
-        outcome = RecalibrationComparisonOutcome.NO_EAP_FACTOR
+        outcome = "no_eap_factor"
     elif is_within_relative_tolerance(
         cached_factor, calculated_factor, RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE
     ):
-        outcome = RecalibrationComparisonOutcome.EQUAL
+        outcome = "equal"
     else:
-        outcome = RecalibrationComparisonOutcome.DIFFERS
+        outcome = "differs"
 
     logger.info(
         "dynamic_sampling.per_org.recalibration_factor_comparison",
@@ -207,8 +155,8 @@ def compare_recalibration_factor_with_cache(
                 if calculated_factor is None
                 else get_relative_deviation(cached_factor, calculated_factor)
             ),
-            "is_equal": outcome == RecalibrationComparisonOutcome.EQUAL,
-            "comparison_outcome": outcome.value,
+            "is_equal": outcome == "equal",
+            "comparison_outcome": outcome,
             "eap_factor_same_seed": eap_factor_same_seed,
             "generic_metrics_factor_same_seed": generic_metrics_factor_same_seed,
             "same_seed_relative_deviation": (
@@ -217,7 +165,6 @@ def compare_recalibration_factor_with_cache(
                 else get_relative_deviation(generic_metrics_factor_same_seed, eap_factor_same_seed)
             ),
             "same_seed_is_equal": eap_factor_same_seed is not None
-            and generic_metrics_factor_same_seed is not None
             and is_within_relative_tolerance(
                 generic_metrics_factor_same_seed,
                 eap_factor_same_seed,

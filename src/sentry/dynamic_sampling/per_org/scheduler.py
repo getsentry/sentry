@@ -21,7 +21,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
-    get_legacy_recalibration_volume,
     log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
@@ -54,6 +53,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -184,19 +184,24 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             time_interval=timedelta(minutes=5),
             end=org_volume_end,
         )
-        # Recalibration seeds itself from this factor and then overwrites it, so the state the
-        # EAP loop started this pass from is only observable before the call.
+        # recalibrate overwrites this factor, so read it first to keep the state the EAP loop
+        # started this pass from.
         previous_eap_factor = get_cached_per_org_recalibration_factor(config.organization.id)
         calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
-        compare_recalibration_factor_with_cache(
-            config,
-            recalibration_volume,
-            calculated_factor,
-            cached_factor,
-            previous_eap_factor=previous_eap_factor,
-            legacy_volume=get_legacy_recalibration_volume(config.organization.id),
-        )
+        try:
+            compare_recalibration_factor_with_cache(
+                config,
+                recalibration_volume,
+                calculated_factor,
+                cached_factor,
+                previous_eap_factor=previous_eap_factor,
+                legacy_volume=get_organization_volume(
+                    config.organization.id, time_interval=timedelta(minutes=5)
+                ),
+            )
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
 
     return None
 

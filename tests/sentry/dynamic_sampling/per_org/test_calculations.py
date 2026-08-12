@@ -22,7 +22,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
     get_effective_sample_rate,
-    get_legacy_recalibration_volume,
     is_within_relative_tolerance,
     run_project_balancing,
     run_transaction_balancing,
@@ -42,7 +41,6 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
-    ORGANIZATION_VOLUME,
     make_project_volume,
     mock_configuration,
     patch_configuration,
@@ -298,10 +296,6 @@ class ProjectBalancingCalculationsTest(TestCase):
             get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=0, indexed=10)) is None
         )
 
-    def test_get_legacy_recalibration_volume_swallows_a_failing_query(self) -> None:
-        with patch(ORGANIZATION_VOLUME, side_effect=Exception("snuba is down")):
-            assert get_legacy_recalibration_volume(1) is None
-
     def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
@@ -336,7 +330,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "relative_deviation": pytest.approx(0.2857142857142857),
                 "is_equal": False,
                 "comparison_outcome": "differs",
-                # Both sides re-run from the legacy factor of 2.0. The legacy volume sits
+                # Both sides re-run from the legacy factor of 2.0, and the legacy volume sits
                 # exactly at the target, so its factor is unchanged.
                 "eap_factor_same_seed": pytest.approx(2.6805555555555554),
                 "generic_metrics_factor_same_seed": pytest.approx(2.0),
