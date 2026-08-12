@@ -15,6 +15,7 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -327,9 +328,63 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? rawToolLinkByCallId.get(toolCall.id)
           : undefined;
         const positionalKey = rawPositionalLink ? linkKey(rawPositionalLink) : null;
-        const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
+        const busLinks = toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [];
+        // A result exists, so the execute returned and nothing it reported is still running. Read
+        // off the result itself rather than off the records it carried: a call that reports none
+        // has still finished, and reading "settled" as "reported something" would leave any row
+        // built from the live mirror spinning.
+        const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
+
+        // A Code Mode execute reports the calls it made; those describe the work far better than
+        // its single tool name can, so they replace the generic row when present. Until the result
+        // lands the block's live mirror stands in, so a running execute shows its progress.
+        const finishedCalls = toolCall.id
+          ? (callRecordsByCallId.get(toolCall.id) ?? [])
+          : [];
+        const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
+        // Bus links already consumed by a call row. A Code Mode execute often emits both: call
+        // records for the row list, and structuredContent.links for destinations that only the
+        // result knows (e.g. the translated Explore query from telemetry_live_search). Without
+        // attaching those here, the row renders unlinked and the residual-nav path below used to
+        // be skipped entirely whenever any call row existed.
+        const consumedBusKeys = new Set<string>();
+        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
+          .map(record => {
+            const fromRecord = callRecordLink(record, organization, projects);
+            const fromBus =
+              fromRecord === null
+                ? busLinkForRecord(record, busLinks, organization, projects)
+                : null;
+            const link = fromRecord ?? fromBus;
+            // Drop residual bus entries that already have a call-row destination of the same kind
+            // (path-param issue/trace/replay rows, or a bus link attached above). Otherwise a
+            // composite lib's bus link would reappear as a separate "View issue" under the row that
+            // already navigates there.
+            if (link) {
+              for (const candidate of busLinks) {
+                if (candidate.kind === link.kind) {
+                  consumedBusKeys.add(linkKey(candidate));
+                }
+              }
+            }
+            return {
+              record,
+              label: callRecordLabel(record, callsAreSettled),
+              url: link?.url ?? null,
+              // The navigable kind, not `record.kind` — analytics keys `tool_kind` on which
+              // destination was opened, and the record's own kind is only ever api/lib.
+              linkKind: link?.kind ?? record.kind,
+            };
+          })
+          // A record we have no label for is dropped rather than rendered as a route or an
+          // internal identifier — one fewer row beats a raw string on screen. The predicate
+          // narrows `label` for the render below, which is why it is not a plain Boolean check.
+          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
+
+        const navItems = busLinks
           .filter(link => link.params?.is_error !== true)
           .filter(link => linkKey(link) !== positionalKey)
+          .filter(link => !consumedBusKeys.has(linkKey(link)))
           .map(link => ({
             kind: link.kind,
             label: navLinkLabel(link.kind),
@@ -352,35 +407,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const structuredContentMarkdown = toolCall.id
           ? structuredContentMarkdownByCallId.get(toolCall.id)
           : undefined;
-
-        // A Code Mode execute reports the calls it made; those describe the work far better than
-        // its single tool name can, so they replace the generic row when present. Until the result
-        // lands the block's live mirror stands in, so a running execute shows its progress.
-        const finishedCalls = toolCall.id
-          ? (callRecordsByCallId.get(toolCall.id) ?? [])
-          : [];
-        const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
-        // A result exists, so the execute returned and nothing it reported is still running. Read
-        // off the result itself rather than off the records it carried: a call that reports none
-        // has still finished, and reading "settled" as "reported something" would leave any row
-        // built from the live mirror spinning.
-        const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
-        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
-          .map(record => {
-            const link = callRecordLink(record, organization, projects);
-            return {
-              record,
-              label: callRecordLabel(record),
-              url: link?.url ?? null,
-              // The navigable kind, not `record.kind` — analytics keys `tool_kind` on which
-              // destination was opened, and the record's own kind is only ever api/lib.
-              linkKind: link?.kind ?? record.kind,
-            };
-          })
-          // A record we have no label for is dropped rather than rendered as a route or an
-          // internal identifier — one fewer row beats a raw string on screen. The predicate
-          // narrows `label` for the render below, which is why it is not a plain Boolean check.
-          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
@@ -438,10 +464,10 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.
         //
-        // The links bus is skipped when call rows are present: those already name and link what
-        // the execute did, so it would repeat them at coarser granularity — the tool rather than
-        // the call.
-        if (navItems.length > 0 && callRows.length === 0) {
+        // Residual bus links only — anything already attached to a call row was filtered out above.
+        // When there are no call rows at all (classic tools, or a Code Mode execute that reported
+        // none), this is still how multi-link results render.
+        if (navItems.length > 0) {
           rows.push(
             <NavLinks
               key={`${key}-links`}
@@ -616,6 +642,35 @@ export const NAV_LINK_LABELS: Record<string, string> = {
 /** The visible label for a bus link, or undefined when the kind is not renderable. */
 function navLinkLabel(kind: string): string | undefined {
   return NAV_LINK_LABELS[kind];
+}
+
+/**
+ * Attach a links-bus entry to a call row when the record itself has no destination.
+ *
+ * Matching is by kind for lib rows (`telemetry_live_search`, `get_issue_details`, …). API rows do
+ * not get bus links here — their destinations come from path params via `callRecordLink`.
+ */
+function busLinkForRecord(
+  record: CallRecord,
+  busLinks: ToolLink[],
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+): {kind: string; url: LocationDescriptor} | null {
+  if (record.kind !== 'lib' || !record.name) {
+    return null;
+  }
+
+  for (const candidate of busLinks) {
+    if (candidate.kind !== record.name || candidate.params?.is_error === true) {
+      continue;
+    }
+    const url = buildToolLinkUrl(candidate, organization, projects);
+    if (!url) {
+      continue;
+    }
+    return {kind: candidate.kind, url};
+  }
+  return null;
 }
 
 /**

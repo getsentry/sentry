@@ -7,6 +7,7 @@ import {
   callRecordLabel,
   callRecordStatus,
   callRecordLink,
+  visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -331,6 +332,49 @@ describe('callRecordLabel', () => {
   it('treats a blank title as absent', () => {
     expect(callRecordLabel(apiRecord({title: '   '}))).toBeNull();
   });
+
+  it.each([
+    ['spans', 'Queried spans'],
+    ['errors', 'Queried errors'],
+    ['logs', 'Queried logs'],
+    ['metrics', 'Queried metrics'],
+    ['tracemetrics', 'Queried metrics'],
+    ['issues', 'Queried issues'],
+  ] as const)('names telemetry_live_search by %s dataset', (dataset, expected) => {
+    expect(
+      callRecordLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'telemetry_live_search',
+        params: {dataset, question: 'top pageloads'},
+      })
+    ).toBe(expected);
+  });
+
+  it('falls back to generic telemetry copy without a dataset', () => {
+    expect(
+      callRecordLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'telemetry_live_search',
+        params: {question: 'top pageloads'},
+      })
+    ).toBe('Queried telemetry');
+  });
+
+  it('uses progressive tense while a telemetry search is still running', () => {
+    expect(
+      callRecordLabel(
+        {
+          id: 1,
+          kind: 'lib',
+          name: 'telemetry_live_search',
+          params: {dataset: 'spans'},
+        },
+        false
+      )
+    ).toBe('Querying spans');
+  });
 });
 
 /** The destination a record links to, or null — the shape these cases assert on. */
@@ -474,6 +518,120 @@ describe('callRecordLink', () => {
 
       expect(JSON.stringify(url)).toContain('abc123');
     });
+  });
+
+  describe('lib call params', () => {
+    it('links a lib issue lookup from its scalar args', () => {
+      const url = urlFor(
+        {
+          id: 1,
+          kind: 'lib',
+          name: 'get_issue_details',
+          params: {issue_id: '54'},
+          title: 'Retrieving issue details',
+        },
+        organization
+      );
+
+      expect(url).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/issues/54/`,
+        })
+      );
+    });
+
+    it('links a lib trace lookup from its scalar args', () => {
+      const url = urlFor(
+        {
+          id: 1,
+          kind: 'lib',
+          name: 'get_trace_waterfall',
+          params: {trace_id: 'abc123'},
+        },
+        organization
+      );
+
+      expect(JSON.stringify(url)).toContain('abc123');
+    });
+
+    it('links a lib span lookup into the trace waterfall', () => {
+      const url = urlFor(
+        {
+          id: 1,
+          kind: 'lib',
+          name: 'get_span_details',
+          params: {trace_id: 'abc123', span_id: 'def456'},
+        },
+        organization
+      );
+
+      expect(url).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/explore/traces/trace/abc123/`,
+          query: expect.objectContaining({node: 'span-def456'}),
+        })
+      );
+    });
+
+    it('links a lib replay lookup from its scalar args', () => {
+      const url = urlFor(
+        {
+          id: 1,
+          kind: 'lib',
+          name: 'get_replay_details',
+          params: {replay_id: 'r1'},
+        },
+        organization
+      );
+
+      expect(JSON.stringify(url)).toContain('r1');
+    });
+  });
+});
+
+describe('visibleCallRecords', () => {
+  it('drops a composite lib parent in favour of its api children', () => {
+    const records: CallRecord[] = [
+      {
+        id: 1,
+        kind: 'lib',
+        name: 'get_issue_details',
+        params: {issue_id: '54'},
+        title: 'Retrieving issue details',
+      },
+      apiRecord({
+        id: 2,
+        parent: 1,
+        path: '/api/0/issues/{issue_id}/',
+        path_params: {issue_id: '54'},
+        title: 'Retrieving issue 54',
+      }),
+    ];
+
+    expect(visibleCallRecords(records).map(record => record.id)).toEqual([2]);
+  });
+
+  it('keeps get_span_details and hides its less-specific trace child', () => {
+    // The only HTTP call under get_span_details is the trace endpoint, which can only link to the
+    // trace. The lib row itself carries span_id and is the better destination.
+    const records: CallRecord[] = [
+      {
+        id: 1,
+        kind: 'lib',
+        name: 'get_span_details',
+        params: {trace_id: 'abc', span_id: 'def'},
+        title: 'Retrieving span details',
+      },
+      apiRecord({
+        id: 2,
+        parent: 1,
+        path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
+        path_params: {organization_id_or_slug: 'acme', trace_id: 'abc'},
+        title: 'Retrieving waterfall for trace abc',
+      }),
+    ];
+
+    expect(visibleCallRecords(records).map(record => record.id)).toEqual([1]);
   });
 });
 

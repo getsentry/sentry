@@ -26,9 +26,20 @@ import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 const NAVIGABLE_PARAMS: Array<{kind: string; params: readonly string[]}> = [
   {kind: 'get_event_details', params: ['issue_id', 'event_id']},
   {kind: 'get_issue_details', params: ['issue_id']},
+  // span_id alone is not a page; it deep-links into the trace waterfall.
+  {kind: 'get_trace_waterfall', params: ['trace_id', 'span_id']},
   {kind: 'get_trace_waterfall', params: ['trace_id']},
   {kind: 'get_replay_details', params: ['replay_id']},
 ];
+
+/**
+ * Lib helpers whose own row is a better destination than the HTTP children underneath.
+ *
+ * Most composite libs are dropped when they fan out: the child API rows say more. `get_span_details`
+ * is the exception — its only HTTP call is the trace endpoint, which can only link to the trace,
+ * while the lib's own args name the span the user actually asked about.
+ */
+const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
 
 /**
  * Param values that name a resource to the API but not to the UI.
@@ -56,7 +67,14 @@ export function callRecordLink(
   organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): {kind: string; url: LocationDescriptor} | null {
-  if (!record.path_params || !addressesItsOwnResource(record)) {
+  const rawParams = recordParams(record);
+  if (!rawParams) {
+    return null;
+  }
+
+  // API rows only link when the route ends at the resource; lib rows have no route, so their
+  // scalar args are the whole identity (e.g. get_span_details(trace_id, span_id)).
+  if (record.kind === 'api' && !addressesItsOwnResource(record)) {
     return null;
   }
 
@@ -64,7 +82,7 @@ export function callRecordLink(
   // the ones a match keys on — `get_issue_details` also consults `event_id` — so an alias left in
   // the bag would still reach a builder and produce the dead link we are avoiding.
   const pathParams = Object.fromEntries(
-    Object.entries(record.path_params).filter(([, value]) => identifies(value))
+    Object.entries(rawParams).filter(([, value]) => identifies(value))
   );
 
   for (const {kind, params} of NAVIGABLE_PARAMS) {
@@ -76,6 +94,17 @@ export function callRecordLink(
     }
   }
   return null;
+}
+
+/** Path params for an API call, or the scalar args that play the same role for a lib call. */
+function recordParams(record: CallRecord): Record<string, string> | undefined {
+  if (record.path_params) {
+    return record.path_params;
+  }
+  if (record.kind === 'lib' && record.params) {
+    return record.params;
+  }
+  return undefined;
 }
 
 /**
@@ -124,7 +153,9 @@ function scopeToOrganization(
  * no handler falls back to the title seer shipped, which is why the map can stay small: it holds
  * only the calls worth saying something better about than their spec name.
  */
-const CALL_HANDLERS: Record<string, (record: CallRecord) => string | null> = {
+type CallHandler = (record: CallRecord, settled: boolean) => string | null;
+
+const CALL_HANDLERS: Record<string, CallHandler> = {
   'PUT /api/0/organizations/{organization_id_or_slug}/issues/': record =>
     record.status && record.status < 300 ? t('Updated issues') : t('Update issues'),
   code_search: () => t('Searched code'),
@@ -132,8 +163,25 @@ const CALL_HANDLERS: Record<string, (record: CallRecord) => string | null> = {
   bash: () => t('Ran a command'),
   ask_user_question: () => t('Asked a question'),
   review_code_changes: () => t('Reviewed code changes'),
-  telemetry_live_search: () => t('Queried telemetry'),
+  telemetry_live_search: (record, settled) => telemetryLiveSearchLabel(record, settled),
 };
+
+const TELEMETRY_DATASET_NOUN: Record<string, string> = {
+  spans: 'spans',
+  errors: 'errors',
+  logs: 'logs',
+  metrics: 'metrics',
+  tracemetrics: 'metrics',
+  issues: 'issues',
+};
+
+/** Dataset-specific copy for `telemetry_live_search`, matching the classic tool formatter. */
+function telemetryLiveSearchLabel(record: CallRecord, settled: boolean): string {
+  const dataset = record.params?.dataset;
+  const noun = (dataset && TELEMETRY_DATASET_NOUN[dataset]) || 'telemetry';
+  // Explorer-backed libs never set HTTP status, so tense follows whether the execute has returned.
+  return settled ? t('Queried %s', noun) : t('Querying %s', noun);
+}
 
 function handlerKey(record: CallRecord): string | null {
   if (record.kind === 'lib') {
@@ -148,11 +196,18 @@ function handlerKey(record: CallRecord): string | null {
  * Returning null rather than falling back to the route or an operation id is deliberate: a raw
  * identifier on screen is worse than one fewer row.
  */
-export function callRecordLabel(record: CallRecord): string | null {
+export function callRecordLabel(
+  record: CallRecord,
+  /**
+   * Whether the parent execute has finished. Handlers that conjugate on tense (telemetry) need this
+   * because Explorer-backed libs never carry an HTTP status of their own.
+   */
+  settled = true
+): string | null {
   const key = handlerKey(record);
   const handler = key ? CALL_HANDLERS[key] : undefined;
   if (handler) {
-    const label = handler(record);
+    const label = handler(record, settled);
     if (label) {
       return label;
     }
@@ -253,5 +308,32 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
       record.parent === null || record.parent === undefined ? [] : [record.parent]
     )
   );
-  return records.filter(record => record.kind !== 'lib' || !hasChildren.has(record.id));
+
+  // Lib helpers in PREFER_LIB_OVER_CHILDREN keep their own row and suppress children; every other
+  // parent-with-children lib is dropped so the more specific API rows remain.
+  const hideChildrenOf = new Set(
+    records
+      .filter(
+        record =>
+          record.kind === 'lib' &&
+          record.name &&
+          PREFER_LIB_OVER_CHILDREN.has(record.name) &&
+          hasChildren.has(record.id)
+      )
+      .map(record => record.id)
+  );
+
+  return records.filter(record => {
+    if (
+      record.parent !== null &&
+      record.parent !== undefined &&
+      hideChildrenOf.has(record.parent)
+    ) {
+      return false;
+    }
+    if (record.kind !== 'lib' || !hasChildren.has(record.id)) {
+      return true;
+    }
+    return Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+  });
 }
