@@ -45,7 +45,10 @@ export function IssuePreviewAutofixProposalSection({
 
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
-      <IssuePreviewSection aria-label={t('Proposal')} defaultExpanded={defaultExpanded}>
+      <IssuePreviewSection
+        aria-label={t('Code Changes')}
+        defaultExpanded={defaultExpanded}
+      >
         <IssuePreviewSection.Title
           trailingItems={
             <Fragment>
@@ -54,7 +57,7 @@ export function IssuePreviewAutofixProposalSection({
             </Fragment>
           }
         >
-          {t('Proposal')}
+          {t('Code Changes')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
           <RetryableAutofixSection.Prompt
