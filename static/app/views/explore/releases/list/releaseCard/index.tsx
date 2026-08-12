@@ -11,6 +11,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
@@ -413,13 +414,15 @@ export const ReleaseProjectColumn = styled('div')`
   line-height: 20px;
 `;
 
-export const NewIssuesColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    text-align: right;
-  }
-`;
+export function NewIssuesColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Text align={{zero: 'left', xl: 'right'}} tabular>
+      {({className}) => (
+        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}
 
 const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
@@ -442,10 +445,6 @@ export function AdoptionColumn({children}: {children: React.ReactNode}) {
   );
 }
 
-const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
-`;
-
 export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
   return (
     <Container
@@ -453,35 +452,38 @@ export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
       overflow={{zero: 'hidden', '5xl': 'visible'}}
     >
       {({className}) => (
-        <StyledAdoptionStageColumn className={className}>
+        <ReleaseProjectColumn
+          className={className}
+          css={css`
+            font-variant-numeric: tabular-nums;
+          `}
+        >
           {children}
-        </StyledAdoptionStageColumn>
+        </ReleaseProjectColumn>
       )}
     </Container>
   );
 }
 
-export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
+export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Text align={{zero: 'left', xl: 'center', '5xl': 'right'}} tabular>
+      {({className}) => (
+        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}
 
-  @container (min-width: ${p => p.theme.container.xl}) {
-    text-align: center;
-  }
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    text-align: right;
-  }
-`;
-
-export const DisplaySmallCol = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    display: block;
-    text-align: right;
-  }
-`;
+export function DisplaySmallCol({children}: {children: React.ReactNode}) {
+  return (
+    <Text align="right" display={{zero: 'none', xl: 'block'}} tabular>
+      {({className}) => (
+        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}
 
 const HiddenProjectsMessage = styled('div')`
   display: flex;

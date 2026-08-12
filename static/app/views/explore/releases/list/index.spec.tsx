@@ -492,7 +492,7 @@ describe('ReleasesList', () => {
     const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
     expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
-    expect(screen.getAllByTestId('release-card-project-row')).toHaveLength(1);
+    expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(1);
 
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('test2');
   });
@@ -505,7 +505,7 @@ describe('ReleasesList', () => {
     PageFiltersStore.updateProjects([-1], null);
     render(<ReleasesList />, {organization});
 
-    expect(await screen.findByTestId('release-card-project-row')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'View'})).toBeInTheDocument();
     expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
   });
 

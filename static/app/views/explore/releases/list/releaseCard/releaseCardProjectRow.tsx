@@ -112,15 +112,7 @@ export function ReleaseCardProjectRow({
       : null;
 
   return (
-    <PanelItem
-      css={cssTheme => ({
-        padding: `${cssTheme.space.md} ${cssTheme.space.xl}`,
-        [`@container (min-width: ${cssTheme.container['3xl']})`]: {
-          fontSize: cssTheme.font.size.md,
-        },
-      })}
-      data-test-id="release-card-project-row"
-    >
+    <PanelItem css={cssTheme => ({padding: `${cssTheme.space.md} ${cssTheme.space.xl}`})}>
       <Grid
         columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
         gap="0 md"
