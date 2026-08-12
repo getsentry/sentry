@@ -1995,12 +1995,12 @@ _install_public_mutation_matrix_tests()
 
 
 def _install_private_helper_matrix_tests() -> None:
-    for index, (endpoint, authentication) in enumerate(_private_helper_get_matrix_cases()):
+    for index, (get_endpoint, get_authentication) in enumerate(_private_helper_get_matrix_cases()):
 
         def test_get_matrix_cell(
             self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicGetEndpoint = endpoint,
-            authentication: MatrixAuthentication = authentication,
+            endpoint: PublicGetEndpoint = get_endpoint,
+            authentication: MatrixAuthentication = get_authentication,
         ) -> None:
             self._assert_public_get_authentication(
                 endpoint,
@@ -2009,25 +2009,27 @@ def _install_private_helper_matrix_tests() -> None:
             )
 
         test_get_matrix_cell.__name__ = (
-            f"test_private_helper_get_{index:03d}_{endpoint.test_id}_{authentication.value}"
+            f"test_private_helper_get_{index:03d}_{get_endpoint.test_id}_{get_authentication.value}"
         )
         test_get_matrix_cell = pytest.mark.seer_matrix_private_helper(test_get_matrix_cell)
-        test_get_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
+        test_get_matrix_cell = getattr(pytest.mark, f"seer_matrix_{get_authentication.value}")(
             test_get_matrix_cell
         )
-        if authentication in {
+        if get_authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
         }:
             test_get_matrix_cell = pytest.mark.seer_matrix_minted_token(test_get_matrix_cell)
         setattr(AgentTokenPublicGetMatrixTest, test_get_matrix_cell.__name__, test_get_matrix_cell)
 
-    for index, (endpoint, authentication) in enumerate(_private_helper_mutation_matrix_cases()):
+    for index, (mutation_endpoint, mutation_authentication) in enumerate(
+        _private_helper_mutation_matrix_cases()
+    ):
 
         def test_mutation_matrix_cell(
             self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicMutationEndpoint = endpoint,
-            authentication: MatrixAuthentication = authentication,
+            endpoint: PublicMutationEndpoint = mutation_endpoint,
+            authentication: MatrixAuthentication = mutation_authentication,
         ) -> None:
             if authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN:
                 self._assert_private_helper_approval_flow(endpoint)
@@ -2035,15 +2037,16 @@ def _install_private_helper_matrix_tests() -> None:
                 self._assert_public_mutation_authentication(endpoint, authentication)
 
         test_mutation_matrix_cell.__name__ = (
-            f"test_private_helper_mutation_{index:03d}_{endpoint.test_id}_{authentication.value}"
+            "test_private_helper_mutation_"
+            f"{index:03d}_{mutation_endpoint.test_id}_{mutation_authentication.value}"
         )
         test_mutation_matrix_cell = pytest.mark.seer_matrix_private_helper(
             test_mutation_matrix_cell
         )
-        test_mutation_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
-            test_mutation_matrix_cell
-        )
-        if authentication in {
+        test_mutation_matrix_cell = getattr(
+            pytest.mark, f"seer_matrix_{mutation_authentication.value}"
+        )(test_mutation_matrix_cell)
+        if mutation_authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
             MatrixAuthentication.APPROVED_AGENT_TOKEN,
