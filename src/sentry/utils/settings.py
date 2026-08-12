@@ -1,3 +1,8 @@
+def get_setting_string(value: object) -> str | None:
+    """Return a configured string setting, treating bootstrap sentinels as unset."""
+    return value if isinstance(value, str) else None
+
+
 def is_self_hosted() -> bool:
     # Backcompat for rename to support old consumers, particularly single-tenant.
     from django.conf import settings

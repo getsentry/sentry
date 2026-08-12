@@ -86,6 +86,9 @@ options_mapper = {
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
     "mail.enable-replies": "SENTRY_EMAIL_ENABLE_REPLIES",
     "mail.reply-hostname": "SENTRY_EMAIL_REPLY_HOSTNAME",
+    # Keep this global during the rolling GetSentry cutover. Older SaaS images
+    # still write the key directly into SENTRY_OPTIONS.
+    "mail.mailgun-api-key": "SENTRY_MAILGUN_API_KEY",
     "system.url-prefix": "SENTRY_URL_PREFIX",
     "system.internal-url-prefix": "SENTRY_INTERNAL_URL_PREFIX",
     "github-login.client-id": "GITHUB_APP_ID",

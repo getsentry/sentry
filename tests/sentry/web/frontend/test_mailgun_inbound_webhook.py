@@ -1,6 +1,7 @@
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.conf.server import DEAD
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.activity import Activity
@@ -39,6 +40,7 @@ class TestMailgunInboundWebhookView(TestCase):
         qs = ControlOutbox.objects.filter(category=OutboxCategory.ISSUE_COMMENT_UPDATE)
         assert qs.exists() is False
 
+    @override_settings(SENTRY_MAILGUN_API_KEY=DEAD)
     def test_missing_api_key(self) -> None:
         resp = self.client.post(
             reverse("sentry-mailgun-inbound-hook"),

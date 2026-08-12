@@ -13,6 +13,7 @@ from sentry import options
 from sentry.http import build_session
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.settings import get_setting_string
 
 
 class _GitHubClient:
@@ -43,7 +44,9 @@ def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) 
         raise ValueError("Invalid payload, signature, or key_id")
 
     client_id = options.get("github-login.client-id")
-    client_secret = settings.GITHUB_API_SECRET
+    client_secret = get_setting_string(settings.GITHUB_API_SECRET)
+    if client_secret is None:
+        raise ValueError("GitHub API secret is not configured")
     client = _GitHubClient(client_id=client_id, client_secret=client_secret)
     response = client.get(f"/meta/public_keys/{subpath}")
     keys = GitHubKeysPayload.parse_obj(response)

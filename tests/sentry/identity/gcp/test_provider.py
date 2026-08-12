@@ -14,6 +14,7 @@ from django.test import Client, RequestFactory, override_settings
 
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.conf.server import DEAD
 from sentry.identity.gcp.provider import (
     GCPIdentityProvider,
     GCPOAuth2LoginView,
@@ -164,6 +165,10 @@ class GCPIdentityProviderTest(TestCase):
 
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
+
+    @override_settings(SENTRY_GCP_CLIENT_SECRET=DEAD)
+    def test_get_oauth_client_secret_treats_dead_as_missing(self) -> None:
+        assert self.provider.get_oauth_client_secret() is None
 
     @override_settings(SENTRY_GCP_CLIENT_SECRET="my-client-secret")
     @override_options({"gcp.client-id": "my-client-id"})

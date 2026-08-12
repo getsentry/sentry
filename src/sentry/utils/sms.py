@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 
 from sentry import options
+from sentry.utils.settings import get_setting_string
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,13 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     url = "https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json" % quote(account)
 
     phone_number = phone_number_as_e164(to)
+    token = get_setting_string(settings.SENTRY_SMS_TWILIO_TOKEN)
+    if not token:
+        raise RuntimeError("SMS backend is not configured.")
 
     rv = requests.post(
         url,
-        auth=(account, settings.SENTRY_SMS_TWILIO_TOKEN),
+        auth=(account, token),
         data={"To": phone_number, "From": options.get("sms.twilio-number"), "Body": body},
     )
     if not rv.ok:

@@ -15,6 +15,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.utils.email import email_to_group_id
+from sentry.utils.settings import get_setting_string
 from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger("sentry.mailgun")
@@ -41,7 +42,7 @@ class MailgunInboundWebhookView(View):
         signature = request.POST["signature"]
         timestamp = request.POST["timestamp"]
 
-        key = settings.SENTRY_MAILGUN_API_KEY
+        key = get_setting_string(settings.SENTRY_MAILGUN_API_KEY)
         if not key:
             logger.error("mailgun.api-key-missing")
             return HttpResponse(status=500)

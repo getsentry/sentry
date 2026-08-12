@@ -4,6 +4,7 @@ import pytest
 from django.core.cache import caches
 from django.test import override_settings
 
+from sentry.conf.server import DEAD
 from sentry.options import default_store
 from sentry.runner.initializer import (
     ConfigurationError,
@@ -24,7 +25,7 @@ def settings():
         SENTRY_OPTIONS={},
         SENTRY_DEFAULT_OPTIONS={},
         SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
-        SENTRY_MAILGUN_API_KEY="",
+        SENTRY_MAILGUN_API_KEY=DEAD,
         SENTRY_SELF_HOSTED=False,
     )
 
@@ -188,6 +189,7 @@ def test_bootstrap_options_mail_aliases(settings) -> None:
 def test_bootstrap_options_promotes_environment_backed_settings(settings) -> None:
     settings.SENTRY_URL_PREFIX = "https://example.com"
     settings.SENTRY_EMAIL_ENABLE_REPLIES = True
+    settings.SENTRY_MAILGUN_API_KEY = "mailgun-api-key"
     settings.SENTRY_FLYIO_CLIENT_ID = "fly-client-id"
     settings.SENTRY_GITHUB_APP_ID = 12345
     settings.SENTRY_GITHUB_APP_NAME = "github-app"
@@ -207,6 +209,7 @@ def test_bootstrap_options_promotes_environment_backed_settings(settings) -> Non
             ("SENTRY_GITHUB_APP_CLIENT_ID", "SENTRY_OPTIONS['github-app.client-id']"),
             ("SENTRY_GITHUB_APP_ID", "SENTRY_OPTIONS['github-app.id']"),
             ("SENTRY_GITHUB_APP_NAME", "SENTRY_OPTIONS['github-app.name']"),
+            ("SENTRY_MAILGUN_API_KEY", "SENTRY_OPTIONS['mail.mailgun-api-key']"),
             ("SENTRY_SYMBOL_SERVER_ENABLED", "SENTRY_OPTIONS['symbolserver.enabled']"),
             ("SENTRY_SYMBOLICATOR_OPTIONS", "SENTRY_OPTIONS['symbolicator.options']"),
             ("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']"),
@@ -216,6 +219,7 @@ def test_bootstrap_options_promotes_environment_backed_settings(settings) -> Non
 
     assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://example.com"
     assert settings.SENTRY_OPTIONS["mail.enable-replies"] is True
+    assert settings.SENTRY_OPTIONS["mail.mailgun-api-key"] == "mailgun-api-key"
     assert settings.SENTRY_OPTIONS["auth-fly.client-id"] == "fly-client-id"
     assert settings.SENTRY_OPTIONS["github-app.id"] == 12345
     assert settings.SENTRY_OPTIONS["github-app.name"] == "github-app"
@@ -337,6 +341,16 @@ def test_self_hosted_mailgun_config_yml_promoted(settings, config_yml) -> None:
 
     config_yml.write("mail.mailgun-api-key: configured-key\n")
     bootstrap_options(settings, str(config_yml))
+
+    assert settings.SENTRY_MAILGUN_API_KEY == "configured-key"
+
+
+def test_non_self_hosted_mailgun_option_promoted(settings) -> None:
+    """Legacy SaaS SENTRY_OPTIONS Mailgun values reach the new setting."""
+    settings.SENTRY_SELF_HOSTED = False
+    settings.SENTRY_OPTIONS = {"mail.mailgun-api-key": "configured-key"}
+
+    bootstrap_options(settings)
 
     assert settings.SENTRY_MAILGUN_API_KEY == "configured-key"
 

@@ -17,6 +17,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode, control_silo_function
+from sentry.utils.settings import get_setting_string
 
 # five minutes which is industry standard clock skew tolerance
 CLOCK_SKEW = 60 * 5
@@ -171,7 +172,9 @@ class TokenData(TypedDict):
 
 def get_token_data() -> TokenData:
     client_id = options.get("msteams.client-id")
-    client_secret = settings.SENTRY_MSTEAMS_CLIENT_SECRET
+    client_secret = get_setting_string(settings.SENTRY_MSTEAMS_CLIENT_SECRET)
+    if not client_id or not client_secret:
+        raise RuntimeError("Microsoft Teams credentials are not configured.")
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response
