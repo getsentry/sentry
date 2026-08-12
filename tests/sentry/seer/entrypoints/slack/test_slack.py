@@ -29,6 +29,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import TestCase
 
 
@@ -175,6 +176,68 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_pr_created_filters_failed_entries(
+        self, mock_schedule_all_thread_updates
+    ):
+        ep = self._get_entrypoint()
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "repo_name": "owner/repo",
+                    "provider": "github",
+                    "status": "completed",
+                    "pull_request": {
+                        "pr_id": 1,
+                        "pr_number": 42,
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                    },
+                },
+                {
+                    "repo_name": "owner/failed-repo",
+                    "provider": "unknown",
+                    "status": "error",
+                    "pull_request": None,
+                },
+            ],
+        }
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            cache_payload=ep.create_autofix_cache_payload(),
+        )
+        mock_schedule_all_thread_updates.assert_called_once()
+        data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert data.pull_requests == [
+            {"pr_number": 42, "pr_url": "https://github.com/owner/repo/pull/42"}
+        ]
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_pr_created_skips_when_all_failed(
+        self, mock_schedule_all_thread_updates
+    ):
+        ep = self._get_entrypoint()
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": [
+                {
+                    "repo_name": "owner/failed-repo",
+                    "provider": "unknown",
+                    "status": "error",
+                    "pull_request": None,
+                }
+            ],
+        }
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            cache_payload=ep.create_autofix_cache_payload(),
+        )
+        mock_schedule_all_thread_updates.assert_not_called()
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
