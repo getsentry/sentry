@@ -39,7 +39,7 @@ describe('Chip', () => {
   it('renders a dismiss button and fires onDismiss', async () => {
     const onDismiss = jest.fn();
     render(<Chip property="browser" value="Chrome" onDismiss={onDismiss} />);
-    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove browser Chrome'}));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });
