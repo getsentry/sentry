@@ -23,6 +23,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
 )
 from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.utils import runs_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -95,10 +96,21 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        # Free cohort orgs have no subscription so check_seer_quota returns False.
-        # Bypass the check so they see the autofix UI.
+        # Free cohort orgs have no Seer subscription, so check_seer_quota
+        # always returns False. We want them to see autofix results when
+        # night shift has already processed the issue, but NOT show the
+        # "Start Analysis" button for issues night shift skipped — manual
+        # triggers would fail with a quota error. So we return True only
+        # when an autofix run already exists for this group, which renders
+        # the results UI. Otherwise False, which renders the paywall.
         if is_free_cohort_org(org):
-            has_autofix_quota = True
+            # Night shift can go through either the regular autofix path
+            # (source="autofix") or the RCA feature path (source="autofix_rca")
+            # depending on the organizations:autofix-rca-in-seer flag.
+            has_autofix_quota = (
+                runs_for_group(group.id, "autofix").exists()
+                or runs_for_group(group.id, "autofix_rca").exists()
+            )
         else:
             has_autofix_quota = quotas.backend.check_seer_quota(
                 org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
