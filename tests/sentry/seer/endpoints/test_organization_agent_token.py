@@ -409,6 +409,19 @@ class OrganizationAgentTokenTest(APITestCase):
                 format="json",
             )
             assert approval.status_code == 200, approval.content
+
+            original_token_still_denied = self.client.put(
+                f"/api/0/organizations/{self.org.slug}/",
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {initial_token}",
+            )
+            assert original_token_still_denied.status_code == 403
+            assert (
+                original_token_still_denied["WWW-Authenticate"]
+                == 'Bearer error="insufficient_scope", scope="org:write"'
+            )
+
             elevated_token = self._mint(sessionId="s1").data["token"]
             elevated_claims = agent_token.decode_agent_token(elevated_token)
             assert elevated_token != initial_token
