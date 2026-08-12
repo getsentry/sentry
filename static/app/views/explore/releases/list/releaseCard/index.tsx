@@ -9,7 +9,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -285,17 +285,34 @@ export function ReleaseCard({
         </Container>
 
         {projectsToHide.length > 0 && (
-          <HiddenProjectsMessage data-test-id="hidden-projects">
-            <Tooltip title={getHiddenProjectsTooltip()}>
-              <TextOverflow>
-                {projectsToHide.length === 1
-                  ? tct('[number:1] hidden project', {number: <strong />})
-                  : tct('[number] hidden projects', {
-                      number: <strong>{projectsToHide.length}</strong>,
-                    })}
-              </TextOverflow>
-            </Tooltip>
-          </HiddenProjectsMessage>
+          <Flex
+            align="center"
+            background="secondary"
+            borderTop="primary"
+            height="24px"
+            overflow="hidden"
+            padding="0 xl"
+            data-test-id="hidden-projects"
+            css={cssTheme => css`
+              border-bottom-right-radius: ${cssTheme.radius.md};
+
+              @container (max-width: ${cssTheme.container['3xl']}) {
+                border-bottom-left-radius: ${cssTheme.radius.md};
+              }
+            `}
+          >
+            <Text size="sm" variant="muted">
+              <Tooltip title={getHiddenProjectsTooltip()}>
+                <TextOverflow>
+                  {projectsToHide.length === 1
+                    ? tct('[number:1] hidden project', {number: <strong />})
+                    : tct('[number] hidden projects', {
+                        number: <strong>{projectsToHide.length}</strong>,
+                      })}
+                </TextOverflow>
+              </Tooltip>
+            </Text>
+          </Flex>
         )}
       </Grid>
     </ResponsivePanel>
@@ -395,14 +412,16 @@ const ExpandButtonWrapper = styled('div')`
   }
 `;
 
-export function getReleaseProjectColumns(showReleaseAdoptionStages: boolean) {
+export function getReleaseProjectColumns(
+  showReleaseAdoptionStages: boolean
+): NonNullable<GridProps['columns']> {
   const adoptionStagesSize = showReleaseAdoptionStages ? '0.7fr' : '';
 
   return {
     zero: '1fr 1.4fr 0.6fr 0.7fr',
     xl: '1fr 1fr 1fr 0.5fr 0.5fr 0.5fr',
     '5xl': `1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`,
-  } as const;
+  };
 }
 
 export const ReleaseProjectColumn = styled('div')`
@@ -484,20 +503,3 @@ export function DisplaySmallCol({children}: {children: React.ReactNode}) {
     </Text>
   );
 }
-
-const HiddenProjectsMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${p => p.theme.space.xl};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-  height: 24px;
-  line-height: 24px;
-  color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
-`;
