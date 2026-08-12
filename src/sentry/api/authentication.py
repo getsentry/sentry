@@ -614,9 +614,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 class AgentTokenAuthentication(StandardAuthentication):
     """Authenticates the Seer agent's typed capability JWT.
 
-    Authenticates as a non-user actor -- the request stays anonymous -- so user-only web
-    views fail closed; API access is derived from the delegating member in
-    ``access.from_agent_auth``."""
+    The agent credential remains the authorization authority. A non-authoritative,
+    ephemeral copy of the delegating user is returned only for compatibility with
+    callsites that still require ``request.user``; API access is derived from the
+    delegating member and capped by the token in ``access.from_agent_auth``."""
 
     token_name = b"bearer"
 
@@ -683,7 +684,19 @@ class AgentTokenAuthentication(StandardAuthentication):
         ):
             fail("feature_flag_off", user_id=user_id, org_id=auth_token.organization_id)
 
-        return self.transform_auth(None, auth_token)
+        # Legacy callsites use request.user for identity, serialization, feature flags,
+        # preferences, and ownership. Give them the delegating user without creating a
+        # proxy-user row, but strip platform elevation: an agent token must never inherit
+        # staff/superuser authority or global user permissions outside its own scopes.
+        compatibility_user = user.copy(
+            update={
+                "is_staff": False,
+                "is_superuser": False,
+                "permissions": frozenset(),
+                "roles": frozenset(),
+            }
+        )
+        return self.transform_auth(compatibility_user, auth_token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)

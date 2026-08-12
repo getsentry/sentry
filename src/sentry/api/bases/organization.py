@@ -839,10 +839,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         actor_id = None
         has_perms = None
         key = None
-        if request.user.is_authenticated:
-            actor_id = "user:%s" % request.user.id
-        elif request.auth is not None and not is_agent_auth(request.auth):
-            actor_id = "apikey:%s" % request.auth.entity_id
+        # Agent authority is re-derived from live membership on every request.
+        if not is_agent_auth(request.auth):
+            if request.user.is_authenticated:
+                actor_id = "user:%s" % request.user.id
+            elif request.auth is not None:
+                actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
