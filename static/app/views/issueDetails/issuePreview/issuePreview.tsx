@@ -277,5 +277,6 @@ const Dividers = styled('div')`
 const TitleLink = styled(Link)`
   &:hover {
     text-decoration: underline;
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;
