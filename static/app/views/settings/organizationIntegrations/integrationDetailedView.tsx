@@ -164,7 +164,7 @@ export default function IntegrationDetailedView() {
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
-  const displayTabs = useMemo<IntegrationTab[]>(
+  const displayTabs = useMemo(
     () =>
       integrationFeatures.includes(provider?.key ?? '')
         ? tabs
@@ -236,9 +236,7 @@ export default function IntegrationDetailedView() {
   const integrationName = provider?.name ?? '';
   const navigationTabTitle = (
     <Layout.Title>
-      <Flex align="center" gap="sm" minWidth="0">
-        <Text as="span">{tabTitles[displayedTab]}</Text>
-      </Flex>
+      <Text as="span">{tabTitles[displayedTab]}</Text>
     </Layout.Title>
   );
   const featureData = useMemo(() => {

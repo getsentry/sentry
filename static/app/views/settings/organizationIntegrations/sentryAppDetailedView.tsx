@@ -20,7 +20,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SentryAppInstallation} from 'sentry/types/integrations';
+import type {IntegrationFeature, SentryAppInstallation} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
@@ -38,7 +39,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {sentryAppFeaturesApiOptions} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
@@ -76,7 +76,13 @@ export default function SentryAppDetailedView() {
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
   } = useQuery({
-    ...sentryAppFeaturesApiOptions(integrationSlug),
+    ...apiOptions.as<IntegrationFeature[]>()(
+      '/sentry-apps/$sentryAppIdOrSlug/features/',
+      {
+        path: {sentryAppIdOrSlug: integrationSlug},
+        staleTime: Infinity,
+      }
+    ),
     retry: false,
   });
 

@@ -11,12 +11,13 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {DocIntegration} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {docIntegrationApiOptions} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 
 export default function DocIntegrationDetailsView() {
   const theme = useTheme();
@@ -25,7 +26,10 @@ export default function DocIntegrationDetailsView() {
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
   const {data: doc, isPending} = useQuery({
-    ...docIntegrationApiOptions(integrationSlug),
+    ...apiOptions.as<DocIntegration>()('/doc-integrations/$docIntegrationIdOrSlug/', {
+      path: {docIntegrationIdOrSlug: integrationSlug},
+      staleTime: Infinity,
+    }),
     retry: false,
   });
 

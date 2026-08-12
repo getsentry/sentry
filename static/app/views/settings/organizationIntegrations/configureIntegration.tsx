@@ -19,8 +19,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -45,10 +50,25 @@ import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationIcon} from './integrationIcon';
-import {organizationIntegrationApiOptions} from './integrationQueries';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
+
+function organizationIntegrationApiOptions({
+  organizationSlug,
+  integrationId,
+}: {
+  integrationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<OrganizationIntegration>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, integrationId},
+      staleTime: 0,
+    }
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -240,12 +260,12 @@ function ConfigureIntegration() {
     });
     refetchConfig();
 
-    queryClient.removeQueries({
-      queryKey: organizationIntegrationApiOptions({
+    queryClient.removeQueries(
+      organizationIntegrationApiOptions({
         organizationSlug: organization.slug,
         integrationId,
-      }).queryKey,
-    });
+      })
+    );
     refetchIntegration();
   };
 
@@ -308,12 +328,12 @@ function ConfigureIntegration() {
         // it's important that we keep the mutation pending while the refetch is happening by returning it.
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
         // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        return queryClient.invalidateQueries({
-          queryKey: organizationIntegrationApiOptions({
+        return queryClient.invalidateQueries(
+          organizationIntegrationApiOptions({
             organizationSlug: organization.slug,
             integrationId,
-          }).queryKey,
-        });
+          })
+        );
       },
     });
 
