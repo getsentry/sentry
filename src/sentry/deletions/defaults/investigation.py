@@ -10,6 +10,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationBlockDependency,
+    InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
@@ -18,27 +19,48 @@ from sentry.investigations.models import (
 )
 
 
+class InvestigationBlockExecutionDeletionTask(ModelDeletionTask[InvestigationBlockExecution]):
+    mark_in_progress_default = False
+
+    def get_child_relations(self, instance: InvestigationBlockExecution) -> list[BaseRelation]:
+        return [
+            ModelRelation(
+                InvestigationBlockExecutionProject,
+                {"execution_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+        ]
+
+
+class InvestigationBlockDeletionTask(ModelDeletionTask[InvestigationBlock]):
+    def get_child_relations(self, instance: InvestigationBlock) -> list[BaseRelation]:
+        return [
+            ModelRelation(
+                InvestigationBlockDependency, {"block_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationBlockDependency, {"depends_on_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationBlockParameter, {"block_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(InvestigationBlockExecution, {"block_id": instance.id}),
+        ]
+
+
 class InvestigationDeletionTask(ModelDeletionTask[Investigation]):
     mark_in_progress_default = False
 
     def get_child_relations(self, instance: Investigation) -> list[BaseRelation]:
-        bulk_relations = (
-            (InvestigationProject, "investigation_id"),
-            (InvestigationFavoriteUser, "investigation_id"),
-            (InvestigationBlockDependency, "block__investigation_id"),
-            (InvestigationBlockParameter, "block__investigation_id"),
-            (InvestigationBlockExecutionProject, "execution__block__investigation_id"),
-        )
-        relations: list[BaseRelation] = [
-            ModelRelation(model, {lookup: instance.id}, BulkModelDeletionTask)
-            for model, lookup in bulk_relations
-        ]
-
-        relations.append(ModelRelation(InvestigationBlock, {"investigation_id": instance.id}))
-        relations.append(
+        return [
+            ModelRelation(
+                InvestigationProject, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(
+                InvestigationFavoriteUser, {"investigation_id": instance.id}, BulkModelDeletionTask
+            ),
+            ModelRelation(InvestigationBlock, {"investigation_id": instance.id}),
             ModelRelation(
                 InvestigationParameter, {"investigation_id": instance.id}, BulkModelDeletionTask
-            )
-        )
-
-        return relations
+            ),
+        ]
