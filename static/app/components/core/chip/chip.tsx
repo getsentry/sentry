@@ -106,7 +106,7 @@ export function Chip({
           chipSize={size}
           size="zero"
           variant="transparent"
-          icon={<IconClose size="xs" />}
+          icon={<IconClose />}
           onClick={e => {
             // Keep dismissing a chip from also triggering click handlers on the
             // chip itself or any ancestor (e.g. click-to-edit).
