@@ -20,6 +20,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     has_project_connected_repos,
+    is_free_cohort_org,
 )
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -94,9 +95,14 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        has_autofix_quota: bool = quotas.backend.check_seer_quota(
-            org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
-        )
+        # Free cohort orgs have no subscription so check_seer_quota returns False.
+        # Bypass the check so they see the autofix UI.
+        if is_free_cohort_org(org):
+            has_autofix_quota = True
+        else:
+            has_autofix_quota = quotas.backend.check_seer_quota(
+                org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
+            )
 
         seer_repos_linked = False
         # Check if org has github integration and is on seat-based tier.
