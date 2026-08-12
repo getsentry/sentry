@@ -47,6 +47,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         tool_definitions=None,
         project=None,
         store=True,
+        span_id=None,
+        parent_span_id=None,
     ):
         """Create and store an AI span with the given attributes.
 
@@ -78,6 +80,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             system_instructions: The gen_ai.system_instructions attribute
             tool_definitions: The gen_ai.tool.definitions (new format, will be JSON serialized)
             project: The project to store the span under (default: self.project)
+            span_id: The span's own id (default: a random one)
+            parent_span_id: The id of the span's parent (default: a random one)
 
         Returns:
             The created span object
@@ -138,6 +142,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         }
         if trace_id:
             extra_data["trace_id"] = trace_id
+        if span_id:
+            extra_data["span_id"] = span_id
+        if parent_span_id:
+            extra_data["parent_span_id"] = parent_span_id
 
         span = self.create_span(
             extra_data,
