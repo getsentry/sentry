@@ -24,14 +24,14 @@ interface UseEngagedViewTrackingParams {
 export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingParams) {
   const organization = useOrganization();
   const {maybeExecute: trackEngagedView} = useDebouncer(
-    (expectedGroupId: string) => {
-      if (group.id !== expectedGroupId) {
+    (groupId: string) => {
+      if (group.id !== groupId) {
         return;
       }
 
       trackAnalytics('issue.engaged_view', {
         organization,
-        group_id: parseInt(expectedGroupId, 10),
+        group_id: parseInt(groupId, 10),
         project_id: parseInt(project.id, 10),
         issue_type: group.issueType,
       });
