@@ -18,8 +18,8 @@ export function useValidatedSpansTabColumns(tab: Mode | Tab) {
       string: stringAttributes,
     },
     isValidating: isValidatingColumns,
-    shouldCleanupAggregateColumns: tab === Mode.AGGREGATE,
-    shouldCleanupColumns: tab === Tab.SPAN,
+    shouldCleanupAggregateColumns: true,
+    shouldCleanupColumns: true,
     validationData,
   });
 
