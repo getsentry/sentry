@@ -425,7 +425,6 @@ export function getReleaseProjectColumns(
 }
 
 export const ReleaseProjectColumn = styled('div')`
-  display: block;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
