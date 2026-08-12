@@ -1,6 +1,7 @@
-import {useEffect, useEffectEvent, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -23,14 +24,14 @@ interface UseEngagedViewTrackingParams {
 export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingParams) {
   const organization = useOrganization();
   const trackedGroupId = useRef<string | null>(null);
-  const trackEngagedView = useEffectEvent(() => {
-    trackAnalytics('issue.engaged_view', {
-      organization,
-      group_id: parseInt(group.id, 10),
-      project_id: parseInt(project.id, 10),
-      issue_type: group.issueType,
-    });
-  });
+  const latestRef = useRef<{
+    group: Group;
+    organization: Organization;
+    project: Project;
+  }>({organization, group, project});
+
+  // Keep the ref up to date with the latest values on every render
+  latestRef.current = {organization, group, project};
 
   useEffect(() => {
     // Only track once per group
@@ -39,9 +40,15 @@ export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingP
     }
 
     const timeoutId = window.setTimeout(() => {
-      if (trackedGroupId.current !== group.id) {
-        trackedGroupId.current = group.id;
-        trackEngagedView();
+      const latest = latestRef.current;
+      if (trackedGroupId.current !== latest.group.id) {
+        trackedGroupId.current = latest.group.id;
+        trackAnalytics('issue.engaged_view', {
+          organization: latest.organization,
+          group_id: parseInt(latest.group.id, 10),
+          project_id: parseInt(latest.project.id, 10),
+          issue_type: latest.group.issueType,
+        });
       }
     }, ENGAGED_VIEW_THRESHOLD_MS);
 
