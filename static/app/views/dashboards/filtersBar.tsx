@@ -230,6 +230,7 @@ export function FiltersBar({
     <Flex
       align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
       direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
+      wrap="wrap"
       gap="lg"
       marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
       padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
@@ -418,7 +419,8 @@ const FiltersRow = styled('div')`
   flex-direction: row;
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
-  flex: 1;
+  flex: 1 1 480px;
+  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;
