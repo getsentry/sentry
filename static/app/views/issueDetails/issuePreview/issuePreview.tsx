@@ -155,20 +155,36 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <TitleLink
-                    to={issueDetailsUrl}
-                    analyticsEventKey="issue_inbox.open_issue_clicked"
-                    analyticsEventName="Issue Inbox: Open Issue Clicked"
-                    analyticsParams={{
-                      group_id: group.id,
-                      progress: group.derivedData?.progress,
-                      source: 'title',
-                    }}
+                  <Flex
+                    display="inline-flex"
+                    align="center"
+                    gap="xs"
+                    minWidth={0}
+                    overflow="hidden"
                   >
-                    <Heading as="h3" size="lg" ellipsis>
-                      {primaryTitle} <IconOpen size="xs" />
-                    </Heading>
-                  </TitleLink>
+                    {({className}) => (
+                      <TitleLink
+                        className={className}
+                        to={issueDetailsUrl}
+                        analyticsEventKey="issue_inbox.open_issue_clicked"
+                        analyticsEventName="Issue Inbox: Open Issue Clicked"
+                        analyticsParams={{
+                          group_id: group.id,
+                          progress: group.derivedData?.progress,
+                          source: 'title',
+                        }}
+                      >
+                        <Container flex="1" minWidth={0}>
+                          <Heading as="h3" size="lg" ellipsis>
+                            {primaryTitle}
+                          </Heading>
+                        </Container>
+                        <Flex align="center" flexShrink={0}>
+                          <IconOpen size="xs" variant="muted" />
+                        </Flex>
+                      </TitleLink>
+                    )}
+                  </Flex>
                 </Tooltip>
               </Flex>
               <IssueSeenTimes group={group} />
