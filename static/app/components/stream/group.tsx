@@ -200,7 +200,15 @@ function GroupFirstSeen({group}: {group: Group}) {
       unitStyle="short"
       suffix=""
       aria-label={t('First Seen')}
-      tooltipPrefix={t('First Seen')}
+      {...RELATIVE_TIME_TOOLTIP_PROPS}
+      tooltipBody={
+        <RelativeTime
+          date={group.lifetime.firstSeen}
+          label={t('First Seen')}
+          unitStyle="short"
+          suffix=""
+        />
+      }
     />
   );
 }
