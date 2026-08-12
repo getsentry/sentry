@@ -226,7 +226,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
             ("mock_get_integration", "integration_service.get_integration"),
-            ("mock_get_state", "get_agent_state_from_pr_id"),
+            ("mock_get_state", "get_run_state_for_pr_id"),
             ("mock_enqueue", "try_enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
@@ -371,7 +371,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
         client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            organization_id=self.organization.id,
+            provider=self.repo.provider,
+            pr_id=555,
+            caller="review",
         )
 
     def test_populates_pr_id_cache_on_a_miss(self) -> None:
@@ -461,7 +464,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             "owner/repo", "7"
         )
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            organization_id=self.organization.id,
+            provider=self.repo.provider,
+            pr_id=555,
+            caller="review",
         )
 
         # Two inline comments + one review body item.

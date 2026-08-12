@@ -103,7 +103,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
         self,
@@ -154,7 +154,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             reaction="eyes",
         )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_resolves_pr_id_from_cache_without_calling_github(
         self,
@@ -177,9 +177,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
         client = mock_integration.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_not_called()
-        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+        mock_get_state.assert_called_once_with(
+            organization_id=self.organization.id,
+            provider=self.repo.provider,
+            pr_id=555,
+            caller="mention",
+        )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_populates_pr_id_cache_on_a_miss(
         self,
@@ -203,7 +208,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             == 555
         )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_returns_when_get_pull_request_fails(
         self,
@@ -227,7 +232,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             is None
         )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_does_not_cache_a_missing_pr_id(
         self,
@@ -249,7 +254,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             is None
         )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_stops_on_a_repo_whose_provider_is_not_pinned(
         self,
@@ -286,7 +291,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
         self,
@@ -312,7 +317,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
         self,
@@ -349,7 +354,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_comments_ineligible_when_run_has_no_repo_pr_states(
         self,
@@ -401,7 +406,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_ineligible_comment_when_already_posted(
         self,
@@ -445,7 +450,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_comment_reaction(
         self,
@@ -477,7 +482,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.get_run_state_for_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_iterates_past_max_iterations(
         self,

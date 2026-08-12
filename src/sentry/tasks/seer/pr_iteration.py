@@ -39,7 +39,6 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.source_code_management.pr_id_cache import get_or_fetch_pr_id
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -47,7 +46,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
+from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
@@ -72,6 +71,10 @@ from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
+)
+from sentry.seer.autofix.pr_iteration.run_resolution import (
+    get_run_state_for_pr_id,
+    resolve_pr_id,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
@@ -525,20 +528,6 @@ def _comment_pr_iteration_ineligible(
         pass
 
 
-def _fetch_pr_id(client: Any, repo_name: str, pr_number: int) -> int | None:
-    """Recover a PR's GitHub id from its repo-scoped number over the REST API.
-
-    The fallback behind `get_or_fetch_pr_id`, so it runs only when no webhook has
-    warmed this PR into the id cache. Both trigger tasks run async, meaning the
-    PR may have been deleted or made private, or GitHub may return a transient
-    error, between webhook receipt and execution — `ApiError` propagates to the
-    caller, which is where the drop is logged.
-    """
-    pull_request = client.get_pull_request(repo_name, str(pr_number))
-    pr_id: int | None = pull_request.get("id")
-    return pr_id
-
-
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -613,18 +602,19 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
-
     try:
         # The issue_comment payload behind an `@sentry` mention carries only the
         # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
-        # The mapping is immutable, so it is cached; the fetch runs only when no
-        # webhook has warmed this PR yet.
-        pr_id = get_or_fetch_pr_id(
+        # The mapping is immutable, so it is cached; the client is built and
+        # touched only when no webhook has warmed this PR yet.
+        pr_id = resolve_pr_id(
             provider=PR_ITERATION_PROVIDER,
+            organization_id=organization_id,
+            integration=integration,
             repo_external_id=repo.external_id,
+            repo_name=repo.name,
             pr_number=pr_number,
-            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+            caller="mention",
         )
     except ApiError:
         logger.warning(
@@ -636,7 +626,12 @@ def trigger_pr_iteration_from_comment(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    agent_state = get_run_state_for_pr_id(
+        organization_id=organization_id,
+        provider=PR_ITERATION_PROVIDER,
+        pr_id=pr_id,
+        caller="mention",
+    )
     if agent_state is None:
         # No-op: missing runs are expected on regions that don't own the session
         # when webhooks are fanned out everywhere. Do not react/comment as
@@ -662,7 +657,7 @@ def trigger_pr_iteration_from_comment(
             },
         )
         _comment_pr_iteration_ineligible(
-            client,
+            integration.get_installation(organization_id=organization_id).get_client(),
             organization_id=organization_id,
             repo_id=repo.id,
             repo_name=repo.name,
@@ -924,18 +919,18 @@ def trigger_pr_iteration_from_review(
         logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
         return None
 
-    client = integration.get_installation(organization_id=organization_id).get_client()
-
     try:
-        # The pull_request_review payload carries only the PR number, but Seer's
-        # run lookup is keyed on GitHub's numeric PR id. A pull_request or
-        # check_suite webhook on this PR has almost certainly warmed the cache
-        # already, so the fetch is the exception rather than the rule.
-        pr_id = get_or_fetch_pr_id(
+        # Same number -> id recovery as the mention path. A check_suite on this
+        # PR has almost certainly warmed the cache already, so building a client
+        # and calling it is the exception rather than the rule.
+        pr_id = resolve_pr_id(
             provider=PR_ITERATION_PROVIDER,
+            organization_id=organization_id,
+            integration=integration,
             repo_external_id=repo.external_id,
+            repo_name=repo.name,
             pr_number=pr_number,
-            fetch=lambda: _fetch_pr_id(client, repo.name, pr_number),
+            caller="review",
         )
     except ApiError:
         logger.warning(
@@ -947,7 +942,12 @@ def trigger_pr_iteration_from_review(
     if pr_id is None:
         return None
 
-    agent_state = get_agent_state_from_pr_id(organization_id, PR_ITERATION_PROVIDER, pr_id)
+    agent_state = get_run_state_for_pr_id(
+        organization_id=organization_id,
+        provider=PR_ITERATION_PROVIDER,
+        pr_id=pr_id,
+        caller="review",
+    )
     if agent_state is None or not agent_state.repo_pr_states:
         metrics.incr("autofix.pr_iteration.review_trigger.no_run")
         logger.info(
