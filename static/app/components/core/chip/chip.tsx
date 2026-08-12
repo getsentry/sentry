@@ -74,7 +74,16 @@ export function Chip({
       : 'accent';
 
   return (
-    <ChipRoot chipSize={size} dismissable={Boolean(onDismiss)} {...rest}>
+    <ChipRoot
+      display="inline-flex"
+      align="center"
+      overflow="hidden"
+      height={SIZES[size].height}
+      paddingLeft={SIZES[size].pad}
+      paddingRight={onDismiss ? '0' : SIZES[size].pad}
+      radius={SIZES[size].radius}
+      {...rest}
+    >
       <Flex align="center" gap="xs" padding="2xs 0">
         {property !== undefined && (
           <Text size={textSize} variant="primary" wrap="nowrap">
@@ -114,16 +123,9 @@ export function Chip({
   );
 }
 
-const ChipRoot = styled('div')<{chipSize: ChipSize; dismissable: boolean}>`
-  display: inline-flex;
-  align-items: center;
+const ChipRoot = styled(Flex)`
   box-sizing: border-box;
-  overflow: hidden;
-  height: ${p => SIZES[p.chipSize].height};
-  padding-left: ${p => p.theme.space[SIZES[p.chipSize].pad]};
-  padding-right: ${p => (p.dismissable ? '0' : p.theme.space[SIZES[p.chipSize].pad])};
   border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-  border-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
   background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   line-height: 16px;
