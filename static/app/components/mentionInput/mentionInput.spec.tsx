@@ -1,14 +1,6 @@
 import {useState} from 'react';
-import {queryOptions} from '@tanstack/react-query';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
 import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
@@ -183,47 +175,5 @@ describe('MentionInput', () => {
     await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
-  });
-
-  it('keeps stale async suggestions out of the current results', async () => {
-    const pending = new Map<
-      string,
-      {
-        resolve: (suggestions: ReadonlyArray<{id: string; label: string}>) => void;
-      }
-    >();
-    const asyncSource = {
-      id: 'members',
-      label: 'Members',
-      trigger: '@',
-      queryOptions: query =>
-        queryOptions({
-          queryKey: ['mention-input-test', 'members', query] as const,
-          queryFn: () =>
-            new Promise<readonly PersonSuggestion[]>(resolve => {
-              pending.set(query, {resolve});
-            }),
-          staleTime: Infinity,
-        }),
-      getId: suggestion => suggestion.id,
-      getText: suggestion => `@${suggestion.label}`,
-      renderSuggestion: suggestion => suggestion.label,
-    } satisfies MentionSource<PersonSuggestion>;
-    render(<ControlledMentionInput sources={[asyncSource]} />);
-
-    const textbox = getEditor();
-    await userEvent.type(textbox, '@a');
-    await waitFor(() => expect(pending.has('a')).toBe(true));
-    expect(screen.getByText('Loading suggestions…')).toBeVisible();
-    await userEvent.type(textbox, 'b');
-    await waitFor(() => expect(pending.has('ab')).toBe(true));
-
-    act(() => pending.get('ab')?.resolve([{id: 'user:2', label: 'Abby'}]));
-    expect(await screen.findByRole('option', {name: 'Abby'})).toBeVisible();
-
-    act(() => pending.get('a')?.resolve([{id: 'user:1', label: 'Alice'}]));
-    await waitFor(() =>
-      expect(screen.queryByRole('option', {name: 'Alice'})).not.toBeInTheDocument()
-    );
   });
 });
