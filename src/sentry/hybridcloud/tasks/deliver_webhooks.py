@@ -152,11 +152,28 @@ class DeliveryDropped(Exception):
 
 DRAIN_LOCK_TTL = 15
 """
-Seconds the drain lock survives without a refresh.
+Seconds the claim guard survives without a refresh.
 
-In claim mode the lock only guards the claim itself, so the TTL is crash cover;
-in lease mode the push-triggered drain holds it for its whole run, refreshing per
-delivery, so the TTL bounds how long a dead drain blocks its mailbox.
+Claim-mode dispatchers hold the lock only across the claim and release it before
+returning, so this TTL is crash cover: it bounds how long a dispatcher that died
+mid-claim keeps other dispatchers off its mailbox.
+"""
+
+
+LEASE_DRAIN_LOCK_TTL = 2 * CellSiloClient.timeout + DRAIN_LOCK_TTL
+"""
+Seconds a lease-mode drain's lock survives without a refresh.
+
+A lease drain owns the lock for its whole run and refreshes it once per record,
+immediately before delivering it, so the widest gap between refreshes is a single
+delivery — which the cell client bounds at its connect timeout plus its read
+timeout. Below that, the lock expires under a running drain: the scheduler stops
+skipping the mailbox, claims it, and dispatches a second drain over the same
+records. DRAIN_LOCK_TTL is added on top to cover the trigger-to-first-refresh gap,
+where the task waits in the queue and nothing refreshes yet.
+
+Only lease mode needs this. It goes away with the lease path once
+claim_dispatch_rollout reaches 1.0.
 """
 
 
@@ -165,9 +182,12 @@ def _drain_lock_key(mailbox_name: str) -> str:
 
 
 def _refresh_drain_lock(mailbox_name: str) -> None:
-    """Refresh the drain lock TTL to signal the drain task is still active."""
+    """Refresh the drain lock TTL to signal the drain task is still active.
+
+    Only lease-mode drains refresh, so this always writes the lease TTL.
+    """
     try:
-        cache.set(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL)
+        cache.set(_drain_lock_key(mailbox_name), 1, timeout=LEASE_DRAIN_LOCK_TTL)
     except Exception:
         pass
 
@@ -341,7 +361,9 @@ def _maybe_trigger_drain_lease(mailbox_name: str) -> None:
     trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
     lock_acquired = False
     try:
-        if cache.add(lock_key, 1, timeout=DRAIN_LOCK_TTL):
+        # The drain this dispatches inherits the lock and only starts refreshing
+        # once it is picked up, so the lease TTL has to hold from here.
+        if cache.add(lock_key, 1, timeout=LEASE_DRAIN_LOCK_TTL):
             lock_acquired = True
             # Only drain if the true mailbox head (lowest ID) is ready to deliver.
             # We must check the head specifically — filtering by schedule_for first
