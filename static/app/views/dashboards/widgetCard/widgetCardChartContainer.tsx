@@ -274,8 +274,8 @@ function HeatmapMeasuredArea({
 }) {
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: chartAreaRef});
-  // `leading: true` keeps the first measurement fast; mid-resize churn collapses
-  // into a single trailing update once the drag settles.
+  // A leading update keeps the first usable measurement fast; mid-resize churn
+  // collapses into a single trailing update once the drag settles.
   const [debouncedDimensions] = useDebouncedValue(dimensions, {
     wait: HEATMAP_RESIZE_DEBOUNCE_MS,
     // The initial zero-sized value must not consume the leading execution.

@@ -69,9 +69,8 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
-// Preserve the synchronous test behavior of the global lodash/debounce mock when
-// migrating callback-style debounces to Pacer. Other Pacer primitives retain
-// their real scheduling and state behavior.
+// Keep callback and value debounces synchronous by default in tests. Suites that
+// assert scheduling behavior can load the real Pacer implementations explicitly.
 jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
   useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
