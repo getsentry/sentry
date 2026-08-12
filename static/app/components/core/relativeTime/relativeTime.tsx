@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -12,21 +13,30 @@ import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 
 /**
- * The card is designed at a fixed 240px, border included.
+ * The card is designed at 240px, border included.
  */
 const WIDTH = 240;
+
+/**
+ * Most timezone abbreviations are three or four characters, which is what 240px
+ * is budgeted for. Zones without an abbreviation format as a five character
+ * offset instead (`+0545`, `+1245`), and the rows do not wrap, so the card is
+ * allowed to grow rather than spill outside its own border.
+ */
+const MAX_WIDTH = 280;
 
 /**
  * Tooltip props required to render <RelativeTime> at its designed size. The
  * card owns its own padding so the surrounding overlay must not add any, and
  * the default centered alignment does not apply to the tabular rows.
  *
- * `width` and `maxWidth` must agree — the overlay's default `max-width` of
- * 225px would otherwise clamp the card and force its rows to overflow.
+ * `minWidth` and `maxWidth` are both required — the overlay's default
+ * `max-width` of 225px would otherwise clamp the card and force its rows to
+ * overflow.
  */
 export const RELATIVE_TIME_TOOLTIP_PROPS = {
-  maxWidth: WIDTH,
-  overlayStyle: {padding: 0, textAlign: 'left', width: WIDTH},
+  maxWidth: MAX_WIDTH,
+  overlayStyle: {padding: 0, textAlign: 'left', minWidth: WIDTH},
 } satisfies {maxWidth: number; overlayStyle: React.CSSProperties};
 
 interface RelativeTimeProps {
@@ -45,11 +55,6 @@ interface RelativeTimeProps {
    * @default "in"
    */
   prefix?: string;
-  /**
-   * Show the accent marker beside the label. Off by default — it is reserved
-   * for surfaces where the dot carries meaning, not decoration.
-   */
-  showMarker?: boolean;
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    *
@@ -86,19 +91,21 @@ export function RelativeTime({
   prefix = t('in'),
   suffix = t('ago'),
   unitStyle,
-  showMarker = false,
 }: RelativeTimeProps) {
   const timezone = useTimezone();
+
+  const abbreviation = moment.tz(date, timezone).format('z');
+  // Zones that resolve to UTC itself would render the second row identically to
+  // the first. Zones that merely share its offset right now (GMT, and BST's
+  // winter half) keep both rows, because the differing label is the useful part.
+  const isViewerUtc = abbreviation === UTC;
 
   return (
     <Container width="100%">
       <Flex align="center" justify="between" gap="xs" padding="md lg">
-        <Flex align="center" gap="xs">
-          {showMarker && <Marker aria-hidden />}
-          <Text bold tabular>
-            {label}
-          </Text>
-        </Flex>
+        <Text bold tabular>
+          {label}
+        </Text>
         <Text bold tabular wrap="nowrap">
           {getRelativeDate(date, suffix, prefix, unitStyle)}
         </Text>
@@ -106,29 +113,51 @@ export function RelativeTime({
       <Separator orientation="horizontal" border="secondary" />
       <Grid
         columns="max-content 1fr max-content"
-        rows="24px 24px"
+        rows={isViewerUtc ? '24px' : '24px 24px'}
         gap="0 sm"
         align="center"
         padding="md lg"
       >
-        <TimezoneTag variant="info">{moment.tz(date, timezone).format('z')}</TimezoneTag>
-        <Text tabular wrap="nowrap">
-          <DateTime date={date} dateOnly year timeZone={false} />
-        </Text>
-        <Text align="right" tabular wrap="nowrap">
-          <DateTime date={date} timeOnly timeZone={false} />
-        </Text>
-
-        {/* Timezone abbreviations are not prose, so they are not translated */}
-        <TimezoneTag variant="muted">UTC</TimezoneTag>
-        <Text tabular wrap="nowrap">
-          <DateTime date={date} dateOnly year utc timeZone={false} />
-        </Text>
-        <Text align="right" tabular wrap="nowrap">
-          <DateTime date={date} timeOnly utc timeZone={false} />
-        </Text>
+        {!isViewerUtc && (
+          <TimestampRow date={date} abbreviation={abbreviation} variant="info" />
+        )}
+        <TimestampRow date={date} abbreviation={UTC} variant="muted" utc />
       </Grid>
     </Container>
+  );
+}
+
+/**
+ * Timezone abbreviations are not prose, so they are not translated.
+ */
+const UTC = 'UTC';
+
+/**
+ * One row of the grid: the timezone pill, then the date and time in it. Renders
+ * three grid children rather than a wrapper, so the columns stay aligned across
+ * rows when one abbreviation is wider than the other.
+ */
+function TimestampRow({
+  date,
+  abbreviation,
+  variant,
+  utc,
+}: {
+  abbreviation: string;
+  date: RelativeTimeProps['date'];
+  variant: React.ComponentProps<typeof Tag>['variant'];
+  utc?: boolean;
+}) {
+  return (
+    <Fragment>
+      <TimezoneTag variant={variant}>{abbreviation}</TimezoneTag>
+      <Text tabular wrap="nowrap">
+        <DateTime date={date} dateOnly year utc={utc} timeZone={false} />
+      </Text>
+      <Text align="right" tabular wrap="nowrap">
+        <DateTime date={date} timeOnly utc={utc} timeZone={false} />
+      </Text>
+    </Fragment>
   );
 }
 
@@ -143,12 +172,4 @@ const TimezoneTag = styled(Tag)`
   min-width: 20px;
   padding: 0 ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius['2xs']};
-`;
-
-const Marker = styled('span')`
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  border-radius: ${p => p.theme.radius.full};
-  background: ${p => p.theme.tokens.graphics.accent.vibrant};
 `;

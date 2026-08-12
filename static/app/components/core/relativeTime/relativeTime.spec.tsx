@@ -74,6 +74,30 @@ describe('RelativeTime', () => {
     expect(screen.getByText('06:40')).toBeInTheDocument();
   });
 
+  it('collapses to one row when the viewer is already in UTC', () => {
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'UTC');
+
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+    expect(screen.getByText('Jul 29, 2026')).toBeInTheDocument();
+    expect(screen.getByText('6:40 AM')).toBeInTheDocument();
+  });
+
+  it('keeps both rows for a zone that only shares UTC current offset', () => {
+    // Reykjavik is GMT year round. Same instant as UTC, different label.
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Atlantic/Reykjavik');
+
+    expect(screen.getByText('GMT')).toBeInTheDocument();
+    expect(screen.getByText('UTC')).toBeInTheDocument();
+    expect(screen.getAllByText('6:40 AM')).toHaveLength(2);
+  });
+
+  it('renders zones that have no abbreviation', () => {
+    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Asia/Kathmandu');
+
+    expect(screen.getByText('+0545')).toBeInTheDocument();
+    expect(screen.getByText('12:25 PM')).toBeInTheDocument();
+  });
+
   it('matches the trigger for dates in the future', () => {
     // The header must read the same as the <TimeSince> it expands on, which
     // defaults prefix to "in" — omitting it here must not print `undefined`.

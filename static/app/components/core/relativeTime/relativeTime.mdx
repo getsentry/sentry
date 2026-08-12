@@ -70,12 +70,9 @@ that moment rather than today: a July timestamp shows `PDT` even when read in De
 
 Both rows honor the viewer's 24-hour clock preference.
 
-## Marker
+A viewer whose own timezone is UTC gets a single row rather than the same one twice. Zones
+that merely share UTC's offset — `GMT`, or `Europe/London` in winter — keep both rows, since
+there the differing label is the useful part.
 
-The header can carry an accent dot before the label via `showMarker`. It is off by default:
-the dot reads as a status signal, so it should only appear where it means something rather
-than as decoration.
-
-<Storybook.Demo>
-  <RelativeTime date="2026-07-29T06:40:00Z" label="Last Seen" suffix="ago" showMarker />
-</Storybook.Demo>
+Zones without an abbreviation format as an offset instead (`+0545`, `+1245`). The card grows
+to fit those rather than clipping them, so it is not always exactly 240px wide.
