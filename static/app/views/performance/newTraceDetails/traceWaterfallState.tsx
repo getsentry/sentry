@@ -79,7 +79,7 @@ function TraceEmpty() {
   // and be navigated to a trace that doesn't contain any data yet. We add a 10
   // minute buffer to account for this.
   const message =
-    timestamp && new Date(timestamp * 1000) >= new Date(now - TEN_MINUTES_IN_MS) ? (
+    timestamp && timestamp * 1000 >= now - TEN_MINUTES_IN_MS ? (
       t("We're still processing this trace. Please try refreshing after a minute")
     ) : (
       <div>
