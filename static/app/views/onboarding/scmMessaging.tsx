@@ -45,6 +45,15 @@ export function ScmMessaging({
 
   const isConfigured = messagingSetup.mode === 'selected';
 
+  // A staged destination is only submittable once revalidation settles without a
+  // problem. A stale, unverifiable, or still-checking destination must not appear
+  // ready to submit, since Continue is the project/alert-rule creation boundary.
+  const canContinue =
+    isConfigured &&
+    !validation.staleReason &&
+    !validation.isError &&
+    !validation.isPending;
+
   const handleContinue = () => onComplete?.();
 
   const handleSetupLater = () => {
@@ -151,7 +160,7 @@ export function ScmMessaging({
               variant="primary"
               analyticsEventKey="onboarding.scm_messaging_continue_clicked"
               analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
-              disabled={!isConfigured}
+              disabled={!canContinue}
               onClick={handleContinue}
             >
               {t('Continue')}

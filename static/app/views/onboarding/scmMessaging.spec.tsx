@@ -350,6 +350,13 @@ describe('ScmMessaging', () => {
         status: 'active',
       }),
     ]);
+    // A connected-but-unconfigured row auto-expands its channel picker, which
+    // loads the integration's channels.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channels/',
+      body: {results: []},
+    });
+
     renderMessaging(jest.fn(), {mode: 'unconfigured'});
 
     expect(await screen.findByText('slack')).toBeInTheDocument();
@@ -362,11 +369,46 @@ describe('ScmMessaging', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
-  it('Continue is enabled when a destination is configured', async () => {
+  it('Continue is enabled once a configured destination revalidates', async () => {
     mockIntegration();
     mockChannelValidate(true);
     renderMessaging(jest.fn(), selectedMessagingSetup);
-    expect(await screen.findByRole('button', {name: 'Continue'})).toBeEnabled();
+
+    // Revalidation is still in flight on first paint, so the restored
+    // destination is not submittable yet.
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+    );
+  });
+
+  it('Continue stays disabled while the saved channel is stale', async () => {
+    mockIntegration();
+    mockChannelValidate(false);
+    renderMessaging(jest.fn(), selectedMessagingSetup);
+
+    expect(
+      await screen.findByText(
+        "We couldn't verify the saved channel. Choose a destination again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
+
+  it('Continue stays disabled when the saved destination cannot be checked', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 500,
+    });
+    renderMessaging(jest.fn(), selectedMessagingSetup);
+
+    expect(
+      await screen.findByText(
+        "We couldn't check the saved destination. Reload the page to try again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 
   it('Continue calls onComplete', async () => {
@@ -375,7 +417,10 @@ describe('ScmMessaging', () => {
     const onComplete = jest.fn();
     renderMessaging(jest.fn(), selectedMessagingSetup, onComplete);
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Continue'}));
+    const continueButton = await screen.findByRole('button', {name: 'Continue'});
+    await waitFor(() => expect(continueButton).toBeEnabled());
+
+    await userEvent.click(continueButton);
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
