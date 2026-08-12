@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DRAG_SEPARATOR_TARGET_SIZE} from '@sentry/scraps/dragHandle';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {TABLE_HEAD_ROW_HEIGHT} from '@sentry/scraps/table';
 
@@ -320,9 +321,14 @@ export const GridResizer = styled('div', {
   padding-right: 5px;
 
   cursor: ${p => p.cursor ?? 'col-resize'};
+  pointer-events: none;
   touch-action: none;
   user-select: none;
   z-index: ${Z_INDEX_GRID_RESIZER};
+
+  && {
+    overflow: visible;
+  }
 
   /**
    * This element allows us to have a thick GridResizer that is easy to hover and
@@ -363,4 +369,16 @@ export const GridResizer = styled('div', {
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
+`;
+
+export const GridResizerTarget = styled('div')`
+  position: absolute;
+  top: 0;
+  left: calc(50% - ${DRAG_SEPARATOR_TARGET_SIZE / 2}px);
+  width: ${DRAG_SEPARATOR_TARGET_SIZE}px;
+  height: var(--drag-separator-target-length, ${TABLE_HEAD_ROW_HEIGHT}px);
+  max-height: 100%;
+
+  pointer-events: auto;
+  touch-action: none;
 `;

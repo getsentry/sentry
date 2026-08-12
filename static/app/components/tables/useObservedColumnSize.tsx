@@ -8,23 +8,28 @@ interface ColumnAncestors {
 
 const NO_ANCESTORS: ColumnAncestors = {cell: null, table: null};
 
+function setProperty(element: HTMLElement, property: string, value: string) {
+  if (element.style.getPropertyValue(property) !== value) {
+    element.style.setProperty(property, value);
+  }
+}
+
 function measureColumn(
   element: HTMLElement,
   cell: HTMLTableCellElement,
   table: HTMLTableElement
 ) {
-  const height = `${table.offsetHeight}px`;
-
-  if (element.style.getPropertyValue('--column-resizer-height') !== height) {
-    element.style.setProperty('--column-resizer-height', height);
-  }
+  setProperty(element, '--column-resizer-height', `${table.offsetHeight}px`);
+  setProperty(element, '--drag-separator-target-length', `${cell.offsetHeight}px`);
 
   return {max: Math.max(table.clientWidth, cell.offsetWidth), width: cell.offsetWidth};
 }
 
 /**
  * Measures the column a resize handle belongs to, for the values the handle
- * announces, and sets the height it should span as `--column-resizer-height`.
+ * announces, the height it should span as `--column-resizer-height`, and the
+ * header row height its pointer target is capped to as
+ * `--drag-separator-target-length`.
  */
 export function useObservedColumnSize(elementRef: React.RefObject<HTMLElement | null>) {
   const [measurements, setMeasurements] = useState({max: 0, width: 0});

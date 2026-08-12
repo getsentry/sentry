@@ -11,6 +11,13 @@ export type DragHandleVariant = 'solid' | 'ghost';
 
 export const DRAG_HANDLE_SIZE = 1;
 
+/** The 24x24 CSS pixel minimum that WCAG 2.5.8 asks of a pointer target. */
+export const DRAG_SEPARATOR_TARGET_SIZE = 24;
+
+const targetLength = 'var(--drag-separator-target-length, none)';
+
+const targetOffset = `calc(50% - ${DRAG_SEPARATOR_TARGET_SIZE / 2}px)`;
+
 /**
  * A focusable `separator` is a widget, so it needs a name, or it is announced as a bare
  * value with no subject. Prefer `aria-labelledby` when the handle sits inside an element
@@ -79,13 +86,15 @@ export function DragHandle({
 const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   user-select: none;
   touch-action: none;
-  cursor: ${p => p.$cursor};
+  pointer-events: none;
 
-  /* Invisible wider hit area for dragging */
+  /* Invisible wider hit area for dragging, and the only part that takes pointer events */
   &::before {
     content: '';
     position: absolute;
     z-index: ${p => p.theme.zIndex.drawer};
+    pointer-events: auto;
+    cursor: ${p => p.$cursor};
   }
 
   /* Accent bar that lights up on hover/drag */
@@ -110,8 +119,9 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
-      inset: 0 auto 0 -5px;
-      width: 11px;
+      inset: 0 auto 0 ${targetOffset};
+      width: ${DRAG_SEPARATOR_TARGET_SIZE}px;
+      max-height: ${targetLength};
     }
 
     &::after {
@@ -126,8 +136,9 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
-      inset: -5px 0 auto 0;
-      height: 11px;
+      inset: ${targetOffset} 0 auto 0;
+      height: ${DRAG_SEPARATOR_TARGET_SIZE}px;
+      max-width: ${targetLength};
     }
 
     &::after {

@@ -3,7 +3,10 @@ import {mergeProps} from '@react-aria/utils';
 
 import {useDragSeparator} from '@sentry/scraps/dragHandle';
 
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {
+  GridResizer,
+  GridResizerTarget,
+} from 'sentry/components/tables/gridEditable/styles';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
 
 interface ColumnResizerProps {
@@ -64,6 +67,8 @@ export function ColumnResizer({
       aria-labelledby={cellId}
       cursor={cursor}
       ref={ref}
-    />
+    >
+      <GridResizerTarget />
+    </GridResizer>
   );
 }
