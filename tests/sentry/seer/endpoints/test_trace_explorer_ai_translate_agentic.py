@@ -57,7 +57,78 @@ class SearchAgentTranslateEndpointTest(APITestCase):
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
             },
+            cross_event=False,
+            project_expansion=False,
+            reflection_step=False,
+            code_mode=False,
         )
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    @with_feature("organizations:seer-assisted-query-cross-event-explorer")
+    @with_feature("organizations:seer-assisted-query-project-expansion")
+    @with_feature("organizations:seer-assisted-query-reflection")
+    @with_feature("organizations:seer-assisted-query-codemode")
+    def test_translate_forwards_feature_flags(self, mock_send_request: MagicMock) -> None:
+        """Feature flags are forwarded to Seer as request options."""
+        mock_send_request.return_value = {"status": "ok"}
+
+        response = self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "show errors",
+                "code_mode": True,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        _, kwargs = mock_send_request.call_args
+        assert kwargs["cross_event"] is True
+        assert kwargs["project_expansion"] is True
+        assert kwargs["reflection_step"] is True
+        assert kwargs["code_mode"] is True
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    @with_feature("organizations:seer-assisted-query-codemode")
+    def test_code_mode_requires_toggle_and_flag(self, mock_send_request: MagicMock) -> None:
+        """code_mode is False when the toggle is off, even if the flag is on."""
+        mock_send_request.return_value = {"status": "ok"}
+
+        self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "show errors",
+            },
+            format="json",
+        )
+        assert mock_send_request.call_args.kwargs["code_mode"] is False
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_code_mode_toggle_without_flag(self, mock_send_request: MagicMock) -> None:
+        """code_mode is False when the toggle is on but the flag is off."""
+        mock_send_request.return_value = {"status": "ok"}
+
+        self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "show errors",
+                "code_mode": True,
+            },
+            format="json",
+        )
+        assert mock_send_request.call_args.kwargs["code_mode"] is False
 
     @patch(
         "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
