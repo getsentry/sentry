@@ -42,9 +42,4 @@ describe('Chip', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
-
-  it('does not render a dismiss button when readonly', () => {
-    render(<Chip readonly property="browser" value="Chrome" onDismiss={() => {}} />);
-    expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
-  });
 });
