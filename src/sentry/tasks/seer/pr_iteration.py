@@ -845,6 +845,7 @@ def trigger_pr_iteration_from_review(
     author_username: str | None = None,
     author_external_id: str | int | None = None,
     author_is_bot: bool = False,
+    delivery_authenticated: bool = True,
 ) -> None:
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
@@ -939,8 +940,9 @@ def trigger_pr_iteration_from_review(
         return None
 
     # Bots skip the write-access gate: a bot account is never a repo collaborator.
+    # An unauthenticated delivery can forge the bot flag, so it stays gated.
     actor_user: RpcUser | None = None
-    if author_is_bot:
+    if author_is_bot and delivery_authenticated:
         metrics.incr("autofix.pr_iteration.review_trigger.write_access_gate_skipped")
     elif not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
         metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")

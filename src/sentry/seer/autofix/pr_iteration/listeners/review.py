@@ -66,6 +66,9 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     extra = subscription.get("extra") or {}
     installation_id = extra.get("installation_id")
     repository_id = extra.get("repository_id")
+    # Legacy GitHub Enterprise hosts may deliver without a verified signature, so
+    # the payload's author fields are unattested.
+    delivery_authenticated = not extra.get("skipped-authentication", False)
 
     provider = subscription.get("type")
     author_id = event.author.get("id")
@@ -160,6 +163,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             author_username=event.author.get("username"),
             author_external_id=event.author.get("id"),
             author_is_bot=event.is_bot,
+            delivery_authenticated=delivery_authenticated,
         )
         dispatched = True
 
