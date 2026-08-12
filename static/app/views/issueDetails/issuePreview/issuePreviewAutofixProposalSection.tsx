@@ -61,11 +61,11 @@ export function IssuePreviewAutofixProposalSection({
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
           <RetryableAutofixSection.Prompt
-            placeholder={t('Give Seer additional context to improve this proposal.')}
+            placeholder={t('Give Seer additional context to improve these code changes.')}
             prompt={t('How can this code change be improved?')}
           />
           {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating proposal...')}</WorkingIndicator>
+            <WorkingIndicator>{t('Generating code changes...')}</WorkingIndicator>
           ) : patchesByRepo.size > 0 ? (
             <Text>{proposalSummary}</Text>
           ) : (
