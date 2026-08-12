@@ -1,4 +1,11 @@
-import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
@@ -21,7 +28,7 @@ import {
   writeEditorValue,
 } from './dom';
 import {findActiveMention, getRequestKey, type ActiveMention} from './matching';
-import {type Mention, reconcileMentions} from './model';
+import {type Mention, type MentionInputValue, reconcileMentions} from './model';
 import {CaretAnchor, MentionEditor, SuggestionStatus} from './styles';
 import type {MentionInputProps} from './types';
 import {useMentionSuggestions} from './useMentionSuggestions';
@@ -40,6 +47,94 @@ function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.Reac
   }
 }
 
+/** Keeps the browser-managed contenteditable in sync with the controlled value. */
+function useEditorValueSync({mentions, text}: MentionInputValue) {
+  const inputRef = useRef<HTMLDivElement>(null);
+  const isComposingRef = useRef(false);
+  const pendingSelectionRef = useRef<EditorSelection | null>(null);
+  const [nativeEditVersion, requestValueSync] = useReducer(version => version + 1, 0);
+
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+
+    if (!isComposingRef.current) {
+      writeEditorValue(input, text, mentions);
+    }
+
+    const pendingSelection = pendingSelectionRef.current;
+    if (pendingSelection !== null) {
+      input.focus({preventScroll: true});
+      setEditorSelection(input, pendingSelection);
+      pendingSelectionRef.current = null;
+    }
+  }, [mentions, nativeEditVersion, text]);
+
+  return {inputRef, isComposingRef, pendingSelectionRef, requestValueSync};
+}
+
+/** Positions the Popper anchor over the active trigger as the editor moves or resizes. */
+function useCaretAnchorPosition({
+  activeMention,
+  inputRef,
+  trigger,
+  updateOverlayPosition,
+  value,
+}: {
+  activeMention: ActiveMention | null;
+  inputRef: React.RefObject<HTMLDivElement | null>;
+  trigger: string | undefined;
+  updateOverlayPosition: (() => void) | null | undefined;
+  value: string;
+}) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const updatePosition = useCallback(() => {
+    const input = inputRef.current;
+    const anchor = anchorRef.current;
+    const container = input?.parentElement;
+    if (!input || !anchor || !container || !activeMention || !trigger) {
+      return;
+    }
+
+    const start = getDOMPoint(input, activeMention.start);
+    const end = getDOMPoint(input, activeMention.start + trigger.length);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    if (typeof range.getBoundingClientRect !== 'function') {
+      return;
+    }
+
+    const rangeRect = range.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    anchor.style.left = `${rangeRect.left - containerRect.left}px`;
+    anchor.style.top = `${rangeRect.top - containerRect.top}px`;
+    anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
+    anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
+    updateOverlayPosition?.();
+  }, [activeMention, inputRef, trigger, updateOverlayPosition]);
+
+  useLayoutEffect(() => {
+    if (!trigger) {
+      return;
+    }
+
+    updatePosition();
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(updatePosition);
+    resizeObserver.observe(input);
+    return () => resizeObserver.disconnect();
+  }, [inputRef, trigger, updatePosition, value]);
+
+  return {anchorRef, updatePosition};
+}
+
 /**
  * A controlled multiline contenteditable with React Aria suggestion lists.
  * Mention ranges stay separate from the plain text used by forms and drafts.
@@ -56,17 +151,12 @@ export function MentionInput<TSuggestion>({
 }: MentionInputProps<TSuggestion>) {
   const {mentions, text: value} = inputValue;
   const theme = useTheme();
-  const inputRef = useRef<HTMLDivElement>(null);
-  const caretAnchorRef = useRef<HTMLSpanElement>(null);
+  const {inputRef, isComposingRef, pendingSelectionRef, requestValueSync} =
+    useEditorValueSync(inputValue);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const dismissedRequestKeyRef = useRef<string | null>(null);
-  const isComposingRef = useRef(false);
-  const pendingSelectionRef = useRef<EditorSelection | null>(null);
   const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
-  const [nativeEditVersion, setNativeEditVersion] = useState(0);
 
-  const mergeInputRef = useStableMergeRef(inputRef);
-  const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
   const activeSource = activeMention
     ? sources.find(source => source.id === activeMention.sourceId)
     : undefined;
@@ -125,71 +215,16 @@ export function MentionInput<TSuggestion>({
     onInteractOutside: () => setActiveMention(null),
   });
 
-  const positionCaretAnchor = useCallback(() => {
-    const input = inputRef.current;
-    const anchor = caretAnchorRef.current;
-    const container = input?.parentElement;
-    if (!input || !anchor || !container || !activeMention || !activeSource) {
-      return;
-    }
-
-    const start = getDOMPoint(input, activeMention.start);
-    const end = getDOMPoint(input, activeMention.start + activeSource.trigger.length);
-    const range = document.createRange();
-    range.setStart(start.node, start.offset);
-    range.setEnd(end.node, end.offset);
-    if (typeof range.getBoundingClientRect !== 'function') {
-      return;
-    }
-
-    const rangeRect = range.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    anchor.style.left = `${rangeRect.left - containerRect.left}px`;
-    anchor.style.top = `${rangeRect.top - containerRect.top}px`;
-    anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
-    anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
-  }, [activeMention, activeSource]);
-
-  useLayoutEffect(() => {
-    if (isOpen) {
-      positionCaretAnchor();
-      updateOverlayPosition?.();
-    }
-  }, [isOpen, positionCaretAnchor, updateOverlayPosition, value]);
-
-  useLayoutEffect(() => {
-    const input = inputRef.current;
-    if (!input) {
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      positionCaretAnchor();
-      updateOverlayPosition?.();
+  const {anchorRef: caretAnchorRef, updatePosition: updateSuggestionPosition} =
+    useCaretAnchorPosition({
+      activeMention,
+      inputRef,
+      trigger: activeSource?.trigger,
+      updateOverlayPosition,
+      value,
     });
-    resizeObserver.observe(input);
-
-    return () => resizeObserver.disconnect();
-  }, [positionCaretAnchor, updateOverlayPosition]);
-
-  useLayoutEffect(() => {
-    if (inputRef.current && !isComposingRef.current) {
-      writeEditorValue(inputRef.current, value, mentions);
-    }
-  }, [mentions, nativeEditVersion, value]);
-
-  useLayoutEffect(() => {
-    const pendingSelection = pendingSelectionRef.current;
-    if (pendingSelection === null || !inputRef.current) {
-      return;
-    }
-
-    inputRef.current.focus({preventScroll: true});
-    setEditorSelection(inputRef.current, pendingSelection);
-    pendingSelectionRef.current = null;
-    positionCaretAnchor();
-    updateOverlayPosition?.();
-  }, [positionCaretAnchor, updateOverlayPosition, value]);
+  const mergeInputRef = useStableMergeRef(inputRef);
+  const mergeCaretAnchorRef = useStableMergeRef(caretAnchorRef);
 
   useEffect(() => {
     if (!isOpen) {
@@ -205,7 +240,7 @@ export function MentionInput<TSuggestion>({
     }
 
     return ariaHideOutside(visibleElements);
-  }, [isOpen, overlayRef]);
+  }, [inputRef, isOpen, overlayRef]);
 
   const selectSuggestion = (key: React.Key | null) => {
     if (!activeMention || !activeSource || key === null) {
@@ -254,7 +289,7 @@ export function MentionInput<TSuggestion>({
     if (selection) {
       pendingSelectionRef.current = selection;
     }
-    setNativeEditVersion(version => version + 1);
+    requestValueSync();
     onChange({text: nextValue, mentions: nextMentions});
     setActiveMention(
       selection
@@ -341,10 +376,7 @@ export function MentionInput<TSuggestion>({
         updateActiveMention();
       }
     },
-    onScroll: () => {
-      positionCaretAnchor();
-      updateOverlayPosition?.();
-    },
+    onScroll: updateSuggestionPosition,
     onSelect: (event: React.SyntheticEvent<HTMLDivElement>) => {
       if (!event.defaultPrevented) {
         updateActiveMention();
