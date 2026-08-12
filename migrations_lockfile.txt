@@ -25,7 +25,7 @@ monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notifications: 0001_squashed_0012_drop_metric_alert_cols_notificationmessage
+notifications: 0013_add_notificationmessage_parent_lookup_index
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
