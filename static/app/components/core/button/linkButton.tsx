@@ -152,7 +152,6 @@ const StyledLinkButton = styled(
       prop === 'busy' ||
       prop === 'external' ||
       prop === 'replace' ||
-      prop === 'state' ||
       prop === 'preventScrollReset' ||
       prop === 'openInNewTab' ||
       prop === 'variant' ||

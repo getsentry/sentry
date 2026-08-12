@@ -104,10 +104,6 @@ interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
    * Determines if the link should replace the current history entry.
    */
   replace?: boolean;
-  /**
-   * State to associate with the destination history entry.
-   */
-  state?: unknown;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
