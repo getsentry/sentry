@@ -539,6 +539,20 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == duplicate.id
 
+    def test_treats_an_empty_external_id_as_absent(self) -> None:
+        """A reporter with no id for the repo sends ``""``. Querying it would match a row
+        that also has none, attaching the PR to an unrelated repository."""
+        self.create_repo(
+            self.project, name="unrelated/repo", provider="integrations:github", external_id=""
+        )
+
+        resolved = self._resolve(repo_external_id="")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+
     def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
         """A repo re-added under a new external id must be no worse off than before."""
         resolved = self._resolve(repo_external_id="no-longer-in-use")
