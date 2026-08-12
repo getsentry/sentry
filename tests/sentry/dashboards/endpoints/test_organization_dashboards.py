@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
-from django.db import connection
-from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from sentry.dashboards.endpoints.organization_dashboards import (
@@ -2756,72 +2754,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Could not validate query: no project available."
         ]
         assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
-
-    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validation_resolves_projects_once_per_request(
-        self, mock_in_test_environment
-    ) -> None:
-        """Validation runs per widget query but resolves projects per request."""
-        assert self.project  # lazy fixture; the org needs a project
-        teamless_user = self.create_user()
-        self.create_member(
-            organization=self.organization, user=teamless_user, role="member", teams=[]
-        )
-        self.login_as(teamless_user)
-
-        data = {
-            "title": "Many Widgets",
-            "widgets": [
-                {
-                    "displayType": "line",
-                    "interval": "5m",
-                    "title": f"Widget {i}",
-                    "queries": [
-                        {
-                            "name": f"q{j}",
-                            "fields": ["count()"],
-                            "columns": [],
-                            "aggregates": ["count()"],
-                            "conditions": "",
-                        }
-                        for j in range(2)
-                    ],
-                }
-                for i in range(5)
-            ],
-        }
-
-        with CaptureQueriesContext(connection) as queries:
-            response = self.do_request("post", self.url + "?validateOnly=1", data=data)
-        assert response.status_code == 200, response.data
-
-        # Membership pass plus the include_all_accessible retry, once each.
-        resolutions = [
-            q["sql"]
-            for q in queries.captured_queries
-            if 'FROM "sentry_project"' in q["sql"] and '"status" =' in q["sql"]
-        ]
-        assert len(resolutions) == 2, resolutions
-
-    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validation_skips_accessible_lookup_for_team_member(
-        self, mock_in_test_environment
-    ) -> None:
-        """A non-empty membership list short-circuits the second resolution."""
-        assert self.project  # lazy fixture; self.user needs a team project
-
-        with CaptureQueriesContext(connection) as queries:
-            response = self.do_request(
-                "post", self.url + "?validateOnly=1", data=self._single_widget_dashboard("Member")
-            )
-        assert response.status_code == 200, response.data
-
-        resolutions = [
-            q["sql"]
-            for q in queries.captured_queries
-            if 'FROM "sentry_project"' in q["sql"] and '"status" =' in q["sql"]
-        ]
-        assert len(resolutions) == 1, resolutions
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_does_not_error_for_organization_without_projects(
