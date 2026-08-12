@@ -248,11 +248,33 @@ export function ReleaseCard({
         <Container position="relative">
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
-              <ExpandButtonWrapper>
+              <Flex
+                align="center"
+                bottom="0"
+                justify="center"
+                position="absolute"
+                width="100%"
+                css={cssTheme => css`
+                  background-image: linear-gradient(
+                    180deg,
+                    ${color(cssTheme.tokens.background.primary).alpha(0).string()} 0,
+                    ${cssTheme.tokens.background.primary}
+                  );
+                  background-repeat: repeat-x;
+                  border-bottom: ${cssTheme.space.md} solid
+                    ${cssTheme.tokens.background.primary};
+                  border-top: ${cssTheme.space.md} solid transparent;
+                  border-bottom-right-radius: ${cssTheme.radius.md};
+
+                  @container (max-width: ${cssTheme.container['3xl']}) {
+                    border-bottom-left-radius: ${cssTheme.radius.md};
+                  }
+                `}
+              >
                 <Button variant="primary" size="xs" onClick={onExpand}>
                   {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                 </Button>
-              </ExpandButtonWrapper>
+              </Flex>
             )}
             collapseButton={({onCollapse}) => (
               <Flex justify="center" align="center" height="41px">
@@ -292,7 +314,6 @@ export function ReleaseCard({
             height="24px"
             overflow="hidden"
             padding="0 xl"
-            data-test-id="hidden-projects"
             css={cssTheme => css`
               border-bottom-right-radius: ${cssTheme.radius.md};
 
@@ -389,27 +410,6 @@ const ReleaseProjectsHeader = styled(PanelHeader)`
   border-top-left-radius: 0;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const ExpandButtonWrapper = styled('div')`
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image: linear-gradient(
-    180deg,
-    ${p => color(p.theme.tokens.background.primary).alpha(0).string()} 0,
-    ${p => p.theme.tokens.background.primary}
-  );
-  background-repeat: repeat-x;
-  border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
-  border-top: ${p => p.theme.space.md} solid transparent;
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
 `;
 
 export function getReleaseProjectColumns(

@@ -1,5 +1,5 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -263,10 +263,13 @@ function TableRender({
         marginBottom="md"
       >
         {header}
-        <StyledPagination
+        <Pagination
           pageLinks={pageLinks}
           onCursor={onCursor}
           size={paginationCursorSize}
+          css={css`
+            margin: 0;
+          `}
         />
       </Grid>
       <DemoTourElement
@@ -551,10 +554,6 @@ class _TransactionsList extends Component<Props> {
     );
   }
 }
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
-`;
 
 export function TransactionsList(
   props: Omit<Props, 'cursorName' | 'limit' | 'navigate'> & {

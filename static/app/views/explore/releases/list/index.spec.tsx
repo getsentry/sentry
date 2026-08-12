@@ -489,7 +489,7 @@ describe('ReleasesList', () => {
     });
     PageFiltersStore.updateProjects([2], null);
     render(<ReleasesList />, {organization});
-    const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
+    const hiddenProjectsMessage = await screen.findByText(/hidden projects/);
     expect(hiddenProjectsMessage).toHaveTextContent('2 hidden projects');
 
     expect(screen.getAllByRole('button', {name: 'View'})).toHaveLength(1);
@@ -506,7 +506,7 @@ describe('ReleasesList', () => {
     render(<ReleasesList />, {organization});
 
     expect(await screen.findByRole('button', {name: 'View'})).toBeInTheDocument();
-    expect(screen.queryByTestId('hidden-projects')).not.toBeInTheDocument();
+    expect(screen.queryByText(/hidden projects/)).not.toBeInTheDocument();
   });
 
   it('renders mobile builds when the mobile-builds tab is selected', async () => {
