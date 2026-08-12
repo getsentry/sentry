@@ -108,6 +108,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
+    def validate_triggers(self, value: InputData) -> InputData:
+        if "workflow" in self.context:
+            self._validate_trigger_ownership(value)
+
+        return value
+
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         if "workflow" in self.context:
             self._validate_action_filter_ownership(value)
@@ -260,6 +266,21 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             self.update_or_create_actions(actions, condition_group)
 
         return condition_group
+
+    def _validate_trigger_ownership(self, triggers: InputData) -> None:
+        """
+        If a data_condition_group id is passed in, it must belong to the workflow being updated
+        to prevent claiming another workflow's group
+        """
+        workflow = self.context["workflow"]
+
+        condition_group_id = triggers.get("id")
+
+        if (
+            condition_group_id is not None
+            and int(condition_group_id) != workflow.when_condition_group_id
+        ):
+            raise serializers.ValidationError(f"Invalid Condition Group ID {condition_group_id}")
 
     def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
         workflow = self.context["workflow"]
