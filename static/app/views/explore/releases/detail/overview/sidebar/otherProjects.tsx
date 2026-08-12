@@ -76,8 +76,8 @@ const Row = styled('div')`
   margin-bottom: ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
-    p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) and (max-width: ${p =>
+    p.theme.container['4xl']}) {
     grid-template-columns: 200px max-content;
   }
 `;

@@ -32,7 +32,7 @@ export function ReleasesStatusOptions({selected, onSelect}: Props) {
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 3;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     order: 1;
   }
 `;

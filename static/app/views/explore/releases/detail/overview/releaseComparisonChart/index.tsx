@@ -1171,7 +1171,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
         p.withExpanders ? '75px' : ''};
   }

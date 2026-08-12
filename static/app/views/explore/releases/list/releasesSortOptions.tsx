@@ -56,7 +56,7 @@ export function ReleasesSortOptions({
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 2;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     order: 2;
   }
 `;

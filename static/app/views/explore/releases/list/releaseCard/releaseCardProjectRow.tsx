@@ -262,7 +262,7 @@ export function ReleaseCardProjectRow({
 
 const ProjectRow = styled(PanelItem)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     font-size: ${p => p.theme.font.size.md};
   }
 `;

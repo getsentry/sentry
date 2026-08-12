@@ -662,7 +662,7 @@ const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
     css`
       padding-bottom: 0;
 
-      @media (min-width: ${p.theme.breakpoints.md}) {
+      @container (min-width: ${p.theme.container['3xl']}) {
         padding-bottom: 0;
       }
     `}
@@ -673,19 +673,19 @@ const SortAndFilterWrapper = styled('div')`
   grid-template-columns: 1fr repeat(3, max-content);
   gap: ${p => p.theme.space.xl};
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: repeat(3, 1fr);
     & > div {
       width: auto;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-column: 1 / -1;
   }
 `;

@@ -299,7 +299,7 @@ const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
   pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     display: flex;
   }
 `;
@@ -311,7 +311,7 @@ const ReleaseInfo = styled('div')`
   flex-direction: column;
   justify-content: stretch;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
     min-width: 260px;
     width: 22%;
@@ -354,7 +354,7 @@ const ReleaseProjects = styled('div')`
   flex-grow: 1;
   display: grid;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     border-top: none;
   }
 `;
@@ -389,7 +389,7 @@ const ExpandButtonWrapper = styled('div')`
   border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
   border-top: ${p => p.theme.space.md} solid transparent;
   border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;
@@ -404,15 +404,15 @@ export const ReleaseProjectsLayout = styled('div')<{
   align-items: center;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     ${p => {
       const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
       return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
@@ -432,7 +432,7 @@ export const ReleaseProjectColumn = styled('div')`
 export const NewIssuesColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     text-align: right;
   }
 `;
@@ -441,7 +441,7 @@ export const AdoptionColumn = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: flex;
     /* Chart tooltips need overflow */
     overflow: visible;
@@ -456,7 +456,7 @@ export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     display: flex;
 
     /* Need to show the edges of the tags */
@@ -467,11 +467,11 @@ export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
 export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     text-align: center;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     text-align: right;
   }
 `;
@@ -480,7 +480,7 @@ export const DisplaySmallCol = styled(ReleaseProjectColumn)`
   display: none;
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: block;
     text-align: right;
   }
@@ -498,7 +498,7 @@ const HiddenProjectsMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     border-bottom-left-radius: ${p => p.theme.radius.md};
   }
 `;

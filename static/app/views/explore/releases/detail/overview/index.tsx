@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -305,7 +307,11 @@ function ReleaseOverview() {
           {isReleaseArchived(release) && (
             <ReleaseArchivedNotice onRestore={() => handleRestore(refetchData)} />
           )}
-          <ReleaseDetailsPageFilters>
+          <Grid
+            columns={{zero: 'auto', xl: 'minmax(0, max-content) 1fr'}}
+            gap="xl"
+            marginBottom="xl"
+          >
             <EnvironmentPageFilter />
             <TimeRangeSelector
               relative={period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)}
@@ -347,7 +353,7 @@ function ReleaseOverview() {
                   : undefined,
               }}
             />
-          </ReleaseDetailsPageFilters>
+          </Grid>
           {(hasDiscover || hasPerformance || hasHealthData) && (
             <DemoTourElement
               id={DemoTourStep.RELEASES_CHART}
@@ -543,17 +549,6 @@ function getTransactionsListSort(location: Location): {
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
-
-const ReleaseDetailsPageFilters = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content) 1fr;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   font-size: ${p => p.theme.font.size.sm};

@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {releaseHealth} from 'sentry/data/platformCategories';
@@ -60,35 +59,25 @@ export function ReleaseHealthCTA({
   return (
     <Alert.Container>
       <Alert variant="info">
-        <AlertText>
-          <div>
+        <Flex
+          align="start"
+          direction={{zero: 'column', '3xl': 'row'}}
+          gap="xl"
+          justify="start"
+        >
+          <Flex flex="1">
             {t(
               'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
             )}
-          </div>
+          </Flex>
           <ExternalLink
             href="https://docs.sentry.io/product/releases/setup/#release-health"
             onClick={trackAddReleaseHealth}
           >
             {t('Add Release Health')}
           </ExternalLink>
-        </AlertText>
+        </Flex>
       </Alert>
     </Alert.Container>
   );
 }
-
-const AlertText = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: ${p => p.theme.space.xl};
-
-  > *:nth-child(1) {
-    flex: 1;
-  }
-  flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
