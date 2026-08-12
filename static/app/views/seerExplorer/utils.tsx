@@ -400,9 +400,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   bash: (args, isLoading) => {
-    const description =
-      args.description || (isLoading ? 'Using bash tool' : 'Used bash tool');
-    return description[0].toUpperCase() + description.slice(1);
+    if (!args.description || typeof args.description !== 'string') {
+      return isLoading ? 'Using bash tool' : 'Used bash tool';
+    }
+    const description = args.description || '';
+    return (description[0] || '').toUpperCase() + args.description.slice(1);
   },
 };
 
