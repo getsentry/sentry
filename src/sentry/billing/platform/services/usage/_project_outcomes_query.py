@@ -19,6 +19,7 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     _QUERY_LIMIT,
     _build_query,
     _category_usage_from_row,
+    _inclusive_end_to_exclusive,
     _latest_usage_timestamp,
     _parse_day,
     _timestamp_to_datetime,
@@ -38,9 +39,7 @@ class ProjectUsageQueryTruncatedError(RuntimeError):
 
 def query_project_outcomes_usage(request: GetUsageByProjectRequest) -> GetUsageByProjectResponse:
     start = _timestamp_to_datetime(request.start)
-    end = _timestamp_to_datetime(request.end)
-    if end <= start:
-        raise ValueError("project usage end must be after start")
+    end = _inclusive_end_to_exclusive(request.end)
 
     categories = [proto_to_sentry_category(category) for category in request.categories]
     snuba_request = _build_project_query(

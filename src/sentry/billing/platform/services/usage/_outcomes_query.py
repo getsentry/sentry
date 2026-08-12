@@ -55,11 +55,7 @@ _BILLABLE_OUTCOMES = [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
-    # The proto contract defines `end` as inclusive (midnight of the last
-    # included day). Snuba queries use a half-open interval [start, end),
-    # so we add one day to convert inclusive→exclusive. Without this, all
-    # hourly rows on the last day would be excluded.
-    end = _timestamp_to_datetime(request.end) + timedelta(days=1)
+    end = _inclusive_end_to_exclusive(request.end)
     # Proto categories use different int values from Relay/ClickHouse
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
     categories = [proto_to_sentry_category(c) for c in request.categories]
@@ -102,7 +98,6 @@ def _build_query(
     *,
     total_outcomes: Sequence[int] | None = None,
     additional_groupby: Sequence[str] = (),
-    include_max_timestamp: bool = True,
 ) -> Request:
     # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
     # Callers are responsible for adapting their API's interval semantics.
@@ -115,9 +110,10 @@ def _build_query(
         where.append(Condition(Column("category"), Op.IN, categories))
 
     groupby_columns = [*additional_groupby, "category", "time"]
-    select: list[Column | Function] = [Column(name) for name in groupby_columns]
-    if include_max_timestamp:
-        select.append(Function("max", [Column("timestamp")], "max_ts"))
+    select: list[Column | Function] = [
+        *[Column(name) for name in groupby_columns],
+        Function("max", [Column("timestamp")], "max_ts"),
+    ]
     select.extend(_usage_aggregates(total_outcomes))
 
     query = Query(
@@ -292,6 +288,11 @@ def _over_quota_condition() -> Function:
 
 def _timestamp_to_datetime(ts: Timestamp) -> datetime:
     return ts.ToDatetime(tzinfo=timezone.utc)
+
+
+def _inclusive_end_to_exclusive(ts: Timestamp) -> datetime:
+    """Convert the API's inclusive end day to Snuba's exclusive boundary."""
+    return _timestamp_to_datetime(ts) + timedelta(days=1)
 
 
 def _parse_day(value: str) -> Date:

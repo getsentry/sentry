@@ -455,37 +455,40 @@ class TestBuildProjectResponse:
 
 
 class TestBuildProjectQuery:
-    def test_filters_and_groups_by_project(self):
+    def test_adds_project_id_to_shared_query(self):
         start = datetime(2025, 3, 15, 6, tzinfo=timezone.utc)
         end = datetime(2025, 3, 16, 6, tzinfo=timezone.utc)
         request = _build_project_query(42, start, end, [1, 2])
-
-        conditions = {
-            condition.lhs.name: condition
-            for condition in request.query.where
-            if hasattr(condition, "lhs")
-        }
-        assert conditions["org_id"].rhs == 42
-        assert "project_id" not in conditions
-        assert conditions["timestamp"].op == Op.LT
-        assert conditions["timestamp"].rhs == end
-        assert conditions["category"].rhs == [1, 2]
-        assert [column.name for column in request.query.groupby] == [
-            "project_id",
-            "category",
-            "time",
-        ]
-        assert any(
-            isinstance(item, Function) and item.alias == "max_ts" for item in request.query.select
+        organization_request = _build_query(
+            42,
+            start,
+            end,
+            [1, 2],
+            total_outcomes=_BILLABLE_OUTCOMES,
         )
+
+        assert request.dataset == organization_request.dataset
+        assert request.app_id == organization_request.app_id
+        assert request.tenant_ids == organization_request.tenant_ids
+        assert request.query.match == organization_request.query.match
+        assert request.query.where == organization_request.query.where
+        assert request.query.select[1:] == organization_request.query.select
+        assert request.query.groupby[1:] == organization_request.query.groupby
+        assert request.query.orderby[1:] == organization_request.query.orderby
+        assert request.query.granularity == organization_request.query.granularity
+        assert request.query.limit == organization_request.query.limit
+
+        assert request.query.select[0] == Column("project_id")
+        assert request.query.groupby[0] == Column("project_id")
+        assert request.query.orderby[0].exp == Column("project_id")
 
 
 class TestQueryProjectOutcomesUsage:
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
-    def test_uses_exact_half_open_range(self, mock_query):
+    def test_end_date_shifted_plus_one_day(self, mock_query):
         mock_query.return_value = {"data": []}
-        start_dt = datetime(2025, 3, 15, 6, 30, tzinfo=timezone.utc)
-        end_dt = datetime(2025, 3, 16, 8, 45, tzinfo=timezone.utc)
+        start_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
+        end_dt = datetime(2025, 3, 15, tzinfo=timezone.utc)
         request = GetUsageByProjectRequest(
             organization_id=1,
             start=_make_timestamp(start_dt),
@@ -501,7 +504,7 @@ class TestQueryProjectOutcomesUsage:
             if hasattr(condition, "lhs") and condition.lhs.name == "timestamp"
         }
         assert timestamp_conditions[Op.GTE] == start_dt
-        assert timestamp_conditions[Op.LT] == end_dt
+        assert timestamp_conditions[Op.LT] == end_dt + timedelta(days=1)
 
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.metrics")
     @patch("sentry.billing.platform.services.usage._project_outcomes_query.raw_snql_query")
@@ -553,14 +556,3 @@ class TestQueryProjectOutcomesUsage:
         assert response.last_usage_ts.ToDatetime(tzinfo=timezone.utc) == datetime(
             2025, 3, 15, 12, tzinfo=timezone.utc
         )
-
-    def test_rejects_empty_range(self):
-        boundary = _make_timestamp(datetime(2025, 3, 1, tzinfo=timezone.utc))
-        request = GetUsageByProjectRequest(
-            organization_id=1,
-            start=boundary,
-            end=boundary,
-        )
-
-        with pytest.raises(ValueError, match="end must be after start"):
-            query_project_outcomes_usage(request)
