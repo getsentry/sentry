@@ -23,18 +23,18 @@ class HasPrIterationFlagTest(TestCase):
         # The project has not opted into PR iteration, so no org rollout reaches it.
         with self.feature(ALL_ORG_FLAGS):
             for stage in PrIterationStage:
-                with self.subTest(stage=stage):
+                with self.subTest(stage=stage.value):
                     assert has_pr_iteration_flag(stage, self.project) is False
 
     def test_project_flag_alone_does_not_enable_a_stage(self) -> None:
         with self.feature(PR_ITERATION_PROJECT_FLAG):
             for stage in PrIterationStage:
-                with self.subTest(stage=stage):
+                with self.subTest(stage=stage.value):
                     assert has_pr_iteration_flag(stage, self.project) is False
 
     def test_both_flags_enable_the_stage(self) -> None:
         for stage in PrIterationStage:
-            with self.subTest(stage=stage):
+            with self.subTest(stage=stage.value):
                 with self.feature([PR_ITERATION_PROJECT_FLAG, STAGE_ORG_FLAGS[stage]]):
                     assert has_pr_iteration_flag(stage, self.project) is True
 

@@ -1004,7 +1004,7 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         def iterate(**kwargs):
-            with self.feature("organizations:autofix-pr-iteration"):
+            with self.feature(PR_ITERATION_FLAGS):
                 trigger_autofix_agent(
                     group=self.group,
                     step=AutofixStep.PR_ITERATION,
