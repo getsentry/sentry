@@ -1,9 +1,8 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -59,24 +58,17 @@ export function ReleaseHealthCTA({
   return (
     <Alert.Container>
       <Alert variant="info">
-        <Flex
-          align="start"
-          direction={{zero: 'column', '3xl': 'row'}}
-          gap="xl"
-          justify="start"
-        >
-          <Flex flex="1">
-            {t(
-              'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-            )}
-          </Flex>
-          <ExternalLink
-            href="https://docs.sentry.io/product/releases/setup/#release-health"
-            onClick={trackAddReleaseHealth}
-          >
-            {t('Add Release Health')}
-          </ExternalLink>
-        </Flex>
+        {tct(
+          'To track user adoption, crash rates, session data and more, add Release Health to your current setup. [link:Add Release Health]',
+          {
+            link: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/releases/setup/#release-health"
+                onClick={trackAddReleaseHealth}
+              />
+            ),
+          }
+        )}
       </Alert>
     </Alert.Container>
   );
