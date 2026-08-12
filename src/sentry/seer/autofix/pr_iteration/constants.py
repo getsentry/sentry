@@ -20,10 +20,10 @@ REVIEW_REQUEST_FLAG = "organizations:autofix-pr-iteration-review-request"
 # standing one back up. Nothing here is known to be broken on GHE; it is simply
 # unverified, so it stays off.
 #
-# Re-enabling means more than adding the provider string. At minimum, audit the
-# PR-id cache (see ``sentry.integrations.source_code_management.pr_id_cache``,
-# whose key assumes globally unique repo ids that GHE does not provide) and
-# whatever else assumes a single github.com host.
+# Re-enabling means more than adding the provider string: audit everything that
+# assumes a single github.com host. Repo external ids are the usual trap — they
+# are unique per GitHub instance, not globally, so anything keyed on one alone
+# (caches especially) collides across a GHE install and github.com.
 #
 # The slug is what the SCM event stream and ``Integration.provider`` carry, and
 # is where the entry points turn GHE away — before any repo lookup. The prefixed
