@@ -2694,7 +2694,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_with_validate_only_succeeds_for_user_without_team_membership(
+    def test_post_validation_succeeds_for_user_without_team_membership(
         self, mock_in_test_environment
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
@@ -2738,7 +2738,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_with_validate_only_errors_when_no_project_is_accessible(
+    def test_post_validation_errors_when_no_project_is_accessible(
         self, mock_in_test_environment
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project.
@@ -2767,7 +2767,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_with_validate_only_resolves_projects_once_per_request(
+    def test_post_validation_resolves_projects_once_per_request(
         self, mock_in_test_environment
     ) -> None:
         """Validation runs per widget query but resolves projects per request."""
@@ -2814,7 +2814,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(resolutions) == 2, resolutions
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_with_validate_only_skips_accessible_lookup_for_team_member(
+    def test_post_validation_skips_accessible_lookup_for_team_member(
         self, mock_in_test_environment
     ) -> None:
         """A non-empty membership list short-circuits the second resolution."""
@@ -2834,7 +2834,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(resolutions) == 1, resolutions
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_with_validate_only_does_not_error_for_organization_without_projects(
+    def test_post_validation_does_not_error_for_organization_without_projects(
         self, mock_in_test_environment
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
