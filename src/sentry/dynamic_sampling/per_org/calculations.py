@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
-import orjson
 import sentry_sdk
 
 from sentry import options
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    get_all_project_sample_rates,
+    get_all_transaction_sample_rates,
+    get_organization_recalibration_factor,
+)
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
@@ -28,24 +33,14 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
 from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
-    sample_rate_to_float,
-)
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
+from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -87,8 +82,8 @@ def calculate_recalibration_factor(
     return new_factor
 
 
-def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+def get_cached_recalibration_factor(organization: Organization) -> float:
+    return get_organization_recalibration_factor(organization, pipeline=SamplingPipeline.LEGACY)
 
 
 def compare_recalibration_factor_with_cache(
@@ -275,12 +270,7 @@ def get_cached_organization_sample_rate(org_id: int) -> float | None:
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-    return {
-        int(project_id): sample_rate_to_float(sample_rate)
-        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
-    }
+    return get_all_project_sample_rates(SamplingPipeline.LEGACY, org_id)
 
 
 def is_within_relative_tolerance(
@@ -452,42 +442,18 @@ def run_transaction_balancing(
 
 def get_cached_rebalanced_transaction_sample_rates(
     org_id: int, project_ids: Iterable[int]
-) -> dict[int, tuple[dict[str, float], float] | None]:
-    redis_client = get_redis_client_for_ds()
-    ordered_project_ids = list(project_ids)
-    if not ordered_project_ids:
-        return {}
-
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id in ordered_project_ids:
-            pipeline.get(
-                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
-            )
-        serialized_values = pipeline.execute()
-
-    result: dict[int, tuple[dict[str, float], float] | None] = {}
-    for project_id, serialized in zip(ordered_project_ids, serialized_values):
-        if serialized is None:
-            result[project_id] = None
-            continue
-        try:
-            named_rates, implicit_rate = orjson.loads(serialized)
-        except (TypeError, ValueError) as e:
-            sentry_sdk.capture_exception(e)
-            result[project_id] = None
-            continue
-        result[project_id] = (named_rates, float(implicit_rate))
-    return result
+) -> dict[int, tuple[Mapping[str, float], float] | None]:
+    return get_all_transaction_sample_rates(SamplingPipeline.LEGACY, org_id, project_ids)
 
 
 def compare_rebalanced_transactions_with_cache(
     config: BaseDynamicSamplingConfiguration,
     rebalanced_transactions: dict[int, tuple[list[RebalancedItem], float]],
-    cached_sample_rates: dict[int, tuple[dict[str, float], float] | None],
+    cached_sample_rates: dict[int, tuple[Mapping[str, float], float] | None],
 ) -> None:
     for project_id, (named_rates, eap_implicit_rate) in sorted(rebalanced_transactions.items()):
         cached = cached_sample_rates.get(project_id)
-        generic_metrics_named_rates: dict[str, float] = {} if cached is None else cached[0]
+        generic_metrics_named_rates: Mapping[str, float] = {} if cached is None else cached[0]
         generic_metrics_implicit_rate = None if cached is None else cached[1]
 
         logger.info(

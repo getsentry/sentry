@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from unittest.mock import DEFAULT, MagicMock, patch
 
 import orjson
 import pytest
 
+from sentry.dynamic_sampling.cache import SamplingCacheEntry, SamplingPipeline
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
@@ -25,15 +26,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
-)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
@@ -237,7 +229,9 @@ class ProjectBalancingCalculationsTest(TestCase):
     def test_get_cached_rebalanced_project_sample_rates(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_projects_cache_key(org.id)
+        cache_key = SamplingCacheEntry.PROJECT_SAMPLE_RATES.key(
+            SamplingPipeline.LEGACY, org_id=org.id
+        )
         self.redis.delete(cache_key)
         self.addCleanup(self.redis.delete, cache_key)
         self.redis.hset(cache_key, str(project.id), "0.25")
@@ -251,12 +245,14 @@ class ProjectBalancingCalculationsTest(TestCase):
 
     def test_get_cached_recalibration_factor_reads_the_legacy_cache(self) -> None:
         org = self.create_organization()
-        cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+            SamplingPipeline.LEGACY, org_id=org.id
+        )
         self.redis.delete(cache_key)
         self.addCleanup(self.redis.delete, cache_key)
         self.redis.set(cache_key, 2.5)
 
-        assert get_cached_recalibration_factor(org.id) == 2.5
+        assert get_cached_recalibration_factor(org) == 2.5
 
     def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
@@ -459,8 +455,8 @@ class TransactionBalancingCalculationsTest(TestCase):
         org = self.create_organization()
         project_hit = self.create_project(organization=org)
         project_miss = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org.id, proj_id=project_hit.id
+        cache_key = SamplingCacheEntry.TRANSACTION_SAMPLE_RATES.key(
+            SamplingPipeline.LEGACY, org_id=org.id, project_id=project_hit.id
         )
         self.redis.delete(cache_key)
         self.addCleanup(self.redis.delete, cache_key)
@@ -488,7 +484,7 @@ class TransactionBalancingCalculationsTest(TestCase):
                 0.5,
             ),
         }
-        cached_sample_rates: dict[int, tuple[dict[str, float], float] | None] = {
+        cached_sample_rates: dict[int, tuple[Mapping[str, float], float] | None] = {
             project.id: ({"checkout": 0.2, "cart": 1.0}, 0.45),
         }
 

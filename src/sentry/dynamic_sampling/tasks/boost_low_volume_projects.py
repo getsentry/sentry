@@ -24,6 +24,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
 from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.cache import SamplingPipeline, set_project_sample_rates
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
@@ -34,22 +35,16 @@ from sentry.dynamic_sampling.rules.utils import (
     DecisionKeepCount,
     OrganizationId,
     ProjectId,
-    get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
     MEASURE_CONFIGS,
     GetActiveOrgs,
     are_equal_with_epsilon,
-    sample_rate_to_float,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
-    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
     MAX_TRANSACTIONS_PER_PROJECT,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
@@ -446,6 +441,7 @@ def calculate_sample_rates_of_projects(
     sample_rate, success = get_org_sample_rate(
         org_id=org_id,
         default_sample_rate=default_sample_rate,
+        pipeline=SamplingPipeline.LEGACY,
     )
 
     # If we didn't find any sample rate, it doesn't make sense to run the adjustment model.
@@ -498,37 +494,24 @@ def calculate_sample_rates_of_projects(
 @dynamic_sampling_task
 def store_rebalanced_projects(org_id: int, rebalanced_projects: list[RebalancedItem]) -> None:
     """Stores the rebalanced projects in the cache and invalidates the project configs."""
-    redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for rebalanced_project in rebalanced_projects:
-            cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-            # We want to get the old sample rate, which will be None in case it was not set.
-            old_sample_rate = sample_rate_to_float(
-                redis_client.hget(cache_key, str(rebalanced_project.id))
+    old_sample_rates = set_project_sample_rates(
+        SamplingPipeline.LEGACY, org_id, rebalanced_projects
+    )
+
+    for rebalanced_project in rebalanced_projects:
+        if rebalanced_project.id in PROJECTS_WITH_METRICS:
+            metrics.gauge(
+                "dynamic_sampling.project_sample_rate",
+                rebalanced_project.new_sample_rate * 100,
+                tags={"project_id": rebalanced_project.id},
+                unit="percent",
             )
 
-            if rebalanced_project.id in PROJECTS_WITH_METRICS:
-                metrics.gauge(
-                    "dynamic_sampling.project_sample_rate",
-                    rebalanced_project.new_sample_rate * 100,
-                    tags={"project_id": rebalanced_project.id},
-                    unit="percent",
-                )
-
-            # We want to store the new sample rate as a string.
-            pipeline.hset(
-                cache_key,
-                str(rebalanced_project.id),
-                rebalanced_project.new_sample_rate,  # redis stores is as string
+        # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
+        # system with project config invalidations, especially for projects with no volume.
+        old_sample_rate = old_sample_rates.get(int(rebalanced_project.id))
+        if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
+            schedule_invalidate_project_config(
+                project_id=rebalanced_project.id,
+                trigger="dynamic_sampling_boost_low_volume_projects",
             )
-            pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
-
-            # We invalidate the caches only if there was a change in the sample rate. This is to avoid flooding the
-            # system with project config invalidations, especially for projects with no volume.
-            if not are_equal_with_epsilon(old_sample_rate, rebalanced_project.new_sample_rate):
-                schedule_invalidate_project_config(
-                    project_id=rebalanced_project.id,
-                    trigger="dynamic_sampling_boost_low_volume_projects",
-                )
-
-        pipeline.execute()

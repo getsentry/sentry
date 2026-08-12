@@ -392,19 +392,6 @@ def get_organization_volume(
     return None
 
 
-def sample_rate_to_float(sample_rate: str | None) -> float | None:
-    """
-    Converts a sample rate to a float or returns None in case the conversion failed.
-    """
-    if sample_rate is None:
-        return None
-
-    try:
-        return float(sample_rate)
-    except (TypeError, ValueError):
-        return None
-
-
 def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
     """
     Checks if two floating point numbers are equal within an error boundary.

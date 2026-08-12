@@ -7,8 +7,13 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    delete_organization_recalibration_factor,
+    get_organization_recalibration_factor,
+    set_organization_recalibration_factor,
+)
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
 from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
@@ -131,17 +136,19 @@ class BaseDynamicSamplingConfiguration(ABC):
 
         adjusted_factor = calculate_recalibration_factor(
             org_volume,
-            per_org_recalibration_cache.get_adjusted_factor(self.organization.id),
+            get_organization_recalibration_factor(
+                self.organization, pipeline=SamplingPipeline.PER_ORG
+            ),
             self.get_sample_rate(),
         )
         if adjusted_factor is None:
             return None
         if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
-            per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
+            delete_organization_recalibration_factor(SamplingPipeline.PER_ORG, self.organization.id)
             return None
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(
-            self.organization.id, adjusted_factor
+        set_organization_recalibration_factor(
+            SamplingPipeline.PER_ORG, self.organization.id, adjusted_factor
         )
         self.organization_recalibration_factor = adjusted_factor
         return adjusted_factor

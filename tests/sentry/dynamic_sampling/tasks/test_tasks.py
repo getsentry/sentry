@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -6,25 +6,17 @@ import pytest
 from django.utils import timezone
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.cache import (
+    SamplingCacheEntry,
+    SamplingPipeline,
+    get_all_transaction_sample_rates,
+    mark_pipeline_executed,
+)
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    get_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
-    generate_recalibrate_orgs_cache_key,
-    generate_recalibrate_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
-    generate_sliding_window_org_cache_key,
-    mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window_org import sliding_window_org
@@ -37,6 +29,15 @@ from sentry.testutils.helpers.datetime import freeze_time
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
 )
+
+
+def _legacy_transaction_rates(
+    org_id: int, project_id: int, default_rate: float
+) -> tuple[Mapping[str, float], float]:
+    cached = get_all_transaction_sample_rates(SamplingPipeline.LEGACY, org_id, [project_id])[
+        project_id
+    ]
+    return cached if cached is not None else ({}, default_rate)
 
 
 class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
@@ -146,7 +147,9 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     def add_sample_rate_per_project(org_id: int, project_id: int, sample_rate: float):
         redis_client = get_redis_client_for_ds()
         redis_client.hset(
-            name=generate_boost_low_volume_projects_cache_key(org_id),
+            name=SamplingCacheEntry.PROJECT_SAMPLE_RATES.key(
+                SamplingPipeline.LEGACY, org_id=org_id
+            ),
             key=str(project_id),
             value=sample_rate,
         )
@@ -453,7 +456,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
     @staticmethod
     def set_boost_low_volume_projects_cache_entry(org_id: int, project_id: int, value: str):
         redis = get_redis_client_for_ds()
-        cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
+        cache_key = SamplingCacheEntry.PROJECT_SAMPLE_RATES.key(
+            SamplingPipeline.LEGACY, org_id=org_id
+        )
         redis.hset(name=cache_key, key=str(project_id), value=value)
 
     def set_boost_low_volume_projects_sample_rate(
@@ -516,8 +521,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         for org in self.orgs_info:
             org_id = org["org_id"]
             for proj_id in org["project_ids"]:
-                tran_rate, global_rate = get_transactions_resampling_rates(
-                    org_id=org_id, proj_id=proj_id, default_rate=0.1
+                tran_rate, global_rate = _legacy_transaction_rates(
+                    org_id, proj_id, default_rate=0.1
                 )
                 for transaction_name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
                     assert (
@@ -543,7 +548,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
             # No value in cache and sliding window org executed.
             if sliding_window_step == 1:
-                mark_sliding_window_org_executed()
+                mark_pipeline_executed(SamplingPipeline.LEGACY)
             # Invalid value in cache.
             elif sliding_window_step == 2:
                 self.set_boost_low_volume_projects_invalid_for_all()
@@ -558,8 +563,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             for org in self.orgs_info:
                 org_id = org["org_id"]
                 for proj_id in org["project_ids"]:
-                    tran_rate, global_rate = get_transactions_resampling_rates(
-                        org_id=org_id, proj_id=proj_id, default_rate=0.1
+                    tran_rate, global_rate = _legacy_transaction_rates(
+                        org_id, proj_id, default_rate=0.1
                     )
 
                     if sliding_window_step == 1:
@@ -604,8 +609,8 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         for org in self.orgs_info:
             org_id = org["org_id"]
             for proj_id in org["project_ids"]:
-                tran_rate, implicit_rate = get_transactions_resampling_rates(
-                    org_id=org_id, proj_id=proj_id, default_rate=0.1
+                tran_rate, implicit_rate = _legacy_transaction_rates(
+                    org_id, proj_id, default_rate=0.1
                 )
                 # explicit transactions
                 for transaction_name in ["tl5"]:
@@ -698,7 +703,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
     @staticmethod
     def set_sliding_window_org_cache_entry(org_id: int, value: str):
         redis = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+            SamplingPipeline.LEGACY, org_id=org_id
+        )
         redis.set(cache_key, value)
 
     def set_sliding_window_org_sample_rate(self, org_id: int, sample_rate: float):
@@ -752,7 +759,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_recalibrate_orgs_cache_key(org.id)
+            cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                SamplingPipeline.LEGACY, org_id=org.id
+            )
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -773,7 +782,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_recalibrate_orgs_cache_key(org.id)
+            cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                SamplingPipeline.LEGACY, org_id=org.id
+            )
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -816,16 +827,51 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         redis_client = get_redis_client_for_ds()
 
         # First org was sampled at 10%, should be recalibrated at 2x to 20%.
-        assert redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[0].id)) == "2.0"
+        assert (
+            redis_client.get(
+                SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                    SamplingPipeline.LEGACY, org_id=self.orgs[0].id
+                )
+            )
+            == "2.0"
+        )
         # Second org was sampled at 20%, should not be recalibrated.
-        assert redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[1].id)) is None
+        assert (
+            redis_client.get(
+                SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                    SamplingPipeline.LEGACY, org_id=self.orgs[1].id
+                )
+            )
+            is None
+        )
 
         # Third org should not have org-level recalibration.
-        assert redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[2].id)) is None
+        assert (
+            redis_client.get(
+                SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                    SamplingPipeline.LEGACY, org_id=self.orgs[2].id
+                )
+            )
+            is None
+        )
         # First project was sampled at 40%, should be recalibrated at 0.5x to 20%.
-        assert redis_client.get(generate_recalibrate_projects_cache_key(p1.id)) == "0.5"
+        assert (
+            redis_client.get(
+                SamplingCacheEntry.PROJECT_RECALIBRATION_FACTOR.key(
+                    SamplingPipeline.LEGACY, project_id=p1.id
+                )
+            )
+            == "0.5"
+        )
         # Second project was sampled at 40%, should be recalibrated at 2.5x to 100%.
-        assert redis_client.get(generate_recalibrate_projects_cache_key(p2.id)) == "2.5"
+        assert (
+            redis_client.get(
+                SamplingCacheEntry.PROJECT_RECALIBRATION_FACTOR.key(
+                    SamplingPipeline.LEGACY, project_id=p2.id
+                )
+            )
+            == "2.5"
+        )
 
         assert RecalibrationBias().generate_rules(p1, base_sample_rate=1.0) == [
             {
@@ -902,18 +948,24 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         # First org should be recalibrated (sampled at 10%, target 20% -> factor 2.0)
-        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[0].id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+            SamplingPipeline.LEGACY, org_id=self.orgs[0].id
+        )
         val = redis_client.get(cache_key)
         assert val is not None
         assert float(val) == 2.0
 
         # Second org sampled at 20%, target 20% -> no adjustment needed
-        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[1].id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+            SamplingPipeline.LEGACY, org_id=self.orgs[1].id
+        )
         val = redis_client.get(cache_key)
         assert val is None
 
         # Third org sampled at 40%, target 20% -> factor 0.5
-        cache_key = generate_recalibrate_orgs_cache_key(self.orgs[2].id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+            SamplingPipeline.LEGACY, org_id=self.orgs[2].id
+        )
         val = redis_client.get(cache_key)
         assert val is not None
         assert float(val) == 0.5
@@ -949,8 +1001,16 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         redis_client = get_redis_client_for_ds()
-        org1_value = redis_client.get(generate_recalibrate_orgs_cache_key(org1.id))
-        org2_value = redis_client.get(generate_recalibrate_orgs_cache_key(org2.id))
+        org1_value = redis_client.get(
+            SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                SamplingPipeline.LEGACY, org_id=org1.id
+            )
+        )
+        org2_value = redis_client.get(
+            SamplingCacheEntry.ORGANIZATION_RECALIBRATION_FACTOR.key(
+                SamplingPipeline.LEGACY, org_id=org2.id
+            )
+        )
 
         assert org1_value is not None
         assert org2_value is not None
@@ -1004,6 +1064,8 @@ class TestSlidingWindowOrgTask(TasksTestCase):
 
         # All orgs should have cache entries
         for org in self.orgs:
-            cache_key = generate_sliding_window_org_cache_key(org.id)
+            cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+                SamplingPipeline.LEGACY, org_id=org.id
+            )
             val = redis_client.get(cache_key)
             assert val is not None, f"Org {org.id} should have sliding window cache entry"

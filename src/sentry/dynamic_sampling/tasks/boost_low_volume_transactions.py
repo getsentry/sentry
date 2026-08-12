@@ -21,6 +21,11 @@ from snuba_sdk import (
 from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    get_project_sample_rate,
+    set_transaction_sample_rates,
+)
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
@@ -30,14 +35,7 @@ from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
-    DEFAULT_REDIS_CACHE_KEY_TTL,
     MAX_PROJECTS_PER_QUERY,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import SamplingMeasure
@@ -205,7 +203,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         organization = None
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
-    if not has_dynamic_sampling(organization):
+    if organization is None or not has_dynamic_sampling(organization):
         return
 
     if is_project_mode_sampling(organization):
@@ -213,12 +211,13 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     else:
         # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
         # resort to the blended sample rate of the org.
-        sample_rate, success = get_boost_low_volume_projects_sample_rate(
-            org_id=org_id,
-            project_id=project_id,
+        sample_rate, success = get_project_sample_rate(
+            organization,
+            project_id,
             error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(
                 organization_id=org_id
             ),
+            pipeline=SamplingPipeline.LEGACY,
         )
     if sample_rate is None:
         sentry_sdk.capture_message(
@@ -265,12 +264,12 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
             "dynamic_sampling.boost_low_volume_transactions.implicit_factor",
             tags={"comparison": comparison},
         )
-    set_transactions_resampling_rates(
+    set_transaction_sample_rates(
+        SamplingPipeline.LEGACY,
         org_id=org_id,
-        proj_id=project_id,
+        project_id=project_id,
         named_rates=named_rates,
         default_rate=implicit_rate,
-        ttl_ms=DEFAULT_REDIS_CACHE_KEY_TTL,
     )
 
     schedule_invalidate_project_config(

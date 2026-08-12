@@ -4,6 +4,11 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.dynamic_sampling.cache import (
+    SamplingCacheEntry,
+    SamplingPipeline,
+    get_project_sample_rate,
+)
 from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
@@ -12,12 +17,6 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
     query_project_counts_by_org,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
-    generate_sliding_window_org_cache_key,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
@@ -120,14 +119,16 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         # simulate having a sliding window sample rate for the org
         redis_client = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org1.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+            SamplingPipeline.LEGACY, org_id=org1.id
+        )
         redis_client.set(cache_key, 1.0)
 
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org1.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org1.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org1, p1.id, error_sample_rate_fallback=None
         )
 
         assert got_value
@@ -163,8 +164,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org1.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org1.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org1, p1.id, error_sample_rate_fallback=None
         )
         assert (sample_rate, got_value) == (0.5, True)
 
@@ -235,8 +236,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         with self.tasks():
             boost_low_volume_projects.delay()
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org1.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org1, p1.id, error_sample_rate_fallback=None
         )
         assert (sample_rate, got_value) == (None, False)
 
@@ -244,8 +245,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org1.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org1.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org1, p1.id, error_sample_rate_fallback=None
         )
         assert (sample_rate, got_value) == (None, False)
 
@@ -639,14 +640,16 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         )
 
         redis_client = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+            SamplingPipeline.LEGACY, org_id=org.id
+        )
         redis_client.set(cache_key, 0.5)
 
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org, p1.id, error_sample_rate_fallback=None
         )
         assert got_value
         assert sample_rate is not None
@@ -810,14 +813,16 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         )
 
         redis_client = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+            SamplingPipeline.LEGACY, org_id=org.id
+        )
         redis_client.set(cache_key, 0.5)
 
         with self.tasks():
             boost_low_volume_projects_of_org_with_query.delay(org.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org, p1.id, error_sample_rate_fallback=None
         )
         assert not got_value
         assert sample_rate is None
@@ -850,7 +855,9 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         )
 
         redis_client = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org.id)
+        cache_key = SamplingCacheEntry.ORGANIZATION_SAMPLE_RATE.key(
+            SamplingPipeline.LEGACY, org_id=org.id
+        )
         redis_client.set(cache_key, 0.5)
 
         with self.options(
@@ -862,8 +869,8 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
             with self.tasks():
                 boost_low_volume_projects_of_org_with_query.delay(org.id)
 
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org.id, p1.id, error_sample_rate_fallback=None
+        sample_rate, got_value = get_project_sample_rate(
+            org, p1.id, error_sample_rate_fallback=None
         )
         assert got_value
         assert sample_rate is not None

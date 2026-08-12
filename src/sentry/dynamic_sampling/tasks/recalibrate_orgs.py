@@ -7,21 +7,22 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    delete_organization_recalibration_factor,
+    delete_project_recalibration_factor,
+    get_organization_recalibration_factor,
+    get_project_recalibration_factor,
+    set_organization_recalibration_factor,
+    set_project_recalibration_factor,
+)
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
-from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
-    compute_adjusted_factor,
-    delete_adjusted_factor,
-    delete_adjusted_project_factor,
-    get_adjusted_factor,
-    get_adjusted_project_factor,
-    set_guarded_adjusted_factor,
-    set_guarded_adjusted_project_factor,
-)
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import compute_adjusted_factor
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
@@ -103,7 +104,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
         organization = None
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
-    if not has_dynamic_sampling(organization):
+    if organization is None or not has_dynamic_sampling(organization):
         return
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
@@ -111,6 +112,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     target_sample_rate, success = get_org_sample_rate(
         org_id=org_id,
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        pipeline=SamplingPipeline.LEGACY,
     )
 
     # If we didn't find any sample rate, we can't recalibrate the organization.
@@ -121,7 +123,9 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_factor(org_id)
+    previous_factor = get_organization_recalibration_factor(
+        organization, pipeline=SamplingPipeline.LEGACY
+    )
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
@@ -136,11 +140,11 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
-        delete_adjusted_factor(org_id)
+        delete_organization_recalibration_factor(SamplingPipeline.LEGACY, org_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_factor(org_id, adjusted_factor)
+    set_organization_recalibration_factor(SamplingPipeline.LEGACY, org_id, adjusted_factor)
 
 
 @instrumented_task(
@@ -179,7 +183,9 @@ def recalibrate_project(
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_project_factor(project_id)
+    previous_factor = get_project_recalibration_factor(
+        None, project_id, pipeline=SamplingPipeline.LEGACY
+    )
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
@@ -194,8 +200,8 @@ def recalibrate_project(
     if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
-        delete_adjusted_project_factor(project_id)
+        delete_project_recalibration_factor(SamplingPipeline.LEGACY, project_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_project_factor(project_id, adjusted_factor)
+    set_project_recalibration_factor(SamplingPipeline.LEGACY, project_id, adjusted_factor)

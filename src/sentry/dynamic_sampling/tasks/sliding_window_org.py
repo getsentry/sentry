@@ -5,18 +5,18 @@ from datetime import timedelta
 
 from taskbroker_client.retry import Retry
 
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.cache import (
+    SamplingPipeline,
+    mark_pipeline_executed,
+    set_organization_sample_rate,
+)
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgsVolumes,
     OrganizationDataVolume,
     compute_guarded_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, DEFAULT_REDIS_CACHE_KEY_TTL
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
-    generate_sliding_window_org_cache_key,
-    get_sliding_window_size,
-    mark_sliding_window_org_executed,
-)
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_size
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.silo.base import SiloMode
@@ -48,7 +48,7 @@ def sliding_window_org() -> None:
 
     # Due to the synchronous nature of the sliding window org, when we arrived here, we can confidently say
     # that the execution of the sliding window org was successful. We will keep this state for 1 hour.
-    mark_sliding_window_org_executed()
+    mark_pipeline_executed(SamplingPipeline.LEGACY)
 
 
 def _process_org_volumes(org_volumes: Sequence[OrganizationDataVolume], window_size: int) -> None:
@@ -82,9 +82,4 @@ def adjust_base_sample_rate_of_org(org_id: int, total_root_count: int, window_si
     if sample_rate is None:
         return
 
-    redis_client = get_redis_client_for_ds()
-    with redis_client.pipeline(transaction=False) as pipeline:
-        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
-        pipeline.set(cache_key, sample_rate)
-        pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
-        pipeline.execute()
+    set_organization_sample_rate(SamplingPipeline.LEGACY, org_id, sample_rate)
