@@ -1,7 +1,6 @@
 import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
 import {
   resolveLink,
   subjectFromCallRecord,
@@ -10,7 +9,9 @@ import {
 import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
 
 /**
- * Every link Code Mode resolves today, pinned to the exact URL it produces.
+ * Every link Code Mode resolves today, pinned to the exact URL it produces — and, for inputs that
+ * come close enough to matching a rule to be worth stating, that they resolve to no link at all.
+ * Nothing else: row text is seer's, and how a row reads is settled in `callRecords.spec.tsx`.
  *
  * A characterization test, not a specification: these expectations were captured from the shipped
  * code, so a case here reading oddly means the app behaves oddly, and changing one is a product
@@ -40,10 +41,6 @@ function busUrl(link: ToolLink): LocationDescriptor | null {
 function recordLink(rec: CallRecord): {kind: string; url: LocationDescriptor} | null {
   const link = resolveLink(subjectFromCallRecord(rec), ctx);
   return link?.url ? {kind: link.id, url: link.url} : null;
-}
-
-function recordLabel(rec: CallRecord): string | null {
-  return resolveLink(subjectFromCallRecord(rec), ctx)?.label ?? callRecordLabel(rec);
 }
 
 type BusCase = [name: string, link: ToolLink, url: LocationDescriptor | null];
@@ -351,7 +348,7 @@ function record(overrides: Partial<CallRecord>): CallRecord {
 type RecordCase = [
   name: string,
   record: CallRecord,
-  expected: {label: string | null; link: {kind: string; url: LocationDescriptor} | null},
+  link: {kind: string; url: LocationDescriptor} | null,
 ];
 
 const RECORD_CASES: RecordCase[] = [
@@ -363,11 +360,8 @@ const RECORD_CASES: RecordCase[] = [
       title: 'Retrieve an Issue',
     }),
     {
-      label: 'Retrieve an Issue',
-      link: {
-        kind: 'get_issue_details',
-        url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
-      },
+      kind: 'get_issue_details',
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
     },
   ],
   [
@@ -382,11 +376,8 @@ const RECORD_CASES: RecordCase[] = [
       title: 'Retrieve an Issue Event',
     }),
     {
-      label: 'Retrieve an Issue Event',
-      link: {
-        kind: 'get_event_details',
-        url: {pathname: '/organizations/org-slug/issues/54/events/deadbeef/', query: {}},
-      },
+      kind: 'get_event_details',
+      url: {pathname: '/organizations/org-slug/issues/54/events/deadbeef/', query: {}},
     },
   ],
   [
@@ -401,14 +392,11 @@ const RECORD_CASES: RecordCase[] = [
       title: 'Retrieve an Issue Event',
     }),
     {
-      label: 'Retrieve an Issue Event',
-      link: {
-        // Re-pinned: the URL is unchanged, but the reported kind is now the rule that actually
-        // fired. Dropping the alias param used to make the event rule miss and the issue rule catch
-        // it; the event rule delegates outright instead, so the click is credited to it.
-        kind: 'get_event_details',
-        url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
-      },
+      // Re-pinned: the URL is unchanged, but the reported kind is now the rule that actually fired.
+      // Dropping the alias param used to make the event rule miss and the issue rule catch it; the
+      // event rule delegates outright instead, so the click is credited to it.
+      kind: 'get_event_details',
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
     },
   ],
   [
@@ -419,14 +407,8 @@ const RECORD_CASES: RecordCase[] = [
       title: 'Retrieve a Trace',
     }),
     {
-      label: 'Retrieve a Trace',
-      link: {
-        kind: 'get_trace_waterfall',
-        url: {
-          pathname: '/organizations/org-slug/explore/traces/trace/trace1/',
-          query: {},
-        },
-      },
+      kind: 'get_trace_waterfall',
+      url: {pathname: '/organizations/org-slug/explore/traces/trace/trace1/', query: {}},
     },
   ],
   [
@@ -441,11 +423,8 @@ const RECORD_CASES: RecordCase[] = [
       title: 'Retrieve a Replay Instance',
     }),
     {
-      label: 'Retrieve a Replay Instance',
-      link: {
-        kind: 'get_replay_details',
-        url: {pathname: '/organizations/org-slug/explore/replays/replay1/'},
-      },
+      kind: 'get_replay_details',
+      url: {pathname: '/organizations/org-slug/explore/replays/replay1/'},
     },
   ],
   [
@@ -455,106 +434,13 @@ const RECORD_CASES: RecordCase[] = [
       path_params: {organization_id_or_slug: 'org-slug', issue_id: '54'},
       title: 'List an Issue’s Tags',
     }),
-    {label: 'List an Issue’s Tags', link: null},
-  ],
-  // Re-pinned, and the inputs with them: these eight rows were labeled by hardcoded overrides that
-  // paraphrased what seer already sends, so the overrides are gone and the label is seer's title.
-  // The old expectations needed no `title` on the fixture — the override invented one — which is why
-  // the rows now carry the title seer actually ships for each call. Two consequences are visible
-  // here: the strings are specific where the overrides were generic (a repo name, a command), and
-  // the bulk-update rows no longer read differently by outcome, which the row's status tick shows
-  // without spending the label on it.
-  [
-    'bulk issue update links nowhere',
-    record({
-      method: 'PUT',
-      path: '/api/0/organizations/{organization_id_or_slug}/issues/',
-      path_params: {organization_id_or_slug: 'org-slug'},
-      title: 'Bulk mutating organization issues',
-      status: 200,
-    }),
-    {label: 'Bulk mutating organization issues', link: null},
-  ],
-  [
-    'a failed bulk issue update reads the same, since the status tick carries the outcome',
-    record({
-      method: 'PUT',
-      path: '/api/0/organizations/{organization_id_or_slug}/issues/',
-      path_params: {organization_id_or_slug: 'org-slug'},
-      title: 'Bulk mutating organization issues',
-      status: 400,
-    }),
-    {label: 'Bulk mutating organization issues', link: null},
-  ],
-  [
-    'lib: code_search',
-    record({
-      kind: 'lib',
-      name: 'code_search',
-      method: undefined,
-      title: 'Searching code in repository getsentry/sentry',
-    }),
-    {label: 'Searching code in repository getsentry/sentry', link: null},
-  ],
-  [
-    'lib: git_search',
-    record({
-      kind: 'lib',
-      name: 'git_search',
-      method: undefined,
-      title: 'Searching commit history for repository getsentry/sentry',
-    }),
-    {label: 'Searching commit history for repository getsentry/sentry', link: null},
-  ],
-  [
-    'lib: bash',
-    record({kind: 'lib', name: 'bash', method: undefined, title: 'Running command ls'}),
-    {label: 'Running command ls', link: null},
-  ],
-  [
-    'lib: ask_user_question',
-    record({
-      kind: 'lib',
-      name: 'ask_user_question',
-      method: undefined,
-      title: 'Asking user which environment to check',
-    }),
-    {label: 'Asking user which environment to check', link: null},
-  ],
-  [
-    'lib: review_code_changes',
-    record({
-      kind: 'lib',
-      name: 'review_code_changes',
-      method: undefined,
-      title: 'Reviewing code changes',
-    }),
-    {label: 'Reviewing code changes', link: null},
-  ],
-  [
-    'lib: telemetry_live_search',
-    record({
-      kind: 'lib',
-      name: 'telemetry_live_search',
-      method: undefined,
-      title: 'Searching errors',
-    }),
-    {label: 'Searching errors', link: null},
-  ],
-  [
-    'a call with nothing bespoke about it keeps the title seer shipped',
-    record({
-      path: '/api/0/organizations/{organization_id_or_slug}/releases/',
-      path_params: {organization_id_or_slug: 'org-slug'},
-      title: 'List an Organization’s Releases',
-    }),
-    {label: 'List an Organization’s Releases', link: null},
+    null,
   ],
 ];
 
 describe('links from a call record', () => {
-  it.each(RECORD_CASES)('%s', (_name, rec, expected) => {
-    expect({label: recordLabel(rec), link: recordLink(rec)}).toEqual(expected);
+  it.each(RECORD_CASES)('%s', (_name, rec, link) => {
+    expect(recordLink(rec)).toEqual(link);
   });
 });
 
@@ -563,9 +449,8 @@ describe('links from a call record', () => {
  * change is visible rather than folded into a table of things that stayed the same.
  *
  * Both link today to a resource the same call just destroyed. A destination that is guaranteed to
- * 404 by the time it is clicked is worse than no link, so no rule claims a `DELETE`. The row still
- * renders with the title seer shipped. Nothing about the method was consulted before, which is how
- * these got links at all.
+ * 404 by the time it is clicked is worse than no link, so no rule claims a `DELETE`. Nothing about
+ * the method was consulted before, which is how these got links at all.
  */
 const DELETE_CASES: RecordCase[] = [
   [
@@ -576,7 +461,7 @@ const DELETE_CASES: RecordCase[] = [
       path_params: {organization_id_or_slug: 'org-slug', issue_id: '54'},
       title: 'Remove an Issue',
     }),
-    {label: 'Remove an Issue', link: null},
+    null,
   ],
   [
     'a deleted replay',
@@ -590,12 +475,12 @@ const DELETE_CASES: RecordCase[] = [
       },
       title: 'Delete a Replay Instance',
     }),
-    {label: 'Delete a Replay Instance', link: null},
+    null,
   ],
 ];
 
 describe('links from a DELETE (changed)', () => {
-  it.each(DELETE_CASES)('%s', (_name, rec, expected) => {
-    expect({label: recordLabel(rec), link: recordLink(rec)}).toEqual(expected);
+  it.each(DELETE_CASES)('%s', (_name, rec, link) => {
+    expect(recordLink(rec)).toEqual(link);
   });
 });
