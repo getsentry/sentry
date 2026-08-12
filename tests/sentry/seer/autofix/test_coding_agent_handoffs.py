@@ -113,6 +113,29 @@ class SyncCodingAgentStatusTest(TestCase):
         assert self.handoff.extras["agent_url"] == "https://github.com/copilot/agents/agent-1"
 
     @patch(MOCK_UPDATE_STATE_PATH)
+    def test_records_branch_of_agent_that_reported_no_pull_request(
+        self, mock_update_state: Mock
+    ) -> None:
+        """An agent that finishes before its PR exists reports a branch and no PR URL;
+        the branch has to survive the sync or that PR is unrecoverable."""
+        mock_update_state.return_value = True
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="done",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                branch_name="seer/fix-the-thing",
+            ),
+        )
+
+        self.handoff.refresh_from_db()
+        assert self.handoff.extras["branch_name"] == "seer/fix-the-thing"
+
+    @patch(MOCK_UPDATE_STATE_PATH)
     def test_resolves_group_id_from_seer_agent_run(self, mock_update_state: Mock) -> None:
         mock_update_state.return_value = True
         group = self.create_group()
