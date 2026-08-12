@@ -12,7 +12,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    WorkflowEvaluationOutcome,
+)
 from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
@@ -66,7 +69,12 @@ class TestProcessWorkflowActivity(TestCase):
             # Short-circuit evaluation, no workflows associated
             assert mock_evaluate.call_count == 0
 
-            mock_logger.info.assert_not_called()
+            mock_logger.info.assert_called_once()
+            assert mock_logger.info.call_args.args == (
+                "workflow_engine.process_workflows.evaluation",
+            )
+            artifact = mock_logger.info.call_args.kwargs["extra"]
+            assert artifact["outcome"] == WorkflowEvaluationOutcome.NO_WORKFLOWS
 
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch("sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers")
@@ -109,8 +117,12 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_logger.info.assert_called_once()
         (log_name,) = mock_logger.info.call_args.args
-        assert log_name == "workflow_engine.process_workflows.evaluation.workflows.not_triggered"
+        assert log_name == "workflow_engine.process_workflows.evaluation"
         assert mock_logger.info.call_args.kwargs["extra"]["workflow_id"] == self.workflow.id
+        assert (
+            mock_logger.info.call_args.kwargs["extra"]["outcome"]
+            == WorkflowEvaluationOutcome.NOT_TRIGGERED
+        )
 
     @mock.patch(
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
@@ -193,10 +205,11 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_logger.info.assert_called_once()
         (log_name,) = mock_logger.info.call_args.args
-        assert log_name == "workflow_engine.process_workflows.evaluation.actions.triggered"
+        assert log_name == "workflow_engine.process_workflows.evaluation"
         artifact = mock_logger.info.call_args.kwargs["extra"]
         assert artifact["workflow_id"] == self.workflow.id
         assert artifact["triggered_action_ids"] == [self.action.id]
+        assert artifact["outcome"] == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
 
     @mock.patch(
         "sentry.workflow_engine.models.incident_groupopenperiod.update_incident_based_on_open_period_status_change"

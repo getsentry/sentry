@@ -31,7 +31,8 @@ class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvalu
     - triggered: bool - whether the group's conditions passed
     """
 
-    def _artifact_data(self) -> dict[str, Any]:
+    @property
+    def artifact_fields(self) -> dict[str, Any]:
         logic_type = self.data["logic_type"]
         return {
             "logic_type": getattr(logic_type, "value", logic_type),

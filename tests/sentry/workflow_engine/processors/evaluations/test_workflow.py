@@ -8,7 +8,10 @@ from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_e
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
+    DeferredWorkflowEvaluationResult,
+    ProcessWorkflowsResult,
     WorkflowEvaluation,
+    WorkflowEvaluationOutcome,
 )
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
@@ -31,6 +34,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         error: ConditionError | None = None,
         deferred: bool = False,
         workflow_id: int = 10,
+        filter_group_evaluations: list[DataConditionGroupEvaluation] | None = None,
     ) -> WorkflowEvaluation:
         trigger_evaluation = DataConditionGroupEvaluation(
             result=triggered,
@@ -45,23 +49,38 @@ class TestWorkflowEvaluationArtifact(TestCase):
             workflow_id=workflow_id,
             detector_id=self.detector.id,
             detector_type=self.detector.type,
-            result="deferred" if deferred else [],
+            result=(
+                DeferredWorkflowEvaluationResult(
+                    delayed_when_group_id=20,
+                    delayed_if_group_ids=frozenset({30}),
+                    passing_if_group_ids=frozenset({40}),
+                )
+                if deferred
+                else []
+            ),
             triggered=triggered,
             error=error,
             data={
                 "trigger_group_eval": trigger_evaluation,
-                "filter_group_evals": [],
+                "filter_group_evals": filter_group_evaluations or [],
                 "event": self.event_data,
-                "deferred": (
-                    {
-                        "delayed_when_group_id": 20,
-                        "delayed_if_group_ids": [30],
-                        "passing_if_group_ids": [40],
-                    }
-                    if deferred
-                    else None
-                ),
             },
+        )
+
+    def _build_batch_result(
+        self,
+        evaluations: dict[int, WorkflowEvaluation] | None = None,
+        *,
+        outcome: WorkflowEvaluationOutcome = WorkflowEvaluationOutcome.COMPLETED,
+    ) -> ProcessWorkflowsResult:
+        return ProcessWorkflowsResult(
+            evaluations=evaluations or {},
+            outcome=outcome,
+            project_id=self.project.id,
+            group_id=self.event.group.id,
+            event_id=self.event.event_id,
+            detector_id=self.detector.id,
+            detector_type=self.detector.type,
         )
 
     def test_to_artifact_is_self_describing_and_recursive(self) -> None:
@@ -75,8 +94,10 @@ class TestWorkflowEvaluationArtifact(TestCase):
             "workflow_id": 10,
             "detector_id": self.detector.id,
             "detector_type": self.detector.type,
+            "project_id": self.project.id,
             "event_id": self.event.event_id,
             "group_id": self.event.group.id,
+            "outcome": WorkflowEvaluationOutcome.ERROR,
             "result_type": "actions",
             "triggered_action_ids": [],
             "deferred": None,
@@ -96,11 +117,37 @@ class TestWorkflowEvaluationArtifact(TestCase):
         artifact = evaluation.to_artifact()
 
         assert artifact["result_type"] == "deferred"
+        assert artifact["outcome"] == WorkflowEvaluationOutcome.DEFERRED
         assert artifact["deferred"] == {
             "delayed_when_group_id": 20,
             "delayed_if_group_ids": [30],
             "passing_if_group_ids": [40],
         }
+
+    def test_deferred_outcome_takes_precedence_over_error(self) -> None:
+        evaluation = self._build_evaluation(
+            deferred=True,
+            error=ConditionError(msg="fast condition failed"),
+        )
+
+        assert evaluation.outcome == WorkflowEvaluationOutcome.DEFERRED
+
+    def test_action_filter_error_sets_error_outcome(self) -> None:
+        filter_evaluation = DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            error=ConditionError(msg="action filter failed"),
+            data={
+                "condition_evaluations": [],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+        evaluation = self._build_evaluation(
+            triggered=True,
+            filter_group_evaluations=[filter_evaluation],
+        )
+
+        assert evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
     def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
@@ -150,7 +197,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             assert emit_workflow_evaluation_logs(
                 mock_logger,
                 organization=self.organization,
-                evaluations={10: evaluation},
+                result=self._build_batch_result({10: evaluation}),
             )
 
         mock_logger.info.assert_called_once()
@@ -171,12 +218,12 @@ class TestWorkflowEvaluationArtifact(TestCase):
             assert emit_workflow_evaluation_logs(
                 mock_logger,
                 organization=self.organization,
-                evaluations={10: evaluation},
+                result=self._build_batch_result({10: evaluation}),
             )
             assert not emit_workflow_evaluation_logs(
                 mock_logger,
                 organization=self.organization,
-                evaluations={10: evaluation},
+                result=self._build_batch_result({10: evaluation}),
             )
 
         mock_logger.info.assert_called_once()
@@ -192,12 +239,12 @@ class TestWorkflowEvaluationArtifact(TestCase):
             assert emit_workflow_evaluation_logs(
                 mock_logger,
                 organization=self.organization,
-                evaluations={10: evaluation},
+                result=self._build_batch_result({10: evaluation}),
             )
 
         mock_sentry_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.evaluation.workflows.triggered",
-            attributes=evaluation.to_artifact(),
+            "workflow_engine.process_workflows.evaluation",
+            attributes={**evaluation.to_artifact(), "organization_id": self.organization.id},
         )
         mock_logger.info.assert_not_called()
 
@@ -214,7 +261,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             assert emit_workflow_evaluation_logs(
                 mock_logger,
                 organization=self.organization,
-                evaluations=evaluations,
+                result=self._build_batch_result(evaluations),
             )
 
         assert mock_logger.info.call_count == 2
@@ -225,12 +272,27 @@ class TestWorkflowEvaluationArtifact(TestCase):
             11,
         ]
 
-    def test_emitter_skips_empty_evaluations(self) -> None:
+    def test_emitter_logs_empty_batch_outcome(self) -> None:
         mock_logger = mock.MagicMock()
 
-        assert not emit_workflow_evaluation_logs(
-            mock_logger,
-            organization=self.organization,
-            evaluations={},
+        with Feature({"organizations:workflow-engine-log-evaluations": True}):
+            assert emit_workflow_evaluation_logs(
+                mock_logger,
+                organization=self.organization,
+                result=self._build_batch_result(
+                    outcome=WorkflowEvaluationOutcome.NO_WORKFLOWS,
+                ),
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_workflows.evaluation",
+            extra={
+                "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
+                "project_id": self.project.id,
+                "group_id": self.event.group.id,
+                "event_id": self.event.event_id,
+                "detector_id": self.detector.id,
+                "detector_type": self.detector.type,
+                "organization_id": self.organization.id,
+            },
         )
-        mock_logger.info.assert_not_called()

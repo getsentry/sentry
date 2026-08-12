@@ -32,8 +32,8 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
     algebra over evaluations: when an input had an error that could affect the result, the returned
     `(triggered, error)` carries a representative error so the taint propagates.
 
-    Concrete evaluations implement `to_artifact` to select safe, useful fields from their
-    result and data without generically serializing models or event payloads.
+    Concrete evaluations provide `artifact_fields` to select safe, useful fields from their
+    result and data. `to_artifact` combines those fields with the common evaluation state.
     """
 
     result: R
@@ -53,12 +53,13 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
         return {
             "triggered": self.triggered,
             "error": self.error.msg if self.error else None,
-            **self._artifact_data(),
+            **self.artifact_fields,
         }
 
+    @property
     @abstractmethod
-    def _artifact_data(self) -> dict[str, Any]:
-        """Return the evaluation-specific fields for the artifact."""
+    def artifact_fields(self) -> dict[str, Any]:
+        """The evaluation-specific fields included in the artifact."""
         raise NotImplementedError
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
