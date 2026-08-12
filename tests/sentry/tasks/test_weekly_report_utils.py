@@ -12,7 +12,12 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.snuba.referrer import Referrer
@@ -806,7 +811,7 @@ class PastResolvedIssuesTest(TestCase):
             "https://github.com/getsentry/sentry/pull/2",
         )
 
-    def test_fetch_resolution_label_seer_fix(self) -> None:
+    def test_fetch_resolution_label_seer_fix_from_run_link(self) -> None:
         group = self._create_resolved_group()
         release = self._create_release_resolution(group)
         repository = self.create_repo(
@@ -819,6 +824,48 @@ class PastResolvedIssuesTest(TestCase):
 
         assert self._enrich_resolution(group)[2:] == (
             "Resolved by Seer Fix",
+            "https://github.com/getsentry/sentry/pull/9999",
+        )
+
+    def test_fetch_resolution_label_seer_fix_from_attribution(self) -> None:
+        group = self._create_resolved_group()
+        release = self._create_release_resolution(group)
+        repository = self.create_repo(
+            self.project,
+            provider="integrations:github",
+            url="https://github.com/getsentry/sentry",
+        )
+        pull_request = self._create_released_resolving_pr(group, release, repository, key="9999")
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+
+        assert self._enrich_resolution(group)[2:] == (
+            "Resolved by Seer Fix",
+            "https://github.com/getsentry/sentry/pull/9999",
+        )
+
+    def test_fetch_resolution_ignores_invalid_seer_attribution(self) -> None:
+        group = self._create_resolved_group()
+        release = self._create_release_resolution(group)
+        repository = self.create_repo(
+            self.project,
+            provider="integrations:github",
+            url="https://github.com/getsentry/sentry",
+        )
+        pull_request = self._create_released_resolving_pr(group, release, repository, key="9999")
+        PullRequestAttribution.objects.create(
+            pull_request=pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=False,
+        )
+
+        assert self._enrich_resolution(group)[2:] == (
+            "Resolved in release",
             "https://github.com/getsentry/sentry/pull/9999",
         )
 

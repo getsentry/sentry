@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Count
+from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.db.models.functions import TruncDay
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -28,10 +28,11 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestAttribution
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.team import TeamStatus
+from sentry.pr_metrics.attribution import is_seer_attribution
 from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
@@ -774,7 +775,25 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             selected_pr_by_group.setdefault(group_id, pull_request_id)
 
         selected_pr_ids = set(selected_pr_by_group.values())
+        selected_pull_requests = [
+            pull_requests[pull_request_id] for pull_request_id in selected_pr_ids
+        ]
+        prefetch_related_objects(
+            selected_pull_requests,
+            Prefetch(
+                "pullrequestattribution_set",
+                queryset=PullRequestAttribution.objects.filter(is_valid=True),
+            ),
+        )
         seer_pr_ids = set(
+            pull_request.id
+            for pull_request in selected_pull_requests
+            if any(
+                is_seer_attribution(attribution)
+                for attribution in pull_request.pullrequestattribution_set.all()
+            )
+        )
+        seer_pr_ids.update(
             SeerRunPullRequest.objects.filter(pull_request_id__in=selected_pr_ids).values_list(
                 "pull_request_id", flat=True
             )
