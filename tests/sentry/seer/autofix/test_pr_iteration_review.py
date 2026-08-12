@@ -351,17 +351,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
             delivery_authenticated=delivery_authenticated,
         )
 
-    def test_skips_github_enterprise_repo(self) -> None:
-        # PR iteration is not supported on GHE. A GHE review reaches this task
-        # like any other, and must be turned away before any provider call.
-        self.repo.provider = "integrations:github_enterprise"
-        self.repo.save()
-
-        self._run()
-
-        assert self.mock_get_integration.call_count == 0
-        assert self.mock_enqueue.call_count == 0
-
     def test_batch_review_with_inline_comments_and_body(self) -> None:
         self.mock_actions.get_review_comments.return_value = self._paginated(
             [

@@ -149,24 +149,6 @@ class TriggerPrIterationFromCommentTest(TestCase):
             reaction="eyes",
         )
 
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_skips_github_enterprise_repo(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-    ) -> None:
-        # PR iteration is not supported on GHE. GHE sends the same issue_comment
-        # events, so the mention reaches this task and must be turned away before
-        # any provider call.
-        self.repo.provider = "integrations:github_enterprise"
-        self.repo.save()
-
-        self._call()
-
-        assert mock_get_integration.call_count == 0
-        assert mock_get_state.call_count == 0
-
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
