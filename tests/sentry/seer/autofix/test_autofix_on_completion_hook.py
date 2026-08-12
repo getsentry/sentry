@@ -543,6 +543,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "provider": "unknown",
                 "repo_name": "test-repo",
                 "status": "error",
+                "error": "access_denied",
                 "pull_request": None,
             }
         ]
@@ -582,6 +583,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             "provider": "github",
             "repo_name": "successful-repo",
             "status": "completed",
+            "error": None,
             "pull_request": {
                 "pr_id": 1,
                 "pr_number": 2,
@@ -592,6 +594,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             "provider": "unknown",
             "repo_name": "failed-repo",
             "status": "error",
+            "error": "access_denied",
             "pull_request": None,
         }
         event_names = [call.args[0].type for call in mock_analytics.call_args_list]
@@ -612,6 +615,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         mock_broadcast.assert_called_once()
         entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
         assert entry["status"] == "error"
+        assert entry["error"] == "unknown"
         assert entry["pull_request"] is None
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
@@ -688,6 +692,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
         entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
         assert entry["status"] == "error"
+        assert entry["error"] == "unknown"
         assert entry["pull_request"]["pr_number"] == 7
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")

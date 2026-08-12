@@ -549,6 +549,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "status": (
                     "completed" if pull_request.pr_creation_status == "completed" else "error"
                 ),
+                "error": (
+                    cls._classify_pr_creation_failure(pull_request.pr_creation_error)
+                    if pull_request.pr_creation_status != "completed"
+                    else None
+                ),
                 "pull_request": (
                     {
                         "pr_id": pull_request.pr_id,
@@ -561,6 +566,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             }
             for pull_request in state.repo_pr_states.values()
         ]
+
+    @staticmethod
+    def _classify_pr_creation_failure(error: str | None) -> str:
+        normalized_error = (error or "").lower()
+        if any(
+            marker in normalized_error
+            for marker in ("403", "no write access", "resource not accessible", "forbidden")
+        ):
+            return "access_denied"
+        return "unknown"
 
     @classmethod
     def _get_current_step(
