@@ -17,9 +17,9 @@ another, and take a single ``PullRequestReviewEvent`` argument.
 The listener filters to submitted reviews, resolves org/integration/repo context
 from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
 which fetches the review's inline comments and summary body and dispatches an
-Autofix PR iteration. The task gates on the review author's repo write access, so
-a review only drives an iteration when its author could push the change
-themselves.
+Autofix PR iteration. The task gates human review authors on repo write access, so
+a human review only drives an iteration when its author could push the change
+themselves; bot reviews are instead bounded by the automated-iteration cap.
 """
 
 from __future__ import annotations

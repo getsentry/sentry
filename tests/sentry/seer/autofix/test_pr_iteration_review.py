@@ -546,6 +546,8 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+        # The cap drops the bot, not the write-access gate.
+        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_human_review_proceeds_when_automated_streak_capped(self) -> None:
         # The streak cap only bounds automated (bot) reviews; a human review always
@@ -576,6 +578,38 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_bot_review_proceeds_without_repo_write_access(self) -> None:
+        # A bot account is never a repo collaborator, so it skips the gate.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "none"}}
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
+        self.mock_actions.get_repository_user_permission.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+
+        # The review still counts as automated, so the streak cap can stop it later.
+        self.mock_find_user.assert_not_called()
+        sources = [c.kwargs["feedback"].source for c in self.mock_enqueue.call_args_list]
+        assert all(s.author_is_bot for s in sources)
+        assert all(c.kwargs["actor_user_id"] is None for c in self.mock_enqueue.call_args_list)
+
+    def test_bot_review_proceeds_without_author_username(self) -> None:
+        # GitHub always sends a login, but the bot path must not depend on one.
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run(author_username=None, author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
+        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_skips_review_with_no_author(self) -> None:
         # No author username means we can't check access, so drop without even
