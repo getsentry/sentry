@@ -93,7 +93,7 @@ export function Chip({
             e.stopPropagation();
             onDismiss();
           }}
-          aria-label={t('Remove')}
+        aria-label={t('Remove %s', [property, operator, value].filter(Boolean).join(' '))}
         />
       ) : null}
     </ChipRoot>
