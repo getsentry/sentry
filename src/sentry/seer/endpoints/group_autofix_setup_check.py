@@ -104,7 +104,13 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         # when an autofix run already exists for this group, which renders
         # the results UI. Otherwise False, which renders the paywall.
         if is_free_cohort_org(org):
-            has_autofix_quota = runs_for_group(group.id, "autofix").exists()
+            # Night shift can go through either the regular autofix path
+            # (source="autofix") or the RCA feature path (source="autofix_rca")
+            # depending on the organizations:autofix-rca-in-seer flag.
+            has_autofix_quota = (
+                runs_for_group(group.id, "autofix").exists()
+                or runs_for_group(group.id, "autofix_rca").exists()
+            )
         else:
             has_autofix_quota = quotas.backend.check_seer_quota(
                 org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
