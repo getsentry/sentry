@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from sentry.testutils.cases import APITestCase
 
 
-@patch("sentry.issues.endpoints.group_reprocessing.reprocess_group")
+@patch("sentry.issues.endpoints.group_reprocessing.start_reprocess_group")
 class GroupReprocessingTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
