@@ -14,8 +14,8 @@ interface TextRun {
   text: string;
 }
 
-function isLineBreak(node: Node): node is HTMLBRElement {
-  return node.nodeName === 'BR';
+function isLineBreak(node: Node | null): node is HTMLBRElement {
+  return node?.nodeName === 'BR';
 }
 
 function isLineContainer(node: Node): node is HTMLDivElement | HTMLParagraphElement {
@@ -24,14 +24,12 @@ function isLineContainer(node: Node): node is HTMLDivElement | HTMLParagraphElem
 
 function isPlaceholderLine(node: Node) {
   return (
-    isLineContainer(node) &&
-    node.childNodes.length === 1 &&
-    isLineBreak(node.childNodes[0]!)
+    isLineContainer(node) && node.childNodes.length === 1 && isLineBreak(node.firstChild)
   );
 }
 
 function getTextRuns(root: Node): TextRun[] {
-  if (root.childNodes.length === 1 && isLineBreak(root.childNodes[0]!)) {
+  if (root.childNodes.length === 1 && isLineBreak(root.firstChild)) {
     return [];
   }
 

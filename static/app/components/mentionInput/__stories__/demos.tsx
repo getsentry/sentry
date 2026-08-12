@@ -12,8 +12,9 @@ interface Suggestion {
   label: string;
 }
 
+const ALICE = {id: 'user:1', label: 'Alice Example'};
 const PEOPLE = [
-  {id: 'user:1', label: 'Alice Example'},
+  ALICE,
   {id: 'user:2', label: 'Alex Engineer'},
   {id: 'user:3', label: 'Sam Designer'},
 ];
@@ -48,7 +49,7 @@ const RESTORED_MENTION_TEXT = '@Alice Example';
 const RESTORED_MENTION_START = RESTORED_TEXT.indexOf(RESTORED_MENTION_TEXT);
 const RESTORED_MENTIONS = [
   {
-    id: PEOPLE[0]!.id,
+    id: ALICE.id,
     sourceId: 'members',
     start: RESTORED_MENTION_START,
     end: RESTORED_MENTION_START + RESTORED_MENTION_TEXT.length,
@@ -61,19 +62,19 @@ const REMOTE_SOURCES = [
     id: 'remote-members',
     label: 'Remote members',
     trigger: '@',
-    queryOptions: query =>
+    queryOptions: (query: string) =>
       queryOptions({
         queryKey: ['mention-input-story', 'remote-members', query],
-        queryFn: async ({signal}) => {
-          await waitForDelay(500, signal);
+        queryFn: async () => {
+          await waitForDelay(500);
           return filterSuggestions(PEOPLE, query);
         },
         staleTime: Infinity,
       }),
-    getId: suggestion => suggestion.id,
-    getText: suggestion => `@${suggestion.label}`,
+    getId: (suggestion: Suggestion) => suggestion.id,
+    getText: (suggestion: Suggestion) => `@${suggestion.label}`,
   },
-] satisfies ReadonlyArray<MentionSource<Suggestion>>;
+];
 
 function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
   const normalizedQuery = query.toLocaleLowerCase();
@@ -82,18 +83,8 @@ function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
   );
 }
 
-function waitForDelay(delay: number, signal: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(resolve, delay);
-    signal.addEventListener(
-      'abort',
-      () => {
-        window.clearTimeout(timeout);
-        reject(new DOMException('Request aborted', 'AbortError'));
-      },
-      {once: true}
-    );
-  });
+function waitForDelay(delay: number) {
+  return new Promise<void>(resolve => window.setTimeout(resolve, delay));
 }
 
 export function MentionInputDemo() {

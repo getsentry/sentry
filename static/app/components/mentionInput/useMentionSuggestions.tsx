@@ -10,7 +10,12 @@ import {getItemId} from '@react-aria/listbox';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
-import {skipToken, useQuery, type QueryStatus} from '@tanstack/react-query';
+import {
+  skipToken,
+  useQuery,
+  type QueryStatus,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 
 import {getRequestKey, type ActiveMention} from './matching';
 import type {MentionSource} from './types';
@@ -39,7 +44,7 @@ function useSourceSuggestions<T>(
   query: string | undefined
 ) {
   const queriedSource = source && 'queryOptions' in source ? source : undefined;
-  const suggestionsQuery = useQuery(
+  const suggestionsQuery: UseQueryResult<readonly T[]> = useQuery(
     queriedSource && query !== undefined
       ? queriedSource.queryOptions(query)
       : {queryKey: ['mention-suggestions'], queryFn: skipToken}
@@ -93,7 +98,7 @@ export function useMentionSuggestions<T>({
 
   const items = useMemo(
     () =>
-      currentSuggestions.map(suggestion => ({
+      currentSuggestions.map((suggestion): SuggestionListItem<T> => ({
         key: `${activeSource?.id ?? 'source'}:${activeSource?.getId(suggestion)}`,
         hideCheck: true,
         label:
