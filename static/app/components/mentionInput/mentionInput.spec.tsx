@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
 import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
@@ -83,6 +83,44 @@ describe('MentionInput', () => {
 
     expect(onChange).toHaveBeenCalledWith({text: 'Fixed!', mentions: []});
     expect(textbox).toHaveTextContent('Fixed');
+  });
+
+  it('allows typing with an input method', () => {
+    const onChange = jest.fn();
+    const renderInput = () => (
+      <MentionInput
+        aria-label="Comment"
+        sources={[MEMBER_SOURCE]}
+        value={{text: '', mentions: []}}
+        onChange={onChange}
+      />
+    );
+    const {rerender} = render(renderInput());
+    const textbox = getEditor();
+
+    act(() => {
+      textbox.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
+      textbox.textContent = '日本語';
+      textbox.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '日本語',
+          inputType: 'insertCompositionText',
+          isComposing: true,
+        })
+      );
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+    rerender(renderInput());
+    expect(textbox).toHaveTextContent('日本語');
+
+    act(() => {
+      textbox.dispatchEvent(
+        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
+      );
+    });
+    expect(onChange).toHaveBeenCalledWith({text: '日本語', mentions: []});
   });
 
   it('selects a suggestion with the arrow keys', async () => {
