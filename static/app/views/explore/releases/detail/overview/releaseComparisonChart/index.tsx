@@ -1,10 +1,10 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -1105,49 +1105,54 @@ export function ReleaseComparisonChart({
           </ChartContainer>
         </ErrorBoundary>
       </ChartPanel>
-      <Grid
-        columns={{
-          zero: `repeat(4, minmax(min-content, 1fr)) ${withExpanders ? '75px' : ''}`,
-          '4xl': `minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${withExpanders ? '75px' : ''}`,
-        }}
+      <PanelTable
+        css={cssTheme => css`
+          border-top-left-radius: 0;
+          border-top-right-radius: 0;
+
+          && {
+            grid-template-columns:
+              repeat(4, minmax(min-content, 1fr))
+              ${withExpanders ? '75px' : ''};
+          }
+
+          @container (min-width: ${cssTheme.container['4xl']}) {
+            && {
+              grid-template-columns:
+                minmax(400px, auto)
+                repeat(3, minmax(min-content, 1fr))
+                ${withExpanders ? '75px' : ''};
+            }
+          }
+
+          > * {
+            border-bottom: 1px solid ${cssTheme.tokens.border.primary};
+          }
+        `}
+        headers={getTableHeaders(withExpanders)}
+        data-test-id="release-comparison-table"
       >
-        {({className}) => (
-          <PanelTable
-            className={className}
-            css={cssTheme => ({
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-              '> *': {
-                borderBottom: `1px solid ${cssTheme.tokens.border.primary}`,
-              },
-            })}
-            headers={getTableHeaders(withExpanders)}
-            data-test-id="release-comparison-table"
-          >
-            {charts.map(chartRow => renderChartRow(chartRow))}
-            {isOtherExpanded &&
-              additionalCharts.map(chartRow => renderChartRow(chartRow))}
-            {additionalCharts.length > 0 && (
-              <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
-                <ShowMoreTitle>
-                  <IconList size="xs" />
-                  {isOtherExpanded
-                    ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
-                    : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
-                </ShowMoreTitle>
-                <Flex justify="end" align="center" column="2 / -1">
-                  <Button
-                    variant="transparent"
-                    size="zero"
-                    icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
-                    aria-label={t('Toggle additional charts')}
-                  />
-                </Flex>
-              </ShowMoreWrapper>
-            )}
-          </PanelTable>
+        {charts.map(chartRow => renderChartRow(chartRow))}
+        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
+        {additionalCharts.length > 0 && (
+          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+            <ShowMoreTitle>
+              <IconList size="xs" />
+              {isOtherExpanded
+                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+            </ShowMoreTitle>
+            <Flex justify="end" align="center" column="2 / -1">
+              <Button
+                variant="transparent"
+                size="zero"
+                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+                aria-label={t('Toggle additional charts')}
+              />
+            </Flex>
+          </ShowMoreWrapper>
         )}
-      </Grid>
+      </PanelTable>
     </Fragment>
   );
 }
