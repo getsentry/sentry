@@ -155,15 +155,9 @@ describe('IntegrationDetailedView', () => {
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
 
-  it('shows the selected tab in the header while loading navigation data', () => {
+  it('shows the selected tab in the header while loading data', () => {
     render(<IntegrationDetailedView />, {
-      initialRouterConfig: {
-        ...createRouterConfig('bitbucket'),
-        location: {
-          ...createRouterConfig('bitbucket').location,
-          state: {integrationName: 'Bitbucket'},
-        },
-      },
+      initialRouterConfig: createRouterConfig('bitbucket'),
       organization,
     });
 

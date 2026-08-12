@@ -31,7 +31,6 @@ describe('IntegrationCrumb', () => {
         location: {
           pathname: `/settings/${organization.slug}/integrations/github/`,
           query: {tab: 'overview'},
-          state: {integrationName: 'GitHub'},
         },
       },
     });
@@ -49,7 +48,6 @@ describe('IntegrationCrumb', () => {
       `/settings/${organization.slug}/integrations/slack/`
     );
     expect(router.location.query).toEqual({tab: 'overview'});
-    expect(router.location.state).toEqual({integrationName: 'Slack'});
   });
 
   it('returns to overview when switching from a configured item', async () => {
@@ -63,7 +61,6 @@ describe('IntegrationCrumb', () => {
         route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
         location: {
           pathname: `/settings/${organization.slug}/integrations/github/1/`,
-          state: {integrationName: 'GitHub'},
         },
       },
     });

@@ -18,11 +18,12 @@ describe('InstalledIntegration', () => {
     provider: GitHubIntegrationProviderFixture(),
     onRemove: jest.fn(),
     onDisable: jest.fn(),
+    onPreloadConfiguration: jest.fn(),
     trackIntegrationAnalytics: jest.fn(),
   };
 
-  it('passes the integration in navigation state when configuring', async () => {
-    const {router} = render(<InstalledIntegration {...defaultProps} />, {
+  it('preloads the integration configuration before navigating', async () => {
+    render(<InstalledIntegration {...defaultProps} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -32,11 +33,11 @@ describe('InstalledIntegration', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
+    await userEvent.hover(screen.getByRole('button', {name: 'Configure'}));
 
-    expect(router.location.state).toMatchObject({
-      integration: defaultProps.integration,
-    });
+    expect(defaultProps.onPreloadConfiguration).toHaveBeenCalledWith(
+      defaultProps.integration
+    );
   });
 
   it('hides the Configure button when directEnable aspect is set', () => {

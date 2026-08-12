@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {useBreadcrumbsPathmap} from './context';
@@ -29,15 +28,9 @@ type Props = {
   params: Record<string, string | undefined>;
 };
 
-type IntegrationNavigationState = {
-  integrationName?: string;
-};
-
 export function SettingsBreadcrumb({params}: Props) {
-  const location = useLocation();
   const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
-  const locationState = location.state as IntegrationNavigationState | null;
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -53,10 +46,6 @@ export function SettingsBreadcrumb({params}: Props) {
         }
         const pathTitle =
           pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
-        const title =
-          pathTitle ||
-          (route.name === t('Details') ? locationState?.integrationName : undefined) ||
-          route.name;
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
@@ -74,7 +63,7 @@ export function SettingsBreadcrumb({params}: Props) {
         if (isLast) {
           return (
             <Text key={`${route.name}:${route.path}`} as="span">
-              {title}
+              {pathTitle || route.name}
             </Text>
           );
         }
@@ -84,7 +73,7 @@ export function SettingsBreadcrumb({params}: Props) {
               to={recreateRoute(route, {routes, params})}
               onClick={onSettingsBreadcrumbLinkClick}
             >
-              {title}
+              {pathTitle || route.name}
             </CrumbLink>
             <Divider />
           </Flex>

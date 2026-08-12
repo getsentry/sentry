@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -10,14 +11,12 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DocIntegration} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {docIntegrationApiOptions} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 
 export default function DocIntegrationDetailsView() {
   const theme = useTheme();
@@ -25,14 +24,10 @@ export default function DocIntegrationDetailsView() {
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-  const {data: doc, isPending} = useApiQuery<DocIntegration>(
-    [
-      getApiUrl('/doc-integrations/$docIntegrationIdOrSlug/', {
-        path: {docIntegrationIdOrSlug: integrationSlug},
-      }),
-    ],
-    {staleTime: Infinity, retry: false}
-  );
+  const {data: doc, isPending} = useQuery({
+    ...docIntegrationApiOptions(integrationSlug),
+    retry: false,
+  });
 
   const integrationType = 'document';
   const description = doc?.description ?? '';

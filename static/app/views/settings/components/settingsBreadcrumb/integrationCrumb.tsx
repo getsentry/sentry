@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {IntegrationProvider} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -15,11 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
-
-type IntegrationNavigationState = {
-  integration?: Integration;
-  integrationName?: string;
-};
 
 type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
@@ -35,7 +30,6 @@ export function IntegrationCrumb({
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams();
-  const locationState = location.state as IntegrationNavigationState | null;
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
   const {data, isPending} = useQuery(
     apiOptions.as<IntegrationProviderResponse>()(
@@ -55,11 +49,7 @@ export function IntegrationCrumb({
   const activeProvider = providers.find(
     provider => provider.key === activeProviderKey || provider.slug === activeProviderKey
   );
-  const activeProviderName =
-    activeProvider?.name ??
-    locationState?.integrationName ??
-    locationState?.integration?.provider.name ??
-    activeProviderKey;
+  const activeProviderName = activeProvider?.name ?? activeProviderKey;
   const configuredItemSelected = Boolean(params.integrationId);
   const activeProviderUrl = `/settings/${organization.slug}/integrations/${activeProviderKey}/`;
   const activeProviderHref = configuredItemSelected
@@ -77,16 +67,12 @@ export function IntegrationCrumb({
         </CrumbLink>
       }
       onCrumbSelect={providerKey => {
-        const provider = providers.find(item => item.key === providerKey);
         const {tab: _tab, ...queryWithoutTab} = location.query;
         const query = configuredItemSelected ? queryWithoutTab : location.query;
-        navigate(
-          {
-            pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
-            query,
-          },
-          {state: {integrationName: provider?.name}}
-        );
+        navigate({
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
+          query,
+        });
       }}
       onOpenChange={open => {
         if (open) {

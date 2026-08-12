@@ -47,8 +47,8 @@ describe('IntegrationRow', () => {
     });
   });
   describe('First Party Integration', () => {
-    it('has been installed (1 configuration)', async () => {
-      const {router} = render(
+    it('has been installed (1 configuration)', () => {
+      render(
         <IntegrationRow
           organization={org}
           type="firstParty"
@@ -66,9 +66,6 @@ describe('IntegrationRow', () => {
         `/settings/${org.slug}/integrations/bitbucket/`
       );
       expect(screen.getByText('1 Configuration')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('link', {name: 'Bitbucket'}));
-      expect(router.location.state).toEqual({integrationName: 'Bitbucket'});
     });
 
     it('has been installed (3 configurations)', () => {

@@ -28,6 +28,7 @@ import {IntegrationItem} from './integrationItem';
 type Props = {
   integration: Integration;
   onDisable: (integration: Integration) => void;
+  onPreloadConfiguration: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;
   organization: Organization;
   provider: IntegrationProvider;
@@ -205,7 +206,8 @@ export class InstalledIntegration extends Component<Props> {
                       icon={<IconSettings />}
                       disabled={!allowMemberConfiguration && !canConfigure}
                       to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                      state={{integration}}
+                      onMouseEnter={() => this.props.onPreloadConfiguration(integration)}
+                      onFocus={() => this.props.onPreloadConfiguration(integration)}
                       data-test-id="integration-configure-button"
                     >
                       {t('Configure')}

@@ -49,7 +49,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
@@ -59,6 +58,7 @@ import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+import {organizationIntegrationApiOptions} from 'sentry/views/settings/organizationIntegrations/integrationQueries';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
@@ -120,10 +120,6 @@ const tabTitles: Record<IntegrationTab, string> = {
   features: t('Features'),
 };
 
-type IntegrationDetailedViewLocationState = {
-  integrationName?: string;
-};
-
 export default function IntegrationDetailedView() {
   const queryClient = useQueryClient();
   const routeConfig = useRouteConfig();
@@ -133,7 +129,6 @@ export default function IntegrationDetailedView() {
   );
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as IntegrationDetailedViewLocationState | null;
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -255,14 +250,13 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
-  const navigationIntegrationName = integrationName || locationState?.integrationName;
-  const navigationTabTitle = navigationIntegrationName ? (
+  const navigationTabTitle = (
     <Layout.Title>
       <Flex align="center" gap="sm" minWidth="0">
         <Text as="span">{tabTitles[displayedTab]}</Text>
       </Flex>
     </Layout.Title>
-  ) : null;
+  );
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -390,6 +384,19 @@ export default function IntegrationDetailedView() {
     window.open(url, '_blank');
   }, []);
 
+  const onPreloadConfiguration = useCallback(
+    (integration: Integration) => {
+      void queryClient.prefetchQuery({
+        ...organizationIntegrationApiOptions({
+          organizationSlug: organization.slug,
+          integrationId: integration.id,
+        }),
+        staleTime: 30_000,
+      });
+    },
+    [organization.slug, queryClient]
+  );
+
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
       const queryParams = new URLSearchParams(location.search);
@@ -477,6 +484,7 @@ export default function IntegrationDetailedView() {
                 integration={integration}
                 onRemove={onRemove}
                 onDisable={onDisable}
+                onPreloadConfiguration={onPreloadConfiguration}
                 data-test-id={integration.id}
                 trackIntegrationAnalytics={eventKey => {
                   trackIntegrationAnalytics(eventKey, {
@@ -499,6 +507,7 @@ export default function IntegrationDetailedView() {
     provider,
     onRemove,
     onDisable,
+    onPreloadConfiguration,
     featureData,
     installationStatus,
     integrationSlug,
@@ -580,9 +589,6 @@ export default function IntegrationDetailedView() {
   if (isInformationPending || isConfigurationsPending) {
     return (
       <Fragment>
-        {navigationIntegrationName && (
-          <BreadcrumbTitle title={navigationIntegrationName} />
-        )}
         {navigationTabTitle}
         <LoadingIndicator />
       </Fragment>

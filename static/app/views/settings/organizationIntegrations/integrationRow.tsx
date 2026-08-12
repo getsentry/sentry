@@ -36,6 +36,7 @@ type Props = {
   customAlert?: React.ReactNode;
   customIcon?: React.ReactNode;
   disabledConfigurations?: number;
+  onPreload?: () => void;
   outdatedConfigurations?: number;
   status?: IntegrationInstallationStatus;
 };
@@ -60,14 +61,13 @@ export function IntegrationRow(props: Props) {
     customAlert,
     customIcon,
     disabledConfigurations,
+    onPreload,
   } = props;
 
   const baseUrl =
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
-  const navigationState = {integrationName: displayName};
-
   const hasIntegrationAccess = canManageIntegrations(organization);
 
   // When exactly one workspace is outdated there's nothing to disambiguate, so
@@ -102,7 +102,11 @@ export function IntegrationRow(props: Props) {
     }
     return (
       <Flex align="center" gap="xs">
-        <StyledLink to={`${baseUrl}?tab=configurations`} state={navigationState}>
+        <StyledLink
+          to={`${baseUrl}?tab=configurations`}
+          onMouseEnter={onPreload}
+          onFocus={onPreload}
+        >
           {tn('%s Configuration', '%s Configurations', configurations)}
         </StyledLink>
         {disabledConfigurations ? (
@@ -120,7 +124,7 @@ export function IntegrationRow(props: Props) {
       return <IntegrationStatus status={status} />;
     }
     return (
-      <LearnMore to={baseUrl} state={navigationState}>
+      <LearnMore to={baseUrl} onMouseEnter={onPreload} onFocus={onPreload}>
         {t('Learn More')}
       </LearnMore>
     );
@@ -141,7 +145,8 @@ export function IntegrationRow(props: Props) {
         link: (
           <Link
             to={resolveNowHref}
-            state={navigationState}
+            onMouseEnter={onPreload}
+            onFocus={onPreload}
             onClick={() =>
               trackAnalytics('integrations.resolve_now_clicked', {
                 integration_type: convertIntegrationTypeToSnakeCase(type),
@@ -161,7 +166,7 @@ export function IntegrationRow(props: Props) {
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
           <Flex gap="xs" align="center">
-            <IntegrationName to={baseUrl} state={navigationState}>
+            <IntegrationName to={baseUrl} onMouseEnter={onPreload} onFocus={onPreload}>
               {displayName}
             </IntegrationName>
             {outdatedConfigurations > 0 && (

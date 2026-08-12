@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -19,13 +19,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {
-  Integration,
-  IntegrationProvider,
-  OrganizationIntegration,
-} from 'sentry/types/integrations';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -50,24 +45,10 @@ import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationIcon} from './integrationIcon';
+import {organizationIntegrationApiOptions} from './integrationQueries';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
-
-type ConfigureIntegrationLocationState = {
-  integration?: Integration;
-};
-
-const makeIntegrationQuery = (
-  organization: Organization,
-  integrationId: string
-): ApiQueryKey => {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
-      path: {organizationIdOrSlug: organization.slug, integrationId},
-    }),
-  ];
-};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -103,7 +84,6 @@ function withJiraStatusMappingRemovals(
 
 function ConfigureIntegration() {
   const location = useLocation();
-  const locationState = location.state as ConfigureIntegrationLocationState | null;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -131,13 +111,14 @@ function ConfigureIntegration() {
     isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
-  } = useApiQuery<OrganizationIntegration>(
-    makeIntegrationQuery(organization, integrationId),
-    {staleTime: 0}
+  } = useQuery(
+    organizationIntegrationApiOptions({
+      organizationSlug: organization.slug,
+      integrationId,
+    })
   );
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
-  const navigationIntegration = integration ?? locationState?.integration;
   const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
@@ -174,14 +155,7 @@ function ConfigureIntegration() {
   }, [navigate, organization, providerKey]);
 
   if (isLoadingConfig || isLoadingIntegration) {
-    return (
-      <Fragment>
-        {navigationIntegration && (
-          <IntegrationNavigationHeader integration={navigationIntegration} />
-        )}
-        <LoadingIndicator />
-      </Fragment>
-    );
+    return <LoadingIndicator />;
   }
 
   if (isErrorConfig || isErrorIntegration) {
@@ -267,7 +241,10 @@ function ConfigureIntegration() {
     refetchConfig();
 
     queryClient.removeQueries({
-      queryKey: makeIntegrationQuery(organization, integrationId),
+      queryKey: organizationIntegrationApiOptions({
+        organizationSlug: organization.slug,
+        integrationId,
+      }).queryKey,
     });
     refetchIntegration();
   };
@@ -332,7 +309,10 @@ function ConfigureIntegration() {
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
         // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
         return queryClient.invalidateQueries({
-          queryKey: makeIntegrationQuery(organization, integrationId),
+          queryKey: organizationIntegrationApiOptions({
+            organizationSlug: organization.slug,
+            integrationId,
+          }).queryKey,
         });
       },
     });

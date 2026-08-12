@@ -27,26 +27,6 @@ const routeChildren = [
   },
 ];
 
-const integrationDetailsRouteChildren = [
-  {
-    path: 'one',
-    handle: {name: 'One', path: '/one/'},
-    children: [
-      {
-        path: 'two',
-        handle: {name: 'Two', path: '/two/'},
-        children: [
-          {
-            path: 'three',
-            handle: {name: 'Details', path: '/three/'},
-            element: <div />,
-          },
-        ],
-      },
-    ],
-  },
-];
-
 describe('BreadcrumbTitle', () => {
   it('renders settings breadcrumbs and replaces title', () => {
     render(
@@ -67,27 +47,6 @@ describe('BreadcrumbTitle', () => {
 
     expect(crumbs).toHaveLength(2);
     expect(screen.getByText('Last Title')).toBeInTheDocument();
-  });
-
-  it('seeds integration details from navigation state', () => {
-    render(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb params={{}} />
-      </BreadcrumbProvider>,
-      {
-        initialRouterConfig: {
-          route: '/',
-          location: {
-            pathname: '/one/two/three/',
-            state: {integrationName: 'ClickUp'},
-          },
-          children: integrationDetailsRouteChildren,
-        },
-      }
-    );
-
-    expect(screen.getByText('ClickUp')).toBeInTheDocument();
-    expect(screen.queryByText('Details')).not.toBeInTheDocument();
   });
 
   it('cleans up routes', () => {
