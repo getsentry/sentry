@@ -248,6 +248,7 @@ function SpanTabContentSectionInner({
   const queriedRawSpanCounts = useRawCounts({
     dataset: DiscoverDatasets.SPANS,
     enabled: isReady && queriesEnabled,
+    preservePreviousData,
   });
   const rawSpanCounts = preservePreviousData ? queriedRawSpanCounts : EMPTY_RAW_COUNTS;
 

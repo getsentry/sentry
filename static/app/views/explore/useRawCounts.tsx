@@ -1,3 +1,5 @@
+import {keepPreviousData} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
@@ -30,6 +32,7 @@ interface UseRawCountsOptions {
   dataset: DiscoverDatasets;
   enabled?: boolean;
   normalModeExtrapolated?: boolean;
+  preservePreviousData?: boolean;
   query?: string;
   selection?: PageFilters;
 }
@@ -40,6 +43,7 @@ export function useRawCounts({
   selection,
   query,
   normalModeExtrapolated,
+  preservePreviousData,
 }: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
   const {selection: pageFilterSelection} = usePageFilters();
@@ -74,6 +78,7 @@ export function useRawCounts({
 
   const normalScanResult = useApiQuery<QueryResult<typeof count>>(normalScanQueryKey, {
     enabled: enabled ?? true,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
     staleTime: 0,
   });
 
@@ -102,6 +107,7 @@ export function useRawCounts({
 
   const totalCountResult = useApiQuery<QueryResult<typeof count>>(totalCountQueryKey, {
     enabled: enabled ?? true,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
     staleTime: 0,
   });
 
