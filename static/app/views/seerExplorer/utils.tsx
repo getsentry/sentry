@@ -402,7 +402,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   bash: (args, isLoading) => {
     const description =
       args.description || (isLoading ? 'Using bash tool' : 'Used bash tool');
-    return description[0] + description.slice(1);
+    return description[0].toUpperCase() + description.slice(1);
   },
 };
 
