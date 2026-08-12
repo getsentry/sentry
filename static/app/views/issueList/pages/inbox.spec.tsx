@@ -916,9 +916,7 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
-    const seerButton = await within(preview).findByRole('button', {
-      name: 'Make a Plan',
-    });
+    await within(preview).findByRole('button', {name: 'Make a Plan'});
 
     // After starting the step, the refetch will see a processing state
     mockAutofixResponse(
@@ -927,7 +925,7 @@ describe('InboxPage', () => {
       })
     );
 
-    await userEvent.click(seerButton);
+    await userEvent.click(within(preview).getByRole('button', {name: 'Make a Plan'}));
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>

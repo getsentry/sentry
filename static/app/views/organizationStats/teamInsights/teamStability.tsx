@@ -243,7 +243,11 @@ export function TeamStability({
                 showTimeInTooltip
                 series={getMiniBarChartSeries(project, periodSessions)}
                 height={25}
-                tooltipFormatter={(value: number) => `${value.toLocaleString()}%`}
+                tooltip={{
+                  appendToBody: true,
+                  trigger: 'axis',
+                  valueFormatter: value => `${Number(value).toLocaleString()}%`,
+                }}
               />
             )}
           </div>
@@ -263,8 +267,6 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   margin-bottom: 0;
   border: 0;
   box-shadow: unset;
-  /* overflow when bar chart tooltip gets cutoff for the top row */
-  overflow: visible;
 
   & > div {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

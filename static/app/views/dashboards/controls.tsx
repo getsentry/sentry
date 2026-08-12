@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -579,12 +578,14 @@ function DashboardEditFeature({
   );
 }
 
-const LegacyButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    grid-row-gap: ${p => p.theme.space.md};
-    width: 100%;
-  }
-`;
+function LegacyButtonBar(props: GridProps) {
+  return (
+    <Grid
+      flow={{zero: 'row', xl: 'column'}}
+      align="center"
+      gap="md"
+      width={{zero: '100%', xl: 'auto'}}
+      {...props}
+    />
+  );
+}

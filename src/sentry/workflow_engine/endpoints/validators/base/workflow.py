@@ -108,6 +108,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
+    def validate_triggers(self, value: InputData) -> InputData:
+        if "workflow" in self.context:
+            self._validate_trigger_ownership(value)
+
+        return value
+
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         if "workflow" in self.context:
             self._validate_action_filter_ownership(value)
@@ -261,6 +267,21 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return condition_group
 
+    def _validate_trigger_ownership(self, triggers: InputData) -> None:
+        """
+        If a data_condition_group id is passed in, it must belong to the workflow being updated
+        to prevent claiming another workflow's group
+        """
+        workflow = self.context["workflow"]
+
+        condition_group_id = triggers.get("id")
+
+        if (
+            condition_group_id is not None
+            and int(condition_group_id) != workflow.when_condition_group_id
+        ):
+            raise serializers.ValidationError(f"Invalid Condition Group ID {condition_group_id}")
+
     def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
         workflow = self.context["workflow"]
 
@@ -319,8 +340,15 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
+
             if triggers is not None:
-                self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
+                when_condition_group = self.update_or_create_data_condition_group(
+                    triggers, instance.when_condition_group
+                )
+
+                # Bind new condition group to workflow if it didn't have one before
+                if instance.when_condition_group_id is None:
+                    instance.when_condition_group = when_condition_group
 
             # Update the Action Filters and Actions
             action_filters = validated_data.pop("action_filters", None)

@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -11,10 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
-import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
 import {
   getAutofixArtifactFromSection,
@@ -27,6 +23,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconOpen} from 'sentry/icons/iconOpen';
@@ -35,13 +32,8 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {defined} from 'sentry/utils/defined';
 import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
-import {
-  getSeerProjectReposInfiniteQueryOptions,
-  isGitHubProvider,
-} from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
@@ -598,79 +590,4 @@ function NextStepTemplate({
       </Flex>
     </Stack>
   );
-}
-
-interface UseCodingAgentsOptions {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  group: Group;
-  referrer: string | undefined;
-  runId: SeerExplorerRunId;
-  step: 'root_cause' | 'solution';
-}
-
-function useCodingAgents({
-  autofix,
-  group,
-  runId,
-  step,
-  referrer,
-}: UseCodingAgentsOptions) {
-  const organization = useOrganization();
-  const {triggerCodingAgentHandoff} = autofix;
-
-  const {data: codingAgentResponse} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-
-  const reposQuery = useInfiniteQuery({
-    ...getSeerProjectReposInfiniteQueryOptions({organization, project: group.project}),
-    select: ({pages}) => pages.flatMap(page => page.json),
-  });
-  useFetchAllPages({result: reposQuery});
-  const repos = reposQuery.data ?? [];
-
-  // `useFetchAllPages` streams pages in across renders, so `isPending` alone only
-  // means "page 1 arrived" — not that every repo is loaded. Wait until pagination is
-  // fully drained so the gate below is computed over the complete repo list.
-  const isReposLoading =
-    reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
-
-  // Disable handoff when the project has no connected repos, or when a non-GitHub repo
-  // (e.g. GitLab) is connected — coding agents only operate on GitHub repositories.
-  const hasNoRepos = repos.length === 0;
-  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
-
-  const codingAgentIntegrations = useMemo(
-    () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
-    [codingAgentResponse?.integrations, isReposLoading]
-  );
-
-  const codingAgentDisabledReason = hasNoRepos
-    ? t('Connect a GitHub repository to hand off to a coding agent.')
-    : hasNonGithubRepo
-      ? t('Handing off to a coding agent requires a connected GitHub repository.')
-      : undefined;
-
-  const handleCodingAgentHandoff = useCallback(
-    (integration: CodingAgentIntegration) => {
-      // OAuth redirect for integrations without identity
-      if (integration.requires_identity && !integration.has_identity) {
-        const currentUrl = window.location.href;
-        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
-        return;
-      }
-      triggerCodingAgentHandoff(runId, integration);
-      trackAnalytics('autofix.coding_agent.launch', {
-        organization,
-        group_id: group.id,
-        step,
-        provider: integration.provider,
-        mode: 'explorer',
-        referrer,
-      });
-    },
-    [triggerCodingAgentHandoff, organization, runId, group, step, referrer]
-  );
-
-  return {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff};
 }
