@@ -38,7 +38,14 @@ export function ScmMessagingChannelPicker({
 
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(() => {
     if (existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey) {
-      return {label: existingSetup.channelName, value: existingSetup.channelName};
+      // Seed by whatever field this provider's options are keyed on: Slack by
+      // display name, Discord and msteams by id. Seeding the wrong one resolves
+      // to no option and handleSave rewrites the stored identifiers.
+      return {
+        label: existingSetup.channelName,
+        value:
+          providerKey === 'slack' ? existingSetup.channelName : existingSetup.channelId,
+      };
     }
     return;
   });
