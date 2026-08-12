@@ -108,11 +108,17 @@ ERR_IDENTITY_CONFLICT = _(
     " Try logging in with your existing credentials instead."
 )
 
+ERR_NEW_USER_SETUP_FAILED = _("Something went wrong finishing your signup. Please try again.")
+
 ERR_USER_SUSPENDED = _("Your account has been suspended.")
 
 ERR_MERGE_FAILED = _(
     "Unable to merge accounts. Please verify your email address to link your SSO identity."
 )
+
+
+class NewUserTransactionFailed(Exception):
+    pass
 
 
 def _sso_verification_required(email: str) -> bool:
@@ -706,7 +712,16 @@ class AuthIdentityHandler:
                 auth_identity = self.handle_new_user(email_verified=trusted)
                 created_new_user = True
             elif self._has_verified_signup_email(state):
-                auth_identity = self.handle_new_user(email_verified=True)
+                try:
+                    auth_identity = self.handle_new_user(email_verified=True)
+                except NewUserTransactionFailed:
+                    # Nothing durable was created. Reset this so a
+                    # resubmitted op=newuser can send a fresh verification
+                    # email instead of being stuck: otherwise
+                    # verification_email_sent stays True forever for this
+                    # pipeline and the retry silently bounces to signup.
+                    state.verification_email_sent = False
+                    raise
                 created_new_user = True
             elif op == "login" and not self._logged_in_user:
                 # confirm authentication, login
@@ -746,6 +761,29 @@ class AuthIdentityHandler:
                 messages.ERROR,
                 ERR_IDENTITY_CONFLICT,
             )
+            return self._build_confirmation_response(is_new_account)
+        except NewUserTransactionFailed as e:
+            email = self.identity.get("email")
+            cause = e.__cause__
+            if isinstance(cause, IntegrityError):
+                error_message = ERR_IDENTITY_CONFLICT
+            else:
+                # IntegrityError here is an expected, benign race (duplicate
+                # account). Anything else is unexpected -- capture it so a
+                # real regression in this path still becomes a Sentry issue
+                # instead of failing quietly behind a generic retry message.
+                sentry_sdk.capture_exception(cause)
+                error_message = ERR_NEW_USER_SETUP_FAILED
+            logger.info(
+                "sso.login-pipeline.new-user-transaction-failed",
+                extra={
+                    "organization_id": self.organization.id,
+                    "email_hash": hash_email(email) if email else None,
+                    "op": op,
+                    "cause": type(cause).__name__ if cause else None,
+                },
+            )
+            messages.add_message(self.request, messages.ERROR, error_message)
             return self._build_confirmation_response(is_new_account)
 
         return self.complete_and_login(auth_identity, state, is_new_user=created_new_user)
@@ -799,50 +837,53 @@ class AuthIdentityHandler:
         return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
-        with transaction.atomic(router.db_for_write(User)):
-            user = User.objects.create(
-                username=uuid4().hex,
-                email=self.identity["email"],
-                name=self.identity.get("name", "")[:200],
-            )
-
-            if settings.TERMS_URL and settings.PRIVACY_URL:
-                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-
-            if email_verified:
-                user_email_updated = user_service.verify_user_email(
-                    email=self.identity["email"], user_id=user.id
+        try:
+            with transaction.atomic(router.db_for_write(User)):
+                user = User.objects.create(
+                    username=uuid4().hex,
+                    email=self.identity["email"],
+                    name=self.identity.get("name", "")[:200],
                 )
-                if not user_email_updated:
-                    # this is possible but should be very rare
-                    email_verified = False
-                    user_emails = UserEmail.objects.filter(user_id=user.id)
-                    logger.warning(
-                        "auth.handle_new_user.user_service.verify_user_email_failed",
-                        extra={
-                            "user_id": user.id,
-                            "email_hash": hash_email(self.identity["email"]),
-                            "num_user_emails": user_emails.count(),
-                            "num_verified_user_emails": user_emails.filter(
-                                is_verified=True
-                            ).count(),
-                        },
+
+                if settings.TERMS_URL and settings.PRIVACY_URL:
+                    user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+
+                if email_verified:
+                    user_email_updated = user_service.verify_user_email(
+                        email=self.identity["email"], user_id=user.id
                     )
+                    if not user_email_updated:
+                        # this is possible but should be very rare
+                        email_verified = False
+                        user_emails = UserEmail.objects.filter(user_id=user.id)
+                        logger.warning(
+                            "auth.handle_new_user.user_service.verify_user_email_failed",
+                            extra={
+                                "user_id": user.id,
+                                "email_hash": hash_email(self.identity["email"]),
+                                "num_user_emails": user_emails.count(),
+                                "num_verified_user_emails": user_emails.filter(
+                                    is_verified=True
+                                ).count(),
+                            },
+                        )
 
-            try:
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=self.auth_provider,
-                    ident=self.identity["id"],
-                )
-                # Use AuthIdentity's custom .update() to log field changes.
-                auth_identity.update(user=user, data=self.identity.get("data", {}))
-            except AuthIdentity.DoesNotExist:
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user=user,
-                    ident=self.identity["id"],
-                    data=self.identity.get("data", {}),
-                )
+                try:
+                    auth_identity = AuthIdentity.objects.get(
+                        auth_provider=self.auth_provider,
+                        ident=self.identity["id"],
+                    )
+                    # Use AuthIdentity's custom .update() to log field changes.
+                    auth_identity.update(user=user, data=self.identity.get("data", {}))
+                except AuthIdentity.DoesNotExist:
+                    auth_identity = AuthIdentity.objects.create(
+                        auth_provider=self.auth_provider,
+                        user=user,
+                        ident=self.identity["id"],
+                        data=self.identity.get("data", {}),
+                    )
+        except Exception as e:
+            raise NewUserTransactionFailed from e
 
         if not email_verified:
             user.send_confirm_emails(is_new_user=True)

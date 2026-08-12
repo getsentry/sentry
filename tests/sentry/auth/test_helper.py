@@ -19,6 +19,7 @@ from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
     ERR_MERGE_FAILED,
+    ERR_NEW_USER_SETUP_FAILED,
     ERR_USER_SUSPENDED,
     OK_LINK_IDENTITY,
     AuthHelper,
@@ -1370,6 +1371,24 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
 
 
 @control_silo_test
+class HandleNewUserTransactionRollbackTest(AuthIdentityHandlerTest):
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.messages")
+    def test_plain_newuser_rollback_shows_confirmation_instead_of_500(
+        self, mock_messages: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        self.request.POST = {"op": "newuser"}
+        with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
+            response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request, mock_messages.ERROR, ERR_NEW_USER_SETUP_FAILED
+        )
+        assert not User.objects.filter(email=self.email).exists()
+
+
+@control_silo_test
 class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_flag_off_creates_user_immediately(self) -> None:
         self.request.POST = {"op": "newuser"}
@@ -1434,6 +1453,49 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         mock_send.assert_called_once()
         assert not User.objects.filter(email=self.email).exists()
         assert self.request.session[PENDING_VERIFICATION_SESSION_KEY] == self.email
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.messages")
+    def test_transaction_rollback_after_verification_allows_resend(
+        self, mock_messages: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+        self.state.verification_email_sent = True
+
+        handler = self.handler
+        self.request.POST = {}
+        with mock.patch("sentry.auth.helper.User.objects.create", side_effect=ValueError("boom")):
+            response = handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        assert getattr(self.state, "verification_email_sent", None) is False
+        assert not User.objects.filter(email=self.email).exists()
+
+        self.request.POST = {"op": "newuser"}
+        with self.feature({"auth:email-verification-at-sso-signup": True}):
+            with mock.patch("sentry.auth.helper.send_signup_verification_email") as mock_send:
+                handler.handle_unknown_identity(self.state)
+        mock_send.assert_called_once()
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_membership_error_after_verification_does_not_reset_sent_marker(
+        self, mock_messages: mock.MagicMock
+    ) -> None:
+        self.state.regenerate({"flow": FLOW_LOGIN})
+        self.state.verified_email = self.email
+        self.state.verification_email_sent = True
+
+        handler = self.handler
+        self.request.POST = {}
+        with mock.patch.object(
+            handler, "_handle_new_membership", side_effect=AuthIdentityUserMismatch()
+        ):
+            response = handler.handle_unknown_identity(self.state)
+
+        assert isinstance(response, HttpResponseRedirect)
+        assert getattr(self.state, "verification_email_sent", None) is True
+        assert User.objects.filter(email=self.email).exists()
 
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
     def test_flag_on_refreshes_pipeline_ttl(self, mock_send: mock.MagicMock) -> None:
