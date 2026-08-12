@@ -162,11 +162,13 @@ def test_token_and_ownership_are_validated(service: OnboardingProgressService) -
 def test_cancel_is_terminal_and_idempotent(service: OnboardingProgressService) -> None:
     created, _ = create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
 
-    cancelled = service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
-    replay = service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
+    cancelled, changed = service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
+    replay, replay_changed = service.cancel(run_id=created.run_id, user_id=1, organization_id=2)
 
     assert cancelled.run_status is RunStatus.CANCELLED
     assert replay == cancelled
+    assert changed is True
+    assert replay_changed is False
 
 
 def test_cancel_rejects_completed_run(service: OnboardingProgressService) -> None:

@@ -16,6 +16,7 @@ from sentry.conduit.tasks import (
     generate_jwt,
     get_timestamp,
     publish_data,
+    publish_onboarding_progress,
     stream_demo_data,
 )
 from sentry.testutils.cases import TestCase
@@ -80,6 +81,61 @@ class GetTimestampTest(TestCase):
 
         dt = timestamp.ToDatetime()
         assert dt == custom_dt
+
+
+class PublishOnboardingProgressTest(TestCase):
+    @patch("sentry.conduit.tasks.publish_data")
+    @patch("sentry.conduit.tasks.generate_jwt", return_value="token")
+    def test_publishes_snapshot(self, mock_generate_jwt, mock_publish_data) -> None:
+        channel_id = str(uuid4())
+
+        publish_onboarding_progress(
+            org_id=123,
+            channel_id=channel_id,
+            sequence=4,
+            payload_data={"schemaVersion": 1, "sequence": 4},
+        )
+
+        mock_generate_jwt.assert_called_once_with(subject="agentic-onboarding")
+        request = mock_publish_data.call_args.args[1]
+        assert request.channel_id == channel_id
+        assert request.sequence == 4
+        assert request.phase == Phase.PHASE_DELTA
+        assert request.payload["schemaVersion"] == 1
+        assert request.payload["sequence"] == 4
+
+    @patch("sentry.conduit.tasks.publish_data")
+    @patch("sentry.conduit.tasks.generate_jwt", return_value="token")
+    def test_first_snapshot_starts_stream_then_publishes_delta(
+        self, mock_generate_jwt, mock_publish_data
+    ) -> None:
+        publish_onboarding_progress(
+            org_id=123,
+            channel_id=str(uuid4()),
+            sequence=1,
+            payload_data={"sequence": 1},
+        )
+
+        assert mock_publish_data.call_count == 2
+        start_request = mock_publish_data.call_args_list[0].args[1]
+        assert start_request.sequence == 0
+        assert start_request.phase == Phase.PHASE_START
+        assert not start_request.HasField("payload")
+
+        snapshot_request = mock_publish_data.call_args_list[1].args[1]
+        assert snapshot_request.sequence == 1
+        assert snapshot_request.phase == Phase.PHASE_DELTA
+        assert snapshot_request.payload["sequence"] == 1
+
+    @patch("sentry.conduit.tasks.publish_data", side_effect=RequestException)
+    @patch("sentry.conduit.tasks.generate_jwt", return_value="token")
+    def test_publish_failure_is_best_effort(self, mock_generate_jwt, mock_publish_data) -> None:
+        publish_onboarding_progress(
+            org_id=123,
+            channel_id=str(uuid4()),
+            sequence=1,
+            payload_data={"sequence": 1},
+        )
 
 
 class PublishDataTest(TestCase):
