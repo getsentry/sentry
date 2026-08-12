@@ -38,6 +38,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
+  Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
@@ -1164,10 +1165,6 @@ export function getRelativeExplorerUrl(
   return url.pathname + url.search;
 }
 
-export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
-}
-
 export function getExplorerFeedbackOptions(
   runId: SeerExplorerRunId | null
 ): UseFeedbackOptions {
@@ -1179,7 +1176,6 @@ export function getExplorerFeedbackOptions(
       ['feedback.owner']: 'ml-ai',
       ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
       ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
       ...(runId === null
         ? {}
         : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
@@ -1250,4 +1246,23 @@ export function useSeerExplorerSidebarOrientation(
     return isWideScreen || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
+}
+
+/**
+ * Every artifact in the conversation, from whichever channel carried it.
+ *
+ * A classic artifact tool appends to `block.artifacts`; Code Mode returns them on a tool result's
+ * `structuredContent.artifacts`. Neither is converted into the other, so both are walked in run
+ * order — blocks in sequence, and within a block its tool results in sequence
+ * (codemode-structured-content-only).
+ */
+export function collectArtifacts(blocks: Block[]): Artifact[] {
+  const artifacts: Artifact[] = [];
+  for (const block of blocks) {
+    artifacts.push(...(block.artifacts ?? []));
+    for (const result of block.tool_results ?? []) {
+      artifacts.push(...(result?.structuredContent?.artifacts ?? []));
+    }
+  }
+  return artifacts;
 }

@@ -41,7 +41,7 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
@@ -68,7 +68,9 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
+        uses: getsentry/action-setup-cli@70d7e587b84c2e78cf4d37cd33d7b74fb3729c1b # v1
+        with:
+          version: '3.5.0'
 
       - name: Upload snapshots
         id: upload

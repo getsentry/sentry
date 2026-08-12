@@ -1,12 +1,15 @@
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
+from typing import Any, TypedDict
 
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.utils import fetch_conversation_title
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -59,6 +62,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.input",
     "gen_ai.tool.call.result",
     "gen_ai.tool.output",
+    "gen_ai.embeddings.input",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",
@@ -68,6 +72,14 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.username",
     "user.ip",
 ]
+
+
+class AIConversationDetailsResponse(TypedDict):
+    """Span page plus conversation-level metadata."""
+
+    conversationId: str
+    title: str | None
+    spans: list[dict[str, Any]]
 
 
 @cell_silo_endpoint
@@ -113,9 +125,17 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 self._annotate_issues(spans, resolved_params, organization)
                 return spans
 
+            def on_results(spans: list[dict[str, Any]]) -> AIConversationDetailsResponse:
+                return {
+                    "conversationId": conversation_id,
+                    "title": self._resolve_title(conversation_id, spans, organization),
+                    "spans": spans,
+                }
+
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=on_results,
                 default_per_page=100,
                 max_per_page=1000,
             )
@@ -150,6 +170,37 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 steps.append(step)
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
+
+    @trace
+    def _resolve_title(
+        self,
+        conversation_id: str,
+        spans: Sequence[Mapping[str, Any]],
+        organization: Organization,
+    ) -> str | None:
+        """Stored title for this conversation, or None when there is none yet.
+
+        Titles are keyed per project, so they are looked up against the projects of the
+        spans on this page; a conversation id titled in several projects can therefore
+        report a different title on a later page. Best-effort: a failed lookup must not
+        break listing the spans.
+        """
+        project_ids = {
+            project_id for span in spans if isinstance(project_id := span.get("project.id"), int)
+        }
+        if not project_ids:
+            return None
+
+        try:
+            stored_title = fetch_conversation_title(conversation_id, project_ids)
+        except Exception:
+            logger.exception(
+                "Failed to resolve title for AI conversation",
+                extra={"organization_id": organization.id},
+            )
+            return None
+
+        return stored_title.title if stored_title else None
 
     @trace
     def _annotate_issues(

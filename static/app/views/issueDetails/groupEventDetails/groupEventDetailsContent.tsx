@@ -35,6 +35,7 @@ import {
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
+import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
 import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
@@ -356,6 +357,10 @@ export function EventDetailsContent({
               projectSlug={projectSlug}
               groupId={group?.id}
               data={eventEntries[EntryType.DEBUGMETA].data}
+            />
+            <ProguardSection
+              data={eventEntries[EntryType.DEBUGMETA].data}
+              projectSlug={projectSlug}
             />
           </EntryErrorBoundary>
         )}

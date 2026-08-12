@@ -14,6 +14,12 @@ const markerStyles = {
 
 const LOCALE_DEBUG = localStorageWrapper.getItem('localeDebug') === '1';
 
+export function toggleLocaleDebug() {
+  const next = localStorageWrapper.getItem('localeDebug') !== '1';
+  localStorageWrapper.setItem('localeDebug', next ? '1' : '0');
+  window.location.reload();
+}
+
 export const DEFAULT_LOCALE_DATA = {
   '': {
     domain: 'sentry',

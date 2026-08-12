@@ -134,3 +134,6 @@ class SeerPermissionError(Exception):
 
     def __str__(self):
         return f"Seer permission error: {self.message}"
+
+
+UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"

@@ -22,6 +22,7 @@ import {getDartContextData} from 'sentry/components/events/contexts/knownContext
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getFlutterContextData} from 'sentry/components/events/contexts/knownContext/flutterContext';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
+import {getGPUCrashContextData} from 'sentry/components/events/contexts/knownContext/gpuCrash';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
@@ -105,7 +106,7 @@ export function generateIconName(
 }
 
 export function getRelativeTimeFromEventDateCreated(
-  eventDateCreated: string,
+  eventDateCreated: string | undefined,
   timestamp?: string,
   showTimestamp = true
 ) {
@@ -119,7 +120,14 @@ export function getRelativeTimeFromEventDateCreated(
     return timestamp;
   }
 
-  const relativeTime = `(${dateTime.from(eventDateCreated, true)} ${t(
+  // Without a valid reference date (e.g. the event isn't available) we can't
+  // compute a relative time, so just show the timestamp on its own.
+  const referenceDate = moment(eventDateCreated);
+  if (!eventDateCreated || !referenceDate.isValid()) {
+    return timestamp;
+  }
+
+  const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
     'before this event'
   )})`;
 
@@ -267,6 +275,8 @@ export function getContextTitle({
       return t('User');
     case 'gpu':
       return t('Graphics Processing Unit');
+    case 'gpu_crash':
+      return t('GPU Crash');
     case 'runtime':
       return t('Runtime');
     case 'trace':
@@ -311,17 +321,20 @@ export function getContextTitle({
   }
 }
 
-export function getContextMeta(event: Event, contextType: string): Record<string, any> {
-  const defaultMeta = event._meta?.contexts?.[contextType] ?? {};
+export function getContextMeta(
+  event: Event | undefined,
+  contextType: string
+): Record<string, any> {
+  const defaultMeta = event?._meta?.contexts?.[contextType] ?? {};
   switch (contextType) {
     case 'memory_info': // Current
     case 'Memory Info': // Legacy
-      return event._meta?.contexts?.['Memory Info'] ?? defaultMeta;
+      return event?._meta?.contexts?.['Memory Info'] ?? defaultMeta;
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return event._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
+      return event?._meta?.contexts?.['ThreadPool Info'] ?? defaultMeta;
     case 'user':
-      return event._meta?.user ?? defaultMeta;
+      return event?._meta?.user ?? defaultMeta;
     default:
       return defaultMeta;
   }
@@ -389,9 +402,9 @@ export function getFormattedContextData({
 }: {
   contextType: string;
   contextValue: any;
-  event: Event;
   location: Location;
   organization: Organization;
+  event?: Event;
   project?: Project;
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
@@ -420,6 +433,8 @@ export function getFormattedContextData({
       return getUserContextData({data: contextValue, meta});
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
+    case 'gpu_crash':
+      return getGPUCrashContextData({data: contextValue, meta});
     case 'trace':
       return getTraceContextData({
         data: contextValue,

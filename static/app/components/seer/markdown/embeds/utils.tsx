@@ -4,24 +4,24 @@ import type {z} from 'zod';
 import {NODE_ENV} from 'sentry/constants/env';
 
 import type {SeerEmbedProps} from './registry';
-import {SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
+import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
-type EmbedOutput<N extends SeerEmbedName> = z.output<
-  (typeof SEER_EMBED_SCHEMAS)[N]['schema']
+export type EmbedOutput<N extends SeerEmbedName> = z.output<
+  (typeof ALL_SEER_EMBED_SCHEMAS)[N]['schema']
 >;
 
 interface DefineSeerEmbedOptions<N extends SeerEmbedName> {
   name: N;
-  render: (props: EmbedOutput<N>) => ReactNode;
+  render: (props: EmbedOutput<N>, level: SeerEmbedProps['level']) => ReactNode;
 }
 
 export function defineSeerEmbed<N extends SeerEmbedName>({
   name,
   render,
 }: DefineSeerEmbedOptions<N>) {
-  const {schema} = SEER_EMBED_SCHEMAS[name];
+  const {schema} = ALL_SEER_EMBED_SCHEMAS[name];
 
-  function Embed({data}: SeerEmbedProps) {
+  function Embed({data, level}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
     if (!parsed.success) {
       if (NODE_ENV === 'development') {
@@ -30,7 +30,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
       }
       return null;
     }
-    return render(parsed.data as EmbedOutput<N>);
+    return render(parsed.data as EmbedOutput<N>, level);
   }
   Embed.displayName = name;
 

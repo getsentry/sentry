@@ -10,7 +10,8 @@ from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import 
     SUPPORTED_ACTIVITIES,
     activity_handler,
     seer_activity_handler,
-    smart_assignment_activity_handler,
+    smart_assignment_completed_handler,
+    smart_assignment_trigger_handler,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import workflow_activity_registry
@@ -21,8 +22,9 @@ class WorkflowActivityRegistryTest(TestCase):
     def test_registrants(self) -> None:
         assert "seer_activity" in workflow_activity_registry.registrations
         assert "generic_activity" in workflow_activity_registry.registrations
-        assert "smart_assignment" in workflow_activity_registry.registrations
-        assert len(workflow_activity_registry.registrations) == 3
+        assert "smart_assignment_trigger" in workflow_activity_registry.registrations
+        assert "smart_assignment_completed" in workflow_activity_registry.registrations
+        assert len(workflow_activity_registry.registrations) == 4
 
 
 class SmartAssignmentActivityHandlerTest(TestCase):
@@ -47,7 +49,7 @@ class SmartAssignmentActivityHandlerTest(TestCase):
             activity = self.create_group_activity(
                 group=self.group, type=activity_type.value, data=data
             )
-            smart_assignment_activity_handler(self.group, activity, None)
+            smart_assignment_trigger_handler(self.group, activity, None)
             mock_trigger.assert_called_once_with(self.group, activity_type, activity)
 
     @mock.patch(TRIGGER)
@@ -63,8 +65,41 @@ class SmartAssignmentActivityHandlerTest(TestCase):
             ActivityType.NOTE,
         ):
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
-            smart_assignment_activity_handler(self.group, activity, None)
+            smart_assignment_trigger_handler(self.group, activity, None)
         mock_trigger.assert_not_called()
+
+
+class SmartAssignmentCompletedHandlerTest(TestCase):
+    COMPLETION = "sentry.seer.smart_assignment.completion.process_smart_assignment_completion"
+
+    def setUp(self) -> None:
+        self.group = self.create_group()
+
+    @mock.patch(COMPLETION)
+    def test_delegates_for_completed_activity(self, mock_completion: MagicMock) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+        )
+        # create_group_activity invokes the registered handlers itself, so the delegate
+        # is already called once for the real activity; assert on a direct call to keep
+        # this focused on the handler's own filtering + delegation.
+        mock_completion.reset_mock()
+        smart_assignment_completed_handler(self.group, activity, None)
+        mock_completion.assert_called_once_with(self.group, activity)
+
+    @mock.patch(COMPLETION)
+    def test_skips_unrelated_activities(self, mock_completion: MagicMock) -> None:
+        for activity_type in (
+            ActivityType.SEER_RCA_STARTED,
+            ActivityType.SEER_PR_CREATED,
+            ActivityType.SET_RESOLVED,
+            ActivityType.NOTE,
+        ):
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            mock_completion.reset_mock()
+            smart_assignment_completed_handler(self.group, activity, None)
+            mock_completion.assert_not_called()
 
 
 class SeerActivityHandlerTest(TestCase):

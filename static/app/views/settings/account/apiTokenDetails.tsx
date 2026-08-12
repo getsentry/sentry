@@ -141,7 +141,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
           label={t('Scopes')}
           help={t('You cannot change the scopes of an existing token.')}
         >
-          <div>{token.scopes.slice().sort().join(', ')}</div>
+          <div>{token.scopes.toSorted().join(', ')}</div>
         </FieldGroup>
       </form.FieldGroup>
 

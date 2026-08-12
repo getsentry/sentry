@@ -10,7 +10,7 @@ describe('PermissionsObserver', () => {
     render(
       <PermissionsObserver
         scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
-        events={['issue']}
+        events={['issue.created']}
         newApp={false}
         onScopesChange={onScopesChange}
         onEventsChange={noop}
@@ -32,7 +32,7 @@ describe('PermissionsObserver', () => {
           'org:admin',
           'org:ci',
         ]}
-        events={['issue']}
+        events={['issue.created']}
         newApp={false}
         onScopesChange={onScopesChange}
         onEventsChange={noop}

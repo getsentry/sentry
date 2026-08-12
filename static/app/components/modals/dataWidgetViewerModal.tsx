@@ -118,6 +118,7 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
+  getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -793,12 +794,7 @@ function DataWidgetViewerModal(props: Props) {
     <Fragment>
       <DashboardsMEPProvider>
         <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            hideLoadingIndicator
-          >
+          <MetricsDataSwitcher location={location}>
             {metricsDataSide => (
               <MEPSettingProvider
                 location={location}
@@ -824,7 +820,7 @@ function DataWidgetViewerModal(props: Props) {
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
-                  <ResultsContainer>
+                  <Flex align="center" justify="between" gap="md" flex="1">
                     {renderTotalResults(totalResults, widget.widgetType)}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
@@ -868,7 +864,7 @@ function DataWidgetViewerModal(props: Props) {
                         />
                       )}
                     </Grid>
-                  </ResultsContainer>
+                  </Flex>
                 </Footer>
               </MEPSettingProvider>
             )}
@@ -938,7 +934,9 @@ function OpenButton({
       return null;
     case WidgetType.DISCOVER:
     default:
-      openLabel = t('Open in Discover');
+      openLabel = getDiscoverDeprecation(organization)
+        ? t('Open in Explore')
+        : t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
@@ -1247,19 +1245,6 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${p => p.theme.space.md};
   flex: 1;
-`;
-
-const ResultsContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 `;
 
 const EmptyQueryContainer = styled('span')`

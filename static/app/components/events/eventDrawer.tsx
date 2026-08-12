@@ -8,7 +8,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 
@@ -58,7 +58,7 @@ export const EventDrawerContainer = styled('div')`
   grid-template-rows: max-content max-content auto;
 
   /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
-  --event-drawer-header-height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px;
+  --event-drawer-header-height: ${NAVIGATION_MOBILE_CONTENT_HEIGHT}px;
   --event-navigator-box-shadow: none;
   --event-navigator-border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 

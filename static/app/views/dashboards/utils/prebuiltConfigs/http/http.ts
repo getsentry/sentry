@@ -15,6 +15,7 @@ import {
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
+  DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
@@ -145,6 +146,7 @@ export const HTTP_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {
   AskSeerSearchItems,
   NoneOfTheseItem,
@@ -15,10 +16,14 @@ import {
   Token,
   type WildcardOperator,
   wildcardOperators,
+  WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import type {Project} from 'sentry/types/project';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {
@@ -196,6 +201,39 @@ export function resolveSeerProjectSelection(
   };
 }
 
+export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
+  if (crossEvent.type !== 'metrics') {
+    return crossEvent.query;
+  }
+
+  return [
+    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+    crossEvent.query,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function normalizeSeerDateTimeParams({
+  start,
+  end,
+  statsPeriod,
+}: Pick<QueryTokensProps, 'start' | 'end' | 'statsPeriod'>): Pick<
+  QueryTokensProps,
+  'start' | 'end' | 'statsPeriod'
+> {
+  const normalized = normalizeDateTimeParams(
+    {start, end, statsPeriod},
+    {allowEmptyPeriod: true}
+  );
+
+  return {
+    start: normalized.start,
+    end: normalized.end,
+    statsPeriod: normalized.statsPeriod ?? undefined,
+  };
+}
+
 const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
   [TermOperator.CONTAINS]: OP_LABELS[TermOperator.DOES_NOT_CONTAIN],
   [TermOperator.STARTS_WITH]: OP_LABELS[TermOperator.DOES_NOT_START_WITH],
@@ -276,11 +314,20 @@ function formatToken(token: string): string {
   return token;
 }
 
+/**
+ * Splits a query on whitespace while keeping quoted phrases ("a b") and
+ * bracketed lists ([a, b]) intact, so `key:"a b"` and `key:[a, b]` each stay a
+ * single token even with internal spaces. Shared by the format/parse pair below.
+ */
+function tokenize(input: string): string[] {
+  return input.match(/(?:"[^"]*"|\[[^\]]*\]|[^\s"])+/g) ?? [];
+}
+
 export function formatQueryToNaturalLanguage(query: string): string {
   if (!query.trim()) {
     return '';
   }
-  const tokens = query.match(/(?:[^\s"]|"[^"]*")+/g) || [];
+  const tokens = tokenize(query);
   const formattedTokens = tokens.map(formatToken);
 
   const formattedQuery = formattedTokens.reduce((result, token, index) => {
@@ -312,6 +359,197 @@ export function formatQueryToNaturalLanguage(query: string): string {
 
   // add a space at the end of the query to give space for the cursor
   return `${formattedQuery} `;
+}
+
+/**
+ * Every operator phrase {@link formatQueryToNaturalLanguage} can emit (plus the
+ * bare symbolic comparators users type themselves), mapped back to the ESQ
+ * filter it represents. A humanized filter always reads
+ * `<key> <phrase> <value>`, so this table is the whole inverse grammar.
+ *
+ * Order only matters where one phrase is a prefix of another: the longer
+ * phrase must come first ("is not greater than" before "is not" before "is").
+ */
+const FILTER_PHRASES: ReadonlyArray<{
+  esq: (key: string, value: string) => string;
+  phrase: string;
+}> = [
+  // Prose comparators: "<key> is [not] greater than <value>"
+  {
+    phrase: 'is not greater than or equal to',
+    esq: (k, v) => `!${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is not less than or equal to',
+    esq: (k, v) => `!${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is greater than or equal to',
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is less than or equal to',
+    esq: (k, v) => `${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is not greater than',
+    esq: (k, v) => `!${k}:${TermOperator.GREATER_THAN}${v}`,
+  },
+  {phrase: 'is not less than', esq: (k, v) => `!${k}:${TermOperator.LESS_THAN}${v}`},
+  {phrase: 'is greater than', esq: (k, v) => `${k}:${TermOperator.GREATER_THAN}${v}`},
+  {phrase: 'is less than', esq: (k, v) => `${k}:${TermOperator.LESS_THAN}${v}`},
+  // Wildcards use the wildcard markers the builder parses back into a proper
+  // chip (CONTAINS / STARTS_WITH / ENDS_WITH). Negation is the `!` prefix — the
+  // DoesNot* markers are display-only and aren't valid query input.
+  {
+    phrase: 'does not contain',
+    esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`,
+  },
+  {
+    phrase: 'does not start with',
+    esq: (k, v) => `!${k}:${WildcardOperators.STARTS_WITH}${v}`,
+  },
+  {
+    phrase: 'does not end with',
+    esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
+  },
+  {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
+  {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
+  {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},
+  // Plain equality: "<key> is [not] <value>"
+  {phrase: 'is not', esq: (k, v) => `!${k}:${v}`},
+  {phrase: 'is', esq: (k, v) => `${k}:${v}`},
+  // Symbolic comparators follow the key directly, with no "is":
+  // "span.duration > 100ms" -> span.duration:>100ms
+  {
+    phrase: TermOperator.GREATER_THAN_EQUAL,
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: TermOperator.LESS_THAN_EQUAL,
+    esq: (k, v) => `${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: TermOperator.GREATER_THAN,
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN}${v}`,
+  },
+  {phrase: TermOperator.LESS_THAN, esq: (k, v) => `${k}:${TermOperator.LESS_THAN}${v}`},
+];
+
+function valueAt(words: string[], index: number): string | undefined {
+  const token = words[index];
+  return token?.endsWith(',') ? token.slice(0, -1) : token;
+}
+
+/**
+ * Matches `<key> <phrase> <value>` starting after `keyIndex` against
+ * {@link FILTER_PHRASES} and returns the assembled ESQ filter plus the index
+ * right after the value.
+ */
+function matchFilter(
+  key: string,
+  words: string[],
+  keyIndex: number
+): {esq: string; next: number} | null {
+  for (const {phrase, esq} of FILTER_PHRASES) {
+    const parts = phrase.split(' ');
+    if (!parts.every((part, k) => words[keyIndex + 1 + k]?.toLowerCase() === part)) {
+      continue;
+    }
+    const value = valueAt(words, keyIndex + 1 + parts.length);
+    // A phrase with nothing after it ("browser is") is not a filter yet. Don't
+    // retry shorter phrases: "count() is greater than" must not parse as
+    // count():greater.
+    if (value === undefined) {
+      return null;
+    }
+    // If a longer phrase shares this one's prefix and the candidate value would
+    // continue it, the user is mid-typing that longer phrase (e.g. "is greater
+    // than" inside "is greater than or equal to"). Decline rather than consume
+    // "or" as the value and emit count():>or from "...greater than or equal".
+    const midLongerPhrase = FILTER_PHRASES.some(({phrase: longer}) => {
+      const longerParts = longer.split(' ');
+      return (
+        longerParts.length > parts.length &&
+        parts.every((part, k) => longerParts[k] === part) &&
+        longerParts[parts.length]?.toLowerCase() === value.toLowerCase()
+      );
+    });
+    if (midLongerPhrase) {
+      return null;
+    }
+    return {esq: esq(key, value), next: keyIndex + parts.length + 2};
+  }
+  return null;
+}
+
+/**
+ * Inverse of {@link formatQueryToNaturalLanguage}: turns humanized natural
+ * language back into an ESQ query. Returns null when the input isn't cleanly
+ * invertible, so callers can fall back to handing the raw text to Seer.
+ */
+export function parseNaturalLanguageToQuery(
+  input: string,
+  isFilterKey: (key: string) => boolean
+): string | null {
+  const words = tokenize(input.trim());
+  const esq: string[] = [];
+
+  let hasFilter = false;
+  // `is` reads as the status key only at the start of a clause; trailing prose
+  // ("the build is broken") is the English copula, so leave it alone.
+  let atClauseStart = true;
+  let i = 0;
+
+  while (i < words.length) {
+    const word = words[i];
+    if (word === undefined) {
+      break;
+    }
+    const lower = word.toLowerCase();
+
+    if (lower === 'and' || lower === 'or') {
+      esq.push(lower.toUpperCase());
+      atClauseStart = true;
+      i++;
+      continue;
+    }
+
+    // "is [not] <status>" -> [!]is:<status>
+    if (lower === 'is' && atClauseStart && isFilterKey('is')) {
+      const negated = words[i + 1]?.toLowerCase() === 'not';
+      const status = valueAt(words, negated ? i + 2 : i + 1);
+      if (status !== undefined) {
+        esq.push(`${negated ? '!' : ''}is:${status.toLowerCase()}`);
+        hasFilter = true;
+        i += negated ? 3 : 2;
+        continue;
+      }
+    }
+
+    // "<key> <operator phrase> <value>" -> ESQ filter (see FILTER_PHRASES)
+    const filter = isFilterKey(word) ? matchFilter(word, words, i) : null;
+    if (filter) {
+      esq.push(filter.esq);
+      hasFilter = true;
+      atClauseStart = true;
+      i = filter.next;
+      continue;
+    }
+
+    // Anything else is free text. ESQ can end with free text while user is typing.
+    if (esq.length === 0) {
+      return null; // leads with free text -> hand the raw input to Seer
+    }
+    if (lower !== 'is' && isFilterKey(word)) {
+      return null; // known key outside a filter shape -> not cleanly invertible
+    }
+    esq.push(word);
+    atClauseStart = false;
+    i++;
+  }
+
+  return hasFilter ? esq.join(' ') : null;
 }
 
 /**
@@ -350,6 +588,7 @@ export function generateQueryTokensString(
   projects: Project[] = []
 ): string {
   const parts = [];
+  const {start, end, statsPeriod} = normalizeSeerDateTimeParams(args);
 
   // Mirror the visual QueryTokens: pull the project out of the filter text and
   // announce it as a separate projects clause so screen readers don't read a
@@ -367,7 +606,9 @@ export function generateQueryTokensString(
 
   if (args?.visualizations && args.visualizations.length > 0) {
     const vizParts = args.visualizations.flatMap(visualization =>
-      visualization.yAxes.map(yAxis => yAxis)
+      visualization.yAxes.map(yAxis =>
+        isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis
+      )
     );
     if (vizParts.length > 0) {
       const vizText = vizParts.length === 1 ? vizParts[0] : vizParts.join(', ');
@@ -385,17 +626,19 @@ export function generateQueryTokensString(
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  // Prefer absolute date range over statsPeriod
-  if (args?.start && args?.end) {
-    parts.push(`time range is '${formatDateRange(args.start, args.end)}'`);
-  } else if (args?.statsPeriod && args.statsPeriod.length > 0) {
-    parts.push(`time range is '${args?.statsPeriod}'`);
+  if (start && end) {
+    parts.push(`time range is '${formatDateRange(start, end)}'`);
+  } else if (statsPeriod) {
+    parts.push(`time range is '${statsPeriod}'`);
   }
 
   if (args?.sort && args.sort.length > 0) {
-    const sortText =
-      args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
-    parts.push(`sort is '${sortText}'`);
+    const descending = args?.sort[0] === '-';
+    let rawSort = descending ? args?.sort.slice(1) : args?.sort;
+    rawSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
+    const formattedSort = descending ? `${rawSort} Desc` : `${rawSort} Asc`;
+
+    parts.push(`sort is '${formattedSort}'`);
   }
 
   if (projectIds && projectIds.length > 0) {

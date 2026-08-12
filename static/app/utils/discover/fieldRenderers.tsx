@@ -1144,88 +1144,90 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: fieldName => data => {
-    const userMiseryField = fieldName;
+  user_misery: fieldName =>
+    function UserMiseryRenderer(data) {
+      const userMiseryField = fieldName;
 
-    if (!(userMiseryField in data)) {
-      return (
-        <Tooltip title={missingUserMisery} showUnderline isHoverable>
-          <NumberContainer>{emptyValue}</NumberContainer>
-        </Tooltip>
-      );
-    }
-
-    const userMisery = data[userMiseryField];
-    if (userMisery === null || isNaN(userMisery)) {
-      return (
-        <Tooltip title={missingUserMisery} showUnderline isHoverable>
-          <NumberContainer>{emptyValue}</NumberContainer>
-        </Tooltip>
-      );
-    }
-
-    const projectThresholdConfig = 'project_threshold_config';
-    let countMiserableUserField = '';
-
-    let miseryLimit: number | undefined = parseInt(
-      userMiseryField.split('(').pop()?.slice(0, -1) || '',
-      10
-    );
-    if (isNaN(miseryLimit)) {
-      countMiserableUserField = 'count_miserable(user)';
-      if (projectThresholdConfig in data) {
-        miseryLimit = data[projectThresholdConfig][1];
-      } else {
-        miseryLimit = undefined;
+      if (!(userMiseryField in data)) {
+        return (
+          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+            <NumberContainer>{emptyValue}</NumberContainer>
+          </Tooltip>
+        );
       }
-    } else {
-      countMiserableUserField = `count_miserable(user,${miseryLimit})`;
-    }
 
-    const uniqueUsers = data['count_unique(user)'];
+      const userMisery = data[userMiseryField];
+      if (userMisery === null || isNaN(userMisery)) {
+        return (
+          <Tooltip title={missingUserMisery} showUnderline isHoverable>
+            <NumberContainer>{emptyValue}</NumberContainer>
+          </Tooltip>
+        );
+      }
 
-    let miserableUsers: number | undefined;
+      const projectThresholdConfig = 'project_threshold_config';
+      let countMiserableUserField = '';
 
-    if (countMiserableUserField in data) {
-      const countMiserableMiseryLimit = parseInt(
+      let miseryLimit: number | undefined = parseInt(
         userMiseryField.split('(').pop()?.slice(0, -1) || '',
         10
       );
-      miserableUsers =
-        countMiserableMiseryLimit === miseryLimit ||
-        (isNaN(countMiserableMiseryLimit) && projectThresholdConfig)
-          ? data[countMiserableUserField]
-          : undefined;
-    }
+      if (isNaN(miseryLimit)) {
+        countMiserableUserField = 'count_miserable(user)';
+        if (projectThresholdConfig in data) {
+          miseryLimit = data[projectThresholdConfig][1];
+        } else {
+          miseryLimit = undefined;
+        }
+      } else {
+        countMiserableUserField = `count_miserable(user,${miseryLimit})`;
+      }
 
-    return (
-      <BarContainer>
-        <UserMisery
-          bars={10}
-          barHeight={20}
-          miseryLimit={miseryLimit}
-          totalUsers={uniqueUsers}
-          userMisery={userMisery}
-          miserableUsers={miserableUsers}
+      const uniqueUsers = data['count_unique(user)'];
+
+      let miserableUsers: number | undefined;
+
+      if (countMiserableUserField in data) {
+        const countMiserableMiseryLimit = parseInt(
+          userMiseryField.split('(').pop()?.slice(0, -1) || '',
+          10
+        );
+        miserableUsers =
+          countMiserableMiseryLimit === miseryLimit ||
+          (isNaN(countMiserableMiseryLimit) && projectThresholdConfig)
+            ? data[countMiserableUserField]
+            : undefined;
+      }
+
+      return (
+        <BarContainer>
+          <UserMisery
+            bars={10}
+            barHeight={20}
+            miseryLimit={miseryLimit}
+            totalUsers={uniqueUsers}
+            userMisery={userMisery}
+            miserableUsers={miserableUsers}
+          />
+        </BarContainer>
+      );
+    },
+  time_spent_percentage: fieldName =>
+    function TimeSpentPercentageRenderer(data) {
+      const parsedFunction = parseFunction(fieldName);
+      let column = parsedFunction?.arguments?.[1] ?? SpanFields.SPAN_SELF_TIME;
+      // TODO - remove with eap, in eap this function only has one arg
+      if (parsedFunction?.arguments?.[0] === SpanFields.SPAN_DURATION) {
+        column = SpanFields.SPAN_DURATION;
+      }
+      return (
+        <TimeSpentCell
+          percentage={data[fieldName]}
+          total={data[`sum(${column})`]}
+          op={data['span.op']}
         />
-      </BarContainer>
-    );
-  },
-  time_spent_percentage: fieldName => data => {
-    const parsedFunction = parseFunction(fieldName);
-    let column = parsedFunction?.arguments?.[1] ?? SpanFields.SPAN_SELF_TIME;
-    // TODO - remove with eap, in eap this function only has one arg
-    if (parsedFunction?.arguments?.[0] === SpanFields.SPAN_DURATION) {
-      column = SpanFields.SPAN_DURATION;
-    }
-    return (
-      <TimeSpentCell
-        percentage={data[fieldName]}
-        total={data[`sum(${column})`]}
-        op={data['span.op']}
-      />
-    );
-  },
+      );
+    },
 };
 
 /**

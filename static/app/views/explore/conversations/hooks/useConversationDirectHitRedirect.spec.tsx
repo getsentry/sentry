@@ -12,11 +12,14 @@ const CONVERSATION: Conversation = {
   endTimestamp: 2000,
   errors: 0,
   firstInput: null,
+  generationDuration: 500,
   inputTokens: 0,
   lastOutput: null,
   llmCalls: 1,
   outputTokens: 0,
+  projectId: null,
   startTimestamp: 1000,
+  title: null,
   toolCalls: 0,
   toolErrors: 0,
   toolNames: [],
@@ -38,7 +41,7 @@ describe('useConversationDirectHitRedirect', () => {
 
     await waitFor(() => {
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/conversations/conv-1/`
+        `/organizations/${organization.slug}/explore/agents/conversations/conv-1/`
       );
     });
   });

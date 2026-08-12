@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {FoldSectionKey} from 'sentry/views/issueDetails/context';
@@ -16,12 +17,15 @@ import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 export function getFoldSectionKey(key: FoldSectionKey) {
   // Original key had a typo, this will migrate existing keys to the correct key
-  const localStorageValue = localStorage.getItem(
+  const localStorageValue = localStorageWrapper.getItem(
     `'issue-details-fold-section-collapse:${key}`
   );
   if (localStorageValue) {
-    localStorage.removeItem(`'issue-details-fold-section-collapse:${key}`);
-    localStorage.setItem(`issue-details-fold-section-collapse:${key}`, localStorageValue);
+    localStorageWrapper.removeItem(`'issue-details-fold-section-collapse:${key}`);
+    localStorageWrapper.setItem(
+      `issue-details-fold-section-collapse:${key}`,
+      localStorageValue
+    );
   }
   return `issue-details-fold-section-collapse:${key}`;
 }
@@ -53,6 +57,10 @@ interface FoldSectionProps {
    */
   preventCollapse?: boolean;
   ref?: React.Ref<HTMLDivElement>;
+  /**
+   * Interactive content displayed beside the title whether the section is open or closed.
+   */
+  titleTrailingItems?: React.ReactNode;
 }
 
 function useOptionalLocalStorageState(
@@ -111,6 +119,7 @@ export function FoldSection({
   children,
   title,
   actions,
+  titleTrailingItems,
   sectionKey,
   className,
   initialCollapse = false,
@@ -193,7 +202,14 @@ export function FoldSection({
       >
         <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
-          trailingItems={expanded ? actions : undefined}
+          trailingItems={
+            titleTrailingItems || (expanded && actions) ? (
+              <Fragment>
+                {titleTrailingItems}
+                {expanded ? actions : null}
+              </Fragment>
+            ) : undefined
+          }
         >
           <Text size="lg">{title}</Text>
         </Disclosure.Title>

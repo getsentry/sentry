@@ -99,7 +99,11 @@ export function AutomationHistoryList({
           <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
         {isLoading && <Skeletons />}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {!isLoading && !isError && fireHistory.length === 0 && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}
@@ -128,6 +132,7 @@ export function AutomationHistoryList({
                   <PlatformIcon
                     platform={row.group.project.platform ?? 'default'}
                     size={16}
+                    alt=""
                   />
                   <TruncatedText>
                     {row.group.title ? row.group.title : `#${row.group.id}`}

@@ -57,6 +57,12 @@ export function transformWidgetSeriesToTimeSeries(
       : splitSeriesName;
   const widgetQuery =
     widget.queries.find(({conditions}) => conditions && queryName === conditions) ??
+    // When there's a group-by, an alias prefix is glued to the group-by value
+    // with the ' > ' delimiter (e.g., "http > (no value) : count()"), so the
+    // bare alias never appears as a ' : ' delimited part. Match the extracted
+    // prefix against the query name directly to avoid falling back to the first
+    // query and mislabeling every series with its name.
+    widget.queries.find(({name}) => name && queryName === name) ??
     widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
     firstQuery;
   const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);

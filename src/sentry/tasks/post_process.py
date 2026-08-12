@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import random
 import uuid
@@ -18,7 +19,11 @@ from sentry import features, options, projectoptions
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.killswitches import killswitch_matches_context
+from sentry.killswitches import (
+    get_killswitch_value,
+    killswitch_matches_context,
+    value_matches,
+)
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -39,6 +44,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.tracing import start_span, trace
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -58,6 +64,7 @@ locks = LockManager(
         LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
     )
 )
+
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
@@ -605,41 +612,48 @@ def post_process_group(
                 Organization.objects.get_from_cache(id=event.project.organization_id),
             )
 
-        is_reprocessed = is_reprocessed_event(event.data)
-        sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
-        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
-
-        metric_tags = {}
-        if group_id:
-            group_state: GroupState = {
-                "id": group_id,
-                "is_new": is_new,
-                "is_regression": bool(is_regression),
-                "is_new_group_environment": is_new_group_environment,
-            }
-
-            group_event = update_event_group(event, group_state)
-            bind_organization_context(event.project.organization)
-            _capture_event_stats(event)
-
-            group_event.occurrence = occurrence
-
-            run_post_process_job(
-                {
-                    "event": group_event,
-                    "group_state": group_state,
-                    "is_reprocessed": is_reprocessed,
-                    "has_reappeared": bool(not group_state["is_new"]),
-                    "has_escalated": kwargs.get("has_escalated", False),
-                }
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=event.project.organization_id,
+                project_id=event.project_id,
+                actor_type=ActorType.SYSTEM,
             )
-            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+        ):
+            is_reprocessed = is_reprocessed_event(event.data)
+            sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+            sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
-        track_event_since_received(
-            step="end_post_process",
-            event_data=event.data,
-            tags=metric_tags,
-        )
+            metric_tags = {}
+            if group_id:
+                group_state: GroupState = {
+                    "id": group_id,
+                    "is_new": is_new,
+                    "is_regression": bool(is_regression),
+                    "is_new_group_environment": is_new_group_environment,
+                }
+
+                group_event = update_event_group(event, group_state)
+                bind_organization_context(event.project.organization)
+                _capture_event_stats(event)
+
+                group_event.occurrence = occurrence
+
+                run_post_process_job(
+                    {
+                        "event": group_event,
+                        "group_state": group_state,
+                        "is_reprocessed": is_reprocessed,
+                        "has_reappeared": bool(not group_state["is_new"]),
+                        "has_escalated": kwargs.get("has_escalated", False),
+                    }
+                )
+                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
+            track_event_since_received(
+                step="end_post_process",
+                event_data=event.data,
+                tags=metric_tags,
+            )
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
@@ -664,7 +678,36 @@ def run_post_process_job(job: PostProcessJob) -> None:
     else:
         pipeline = GENERIC_POST_PROCESS_PIPELINE
 
+    # Read the killswitch once per job instead of once per step: the error
+    # pipeline has 25 steps, and killswitch_matches_context would redo the
+    # options.get() and normalize_value() on every one of them.
+    disabled_steps = get_killswitch_value("post_process.disable-pipeline-steps")
+    killswitch_context = (
+        {
+            "project_id": group_event.project_id,
+            "organization_id": group_event.project.organization_id,
+            "issue_category": issue_category_metric,
+        }
+        if disabled_steps
+        else None
+    )
+
     for pipeline_step in pipeline:
+        if killswitch_context is not None and value_matches(
+            "post_process.disable-pipeline-steps",
+            disabled_steps,
+            {"pipeline_step": pipeline_step.__name__, **killswitch_context},
+            emit_metrics=False,
+        ):
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.killswitched",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
+            )
+            continue
+
         try:
             with (
                 metrics.timer(
@@ -1178,11 +1221,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     group_category = job["event"].group.issue_category
 
-    supported_group_categories = [
+    unsupported_group_categories = [
         GroupCategory(category)
-        for category in options.get("sentry-apps.expanded-webhook-categories")
+        for category in options.get("sentry-apps.unsupported-webhook-categories")
     ]
-    if group_category not in supported_group_categories:
+    if group_category in unsupported_group_categories:
         return False
 
     return True
@@ -1315,6 +1358,10 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
 def feedback_filter_decorator(
     func: Callable[[PostProcessJob], None],
 ) -> Callable[[PostProcessJob], None]:
+    # wraps() keeps the wrapped step's name, which run_post_process_job uses for
+    # metric tags, span names and the post_process.disable-pipeline-steps
+    # killswitch. Without it every feedback step reports as "wrapper".
+    @functools.wraps(func)
     def wrapper(job: PostProcessJob) -> None:
         if not should_postprocess_feedback(job):
             return
@@ -1509,14 +1556,35 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
     from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
     from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
-    from sentry.tasks.seer.autofix import generate_summary_and_run_automation
+    from sentry.tasks.seer.autofix import (
+        generate_issue_summary_only,
+        generate_summary_and_run_automation,
+    )
 
     event = job["event"]
     group = event.group
 
     if is_seer_seat_based_tier_enabled(group.organization):
+        if group.seer_fixability_score is not None:
+            return
+        # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
+        # We don't want to backfill old issues since that will overwhelm Seer.
+        if (timezone.now() - group.first_seen).total_seconds() > 300:
+            return
+        # Generate issue summary and fixability score if not cached.
+        # Agentic Triage handles automations for seat-based orgs but still needs these.
+        cache_key = get_issue_summary_cache_key(group.id)
+        if cache.get(cache_key) is None:
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=1, name=lock_name)
+            if not lock.locked():
+                generate_issue_summary_only.delay(group.id)
         return
 
     skip_reason = get_default_seer_automation_skip_reason(group, locks)

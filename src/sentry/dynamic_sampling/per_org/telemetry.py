@@ -24,8 +24,11 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
 
+PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC = "dynamic_sampling.per_org.projects_below_full_sample_rate"
+
 
 class DynamicSamplingStatus(StrEnum):
+    ALL_PROJECTS_AT_FULL_SAMPLE_RATE = "all_projects_at_full_sample_rate"
     COMPLETED = "completed"
     DISPATCHED = "dispatched"
     FAILED = "failed"
@@ -64,6 +67,14 @@ def emit_status(
         amount=amount,
         sample_rate=metrics_sample_rate(),
         tags={"status": status.value, **dict(extra_tags or {})},
+    )
+
+
+def emit_count(metric: str, amount: int) -> None:
+    metrics.incr(
+        metric,
+        amount=amount,
+        sample_rate=metrics_sample_rate(),
     )
 
 
@@ -116,17 +127,15 @@ def track_dynamic_sampling(func: F) -> F:
                     result = func(*args, **kwargs)
             except DynamicSamplingException as exc:
                 result = exc.status
-            except SnubaRPCTimeout as exc:
-                sentry_sdk.capture_exception(exc)
+            except SnubaRPCTimeout:
                 emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
                 raise
-            except SnubaRPCError as exc:
-                sentry_sdk.capture_exception(exc)
+            except SnubaRPCError:
                 emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
                 raise
             except Exception as exc:
-                sentry_sdk.capture_exception(exc)
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
+                sentry_sdk.capture_exception(exc)
                 raise
 
             status = set_duration_status(result)

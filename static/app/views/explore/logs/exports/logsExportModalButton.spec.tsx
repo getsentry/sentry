@@ -9,8 +9,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
-import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
+import {
+  LogsExportModalButton,
+  type LogsQueryInfo,
+} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();

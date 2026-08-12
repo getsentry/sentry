@@ -128,36 +128,46 @@ class PagerDutyApiPipelineTest(APITestCase):
         self.app_id = "app_1"
         options.set("pagerduty.app-id", self.app_id)
 
-    def _get_pipeline_url(self) -> str:
+    def _get_pipeline_url(self, organization=None) -> str:
+        organization = organization or self.organization
         return reverse(
             self.endpoint,
-            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+            args=[organization.slug, IntegrationPipeline.pipeline_name],
         )
 
-    def _initialize_pipeline(self) -> Any:
+    def _initialize_pipeline(self, organization=None) -> Any:
         return self.client.post(
-            self._get_pipeline_url(),
+            self._get_pipeline_url(organization),
             data={"action": "initialize", "provider": "pagerduty"},
             format="json",
         )
 
-    def _advance_step(self, data: dict[str, Any]) -> Any:
-        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+    def _advance_step(self, data: dict[str, Any], organization=None) -> Any:
+        return self.client.post(self._get_pipeline_url(organization), data=data, format="json")
 
-    def _make_config(self, **overrides: Any) -> str:
+    def _make_config(
+        self,
+        *,
+        account_name: str = "Test App",
+        integration_key: str = "key1",
+        service_name: str = "Super Cool Service",
+    ) -> str:
         config = {
             "integration_keys": [
                 {
-                    "integration_key": "key1",
-                    "name": "Super Cool Service",
+                    "integration_key": integration_key,
+                    "name": service_name,
                     "id": "PD12345",
                     "type": "service",
                 },
             ],
-            "account": {"subdomain": "test-app", "name": "Test App"},
+            "account": {"subdomain": "test-app", "name": account_name},
         }
-        config.update(overrides)
         return orjson.dumps(config).decode()
+
+    def _install(self, organization=None, **config: str) -> Any:
+        self._initialize_pipeline(organization)
+        return self._advance_step({"config": self._make_config(**config)}, organization)
 
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
@@ -193,16 +203,100 @@ class PagerDutyApiPipelineTest(APITestCase):
         integration = Integration.objects.get(provider="pagerduty")
         assert integration.external_id == "test-app"
         assert integration.name == "Test App"
-        assert integration.metadata["services"] == [
+        assert integration.metadata == {"domain_name": "test-app"}
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration=integration,
+        )
+        assert org_integration.config["pagerduty_services"] == [
             {
                 "integration_key": "key1",
-                "name": "Super Cool Service",
-                "id": "PD12345",
-                "type": "service",
+                "integration_id": integration.id,
+                "service_name": "Super Cool Service",
+                "id": org_integration.config["pagerduty_services"][0]["id"],
             }
         ]
 
-        assert OrganizationIntegration.objects.filter(
-            organization_id=self.organization.id,
-            integration=integration,
-        ).exists()
+    def test_cross_organization_install_preserves_global_data_and_isolates_services(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="pagerduty", external_id="test-app")
+        original_metadata = integration.metadata
+
+        other_organization = self.create_organization(owner=self.user)
+        resp = self._install(
+            other_organization,
+            account_name="Untrusted Account Name",
+            integration_key="other-key",
+            service_name="Other Service",
+        )
+        assert resp.status_code == 200
+
+        integration.refresh_from_db()
+        assert integration.name == "Test App"
+        assert integration.metadata == original_metadata == {"domain_name": "test-app"}
+        assert Integration.objects.filter(provider="pagerduty", external_id="test-app").count() == 1
+
+        organization_services = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        ).config["pagerduty_services"]
+        other_organization_services = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=other_organization.id
+        ).config["pagerduty_services"]
+        assert [
+            (service["service_name"], service["integration_key"])
+            for service in organization_services
+        ] == [("Super Cool Service", "key1")]
+        assert [
+            (service["service_name"], service["integration_key"])
+            for service in other_organization_services
+        ] == [("Other Service", "other-key")]
+
+        third_organization = self.create_organization(owner=self.user)
+        self._install(
+            third_organization,
+            account_name="Third Account Name",
+            integration_key="third-key",
+            service_name="Third Service",
+        )
+        integration.refresh_from_db()
+        assert integration.name == "Test App"
+        assert integration.metadata == {"domain_name": "test-app"}
+        assert OrganizationIntegration.objects.filter(integration=integration).count() == 3
+        assert (
+            OrganizationIntegration.objects.get(
+                integration=integration, organization_id=third_organization.id
+            ).config["pagerduty_services"][0]["integration_key"]
+            == "third-key"
+        )
+
+    def test_same_organization_reinstall_preserves_global_data_and_appends_services(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="pagerduty", external_id="test-app")
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        self._install(
+            account_name="Changed Account Name",
+            integration_key="second-key",
+            service_name="Second Service",
+        )
+
+        integration.refresh_from_db()
+        org_integration.refresh_from_db()
+        assert integration.name == "Test App"
+        assert integration.metadata == {"domain_name": "test-app"}
+        assert (
+            OrganizationIntegration.objects.get(
+                integration=integration, organization_id=self.organization.id
+            ).id
+            == org_integration.id
+        )
+        assert [
+            (service["service_name"], service["integration_key"])
+            for service in org_integration.config["pagerduty_services"]
+        ] == [
+            ("Super Cool Service", "key1"),
+            ("Second Service", "second-key"),
+        ]

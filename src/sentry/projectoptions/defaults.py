@@ -27,6 +27,8 @@ register(key="sentry:secondary_grouping_config", default=None)
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
 register(key="sentry:similarity_backfill_completed", default=None)
 
+register(key="sentry:group_action_log_backfill_completed", default=None)
+
 
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
@@ -152,6 +154,13 @@ register(
     default=True,
 )
 
+# Whether releases should be auto-created from ingested telemetry. When disabled,
+# releases must be created explicitly (e.g. via the Sentry CLI).
+register(
+    key="sentry:enable_auto_release_creation",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
@@ -244,6 +253,9 @@ register(key="sentry:preprod_snapshot_pr_comments_post_on_changed", default=True
 
 # When True, treat snapshot renames as a diff worth posting a PR comment.
 register(key="sentry:preprod_snapshot_pr_comments_post_on_renamed", default=False)
+
+# When True, post/update a PR comment with size analysis results for this project.
+register(key="sentry:preprod_size_pr_comments_enabled", default=False)
 
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

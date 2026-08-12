@@ -273,6 +273,31 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
 
+    def test_ignores_time_range_filter(self) -> None:
+        # The attribute was last seen well outside the narrow requested window.
+        # Existence must be checked against all data, so a `statsPeriod` filter
+        # that would exclude it is ignored and the request still succeeds.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=5).replace(microsecond=0),
+            tags={"my_custom_attr": "value"},
+        )
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+            query={"project": self.project.id, "statsPeriod": "1h"},
+        )
+
+        assert response.status_code == 201, response.data
+
     def test_requires_feature_flag(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
@@ -300,3 +325,25 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "dataset" in response.data
+
+    def test_member_role_can_write_context(self) -> None:
+        # Authoring attribute context is scoped to `event:write`, which the
+        # base member role has, rather than `org:write` (Manager/Owner only).
+        self.store_attribute(my_custom_attr="value")
+
+        member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
