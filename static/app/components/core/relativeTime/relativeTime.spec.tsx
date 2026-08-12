@@ -84,7 +84,10 @@ describe('RelativeTime', () => {
 
   it('keeps both rows for a zone that only shares UTC current offset', () => {
     // Reykjavik is GMT year round. Same instant as UTC, different label.
-    renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Atlantic/Reykjavik');
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" />,
+      'Atlantic/Reykjavik'
+    );
 
     expect(screen.getByText('GMT')).toBeInTheDocument();
     expect(screen.getByText('UTC')).toBeInTheDocument();
