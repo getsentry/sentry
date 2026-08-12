@@ -6,6 +6,7 @@ from scm.errors import ResourceNotFound
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -239,6 +240,28 @@ class TriggerPrIterationFromReviewTest(TestCase):
             message=Message(
                 role="assistant",
                 metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    def _feedback_iteration_block(self, idx: int, *, author_is_bot: bool) -> MemoryBlock:
+        """An iteration block carrying real serialized review feedback."""
+        feedback = Feedback(
+            source=GithubPrReviewBodyFeedbackSource(
+                review_id=idx,
+                body="fix this",
+                author_is_bot=author_is_bot,
+            )
+        )
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": idx,
+                    "feedback": serialize_feedback([feedback]),
+                },
             ),
             timestamp="2024-01-01T00:00:00Z",
         )
@@ -548,6 +571,45 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.create_review_comment_reaction.assert_not_called()
         # The cap drops the bot, not the write-access gate.
         self.mock_actions.get_repository_user_permission.assert_not_called()
+
+    def test_bot_review_capped_when_prior_iterations_recorded_bot_feedback(self) -> None:
+        # Bot reviews recorded as automated feedback trip the cap, so bot-vs-agent
+        # ping-pong is bounded even though the bot skips the write-access gate.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[
+                self._feedback_iteration_block(1, author_is_bot=True),
+                self._feedback_iteration_block(2, author_is_bot=True),
+            ]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_bot_review_proceeds_when_prior_iteration_had_human_feedback(self) -> None:
+        # One human feedback item in a drained iteration makes it manual, which
+        # breaks the streak and lets the next bot review through.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[
+                self._feedback_iteration_block(1, author_is_bot=False),
+                self._feedback_iteration_block(2, author_is_bot=True),
+            ]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run(author_is_bot=True)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
 
     def test_human_review_proceeds_when_automated_streak_capped(self) -> None:
         # The streak cap only bounds automated (bot) reviews; a human review always
