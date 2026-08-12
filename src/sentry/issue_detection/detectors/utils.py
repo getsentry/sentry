@@ -228,7 +228,10 @@ def parameterize_url_with_result(url: str) -> ParameterizedUrl:
         path_fragments.append(parsed_url.path)
     else:
         for fragment in parsed_url.path.split("/"):
-            path_param = PARAMETERIZED_URL_REGEX.search(fragment)
+            # Treat bracketed placeholders as pre-parameterized values
+            path_param = BRACKETED_URL_PLACEHOLDER_REGEX.search(
+                fragment
+            ) or PARAMETERIZED_URL_REGEX.search(fragment)
             if path_param:
                 path_fragments.append("*")
                 path_params.append(path_param.group())
