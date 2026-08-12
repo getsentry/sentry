@@ -15,14 +15,11 @@ interface TextRun {
 }
 
 function isLineBreak(node: Node): node is HTMLBRElement {
-  return node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR';
+  return node.nodeName === 'BR';
 }
 
-function isLineContainer(node: Node): boolean {
-  return (
-    node.nodeType === Node.ELEMENT_NODE &&
-    ['DIV', 'P'].includes((node as Element).tagName)
-  );
+function isLineContainer(node: Node): node is HTMLDivElement | HTMLParagraphElement {
+  return node.nodeName === 'DIV' || node.nodeName === 'P';
 }
 
 function isPlaceholderLine(node: Node) {
@@ -71,7 +68,7 @@ function getTextRuns(root: Node): TextRun[] {
     if (isRootChild && isLineContainer(node)) {
       const parent = node.parentNode;
       if (parent && length > 0 && !endsWithLineBreak) {
-        const index = Array.from(parent.childNodes).indexOf(node as ChildNode);
+        const index = Array.from(parent.childNodes).indexOf(node);
         append('\n', {node: parent, offset: index}, {node, offset: 0});
       }
 

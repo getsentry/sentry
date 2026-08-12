@@ -4,7 +4,7 @@ import {queryOptions} from '@tanstack/react-query';
 import {Stack} from '@sentry/scraps/layout';
 
 import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
-import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
+import type {MentionInputValue} from 'sentry/components/mentionInput/model';
 import type {MentionSource} from 'sentry/components/mentionInput/types';
 
 interface Suggestion {
@@ -12,19 +12,19 @@ interface Suggestion {
   label: string;
 }
 
-const PEOPLE: readonly Suggestion[] = [
+const PEOPLE = [
   {id: 'user:1', label: 'Alice Example'},
   {id: 'user:2', label: 'Alex Engineer'},
   {id: 'user:3', label: 'Sam Designer'},
 ];
 
-const TEAMS: readonly Suggestion[] = [
+const TEAMS = [
   {id: 'team:1', label: '#frontend'},
   {id: 'team:2', label: '#design-systems'},
   {id: 'team:3', label: '#performance'},
 ];
 
-const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
+const SOURCES = [
   {
     id: 'members',
     label: 'Members',
@@ -41,7 +41,7 @@ const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
     getId: suggestion => suggestion.id,
     getText: suggestion => suggestion.label,
   },
-];
+] satisfies ReadonlyArray<MentionSource<Suggestion>>;
 
 const RESTORED_TEXT = 'Continue with @Alice Example on the checkout regression.';
 const RESTORED_MENTION_TEXT = '@Alice Example';
@@ -54,16 +54,16 @@ const RESTORED_MENTIONS = [
     end: RESTORED_MENTION_START + RESTORED_MENTION_TEXT.length,
     text: RESTORED_MENTION_TEXT,
   },
-] satisfies readonly Mention[];
+];
 
-const REMOTE_SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
+const REMOTE_SOURCES = [
   {
     id: 'remote-members',
     label: 'Remote members',
     trigger: '@',
     queryOptions: query =>
       queryOptions({
-        queryKey: ['mention-input-story', 'remote-members', query] as const,
+        queryKey: ['mention-input-story', 'remote-members', query],
         queryFn: async ({signal}) => {
           await waitForDelay(500, signal);
           return filterSuggestions(PEOPLE, query);
@@ -73,7 +73,7 @@ const REMOTE_SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
     getId: suggestion => suggestion.id,
     getText: suggestion => `@${suggestion.label}`,
   },
-];
+] satisfies ReadonlyArray<MentionSource<Suggestion>>;
 
 function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
   const normalizedQuery = query.toLocaleLowerCase();

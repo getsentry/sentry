@@ -16,7 +16,7 @@ import {getRequestKey, type ActiveMention} from './matching';
 import type {MentionSource} from './types';
 
 interface SuggestionListItem<T> {
-  hideCheck: true;
+  hideCheck: boolean;
   key: string;
   label: React.ReactNode;
   suggestion: T;
@@ -91,7 +91,7 @@ export function useMentionSuggestions<T>({
     activeQuery
   );
 
-  const items = useMemo<ReadonlyArray<SuggestionListItem<T>>>(
+  const items = useMemo(
     () =>
       currentSuggestions.map(suggestion => ({
         key: `${activeSource?.id ?? 'source'}:${activeSource?.getId(suggestion)}`,
