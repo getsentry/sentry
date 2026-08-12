@@ -183,6 +183,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                     # membership filtering hides those granted by allow_joinleave.
                     "validation_projects": projects
                     or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                    "environment": request.GET.getlist("environment"),
                 },
             )
             if not dashboard_serializer.is_valid():
