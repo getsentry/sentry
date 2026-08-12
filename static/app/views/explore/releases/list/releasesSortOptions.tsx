@@ -45,13 +45,17 @@ export function ReleasesSortOptions({
   };
 
   return (
-    <Container order={{zero: 2, '4xl': 0}} style={{zIndex: 2}}>
-      <ReleasesDropdown
-        label={t('Sort By')}
-        options={sortOptions}
-        selected={selected}
-        onSelect={onSelect}
-      />
+    <Container order={{zero: 2, '4xl': 0}} width={{zero: '100%', '3xl': 'max-content'}}>
+      {({className}) => (
+        <ReleasesDropdown
+          className={className}
+          label={t('Sort By')}
+          options={sortOptions}
+          selected={selected}
+          onSelect={onSelect}
+          style={{zIndex: 2}}
+        />
+      )}
     </Container>
   );
 }

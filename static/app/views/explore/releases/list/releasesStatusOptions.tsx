@@ -21,13 +21,17 @@ type Props = {
 
 export function ReleasesStatusOptions({selected, onSelect}: Props) {
   return (
-    <Container order={{zero: 1, '4xl': 0}} style={{zIndex: 3}}>
-      <ReleasesDropdown
-        label={t('Status')}
-        options={options}
-        selected={selected}
-        onSelect={onSelect}
-      />
+    <Container order={{zero: 1, '4xl': 0}} width={{zero: '100%', '3xl': 'max-content'}}>
+      {({className}) => (
+        <ReleasesDropdown
+          className={className}
+          label={t('Status')}
+          options={options}
+          selected={selected}
+          onSelect={onSelect}
+          style={{zIndex: 3}}
+        />
+      )}
     </Container>
   );
 }

@@ -226,7 +226,7 @@ export function ReleaseCard({
           <Grid
             align="center"
             columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
-            gap="md"
+            gap="0 md"
             width="100%"
           >
             <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>

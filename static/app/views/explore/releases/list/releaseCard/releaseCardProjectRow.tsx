@@ -123,7 +123,7 @@ export function ReleaseCardProjectRow({
     >
       <Grid
         columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
-        gap="md"
+        gap="0 md"
         align="center"
         width="100%"
       >
