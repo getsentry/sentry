@@ -37,6 +37,10 @@ from sentry.users.services.user.service import user_service
 
 TEXT_DELIMITER = " · "
 MAX_SUBJECT_PROJECTS = 2
+# Slack allows at most 50 top-level blocks. Keep deploy body well under that
+# after subject/actions/footer overhead in the Slack renderer.
+MAX_DEPLOY_PROJECTS = 20
+MAX_DEPLOY_COMMITS = 30
 
 
 class DeployReleaseCommit(TypedDict):
@@ -119,7 +123,9 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
     project_sections: list[NotificationSection] = []
     if data.release_projects:
         project_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Projects:")]))
-        for rp in data.release_projects:
+        visible_projects = data.release_projects[:MAX_DEPLOY_PROJECTS]
+        remaining_projects = len(data.release_projects) - len(visible_projects)
+        for rp in visible_projects:
             release_project_blocks = [
                 PlainTextBlock(text=f"{rp['project_slug']} ("),
                 LinkTextBlock(text="View Release", url=rp["release_url"]),
@@ -132,14 +138,30 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
                     )
                 )
             project_sections.append(ParagraphSection(blocks=release_project_blocks))
+        if remaining_projects > 0:
+            project_sections.append(
+                ParagraphSection(
+                    blocks=[
+                        ItalicTextBlock(
+                            text=f"+{remaining_projects} more project{pluralize(remaining_projects)}"
+                        )
+                    ]
+                )
+            )
 
     commits_sections: list[NotificationSection] = []
     if data.repo_name_to_commits:
         commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Repositories:")]))
+        commits_included = 0
+        remaining_commits = sum(len(commits) for commits in data.repo_name_to_commits.values())
         for repo_name, commits in data.repo_name_to_commits.items():
+            if commits_included >= MAX_DEPLOY_COMMITS:
+                break
             commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text=repo_name)]))
             repo_sections: list[NotificationSection] = []
             for commit in commits:
+                if commits_included >= MAX_DEPLOY_COMMITS:
+                    break
                 commit_blocks = [
                     PlainTextBlock(commit["message"]),
                     PlainTextBlock(text=TEXT_DELIMITER),
@@ -150,7 +172,19 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
                     CodeTextBlock(text=commit["sha"]),
                 ]
                 repo_sections.append(ParagraphSection(blocks=commit_blocks))
+                commits_included += 1
             commits_sections.extend(repo_sections)
+        remaining_commits -= commits_included
+        if remaining_commits > 0:
+            commits_sections.append(
+                ParagraphSection(
+                    blocks=[
+                        ItalicTextBlock(
+                            text=f"+{remaining_commits} more commit{pluralize(remaining_commits)}"
+                        )
+                    ]
+                )
+            )
     else:
         commits_sections.append(
             ParagraphSection(

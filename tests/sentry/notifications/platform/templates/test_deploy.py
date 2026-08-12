@@ -117,3 +117,46 @@ class FilterDeployDataTest(TestCase):
         filter_deploy_data(data=self.data, user_id=other_user.id, organization=self.organization)
 
         assert self.data.release_projects == original_projects
+
+
+class BuildDeployBodyTest(TestCase):
+    def test_build_deploy_body_truncates_commits(self) -> None:
+        from sentry.notifications.platform.templates.deploy import (
+            MAX_DEPLOY_COMMITS,
+            build_deploy_body,
+        )
+
+        commits = [
+            {
+                "author_name": f"author-{i}",
+                "date": "2026-01-01T00:00:00+00:00",
+                "sha": f"{i:07x}"[:7],
+                "message": f"commit {i}",
+            }
+            for i in range(MAX_DEPLOY_COMMITS + 5)
+        ]
+        data = DeployReleaseData(
+            source=NotificationSource.DEPLOY_RELEASE,
+            date="2025-01-01T00:00:00+00:00",
+            author_count=1,
+            commit_count=len(commits),
+            file_count=1,
+            release_projects=[],
+            repo_name_to_commits={"getsentry/sentry": commits},
+            version="1.0.0",
+            environment_name="production",
+        )
+
+        body = build_deploy_body(data)
+        # 1 header + 1 repo title + MAX_DEPLOY_COMMITS commits + 1 overflow note
+        # plus the two summary paragraphs at the start.
+        overflow_notes = [
+            section
+            for section in body
+            if any(
+                getattr(block, "text", "").startswith("+")
+                and "more commit" in getattr(block, "text", "")
+                for block in getattr(section, "blocks", [])
+            )
+        ]
+        assert len(overflow_notes) == 1
