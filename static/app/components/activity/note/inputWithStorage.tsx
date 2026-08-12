@@ -21,12 +21,12 @@ type Props = {
   group: Group;
   itemKey: string;
   storageKey: string;
+  enableMentionComposer?: boolean;
   onCommentCreated?: (activity: GroupActivity[]) => void;
   onCommentEdited?: (activity: GroupActivity[]) => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
   text?: string;
-  useMentionComposer?: boolean;
   variant?: 'compact' | 'full';
 } & Omit<InputProps, 'onCreate' | 'onUpdate'>;
 
@@ -71,7 +71,7 @@ function NoteInputWithStorage({
   onCommentCreated,
   onCommentEdited,
   noteId,
-  useMentionComposer,
+  enableMentionComposer,
   ...props
 }: Props) {
   const organization = useOrganization();
@@ -174,7 +174,7 @@ function NoteInputWithStorage({
     [mutators, noteId, group.activity, organization, onCommentEdited]
   );
 
-  if (useMentionComposer) {
+  if (enableMentionComposer) {
     return (
       <MentionComposer
         initialValue={value}

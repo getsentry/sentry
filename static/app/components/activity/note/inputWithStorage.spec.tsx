@@ -61,7 +61,7 @@ describe('NoteInputWithStorage', () => {
       .mocked(localStorageWrapper.getItem)
       .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
 
-    render(<NoteInputWithStorage {...defaultProps} useMentionComposer />);
+    render(<NoteInputWithStorage {...defaultProps} enableMentionComposer />);
 
     const editor = screen.getByRole('combobox', {name: 'Add a comment'});
     expect(editor).toHaveTextContent('saved item');

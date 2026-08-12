@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import {z} from 'zod';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -10,7 +9,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
 import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
-import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
+import type {MentionInputValue} from 'sentry/components/mentionInput/model';
 import type {MentionSource} from 'sentry/components/mentionInput/types';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,10 +36,6 @@ interface MentionComposerProps {
 type EditorMode = 'write' | 'preview';
 
 type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
-
-const mentionComposerSchema = z.object({
-  text: z.string(),
-});
 
 export function MentionComposer(props: MentionComposerProps) {
   const organization = useOrganization();
@@ -182,36 +177,36 @@ function Composer({
 }: MentionComposerProps & {
   sources: ReadonlyArray<MentionSource<MentionEntity>>;
 }) {
-  const [mentions, setMentions] = useState<readonly Mention[]>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
+  const initialEditorValue: MentionInputValue = {text: initialValue, mentions: []};
 
   const submitNote = useCallback(
-    async (value: string) => {
-      const validMentionIds = mentions.flatMap(mention =>
-        value.slice(mention.start, mention.end) === mention.text ? mention.id : []
+    async (value: MentionInputValue) => {
+      const validMentionIds = value.mentions.flatMap(mention =>
+        value.text.slice(mention.start, mention.end) === mention.text ? mention.id : []
       );
-      const mentionValue = {text: value, mentions};
       const uniqueMentionIds = [...new Set(validMentionIds)];
       const data = {
-        text: serializeNoteMentions(mentionValue),
+        text: serializeNoteMentions(value),
         mentions: uniqueMentionIds,
       };
 
       await onSubmit?.(data);
     },
-    [mentions, onSubmit]
+    [onSubmit]
   );
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {text: initialValue},
-    validators: {onDynamic: mentionComposerSchema},
-    onSubmit: ({value}) => submitNote(value.text),
+    defaultValues: {
+      value: initialEditorValue,
+    },
+    onSubmit: ({value}) => submitNote(value.value),
   });
 
   return (
     <form.AppForm form={form}>
-      <form.AppField name="text">
+      <form.AppField name="value">
         {field =>
           editorMode === 'write' ? (
             <field.Base<HTMLDivElement>>
@@ -223,21 +218,20 @@ function Composer({
                   sources={sources}
                   placeholder={placeholder}
                   onChange={nextValue => {
-                    setMentions(nextValue.mentions);
-                    field.handleChange(nextValue.text);
+                    field.handleChange(nextValue);
                     onValueChange?.(nextValue.text);
                   }}
                   onKeyDown={event => {
                     if (
                       event.key === 'Enter' &&
                       (event.metaKey || event.ctrlKey) &&
-                      field.state.value.trim() !== ''
+                      field.state.value.text.trim() !== ''
                     ) {
                       event.preventDefault();
                       form.handleSubmit();
                     }
                   }}
-                  value={{text: field.state.value, mentions}}
+                  value={field.state.value}
                   minHeight={minHeight}
                 />
               )}
@@ -253,9 +247,7 @@ function Composer({
               minHeight={`${minHeight}px`}
               overflow="auto"
             >
-              <Markdown
-                raw={serializeNoteMentions({text: field.state.value, mentions})}
-              />
+              <Markdown raw={serializeNoteMentions(field.state.value)} />
             </Container>
           )
         }
@@ -283,7 +275,7 @@ function Composer({
             </Text>
           </Flex>
         </Flex>
-        <form.Subscribe selector={state => state.values.text.trim() === ''}>
+        <form.Subscribe selector={state => state.values.value.text.trim() === ''}>
           {isEmpty => (
             <form.SubmitButton size="xs" disabled={isEmpty}>
               {t('Comment')}
