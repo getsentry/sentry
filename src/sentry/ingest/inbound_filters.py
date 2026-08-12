@@ -10,7 +10,6 @@ from sentry.models.custominboundfilter import (
     CustomInboundFilter,
     CustomInboundFilterConditionType,
     CustomInboundFilterDataType,
-    custom_inbound_filter_id,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -637,8 +636,6 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions)
         if condition is not None:
-            generic_filters.append(
-                _generic_filter(custom_inbound_filter_id(project.id, custom_filter.id), condition)
-            )
+            generic_filters.append(_generic_filter(custom_filter.get_outcomes_id(), condition))
 
     return generic_filters

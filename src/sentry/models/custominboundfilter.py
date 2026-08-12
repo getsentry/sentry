@@ -42,17 +42,6 @@ CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 _ID_HASH_LENGTH = 12
 
 
-def custom_inbound_filter_id(project_id: int, row_id: int) -> str:
-    """
-    Builds the identifier a filter reports under, in Relay's filter config and in outcomes.
-
-    The row id is hashed together with the project so that the identifier does not
-    disclose how many filters exist, and cannot be guessed for another project.
-    """
-    digest = hashlib.sha256(f"{project_id}:{row_id}".encode()).hexdigest()
-    return f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{digest[:_ID_HASH_LENGTH]}"
-
-
 @cell_silo_model
 class CustomInboundFilter(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
@@ -69,3 +58,13 @@ class CustomInboundFilter(DefaultFieldsModel):
         db_table = "sentry_custominboundfilter"
 
     __repr__ = sane_repr("project_id", "name")
+
+    def get_outcomes_id(self) -> str:
+        """
+        Builds the identifier this filter reports under, in Relay's filter config and in outcomes.
+
+        The row id is hashed together with the project so that the identifier does not
+        disclose how many filters exist, and cannot be guessed for another project.
+        """
+        digest = hashlib.sha256(f"{self.project_id}:{self.id}".encode()).hexdigest()
+        return f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{digest[:_ID_HASH_LENGTH]}"
