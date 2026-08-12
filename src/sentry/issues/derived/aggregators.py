@@ -43,6 +43,7 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import (
     Aggregator,
     AggregatorResult,
+    Scope,
     StateView,
     aggregator,
     emit,
@@ -157,7 +158,6 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    deps=(STATUS,),
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,
@@ -261,6 +261,7 @@ def track_last_completed_autofix_step(
 @aggregator(
     (BLOCKER,),
     deps=(STATUS, HAS_OPEN_FIX_PR, LAST_COMPLETED_AUTOFIX_STEP),
+    scope=Scope.DEPS,
 )
 def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track the human action blocking the issue's progress toward resolution.

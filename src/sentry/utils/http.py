@@ -14,6 +14,8 @@ from sentry import options
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
+from ipaddress import ip_address, ip_interface, ip_network
+
 # User-agent prefix set by the official Sentry MCP server (source of truth:
 # getsentry/sentry-mcp). Used to attribute requests originating from the MCP.
 MCP_USER_AGENT_PREFIX = "sentry-mcp/"
@@ -238,6 +240,25 @@ class _HttpRequestWithSubdomain(HttpRequest):
 
 def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)
+
+
+def is_valid_ip(maybe_ip_str: str) -> bool:
+    # Validate the string by attempting to pass it to the three built-in factory functions for
+    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
+    # all three raise an error, it's not.
+    for fn, kwargs in (
+        (ip_address, {}),
+        (ip_interface, {}),
+        (ip_network, {"strict": False}),  # `strict: False` allows host bits
+    ):
+        try:
+            fn(maybe_ip_str, **kwargs)
+        except ValueError:
+            pass
+        else:
+            return True
+
+    return False
 
 
 class BodyAsyncWrapper:

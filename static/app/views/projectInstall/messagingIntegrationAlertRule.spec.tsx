@@ -16,24 +16,6 @@ import {
   MessagingIntegrationAlertRule,
   useMessagingIntegrationAlertRule,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
-import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
-
-function setupValidateChannelSpy() {
-  const mockClear = jest.fn();
-  const originalUseValidateChannel = useValidateChannelModule.useValidateChannel;
-  const spy = jest.spyOn(useValidateChannelModule, 'useValidateChannel');
-
-  spy.mockImplementation((...args) => {
-    const result = originalUseValidateChannel(...args);
-    return {
-      ...result,
-      clear: mockClear,
-    };
-  });
-
-  return {mockClear, spy};
-}
-
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
   const slackIntegrations = [
@@ -300,13 +282,11 @@ describe('MessagingIntegrationAlertRule', () => {
     ).toBeInTheDocument();
   });
 
-  it('clears validation error when channel is cleared', async () => {
+  it('clears the selected channel', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -318,12 +298,9 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(await screen.findByText('Channel not found')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Clear choices'));
     expect(mockSetChannel).toHaveBeenCalledWith(undefined);
-    expect(mockClear).toHaveBeenCalled();
-
-    spy.mockRestore();
   });
 
-  it('clears validation error when provider is changed', async () => {
+  it('changes provider after a validation error', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
@@ -333,8 +310,6 @@ describe('MessagingIntegrationAlertRule', () => {
       url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
       body: {results: []},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -346,13 +321,10 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(await screen.findByText('Channel not found')).toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('Slack'), 'Discord');
-
-    expect(mockClear).toHaveBeenCalled();
-
-    spy.mockRestore();
+    expect(mockSetProvider).toHaveBeenCalledWith('discord');
   });
 
-  it('clears validation error when integration is changed', async () => {
+  it('changes integration after a validation error', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[0]!.id}/channel-validate/`,
       body: {valid: false, detail: 'Channel not found'},
@@ -362,8 +334,6 @@ describe('MessagingIntegrationAlertRule', () => {
       url: `/organizations/${organization.slug}/integrations/${slackIntegrations[1]!.id}/channels/`,
       body: {results: []},
     });
-
-    const {mockClear, spy} = setupValidateChannelSpy();
 
     render(
       <MessagingIntegrationAlertRule
@@ -378,10 +348,7 @@ describe('MessagingIntegrationAlertRule', () => {
       screen.getByText("Moo Deng's Workspace"),
       "Moo Waan's Workspace"
     );
-
-    expect(mockClear).toHaveBeenCalled();
-
-    spy.mockRestore();
+    expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
   });
 
   it('displays and sends channel id for microsoft teams', async () => {

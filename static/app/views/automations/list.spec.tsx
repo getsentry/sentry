@@ -3,7 +3,10 @@ import {
   ActionFixture,
   AutomationFixture,
 } from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  AllProjectsDetectorFixture,
+  MetricDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -140,6 +143,27 @@ describe('AutomationsList', () => {
     // Projects column should show em dash for automation with no detectors
     const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
     expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows all projects for an all-projects detector', async () => {
+    const allProjectsDetector = AllProjectsDetectorFixture({id: '10'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({id: '100', detectorIds: [allProjectsDetector.id]})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [allProjectsDetector],
+      match: [MockApiClient.matchQuery({id: [allProjectsDetector.id]})],
+    });
+
+    render(<AutomationsList />, {organization});
+
+    const row = await screen.findByTestId('automation-list-row');
+    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
+    expect(
+      await within(projectsColumn as HTMLElement).findByText('All Projects')
+    ).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {

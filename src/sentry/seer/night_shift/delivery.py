@@ -8,7 +8,6 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -222,7 +221,6 @@ def _process_verdicts(
                 if reason
                 else None
             )
-            triggered_at = timezone.now()
             try:
                 triggered_run = trigger_autofix_agent(
                     group=group,
@@ -245,7 +243,6 @@ def _process_verdicts(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
-                    datetime=triggered_at,
                 )
 
         sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))

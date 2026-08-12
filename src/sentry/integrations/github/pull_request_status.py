@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
@@ -21,6 +22,19 @@ fragment PullRequestStatusFields on PullRequest {
           state
         }
       }
+    }
+  }
+}
+"""
+
+PULL_REQUEST_FILES_FRAGMENT = """
+fragment PullRequestFilesFields on PullRequest {
+  files(first: 100) {
+    nodes {
+      path
+      additions
+      deletions
+      changeType
     }
   }
 }
@@ -71,21 +85,56 @@ def create_pull_request_status_query(
                 f"number{index}": int(pull_request.pull_number),
             }
         )
+        fragment_spreads = ["...PullRequestStatusFields"]
+        if pull_request.include_files:
+            fragment_spreads.append("...PullRequestFilesFields")
+        selection = "\n      ".join(fragment_spreads)
         repository_queries.append(
             f"""  repository{index}: repository(owner: $owner{index}, name: $name{index}) {{
     pullRequest(number: $number{index}) {{
-      ...PullRequestStatusFields
+      {selection}
     }}
   }}"""
         )
 
     repository_query = "\n".join(repository_queries)
+    fragments = PULL_REQUEST_STATUS_FRAGMENT
+    if any(pull_request.include_files for pull_request in pull_requests):
+        fragments += PULL_REQUEST_FILES_FRAGMENT
     query = (
         f"query pullRequestStatuses({', '.join(variable_definitions)}) {{\n"
         f"{repository_query}\n"
-        f"}}\n{PULL_REQUEST_STATUS_FRAGMENT}"
+        f"}}\n{fragments}"
     )
     return {"query": query, "variables": variables}
+
+
+def _extract_files(pull_request: Any) -> tuple[PullRequestFileSummary, ...]:
+    nodes = get_path(pull_request, "files", "nodes") or []
+    files: list[PullRequestFileSummary] = []
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        path = node.get("path")
+        additions = node.get("additions")
+        deletions = node.get("deletions")
+        change_type = node.get("changeType")
+        if not (
+            isinstance(path, str)
+            and isinstance(additions, int)
+            and isinstance(deletions, int)
+            and isinstance(change_type, str)
+        ):
+            continue
+        files.append(
+            PullRequestFileSummary(
+                path=path,
+                additions=additions,
+                deletions=deletions,
+                change_type=change_type,
+            )
+        )
+    return tuple(files)
 
 
 def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
@@ -94,6 +143,7 @@ def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
     return PullRequestStatusResult(
         checks=_CHECKS_STATUS_BY_STATE.get(state),
         review=_REVIEW_STATUS_BY_DECISION.get(decision),
+        files=_extract_files(pull_request),
     )
 
 
