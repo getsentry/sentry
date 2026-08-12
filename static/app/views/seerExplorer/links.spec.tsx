@@ -222,6 +222,21 @@ describe('resolveLink', () => {
     expect(JSON.stringify(url)).not.toContain('/organizations/org-slug/organizations/');
   });
 
+  // A `CallRecord`'s path params are always strings, but seer emits link params straight from its own
+  // payload, where an id is a number. Both name the same issue, so both have to link.
+  it('links an id that arrives as a number, not a string', () => {
+    expect(
+      resolveLink(
+        subjectFromToolLink({kind: 'get_issue_details', params: {issue_id: 54}}),
+        ctx
+      )
+    ).toEqual({
+      id: 'get_issue_details',
+      label: 'View issue',
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
+    });
+  });
+
   it('claims nothing for a route no rule knows', () => {
     expect(
       resolveLink(

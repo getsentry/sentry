@@ -116,9 +116,19 @@ export type LinkRule = {
  */
 const API_ONLY_ALIASES = new Set(['latest', 'oldest', 'recommended', 'me']);
 
-/** Whether a param value names something the UI can navigate to. */
-function identifies(value: unknown): value is string {
-  return typeof value === 'string' && value !== '' && !API_ONLY_ALIASES.has(value);
+/**
+ * A param value as a URL segment, or `undefined` if it names nothing the UI can navigate to.
+ *
+ * Params reach a rule as untyped JSON. A `CallRecord`'s path params are always strings, but seer
+ * emits link params straight from its own payload, so an id can arrive as `54` as readily as `'54'`
+ * — both name the same issue, and rejecting the number would silently drop the link.
+ */
+function asUrlSegment(value: unknown): string | undefined {
+  const segment = typeof value === 'number' ? String(value) : value;
+  if (typeof segment !== 'string' || segment === '' || API_ONLY_ALIASES.has(segment)) {
+    return undefined;
+  }
+  return segment;
 }
 
 /**
@@ -129,8 +139,9 @@ const ISSUE_RULE: LinkRule = {
   id: 'get_issue_details',
   match: ({path}) => /\{issue_id\}\/?$/.test(path ?? ''),
   resolve: ({params, title}) => {
-    const {issue_id, event_id, start, end} = params;
-    if (!identifies(issue_id)) {
+    const {start, end} = params;
+    const issueId = asUrlSegment(params.issue_id);
+    if (!issueId) {
       return null;
     }
 
@@ -138,10 +149,11 @@ const ISSUE_RULE: LinkRule = {
     const label = title ?? t('View issue');
 
     // Only reachable from the older `get_issue_and_event_details`, which carried both ids.
-    if (identifies(event_id)) {
-      return {label, url: {pathname: `/issues/${issue_id}/events/${event_id}/`, query}};
+    const eventId = asUrlSegment(params.event_id);
+    if (eventId) {
+      return {label, url: {pathname: `/issues/${issueId}/events/${eventId}/`, query}};
     }
-    return {label, url: {pathname: `/issues/${issue_id}/`, query}};
+    return {label, url: {pathname: `/issues/${issueId}/`, query}};
   },
 };
 
@@ -169,21 +181,23 @@ export const LINK_RULES: LinkRule[] = [
     match: ({path}) => /\{event_id\}\/?$/.test(path ?? ''),
     resolve: (subject, ctx) => {
       const {params, title} = subject;
-      const {event_id, issue_id, start, end} = params;
+      const {start, end} = params;
 
       // An alias names an event to the API but not to the UI, so fall back to the issue it belongs
       // to rather than building a page that 404s.
-      if (!identifies(event_id)) {
+      const eventId = asUrlSegment(params.event_id);
+      if (!eventId) {
         return ISSUE_RULE.resolve(subject, ctx);
       }
-      if (!identifies(issue_id)) {
+      const issueId = asUrlSegment(params.issue_id);
+      if (!issueId) {
         return null;
       }
 
       return {
         label: title ?? t('View event'),
         url: {
-          pathname: `/issues/${issue_id}/events/${event_id}/`,
+          pathname: `/issues/${issueId}/events/${eventId}/`,
           query: {start: validateIso(start), end: validateIso(end)},
         },
       };
@@ -194,8 +208,9 @@ export const LINK_RULES: LinkRule[] = [
     id: 'get_trace_waterfall',
     match: ({path}) => /\{trace_id\}\/?$/.test(path ?? ''),
     resolve: ({params, title}) => {
-      const {trace_id, span_id, timestamp} = params;
-      if (!identifies(trace_id)) {
+      const {span_id, timestamp} = params;
+      const traceId = asUrlSegment(params.trace_id);
+      if (!traceId) {
         return null;
       }
 
@@ -204,12 +219,12 @@ export const LINK_RULES: LinkRule[] = [
         query.node = `span-${span_id}`;
       }
       if (timestamp) {
-        query.timestamp = timestamp;
+        query.timestamp = String(timestamp);
       }
 
       return {
         label: title ?? t('View trace'),
-        url: {pathname: `/explore/traces/trace/${trace_id}/`, query},
+        url: {pathname: `/explore/traces/trace/${traceId}/`, query},
       };
     },
   },
@@ -217,15 +232,15 @@ export const LINK_RULES: LinkRule[] = [
     id: 'get_replay_details',
     match: ({path}) => /\{replay_id\}\/?$/.test(path ?? ''),
     resolve: ({params, title}, {organization}) => {
-      const {replay_id} = params;
-      if (!identifies(replay_id)) {
+      const replayId = asUrlSegment(params.replay_id);
+      if (!replayId) {
         return null;
       }
 
       return {
         label: title ?? t('View replay'),
         url: {
-          pathname: makeReplaysPathname({path: `/${replay_id}/`, organization}),
+          pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
         },
       };
     },
@@ -234,8 +249,8 @@ export const LINK_RULES: LinkRule[] = [
     id: 'get_project_details',
     match: ({path}) => /\{project_id_or_slug\}\/?$/.test(path ?? ''),
     resolve: ({params, title}, {organization, projects}) => {
-      const value = params.project_id_or_slug;
-      if (!identifies(value)) {
+      const value = asUrlSegment(params.project_id_or_slug);
+      if (!value) {
         return null;
       }
 
@@ -259,8 +274,9 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'get_profile_flamegraph',
     resolve: ({params, title}, {projects}) => {
-      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} = params;
-      if (!profile_id || !project_id) {
+      const {project_id, is_continuous, start_ts, end_ts, thread_id} = params;
+      const profileId = asUrlSegment(params.profile_id);
+      if (!profileId || !project_id) {
         return null;
       }
 
@@ -283,7 +299,7 @@ export const LINK_RULES: LinkRule[] = [
             query: {
               start: new Date(start_ts * 1000).toISOString(),
               end: new Date(end_ts * 1000).toISOString(),
-              profilerId: profile_id,
+              profilerId: profileId,
               ...(thread_id && {tid: thread_id}),
             },
           },
@@ -293,7 +309,7 @@ export const LINK_RULES: LinkRule[] = [
       return {
         label,
         url: {
-          pathname: `/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
+          pathname: `/explore/profiles/profile/${project.slug}/${profileId}/flamegraph/`,
           ...(thread_id && {query: {tid: thread_id}}),
         },
       };
@@ -302,8 +318,8 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'get_log_attributes',
     resolve: ({params, title}) => {
-      const {trace_id} = params;
-      if (!identifies(trace_id)) {
+      const traceId = asUrlSegment(params.trace_id);
+      if (!traceId) {
         return null;
       }
 
@@ -311,15 +327,15 @@ export const LINK_RULES: LinkRule[] = [
       // when there is one.
       return {
         label: title ?? t('View logs'),
-        url: {pathname: `/explore/logs/trace/${trace_id}/`, query: {tab: 'logs'}},
+        url: {pathname: `/explore/logs/trace/${traceId}/`, query: {tab: 'logs'}},
       };
     },
   },
   {
     id: 'get_metric_attributes',
     resolve: ({params, title}) => {
-      const {trace_id} = params;
-      if (!identifies(trace_id)) {
+      const traceId = asUrlSegment(params.trace_id);
+      if (!traceId) {
         return null;
       }
 
@@ -327,7 +343,7 @@ export const LINK_RULES: LinkRule[] = [
       // one.
       return {
         label: title ?? t('View metrics'),
-        url: {pathname: `/explore/metrics/trace/${trace_id}/`, query: {tab: 'metrics'}},
+        url: {pathname: `/explore/metrics/trace/${traceId}/`, query: {tab: 'metrics'}},
       };
     },
   },
