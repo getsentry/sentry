@@ -1359,6 +1359,36 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.backfill_group_action_log.enrollment_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_batch_size",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_pr_lifecycle_action_log.killswitch",
     type=Bool,
     default=False,
@@ -2475,6 +2505,15 @@ register(
     "hybridcloud.webhookpayload.push_drain_trigger",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of integrations (bucketed by the provider:integration_id prefix of
+# mailbox_name, so all of an integration's mailboxes switch together) whose
+# drains are dispatched via batch claims instead of the drain-lock lease.
+register(
+    "hybridcloud.webhookpayload.claim_dispatch_rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
