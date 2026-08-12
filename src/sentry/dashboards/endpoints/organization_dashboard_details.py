@@ -35,7 +35,6 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
-from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -74,7 +73,7 @@ def _take_dashboard_snapshot(
         return None
 
 
-class OrganizationDashboardBase(DashboardSerializerContextMixin, OrganizationEndpoint):
+class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (OrganizationDashboardsPermission,)
 
@@ -195,14 +194,20 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         is_prebuilt = dashboard.prebuilt_id is not None
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
-            context=self.get_dashboard_serializer_context(
-                request,
-                organization,
-                environment=self.request.GET.getlist("environment"),
-            ),
+            context={
+                "organization": organization,
+                "request": request,
+                "projects": projects,
+                # Validation only needs a project the requester can reach;
+                # membership filtering hides those granted by allow_joinleave.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                "environment": self.request.GET.getlist("environment"),
+            },
         )
 
         if not serializer.is_valid():

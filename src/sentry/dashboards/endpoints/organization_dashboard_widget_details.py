@@ -7,15 +7,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
-from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.organization import Organization
 
 
 @cell_silo_endpoint
-class OrganizationDashboardWidgetDetailsEndpoint(
-    DashboardSerializerContextMixin, OrganizationEndpoint
-):
+class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -34,14 +31,20 @@ class OrganizationDashboardWidgetDetailsEndpoint(
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardWidgetSerializer(
             data=request.data,
-            context=self.get_dashboard_serializer_context(
-                request,
-                organization,
-                displayType=request.data.get("displayType"),
-                environment=request.GET.getlist("environment"),
-            ),
+            context={
+                "organization": organization,
+                "projects": projects,
+                # Validation only needs a project the requester can reach;
+                # membership filtering hides those granted by allow_joinleave.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                "displayType": request.data.get("displayType"),
+                "environment": request.GET.getlist("environment"),
+                "request": request,
+            },
         )
         if not serializer.is_valid():
             errors = serializer.errors.copy()

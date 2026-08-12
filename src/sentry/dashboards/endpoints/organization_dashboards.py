@@ -47,7 +47,6 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Visibility
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
-from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
@@ -406,7 +405,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
-class OrganizationDashboardsEndpoint(DashboardSerializerContextMixin, OrganizationEndpoint):
+class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -694,13 +693,19 @@ class OrganizationDashboardsEndpoint(DashboardSerializerContextMixin, Organizati
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):
             return Response(status=404)
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardSerializer(
             data=request.data,
-            context=self.get_dashboard_serializer_context(
-                request,
-                organization,
-                environment=self.request.GET.getlist("environment"),
-            ),
+            context={
+                "organization": organization,
+                "request": request,
+                "projects": projects,
+                # Validation only needs a project the requester can reach;
+                # membership filtering hides those granted by allow_joinleave.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                "environment": self.request.GET.getlist("environment"),
+            },
         )
 
         if not serializer.is_valid():

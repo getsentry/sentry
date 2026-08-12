@@ -14,7 +14,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
-from sentry.dashboards.endpoints.base import DashboardSerializerContextMixin
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.dashboard import Dashboard
@@ -141,7 +140,7 @@ class OrganizationDashboardGeneratePermission(OrganizationPermission):
 
 
 @cell_silo_endpoint
-class OrganizationDashboardGenerateEndpoint(DashboardSerializerContextMixin, OrganizationEndpoint):
+class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -173,9 +172,18 @@ class OrganizationDashboardGenerateEndpoint(DashboardSerializerContextMixin, Org
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
         if current_dashboard is not None:
+            projects = self.get_projects(request, organization)
             dashboard_serializer = DashboardDetailsSerializer(
                 data=current_dashboard,
-                context=self.get_dashboard_serializer_context(request, organization),
+                context={
+                    "organization": organization,
+                    "request": request,
+                    "projects": projects,
+                    # Validation only needs a project the requester can reach;
+                    # membership filtering hides those granted by allow_joinleave.
+                    "validation_projects": projects
+                    or self.get_projects(request, organization, include_all_accessible=True)[:1],
+                },
             )
             if not dashboard_serializer.is_valid():
                 return Response(dashboard_serializer.errors, status=400)
