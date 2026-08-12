@@ -66,7 +66,7 @@ from sentry.tasks.seer.pr_iteration import (
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+    from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
 
@@ -546,7 +546,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             {
                 "provider": pull_request.provider or "unknown",
                 "repo_name": pull_request.repo_name,
-                "status": cls._get_pull_request_status(pull_request),
+                "status": (
+                    "completed" if pull_request.pr_creation_status == "completed" else "error"
+                ),
                 "pull_request": (
                     {
                         "pr_id": pull_request.pr_id,
@@ -559,17 +561,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             }
             for pull_request in state.repo_pr_states.values()
         ]
-
-    @staticmethod
-    def _get_pull_request_status(pull_request: RepoPRState) -> str:
-        if pull_request.pr_creation_status == "completed":
-            return "completed"
-        if pull_request.pr_creation_status != "error":
-            logger.warning(
-                "autofix.on_completion_hook.pr_creation_status_unresolved",
-                extra={"repo_name": pull_request.repo_name},
-            )
-        return "error"
 
     @classmethod
     def _get_current_step(
