@@ -13,7 +13,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
-import {IconSound} from 'sentry/icons/iconSound';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -243,7 +242,7 @@ export function ScmMessagingProviderRow({
                 <Flex gap="xs" align="center">
                   <Text bold size="md">
                     {visualState === 'removing'
-                      ? t('Remove %s integration?', viewModel.provider.name)
+                      ? t('Remove this destination?')
                       : viewModel.provider.name}
                   </Text>
                   {viewModel.status !== 'connected' && visualState !== 'removing' && (
@@ -255,14 +254,7 @@ export function ScmMessagingProviderRow({
                       </Flex>
                     </Tooltip>
                   )}
-                  {viewModel.status === 'connected' &&
-                    visualState !== 'removing' &&
-                    visualState !== 'configuring' && (
-                      <Tag variant="info" icon={<IconSound />}>
-                        {t('Alerts enabled')}
-                      </Tag>
-                    )}
-                  {visualState === 'configuring' && viewModel.status === 'connected' && (
+                  {viewModel.status === 'connected' && visualState !== 'removing' && (
                     <Tag variant="success" icon={<IconCheckmark />}>
                       {t('Connected')}
                     </Tag>
@@ -362,7 +354,9 @@ function RowSubtitle({
   if (visualState === 'removing' && messagingSetup.mode === 'selected') {
     return (
       <Text variant="muted" size="sm">
-        {t('You can reconnect at any time')}
+        {t(
+          'This removes the destination from project setup. The integration stays connected to your organization.'
+        )}
       </Text>
     );
   }
@@ -439,7 +433,7 @@ function RowActions({
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>
-          {t('Remove')}
+          {t('Remove destination')}
         </Button>
       </Fragment>
     );

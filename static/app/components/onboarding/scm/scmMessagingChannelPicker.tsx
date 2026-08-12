@@ -159,7 +159,7 @@ export function ScmMessagingChannelPicker({
           disabled={!channel || !!channelError}
           onClick={handleSave}
         >
-          {t('Enable alerts')}
+          {t('Add destination')}
         </Button>
       </Flex>
     </Stack>

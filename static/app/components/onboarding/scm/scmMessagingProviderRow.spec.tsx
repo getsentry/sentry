@@ -347,6 +347,12 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
     });
 
+    it('shows the Connected tag', () => {
+      renderRow(connectedSlack, selectedSlackSetup);
+
+      expect(screen.getByText('Connected')).toBeInTheDocument();
+    });
+
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
       renderRow(connectedSlack, selectedSlackSetup, {renderChannelPicker});
@@ -368,8 +374,12 @@ describe('ScmMessagingProviderRow', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
 
-      expect(screen.getByText(/Remove Slack integration\?/)).toBeInTheDocument();
-      expect(screen.getByText(/You can reconnect at any time/)).toBeInTheDocument();
+      expect(screen.getByText('Remove this destination?')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'This removes the destination from project setup. The integration stays connected to your organization.'
+        )
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Cancel/})).toBeInTheDocument();
     });
 
@@ -380,7 +390,11 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Cancel/}));
 
       expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(screen.queryByText(/You can reconnect at any time/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'This removes the destination from project setup. The integration stays connected to your organization.'
+        )
+      ).not.toBeInTheDocument();
     });
 
     it('calls onMessagingSetupChange with unconfigured when confirmed', async () => {
@@ -388,9 +402,7 @@ describe('ScmMessagingProviderRow', () => {
       renderRow(connectedSlack, selectedSlackSetup, {onMessagingSetupChange});
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
-
-      const [confirmBtn] = screen.getAllByRole('button', {name: /Remove/});
-      await userEvent.click(confirmBtn);
+      await userEvent.click(screen.getByRole('button', {name: 'Remove destination'}));
 
       expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
     });
