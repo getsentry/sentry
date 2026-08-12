@@ -10,6 +10,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -21,7 +22,8 @@ from sentry.workflow_engine.defaults.detectors import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
+from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -271,6 +273,16 @@ def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str
     )
 
 
+def _get_detector_organization(detector: Detector) -> Organization:
+    if detector.project_id is not None:
+        return detector.linked_project.organization
+
+    organization_id = detector.config.get("organization_id")
+    if not isinstance(organization_id, int):
+        raise ValueError("Organization-scoped detector is missing organization_id")
+    return Organization.objects.get_from_cache(id=organization_id)
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -292,6 +304,17 @@ def process_detectors[T](
             "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
         ):
             detector_results = handler.evaluate(data_packet)
+
+        emit_detector_evaluation_logs(
+            logger,
+            organization=_get_detector_organization(detector),
+            result=ProcessDetectorsResult(
+                detector_id=detector.id,
+                detector_type=detector.type,
+                project_id=detector.project_id,
+                evaluations=detector_results,
+            ),
+        )
 
         for result in detector_results.values():
             logger_extra = {
