@@ -163,12 +163,16 @@ def get_out_of_date_github_permissions(
         return {}
 
     # Org-scoped so a run can only surface permissions for repos in its own org.
-    repo_integration_ids = Repository.objects.filter(
-        organization_id=organization.id,
-        provider__in=SEER_GITHUB_PROVIDERS,
-        name__in=repo_names,
-        status=ObjectStatus.ACTIVE,
-    ).values_list("name", "integration_id")
+    repo_integration_ids = (
+        Repository.objects.filter(
+            organization_id=organization.id,
+            provider__in=SEER_GITHUB_PROVIDERS,
+            name__in=repo_names,
+            status=ObjectStatus.ACTIVE,
+        )
+        .order_by("name")
+        .values_list("name", "integration_id")
+    )
 
     missing_by_repo: dict[str, MissingGithubPermissions] = {}
     for repo_name, integration_id in repo_integration_ids:
