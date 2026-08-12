@@ -144,7 +144,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
   [
     DataConditionType.EVERY_EVENT,
     {
-      label: t('An event is captured'),
+      label: t('An event or issue activity is captured'),
       validate: undefined,
     },
   ],
