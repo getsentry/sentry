@@ -529,9 +529,15 @@ class GetOrCreateFromReferenceTest(TestCase):
         """Duplicate rows sharing a provider are ambiguous by name, and no provider value
         can separate them -- only the external id can."""
         duplicate = self.create_repo(
-            self.project, name="getsentry/sentry", provider="integrations:github"
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="99",
         )
-        duplicate.update(external_id="99")
+        # create_repo get_or_creates: without a distinguishing field it returns the setUp
+        # row, and the duplicate this test is named for never exists.
+        assert duplicate.id != self.repo.id
+        assert self._resolve().repo_resolution == "ambiguous"
 
         resolved = self._resolve(repo_external_id="99")
 
