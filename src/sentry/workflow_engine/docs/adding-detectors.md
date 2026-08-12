@@ -10,25 +10,6 @@ Detector implementations normally live in the product module that owns the data 
 Issue Platform group type. Only shared abstractions, processors, and generic source or
 condition handling belong in `sentry.workflow_engine`.
 
-## Confirm This Is the Right Detector System
-
-Use a Workflow Engine detector when the feature needs most of the following:
-
-- A persisted detector users or APIs can configure
-- Evaluation of product data represented by a `DataPacket`
-- Trigger and resolution transitions
-- Issue creation through Issue Platform
-- Connection to Workflow Engine workflows and actions
-
-Do not assume every Sentry "detector" uses this runtime.
-
-| Need                                                       | Likely system                                                                  |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Evaluate a source over time and create/resolve an issue    | Workflow Engine detector                                                       |
-| Scan transaction spans in memory for a performance problem | [`sentry.issue_detection`](../../issue_detection/README.md)                    |
-| Attach workflows to ordinary error issues                  | Default error and issue-stream detectors; no new runtime handler               |
-| Create issues in a specialized existing ingestion path     | Possibly a `GroupType` without `process_detectors`; inspect that product first |
-
 Before coding, identify:
 
 - The owning product module
@@ -241,23 +222,50 @@ def thresholds(self) -> DetectorThresholds:
     }
 ```
 
-The default threshold is one. For a non-OK evaluation, configured non-OK counters at or
-below the evaluated priority increment; higher counters remain unchanged. An OK
+The default threshold is one. For a detectors evaluation, the threshold will say we needs
+to see X number of a non-OK evaluations to trigger the detector. An OK
 evaluation clears non-OK counters before advancing the OK counter. An evaluation equal
 to the current durable state clears accumulated counters. These rules are not simply an
 independent consecutive-sample counter for every priority.
 
-Model the recovery path explicitly. A detector that can trigger but never produce `OK`
-evaluations will not resolve through the stateful handler.
+An example evaluation:
 
-For the standard stateful implementation, merely failing every non-OK condition does
-not resolve the detector: a non-triggered group emits no result. Recovery requires a
-triggered group whose selected priority remains `OK`. This normally uses a passing
-condition with an `OK` result, but an empty or passing `NONE` group can also trigger with
-no priority-bearing result and use the default `OK` priority. A missing detector trigger
-group is invalid and produces no state transition.
+```python
+# The detectors treshold settings
+@property
+def thresholds(self) -> DetectorThresholds:
+    return {
+        DetectorPriorityLevel.HIGH: 2,
+        DetectorPriorityLevel.OK: 1
+    }
 
-`create_occurrence` does not receive the current group key. The base handler still adds
+# The evaluation results
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered
+
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.OK
+- DetectorPriorityLevel.HIGH
+===> Detector is _not_ triggered, requires two consecutive hits
+- DetectorPriorityLevel.OK
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered
+
+```
+
+A detector that can trigger but never produce `OK` evaluations will not resolve through
+the stateful handler.
+
+For the StatefulDetectorHandler implementation, failing a non-OK condition does not resolve
+the detector. To have the detector be considered resolved, the trigger group must resolve
+to `DetectorPriorityLevel.OK`. This normally uses a passing condition with an `OK` result,
+but an empty or passing `NONE` group can also trigger with no priority-bearing result and
+use the default `OK` priority. A missing detector trigger group is invalid and produces no
+state transition.
+
+**NOTE**: `create_occurrence` does not receive the current group key. The base handler still adds
 the key to `DetectorEvaluation.data` and the engine fingerprint. If product evidence
 must contain the key, include it in the extracted evaluation value or implement and
 test the required custom orchestration.
@@ -336,11 +344,12 @@ Detector-specific validators commonly provide:
 - Quota calculation
 - Detector-specific cleanup
 
-Set `data_source_required = False` only when the detector is intentionally created and
-resolved outside the generic data-source graph. Set `enforce_single_datasource = True`
+If for some reason there's not a consistent data_source or you need to opt-out of the data_source
+to detector connections, then set `data_source_required = False`. This should only be when the detector
+is intentionally created and resolved outside the generic data-source graph. Set `enforce_single_datasource = True`
 when multiple sources would make the handler ambiguous.
 
-Do not create the detector graph piecemeal in an endpoint. The base validator's
+_Do not create the detector graph piecemeal in an endpoint._ The base validator's
 transaction coordinates condition groups, detector config validation, source mappings,
 workflow connections, and audit logging.
 
