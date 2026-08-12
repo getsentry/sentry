@@ -98,6 +98,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       illustration={
         <Image
           height={{zero: '150px', '2xl': 'auto'}}
+          width="auto"
           src={emptyStateImg}
           alt="Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window"
         />
