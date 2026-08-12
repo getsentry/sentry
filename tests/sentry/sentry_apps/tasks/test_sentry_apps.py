@@ -1762,11 +1762,11 @@ class TestWebhookRequests(TestCase):
 
         with override_options(
             {
-                "sentry-apps.override.organization_ids.webhook.timeout.sec": {
-                    str(installation.organization_id): 3.0
-                },
-                "sentry-apps.override.organization_ids.webhook.hard-timeout.sec": {
-                    str(installation.organization_id): 8.0
+                "sentry-apps.override.organization_ids.webhook.timeouts.sec": {
+                    str(installation.organization_id): {
+                        "webhook_timeout_override": 3.0,
+                        "hard_timeout_override": 8.0,
+                    }
                 },
             }
         ):
@@ -1779,6 +1779,46 @@ class TestWebhookRequests(TestCase):
 
         assert safe_urlopen.call_args.kwargs["timeout"] == 3.0
         timeout_alarm.assert_called_once_with(8.0, ANY)
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
+    @patch("sentry.utils.sentry_apps.webhooks.logger.warning")
+    def test_uses_defaults_when_webhook_timeout_override_exceeds_hard_timeout(
+        self,
+        warning: MagicMock,
+        timeout_alarm: MagicMock,
+        safe_urlopen: MagicMock,
+    ) -> None:
+        with override_options(
+            {
+                "sentry-apps.webhook.timeout.sec": 1.0,
+                "sentry-apps.webhook.hard-timeout.sec": 5.0,
+                "sentry-apps.override.organization_ids.webhook.timeouts.sec": {
+                    str(self.install.organization_id): {
+                        "webhook_timeout_override": 9.0,
+                        "hard_timeout_override": 8.0,
+                    }
+                },
+            }
+        ):
+            send_webhooks(
+                installation=self.install,
+                event="issue.assigned",
+                data={"issue": serialize(self.issue)},
+                actor=self.user,
+            )
+
+        warning.assert_called_once_with(
+            "sentry_app.webhook.invalid_timeout_overrides",
+            extra={
+                "app_slug": self.sentry_app.slug,
+                "organization_id": self.install.organization_id,
+                "webhook_timeout_override": 9.0,
+                "hard_timeout_override": 8.0,
+            },
+        )
+        assert safe_urlopen.call_args.kwargs["timeout"] == 1.0
+        timeout_alarm.assert_called_once_with(5.0, ANY)
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
