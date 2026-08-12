@@ -111,6 +111,7 @@ function makeIntegrationQueryKey({
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
+const tabsWithoutFeatures = tabs.filter(tab => tab !== 'features');
 const tabTitles: Record<IntegrationTab, string> = {
   overview: t('Overview'),
   configurations: t('Configurations'),
@@ -164,24 +165,18 @@ export default function IntegrationDetailedView() {
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
-  const displayTabs = useMemo(
-    () =>
-      integrationFeatures.includes(provider?.key ?? '')
-        ? tabs
-        : tabs.filter(tab => tab !== 'features'),
-    [provider?.key]
-  );
-  const displayedTab =
-    !provider || displayTabs.includes(activeTab) ? activeTab : 'overview';
+  const displayTabs =
+    !provider || integrationFeatures.includes(provider.key) ? tabs : tabsWithoutFeatures;
+  const displayedTab = displayTabs.includes(activeTab) ? activeTab : 'overview';
 
   useEffect(() => {
-    if (!provider || displayTabs.includes(activeTab)) {
+    if (displayedTab === activeTab) {
       return;
     }
 
     const {tab: _tab, ...query} = location.query;
     navigate({query}, {replace: true});
-  }, [activeTab, displayTabs, location.query, navigate, provider]);
+  }, [activeTab, displayedTab, location.query, navigate]);
 
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
