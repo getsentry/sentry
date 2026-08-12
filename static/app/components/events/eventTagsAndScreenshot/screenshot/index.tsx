@@ -1,5 +1,5 @@
 import type {ReactEventHandler} from 'react';
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,10 +11,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
-  getImageAttachmentRenderer,
   imageMimeTypes,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -72,11 +72,9 @@ export function Screenshot({
     onDelete(screenshotAttachmentId);
   }
 
-  const AttachmentComponent = useMemo(
-    () => getImageAttachmentRenderer(screenshot) ?? ImageViewer,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [screenshot.mimetype]
-  );
+  const AttachmentComponent = webmMimeTypes.includes(screenshot.mimetype)
+    ? VideoViewer
+    : ImageViewer;
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (

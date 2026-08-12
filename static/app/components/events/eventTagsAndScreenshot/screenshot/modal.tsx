@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,7 +11,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {webmMimeTypes} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
@@ -97,11 +98,9 @@ export function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent = useMemo(
-    () => getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentEventAttachment.mimetype]
-  );
+  const AttachmentComponent = webmMimeTypes.includes(currentEventAttachment.mimetype)
+    ? VideoViewer
+    : ImageViewer;
 
   return (
     <Fragment>
