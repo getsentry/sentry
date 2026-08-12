@@ -201,9 +201,11 @@ export function getRelativeDate(
     );
   }
 
-  if (!suffix && !prefix) {
-    return deltaText;
+  // Only one of the two is used, so the other being absent is not a reason to
+  // drop the affix that does apply.
+  if (isFuture) {
+    return prefix ? `${prefix} ${deltaText}` : deltaText;
   }
 
-  return isFuture ? `${prefix} ${deltaText}` : `${deltaText} ${suffix}`;
+  return suffix ? `${deltaText} ${suffix}` : deltaText;
 }
