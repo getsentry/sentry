@@ -21,7 +21,6 @@ from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
-from sentry.utils.settings import get_setting_string
 from sentry.utils.signing import urlsafe_b64decode
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,8 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
         return options.get("gcp.client-id")
 
     def get_oauth_client_secret(self) -> str | None:
-        return get_setting_string(settings.SENTRY_GCP_CLIENT_SECRET)
+        secret = settings.SENTRY_GCP_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [

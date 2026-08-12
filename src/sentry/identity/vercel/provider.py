@@ -4,7 +4,6 @@ from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.pipeline.views.base import PipelineView
-from sentry.utils.settings import get_setting_string
 
 
 class VercelIdentityProvider(OAuth2Provider):
@@ -18,7 +17,8 @@ class VercelIdentityProvider(OAuth2Provider):
         return options.get("vercel.client-id")
 
     def get_oauth_client_secret(self) -> str | None:
-        return get_setting_string(settings.SENTRY_VERCEL_CLIENT_SECRET)
+        secret = settings.SENTRY_VERCEL_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url

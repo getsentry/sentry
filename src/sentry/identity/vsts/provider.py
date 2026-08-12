@@ -15,7 +15,6 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
-from sentry.utils.settings import get_setting_string
 
 
 def get_user_info(access_token):
@@ -59,7 +58,8 @@ class VSTSIdentityProvider(OAuth2Provider):
         return options.get("vsts.client-id")
 
     def get_oauth_client_secret(self):
-        return get_setting_string(settings.SENTRY_VSTS_CLIENT_SECRET)
+        secret = settings.SENTRY_VSTS_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
@@ -84,7 +84,9 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
-        client_secret = get_setting_string(settings.SENTRY_VSTS_CLIENT_SECRET)
+        client_secret = settings.SENTRY_VSTS_CLIENT_SECRET
+        if not isinstance(client_secret, str):
+            client_secret = None
 
         # The token refresh flow does not operate within a pipeline in the same way
         # that installation does, this means that we have to use the identity.scopes
@@ -99,7 +101,8 @@ class VSTSIdentityProvider(OAuth2Provider):
             "Legacy VSTS identity provider only supports Identity"
         )
         if "vso.code" not in identity.scopes:
-            client_secret = get_setting_string(settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET)
+            limited_secret = settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET
+            client_secret = limited_secret if isinstance(limited_secret, str) else None
 
         oauth_redirect_url = kwargs.get("redirect_url")
         if oauth_redirect_url is None:
@@ -161,7 +164,8 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         return options.get("vsts_new.client-id")
 
     def get_oauth_client_secret(self):
-        return get_setting_string(settings.SENTRY_VSTS_NEW_CLIENT_SECRET)
+        secret = settings.SENTRY_VSTS_NEW_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
