@@ -2738,6 +2738,35 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validate_only_does_not_borrow_project_without_access(
+        self, mock_in_test_environment
+    ) -> None:
+        """Without allow_joinleave a teamless member can reach no project.
+
+        The fallback must decline rather than validate against a project the
+        requester cannot see, so this hits the backstop.
+        """
+        org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
+        team = self.create_team(organization=org)
+        self.create_project(organization=org, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=org, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": org.slug},
+        )
+        response = self.do_request(
+            "post", url + "?validateOnly=1", data=self._single_widget_dashboard("Closed Org")
+        )
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["conditions"] == [
+            "Could not validate query: no project available."
+        ]
+        assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validate_only_looks_up_fallback_project_once(
         self, mock_in_test_environment
     ) -> None:

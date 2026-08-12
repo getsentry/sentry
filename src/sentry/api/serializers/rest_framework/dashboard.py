@@ -365,12 +365,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     def _get_validation_project_ids(self) -> list[int]:
         """Project ids used only to satisfy the query builder during validation.
 
-        Which projects are in scope doesn't affect the outcome, so any active
-        one in the organization will do when the context list is empty. That
+        Which projects are in scope doesn't affect the outcome, so any project
+        the requester can reach will do when the context list is empty. That
         happens routinely: `get_projects` filters on team membership, while
         `allow_joinleave` orgs grant project access without it, so any teamless
         member of an open-membership org lands here despite seeing everything.
-        Not an access check — no query runs against the borrowed project.
         """
         project_ids = [p.id for p in self.context["projects"]]
         if project_ids:
@@ -379,18 +378,31 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         # Cached in the (request-scoped, tree-wide) serializer context because
         # this runs once per widget query, up to MAX_WIDGETS times per request.
         if _FALLBACK_PROJECT_IDS_KEY not in self.context:
-            fallback_id = (
-                Project.objects.filter(
-                    organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
-                )
-                .values_list("id", flat=True)
-                .first()
-            )
-            self.context[_FALLBACK_PROJECT_IDS_KEY] = (
-                [fallback_id] if fallback_id is not None else []
-            )
+            self.context[_FALLBACK_PROJECT_IDS_KEY] = self._borrow_accessible_project_id()
 
         return self.context[_FALLBACK_PROJECT_IDS_KEY]
+
+    def _borrow_accessible_project_id(self) -> list[int]:
+        """One active project the requester can access, or none.
+
+        Decided by `Access.has_project_access`, the same predicate `get_projects`
+        applies under `include_all_accessible`, so a requester with no route to
+        any project borrows nothing and validation reports that instead.
+        """
+        access = getattr(self.context.get("request"), "access", None)
+        if access is None:
+            return []
+
+        candidates = Project.objects.filter(
+            organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
+        )
+        if not access.has_global_access:
+            # Only team projects can match; narrow in the database rather than
+            # scanning the org. has_project_access still decides.
+            candidates = candidates.filter(id__in=access.project_ids_with_team_membership)
+
+        project = candidates.first()
+        return [project.id] if project is not None and access.has_project_access(project) else []
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
