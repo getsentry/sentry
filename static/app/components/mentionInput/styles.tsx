@@ -1,11 +1,15 @@
 import styled from '@emotion/styled';
 
-import {inputStyles} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-export const MentionEditor = styled('div')`
-  ${inputStyles};
+// Emotion retains Input's ref type after changing the rendered element.
+const InputDiv = Input.withComponent('div') as React.ComponentType<
+  React.ComponentPropsWithRef<'div'>
+>;
+
+export const MentionEditor = styled(InputDiv)`
   height: auto;
   overflow: auto;
   resize: none;
