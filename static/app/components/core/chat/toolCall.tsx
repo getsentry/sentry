@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {unreachable} from 'sentry/utils/unreachable';
 
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 
@@ -66,7 +67,7 @@ function ReferenceChip({reference}: {reference: ToolCallReference}) {
       size="xs"
       icon={icon ?? <IconSpan size="xs" />}
       onClick={onClick}
-      aria-disabled={onClick ? undefined : true}
+      disabled={!onClick}
     >
       {label ? (
         <Text size="sm">
@@ -104,8 +105,10 @@ function getStatusLabel(status: ToolCallStatus): string | undefined {
       return t('Failed');
     case 'mixed':
       return t('Partially succeeded');
-    default:
+    case 'content':
       return undefined;
+    default:
+      return unreachable(status);
   }
 }
 
