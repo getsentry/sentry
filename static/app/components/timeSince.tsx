@@ -16,7 +16,7 @@ function getDateObj(date: RelaxedDateType): Date {
 
 type RelaxedDateType = string | number | Date;
 
-type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
+export type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
 
 interface Props extends Omit<
   React.TimeHTMLAttributes<HTMLTimeElement>,
@@ -45,6 +45,11 @@ interface Props extends Omit<
    * Max width of the tooltip
    */
   maxWidth?: InfoTextProps<'time'>['maxWidth'];
+  /**
+   * Additional style rules for the tooltip content. Useful when `tooltipBody`
+   * renders a card that owns its own padding and alignment.
+   */
+  overlayStyle?: InfoTextProps<'time'>['overlayStyle'];
   /**
    * Prefix before upcoming time (when the date is in the future)
    *
@@ -106,6 +111,7 @@ export function TimeSince({
   tooltipBody,
   variant = 'inherit',
   maxWidth,
+  overlayStyle,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -155,6 +161,7 @@ export function TimeSince({
       dateTime={dateObj?.toISOString()}
       variant={variant}
       maxWidth={maxWidth}
+      overlayStyle={overlayStyle}
       title={
         disabledAbsoluteTooltip ? null : (
           <Fragment>

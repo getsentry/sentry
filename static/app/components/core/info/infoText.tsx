@@ -9,7 +9,7 @@ type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   DistributedOmit<TextProps<T>, 'title' | 'variant' | 'underline'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
-  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay'>;
+  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay' | 'overlayStyle'>;
 
 export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   | (InfoTextBaseProps<T> & {mode?: undefined})
@@ -22,6 +22,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
   children,
   position,
   maxWidth,
+  overlayStyle,
   delay,
   mode,
   ...textProps
@@ -42,6 +43,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
       title={title}
       position={position}
       maxWidth={maxWidth}
+      overlayStyle={overlayStyle}
       delay={delay}
       showOnlyOnOverflow={isOverflowOnly}
       onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
