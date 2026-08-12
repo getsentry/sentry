@@ -277,7 +277,10 @@ export function MentionInput<TSuggestion>({
     suppressContentEditableWarning: true,
     tabIndex: editorProps.tabIndex ?? 0,
     onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
-      if (!overlayRef.current?.contains(event.relatedTarget)) {
+      if (
+        !overlayRef.current?.contains(event.relatedTarget) &&
+        !listBoxRef.current?.contains(event.relatedTarget)
+      ) {
         dismissedRequestKeyRef.current = null;
         setActiveMention(null);
       }

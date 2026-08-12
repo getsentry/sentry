@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {queryOptions} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -60,10 +61,15 @@ const REMOTE_SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
     id: 'remote-members',
     label: 'Remote members',
     trigger: '@',
-    getSuggestions: async (query, {signal}) => {
-      await waitForDelay(500, signal);
-      return filterSuggestions(PEOPLE, query);
-    },
+    queryOptions: query =>
+      queryOptions({
+        queryKey: ['mention-input-story', 'remote-members', query] as const,
+        queryFn: async ({signal}) => {
+          await waitForDelay(500, signal);
+          return filterSuggestions(PEOPLE, query);
+        },
+        staleTime: Infinity,
+      }),
     getId: suggestion => suggestion.id,
     getText: suggestion => `@${suggestion.label}`,
   },

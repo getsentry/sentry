@@ -1,18 +1,11 @@
 import type React from 'react';
+import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {MentionInputValue} from './model';
 
-export interface MentionSource<TSuggestion> {
+interface MentionSourceBase<TSuggestion> {
   /** Returns a stable identity for a suggestion. */
   getId: (suggestion: TSuggestion) => string;
-  /**
-   * Returns suggestions for the text between the trigger and the caret. Async
-   * sources should observe the abort signal when their data layer supports it.
-   */
-  getSuggestions: (
-    query: string,
-    context: {signal: AbortSignal}
-  ) => readonly TSuggestion[] | Promise<readonly TSuggestion[]>;
   /** Returns the exact text inserted into the editor. */
   getText: (suggestion: TSuggestion) => string;
   /** Stable identifier for this source, such as `members` or `teams`. */
@@ -25,13 +18,27 @@ export interface MentionSource<TSuggestion> {
   renderSuggestion?: (suggestion: TSuggestion) => React.ReactNode;
 }
 
+interface LocalMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+  /** Filters local suggestions for the text between the trigger and caret. */
+  getSuggestions: (query: string) => readonly TSuggestion[];
+}
+
+interface AsyncMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+  /** Returns query options whose selected data is the suggestion list. */
+  queryOptions: (query: string) => AnyUseQueryOptions;
+}
+
+export type MentionSource<TSuggestion> =
+  | LocalMentionSource<TSuggestion>
+  | AsyncMentionSource<TSuggestion>;
+
 export interface MentionInputProps<TSuggestion> extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
   onChange: (value: MentionInputValue) => void;
-  /** Suggestion sources. Sources may be synchronous or asynchronous. */
+  /** Local and queried suggestion sources. */
   sources: ReadonlyArray<MentionSource<TSuggestion>>;
   /** Controlled editor text and structured mention ranges. */
   value: MentionInputValue;

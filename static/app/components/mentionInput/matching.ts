@@ -1,5 +1,3 @@
-import type {MentionSource} from './types';
-
 interface MentionMatch {
   end: number;
   query: string;
@@ -43,11 +41,11 @@ function findDefaultMatch(
   };
 }
 
-export function findActiveMention<T>(
+export function findActiveMention(
   text: string,
   selectionStart: number,
   selectionEnd: number,
-  sources: ReadonlyArray<MentionSource<T>>
+  sources: ReadonlyArray<{id: string; trigger: string}>
 ): ActiveMention | null {
   let activeMention: ActiveMention | null = null;
 

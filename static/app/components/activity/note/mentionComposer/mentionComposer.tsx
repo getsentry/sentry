@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -17,11 +16,7 @@ import type {NoteType} from 'sentry/types/alerts';
 import type {Member, Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {
-  memberUsersQueryOptions,
-  selectUsersFromMembers,
-} from 'sentry/utils/members/shared';
-import {useMembers} from 'sentry/utils/members/useMembers';
+import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -39,64 +34,56 @@ type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
 
 export function MentionComposer(props: MentionComposerProps) {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const {data: members = []} = useMembers();
   const {teams} = useTeams();
 
-  const memberSuggestions = useMemo<readonly MentionEntity[]>(
-    () => members.map(user => ({kind: 'member', user})),
-    [members]
-  );
-  const teamSuggestions = useMemo<readonly MentionEntity[]>(
-    () => teams.map(team => ({kind: 'team', team})),
+  const teamSuggestions = useMemo(
+    () => teams.map(team => ({kind: 'team', team}) as const satisfies MentionEntity),
     [teams]
   );
 
-  const sources = useMemo<ReadonlyArray<MentionSource<MentionEntity>>>(
-    () => [
-      {
-        id: 'members',
-        label: t('Members'),
-        trigger: '@',
-        getSuggestions: async (query, {signal}) => {
-          const search = query.trim();
-          if (!search) {
-            return memberSuggestions;
-          }
-
-          signal.throwIfAborted();
-          const response = await queryClient.fetchQuery(
-            memberUsersQueryOptions({orgSlug: organization.slug, search})
-          );
-          signal.throwIfAborted();
-
-          return getMemberUsers(response).map(
-            user => ({kind: 'member', user}) satisfies MentionEntity
-          );
+  const sources = useMemo(
+    () =>
+      [
+        {
+          id: 'members',
+          label: t('Members'),
+          trigger: '@',
+          queryOptions: query => getMemberMentionQueryOptions(organization.slug, query),
+          getId: getMentionId,
+          getText: suggestion => `@${getMentionLabel(suggestion)}`,
+          renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
         },
-        getId: getMentionId,
-        getText: suggestion => `@${getMentionLabel(suggestion)}`,
-        renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
-      },
-      {
-        id: 'teams',
-        label: t('Teams'),
-        trigger: '#',
-        getSuggestions: query => {
-          const normalizedQuery = query.trim().toLocaleLowerCase();
-          return teamSuggestions.filter(suggestion =>
-            getMentionLabel(suggestion).toLocaleLowerCase().includes(normalizedQuery)
-          );
+        {
+          id: 'teams',
+          label: t('Teams'),
+          trigger: '#',
+          getSuggestions: query => {
+            const normalizedQuery = query.trim().toLocaleLowerCase();
+            return teamSuggestions.filter(suggestion =>
+              getMentionLabel(suggestion).toLocaleLowerCase().includes(normalizedQuery)
+            );
+          },
+          getId: getMentionId,
+          getText: getMentionLabel,
+          renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
         },
-        getId: getMentionId,
-        getText: getMentionLabel,
-        renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
-      },
-    ],
-    [memberSuggestions, organization.slug, queryClient, teamSuggestions]
+      ] satisfies ReadonlyArray<MentionSource<MentionEntity>>,
+    [organization.slug, teamSuggestions]
   );
 
   return <Composer {...props} sources={sources} />;
+}
+
+function getMemberMentionQueryOptions(orgSlug: string, query: string) {
+  const options = memberUsersQueryOptions({orgSlug, search: query.trim()});
+
+  return {
+    ...options,
+    select: (response: ApiResponse<Member[]>): readonly MentionEntity[] =>
+      options
+        .select(response)
+        .map(user => ({kind: 'member', user}) as const satisfies MentionEntity),
+  };
 }
 
 function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
@@ -147,10 +134,6 @@ function getMentionId(suggestion: MentionEntity): string {
     case 'team':
       return `team:${suggestion.team.id}`;
   }
-}
-
-function getMemberUsers(response: ApiResponse<Member[]> | User[]): User[] {
-  return Array.isArray(response) ? response : selectUsersFromMembers(response.json);
 }
 
 function serializeNoteMentions(value: MentionInputValue): string {

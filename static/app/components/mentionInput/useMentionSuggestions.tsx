@@ -1,8 +1,9 @@
-import {startTransition, useId, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useId, useLayoutEffect, useMemo, useRef} from 'react';
 import {getItemId, listData} from '@react-aria/listbox';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
+import {skipToken, useQuery, type QueryStatus} from '@tanstack/react-query';
 
 import {getRequestKey, type ActiveMention} from './matching';
 import type {MentionSource} from './types';
@@ -15,15 +16,7 @@ interface SuggestionListItem<T> {
   textValue: string;
 }
 
-type SuggestionLoadStatus = 'error' | 'loading' | 'ready';
-
 export type MentionSuggestionStatus = 'empty' | 'error' | 'loading' | 'ready';
-
-interface SuggestionState<T> {
-  items: readonly T[];
-  requestKey: string | null;
-  status: SuggestionLoadStatus;
-}
 
 interface UseMentionSuggestionsOptions<T> {
   activeMention: ActiveMention | null;
@@ -35,27 +28,48 @@ interface UseMentionSuggestionsOptions<T> {
 
 const MAX_SUGGESTIONS = 50;
 
-const EMPTY_SUGGESTIONS = {
-  items: [],
-  requestKey: null,
-  status: 'loading',
-} as const;
+function useSourceSuggestions<T>(
+  source: MentionSource<T> | undefined,
+  query: string | undefined
+) {
+  const queriedSource = source && 'queryOptions' in source ? source : undefined;
+  const suggestionsQuery = useQuery(
+    queriedSource && query !== undefined
+      ? queriedSource.queryOptions(query)
+      : {queryKey: ['mention-suggestions'], queryFn: skipToken}
+  );
+  const suggestions = useMemo(() => {
+    if (!source || query === undefined) {
+      return [];
+    }
+
+    if ('getSuggestions' in source) {
+      return source.getSuggestions(query).slice(0, MAX_SUGGESTIONS);
+    }
+
+    const queriedSuggestions: readonly T[] | undefined = suggestionsQuery.data;
+    return queriedSuggestions?.slice(0, MAX_SUGGESTIONS) ?? [];
+  }, [query, source, suggestionsQuery.data]);
+
+  return {
+    queryStatus: queriedSource ? suggestionsQuery.status : 'success',
+    suggestions,
+  };
+}
 
 function getSuggestionStatus(
-  loadStatus: SuggestionLoadStatus,
-  count: number
+  queryStatus: QueryStatus,
+  hasSuggestions: boolean
 ): MentionSuggestionStatus {
-  switch (loadStatus) {
-    case 'error':
-      return 'error';
-    case 'ready':
-      if (count === 0) {
-        return 'empty';
-      }
-      return 'ready';
-    case 'loading':
-      return 'loading';
+  if (queryStatus === 'pending') {
+    return 'loading';
   }
+
+  if (queryStatus === 'error') {
+    return 'error';
+  }
+
+  return hasSuggestions ? 'ready' : 'empty';
 }
 
 export function useMentionSuggestions<T>({
@@ -66,69 +80,12 @@ export function useMentionSuggestions<T>({
   listBoxRef,
 }: UseMentionSuggestionsOptions<T>) {
   const initializedFocusRequestRef = useRef<string | null>(null);
-  const [suggestionState, setSuggestionState] =
-    useState<SuggestionState<T>>(EMPTY_SUGGESTIONS);
   const activeQuery = activeMention?.query;
   const requestKey = activeSource ? getRequestKey(activeMention) : null;
-
-  useLayoutEffect(() => {
-    if (activeQuery === undefined || !activeSource || !requestKey) {
-      setSuggestionState(EMPTY_SUGGESTIONS);
-      return;
-    }
-
-    const abortController = new AbortController();
-    setSuggestionState({items: [], requestKey, status: 'loading'});
-
-    let suggestions: ReturnType<MentionSource<T>['getSuggestions']>;
-    try {
-      suggestions = activeSource.getSuggestions(activeQuery, {
-        signal: abortController.signal,
-      });
-    } catch {
-      setSuggestionState({items: [], requestKey, status: 'error'});
-      return () => abortController.abort();
-    }
-
-    if (Array.isArray(suggestions)) {
-      setSuggestionState({
-        items: suggestions.slice(0, MAX_SUGGESTIONS),
-        requestKey,
-        status: 'ready',
-      });
-      return () => abortController.abort();
-    }
-
-    Promise.resolve(suggestions).then(
-      items => {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        startTransition(() => {
-          setSuggestionState({
-            items: items.slice(0, MAX_SUGGESTIONS),
-            requestKey,
-            status: 'ready',
-          });
-        });
-      },
-      () => {
-        if (!abortController.signal.aborted) {
-          setSuggestionState({items: [], requestKey, status: 'error'});
-        }
-      }
-    );
-
-    return () => abortController.abort();
-  }, [activeQuery, activeSource, requestKey]);
-
-  const currentSuggestions = useMemo(
-    () => (suggestionState.requestKey === requestKey ? suggestionState.items : []),
-    [requestKey, suggestionState.items, suggestionState.requestKey]
+  const {suggestions: currentSuggestions, queryStatus} = useSourceSuggestions(
+    activeSource,
+    activeQuery
   );
-  const loadStatus =
-    suggestionState.requestKey === requestKey ? suggestionState.status : 'loading';
 
   const items = useMemo<ReadonlyArray<SuggestionListItem<T>>>(
     () =>
@@ -207,6 +164,6 @@ export function useMentionSuggestions<T>({
     listBoxId,
     listState,
     requestKey,
-    status: getSuggestionStatus(loadStatus, items.length),
+    status: getSuggestionStatus(queryStatus, items.length > 0),
   };
 }

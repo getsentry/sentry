@@ -35,9 +35,9 @@ Persisted text and reference ranges can be supplied together, preserving identit
   <RestoredMentionInputDemo />
 </Storybook.Demo>
 
-## Load suggestions asynchronously
+## Load queried suggestions
 
-A source may return a promise and observe the provided abort signal. Only results for the current query are displayed.
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
 
 <Storybook.Demo overflow="visible">
   <AsyncMentionInputDemo />

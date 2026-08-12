@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {queryOptions} from '@tanstack/react-query';
 
 import {
   act,
@@ -18,7 +19,9 @@ interface PersonSuggestion {
   label: string;
 }
 
-const MEMBER_SOURCE: MentionSource<PersonSuggestion> = {
+type TestMentionSource = MentionSource<PersonSuggestion>;
+
+const MEMBER_SOURCE: TestMentionSource = {
   id: 'members',
   label: 'Members',
   trigger: '@',
@@ -41,7 +44,7 @@ function ControlledMentionInput({
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
-  sources?: ReadonlyArray<MentionSource<PersonSuggestion>>;
+  sources?: readonly TestMentionSource[];
 }) {
   const [value, setValue] = useState<MentionInputValue>({
     text: initialValue,
@@ -186,23 +189,29 @@ describe('MentionInput', () => {
         resolve: (suggestions: ReadonlyArray<{id: string; label: string}>) => void;
       }
     >();
-    const asyncSource: MentionSource<PersonSuggestion> = {
+    const asyncSource = {
       id: 'members',
       label: 'Members',
       trigger: '@',
-      getSuggestions: query =>
-        new Promise(resolve => {
-          pending.set(query, {resolve});
+      queryOptions: query =>
+        queryOptions({
+          queryKey: ['mention-input-test', 'members', query] as const,
+          queryFn: () =>
+            new Promise<readonly PersonSuggestion[]>(resolve => {
+              pending.set(query, {resolve});
+            }),
+          staleTime: Infinity,
         }),
       getId: suggestion => suggestion.id,
       getText: suggestion => `@${suggestion.label}`,
       renderSuggestion: suggestion => suggestion.label,
-    };
+    } satisfies MentionSource<PersonSuggestion>;
     render(<ControlledMentionInput sources={[asyncSource]} />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@a');
     await waitFor(() => expect(pending.has('a')).toBe(true));
+    expect(screen.getByText('Loading suggestions…')).toBeVisible();
     await userEvent.type(textbox, 'b');
     await waitFor(() => expect(pending.has('ab')).toBe(true));
 
