@@ -155,36 +155,25 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Flex
-                    display="inline-flex"
-                    align="center"
-                    gap="xs"
-                    minWidth={0}
-                    overflow="hidden"
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
                   >
-                    {({className}) => (
-                      <TitleLink
-                        className={className}
-                        to={issueDetailsUrl}
-                        analyticsEventKey="issue_inbox.open_issue_clicked"
-                        analyticsEventName="Issue Inbox: Open Issue Clicked"
-                        analyticsParams={{
-                          group_id: group.id,
-                          progress: group.derivedData?.progress,
-                          source: 'title',
-                        }}
-                      >
-                        <Container flex="1" minWidth={0}>
-                          <Heading as="h3" size="lg" ellipsis>
-                            {primaryTitle}
-                          </Heading>
-                        </Container>
-                        <Flex align="center" flexShrink={0}>
-                          <IconOpen size="xs" variant="muted" />
-                        </Flex>
-                      </TitleLink>
-                    )}
-                  </Flex>
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
                 </Tooltip>
               </Flex>
               <IssueSeenTimes group={group} />
@@ -291,6 +280,12 @@ const Dividers = styled('div')`
 `;
 
 const TitleLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+
   &:hover {
     text-decoration: underline;
     text-decoration-color: ${p => p.theme.tokens.content.secondary};
