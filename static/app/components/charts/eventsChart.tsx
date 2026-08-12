@@ -1,4 +1,4 @@
-import {isValidElement, memo, useMemo, useState} from 'react';
+import {isValidElement, memo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {
@@ -54,6 +54,38 @@ type ChartComponent =
   | React.ComponentType<BarChartProps>
   | React.ComponentType<AreaChartProps>
   | React.ComponentType<LineChartProps>;
+
+function resolveChartComponent({
+  chartComponent,
+  showDaily,
+  timeseriesLength,
+  forceChartType,
+  yAxis,
+}: {
+  timeseriesLength: number;
+  yAxis: string;
+  chartComponent?: ChartComponent;
+  forceChartType?: string;
+  showDaily?: boolean;
+}): ChartComponent {
+  if (defined(chartComponent)) {
+    return chartComponent;
+  }
+  if (showDaily) {
+    return BarChart;
+  }
+  if (timeseriesLength > 1) {
+    switch (forceChartType || aggregateMultiPlotType(yAxis)) {
+      case 'line':
+        return LineChart;
+      case 'area':
+        return AreaChart;
+      default:
+        throw new Error(`Unknown multi plot type for ${yAxis}`);
+    }
+  }
+  return AreaChart;
+}
 
 type ChartProps = {
   currentSeriesNames: string[];
@@ -147,25 +179,13 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = useMemo((): ChartComponent => {
-    if (defined(chartComponent)) {
-      return chartComponent;
-    }
-    if (showDaily) {
-      return BarChart;
-    }
-    if (timeseriesData.length > 1) {
-      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return LineChart;
-        case 'area':
-          return AreaChart;
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
-    }
-    return AreaChart;
-  }, [chartComponent, showDaily, timeseriesData.length, forceChartType, yAxis]);
+  const ChartComponent = resolveChartComponent({
+    chartComponent,
+    showDaily,
+    timeseriesLength: timeseriesData.length,
+    forceChartType,
+    yAxis,
+  });
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
