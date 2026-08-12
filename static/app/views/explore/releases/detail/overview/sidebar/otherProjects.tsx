@@ -1,7 +1,9 @@
+import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Collapsible} from 'sentry/components/collapsible';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -42,38 +44,41 @@ export function OtherProjects({projects, location, version, organization}: Props
           )}
         >
           {projects.map(project => (
-            <Grid
-              key={project.id}
-              align="center"
-              columns="1fr max-content"
-              css={theme => ({
-                fontSize: theme.font.size.md,
-                [`@container (min-width: ${theme.container['3xl']}) and (max-width: ${theme.container['4xl']})`]:
-                  {
-                    gridTemplateColumns: '200px max-content',
-                  },
-              })}
-              justify="between"
-              marginBottom="sm"
-            >
-              <IdBadge project={project} avatarSize={16} />
-              <LinkButton
-                size="xs"
-                to={{
-                  pathname: makeReleasesPathname({
-                    organization,
-                    path: `/${encodeURIComponent(version)}/`,
-                  }),
-                  query: {
-                    ...extractSelectionParameters(location.query),
-                    project: project.id,
-                    yAxis: undefined,
-                  },
-                }}
-              >
-                {t('View')}
-              </LinkButton>
-            </Grid>
+            <Fragment key={project.id}>
+              <Text size="md" variant="inherit">
+                {({className}) => (
+                  <Grid
+                    align="center"
+                    className={className}
+                    columns={{
+                      zero: '1fr max-content',
+                      '3xl': '200px max-content',
+                      '5xl': '1fr max-content',
+                    }}
+                    justify="between"
+                    marginBottom="sm"
+                  >
+                    <IdBadge project={project} avatarSize={16} />
+                    <LinkButton
+                      size="xs"
+                      to={{
+                        pathname: makeReleasesPathname({
+                          organization,
+                          path: `/${encodeURIComponent(version)}/`,
+                        }),
+                        query: {
+                          ...extractSelectionParameters(location.query),
+                          project: project.id,
+                          yAxis: undefined,
+                        },
+                      }}
+                    >
+                      {t('View')}
+                    </LinkButton>
+                  </Grid>
+                )}
+              </Text>
+            </Fragment>
           ))}
         </Collapsible>
       </SidebarSection.Content>
