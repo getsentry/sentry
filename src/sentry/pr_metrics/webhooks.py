@@ -107,6 +107,8 @@ from sentry.seer.autofix.utils import (
     make_match_coding_agent_pr_request,
 )
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.pull_requests import link_resolved_pull_request_to_seer_run
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -1391,7 +1393,65 @@ def _send_seer_delegated_agent_match(
             group_ids=request_body.group_ids,
         ).dict(),
     )
+    _link_matched_delegated_agent_pr(match, pr, provider_hint)
     _record_delegated_candidate(provider_hint, "sync_matched")
+
+
+def _link_matched_delegated_agent_pr(
+    match: DelegatedAgentMatch,
+    pr: PullRequest,
+    provider_hint: str,
+) -> None:
+    """Link a matched PR to the run that produced it, on the same 200 that attributes it.
+
+    A coding agent's PR is normally linked when the agent reports it, but an agent that
+    finished before its PR existed reported no PR, and the link is only ever written on a
+    status transition. This webhook is the next time anyone sees that PR, and Seer has
+    just told us which run it came from -- so it is the last chance to link it.
+
+    Attribution and the run link answer the same question and are trusted on the same
+    signal, so this fires wherever attribution does. Best-effort: a failure here must not
+    cost the attribution already recorded above.
+    """
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+        "agent_id": match.agent_id,
+        "run_id": match.run_id,
+        "match_path": match.match_path,
+    }
+    try:
+        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
+            agent_id=match.agent_id, seer_run__organization_id=pr.organization_id
+        )
+    except SeerRunCodingAgentHandoff.DoesNotExist:
+        # Seer knows agents whose handoff row we never wrote (a failed create, or a launch
+        # that predates the row). Nothing to link to, and not an error.
+        logger.info("pr_metrics.delegated_agent.handoff_not_found", extra=log_extra)
+        metrics.incr(
+            "pr_metrics.delegated_agent.link",
+            tags={"provider": provider_hint, "outcome": "no_handoff"},
+        )
+        return
+    except Exception:
+        logger.exception("pr_metrics.delegated_agent.handoff_lookup_failed", extra=log_extra)
+        return
+
+    linked = link_resolved_pull_request_to_seer_run(
+        seer_run=handoff.seer_run,
+        pull_request=pr,
+        log_context=log_extra,
+        coding_agent_handoff=handoff,
+    )
+    metrics.incr(
+        "pr_metrics.delegated_agent.link",
+        tags={
+            "provider": provider_hint,
+            "outcome": "linked" if linked is not None else "link_failed",
+            "match_path": match.match_path,
+        },
+    )
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:

@@ -37,9 +37,11 @@ from sentry.pr_metrics.webhooks import (
     handle_review_comment,
     handle_review_thread,
 )
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import get_event_count
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 
 MODULE = "sentry.pr_metrics.webhooks"
@@ -2546,6 +2548,89 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "provider": "claude_code",
             "outcome": "sync_matched",
         }
+
+    def _match_body(self, agent_id: str = "agent-1", match_path: str = "branch") -> dict[str, Any]:
+        return {
+            "run_id": 123,
+            "agent_id": agent_id,
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": match_path,
+        }
+
+    def _create_handoff(self, agent_id: str = "agent-1", organization: Any = None) -> Any:
+        organization = organization or self.organization
+        seer_run = self.create_seer_run(organization, type=SeerRunType.FEATURE_RUN)
+        return self.create_seer_run_coding_agent_handoff(
+            seer_run, agent_id=agent_id, provider="claude_code_agent"
+        )
+
+    def test_sync_match_links_pull_request_to_its_run(self) -> None:
+        """The agent finished before its PR existed, so nothing linked the PR when it
+        opened. Seer has just named the run it came from -- this is the last chance."""
+        handoff = self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        link = SeerRunPullRequest.objects.get(pull_request=self.pr)
+        assert link.seer_run_id == handoff.seer_run_id
+        assert link.coding_agent_handoff_id == handoff.id
+
+    def test_sync_match_links_on_the_looser_group_id_match_path(self) -> None:
+        """Linking fires wherever attribution does; Seer already declined ambiguous
+        fan-out before returning a 200."""
+        handoff = self._create_handoff()
+
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=self._match_body(match_path="group_id")),
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert (
+            SeerRunPullRequest.objects.get(pull_request=self.pr).seer_run_id == handoff.seer_run_id
+        )
+
+    def test_sync_match_keeps_attribution_when_no_handoff_row_exists(self) -> None:
+        """Seer knows agents whose handoff row we never wrote. That must not cost the
+        attribution recorded alongside the link."""
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+        ).exists()
+
+    def test_sync_match_does_not_link_a_handoff_from_another_org(self) -> None:
+        """agent_id is unique globally, so an unscoped lookup would cross orgs."""
+        other_org = self.create_organization()
+        self._create_handoff(organization=other_org)
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
+
+    def test_sync_match_link_is_idempotent_across_open_and_close(self) -> None:
+        """The funnel re-runs on close; the second pass must not double-write."""
+        self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(action="opened", head_ref="claude/fix")
+            self._call(action="closed", head_ref="claude/fix")
+
+        assert SeerRunPullRequest.objects.filter(pull_request=self.pr).count() == 1
+
+    @override_options({"seer.pull-request-linking.killswitch.enabled": True})
+    def test_sync_match_respects_the_linking_killswitch(self) -> None:
+        self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
 
     def test_sync_match_bad_body_records_error_outcome(self) -> None:
         with (
