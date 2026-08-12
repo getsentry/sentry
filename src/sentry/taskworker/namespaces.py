@@ -171,6 +171,11 @@ issues_merge_tasks = app.taskregistry.create_namespace(
     app_feature="issueplatform",
 )
 
+issues_reprocessing_tasks = app.taskregistry.create_namespace(
+    "issues.reprocessing",
+    app_feature="issueplatform",
+)
+
 integrations_tasks = app.taskregistry.create_namespace(
     "integrations",
     app_feature="integrations",
