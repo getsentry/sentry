@@ -1,4 +1,3 @@
-import logging
 import time
 from typing import TYPE_CHECKING
 
@@ -31,10 +30,8 @@ from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 from sentry.utils.tracing import start_span
 
-logger = logging.getLogger(__name__)
-
-
-REPROCRESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
+# Identifies this task in the self-chain idempotency guard.
+REPROCESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
 
 
 @instrumented_task(
@@ -69,10 +66,23 @@ def reprocess_group(
     sentry_sdk.set_tag("is_start", "false")
     sentry_sdk.set_attribute("is_start", "false")
 
+    # Self-chain idempotency guard. If this activation already produced its continuation in a
+    # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain.
+    # Only effective inside a worker (current_task() set).
     task_state = current_task()
     activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(REPROCRESS_GROUP_TASK_NAME, activation_id):
-        logger.info("reprocessing.reprocess_group.already_spawned")
+    if activation_id and already_spawned(REPROCESS_GROUP_TASK_NAME, activation_id):
+        logger.info(
+            "reprocessing.reprocess_group.duplicate_redelivery.skipped",
+            extra={
+                "project_id": project_id,
+                "group_id": group_id,
+                "activation_id": activation_id,
+            },
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped", tags={"task": REPROCESS_GROUP_TASK_NAME}
+        )
         return
 
     # Only executed once during reprocessing
@@ -167,8 +177,10 @@ def reprocess_group(
         max_events=max_events,
         remaining_events=remaining_events,
     )
+    # Record that this activation has spawned its continuation. A subsequent re-pend of this same
+    # activation will short-circuit at the guard above instead of spawning again.
     if activation_id:
-        mark_spawned(REPROCRESS_GROUP_TASK_NAME, activation_id)
+        mark_spawned(REPROCESS_GROUP_TASK_NAME, activation_id)
 
 
 @instrumented_task(
