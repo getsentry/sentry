@@ -44,7 +44,7 @@ function useSourceSuggestions<T>(
   query: string | undefined
 ) {
   const queriedSource = source && 'queryOptions' in source ? source : undefined;
-  const suggestionsQuery: UseQueryResult<readonly T[]> = useQuery(
+  const suggestionsQuery = useQuery(
     queriedSource && query !== undefined
       ? queriedSource.queryOptions(query)
       : {queryKey: ['mention-suggestions'], queryFn: skipToken}
@@ -58,7 +58,7 @@ function useSourceSuggestions<T>(
       return source.getSuggestions(query).slice(0, MAX_SUGGESTIONS);
     }
 
-    const queriedSuggestions: readonly T[] | undefined = suggestionsQuery.data;
+    const queriedSuggestions = suggestionsQuery.data;
     return queriedSuggestions?.slice(0, MAX_SUGGESTIONS) ?? [];
   }, [query, source, suggestionsQuery.data]);
 
