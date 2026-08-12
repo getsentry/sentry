@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Container} from '@sentry/scraps/layout';
 
 import {ReleasesSortOption} from 'sentry/constants/releases';
@@ -47,17 +45,13 @@ export function ReleasesSortOptions({
   };
 
   return (
-    <DropdownContainer order={{zero: 2, '4xl': 0}}>
+    <Container order={{zero: 2, '4xl': 0}} style={{zIndex: 2}}>
       <ReleasesDropdown
         label={t('Sort By')}
         options={sortOptions}
         selected={selected}
         onSelect={onSelect}
       />
-    </DropdownContainer>
+    </Container>
   );
 }
-
-const DropdownContainer = styled(Container)`
-  z-index: 2;
-`;

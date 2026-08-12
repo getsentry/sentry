@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
-import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -457,7 +456,7 @@ function ReleasesListInnerPage() {
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
           <ReleasesHeader />
-          <ReleasesBodySearch hasTabs>
+          <ReleasesBodySearch>
             <Layout.Main width="full">
               <Stack gap="md">
                 <PageFilterBar condensed>
@@ -667,8 +666,14 @@ function ReleasesHeader() {
   );
 }
 
-const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
-  padding-bottom: ${p => (p.hasTabs ? 0 : undefined)};
-`;
+function ReleasesBodySearch({children}: {children: React.ReactNode}) {
+  return (
+    <Container paddingBottom="0">
+      {({className}) => (
+        <ExploreBodySearch className={className}>{children}</ExploreBodySearch>
+      )}
+    </Container>
+  );
+}
 
 export default registerLLMContext('releases-list', ReleasesListInnerPage);
