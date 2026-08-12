@@ -45,7 +45,7 @@ export function ReleasesSortOptions({
   };
 
   return (
-    <Container order={{zero: 2, '4xl': 0}} width={{zero: '100%', '2xl': 'max-content'}}>
+    <Container width={{zero: '100%', '2xl': 'max-content'}}>
       {({className}) => (
         <ReleasesDropdown
           className={className}
