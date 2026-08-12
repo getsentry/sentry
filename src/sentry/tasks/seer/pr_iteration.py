@@ -55,6 +55,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -572,10 +573,17 @@ def trigger_pr_iteration_from_comment(
             extra={"organization_id": organization_id, "repo_id": repo_id},
         )
         return None
-    if repo.provider is None:
+    # Backstop: the mention processor already turns GitHub Enterprise away before
+    # scheduling this task. Kept because the repo is re-read here and its provider
+    # is what Seer is keyed on below. See PR_ITERATION_PROVIDER.
+    if repo.provider != PR_ITERATION_PROVIDER:
         logger.warning(
-            "autofix.pr_iteration.comment_trigger.no_provider",
-            extra={"organization_id": organization_id, "repo_id": repo.id},
+            "autofix.pr_iteration.comment_trigger.provider_unsupported",
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "provider": repo.provider,
+            },
         )
         return None
 
@@ -875,8 +883,14 @@ def trigger_pr_iteration_from_review(
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
-    if repo.provider is None:
-        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
+    # Backstop: the review listener already turns GitHub Enterprise away before
+    # scheduling this task. Kept because the repo is re-read here and its provider
+    # is what Seer is keyed on below. See PR_ITERATION_PROVIDER.
+    if repo.provider != PR_ITERATION_PROVIDER:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.provider_unsupported",
+            extra={**log_extra, "provider": repo.provider},
+        )
         return None
 
     integration = integration_service.get_integration(integration_id=integration_id)
