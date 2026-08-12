@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
@@ -20,7 +21,6 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
 import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
@@ -80,7 +80,7 @@ export function WizardProjectSelection({
 }) {
   const [search, setSearch] = useState('');
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
   const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() =>
     getInitialOrgId(organizations)

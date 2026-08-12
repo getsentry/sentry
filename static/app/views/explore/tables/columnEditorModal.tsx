@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
@@ -23,7 +24,6 @@ import {
   FieldValueType,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
@@ -209,7 +209,7 @@ function ColumnEditorRow({
   });
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const hasSearch = debouncedSearch.length > 0;
 
   // The parent's tag collections come pre-filtered: useSpanItemAttributes folds in
