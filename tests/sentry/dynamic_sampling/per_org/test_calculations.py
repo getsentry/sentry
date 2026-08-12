@@ -7,17 +7,22 @@ from unittest.mock import DEFAULT, MagicMock, patch
 import orjson
 import pytest
 
+from sentry.constants import SAMPLING_MODE_DEFAULT
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
     calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
     compare_recalibration_factor_with_cache,
+    get_cached_per_org_recalibration_factor,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
+    get_effective_sample_rate,
+    get_legacy_recalibration_volume,
     is_within_relative_tolerance,
     run_project_balancing,
     run_transaction_balancing,
@@ -37,6 +42,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    ORGANIZATION_VOLUME,
     make_project_volume,
     mock_configuration,
     patch_configuration,
@@ -258,25 +264,85 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         assert get_cached_recalibration_factor(org.id) == 2.5
 
+    def test_get_cached_recalibration_factor_reports_a_cache_miss_as_none(self) -> None:
+        org = self.create_organization()
+        cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        self.redis.delete(cache_key)
+
+        # The legacy helper reports a miss as 1.0, which the comparison cannot tell apart from
+        # a real factor of 1.0.
+        assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert get_cached_recalibration_factor(org.id) is None
+
+    def test_get_cached_per_org_recalibration_factor_reads_the_per_org_cache(self) -> None:
+        org = self.create_organization()
+        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        self.redis.delete(cache_key)
+        self.addCleanup(self.redis.delete, cache_key)
+
+        assert get_cached_per_org_recalibration_factor(org.id) is None
+
+        self.redis.set(cache_key, 3.5)
+        assert get_cached_per_org_recalibration_factor(org.id) == 3.5
+
+    def test_get_effective_sample_rate(self) -> None:
+        assert get_effective_sample_rate(
+            OrganizationDataVolume(org_id=1, total=100, indexed=25)
+        ) == pytest.approx(0.25)
+        assert get_effective_sample_rate(None) is None
+        assert (
+            get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=100, indexed=None))
+            is None
+        )
+        assert (
+            get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=0, indexed=10)) is None
+        )
+
+    def test_get_legacy_recalibration_volume_swallows_a_failing_query(self) -> None:
+        with patch(ORGANIZATION_VOLUME, side_effect=Exception("snuba is down")):
+            assert get_legacy_recalibration_volume(1) is None
+
     def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
         org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
+        legacy_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=386)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.0)
+            compare_recalibration_factor_with_cache(
+                config,
+                org_volume,
+                2.8,
+                2.0,
+                previous_eap_factor=1.4,
+                legacy_volume=legacy_volume,
+            )
 
         logger_info.assert_called_once_with(
             "dynamic_sampling.per_org.recalibration_factor_comparison",
             extra={
                 "org_id": org.id,
+                "sampling_mode": SAMPLING_MODE_DEFAULT,
                 "sample_rate": 0.5,
                 "generic_metrics_factor": 2.0,
                 "eap_factor": 2.8,
+                "previous_eap_factor": 1.4,
+                "eap_factor_was_reset": False,
                 "total_transactions": 772,
                 "stored_segments": 288,
+                "eap_effective_sample_rate": pytest.approx(0.3730569948186528),
+                "generic_metrics_total": 772,
+                "generic_metrics_indexed": 386,
+                "generic_metrics_effective_sample_rate": pytest.approx(0.5),
                 "relative_deviation": pytest.approx(0.2857142857142857),
                 "is_equal": False,
+                "comparison_outcome": "differs",
+                # Both sides re-run from the legacy factor of 2.0. The legacy volume sits
+                # exactly at the target, so its factor is unchanged.
+                "eap_factor_same_seed": pytest.approx(2.6805555555555554),
+                "generic_metrics_factor_same_seed": pytest.approx(2.0),
+                "same_seed_relative_deviation": pytest.approx(0.25388601036269415),
+                "same_seed_is_equal": False,
             },
         )
 
@@ -289,14 +355,54 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         assert logger_info.call_args.kwargs["extra"] == {
             "org_id": org.id,
+            "sampling_mode": SAMPLING_MODE_DEFAULT,
             "sample_rate": 0.5,
             "generic_metrics_factor": 2.0,
             "eap_factor": None,
+            "previous_eap_factor": None,
+            "eap_factor_was_reset": True,
             "total_transactions": None,
             "stored_segments": None,
+            "eap_effective_sample_rate": None,
+            "generic_metrics_total": None,
+            "generic_metrics_indexed": None,
+            "generic_metrics_effective_sample_rate": None,
             "relative_deviation": None,
             "is_equal": False,
+            "comparison_outcome": "no_eap_factor",
+            "eap_factor_same_seed": None,
+            "generic_metrics_factor_same_seed": None,
+            "same_seed_relative_deviation": None,
+            "same_seed_is_equal": False,
         }
+
+    def test_compare_recalibration_factor_with_cache_separates_a_legacy_cache_miss(self) -> None:
+        org = self.create_organization()
+        config = mock_configuration(org, sample_rate=0.5)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
+
+        with patch(LOGGER_INFO) as logger_info:
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, None)
+
+        extra = logger_info.call_args.kwargs["extra"]
+        assert extra["comparison_outcome"] == "no_legacy_factor"
+        assert extra["is_equal"] is False
+        assert extra["relative_deviation"] is None
+        # Without a legacy factor there is no shared seed, so the same-seed pair is undefined.
+        assert extra["eap_factor_same_seed"] is None
+        assert extra["generic_metrics_factor_same_seed"] is None
+
+    def test_compare_recalibration_factor_with_cache_reports_equal_within_tolerance(self) -> None:
+        org = self.create_organization()
+        config = mock_configuration(org, sample_rate=0.5)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
+
+        with patch(LOGGER_INFO) as logger_info:
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.75)
+
+        extra = logger_info.call_args.kwargs["extra"]
+        assert extra["comparison_outcome"] == "equal"
+        assert extra["is_equal"] is True
 
 
 def _project_transactions(

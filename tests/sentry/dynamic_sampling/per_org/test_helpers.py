@@ -19,7 +19,7 @@ CALCULATE_FACTOR = f"{CONFIGURATION}.calculate_recalibration_factor"
 GET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.get_adjusted_factor"
 SET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.set_guarded_adjusted_factor"
 DELETE_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.delete_adjusted_factor"
-LEGACY_GET_FACTOR = f"{CALCULATIONS}.legacy_recalibration_cache.get_adjusted_factor"
+ORGANIZATION_VOLUME = f"{CALCULATIONS}.get_organization_volume"
 
 
 @contextmanager

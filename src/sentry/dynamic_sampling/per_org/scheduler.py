@@ -17,9 +17,11 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_transactions_with_cache,
     compare_recalibration_factor_with_cache,
     get_cached_organization_sample_rate,
+    get_cached_per_org_recalibration_factor,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
+    get_legacy_recalibration_volume,
     log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
@@ -182,10 +184,18 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             time_interval=timedelta(minutes=5),
             end=org_volume_end,
         )
+        # Recalibration seeds itself from this factor and then overwrites it, so the state the
+        # EAP loop started this pass from is only observable before the call.
+        previous_eap_factor = get_cached_per_org_recalibration_factor(config.organization.id)
         calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
         compare_recalibration_factor_with_cache(
-            config, recalibration_volume, calculated_factor, cached_factor
+            config,
+            recalibration_volume,
+            calculated_factor,
+            cached_factor,
+            previous_eap_factor=previous_eap_factor,
+            legacy_volume=get_legacy_recalibration_volume(config.organization.id),
         )
 
     return None
