@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -116,7 +117,7 @@ export function ReleaseCard({
   };
 
   return (
-    <ResponsivePanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
+    <ResponsivePanel reloading={reloading} data-test-id="release-panel">
       <Stack
         borderRight={{zero: 'none', '3xl': 'primary'}}
         flexShrink={1}
@@ -307,15 +308,22 @@ const StyledVersion = styled(Version)`
   text-overflow: ellipsis;
 `;
 
-const StyledPanel = styled(Panel)<{reloading: number}>`
-  opacity: ${p => (p.reloading ? 0.5 : 1)};
-  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
-`;
-
-function ResponsivePanel(props: React.ComponentProps<typeof StyledPanel>) {
+function ResponsivePanel({
+  reloading,
+  ...props
+}: React.ComponentProps<typeof Panel> & {reloading: boolean}) {
   return (
     <Container display={{zero: 'block', '3xl': 'flex'}}>
-      {({className}) => <StyledPanel {...props} className={className} />}
+      {({className}) => (
+        <Panel
+          {...props}
+          className={className}
+          css={css`
+            opacity: ${reloading ? 0.5 : 1};
+            pointer-events: ${reloading ? 'none' : 'auto'};
+          `}
+        />
+      )}
     </Container>
   );
 }
