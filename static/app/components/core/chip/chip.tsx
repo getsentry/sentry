@@ -41,7 +41,7 @@ const SIZES = {
 /**
  * A compact, chonky-embossed token for search filters and standalone values.
  *
- * Renders `property operator value` or a lone `value`, in three sizes. Pass
+ * Renders `property operator value` or alone `value`, in three sizes. Pass
  * `onDismiss` to make it removable, or `readonly` for a non-interactive
  * summary. Presentation only — it holds no filter state; the caller owns the
  * values and dismiss behavior.
