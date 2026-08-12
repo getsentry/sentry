@@ -309,10 +309,9 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
     return (
       <LinkButton
         {...getAutofixActionProps({
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+          analyticsEventKey: 'issue_inbox.coding_agent_result_clicked',
+          analyticsEventName: 'Issue Inbox: Coding Agent Result Clicked',
           analyticsParams: {
-            destination: 'coding_agent_result',
             provider: codingAgentWithResult?.provider,
             repo_provider: codingAgentResult?.repo_provider,
           },
@@ -333,10 +332,9 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
     return (
       <LinkButton
         {...getAutofixActionProps({
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventKey: 'issue_inbox.open_in_coding_agent_clicked',
           analyticsEventName: 'Issue Inbox: Open in Coding Agent Clicked',
           analyticsParams: {
-            destination: 'coding_agent',
             provider: codingAgent.provider,
           },
           group,
