@@ -10,7 +10,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {
   createDashboard,
@@ -1079,7 +1079,13 @@ class DashboardDetail extends Component<Props, State> {
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
-                <StyledPageHeader>
+                <Grid
+                  columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
+                  gap="xl"
+                  align="center"
+                  marginBottom="xl"
+                  height={{zero: 'auto', '3xl': '40px'}}
+                >
                   <Layout.Title>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
@@ -1099,7 +1105,7 @@ class DashboardDetail extends Component<Props, State> {
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
                   />
-                </StyledPageHeader>
+                </Grid>
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
@@ -1511,19 +1517,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return this.renderDefaultDashboardDetail();
   }
-}
-
-function StyledPageHeader(props: GridProps) {
-  return (
-    <Grid
-      columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
-      gap="xl"
-      align="center"
-      marginBottom="xl"
-      height={{zero: 'auto', '3xl': '40px'}}
-      {...props}
-    />
-  );
 }
 
 interface DashboardDetailWithInjectedPropsProps extends Omit<

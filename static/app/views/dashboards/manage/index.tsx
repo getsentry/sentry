@@ -8,7 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -233,7 +233,11 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions>
+      <Grid
+        columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+        gap="md"
+        marginBottom="xl"
+      >
         <SearchBar
           defaultQuery=""
           query={getQuery()}
@@ -319,7 +323,7 @@ function ManageDashboards() {
             )}
           </DashboardCreateLimitWrapper>
         )}
-      </StyledActions>
+      </Grid>
     );
   }
 
@@ -461,17 +465,6 @@ function ManageDashboards() {
         </ErrorBoundary>
       </SentryDocumentTitle>
     </Feature>
-  );
-}
-
-function StyledActions(props: GridProps) {
-  return (
-    <Grid
-      columns={{zero: 'auto', xl: 'auto max-content max-content'}}
-      gap="md"
-      marginBottom="xl"
-      {...props}
-    />
   );
 }
 
