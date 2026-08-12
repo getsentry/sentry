@@ -2694,7 +2694,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validate_only_succeeds_for_user_without_team_membership(
+    def test_post_with_validate_only_succeeds_for_user_without_team_membership(
         self, mock_in_test_environment
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
@@ -2738,13 +2738,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validate_only_does_not_borrow_project_without_access(
+    def test_post_with_validate_only_errors_when_no_project_is_accessible(
         self, mock_in_test_environment
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project.
 
-        The fallback must decline rather than validate against a project the
-        requester cannot see, so this hits the backstop.
+        include_all_accessible resolves nothing rather than handing validation a
+        project the requester cannot see, so this hits the backstop.
         """
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
         team = self.create_team(organization=org)
@@ -2767,7 +2767,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert not Dashboard.objects.filter(organization=org, title="Closed Org").exists()
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validate_only_resolves_projects_once_per_request(
+    def test_post_with_validate_only_resolves_projects_once_per_request(
         self, mock_in_test_environment
     ) -> None:
         """Validation runs per widget query but resolves projects per request."""
@@ -2806,8 +2806,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         # One membership pass plus the include_all_accessible retry, regardless
         # of how many widget queries validate against the result.
-        # One membership pass plus the include_all_accessible retry, regardless
-        # of how many widget queries validate against the result.
         resolutions = [
             q["sql"]
             for q in queries.captured_queries
@@ -2816,7 +2814,27 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(resolutions) == 2, resolutions
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
-    def test_post_validate_only_does_not_error_for_organization_without_projects(
+    def test_post_with_validate_only_skips_accessible_lookup_for_team_member(
+        self, mock_in_test_environment
+    ) -> None:
+        """A non-empty membership list short-circuits the second resolution."""
+        assert self.project  # the fixture is lazy; self.user needs a team project
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.do_request(
+                "post", self.url + "?validateOnly=1", data=self._single_widget_dashboard("Member")
+            )
+        assert response.status_code == 200, response.data
+
+        resolutions = [
+            q["sql"]
+            for q in queries.captured_queries
+            if 'FROM "sentry_project"' in q["sql"] and '"status" =' in q["sql"]
+        ]
+        assert len(resolutions) == 1, resolutions
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_with_validate_only_does_not_error_for_organization_without_projects(
         self, mock_in_test_environment
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
