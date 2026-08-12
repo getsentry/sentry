@@ -6,7 +6,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
-from sentry.tasks.reprocessing2 import start_reprocess_group
+from sentry.tasks.reprocessing2 import reprocess_group
 
 
 @cell_silo_endpoint
@@ -52,7 +52,7 @@ class GroupReprocessingEndpoint(GroupEndpoint):
                 {"error": "you do not have permission to delete remaining events"}, status=403
             )
 
-        start_reprocess_group.delay(
+        reprocess_group.delay(
             project_id=group.project_id,
             group_id=group.id,
             max_events=max_events,

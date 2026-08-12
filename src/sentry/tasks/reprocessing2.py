@@ -30,98 +30,8 @@ from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 from sentry.utils.tracing import start_span
 
-# Identifies these tasks in the self-chain idempotency guard.
-START_REPROCESS_GROUP_TASK_NAME = "reprocessing2.start_reprocess_group"
+# Identifies this task in the self-chain idempotency guard.
 REPROCESS_GROUP_TASK_NAME = "reprocessing2.reprocess_group"
-
-
-def _recover_new_group_id(group_id: int) -> int | None:
-    """Recover the successor group id if a prior start hop already flipped state.
-
-    Used when a re-pend of the first reprocess_group activation re-enters after
-    start_group_reprocessing already ran (group is REPROCESSING) but before the
-    continuation was marked spawned.
-    """
-    from sentry.models.activity import Activity
-    from sentry.models.group import Group, GroupStatus
-
-    try:
-        group = Group.objects.get(id=group_id)
-    except Group.DoesNotExist:
-        return None
-    if group.status != GroupStatus.REPROCESSING:
-        return None
-
-    activity = (
-        Activity.objects.filter(group_id=group_id, type=ActivityType.REPROCESS.value)
-        .order_by("-datetime")
-        .first()
-    )
-    if activity is None:
-        return None
-    new_group_id = activity.data.get("newGroupId")
-    return int(new_group_id) if new_group_id is not None else None
-
-
-@instrumented_task(
-    name="sentry.tasks.reprocessing2.start_reprocess_group",
-    namespace=issues_reprocessing_tasks,
-    alias_namespace=issues_tasks,
-    processing_deadline_duration=60,
-    silo_mode=SiloMode.CELL,
-)
-def start_reprocess_group(
-    project_id: int,
-    group_id: int,
-    remaining_events: str = "delete",
-    max_events: int | None = None,
-    acting_user_id: int | None = None,
-) -> None:
-    """Enqueue-only entrypoint for group reprocessing.
-
-    Mirrors start_merge_groups / start_unmerge: this activation only spawns the
-    first reprocess_group hop. Keeping start separate means a broker re-pend of
-    the entrypoint cannot re-run start_group_reprocessing side effects.
-    """
-    from sentry.reprocessing2 import logger
-
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(START_REPROCESS_GROUP_TASK_NAME, activation_id):
-        logger.info(
-            "reprocessing.start_reprocess_group.duplicate_redelivery.skipped",
-            extra={
-                "project_id": project_id,
-                "group_id": group_id,
-                "activation_id": activation_id,
-            },
-        )
-        metrics.incr(
-            "taskworker.selfchain.duplicate_skipped",
-            tags={"task": START_REPROCESS_GROUP_TASK_NAME},
-        )
-        return
-
-    logger.info(
-        "reprocessing.start_reprocess_group",
-        extra={
-            "project_id": project_id,
-            "group_id": group_id,
-            "max_events": max_events,
-            "remaining_events": remaining_events,
-        },
-    )
-    metrics.incr("events.reprocessing.start_reprocess_group", sample_rate=1.0)
-
-    reprocess_group.delay(
-        project_id=project_id,
-        group_id=group_id,
-        remaining_events=remaining_events,
-        max_events=max_events,
-        acting_user_id=acting_user_id,
-    )
-    if activation_id:
-        mark_spawned(START_REPROCESS_GROUP_TASK_NAME, activation_id)
 
 
 @instrumented_task(
@@ -158,8 +68,7 @@ def reprocess_group(
 
     # Self-chain idempotency guard. If this activation already produced its continuation in a
     # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain.
-    # Only effective inside a worker (current_task() set). Best-effort de-amplification, not
-    # exactly-once: concurrent overlap before mark_spawned can still double-spawn.
+    # Only effective inside a worker (current_task() set).
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(REPROCESS_GROUP_TASK_NAME, activation_id):
@@ -176,9 +85,7 @@ def reprocess_group(
         )
         return
 
-    # Only executed once during reprocessing (first hop). If a prior delivery of this hop already
-    # flipped the group to REPROCESSING and then died before mark_spawned, recover the successor
-    # id instead of raising and leaving the chain stuck.
+    # Only executed once during reprocessing
     if start_time is None:
         assert new_group_id is None
         start_time = time.time()
@@ -191,29 +98,13 @@ def reprocess_group(
             else SYSTEM_ACTOR
         )
         with action_context_scope(ActionSource.SYSTEM, group_action_actor):
-            try:
-                new_group_id = start_group_reprocessing(
-                    project_id,
-                    group_id,
-                    max_events=max_events,
-                    acting_user_id=acting_user_id,
-                    remaining_events=remaining_events,
-                )
-            except RuntimeError:
-                recovered = _recover_new_group_id(group_id)
-                if recovered is None:
-                    raise
-                logger.info(
-                    "reprocessing.reprocess_group.recovered_after_start",
-                    extra={
-                        "project_id": project_id,
-                        "group_id": group_id,
-                        "new_group_id": recovered,
-                        "activation_id": activation_id,
-                    },
-                )
-                metrics.incr("events.reprocessing.recovered_after_start", sample_rate=1.0)
-                new_group_id = recovered
+            new_group_id = start_group_reprocessing(
+                project_id,
+                group_id,
+                max_events=max_events,
+                acting_user_id=acting_user_id,
+                remaining_events=remaining_events,
+            )
 
     assert new_group_id is not None
 

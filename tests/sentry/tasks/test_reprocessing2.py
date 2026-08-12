@@ -32,10 +32,8 @@ from sentry.services.eventstore.reprocessing.redis import (
 )
 from sentry.tasks.reprocessing2 import (
     REPROCESS_GROUP_TASK_NAME,
-    START_REPROCESS_GROUP_TASK_NAME,
     finish_reprocessing,
     reprocess_group,
-    start_reprocess_group,
 )
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -752,56 +750,6 @@ def test_reprocessing_blocked_when_previous_run_is_recent(default_project) -> No
 
 @django_db_all
 @patch("sentry.tasks.reprocessing2.current_task")
-def test_start_reprocess_group_skips_when_already_spawned(
-    mock_current_task, default_project
-) -> None:
-    # A prior delivery of the entrypoint already enqueued the first hop; a broker re-pend must not
-    # enqueue again.
-    mock_current_task.return_value = SimpleNamespace(id="start-reprocess-act-skip")
-    mark_spawned(START_REPROCESS_GROUP_TASK_NAME, "start-reprocess-act-skip")
-
-    with patch.object(reprocess_group, "delay") as mock_delay:
-        start_reprocess_group(default_project.id, 123)
-
-    assert mock_delay.call_count == 0
-
-
-@django_db_all
-@patch("sentry.tasks.reprocessing2.current_task")
-def test_start_reprocess_group_marks_and_dedupes(mock_current_task, default_project) -> None:
-    mock_current_task.return_value = SimpleNamespace(id="start-reprocess-act-dedupe")
-
-    with patch.object(reprocess_group, "delay") as mock_delay:
-        start_reprocess_group(
-            default_project.id,
-            123,
-            remaining_events="keep",
-            max_events=5,
-            acting_user_id=9,
-        )
-        assert mock_delay.call_count == 1
-        assert mock_delay.call_args.kwargs == {
-            "project_id": default_project.id,
-            "group_id": 123,
-            "remaining_events": "keep",
-            "max_events": 5,
-            "acting_user_id": 9,
-        }
-        assert already_spawned(START_REPROCESS_GROUP_TASK_NAME, "start-reprocess-act-dedupe")
-
-        # Broker re-pend of the same start activation -> no second enqueue.
-        start_reprocess_group(
-            default_project.id,
-            123,
-            remaining_events="keep",
-            max_events=5,
-            acting_user_id=9,
-        )
-        assert mock_delay.call_count == 1
-
-
-@django_db_all
-@patch("sentry.tasks.reprocessing2.current_task")
 def test_selfchain_skips_when_already_spawned(mock_current_task, default_project) -> None:
     # A prior delivery of this activation already spawned its continuation; a broker re-pend
     # must short-circuit before starting reprocessing or forking the chain.
@@ -825,9 +773,8 @@ def test_selfchain_skips_when_already_spawned(mock_current_task, default_project
 def test_selfchain_marks_and_dedupes_across_deliveries(
     mock_current_task, default_project, reset_snuba, process_and_save
 ) -> None:
-    # First delivery processes a page and spawns the continuation once. A re-pend must use the
-    # mid-chain payload (new_group_id/query_state/start_time) — not another start hop — because
-    # that is the production fork path.
+    # First delivery processes a page and spawns the continuation once. A re-pend of the same
+    # activation must not spawn again.
     event_id = process_and_save({"message": "hello world"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None and event.group_id is not None
@@ -842,12 +789,8 @@ def test_selfchain_marks_and_dedupes_across_deliveries(
         assert mock_delay.call_count == 1
         assert already_spawned(REPROCESS_GROUP_TASK_NAME, "reprocess-act-dedupe") is True
 
-        continuation_kwargs = mock_delay.call_args.kwargs
-        assert continuation_kwargs["start_time"] is not None
-        assert continuation_kwargs["new_group_id"] is not None
-
-        # Broker re-pend of the same activation with the same mid-chain payload -> no new spawn.
-        reprocess_group(**continuation_kwargs)
+        # Broker re-pend: same activation id, same original payload -> no-op, no new spawn.
+        reprocess_group(default_project.id, event.group_id)
         assert mock_delay.call_count == 1
 
 
@@ -905,34 +848,3 @@ def test_selfchain_does_not_mark_on_terminal_hop(
     assert mock_delay.call_count == 0
     assert mock_flush.call_count == 1
     assert mock_mark.call_count == 0
-
-
-@django_db_all
-@pytest.mark.snuba
-@patch("sentry.tasks.reprocessing2.current_task")
-def test_reprocess_group_recovers_after_start_side_effects(
-    mock_current_task, default_project, reset_snuba, process_and_save
-) -> None:
-    # If the first hop dies after start_group_reprocessing but before mark_spawned, a re-pend must
-    # recover the successor group id and continue instead of dying with the group stuck.
-    event_id = process_and_save({"message": "hello world"})
-    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
-    assert event is not None and event.group_id is not None
-
-    mock_current_task.return_value = SimpleNamespace(id="reprocess-act-recover")
-    new_group_id = start_group_reprocessing(default_project.id, event.group_id, "delete")
-
-    with (
-        patch.object(reprocess_group, "delay") as mock_delay,
-        patch("sentry.reprocessing2.reprocess_event"),
-        patch(
-            "sentry.reprocessing2.start_group_reprocessing",
-            side_effect=RuntimeError("Cannot reprocess group that is currently being reprocessed"),
-        ) as mock_start,
-    ):
-        reprocess_group(default_project.id, event.group_id)
-
-    assert mock_start.call_count == 1
-    assert mock_delay.call_count == 1
-    assert mock_delay.call_args.kwargs["new_group_id"] == new_group_id
-    assert already_spawned(REPROCESS_GROUP_TASK_NAME, "reprocess-act-recover") is True
