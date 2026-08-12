@@ -155,7 +155,7 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Link
+                  <TitleLink
                     to={issueDetailsUrl}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
                     analyticsEventName="Issue Inbox: Open Issue Clicked"
@@ -168,7 +168,7 @@ function IssuePreviewContent() {
                     <Heading as="h3" size="lg" ellipsis>
                       {primaryTitle} <IconOpen size="xs" />
                     </Heading>
-                  </Link>
+                  </TitleLink>
                 </Tooltip>
               </Flex>
               <IssueSeenTimes group={group} />
@@ -271,5 +271,11 @@ const Dividers = styled('div')`
   & > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space.md};
+  }
+`;
+
+const TitleLink = styled(Link)`
+  &:hover {
+    text-decoration: underline;
   }
 `;
