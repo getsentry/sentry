@@ -203,6 +203,7 @@ def _send_webhook_request(
     app_platform_event: AppPlatformEvent[T],
 ) -> Response:
     organization_id = app_platform_event.install.organization_id
+    override_key = str(organization_id)
 
     # We don't want to use the alarm in CONTROL silo as it's only used for installation webhooks which are v. low volume
     # Also that we aren't guaranteed to be in main thread
@@ -214,7 +215,7 @@ def _send_webhook_request(
     else:
         hard_timeout_override = options.get(
             "sentry-apps.override.organization_ids.webhook.hard-timeout.sec"
-        ).get(organization_id, None)
+        ).get(override_key, None)
 
         timeout_seconds = hard_timeout_override or options.get(
             "sentry-apps.webhook.hard-timeout.sec"
@@ -222,7 +223,7 @@ def _send_webhook_request(
         context_wrapper = timeout_alarm(timeout_seconds, _handle_webhook_timeout)
 
     timeout_override = options.get("sentry-apps.override.organization_ids.webhook.timeout.sec").get(
-        organization_id, None
+        override_key, None
     )
 
     if timeout_override is not None:

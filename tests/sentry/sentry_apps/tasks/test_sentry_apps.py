@@ -1763,10 +1763,10 @@ class TestWebhookRequests(TestCase):
         with override_options(
             {
                 "sentry-apps.override.organization_ids.webhook.timeout.sec": {
-                    installation.organization_id: 3.0
+                    str(installation.organization_id): 3.0
                 },
                 "sentry-apps.override.organization_ids.webhook.hard-timeout.sec": {
-                    installation.organization_id: 8.0
+                    str(installation.organization_id): 8.0
                 },
             }
         ):
