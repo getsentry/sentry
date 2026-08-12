@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -26,18 +26,16 @@ const WIDTH = 240;
 const MAX_WIDTH = 280;
 
 /**
- * Tooltip props required to render <RelativeTime> at its designed size. The
- * card owns its own padding so the surrounding overlay must not add any, and
- * the default centered alignment does not apply to the tabular rows.
+ * Tooltip props required to render <RelativeTime> at its designed size. Only
+ * the width needs to come from the tooltip — the overlay's default `max-width`
+ * of 225px would otherwise clamp the card and force its rows to overflow.
  *
- * `minWidth` and `maxWidth` are both required — the overlay's default
- * `max-width` of 225px would otherwise clamp the card and force its rows to
- * overflow.
+ * Everything else the card needs, it applies to itself. Adopting the card
+ * never restyles the overlay, so it cannot affect any other tooltip.
  */
 export const RELATIVE_TIME_TOOLTIP_PROPS = {
   maxWidth: MAX_WIDTH,
-  overlayStyle: {padding: 0, textAlign: 'left', minWidth: WIDTH},
-} satisfies {maxWidth: number; overlayStyle: React.CSSProperties};
+} satisfies {maxWidth: number};
 
 interface RelativeTimeProps {
   /**
@@ -73,7 +71,8 @@ interface RelativeTimeProps {
  * the absolute time in both the viewer's timezone and UTC.
  *
  * This is tooltip content rather than a standalone element — pass it as a
- * tooltip's title/body along with RELATIVE_TIME_TOOLTIP_PROPS:
+ * tooltip's title/body along with RELATIVE_TIME_TOOLTIP_PROPS. It styles only
+ * itself, so adopting it cannot change how any other tooltip renders:
  *
  * ```tsx
  * <TimeSince
@@ -101,7 +100,7 @@ export function RelativeTime({
   const isViewerUtc = abbreviation === UTC;
 
   return (
-    <Container width="100%">
+    <Card>
       <Flex align="center" justify="between" gap="xs" padding="md lg">
         <Text bold tabular>
           {label}
@@ -123,9 +122,25 @@ export function RelativeTime({
         )}
         <TimestampRow date={date} abbreviation={UTC} variant="muted" utc />
       </Grid>
-    </Container>
+    </Card>
   );
 }
+
+/**
+ * The card fills the tooltip edge to edge, but the padding and centered text it
+ * has to defeat belong to the overlay, not to the card.
+ *
+ * Restyling the overlay would mean `overlayStyle`, which <Overlay> currently
+ * drops on the floor — reinstating it would silently reactivate ~15 dormant
+ * overrides across Replays, Dashboards, Dynamic Sampling and Releases. That is
+ * worth fixing, but not from here, so the card cancels the padding locally
+ * instead. Collapse this into `overlayStyle` once that passthrough is restored.
+ */
+const Card = styled('div')`
+  min-width: ${WIDTH}px;
+  text-align: left;
+  margin: -${p => p.theme.space.md} -${p => p.theme.space.lg};
+`;
 
 /**
  * Timezone abbreviations are not prose, so they are not translated.

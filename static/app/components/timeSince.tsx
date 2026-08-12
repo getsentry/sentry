@@ -46,11 +46,6 @@ interface Props extends Omit<
    */
   maxWidth?: InfoTextProps<'time'>['maxWidth'];
   /**
-   * Additional style rules for the tooltip content. Useful when `tooltipBody`
-   * renders a card that owns its own padding and alignment.
-   */
-  overlayStyle?: InfoTextProps<'time'>['overlayStyle'];
-  /**
    * Prefix before upcoming time (when the date is in the future)
    *
    * @default "in"
@@ -111,7 +106,6 @@ export function TimeSince({
   tooltipBody,
   variant = 'inherit',
   maxWidth,
-  overlayStyle,
   unitStyle,
   prefix = t('in'),
   suffix = t('ago'),
@@ -161,7 +155,6 @@ export function TimeSince({
       dateTime={dateObj?.toISOString()}
       variant={variant}
       maxWidth={maxWidth}
-      overlayStyle={overlayStyle}
       title={
         disabledAbsoluteTooltip ? null : (
           <Fragment>

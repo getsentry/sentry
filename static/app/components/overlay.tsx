@@ -102,7 +102,7 @@ export function Overlay({
   placement,
   originPoint,
   style,
-  overlayStyle,
+  overlayStyle: _overlayStyle,
   ...props
 }: OverlayProps) {
   const isTestEnv = NODE_ENV === 'test';
@@ -124,7 +124,6 @@ export function Overlay({
       data-overlay
       ref={ref}
       placement={placement}
-      overlayStyle={overlayStyle}
     >
       {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
       <PanelProvider>{children}</PanelProvider>

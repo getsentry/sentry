@@ -25,8 +25,9 @@ showing the absolute time twice: once in the viewer's timezone and once in UTC.
 ## Usage
 
 This is tooltip content, not a standalone element. It is designed to fill a tooltip edge to
-edge, so it needs the tooltip's own padding removed and its centered text alignment reset.
-`RELATIVE_TIME_TOOLTIP_PROPS` carries both, plus the width the card is designed at.
+edge, and handles the padding and alignment that requires by itself — adopting the card never
+restyles the overlay, so it cannot affect any other tooltip. `RELATIVE_TIME_TOOLTIP_PROPS`
+carries the one thing that must come from the tooltip: the width the card is designed at.
 
 ```jsx
 import {RELATIVE_TIME_TOOLTIP_PROPS, RelativeTime} from '@sentry/scraps/relativeTime';
