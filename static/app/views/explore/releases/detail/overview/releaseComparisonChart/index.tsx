@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -1105,32 +1105,42 @@ export function ReleaseComparisonChart({
           </ChartContainer>
         </ErrorBoundary>
       </ChartPanel>
-      <ChartTable
-        headers={getTableHeaders(withExpanders)}
-        data-test-id="release-comparison-table"
-        withExpanders={withExpanders}
+      <Grid
+        columns={{
+          zero: `repeat(4, minmax(min-content, 1fr)) ${withExpanders ? '75px' : ''}`,
+          '4xl': `minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${withExpanders ? '75px' : ''}`,
+        }}
       >
-        {charts.map(chartRow => renderChartRow(chartRow))}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
-        {additionalCharts.length > 0 && (
-          <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
-            <ShowMoreTitle>
-              <IconList size="xs" />
-              {isOtherExpanded
-                ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
-                : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
-            </ShowMoreTitle>
-            <Flex justify="end" align="center" column="2 / -1">
-              <Button
-                variant="transparent"
-                size="zero"
-                icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
-                aria-label={t('Toggle additional charts')}
-              />
-            </Flex>
-          </ShowMoreWrapper>
+        {({className}) => (
+          <ChartTable
+            className={className}
+            headers={getTableHeaders(withExpanders)}
+            data-test-id="release-comparison-table"
+          >
+            {charts.map(chartRow => renderChartRow(chartRow))}
+            {isOtherExpanded &&
+              additionalCharts.map(chartRow => renderChartRow(chartRow))}
+            {additionalCharts.length > 0 && (
+              <ShowMoreWrapper onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
+                <ShowMoreTitle>
+                  <IconList size="xs" />
+                  {isOtherExpanded
+                    ? tn('Hide %s Other', 'Hide %s Others', additionalCharts.length)
+                    : tn('Show %s Other', 'Show %s Others', additionalCharts.length)}
+                </ShowMoreTitle>
+                <Flex justify="end" align="center" column="2 / -1">
+                  <Button
+                    variant="transparent"
+                    size="zero"
+                    icon={<IconChevron direction={isOtherExpanded ? 'up' : 'down'} />}
+                    aria-label={t('Toggle additional charts')}
+                  />
+                </Flex>
+              </ShowMoreWrapper>
+            )}
+          </ChartTable>
         )}
-      </ChartTable>
+      </Grid>
     </Fragment>
   );
 }
@@ -1161,19 +1171,12 @@ const Change = styled('div')<{color?: string}>`
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
+const ChartTable = styled(PanelTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  grid-template-columns: minmax(400px, auto) repeat(3, minmax(min-content, 1fr)) ${p =>
-      p.withExpanders ? '75px' : ''};
 
   > * {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  @container (max-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
   }
 `;
 
