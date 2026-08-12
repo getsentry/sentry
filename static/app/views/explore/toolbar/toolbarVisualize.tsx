@@ -322,8 +322,8 @@ function ToolbarVisualizeItem({
           <TraceItemSearchQueryBuilder
             {...spanSearchQueryBuilderProps}
             showSearchIcon={false}
-            // The toolbar clips menus that are not portaled, and the full width filter
-            // key menu anchors itself inside the bar, so it has to be turned off for
+            // This spans toolbar clips menus that are not portaled, and the full width
+            // filter key menu anchors itself inside the bar, so it has to be turned off for
             // portaling to cover every menu.
             portalTarget={document.body}
             disableFullWidthFilterKeyMenu

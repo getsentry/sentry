@@ -95,9 +95,11 @@ export interface SearchQueryBuilderProps {
    */
   defaultToAskSeerOnFreeTextSearch?: boolean;
   /**
-   * Opts out of the wide two pane filter key menu. That menu sizes and anchors itself
-   * against the search bar, so it ignores `portalTarget`. Compact search bars set this so
-   * that every menu is portaled and escapes clipping and stacking ancestors.
+   * When true, disables the wide two-pane filter key menu.
+   *
+   * That menu measures and positions itself against the search bar, so it does not
+   * honor `portalTarget`. Set this when menus must portal (for example to escape a
+   * clipping or stacking ancestor).
    */
   disableFullWidthFilterKeyMenu?: boolean;
   disabled?: boolean;
@@ -238,7 +240,7 @@ export interface SearchQueryBuilderProps {
   replaceRawSearchKeys?: string[];
   /**
    * When false, hides the leading magnifying glass icon and the padding reserved for it.
-   * Defaults to true. Compact filter bars set this to reclaim the space.
+   * Defaults to true.
    */
   showSearchIcon?: boolean;
   /**

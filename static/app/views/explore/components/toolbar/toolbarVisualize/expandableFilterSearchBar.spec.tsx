@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 
 /**
  * Collapsing is deferred by two frames so it happens after the menu close and focus

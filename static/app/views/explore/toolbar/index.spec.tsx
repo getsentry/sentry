@@ -879,6 +879,21 @@ describe('ExploreToolbar', () => {
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
+    function visualizeYAxesFromRouter(router: {
+      location: {query: Record<string, unknown>};
+    }) {
+      const aggregateField = router.location.query.aggregateField;
+      const fields = Array.isArray(aggregateField)
+        ? aggregateField
+        : aggregateField
+          ? [aggregateField]
+          : [];
+      return fields.flatMap(field => {
+        const parsed = JSON.parse(String(field));
+        return parsed.yAxes ?? [];
+      });
+    }
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/recent-searches/`,
@@ -906,13 +921,7 @@ describe('ExploreToolbar', () => {
     });
 
     it('turns a series filter into an _if aggregate', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization: organizationWithConditionalAggregates,
       });
@@ -927,20 +936,14 @@ describe('ExploreToolbar', () => {
       await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
-        expect(visualizes).toEqual([
-          new VisualizeFunction('count_if(`span.op:db`,span.duration)'),
+        expect(visualizeYAxesFromRouter(router)).toEqual([
+          'count_if(`span.op:db`,span.duration)',
         ]);
       });
     });
 
     it('keeps a series filter that has errors', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization: organizationWithConditionalAggregates,
       });
@@ -961,29 +964,24 @@ describe('ExploreToolbar', () => {
         'true'
       );
       await waitFor(() => {
-        expect(visualizes).toEqual([
-          new VisualizeFunction('count_if(`span.op:`,span.duration)'),
+        expect(visualizeYAxesFromRouter(router)).toEqual([
+          'count_if(`span.op:`,span.duration)',
         ]);
       });
     });
 
     it('drops the combinator when the series filter is cleared', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization: organizationWithConditionalAggregates,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
             query: {
-              visualize: JSON.stringify({
-                yAxes: ['count_if(`span.op:db`,span.duration)'],
-              }),
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
+              ],
             },
           },
         },
@@ -998,7 +996,7 @@ describe('ExploreToolbar', () => {
       );
 
       await waitFor(() => {
-        expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+        expect(visualizeYAxesFromRouter(router)).toEqual(['count(span.duration)']);
       });
     });
 
@@ -1022,22 +1020,17 @@ describe('ExploreToolbar', () => {
     });
 
     it('drops an existing filter when switching to an aggregate that cannot be filtered', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization: organizationWithConditionalAggregates,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
             query: {
-              visualize: JSON.stringify({
-                yAxes: ['count_if(`span.op:db`,span.duration)'],
-              }),
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
+              ],
             },
           },
         },
@@ -1048,26 +1041,23 @@ describe('ExploreToolbar', () => {
       await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
       await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
 
-      expect(visualizes).toEqual([new VisualizeFunction('epm()')]);
+      await waitFor(() => {
+        expect(visualizeYAxesFromRouter(router)).toEqual(['epm()']);
+      });
     });
 
     it('keeps an existing filter when switching between filterable aggregates', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization: organizationWithConditionalAggregates,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
             query: {
-              visualize: JSON.stringify({
-                yAxes: ['count_if(`span.op:db`,span.duration)'],
-              }),
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
+              ],
             },
           },
         },
@@ -1078,28 +1068,25 @@ describe('ExploreToolbar', () => {
       await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
       await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
 
-      expect(visualizes).toEqual([
-        new VisualizeFunction('avg_if(`span.op:db`,span.duration)'),
-      ]);
+      await waitFor(() => {
+        expect(visualizeYAxesFromRouter(router)).toEqual([
+          'avg_if(`span.op:db`,span.duration)',
+        ]);
+      });
     });
 
     it('drops the filter when the feature is off', async () => {
-      let visualizes: any;
-      function Component() {
-        visualizes = useQueryParamsVisualizes();
-        return <ExploreToolbar />;
-      }
-
-      render(<Component />, {
+      const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
         organization,
         initialRouterConfig: {
           location: {
             pathname: '/traces/',
             query: {
-              visualize: JSON.stringify({
-                yAxes: ['count_if(`span.op:db`,span.duration)'],
-              }),
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['count_if(`span.op:db`,span.duration)']}),
+              ],
             },
           },
         },
@@ -1110,7 +1097,9 @@ describe('ExploreToolbar', () => {
       await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
       await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
 
-      expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
+      await waitFor(() => {
+        expect(visualizeYAxesFromRouter(router)).toEqual(['avg(span.duration)']);
+      });
     });
   });
 

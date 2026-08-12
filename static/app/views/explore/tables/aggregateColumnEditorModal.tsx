@@ -16,8 +16,6 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -37,7 +35,10 @@ import {
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {
+  TraceItemSearchQueryBuilder,
+  type TraceItemSearchQueryBuilderProps,
+} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -511,6 +512,23 @@ function AggregateSelector({
     hasConditionalAggregates &&
     supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
 
+  const searchQueryBuilderProps = useMemo<TraceItemSearchQueryBuilderProps>(
+    () => ({
+      itemType: TraceItemDataset.SPANS,
+      numberAttributes: numberTags,
+      stringAttributes: stringTags,
+      booleanAttributes: booleanTags,
+      numberSecondaryAliases: {},
+      stringSecondaryAliases: {},
+      booleanSecondaryAliases: {},
+      initialQuery: filter,
+      onSearch: handleFilterSearch,
+      searchSource: 'explore-conditional-aggregate',
+      placeholder: t('Filter spans for this series'),
+    }),
+    [booleanTags, filter, handleFilterSearch, numberTags, stringTags]
+  );
+
   return (
     <Stack flex="3" minWidth="0" gap="sm">
       <Flex gap="md" align="center" width="100%">
@@ -554,36 +572,25 @@ function AggregateSelector({
         )}
       </Flex>
       {showFilterSearchBar && (
-        <FilterSearchBar filter={filter} onSearch={handleFilterSearch} />
+        <FilterSearchBar searchQueryBuilderProps={searchQueryBuilderProps} />
       )}
     </Stack>
   );
 }
 
 interface FilterSearchBarProps {
-  filter: string;
-  onSearch: (filter: string) => void;
+  searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
 }
 
 /**
  * Search bar rendered underneath the aggregate dropdowns, used to attach an `_if` filter
- * to this series.
+ * to this series. Callers supply dataset-specific `TraceItemSearchQueryBuilder` props.
  */
-function FilterSearchBar({filter, onSearch}: FilterSearchBarProps) {
-  const {selection} = usePageFilters();
-
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects: selection.projects,
-    initialQuery: filter,
-    onSearch,
-    searchSource: 'explore-conditional-aggregate',
-    placeholder: t('Filter spans for this series'),
-  });
-
+function FilterSearchBar({searchQueryBuilderProps}: FilterSearchBarProps) {
   return (
     <Container data-test-id="editor-visualize-filter" minWidth="0">
       <TraceItemSearchQueryBuilder
-        {...spanSearchQueryBuilderProps}
+        {...searchQueryBuilderProps}
         showSearchIcon={false}
         // The modal clips and stacks above menus that are not portaled, and the full width
         // filter key menu anchors itself inside the bar, so it has to be turned off for
