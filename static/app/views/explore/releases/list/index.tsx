@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -558,15 +557,27 @@ function ReleasesListInnerPage() {
                     selection={selection}
                   />
                   {shouldShowQuickstart ? null : (
-                    <SortAndFilterWrapper>
-                      <StyledSearchQueryBuilder
-                        onSearch={handleSearch}
-                        initialQuery={activeQuery}
-                        filterKeys={RELEASE_FILTER_KEYS}
-                        getTagValues={getTagValues}
-                        placeholder={t('Search by version, build, package, or stage')}
-                        searchSource="releases"
-                      />
+                    <Grid
+                      columns={{
+                        zero: 'minmax(0, 1fr)',
+                        xl: 'repeat(3, 1fr)',
+                        '3xl': '1fr repeat(3, max-content)',
+                      }}
+                      gap="xl"
+                    >
+                      <Container column={{zero: 'auto', xl: '1 / -1', '3xl': 'auto'}}>
+                        {({className}) => (
+                          <SearchQueryBuilder
+                            className={className}
+                            onSearch={handleSearch}
+                            initialQuery={activeQuery}
+                            filterKeys={RELEASE_FILTER_KEYS}
+                            getTagValues={getTagValues}
+                            placeholder={t('Search by version, build, package, or stage')}
+                            searchSource="releases"
+                          />
+                        )}
+                      </Container>
                       <ReleasesStatusOptions
                         selected={activeStatus}
                         onSelect={handleStatus}
@@ -581,7 +592,7 @@ function ReleasesListInnerPage() {
                         selected={activeDisplay}
                         onSelect={handleDisplay}
                       />
-                    </SortAndFilterWrapper>
+                    </Grid>
                   )}
 
                   {!(isReleasesPending || isReleasesRefetching) &&
@@ -657,37 +668,7 @@ function ReleasesHeader() {
 }
 
 const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
-  ${p =>
-    p.hasTabs &&
-    css`
-      padding-bottom: 0;
-
-      @container (min-width: ${p.theme.container['3xl']}) {
-        padding-bottom: 0;
-      }
-    `}
-`;
-
-const SortAndFilterWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr repeat(3, max-content);
-  gap: ${p => p.theme.space.xl};
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: repeat(3, 1fr);
-    & > div {
-      width: auto;
-    }
-  }
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const StyledSearchQueryBuilder = styled(SearchQueryBuilder)`
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    grid-column: 1 / -1;
-  }
+  padding-bottom: ${p => (p.hasTabs ? 0 : undefined)};
 `;
 
 export default registerLLMContext('releases-list', ReleasesListInnerPage);

@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -116,8 +116,15 @@ export function ReleaseCard({
   };
 
   return (
-    <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-      <ReleaseInfo>
+    <ResponsivePanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
+      <ReleaseInfo
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        direction="column"
+        flexShrink={1}
+        maxWidth={{zero: 'none', '3xl': '300px'}}
+        minWidth={{zero: '0', '3xl': '260px'}}
+        width={{zero: 'auto', '3xl': '22%'}}
+      >
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
           <Link
@@ -212,10 +219,15 @@ export function ReleaseCard({
         </ReleaseInfoSubheader>
       </ReleaseInfo>
 
-      <ReleaseProjects>
+      <ReleaseProjects borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+          <ReleaseProjectsLayout
+            align="center"
+            columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
+            gap="md"
+            width="100%"
+          >
             <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
@@ -283,7 +295,7 @@ export function ReleaseCard({
           </HiddenProjectsMessage>
         )}
       </ReleaseProjects>
-    </StyledPanel>
+    </ResponsivePanel>
   );
 }
 
@@ -298,25 +310,19 @@ const StyledVersion = styled(Version)`
 const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
   pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    display: flex;
-  }
 `;
 
-const ReleaseInfo = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  flex-shrink: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
+function ResponsivePanel(props: React.ComponentProps<typeof StyledPanel>) {
+  return (
+    <Container display={{zero: 'block', '3xl': 'flex'}}>
+      {({className}) => <StyledPanel {...props} className={className} />}
+    </Container>
+  );
+}
 
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    min-width: 260px;
-    width: 22%;
-    max-width: 300px;
-  }
+const ReleaseInfo = styled(Flex)`
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  justify-content: stretch;
 `;
 
 const ReleaseInfoSubheader = styled('div')`
@@ -349,15 +355,7 @@ const PackageName = styled('div')`
   max-width: 100%;
 `;
 
-const ReleaseProjects = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  flex-grow: 1;
-  display: grid;
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    border-top: none;
-  }
-`;
+const ReleaseProjects = styled(Grid)``;
 
 const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
@@ -394,31 +392,17 @@ const ExpandButtonWrapper = styled('div')`
   }
 `;
 
-export const ReleaseProjectsLayout = styled('div')<{
-  showReleaseAdoptionStages?: boolean;
-}>`
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+export const ReleaseProjectsLayout = Grid;
 
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  width: 100%;
+export function getReleaseProjectColumns(showReleaseAdoptionStages: boolean) {
+  const adoptionStagesSize = showReleaseAdoptionStages ? '0.7fr' : '';
 
-  @container (min-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    ${p => {
-      const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
-      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
-    }}
-  }
-`;
+  return {
+    zero: '1fr 1.4fr 0.6fr 0.7fr',
+    xl: '1fr 1fr 1fr 0.5fr 0.5fr 0.5fr',
+    '5xl': `1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`,
+  } as const;
+}
 
 export const ReleaseProjectColumn = styled('div')`
   display: block;
@@ -437,32 +421,45 @@ export const NewIssuesColumn = styled(ReleaseProjectColumn)`
   }
 `;
 
-export const AdoptionColumn = styled(ReleaseProjectColumn)`
-  display: none;
+const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
-  }
 
   & > * {
     flex: 1;
   }
 `;
 
-export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
-  display: none;
+export function AdoptionColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Container
+      display={{zero: 'none', xl: 'flex'}}
+      overflow={{zero: 'hidden', xl: 'visible'}}
+    >
+      {({className}) => (
+        <StyledAdoptionColumn className={className}>{children}</StyledAdoptionColumn>
+      )}
+    </Container>
+  );
+}
+
+const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    display: flex;
-
-    /* Need to show the edges of the tags */
-    overflow: visible;
-  }
 `;
+
+export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Container
+      display={{zero: 'none', '5xl': 'flex'}}
+      overflow={{zero: 'hidden', '5xl': 'visible'}}
+    >
+      {({className}) => (
+        <StyledAdoptionStageColumn className={className}>
+          {children}
+        </StyledAdoptionStageColumn>
+      )}
+    </Container>
+  );
+}
 
 export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;

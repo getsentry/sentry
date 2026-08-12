@@ -38,6 +38,7 @@ import {
   AdoptionStageColumn,
   CrashFreeRateColumn,
   DisplaySmallCol,
+  getReleaseProjectColumns,
   NewIssuesColumn,
   ReleaseProjectColumn,
   ReleaseProjectsLayout,
@@ -112,7 +113,12 @@ export function ReleaseCardProjectRow({
 
   return (
     <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+      <ReleaseProjectsLayout
+        columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
+        gap="md"
+        align="center"
+        width="100%"
+      >
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
