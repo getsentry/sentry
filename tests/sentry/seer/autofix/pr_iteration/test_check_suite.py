@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from scm.types import ProviderName
 
 from sentry.integrations.source_code_management.pr_id_cache import get_cached_pr_id
 from sentry.scm.types import CheckSuiteEvent
@@ -50,7 +51,12 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         self.group = self.create_group(project=self.project)
 
     def _event(
-        self, raw: dict | None = None, *, action="completed", conclusion="failure"
+        self,
+        raw: dict | None = None,
+        *,
+        action="completed",
+        conclusion="failure",
+        provider: ProviderName = "github",
     ) -> CheckSuiteEvent:
         return CheckSuiteEvent(
             action=action,
@@ -67,7 +73,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "extra": {},
                 "received_at": 0,
                 "sentry_meta": None,
-                "type": "github",
+                "type": provider,
             },
         )
 
@@ -106,6 +112,21 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     def test_skips_uninteresting_conclusion(self, mock_get_state: MagicMock) -> None:
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_skips_github_enterprise(
+        self, mock_get_state: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        """GHE delivers the same events onto this stream; both paths turn it away."""
+        pr_iteration_from_check_suite_listener(
+            self._event(self._raw(), conclusion="failure", provider="github_enterprise")
+        )
+        pr_iteration_from_check_suite_listener(
+            self._event(self._raw(), conclusion="success", provider="github_enterprise")
+        )
+        mock_get_state.assert_not_called()
+        mock_resolve.assert_not_called()
 
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")

@@ -16,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     confirm_green_check_suite,
     resolve_green_check_suite,
 )
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER_SLUG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -32,6 +33,20 @@ logger = logging.getLogger(__name__)
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if check_suite_event.action != "completed":
+        return None
+
+    # ``subscription_event["type"]`` is the integration provider slug. GitHub
+    # Enterprise delivers the same ``check_suite`` events onto this stream, so it
+    # is turned away here, before any Seer RPC or repo query — the same gate the
+    # review listener applies. This is the *only* provider decision on the path:
+    # everything downstream pins ``PR_ITERATION_PROVIDER``, so re-enabling a
+    # provider is a change to that constant and these entry points.
+    provider = check_suite_event.subscription_event["type"]
+    if provider != PR_ITERATION_PROVIDER_SLUG:
+        logger.warning(
+            "autofix.pr_iteration.check_suite.unsupported_provider",
+            extra={"provider": provider},
+        )
         return None
 
     conclusion = check_suite_event.check_suite["conclusion"]
