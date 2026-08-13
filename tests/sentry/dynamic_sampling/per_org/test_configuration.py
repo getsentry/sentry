@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any, NamedTuple
-from unittest.mock import DEFAULT, patch
+from unittest.mock import DEFAULT, call, patch
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
@@ -31,6 +31,7 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     CALCULATE_FACTOR,
     DELETE_FACTOR,
     GET_FACTOR,
+    METRICS_INCR,
     OUTCOMES_VOLUME,
     SET_FACTOR,
     SLIDING_WINDOW_RATE,
@@ -38,6 +39,9 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
 )
 
 SpanOrgIds = Callable[[Organization], list[int]]
+
+# metrics is a module, so patching its incr catches every caller, not only this one.
+OVERSHOOT_METRIC = "dynamic_sampling.per_org.recalibration.volume_overshoot"
 
 
 def assert_measure(
@@ -185,6 +189,48 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         mocks[GET_FACTOR].assert_called_once_with(org.id)
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
         mocks[SET_FACTOR].assert_called_once_with(org.id, 0.7)
+
+    def test_subscription_backed_org_counts_an_overshooting_volume(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        # More stored than seen, which only a volume built from two sources can report.
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=172)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                GET_FACTOR: 1.4,
+                SET_FACTOR: DEFAULT,
+                METRICS_INCR: DEFAULT,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+            # The rate is clamped to 1.0, so the factor lands on previous * target.
+            assert configuration.recalibrate(org_volume) == pytest.approx(0.7)
+
+        mocks[METRICS_INCR].assert_any_call(OVERSHOOT_METRIC)
+
+    def test_subscription_backed_org_does_not_count_a_consistent_volume(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                GET_FACTOR: 1.4,
+                SET_FACTOR: DEFAULT,
+                METRICS_INCR: DEFAULT,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate(org_volume) == pytest.approx(2.8)
+
+        assert call(OVERSHOOT_METRIC) not in mocks[METRICS_INCR].call_args_list
 
     def test_subscription_backed_org_skips_recalibration_without_an_org_volume(self) -> None:
         org = self.create_organization()

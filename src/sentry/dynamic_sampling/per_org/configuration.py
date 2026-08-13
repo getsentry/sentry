@@ -27,6 +27,7 @@ from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 TargetSampleRate = float | None
 ProjectSampleRates = dict[ProjectId, TargetSampleRate]
@@ -128,6 +129,12 @@ class BaseDynamicSamplingConfiguration(ABC):
 
         if not self.projects or self.get_sample_rate() is None:
             return None
+
+        # calculate_recalibration_factor clamps this away, so count it here instead. This is
+        # the only production call site, and the comparison log that would otherwise show it
+        # is temporary.
+        if org_volume is not None and org_volume.is_overshooting():
+            metrics.incr("dynamic_sampling.per_org.recalibration.volume_overshoot")
 
         adjusted_factor = calculate_recalibration_factor(
             org_volume,

@@ -84,7 +84,11 @@ def calculate_recalibration_factor(
     # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
-    effective_sample_rate = data_volume.indexed / data_volume.total
+    #
+    # A volume that overshoots reports a rate above 1, which is not a sample rate any org can
+    # have. Treating it as fully sampled keeps the factor pointing the right way, whereas the
+    # raw ratio scales it down by however far the two sources happened to disagree.
+    effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
 
@@ -100,6 +104,11 @@ def get_cached_per_org_recalibration_factor(org_id: int) -> float:
 
 
 def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    """The raw ratio, deliberately left unclamped unlike the one the factor is computed from.
+
+    A rate above 1 is the only signal that the two sources behind the volume disagreed, and
+    by how much. Clamping it here would hide that from the comparison log.
+    """
     if volume is None or volume.indexed is None or volume.total <= 0:
         return None
     return volume.indexed / volume.total
@@ -112,6 +121,7 @@ def compare_recalibration_factor_with_cache(
     cached_factor: float,
     previous_eap_factor: float,
     legacy_volume: OrganizationDataVolume | None = None,
+    eap_extrapolated_total: int | None = None,
 ) -> None:
     # Each pipeline seeds its next factor from its own cached factor, so the two also differ by
     # drift accumulated over earlier passes. The same_seed fields re-run both sides from the
@@ -147,6 +157,15 @@ def compare_recalibration_factor_with_cache(
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
             "eap_effective_sample_rate": get_effective_sample_rate(org_volume),
+            # EAP's own estimate of the same total the outcomes query supplies. The two
+            # measure one quantity, so the gap between them is the source misalignment on
+            # the denominator alone, which the same_seed fields cannot separate out.
+            "eap_extrapolated_total": eap_extrapolated_total,
+            "extrapolated_total_relative_deviation": (
+                None
+                if eap_extrapolated_total is None or org_volume is None
+                else get_relative_deviation(eap_extrapolated_total, org_volume.total)
+            ),
             "generic_metrics_total": None if legacy_volume is None else legacy_volume.total,
             "generic_metrics_indexed": None if legacy_volume is None else legacy_volume.indexed,
             "generic_metrics_effective_sample_rate": get_effective_sample_rate(legacy_volume),
