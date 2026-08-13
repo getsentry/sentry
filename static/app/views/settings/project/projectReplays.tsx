@@ -12,23 +12,18 @@ import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/rep
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-const rageClickSchema = z.object({
-  options: z.boolean().transform(value => ({
-    'sentry:replay_rage_click_issues': value,
-  })),
+const replaySchema = z.object({
+  'sentry:replay_rage_click_issues': z.boolean(),
+  'sentry:replay_hydration_error_issues': z.boolean(),
 });
 
-const hydrationErrorSchema = z.object({
-  options: z.boolean().transform(value => ({
-    'sentry:replay_hydration_error_issues': value,
-  })),
-});
+type ReplaySchema = z.infer<typeof replaySchema>;
 
 const ReplaySettingsAlert = OverrideOrDefault({
   overrideName: 'component:replay-settings-alert',
@@ -42,10 +37,15 @@ export default function ProjectReplaySettings() {
     orgSlug: organization.slug,
     projectSlug: outletProject.slug,
   });
-  const projectMutationOptions = useUpdateProjectMutationOptions(project);
+  const updateProject = useUpdateProject(project);
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
   const hasAccess = hasWriteAccess || hasAdminAccess;
+
+  const mutationOptions = {
+    mutationFn: (data: Partial<ReplaySchema>) =>
+      updateProject.mutateAsync({options: data}),
+  };
 
   const [tab, setTab] = useQueryState(
     'replaySettingsTab',
@@ -75,10 +75,10 @@ export default function ProjectReplaySettings() {
 
               <FieldGroup title={t('Replay Issues')}>
                 <AutoSaveForm
-                  name="options"
-                  schema={rageClickSchema}
+                  name="sentry:replay_rage_click_issues"
+                  schema={replaySchema}
                   initialValue={!!project.options?.['sentry:replay_rage_click_issues']}
-                  mutationOptions={projectMutationOptions}
+                  mutationOptions={mutationOptions}
                 >
                   {field => (
                     <field.Layout.Row
@@ -97,12 +97,12 @@ export default function ProjectReplaySettings() {
                 </AutoSaveForm>
 
                 <AutoSaveForm
-                  name="options"
-                  schema={hydrationErrorSchema}
+                  name="sentry:replay_hydration_error_issues"
+                  schema={replaySchema}
                   initialValue={
                     !!project.options?.['sentry:replay_hydration_error_issues']
                   }
-                  mutationOptions={projectMutationOptions}
+                  mutationOptions={mutationOptions}
                 >
                   {field => (
                     <field.Layout.Row
