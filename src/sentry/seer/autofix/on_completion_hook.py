@@ -702,7 +702,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                             "pr_number": pull_request.pr_number,
                             "pr_url": pull_request.pr_url,
                         }
-                        if pull_request.pr_id is not None
+                        if (
+                            pull_request.pr_id is not None
+                            and pull_request.pr_number is not None
+                            and pull_request.pr_url is not None
+                        )
                         else None
                     ),
                 }
