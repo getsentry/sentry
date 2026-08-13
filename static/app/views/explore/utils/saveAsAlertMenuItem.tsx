@@ -2,11 +2,8 @@ import type {LocationDescriptor} from 'history';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {hasMetricAlerts} from 'sentry/views/alerts/utils';
 
 interface SaveAsAlertMenuItemBaseOptions {
-  organization: Organization;
   disabled?: boolean;
 }
 
@@ -24,15 +21,6 @@ interface SaveAsAlertActionOptions extends SaveAsAlertMenuItemBaseOptions {
 
 type SaveAsAlertMenuItemOptions = SaveAsAlertSubmenuOptions | SaveAsAlertActionOptions;
 
-export function getMetricAlertsUpsellTooltip(
-  organization: Organization
-): string | undefined {
-  if (hasMetricAlerts(organization)) {
-    return undefined;
-  }
-  return t('Monitors are not available on your current plan.');
-}
-
 export function getCreateAlertLabel(): string {
   return t('Create a Monitor');
 }
@@ -44,9 +32,7 @@ export function getCreateAlertForLabel(): string {
 export function getSaveAsAlertMenuItem(
   options: SaveAsAlertMenuItemOptions
 ): MenuItemProps {
-  const {organization, disabled} = options;
-  const tooltip = getMetricAlertsUpsellTooltip(organization);
-  const hasAccess = !tooltip;
+  const {disabled} = options;
 
   if (options.submenu) {
     const {alertsUrls} = options;
@@ -56,9 +42,8 @@ export function getSaveAsAlertMenuItem(
       key: 'create-alert',
       label,
       textValue: label,
-      children: hasAccess ? alertsUrls : [],
-      disabled: disabled || !hasAccess || alertsUrls.length === 0,
-      tooltip,
+      children: alertsUrls,
+      disabled: disabled || alertsUrls.length === 0,
       submenu: true,
     };
   }
@@ -69,8 +54,7 @@ export function getSaveAsAlertMenuItem(
     key: 'create-alert',
     label,
     textValue: label,
-    disabled: disabled || !hasAccess,
-    tooltip,
+    disabled,
     to: options.to,
     onAction: options.onAction,
   };
