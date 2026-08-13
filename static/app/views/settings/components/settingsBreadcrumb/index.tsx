@@ -18,16 +18,25 @@ import type {RouteWithName} from './types';
 
 const MENU_ROUTE_PATHS = {
   configureIntegration: ':providerKey/:integrationId/',
+  integrations: 'integrations/',
   integrationDetails: ':integrationSlug',
   project: 'projects/:projectId/',
+  sentryApps: 'sentry-apps/',
   team: ':teamId/',
 } as const;
 
-function getMenuForRoute(path?: string) {
+function getMenuForRoute(path: string | undefined, routes: RouteWithName[]) {
   switch (path) {
     case MENU_ROUTE_PATHS.configureIntegration:
-    case MENU_ROUTE_PATHS.integrationDetails:
       return IntegrationCrumb;
+    case MENU_ROUTE_PATHS.integrationDetails:
+      return routes.some(
+        route =>
+          route.path === MENU_ROUTE_PATHS.integrations ||
+          route.path === MENU_ROUTE_PATHS.sentryApps
+      )
+        ? IntegrationCrumb
+        : undefined;
     case MENU_ROUTE_PATHS.project:
       return ProjectCrumb;
     case MENU_ROUTE_PATHS.team:
@@ -60,7 +69,7 @@ export function SettingsBreadcrumb({params}: Props) {
         const pathTitle =
           pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
-        const Menu = getMenuForRoute(route.path);
+        const Menu = getMenuForRoute(route.path, routes);
 
         if (Menu) {
           return (
