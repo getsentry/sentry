@@ -66,9 +66,48 @@ from sentry.tasks.seer.pr_iteration import (
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.seer.agent.client_models import SeerRunState
+    from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 
 logger = logging.getLogger(__name__)
+
+# Error codes exposed in webhook payloads: Seer's forbid classification plus
+# the SCM codes PR creation can raise. Unrecognized values collapse to
+# "unknown" so internal detail never reaches subscribers.
+_PR_CREATION_ERROR_CODES = frozenset(
+    {
+        # Seer forbid kinds (create_pr_metrics.FORBID_MESSAGE_KINDS)
+        "missing_permission",
+        "workflow_permission",
+        "repo_archived",
+        "installation_suspended",
+        "ip_allow_list",
+        "saml_sso",
+        # Provider request failures
+        "rate_limit_exceeded",
+        "resource_bad_request",
+        "resource_unauthorized",
+        "resource_not_found",
+        "resource_conflict",
+        "resource_unprocessable_content",
+        "resource_server_error",
+        "resource_bad_gateway",
+        "resource_service_unavailable",
+        "resource_gateway_timeout",
+        "unexpected_response_format",
+        "unhandled_exception",
+        # Repo and integration resolution
+        "provider_not_found",
+        "repository_not_found",
+        "repository_inactive",
+        "repository_organization_mismatch",
+        "repository_could_not_be_deserialized",
+        "malformed_external_id",
+        # PR capabilities
+        "draft_pull_request_not_supported",
+        # Catch-all
+        "unknown",
+    }
+)
 
 # Pipeline order: which step follows which
 PIPELINE_ORDER: list[AutofixStep] = [
@@ -551,10 +590,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "repo_name": pull_request.repo_name,
                     "status": status,
                     "error": (
-                        {
-                            "code": pull_request.pr_creation_error_code
-                            or cls._classify_pr_creation_failure(pull_request.pr_creation_error)
-                        }
+                        {"code": cls._get_pr_error_code(pull_request)}
                         if status == "error"
                         else None
                     ),
@@ -570,6 +606,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 }
             )
         return entries
+
+    @classmethod
+    def _get_pr_error_code(cls, pull_request: RepoPRState) -> str:
+        code = pull_request.pr_creation_error_code or cls._classify_pr_creation_failure(
+            pull_request.pr_creation_error
+        )
+        return code if code in _PR_CREATION_ERROR_CODES else "unknown"
 
     @staticmethod
     def _classify_pr_creation_failure(error: str | None) -> str:
