@@ -3,7 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {Table, TABLE_HEAD_ROW_HEIGHT, TableStatusCell} from '@sentry/scraps/table';
+import {
+  Table,
+  TABLE_HEAD_ROW_HEIGHT,
+  TableResizer,
+  TableStatusCell,
+} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -144,6 +149,11 @@ export const GridHeadCell = styled(Table.HeadCell, {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  /* Truncating every div would clip the resize handle's hit area back to the line. */
+  ${TableResizer}, ${TableResizer} div {
+    overflow: visible;
   }
 
   &:last-child {
