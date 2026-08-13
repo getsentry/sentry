@@ -101,10 +101,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
-# The clickhouse functions `fn_span_count` is allowed to wrap its span count in.
-# This is an allowlist because the value lands in a function name position. The
-# percentiles are matched as written, and mirror the levels used by the
-# `percentile`/`p50`..`p99` functions below.
 FN_SPAN_COUNT_FUNCTIONS = [
     "identity",
     "sum",
