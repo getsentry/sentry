@@ -11,7 +11,7 @@ This covers only top-level PR comments (``issue_comment``). Inline review
 comments arrive via the ``pull_request_review`` SCM listener (see
 ``listeners/review.py``),
 which acts on the whole submitted review without requiring an ``@sentry`` command
-but still gates on the review author's repo write access.
+but still gates human review authors on repo write access.
 """
 
 from __future__ import annotations

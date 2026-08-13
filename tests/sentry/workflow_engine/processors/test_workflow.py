@@ -11,10 +11,12 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -496,6 +498,33 @@ class TestProcessWorkflows(BaseWorkflowTest):
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert result.triggered_workflows == {self.error_workflow}
         assert result.associated_detector == self.error_detector
+
+    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    def test_all_projects_workflow_via_process_workflows(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+        all_projects_triggers = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=all_projects_triggers,
+            type=Condition.EVENT_SEEN_COUNT,
+            comparison=1,
+            condition_result=True,
+        )
+        all_projects_workflow = self.create_workflow(
+            name="all_projects_workflow",
+            when_condition_group=all_projects_triggers,
+            organization=self.organization,
+        )
+        self.create_detector_workflow(
+            detector=all_projects_detector,
+            workflow=all_projects_workflow,
+        )
+
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        assert result.workflows
+        assert all_projects_workflow in result.workflows
+        assert result.triggered_workflows
+        assert all_projects_workflow in result.triggered_workflows
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):

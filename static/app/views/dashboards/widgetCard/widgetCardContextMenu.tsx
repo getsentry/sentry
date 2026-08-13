@@ -311,11 +311,11 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
             dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);

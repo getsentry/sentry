@@ -1332,7 +1332,7 @@ function buildRoutes(): RouteObject[] {
   const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
     {
       index: true,
-      component: make(() => import('sentry/views/alerts/list/incidents')),
+      redirectTo: forCustomerDomain ? '/monitors/' : '/organizations/:orgId/monitors/',
     },
     {
       path: 'rules/',

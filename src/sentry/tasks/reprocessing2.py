@@ -22,7 +22,7 @@ from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_reprocessing_tasks, issues_tasks
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
@@ -31,7 +31,8 @@ from sentry.utils.tracing import start_span
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
 )
@@ -157,7 +158,8 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.handle_remaining_events",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=60 * 5,
     retry=Retry(times=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
@@ -244,7 +246,8 @@ def handle_remaining_events(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    namespace=issues_tasks,
+    namespace=issues_reprocessing_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=(60 * 5) + 5,
 )
 def finish_reprocessing(project_id: int, group_id: int) -> None:

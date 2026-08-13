@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,6 +14,7 @@ import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/lin
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -34,8 +36,8 @@ import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts'
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
+import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
 import {IssuePreviewAutofixSummary} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofixSummary';
-import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeerActions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -91,6 +93,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               analyticsParams={{
                 group_id: group.id,
                 progress: group.derivedData?.progress,
+                source: 'button',
               }}
             >
               {t('Open Issue')}
@@ -152,9 +155,25 @@ function IssuePreviewContent() {
                   showOnlyOnOverflow
                   delay={1000}
                 >
-                  <Heading as="h3" size="lg" ellipsis>
-                    {primaryTitle}
-                  </Heading>
+                  <TitleLink
+                    to={issueDetailsUrl}
+                    analyticsEventKey="issue_inbox.open_issue_clicked"
+                    analyticsEventName="Issue Inbox: Open Issue Clicked"
+                    analyticsParams={{
+                      group_id: group.id,
+                      progress: group.derivedData?.progress,
+                      source: 'title',
+                    }}
+                  >
+                    <Container flex="1" minWidth={0}>
+                      <Heading as="h3" size="lg" ellipsis>
+                        {primaryTitle}
+                      </Heading>
+                    </Container>
+                    <Flex align="center" flexShrink={0}>
+                      <IconOpen size="xs" variant="muted" />
+                    </Flex>
+                  </TitleLink>
                 </Tooltip>
               </Flex>
               <IssueSeenTimes group={group} />
@@ -185,7 +204,7 @@ function IssuePreviewContent() {
         gap="md"
       >
         {hasAutofix ? (
-          <IssuePreviewSeerActions
+          <IssuePreviewActions
             autofix={autofix}
             group={group}
             disabled={disableActions}
@@ -257,5 +276,18 @@ const Dividers = styled('div')`
   & > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
     padding-top: ${p => p.theme.space.md};
+  }
+`;
+
+const TitleLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  overflow: hidden;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: ${p => p.theme.tokens.content.secondary};
   }
 `;
