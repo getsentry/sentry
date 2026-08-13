@@ -785,6 +785,25 @@ class SeerOperatorTest(TestCase):
         assert [pr["repo_name"] for pr in activity.data["pull_requests"]] == ["owner/repo"]
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_created_null_pull_requests(self, _mock_has_access):
+        # seer_rpc.send_seer_webhook forwards Seer's payload verbatim, including explicit nulls.
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "pull_requests": None,
+        }
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+        ).exists()
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_pr_created_no_activity_when_all_failed(self, _mock_has_access):
         event_payload = {
             "run_id": MOCK_RUN_ID,

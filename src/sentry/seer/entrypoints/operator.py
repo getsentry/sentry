@@ -631,14 +631,14 @@ def _create_seer_activity(
             activity_data["summary"] = solution.get("one_line_summary")
     elif event_type == SentryAppEventType.SEER_PR_CREATED:
         pull_requests = [
-            pr for pr in event_payload.get("pull_requests", []) if pr.get("pull_request")
+            pr for pr in (event_payload.get("pull_requests") or []) if pr.get("pull_request")
         ]
         if not pull_requests:
             return
         activity_data["pull_requests"] = pull_requests
     elif event_type == SentryAppEventType.SEER_ITERATION_COMPLETED:
         pull_requests = [
-            pr for pr in event_payload.get("pull_requests", []) if pr.get("pull_request")
+            pr for pr in (event_payload.get("pull_requests") or []) if pr.get("pull_request")
         ]
         if pull_requests:
             activity_data["pull_requests"] = pull_requests

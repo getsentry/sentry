@@ -426,7 +426,7 @@ class SlackAutofixEntrypoint(
             case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
                     pull_request
-                    for pr_payload in event_payload.get("pull_requests", [])
+                    for pr_payload in (event_payload.get("pull_requests") or [])
                     if (pull_request := pr_payload.get("pull_request"))
                 ]
                 if not pull_requests:

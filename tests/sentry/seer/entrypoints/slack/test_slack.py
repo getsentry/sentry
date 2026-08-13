@@ -216,6 +216,18 @@ class SlackAutofixEntrypointTest(TestCase):
         ]
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_autofix_update_pr_created_null_pull_requests(
+        self, mock_schedule_all_thread_updates
+    ):
+        ep = self._get_entrypoint()
+        ep.on_autofix_update(
+            event_type=SentryAppEventType.SEER_PR_CREATED,
+            event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id, "pull_requests": None},
+            cache_payload=ep.create_autofix_cache_payload(),
+        )
+        mock_schedule_all_thread_updates.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     def test_on_autofix_update_pr_created_skips_when_all_failed(
         self, mock_schedule_all_thread_updates
     ):
