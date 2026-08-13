@@ -182,6 +182,7 @@ function NoteInputWithStorage({
         placeholder={props.placeholder}
         onSubmit={handleCreate}
         onValueChange={save}
+        variant={variant}
       />
     );
   }
