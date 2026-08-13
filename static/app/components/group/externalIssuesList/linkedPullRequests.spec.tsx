@@ -71,8 +71,6 @@ describe('LinkedPullRequests', () => {
     expect(linkedPullRequest).toHaveAccessibleName(
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
-    await userEvent.hover(linkedPullRequest);
-    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
     expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();
@@ -98,6 +96,36 @@ describe('LinkedPullRequests', () => {
       expect.anything(),
       expect.objectContaining({query: {expand: 'checksAndReview'}})
     );
+  });
+
+  it('shows the pull request title in a tooltip for the compact variant', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              title: 'Fix widget crash on startup',
+              repository,
+            }),
+            attribution: null,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} variant="compact" />, {organization});
+
+    const linkedPullRequest = await screen.findByRole('link', {
+      name: /Pull request #123 in example\/widget-app/,
+    });
+
+    expect(screen.queryByText('Fix widget crash on startup')).not.toBeInTheDocument();
+    await userEvent.hover(linkedPullRequest);
+    expect(await screen.findByText('Fix widget crash on startup')).toBeInTheDocument();
   });
 
   it('renders a delegated agent attribution', async () => {
