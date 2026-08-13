@@ -24,6 +24,14 @@ describe('getArbitraryRelativePeriod', () => {
 });
 
 describe('parseStatsPeriod', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2001-11-15T12:34:56.789Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('parses a range of hours', () => {
     const {start, end} = parseStatsPeriod('2h');
 
