@@ -17,8 +17,6 @@ import {Text, type TextProps} from '@sentry/scraps/text';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type ChipSize = 'xs' | 'sm' | 'md';
-
 /**
  * How focus is managed across the chip's interactive sections.
  * - `auto` (default): the chip owns a roving tabindex — a single tab stop
@@ -34,6 +32,8 @@ const SIZES = {
   sm: {height: '24px', radius: 'xs', pad: 'sm', font: 'md', dismiss: '20px'},
   md: {height: '28px', radius: 'sm', pad: 'md', font: 'md', dismiss: '24px'},
 } as const;
+
+type ChipSize = keyof typeof SIZES;
 
 const SEGMENT_ATTR = 'data-chip-segment';
 
