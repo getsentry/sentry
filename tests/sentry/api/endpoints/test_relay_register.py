@@ -1,4 +1,3 @@
-from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -518,8 +517,7 @@ class RelayRegisterTest(APITestCase):
         assert rv2.first_seen < after_second_relay
         assert rv2.last_seen < after_second_relay
 
-    @patch("sentry.api.endpoints.relay.register_response.buffer_incr")
-    def test_relay_usage_is_updated_at_registration(self, mock_buffer_incr: MagicMock) -> None:
+    def test_relay_usage_is_updated_at_registration(self) -> None:
         """
         Tests that during registration the proper relay usage information
         is updated
@@ -535,7 +533,8 @@ class RelayRegisterTest(APITestCase):
         self.register_relay(key_pair, "2.2.2", relay_id)
         after_second_relay = timezone.now()
         # re register the first one in order to update the last used time
-        self.register_relay(key_pair, "1.1.1", relay_id)
+        with self.tasks():
+            self.register_relay(key_pair, "1.1.1", relay_id)
         after_re_register = timezone.now()
 
         rv1 = RelayUsage.objects.get(relay_id=relay_id, version="1.1.1")
@@ -546,16 +545,9 @@ class RelayRegisterTest(APITestCase):
         # check first seen is not modified by re register
         assert rv1.first_seen > before_registration
         assert rv1.first_seen < after_first_relay
-
-        buffered_last_seen = mock_buffer_incr.call_args.kwargs["extra"]["last_seen"]
-        mock_buffer_incr.assert_called_once_with(
-            model=RelayUsage,
-            columns={},
-            filters={"id": rv1.id},
-            extra={"last_seen": buffered_last_seen, "public_key": str(key_pair[1])},
-        )
-        assert buffered_last_seen > after_second_relay
-        assert buffered_last_seen < after_re_register
+        # check last seen shows the time at re-registration
+        assert rv1.last_seen > after_second_relay
+        assert rv1.last_seen < after_re_register
 
         # check version 2.2.2 is not affected by version 1.1.1
         assert rv2.first_seen > after_first_relay
