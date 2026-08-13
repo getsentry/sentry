@@ -66,18 +66,22 @@ export function AssistantMessageBlock({
   const bubbleCss = css`
     overflow-wrap: anywhere;
     background: ${theme.tokens.background.transparent.accent.muted};
-    ${onClick &&
-    css`
-      cursor: pointer;
-      &:hover {
-        opacity: 0.85;
-      }
-    `}
-    ${isSelected &&
-    css`
-      outline: 2px solid ${theme.tokens.focus.default};
-      outline-offset: -2px;
-    `}
+    ${
+      onClick &&
+      css`
+        cursor: pointer;
+        &:hover {
+          opacity: 0.85;
+        }
+      `
+    }
+    ${
+      isSelected &&
+      css`
+        outline: 2px solid ${theme.tokens.focus.default};
+        outline-offset: -2px;
+      `
+    }
   `;
 
   return (

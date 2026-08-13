@@ -127,7 +127,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       'span.status',
     ],
   });
-  const tree = useTraceTree({traceSlug, trace, replay: null});
+  const tree = useTraceTree({trace, replay: null});
   const overview = useTraceOverviewData({
     logsEnabled,
     meta: meta.data,

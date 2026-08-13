@@ -100,6 +100,38 @@ describe('LinkedPullRequests', () => {
     );
   });
 
+  it('renders a delegated agent attribution', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository,
+              author: {name: 'cursor[bot]', email: 'cursor[bot]@localhost'},
+            }),
+            attribution: {type: 'seer', id: 'seer', agent: 'cursor'},
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Pull request created by Cursor Cloud Agent via Seer',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'cursor'})).toHaveAttribute(
+      'src',
+      'https://github.com/cursor.png?s=120'
+    );
+  });
+
   it('renders checks and review details when available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,

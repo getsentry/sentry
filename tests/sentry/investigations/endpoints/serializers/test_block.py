@@ -96,6 +96,40 @@ class InvestigationBlockSerializerTest(TestCase):
         assert result["outputStatus"] == "restricted"
         assert result["output"] is None
 
+    def test_exposes_execution_error_when_projects_are_accessible(self) -> None:
+        execution = self.completed_execution()
+        execution.error = {"detail": "Query failed"}
+        execution.save(update_fields=["error"])
+
+        result = self.serialize_block()
+
+        assert result["currentExecution"] is not None
+        assert result["currentExecution"]["error"] == {"detail": "Query failed"}
+
+    def test_redacts_execution_error_when_projects_are_inaccessible(self) -> None:
+        visible_execution = self.completed_execution()
+        restricted_project = self.create_project(organization=self.organization)
+        restricted_execution = self.create_investigation_block_execution(
+            block=self.block,
+            executor="manual",
+            block_version=2,
+            input_fingerprint="a" * 64,
+            status=InvestigationBlockExecutionStatus.FAILED,
+            error={"detail": "Sensitive query failed"},
+        )
+        self.create_investigation_block_execution_project(
+            execution=restricted_execution, project=restricted_project
+        )
+        self.block.update(
+            current_execution=restricted_execution,
+            result_execution=visible_execution,
+        )
+
+        result = self.serialize_block(accessible_project_ids={self.project.id})
+
+        assert result["currentExecution"] is not None
+        assert result["currentExecution"]["error"] is None
+
     def test_reports_a_pending_execution_status_verbatim(self) -> None:
         execution = self.create_investigation_block_execution(
             block=self.block,

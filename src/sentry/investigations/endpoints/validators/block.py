@@ -8,39 +8,11 @@ from sentry.investigations.contracts import VisualizationSerializer, validate_qu
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.models import InvestigationBlockKind
 
-
-def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
-    display_type = display.get("type")
-    if kind == InvestigationBlockKind.TEXT:
-        if set(display) == {"type"} and display_type == "markdown":
-            return display
-        if (
-            display_type != "markdown"
-            or display.get("version") != 1
-            or set(display) - {"version", "type", "promptCollapsed"}
-            or ("promptCollapsed" in display and not isinstance(display["promptCollapsed"], bool))
-        ):
-            raise serializers.ValidationError("Text blocks must use the markdown display.")
-        return display
-
-    if display_type == "table" and set(display) == {"type"}:
-        return display
-    if "version" not in display:
-        if display_type not in {"line", "bar", "area"}:
-            raise serializers.ValidationError("Invalid legacy query-block display.")
-        if set(display) != {"type", "xAxis", "yAxes"}:
-            raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
-        if not isinstance(display["xAxis"], str) or not display["xAxis"]:
-            raise serializers.ValidationError("xAxis must be a non-empty string.")
-        if (
-            not isinstance(display["yAxes"], list)
-            or not display["yAxes"]
-            or any(not isinstance(axis, str) or not axis for axis in display["yAxes"])
-        ):
-            raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
-        return display
-
-    allowed = {
+BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
+CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
+QUERY_DISPLAY_TYPES = CHART_DISPLAY_TYPES | {"table"}
+VERSIONED_QUERY_DISPLAY_FIELDS = frozenset(
+    {
         "version",
         "type",
         "xAxis",
@@ -57,34 +29,93 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "defaultView",
         "queryCollapsed",
     }
-    if display.get("version") != 1 or set(display) - allowed:
-        raise serializers.ValidationError("Invalid versioned query-block display.")
-    if display_type not in {"table", "line", "bar", "area"}:
-        raise serializers.ValidationError("Invalid visualization type.")
-    if display.get("defaultView", "table") not in {"table", "chart"}:
-        raise serializers.ValidationError("defaultView must be table or chart.")
-    for flag in ("queryCollapsed", "stacked", "showLegend"):
-        if flag in display and not isinstance(display[flag], bool):
-            raise serializers.ValidationError(f"{flag} must be a boolean.")
-    if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
-        raise serializers.ValidationError("Invalid visualization unit.")
-    if display.get("sort", "none") not in {"none", "ascending", "descending"}:
-        raise serializers.ValidationError("Invalid visualization sort.")
-    if "topN" in display and (
-        not isinstance(display["topN"], int) or not 1 <= display["topN"] <= 20
-    ):
-        raise serializers.ValidationError("topN must be between 1 and 20.")
-    if display_type == "table":
-        return display
+)
+
+
+def _validate_axes(display: dict[str, Any]) -> None:
     if not isinstance(display.get("xAxis"), str) or not display["xAxis"]:
         raise serializers.ValidationError("xAxis must be a non-empty string.")
     if (
         not isinstance(display.get("yAxes"), list)
-        or not display.get("yAxes")
+        or not display["yAxes"]
         or any(not isinstance(axis, str) or not axis for axis in display["yAxes"])
     ):
         raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
+
+
+def _validate_text_display(display: dict[str, Any]) -> dict[str, Any]:
+    if set(display) == {"type"} and display.get("type") == "markdown":
+        return display
+    if (
+        display.get("type") != "markdown"
+        or type(display.get("version")) is not int
+        or display["version"] != 1
+        or set(display) - {"version", "type", "promptCollapsed"}
+        or ("promptCollapsed" in display and not isinstance(display["promptCollapsed"], bool))
+    ):
+        raise serializers.ValidationError("Text blocks must use the markdown display.")
     return display
+
+
+def _validate_legacy_query_display(display: dict[str, Any]) -> dict[str, Any]:
+    display_type = display.get("type")
+    if not isinstance(display_type, str) or display_type not in CHART_DISPLAY_TYPES:
+        raise serializers.ValidationError("Invalid legacy query-block display.")
+    if set(display) != {"type", "xAxis", "yAxes"}:
+        raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
+    _validate_axes(display)
+    return display
+
+
+def _validate_versioned_query_display(display: dict[str, Any]) -> dict[str, Any]:
+    if (
+        type(display.get("version")) is not int
+        or display["version"] != 1
+        or set(display) - VERSIONED_QUERY_DISPLAY_FIELDS
+    ):
+        raise serializers.ValidationError("Invalid versioned query-block display.")
+
+    display_type = display.get("type")
+    if not isinstance(display_type, str) or display_type not in QUERY_DISPLAY_TYPES:
+        raise serializers.ValidationError("Invalid visualization type.")
+
+    default_view = display.get("defaultView", "table")
+    if not isinstance(default_view, str) or default_view not in {"table", "chart"}:
+        raise serializers.ValidationError("defaultView must be table or chart.")
+    for flag in ("queryCollapsed", "stacked", "showLegend"):
+        if flag in display and not isinstance(display[flag], bool):
+            raise serializers.ValidationError(f"{flag} must be a boolean.")
+    for field in ("title", "subtitle", "seriesField", "axisLabel"):
+        if field in display and display[field] is not None and not isinstance(display[field], str):
+            raise serializers.ValidationError(f"{field} must be a string or null.")
+
+    unit = display.get("unit", "number")
+    if not isinstance(unit, str) or unit not in {"number", "percentage", "duration", "bytes"}:
+        raise serializers.ValidationError("Invalid visualization unit.")
+    sort = display.get("sort", "none")
+    if not isinstance(sort, str) or sort not in {"none", "ascending", "descending"}:
+        raise serializers.ValidationError("Invalid visualization sort.")
+    top_n = display.get("topN")
+    if top_n is not None and (
+        isinstance(top_n, bool) or not isinstance(top_n, int) or not 1 <= top_n <= 20
+    ):
+        raise serializers.ValidationError("topN must be between 1 and 20.")
+
+    if display_type != "table":
+        _validate_axes(display)
+    return display
+
+
+def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
+    if kind == InvestigationBlockKind.TEXT:
+        return _validate_text_display(display)
+
+    display_type = display.get("type")
+    if display_type == "table" and set(display) == {"type"}:
+        return display
+    if "version" not in display:
+        return _validate_legacy_query_display(display)
+    return _validate_versioned_query_display(display)
 
 
 def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any]:
@@ -131,6 +162,10 @@ class BlockUpdateValidator(StrictCamelSnakeValidator):
     display = serializers.JSONField(required=False)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not BLOCK_UPDATE_FIELDS.intersection(attrs):
+            raise serializers.ValidationError(
+                {"detail": "Provide at least one block field to update."}
+            )
         if "display" in attrs:
             if not isinstance(attrs["display"], dict):
                 raise serializers.ValidationError({"display": "Must be an object."})

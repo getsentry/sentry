@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {QueryClient, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -11,12 +10,11 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {
   createDashboard,
   deleteDashboard,
-  updateDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {
@@ -57,7 +55,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
+import {
+  useUpdateDashboard,
+  type UpdateDashboardVariables,
+} from 'sentry/views/dashboards/useUpdateDashboard';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -140,6 +141,7 @@ type Props = {
   projects: Project[];
   queryClient: QueryClient;
   theme: Theme;
+  updateDashboard: (variables: UpdateDashboardVariables) => Promise<DashboardDetails>;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
   pageAlerts?: React.ReactNode;
   storageNamespace?: string;
@@ -581,7 +583,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleUpdateWidgetList = (widgets: Widget[]) => {
-    const {organization, dashboard, api, onDashboardUpdate, location, queryClient} =
+    const {organization, dashboard, onDashboardUpdate, location, updateDashboard} =
       this.props;
     const {modifiedDashboard} = this.state;
 
@@ -601,11 +603,8 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isEditingDashboard || this.isPreview) {
       return null;
     }
-    return updateDashboard(api, organization.slug, newModifiedDashboard).then(
+    return updateDashboard({dashboard: newModifiedDashboard}).then(
       (newDashboard: DashboardDetails) => {
-        queryClient.invalidateQueries({
-          queryKey: getDashboardRevisionsQueryKey(organization.slug, newDashboard.id),
-        });
         if (onDashboardUpdate) {
           onDashboardUpdate(newDashboard);
           this.setState({
@@ -869,7 +868,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       dashboard,
       onDashboardUpdate,
-      queryClient,
+      updateDashboard,
     } = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
@@ -950,16 +949,11 @@ class DashboardDetail extends Component<Props, State> {
           this.setState({
             isCommittingChanges: true,
           });
-          updateDashboard(api, organization.slug, modifiedDashboard, {
+          updateDashboard({
+            dashboard: modifiedDashboard,
             revisionSource: this.state.seerEditApplied ? 'edit-with-agent' : undefined,
           }).then(
             (newDashboard: DashboardDetails) => {
-              queryClient.invalidateQueries({
-                queryKey: getDashboardRevisionsQueryKey(
-                  organization.slug,
-                  newDashboard.id
-                ),
-              });
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);
               }
@@ -1085,7 +1079,13 @@ class DashboardDetail extends Component<Props, State> {
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
-                <StyledPageHeader>
+                <Grid
+                  columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
+                  gap="xl"
+                  align="center"
+                  marginBottom="xl"
+                  height={{zero: 'auto', '3xl': '40px'}}
+                >
                   <Layout.Title>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
@@ -1105,7 +1105,7 @@ class DashboardDetail extends Component<Props, State> {
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
                   />
-                </StyledPageHeader>
+                </Grid>
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
@@ -1160,7 +1160,6 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDashboardDetail() {
     const {
-      api,
       navigate,
       organization,
       dashboard,
@@ -1168,8 +1167,8 @@ class DashboardDetail extends Component<Props, State> {
       location,
       onDashboardUpdate,
       pageAlerts,
-      queryClient,
       theme,
+      updateDashboard,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1333,18 +1332,10 @@ class DashboardDetail extends Component<Props, State> {
                                       isSavingDashboardFilters: true,
                                     });
                                     addLoadingMessage(t('Saving dashboard filters'));
-                                    await updateDashboard(
-                                      api,
-                                      organization.slug,
-                                      newModifiedDashboard
-                                    ).then(
+                                    await updateDashboard({
+                                      dashboard: newModifiedDashboard,
+                                    }).then(
                                       (newDashboard: DashboardDetails) => {
-                                        queryClient.invalidateQueries({
-                                          queryKey: getDashboardRevisionsQueryKey(
-                                            organization.slug,
-                                            newDashboard.id
-                                          ),
-                                        });
                                         addSuccessMessage(t('Dashboard filters updated'));
                                         trackAnalytics('dashboards2.filter.save', {
                                           organization,
@@ -1528,20 +1519,6 @@ class DashboardDetail extends Component<Props, State> {
   }
 }
 
-const StyledPageHeader = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${p => p.theme.space.xl};
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${p => p.theme.space.xl};
-    height: 40px;
-  }
-`;
-
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
   | 'theme'
@@ -1553,6 +1530,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'params'
   | 'queryClient'
   | 'hasNewBreadcrumbs'
+  | 'updateDashboard'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1567,6 +1545,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
+  const updateDashboard = useUpdateDashboard();
   const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
@@ -1585,6 +1564,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      updateDashboard={updateDashboard.mutateAsync}
       hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );

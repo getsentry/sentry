@@ -56,6 +56,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import ReplayDeletionJobModel
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -275,6 +276,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
+    def create_replay_deletion_job(self, project=None, **kwargs) -> ReplayDeletionJobModel:
+        if project is None:
+            project = self.project
+        return Factories.create_replay_deletion_job(project, **kwargs)
 
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:

@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSeer} from 'sentry/icons';
+import {IconBot, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -24,6 +24,7 @@ import type {
   LinkedPullRequestsResponse,
   PullRequestAuthor,
   PullRequestAttribution,
+  PullRequestAttributionAgent,
 } from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -42,6 +43,13 @@ const PULL_REQUEST_ACTIVITY_TYPES = new Set([
   GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
   GroupActivityType.PULL_REQUEST_CLOSED,
 ]);
+
+const CODING_AGENT_NAMES: Record<PullRequestAttributionAgent, string> = {
+  cursor: 'Cursor Cloud Agent',
+  github_copilot: 'GitHub Copilot',
+  claude_code: 'Claude Code',
+  unknown: 'a coding agent',
+};
 
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
@@ -82,6 +90,7 @@ function LinkedPullRequestRow({
   const statusLabel = getPullRequestStatusLabel(pullRequest.status);
   const pullRequestLabel = t('#%s', pullRequest.id);
   const author = getPullRequestAuthor(pullRequest);
+  const githubAuthorLogin = getGithubPullRequestAuthorLogin(pullRequest);
 
   return (
     <Tooltip
@@ -105,6 +114,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
+            attribution_agent: pullRequest.attribution?.agent,
             attribution_type: pullRequest.attribution?.type,
             checks_status: pullRequest.checksStatus,
             review_status: pullRequest.reviewStatus,
@@ -159,7 +169,10 @@ function LinkedPullRequestRow({
               <PullRequestStatusBadge status={pullRequest.status} />
               <Flex align="center" gap="xs">
                 {pullRequest.attribution ? (
-                  <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
+                  <PullRequestAttributionAvatar
+                    attribution={pullRequest.attribution}
+                    githubAuthorLogin={githubAuthorLogin}
+                  />
                 ) : author ? (
                   <PullRequestAuthorAvatar author={author} />
                 ) : null}
@@ -188,13 +201,49 @@ function LinkedPullRequestRow({
 
 function PullRequestAttributionAvatar({
   attribution,
+  githubAuthorLogin,
 }: {
   attribution: PullRequestAttribution;
+  githubAuthorLogin: string | null;
 }) {
   switch (attribution.type) {
-    case 'seer':
-      return <SeerAttributionAvatar />;
+    case 'seer': {
+      if (!attribution.agent) {
+        return <SeerAttributionAvatar />;
+      }
+
+      const label = t(
+        'Pull request created by %s via Seer',
+        CODING_AGENT_NAMES[attribution.agent] ?? CODING_AGENT_NAMES.unknown
+      );
+      return (
+        <Tooltip title={label} skipWrapper>
+          {githubAuthorLogin ? (
+            <Flex as="span" aria-label={label} role="img">
+              <Avatar
+                identifier={githubAuthorLogin}
+                name={githubAuthorLogin}
+                round
+                size={18}
+                type="upload"
+                uploadUrl={`https://github.com/${githubAuthorLogin}.png`}
+              />
+            </Flex>
+          ) : (
+            <IconBot aria-label={label} size="xs" />
+          )}
+        </Tooltip>
+      );
+    }
   }
+}
+
+function getGithubPullRequestAuthorLogin(pullRequest: LinkedPullRequest): string | null {
+  if (pullRequest.repository.provider.id !== 'integrations:github') {
+    return null;
+  }
+
+  return pullRequest.author?.name?.replace(/\[bot\]$/, '') ?? null;
 }
 
 function getPullRequestAuthor(pullRequest: LinkedPullRequest): PullRequestAuthor | null {
@@ -251,7 +300,6 @@ function SeerAttributionAvatar() {
         justify="center"
         radius="full"
         role="img"
-        title={label}
         width="18px"
       >
         <IconSeer aria-hidden size="xs" />

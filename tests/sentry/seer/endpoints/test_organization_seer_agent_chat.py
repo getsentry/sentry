@@ -170,10 +170,62 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             prompt="What is this error about?",
             on_page_context=None,
             page_name=None,
+            page_location=None,
+            sent_at=None,
             ui_tools=None,
             override_ce_enable=True,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_forwards_page_location(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        page_location = {
+            "url": "https://sentry.io/issues/42/?statsPeriod=14d",
+            "name": "/issues/:groupId/",
+            "params": {"groupId": "42"},
+            "query": {"statsPeriod": "14d"},
+        }
+        response = self.client.post(
+            self.url,
+            {"query": "Why is this failing?", "page_location": page_location},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["page_location"] == page_location
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_forwards_sent_at(self, mock_client_class: MagicMock):
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=1, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        sent_at = ["2026-08-11T10:30:00-07:00[America/Los_Angeles]", "2026-08-11T17:30:00Z"]
+        response = self.client.post(
+            self.url,
+            {"query": "when did this start?", "sent_at": sent_at},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["sent_at"] == sent_at
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_rejects_oversized_sent_at(self, mock_client_class: MagicMock):
+        """Unparsed passthrough values are bounded at the edge."""
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=1, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            self.url, {"query": "hi", "sent_at": ["x" * 200]}, format="json"
+        )
+
+        assert response.status_code == 400
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_enable_coding(self, mock_client_class: MagicMock):
@@ -238,6 +290,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             insert_index=2,
             on_page_context=None,
             page_name=None,
+            page_location=None,
+            sent_at=None,
             ui_tools=None,
             request=ANY,
         )
