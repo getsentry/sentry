@@ -21,13 +21,13 @@ type ChipSize = 'xs' | 'sm' | 'md';
 
 /**
  * How focus is managed across the chip's interactive sections.
- * - `roving` (default): the chip owns a roving-tabindex — a single tab stop
+ * - `auto` (default): the chip owns a roving tabindex — a single tab stop
  *   enters the chip and Arrow/Home/End move between sections. Use standalone.
  * - `manual`: the chip sets no tabindex and installs no key handling; each
  *   section defers entirely to caller-supplied props. Use when an outer system
  *   (e.g. the search query builder grid) already manages focus.
  */
-type ChipFocus = 'roving' | 'manual';
+type ChipFocus = 'auto' | 'manual';
 
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},
@@ -172,7 +172,7 @@ function useChipSegment(interactive: boolean): ChipSegmentProps {
 interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   /**
-   * @default 'roving'
+   * @default 'auto'
    */
   focus?: ChipFocus;
   /**
@@ -190,12 +190,12 @@ interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
 function ChipRoot({
   size = 'md',
   readonly = false,
-  focus = 'roving',
+  focus = 'auto',
   children,
   ...rest
 }: ChipRootProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const roving = useRovingController(!readonly && focus === 'roving', rootRef);
+  const roving = useRovingController(!readonly && focus === 'auto', rootRef);
 
   const context = useMemo<ChipContextValue>(
     () => ({size, readonly, roving}),
