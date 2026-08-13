@@ -165,7 +165,16 @@ function ConfigureIntegration() {
 
       // The summary only supplies the breadcrumb while the full configuration loads.
       return cachedIntegration
-        ? {json: cachedIntegration as OrganizationIntegration, headers: {}}
+        ? {
+            json: {
+              ...cachedIntegration,
+              configData: null,
+              configOrganization: [],
+              organizationId: organization.id,
+              externalId: cachedIntegration.externalId ?? '',
+            },
+            headers: {},
+          }
         : undefined;
     },
   });
