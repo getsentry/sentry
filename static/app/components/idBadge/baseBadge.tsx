@@ -36,59 +36,56 @@ interface AllBaseBadgeProps extends BaseBadgeProps {
   user?: AvatarUser;
 }
 
-export const BaseBadge = memo(
-  ({
-    displayName,
-    hideName = false,
-    hideAvatar = false,
-    avatarProps = {},
-    avatarSize = 24,
-    description,
-    onClick,
-    team,
-    user,
-    organization,
-    project,
-    actor,
-    className,
-    ...flexProps
-  }: AllBaseBadgeProps) => {
-    // Space items appropriately depending on avatar size
-    const wrapperGap: SpaceSize =
-      avatarSize <= 14 ? 'xs' : avatarSize <= 20 ? 'sm' : 'md';
+export const BaseBadge = memo(function BaseBadgeComponent({
+  displayName,
+  hideName = false,
+  hideAvatar = false,
+  avatarProps = {},
+  avatarSize = 24,
+  description,
+  onClick,
+  team,
+  user,
+  organization,
+  project,
+  actor,
+  className,
+  ...flexProps
+}: AllBaseBadgeProps) {
+  // Space items appropriately depending on avatar size
+  const wrapperGap: SpaceSize = avatarSize <= 14 ? 'xs' : avatarSize <= 20 ? 'sm' : 'md';
 
-    return (
-      <Flex
-        {...flexProps}
-        align="center"
-        gap={wrapperGap}
-        flexShrink={0}
-        className={className}
-        onClick={onClick}
-      >
-        {!hideAvatar && (
-          <EntityAvatarType
-            team={team}
-            user={user}
-            organization={organization}
-            project={project}
-            actor={actor}
-            avatarProps={{...avatarProps, size: avatarSize}}
-          />
-        )}
+  return (
+    <Flex
+      {...flexProps}
+      align="center"
+      gap={wrapperGap}
+      flexShrink={0}
+      className={className}
+      onClick={onClick}
+    >
+      {!hideAvatar && (
+        <EntityAvatarType
+          team={team}
+          user={user}
+          organization={organization}
+          project={project}
+          actor={actor}
+          avatarProps={{...avatarProps, size: avatarSize}}
+        />
+      )}
 
-        {(!hideName || !!description) && (
-          <DisplayNameAndDescription>
-            {!hideName && (
-              <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
-            )}
-            {!!description && <Description>{description}</Description>}
-          </DisplayNameAndDescription>
-        )}
-      </Flex>
-    );
-  }
-);
+      {(!hideName || !!description) && (
+        <DisplayNameAndDescription>
+          {!hideName && (
+            <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+          )}
+          {!!description && <Description>{description}</Description>}
+        </DisplayNameAndDescription>
+      )}
+    </Flex>
+  );
+});
 
 function EntityAvatarType({
   user,

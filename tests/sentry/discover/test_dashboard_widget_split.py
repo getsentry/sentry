@@ -451,6 +451,32 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         if not self.dry_run:
             assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
+    def test_sets_widget_type_when_none(self) -> None:
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=None,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="stack.filename:'../../sentry/scripts/views.js'",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        if self.dry_run:
+            assert error_widget.widget_type is None
+        else:
+            assert error_widget.widget_type == DashboardWidgetTypes.DISCOVER
+
     def test_dashboard_projects_empty(self) -> None:
         # Dashboard belonging to an org with no projects
         self.organization = self.create_organization()

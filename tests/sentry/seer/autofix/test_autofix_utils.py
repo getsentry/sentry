@@ -22,6 +22,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     CodingAgentProviderType,
     add_seer_project_repos,
+    build_repo_definition_from_project_repo_fallback,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
@@ -73,6 +74,55 @@ class TestGetRepoUrlPath(TestCase):
         # real GitLab repo — fail loudly instead of returning the display name.
         with pytest.raises(ValueError):
             get_repo_url_path(repo)
+
+
+class TestBuildRepoDefinitionFromProjectRepoFallback(TestCase):
+    """Test the fallback builder that creates SeerRepoDefinition from ProjectRepository."""
+
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="gh_123"
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+            integration_id=self.integration.id,
+        )
+
+    def test_builds_definition_with_null_seer_fields(self):
+        pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
+
+        result = build_repo_definition_from_project_repo_fallback(pr)
+
+        assert result is not None
+        assert result.repository_id == self.repo.id
+        assert result.organization_id == self.repo.organization_id
+        assert result.integration_id == str(self.integration.id)
+        assert result.provider == "integrations:github"
+        assert result.owner == "test-org"
+        assert result.name == "test-repo"
+        assert result.external_id == "ext123"
+        assert result.branch_name is None
+        assert result.instructions is None
+        assert result.branch_overrides == []
+
+    def test_returns_none_for_invalid_repo_name(self):
+        bad_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_bad",
+            name="no-slash-repo",
+        )
+        pr = ProjectRepository.objects.create(project=self.project, repository=bad_repo)
+
+        result = build_repo_definition_from_project_repo_fallback(pr)
+
+        assert result is None
 
 
 class TestAutofixStateParsing(TestCase):
@@ -1141,6 +1191,44 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "test-repo"
 
+    @patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=True)
+    def test_free_cohort_org_uses_project_repository_fallback(self, _mock_free_cohort):
+        """Free cohort org with ProjectRepository rows (but no SeerProjectRepository)
+        gets repo definitions via the fallback path."""
+        ProjectRepository.objects.create(project=self.project, repository=self.repo)
+        ProjectRepository.objects.create(project=self.project, repository=self.repo2)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 2
+        repo_by_name = {r.name: r for r in result.repositories}
+        assert "test-repo" in repo_by_name
+        assert "other-repo" in repo_by_name
+        # Fallback sets Seer-specific fields to None/empty
+        assert repo_by_name["test-repo"].branch_name is None
+        assert repo_by_name["test-repo"].instructions is None
+        assert repo_by_name["test-repo"].branch_overrides == []
+
+    @patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=True)
+    def test_free_cohort_org_excludes_inactive_repos(self, _mock_free_cohort):
+        """Free cohort fallback path also excludes inactive repos."""
+        ProjectRepository.objects.create(project=self.project, repository=self.repo)
+        self.repo2.status = ObjectStatus.DISABLED
+        self.repo2.save()
+        ProjectRepository.objects.create(project=self.project, repository=self.repo2)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "test-repo"
+
+    @patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=False)
+    def test_paying_org_without_seer_project_repo_gets_empty_repos(self, _mock_free_cohort):
+        """Paying org (not free cohort) with only ProjectRepository rows (no
+        SeerProjectRepository) gets empty repos — the fallback does NOT apply."""
+        ProjectRepository.objects.create(project=self.project, repository=self.repo)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result.repositories == []
+
 
 class TestBulkReadPreferencesFromSentryDb(TestCase):
     def setUp(self):
@@ -1279,6 +1367,34 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert len(result[self.project1.id].repositories) == 1
         assert result[self.project1.id].repositories[0].name == "test-repo"
         assert len(result[self.project2.id].repositories) == 0
+
+    @patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=True)
+    def test_free_cohort_org_uses_project_repository_fallback(self, _mock_free_cohort):
+        """Free cohort org bulk read uses ProjectRepository fallback."""
+        ProjectRepository.objects.create(project=self.project1, repository=self.repo)
+        repo_p2 = self.create_repo(
+            project=self.project2,
+            provider="integrations:github",
+            external_id="ext_p2",
+            name="test-org/p2-repo",
+        )
+        ProjectRepository.objects.create(project=self.project2, repository=repo_p2)
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id]
+        )
+        assert len(result[self.project1.id].repositories) == 1
+        assert result[self.project1.id].repositories[0].name == "test-repo"
+        assert len(result[self.project2.id].repositories) == 1
+        assert result[self.project2.id].repositories[0].name == "p2-repo"
+
+    @patch("sentry.seer.autofix.utils.is_free_cohort_org", return_value=False)
+    def test_paying_org_without_seer_project_repo_gets_empty_repos(self, _mock_free_cohort):
+        """Paying org bulk read with only ProjectRepository rows gets empty repos."""
+        ProjectRepository.objects.create(project=self.project1, repository=self.repo)
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert result[self.project1.id].repositories == []
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

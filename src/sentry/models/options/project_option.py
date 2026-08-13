@@ -57,6 +57,7 @@ OPTION_KEYS = frozenset(
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
         "sentry:similarity_backfill_completed",
+        "sentry:group_action_log_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",

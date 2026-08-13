@@ -4,7 +4,7 @@ import {useQueries} from '@tanstack/react-query';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -321,7 +321,12 @@ export function ReleaseIssues({
 
   return (
     <Fragment>
-      <ControlsWrapper>
+      <Flex
+        align={{zero: 'stretch', md: 'center'}}
+        direction={{zero: 'column', md: 'row'}}
+        justify="between"
+        wrap="wrap"
+      >
         <DemoTourElement
           id={DemoTourStep.RELEASES_ISSUES}
           title={t('New and regressed issues')}
@@ -331,46 +336,63 @@ export function ReleaseIssues({
           position="top-start"
         >
           {tourProps => (
-            <div {...tourProps}>
-              <SegmentedControl
-                aria-label={t('Issue type')}
-                size="xs"
-                value={issuesType}
-                onChange={setIssuesType}
-              >
-                {issuesTypes.map(({value, label, issueCount}) => (
-                  <SegmentedControl.Item key={value} textValue={label}>
-                    {label}&nbsp;
-                    <QueryCount
-                      count={issueCount}
-                      max={99}
-                      hideParens
-                      hideIfEmpty={false}
-                    />
-                  </SegmentedControl.Item>
-                ))}
-              </SegmentedControl>
-            </div>
+            <Container {...tourProps} width={{zero: '100%', md: 'max-content'}}>
+              <Container width="100%">
+                {containerProps => (
+                  <SegmentedControl<IssuesType>
+                    {...containerProps}
+                    aria-label={t('Issue type')}
+                    size="xs"
+                    value={issuesType}
+                    onChange={setIssuesType}
+                  >
+                    {issuesTypes.map(({value, label, issueCount}) => (
+                      <SegmentedControl.Item key={value} textValue={label}>
+                        {label}&nbsp;
+                        <QueryCount
+                          count={issueCount}
+                          max={99}
+                          hideParens
+                          hideIfEmpty={false}
+                        />
+                      </SegmentedControl.Item>
+                    ))}
+                  </SegmentedControl>
+                )}
+              </Container>
+            </Container>
           )}
         </DemoTourElement>
 
-        <OpenInButtonBar>
-          <LinkButton
-            to={getIssuesUrl(
-              version,
-              location,
-              releaseBounds,
-              issuesType,
-              organization.slug
+        <Grid
+          align="center"
+          columns={{zero: '1fr', md: 'repeat(2, max-content)'}}
+          gap="md"
+          margin="md 0"
+        >
+          <Container width={{zero: '100%', md: 'max-content'}}>
+            {containerProps => (
+              <LinkButton
+                {...containerProps}
+                to={getIssuesUrl(
+                  version,
+                  location,
+                  releaseBounds,
+                  issuesType,
+                  organization.slug
+                )}
+                size="xs"
+              >
+                {t('Open in Issues')}
+              </LinkButton>
             )}
-            size="xs"
-          >
-            {t('Open in Issues')}
-          </LinkButton>
+          </Container>
 
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
-        </OpenInButtonBar>
-      </ControlsWrapper>
+          <Container justifySelf="end">
+            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+          </Container>
+        </Grid>
+      </Flex>
       <div data-test-id="release-wrapper">
         <GroupList
           endpoint={endpoint}
@@ -389,22 +411,6 @@ export function ReleaseIssues({
     </Fragment>
   );
 }
-
-const ControlsWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const OpenInButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin: ${p => p.theme.space.md} 0;
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0;

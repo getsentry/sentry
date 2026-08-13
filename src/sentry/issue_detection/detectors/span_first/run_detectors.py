@@ -6,11 +6,11 @@ from collections.abc import Sequence
 from types import NoneType
 from typing import Any
 
+from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.base import SpanFirstDetector
 from sentry.issue_detection.detectors.span_first.slow_db_query_detector import (
     SpanFirstSlowDBQueryDetector,
 )
-from sentry.issue_detection.performance_detection import get_detection_settings
 from sentry.issue_detection.performance_problem import PerformanceProblem, PerformanceProblemDict
 from sentry.issue_detection.types import StandaloneSpan
 from sentry.issues.grouptype import (
@@ -43,7 +43,7 @@ def run_span_first_detectors(
     grouptypes: Sequence[str],
     segment_span: StandaloneSpan,
     spans: Sequence[StandaloneSpan],
-    project: Project,
+    detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> dict[str, list[PerformanceProblem]]:
     """
     For each of grouptype slugs in `grouptypes`, run the corresponding span-first detectors, and
@@ -56,7 +56,6 @@ def run_span_first_detectors(
     `SpanFirstDetectorsRolloutController.should_check_experiment`). This function does no sampling
     of its own.
     """
-    detection_settings = get_detection_settings(project)
     span_first_problems: dict[str, list[PerformanceProblem]] = {}
 
     for grouptype in grouptypes:

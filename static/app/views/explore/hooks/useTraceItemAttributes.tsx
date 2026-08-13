@@ -29,6 +29,8 @@ import {
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
 type TypedTraceItemAttributes = {
+  array: TagCollection;
+  arraySecondaryAliases: TagCollection;
   boolean: TagCollection;
   booleanSecondaryAliases: TagCollection;
   number: TagCollection;
@@ -38,6 +40,7 @@ type TypedTraceItemAttributes = {
 };
 
 type TypedTraceItemAttributesStatus = {
+  arrayAttributesLoading: boolean;
   booleanAttributesLoading: boolean;
   numberAttributesLoading: boolean;
   stringAttributesLoading: boolean;
@@ -46,7 +49,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-type TraceItemAttributeType = 'number' | 'string' | 'boolean';
+type TraceItemAttributeType = 'number' | 'string' | 'boolean' | 'array';
 
 type TraceItemAttributeResult = {
   attributes: TagCollection;
@@ -153,17 +156,33 @@ function useTraceItemAttributeConfig({
     };
   }, [data?.booleanAttributes, traceItemType]);
 
+  const allArrayAttributes = useMemo(() => {
+    const secondaryAliases: TagCollection = Object.fromEntries(
+      Object.values(data?.arrayAttributes ?? {})
+        .flatMap(value => value.secondaryAliases ?? [])
+        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.ARRAY}])
+    );
+
+    return {
+      attributes: {...data?.arrayAttributes},
+      secondaryAliases,
+    };
+  }, [data?.arrayAttributes]);
+
   return useMemo(
     () => ({
       boolean: allBooleanAttributes.attributes,
       number: allNumberAttributes.attributes,
       string: allStringAttributes.attributes,
+      array: allArrayAttributes.attributes,
       booleanSecondaryAliases: allBooleanAttributes.secondaryAliases,
       numberSecondaryAliases: allNumberAttributes.secondaryAliases,
       stringSecondaryAliases: allStringAttributes.secondaryAliases,
+      arraySecondaryAliases: allArrayAttributes.secondaryAliases,
       booleanAttributesLoading: attributesLoading,
       numberAttributesLoading: attributesLoading,
       stringAttributesLoading: attributesLoading,
+      arrayAttributesLoading: attributesLoading,
     }),
     [
       allBooleanAttributes.attributes,
@@ -172,6 +191,8 @@ function useTraceItemAttributeConfig({
       allNumberAttributes.secondaryAliases,
       allStringAttributes.attributes,
       allStringAttributes.secondaryAliases,
+      allArrayAttributes.attributes,
+      allArrayAttributes.secondaryAliases,
       attributesLoading,
     ]
   );
@@ -205,6 +226,19 @@ function processTraceItemAttributes(
       isLoading: typedAttributesResult.numberAttributesLoading,
     };
   }
+
+  if (type === 'array') {
+    return {
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.array, hiddenKeySet)
+        : typedAttributesResult.array,
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.arraySecondaryAliases, hiddenKeySet)
+        : typedAttributesResult.arraySecondaryAliases,
+      isLoading: typedAttributesResult.arrayAttributesLoading,
+    };
+  }
+
   return {
     attributes: hiddenKeySet
       ? removeHiddenKeys(typedAttributesResult.string, hiddenKeySet)

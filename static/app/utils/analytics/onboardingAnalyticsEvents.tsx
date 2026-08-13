@@ -123,7 +123,11 @@ export type OnboardingEventParameters = {
   'onboarding.scm_view_sample_event_clicked': {
     platform?: string;
   };
+  'onboarding.scm_welcome_agent_command_copied': {
+    source: 'install_command' | 'prompt';
+  };
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
+  'onboarding.scm_welcome_present_agentic_interstitial_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
@@ -220,6 +224,10 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: SCM Setup Platform Later Clicked',
   'onboarding.scm_take_to_error_clicked': 'Onboarding: SCM Take to Error Clicked',
   'onboarding.scm_view_sample_event_clicked': 'Onboarding: SCM View Sample Event Clicked',
+  'onboarding.scm_welcome_agent_command_copied':
+    'Onboarding: SCM Welcome Agent Command Copied',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
+  'onboarding.scm_welcome_present_agentic_interstitial_clicked':
+    'Onboarding: SCM Welcome Present Agentic Interstitial Clicked',
   'onboarding.scm_welcome_step_viewed': 'Onboarding: SCM Welcome Step Viewed',
 };

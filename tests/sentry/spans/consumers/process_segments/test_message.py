@@ -6,6 +6,17 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
+from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
+from sentry.issue_detection.performance_detection import (
+    DETECTOR_CLASSES,
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -23,6 +34,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from tests.sentry.spans.consumers.process import build_mock_span
+
+DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
 
 
 @exclude_experimental_detectors
@@ -207,7 +220,7 @@ class TestSpansTask(TestCase):
 
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
@@ -224,7 +237,7 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
 
-    @override_options({"spans.process-segments.detect-performance-problems.enable": True})
+    @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     @pytest.mark.xfail(reason="batches without segment spans are not supported yet")
     def test_n_plus_one_issue_detection_without_segment_span(
@@ -277,6 +290,121 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
+
+    def test_detector_settings_only_fetched_once(self) -> None:
+        spans = self.generate_basic_spans()
+        detection_settings = get_detection_settings(self.project)
+
+        with (
+            override_options(
+                {DETECTORS_ENABLED_OPTION: ["*"], SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True}
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+                return_value=detection_settings,
+            ) as mock_get_detection_settings,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.run_span_first_detectors",
+                wraps=run_span_first_detectors,
+            ) as span_first_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert mock_get_detection_settings.call_count == 1
+            mock_get_detection_settings.assert_called_with(self.project)
+
+            legacy_settings = legacy_detectors_spy.call_args.kwargs["detection_settings"]
+            span_first_settings = span_first_detectors_spy.call_args.args[3]
+
+            assert legacy_settings is detection_settings
+            assert span_first_settings is detection_settings
+
+    def test_no_detectors_enabled(self) -> None:
+        """
+        An empty option value is the killswitch for all segment-based issue detection, so nothing
+        downstream of it should run -- not even the settings fetch.
+        """
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: []}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+            ) as get_detection_settings_mock,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+            ) as legacy_detectors_mock,
+        ):
+            process_segment(spans)
+
+            get_detection_settings_mock.assert_not_called()
+            legacy_detectors_mock.assert_not_called()
+
+    def test_blanket_detector_enablement(self) -> None:
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == DETECTOR_CLASSES
+
+    def test_selective_detector_enablement(self) -> None:
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == [
+                NPlusOneDBSpanDetector
+            ]
+
+    def test_invalid_detector_types_ignored_in_enablement_option(self) -> None:
+        """
+        A detector type we don't recognize is almost certainly a typo in the option value. Skipping
+        it lets the valid entries keep working, but it needs to be noisy about it, because
+        otherwise a typo is indistinguishable from having deliberately switched that detector off.
+        """
+        spans = self.generate_n_plus_one_spans()
+
+        with (
+            override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db", "dogs_are_great"]}),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.logger.warning"
+            ) as logger_warning_mock,
+        ):
+            process_segment(spans)
+
+            # The bogus entry is dropped, but the valid one still runs
+            assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == [
+                NPlusOneDBSpanDetector
+            ]
+            logger_warning_mock.assert_called_once_with(
+                "issue_detection.span_processor.invalid_enablement_option",
+                extra={"option_value": ["n_plus_one_db", "dogs_are_great"]},
+            )
 
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
     @pytest.mark.skip("temporarily disabled")

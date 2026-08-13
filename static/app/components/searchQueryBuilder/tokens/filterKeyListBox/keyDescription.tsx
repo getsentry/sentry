@@ -21,6 +21,11 @@ export function ValueType({
 }) {
   const defaultType =
     fieldKind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
+
+  if (fieldKind === FieldKind.ARRAY) {
+    return toTitleCase(FieldValueType.ARRAY);
+  }
+
   if (!fieldDefinition) {
     return toTitleCase(defaultType);
   }

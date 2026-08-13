@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
@@ -39,6 +39,9 @@ export function OrganizationTeams({
   const [teamQuery, setTeamQuery] = useState('');
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
+  const debouncedSearch = useDebouncedCallback((query: string) => void onSearch(query), {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
   if (!organization) {
     return null;
@@ -66,7 +69,6 @@ export function OrganizationTeams({
 
   const title = t('Teams');
 
-  const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
   function handleSearch(query: string) {
     setTeamQuery(query);
     debouncedSearch(query);

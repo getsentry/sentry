@@ -8,6 +8,7 @@ from typing import IO
 
 from objectstore_client import Session
 
+from sentry.preprod.snapshots.constants import SNAPSHOT_ARCHIVE_MANIFEST_FILENAME
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import is_unsafe_path
@@ -39,8 +40,9 @@ def build_snapshot_zip(
     key_prefix: str,
     out: IO[bytes],
     artifact_id: int,
+    manifest_bytes: bytes | None = None,
 ) -> None:
-    """Build a ZIP_STORED archive of all snapshot images into ``out``.
+    """Build an archive of snapshot images and an optional manifest into ``out``.
 
     Images sharing a content hash are fetched once and written under each
     original filename. Raises SnapshotZipBuildError if any image fails to
@@ -48,6 +50,10 @@ def build_snapshot_zip(
     """
     hash_to_filenames: dict[str, list[str]] = defaultdict(list)
     for filename, meta in manifest.images.items():
+        if manifest_bytes is not None and filename == SNAPSHOT_ARCHIVE_MANIFEST_FILENAME:
+            raise SnapshotZipBuildError(
+                f"snapshot image filename conflicts with {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME}"
+            )
         if not is_unsafe_path(filename):
             hash_to_filenames[meta.content_hash].append(filename)
     unique_hashes = list(hash_to_filenames.keys())
@@ -83,6 +89,12 @@ def build_snapshot_zip(
                 )
             for filename in hash_to_filenames[image_hash]:
                 zf.writestr(filename, data)
+        if manifest_bytes is not None:
+            zf.writestr(
+                SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
+                manifest_bytes,
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
         logger.info(
             "preprod_snapshot_zip.zip_build_completed",
             extra={"preprod_artifact_id": artifact_id, "image_hash_count": len(unique_hashes)},

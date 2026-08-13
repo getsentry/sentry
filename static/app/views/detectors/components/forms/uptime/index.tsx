@@ -4,12 +4,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {createMapFormErrors} from 'sentry/views/alerts/rules/uptime/formErrors';
-import {
-  PreviewCheckResultProvider,
-  usePreviewCheckResult,
-} from 'sentry/views/alerts/rules/uptime/previewCheckContext';
-import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {
@@ -32,6 +26,12 @@ import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptim
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
 import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
+import {createMapFormErrors} from 'sentry/views/detectors/components/uptime/formErrors';
+import {
+  PreviewCheckResultProvider,
+  usePreviewCheckResult,
+} from 'sentry/views/detectors/components/uptime/previewCheckContext';
+import {useUptimeAssertionFeatures} from 'sentry/views/detectors/components/uptime/useUptimeAssertionFeatures';
 
 const ENVIRONMENT_CONFIG: EnvironmentConfig = {
   includeAllEnvironments: false,

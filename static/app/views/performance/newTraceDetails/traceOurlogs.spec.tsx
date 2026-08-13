@@ -7,6 +7,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -91,6 +92,29 @@ describe('TraceViewLogsSection', () => {
 
     expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the trace timestamp from the URL to the logs query', async () => {
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+    setWindowLocation(
+      `http://localhost/organizations/${organization.slug}/explore/logs/trace/${TRACE_SLUG}/?timestamp=1743695410`
+    );
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [],
+        meta: {},
+      },
+    });
+    render(<Component traceSlug={TRACE_SLUG} />, {organization});
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/trace-logs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({statsPeriod: '30d', timestamp: 1743695410}),
+      })
+    );
   });
 
   it('shows filter key suggestions when the search is focused', async () => {

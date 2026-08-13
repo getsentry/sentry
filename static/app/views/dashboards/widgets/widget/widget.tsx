@@ -20,6 +20,7 @@ const RENDER_ERROR_MESSAGE = t('Something went wrong displaying this widget.');
 function FeedbackAction() {
   return (
     <FeedbackButton
+      variant="secondary"
       size="xs"
       feedbackOptions={{
         messagePlaceholder: t('What were you doing when this widget broke?'),

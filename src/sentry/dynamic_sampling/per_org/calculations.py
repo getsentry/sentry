@@ -10,6 +10,7 @@ import orjson
 import sentry_sdk
 
 from sentry import options
+from sentry.constants import SAMPLING_MODE_DEFAULT
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
@@ -19,6 +20,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
+from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
@@ -34,6 +36,9 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
     sample_rate_to_float,
+)
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
@@ -53,10 +58,120 @@ if TYPE_CHECKING:
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
+
+
+def calculate_recalibration_factor(
+    data_volume: OrganizationDataVolume | None,
+    previous_factor: float,
+    target_sample_rate: float | None,
+) -> float | None:
+    if (
+        target_sample_rate is None
+        or target_sample_rate == 0.0
+        or data_volume is None
+        or not data_volume.is_valid_for_recalibration()
+        or previous_factor == 0.0
+        or data_volume.indexed is None
+        or data_volume.indexed == 0
+    ):
+        return None
+
+    # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
+    # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
+    # biases that oversample or down sample irrespectively of the incoming volume.
+    effective_sample_rate = data_volume.indexed / data_volume.total
+    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
+    return new_factor
+
+
+def get_cached_recalibration_factor(org_id: int) -> float:
+    # A missing key is the stored form of 1.0: set_guarded_adjusted_factor deletes the key
+    # instead of writing the identity factor, and the serving path resolves a miss back to 1.0.
+    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+
+
+def get_cached_per_org_recalibration_factor(org_id: int) -> float:
+    return per_org_recalibration_cache.get_adjusted_factor(org_id)
+
+
+def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    if volume is None or volume.indexed is None or volume.total <= 0:
+        return None
+    return volume.indexed / volume.total
+
+
+def compare_recalibration_factor_with_cache(
+    config: BaseDynamicSamplingConfiguration,
+    org_volume: OrganizationDataVolume | None,
+    calculated_factor: float | None,
+    cached_factor: float,
+    previous_eap_factor: float,
+    legacy_volume: OrganizationDataVolume | None = None,
+) -> None:
+    # Each pipeline seeds its next factor from its own cached factor, so the two also differ by
+    # drift accumulated over earlier passes. The same_seed fields re-run both sides from the
+    # legacy factor, leaving only the difference the volumes explain.
+    target_sample_rate = config.get_sample_rate()
+
+    def same_seed_factor(volume: OrganizationDataVolume | None) -> float | None:
+        return calculate_recalibration_factor(volume, cached_factor, target_sample_rate)
+
+    eap_factor_same_seed = same_seed_factor(org_volume)
+    generic_metrics_factor_same_seed = same_seed_factor(legacy_volume)
+
+    if calculated_factor is None:
+        outcome = "no_eap_factor"
+    elif is_within_relative_tolerance(
+        cached_factor, calculated_factor, RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE
+    ):
+        outcome = "equal"
+    else:
+        outcome = "differs"
+
+    logger.info(
+        "dynamic_sampling.per_org.recalibration_factor_comparison",
+        extra={
+            "org_id": config.organization.id,
+            "sampling_mode": config.organization.get_option(
+                "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
+            ),
+            "sample_rate": target_sample_rate,
+            "generic_metrics_factor": cached_factor,
+            "eap_factor": calculated_factor,
+            "previous_eap_factor": previous_eap_factor,
+            "total_transactions": None if org_volume is None else org_volume.total,
+            "stored_segments": None if org_volume is None else org_volume.indexed,
+            "eap_effective_sample_rate": get_effective_sample_rate(org_volume),
+            "generic_metrics_total": None if legacy_volume is None else legacy_volume.total,
+            "generic_metrics_indexed": None if legacy_volume is None else legacy_volume.indexed,
+            "generic_metrics_effective_sample_rate": get_effective_sample_rate(legacy_volume),
+            "relative_deviation": (
+                None
+                if calculated_factor is None
+                else get_relative_deviation(cached_factor, calculated_factor)
+            ),
+            "is_equal": outcome == "equal",
+            "comparison_outcome": outcome,
+            "eap_factor_same_seed": eap_factor_same_seed,
+            "generic_metrics_factor_same_seed": generic_metrics_factor_same_seed,
+            "same_seed_relative_deviation": (
+                None
+                if eap_factor_same_seed is None
+                else get_relative_deviation(generic_metrics_factor_same_seed, eap_factor_same_seed)
+            ),
+            "same_seed_is_equal": eap_factor_same_seed is not None
+            and is_within_relative_tolerance(
+                generic_metrics_factor_same_seed,
+                eap_factor_same_seed,
+                RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
+            ),
+        },
+    )
 
 
 def compare_organization_sliding_window_sample_rates(
