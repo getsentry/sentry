@@ -208,7 +208,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(type__in=values)
                         else:
                             queryset = queryset.filter(type__in=values)
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                    case SearchFilter(
+                        key=SearchKey("assignee"), operator=("=" | "IN" | "!=" | "NOT IN")
+                    ):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
                             filter.value.value
@@ -217,7 +219,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         )
                         assignee_q = convert_assignee_values(values, projects, request.user)
 
-                        if filter.operator == "!=":
+                        if filter.operator == "!=" or filter.operator == "NOT IN":
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)

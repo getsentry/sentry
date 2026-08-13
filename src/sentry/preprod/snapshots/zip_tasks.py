@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from tempfile import NamedTemporaryFile
-from typing import IO
+from typing import IO, Any
 
 import orjson
 from objectstore_client import RequestError, Session
@@ -119,6 +119,7 @@ def build_snapshot_images_zip(
     artifact_id: int,
     user_id: int | None = None,
     include_manifest: bool = False,
+    **kwargs: Any,
 ) -> None:
     logger.info(
         "preprod_snapshot_zip.build_started",

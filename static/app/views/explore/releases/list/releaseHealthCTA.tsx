@@ -1,10 +1,8 @@
-import styled from '@emotion/styled';
-
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -60,35 +58,18 @@ export function ReleaseHealthCTA({
   return (
     <Alert.Container>
       <Alert variant="info">
-        <AlertText>
-          <div>
-            {t(
-              'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
-            )}
-          </div>
-          <ExternalLink
-            href="https://docs.sentry.io/product/releases/setup/#release-health"
-            onClick={trackAddReleaseHealth}
-          >
-            {t('Add Release Health')}
-          </ExternalLink>
-        </AlertText>
+        {tct(
+          'To track user adoption, crash rates, session data and more, add Release Health to your current setup. [link:Add Release Health]',
+          {
+            link: (
+              <ExternalLink
+                href="https://docs.sentry.io/product/releases/setup/#release-health"
+                onClick={trackAddReleaseHealth}
+              />
+            ),
+          }
+        )}
       </Alert>
     </Alert.Container>
   );
 }
-
-const AlertText = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: ${p => p.theme.space.xl};
-
-  > *:nth-child(1) {
-    flex: 1;
-  }
-  flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
