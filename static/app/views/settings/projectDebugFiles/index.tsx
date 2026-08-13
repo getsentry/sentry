@@ -244,7 +244,7 @@ const Wrapper = styled('div')`
   align-items: center;
   margin-top: ${p => p.theme.space['3xl']};
   margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: block;
   }
 `;
@@ -255,7 +255,7 @@ const Filters = styled('div')`
   align-items: center;
   justify-content: flex-end;
   gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: min-content 1fr;
   }
 `;
