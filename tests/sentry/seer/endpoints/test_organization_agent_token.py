@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.test import override_settings
+from rest_framework.test import APIClient
 
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
@@ -184,6 +185,71 @@ class OrganizationAgentTokenTest(APITestCase):
                 HTTP_AUTHORIZATION=f"Bearer {token}",
             )
         assert write.status_code == 403
+
+    def test_organization_owner_listing_remains_token_org_bound(self) -> None:
+        other_org = self.create_organization(owner=self.owner)
+        self.login_as(self.owner)
+
+        with self.feature(FLAG):
+            token = self._mint(sessionId="s1").data["token"]
+            for silo_mode in (SiloMode.CELL, SiloMode.CONTROL):
+                with self.subTest(silo_mode=silo_mode):
+                    with assume_test_silo_mode(silo_mode):
+                        response = APIClient().get(
+                            "/api/0/organizations/?owner=1",
+                            HTTP_AUTHORIZATION=f"Bearer {token}",
+                        )
+
+                    assert response.status_code == 200, response.content
+                    listed_ids = {int(item["organization"]["id"]) for item in response.data}
+                    assert listed_ids == {self.org.id}
+                    assert other_org.id not in listed_ids
+
+    def test_project_listings_retain_agent_org_and_member_bounds(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        member_team = self.create_team(organization=self.org)
+        member_project = self.create_project(organization=self.org, teams=[member_team])
+        other_team = self.create_team(organization=self.org)
+        self.create_project(organization=self.org, teams=[other_team])
+
+        other_org = self.create_organization()
+        cross_org_team = self.create_team(organization=other_org)
+        self.create_project(organization=other_org, teams=[cross_org_team])
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.org,
+            role="member",
+            teams=[member_team],
+        )
+        self.create_member(
+            user=member_user,
+            organization=other_org,
+            role="member",
+            teams=[cross_org_team],
+        )
+        self.login_as(member_user)
+
+        with self.feature(FLAG):
+            token = self._mint(sessionId="s1").data["token"]
+            client = APIClient()
+            responses = {
+                "global": client.get(
+                    "/api/0/projects/",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                ),
+                "organization": client.get(
+                    f"/api/0/organizations/{self.org.slug}/projects/",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                ),
+            }
+
+        for surface, response in responses.items():
+            with self.subTest(surface=surface):
+                assert response.status_code == 200, response.content
+                assert {int(item["id"]) for item in response.data} == {member_project.id}
 
     def test_end_to_end_read_allowed_write_denied(self) -> None:
         # Mint via session, then use the minted token as a bearer: read passes; an

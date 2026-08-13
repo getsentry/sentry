@@ -16,6 +16,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
+from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
@@ -47,7 +48,18 @@ class ProjectIndexEndpoint(Endpoint):
         elif status:
             queryset = queryset.none()
 
-        if request.auth and not request.user.is_authenticated:
+        if is_agent_auth(request.auth):
+            # The compatibility user carries identity only. Keep the global list
+            # intersected with both the credential's organization and the delegating
+            # member's project/team access.
+            if request.auth.organization_id is None or request.auth.user_id is None:
+                queryset = queryset.none()
+            else:
+                queryset = queryset.filter(
+                    organization_id=request.auth.organization_id,
+                    teams__organizationmember__user_id=request.auth.user_id,
+                )
+        elif request.auth and not request.user.is_authenticated:
             if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:
