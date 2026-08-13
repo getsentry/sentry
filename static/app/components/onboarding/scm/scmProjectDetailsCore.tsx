@@ -71,7 +71,7 @@ export function ScmProjectDetailsCore({
             />
             <Container>
               <Text variant="muted" density="comfortable" size="sm">
-                {t('Set who owns alerts for this project')}
+                {t('This team can access the project and receive alerts')}
               </Text>
             </Container>
           </Stack>

@@ -6,7 +6,7 @@ from concurrent.futures import as_completed
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Subquery, Value, When
+from django.db.models import Case, CharField, Exists, Min, Subquery, Value, When
 from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from requests import Response
@@ -203,18 +203,24 @@ def _use_claim_dispatch(mailbox_name: str) -> bool:
 def _is_due(schedule_for: datetime.datetime) -> bool:
     """
     Whether a payload is ready to deliver — the in-Python form of the
-    `schedule_for__lte=timezone.now()` filter that `_claim_and_dispatch` and the
+    `schedule_for__lte=timezone.now()` bound that the claim's due-gate and the
     scheduler select on. Dispatchers call this rather than restating the bound,
     so the push path cannot drift from the rows the scheduler picks up.
     """
     return schedule_for <= timezone.now()
 
 
-def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
+def _claim_mailbox_batch(head_id: int, mailbox_name: str, *, only_if_head_due: bool = False) -> int:
     """
     Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
     them past the drain deadline, so no other dispatcher selects the mailbox for
     delivery until the drain that claimed them has had its full run.
+
+    With `only_if_head_due`, the whole claim is gated on the head still being due:
+    the check rides in the UPDATE's WHERE clause, so a head that another dispatcher
+    already claimed (or a drain already delivered) claims 0 rows in the same round
+    trip instead of needing a separate primary read. Lease-mode callers must not
+    gate — they claim unconditionally, matching the pre-claim-rollout behavior.
 
     Returns the number of records claimed — also the depth signal that picks the
     drain mode.
@@ -224,9 +230,11 @@ def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
         .order_by("id")
         .values("id")[:MAX_MAILBOX_DRAIN]
     )
-    return WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch)).update(
-        schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
-    )
+    batch = WebhookPayload.objects.filter(id__in=Subquery(mailbox_batch))
+    if only_if_head_due:
+        head_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now())
+        batch = batch.filter(Exists(head_due))
+    return batch.update(schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET)
 
 
 class DispatchOutcome(enum.StrEnum):
@@ -241,11 +249,11 @@ def _claim_and_dispatch(head_id: int, mailbox_name: str) -> DispatchOutcome:
     """
     Claim a batch for the mailbox and dispatch the drain matching its depth.
     Callers must hold the mailbox's drain lock so concurrent dispatchers cannot
-    interleave between the due-check and the claim.
+    interleave around the claim.
 
     Returns the dispatched drain's mode, or NOT_DUE when the head has already
     been claimed, delivered, or moved into a retry backoff. Dispatchers discover
-    mailbox heads outside the drain lock, so this due re-check under the lock is
+    mailbox heads outside the drain lock, so the due-gate inside the claim is
     what stops two of them from double-dispatching the same head.
 
     The drain is bounded to the claimed records (`claimed_count`). Without the
@@ -253,10 +261,7 @@ def _claim_and_dispatch(head_id: int, mailbox_name: str) -> DispatchOutcome:
     the mailbox head is due again and another dispatcher can start a second,
     overlapping drain — duplicating deliveries and breaking mailbox ordering.
     """
-    is_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now()).exists()
-    if not is_due:
-        return DispatchOutcome.NOT_DUE
-    claimed = _claim_mailbox_batch(head_id, mailbox_name)
+    claimed = _claim_mailbox_batch(head_id, mailbox_name, only_if_head_due=True)
     if not claimed:
         return DispatchOutcome.NOT_DUE
     if claimed >= PARALLEL_DRAIN_THRESHOLD:
