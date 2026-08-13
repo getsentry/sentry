@@ -368,9 +368,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
 
         self._run()
 
-        client = (
-            self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        )
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
             self.organization.id, "integrations:github", 555
@@ -379,9 +377,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def test_populates_pr_id_cache_on_a_miss(self) -> None:
         self._run()
 
-        client = (
-            self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        )
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.assert_called_once_with("owner/repo", "7")
         assert (
             get_cached_pr_id(
@@ -393,9 +389,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         )
 
     def test_returns_when_get_pull_request_fails(self) -> None:
-        client = (
-            self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
-        )
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.side_effect = ApiError("boom")
 
         self._run()
