@@ -92,7 +92,7 @@ export interface ReleaseSeriesProps {
   query?: string;
   queryExtra?: Query;
   releases?: ReleaseMetaBasic[] | null;
-  tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
+  tooltip?: Exclude<Parameters<typeof createMarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
 }
 
