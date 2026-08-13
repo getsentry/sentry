@@ -1,7 +1,14 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IntegrationCrumb} from './integrationCrumb';
 
@@ -55,6 +62,12 @@ describe('IntegrationCrumb', () => {
       path: ':providerKey/:integrationId/',
       name: 'Configure Integration',
     };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/1/`,
+      body: OrganizationIntegrationsFixture({
+        icon: 'https://example.com/custom-integration.png',
+      }),
+    });
     const {router} = render(<IntegrationCrumb route={route} routes={[route]} isLast />, {
       organization,
       initialRouterConfig: {
@@ -65,9 +78,14 @@ describe('IntegrationCrumb', () => {
       },
     });
 
-    expect(await screen.findByRole('link', {name: /GitHub/})).toHaveAttribute(
+    const integrationLink = await screen.findByRole('link', {name: /GitHub/});
+    expect(integrationLink).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/integrations/github/`
+    );
+    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+      'src',
+      'https://example.com/custom-integration.png'
     );
 
     await waitFor(() =>

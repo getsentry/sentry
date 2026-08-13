@@ -1,16 +1,17 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {IntegrationProvider} from 'sentry/types/integrations';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import type {SettingsBreadcrumbProps} from './types';
@@ -26,6 +27,20 @@ export function IntegrationCrumb({route}: SettingsBreadcrumbProps) {
   const organization = useOrganization();
   const params = useParams();
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
+  const {data: integration} = useQuery(
+    apiOptions.as<Integration>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+      {
+        path: params.integrationId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              integrationId: params.integrationId,
+            }
+          : skipToken,
+        staleTime: 0,
+      }
+    )
+  );
   const {data, isPending} = useQuery(
     apiOptions.as<IntegrationProviderResponse>()(
       '/organizations/$organizationIdOrSlug/config/integrations/',
@@ -56,7 +71,11 @@ export function IntegrationCrumb({route}: SettingsBreadcrumbProps) {
       name={
         <CrumbLink to={activeProviderHref}>
           <Flex align="center" gap="xs">
-            <PluginIcon pluginId={activeProviderKey} size={18} />
+            {integration ? (
+              <IntegrationIcon integration={integration} size={18} />
+            ) : (
+              <PluginIcon pluginId={activeProviderKey} size={18} />
+            )}
             {activeProviderName}
           </Flex>
         </CrumbLink>
