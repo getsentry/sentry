@@ -3,18 +3,6 @@ from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
 from sentry.utils import metrics
 
 
-def _read_cached_factor(cache_key: str) -> float | None:
-    redis_client = get_redis_client_for_ds()
-
-    try:
-        value = redis_client.get(cache_key)
-        if value is not None:
-            return float(value)
-    except (TypeError, ValueError):
-        pass
-    return None
-
-
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:rate_rebalance_factor2"
 
@@ -38,7 +26,17 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
 
 
 def get_adjusted_factor(org_id: int, source: str) -> float:
-    factor = _read_cached_factor(generate_recalibrate_orgs_cache_key(org_id))
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_recalibrate_orgs_cache_key(org_id)
+
+    factor = None
+    try:
+        value = redis_client.get(cache_key)
+        if value is not None:
+            factor = float(value)
+    except (TypeError, ValueError):
+        pass
+
     metrics.incr(
         "dynamic_sampling.tasks.recalibrate_orgs.get_adjusted_factor",
         tags={"source": source, "result": "hit" if factor is not None else "miss"},
@@ -80,7 +78,17 @@ def set_guarded_adjusted_project_factor(project_id: int, adjusted_factor: float)
 
 
 def get_adjusted_project_factor(project_id: int, source: str) -> float:
-    factor = _read_cached_factor(generate_recalibrate_projects_cache_key(project_id))
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_recalibrate_projects_cache_key(project_id)
+
+    factor = None
+    try:
+        value = redis_client.get(cache_key)
+        if value is not None:
+            factor = float(value)
+    except (TypeError, ValueError):
+        pass
+
     metrics.incr(
         "dynamic_sampling.tasks.recalibrate_projects.get_adjusted_project_factor",
         tags={"source": source, "result": "hit" if factor is not None else "miss"},

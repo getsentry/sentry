@@ -9,12 +9,6 @@ ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-
 
 
 def adjusted_factor_ttl_ms() -> int:
-    """TTL in milliseconds for the adjusted factor persisted by the recalibration tasks.
-
-    The TTL bounds how far the effective sample rate can drift on a factor that no task
-    refreshes anymore. It has to outlive the interval between two recalibration passes,
-    otherwise the factor expires before it is rewritten and the correction is lost.
-    """
     return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
 
 

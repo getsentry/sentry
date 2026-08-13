@@ -2334,11 +2334,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TTL in minutes of the recalibration factor stored in Redis. The recalibration tasks run every
-# 10 minutes, so at the default of 10 the factor expires at about the same time as the next pass
-# rewrites it, and serving loses the correction whenever a pass is late or fails. Raise this to
-# give the factor more headroom, at the cost of applying a staler factor when a task stops
-# refreshing it.
+# TTL in minutes of the recalibration factor stored in Redis.
 register(
     "dynamic-sampling.recalibration.factor-ttl-minutes",
     type=Int,
