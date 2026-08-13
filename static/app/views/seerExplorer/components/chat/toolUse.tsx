@@ -362,12 +362,21 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // has still finished, and reading "settled" as "reported something" would leave any row
         // built from the live mirror spinning.
         const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
+        // Bus destinations already claimed by a call row (same rule id). A Code Mode execute often
+        // emits both a call record and a coarser bus link for the same entity; without this, the
+        // residual nav path would repeat "View issue" under a row that already navigates there.
+        // Destinations only the bus carries (translated Explore queries, multi-project searches)
+        // stay residual.
+        const claimedLinkKinds = new Set<string>();
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => {
             const link = resolveLink(subjectFromCallRecord(record), {
               organization,
               projects,
             });
+            if (link) {
+              claimedLinkKinds.add(link.id);
+            }
             return {
               record,
               // A rule that matched names the row; seer's own title stands for every other call.
@@ -382,6 +391,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           // internal identifier — one fewer row beats a raw string on screen. The predicate
           // narrows `label` for the render below, which is why it is not a plain Boolean check.
           .filter((row): row is typeof row & {label: string} => Boolean(row.label));
+
+        const residualNavItems = navItems.filter(item => !claimedLinkKinds.has(item.kind));
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
@@ -439,14 +450,14 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.
         //
-        // The links bus is skipped when call rows are present: those already name and link what
-        // the execute did, so it would repeat them at coarser granularity — the tool rather than
-        // the call.
-        if (navItems.length > 0 && callRows.length === 0) {
+        // Residual bus links only — same-kind destinations already on a call row were filtered out
+        // above. This is what keeps multi-project Explore links visible under a telemetry call row
+        // (the row itself has no path params / no destination; only the bus carries the query).
+        if (residualNavItems.length > 0) {
           rows.push(
             <NavLinks
               key={`${key}-links`}
-              navItems={navItems}
+              navItems={residualNavItems}
               onNavLinkClick={trackLinkClick}
             />
           );

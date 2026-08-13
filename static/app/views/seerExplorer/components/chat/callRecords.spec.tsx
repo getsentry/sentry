@@ -168,6 +168,32 @@ describe('call record rendering', () => {
     expect(screen.queryByText('Retrieving details')).not.toBeInTheDocument();
   });
 
+  it('keeps get_span_details over its less-specific trace child', () => {
+    // The only HTTP call under get_span_details is the trace endpoint. The lib row carries span_id
+    // and is the better destination, so the child is suppressed rather than the parent.
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_span_details',
+        title: 'Retrieving span abc in trace def',
+        params: {trace_id: 'def', span_id: 'abc'},
+      },
+      apiRecord({
+        id: 2,
+        parent: 1,
+        path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
+        path_params: {organization_id_or_slug: 'acme', trace_id: 'def'},
+        title: 'Retrieving waterfall for trace def',
+      }),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieving span abc in trace def')).toBeInTheDocument();
+    expect(screen.queryByText('Retrieving waterfall for trace def')).not.toBeInTheDocument();
+  });
+
   it('keeps a lib row that made no api calls of its own', () => {
     // code_search never touches the transport, so its row is the only trace it leaves. Seer titles
     // it, as it does every call — nothing in the frontend renames a row.
