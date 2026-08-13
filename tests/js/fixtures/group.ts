@@ -11,6 +11,7 @@ export function GroupFixture(params: Partial<Group> = {}): Group {
     assignedTo: null,
     count: '327482',
     culprit: 'fetchData(app/components/group/suggestedOwners/suggestedOwners)',
+    detectorId: null,
     firstSeen: '2019-04-05T19:44:05.963Z',
     filtered: null,
     hasSeen: false,

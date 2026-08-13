@@ -1228,6 +1228,7 @@ export interface BaseGroup {
   annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
+  detectorId: string | null;
   firstSeen: string;
   hasSeen: boolean;
   id: string;

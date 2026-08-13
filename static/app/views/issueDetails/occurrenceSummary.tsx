@@ -100,30 +100,27 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
     );
   }
 
-  if (event) {
-    const {detectorPath, detectorType, detectorId} = getDetectorDetails({
-      event,
-      organization,
-      project: group.project,
-    });
+  const {detectorPath, detectorType, detectorId} = getDetectorDetails({
+    group,
+    organization,
+  });
 
-    if (detectorType === 'metric_alert' && detectorPath) {
-      items.push(
-        <Stack>
-          <ItemTitle>{t('Alert ID')}</ItemTitle>
-          <ItemLink to={detectorPath}>{detectorId}</ItemLink>
-        </Stack>
-      );
-    }
+  if (detectorType === 'metric_alert' && detectorPath) {
+    items.push(
+      <Stack>
+        <ItemTitle>{t('Alert ID')}</ItemTitle>
+        <ItemLink to={detectorPath}>{detectorId}</ItemLink>
+      </Stack>
+    );
+  }
 
-    if (['cron_monitor', 'uptime_monitor'].includes(detectorType ?? '') && detectorPath) {
-      items.push(
-        <Stack>
-          <ItemTitle>{t('Monitor ID')}</ItemTitle>
-          <ItemLink to={detectorPath}>{detectorId}</ItemLink>
-        </Stack>
-      );
-    }
+  if (['cron_monitor', 'uptime_monitor'].includes(detectorType ?? '') && detectorPath) {
+    items.push(
+      <Stack>
+        <ItemTitle>{t('Monitor ID')}</ItemTitle>
+        <ItemLink to={detectorPath}>{detectorId}</ItemLink>
+      </Stack>
+    );
   }
 
   const knownEvidence =

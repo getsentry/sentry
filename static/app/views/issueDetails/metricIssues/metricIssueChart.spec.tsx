@@ -15,7 +15,11 @@ import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSect
 describe('MetricIssueChart', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({organization});
+  const detector = MetricDetectorFixture({
+    projectId: project.id,
+  });
   const group = GroupFixture({
+    detectorId: detector.id,
     project,
     issueCategory: IssueCategory.METRIC,
     issueType: IssueType.METRIC_ISSUE,
@@ -39,9 +43,6 @@ describe('MetricIssueChart', () => {
     });
   });
 
-  const detector = MetricDetectorFixture({
-    projectId: project.id,
-  });
   const event = EventFixture({
     occurrence: {
       evidenceData: {
@@ -52,7 +53,7 @@ describe('MetricIssueChart', () => {
   });
 
   it('renders the metric issue chart', async () => {
-    const detectorDetails = getDetectorDetails({event, organization, project});
+    const detectorDetails = getDetectorDetails({group, organization});
 
     const mockDetector = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
@@ -76,7 +77,7 @@ describe('MetricIssueChart', () => {
   });
 
   it('limits metric issue chart range to 10k points and shows a warning', async () => {
-    const detectorDetails = getDetectorDetails({event, organization, project});
+    const detectorDetails = getDetectorDetails({group, organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
@@ -121,7 +122,7 @@ describe('MetricIssueChart', () => {
   });
 
   it('shows detector load error message when detector request fails', async () => {
-    const detectorDetails = getDetectorDetails({event, organization, project});
+    const detectorDetails = getDetectorDetails({group, organization});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/${detector.id}/`,
