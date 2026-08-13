@@ -125,7 +125,7 @@ function getProfileOffset(
   startedAtMs: number | null
 ): Rect {
   if (!profile || !startedAtMs) {
-    return Rect.Empty();
+    return Rect.empty();
   }
 
   return new Rect(profile.startedAt - startedAtMs, 0, 0, 0);
@@ -137,7 +137,7 @@ function getTransactionOffset(
   startedAtMs: number | null
 ): Rect {
   if (!transactionSpan || !startedAtMs) {
-    return Rect.Empty();
+    return Rect.empty();
   }
 
   return new Rect(
