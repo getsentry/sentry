@@ -337,24 +337,29 @@ export function ReleaseIssues({
         >
           {tourProps => (
             <Container {...tourProps} width={{zero: '100%', md: 'max-content'}}>
-              <FullWidthSegmentedControl
-                aria-label={t('Issue type')}
-                size="xs"
-                value={issuesType}
-                onChange={setIssuesType}
-              >
-                {issuesTypes.map(({value, label, issueCount}) => (
-                  <SegmentedControl.Item key={value} textValue={label}>
-                    {label}&nbsp;
-                    <QueryCount
-                      count={issueCount}
-                      max={99}
-                      hideParens
-                      hideIfEmpty={false}
-                    />
-                  </SegmentedControl.Item>
-                ))}
-              </FullWidthSegmentedControl>
+              <Container width="100%">
+                {containerProps => (
+                  <SegmentedControl<IssuesType>
+                    {...containerProps}
+                    aria-label={t('Issue type')}
+                    size="xs"
+                    value={issuesType}
+                    onChange={setIssuesType}
+                  >
+                    {issuesTypes.map(({value, label, issueCount}) => (
+                      <SegmentedControl.Item key={value} textValue={label}>
+                        {label}&nbsp;
+                        <QueryCount
+                          count={issueCount}
+                          max={99}
+                          hideParens
+                          hideIfEmpty={false}
+                        />
+                      </SegmentedControl.Item>
+                    ))}
+                  </SegmentedControl>
+                )}
+              </Container>
             </Container>
           )}
         </DemoTourElement>
@@ -409,8 +414,4 @@ export function ReleaseIssues({
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const FullWidthSegmentedControl = styled(SegmentedControl<IssuesType>)`
-  width: 100%;
 `;
