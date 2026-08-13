@@ -85,7 +85,7 @@ For large tables, set `is_post_deployment = True` on the migration as index crea
 
 ### Deleting Columns
 
-Deleting takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 branched off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the column while old code is still running.
+Deleting takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 stacked on top off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the column while old code is still running.
 
 **Phase 1 — `MOVE_TO_PENDING`**
 
@@ -93,7 +93,7 @@ Run `makemigrations` twice, in this order. Once the field is off the model Djang
 
 1. With the field **still on the model**, edit it in place: `db_constraint=False` if it's an FK, `null=True` if it's not nullable and has no `db_default`. Run `makemigrations` to get the `AlterField`.
 2. Remove the field and every code reference to it, then `makemigrations` again. Replace the generated `RemoveField` with `SafeRemoveField(..., deletion_action=DeletionAction.MOVE_TO_PENDING)` — this drops the Django state, not the column.
-3. Hand-merge both into one migration:
+3. Hand-merge both into one migration. Example:
 
 ```python
 operations = [
@@ -119,7 +119,7 @@ operations = [
 
 ### Removing a Model (and eventually its table)
 
-Dropping a table takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 branched off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the table while old code is still running.
+Dropping a table takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 stacked on top off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the table while old code is still running.
 
 **First, check for inbound FKs.** If other tables have foreign keys pointing at this one, those columns need their own "Deleting Columns" pass, and both of its phases must be deployed before this model's phase 1 can merge.
 
