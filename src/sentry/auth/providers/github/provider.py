@@ -16,7 +16,7 @@ from sentry.plugins.base.response import DeferredResponse
 
 from .client import GitHubApiError, GitHubClient
 from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, CLIENT_ID, CLIENT_SECRET, SCOPE
-from .views import ConfirmEmail, FetchUser, SelectOrganization, github_configure_view
+from .views import FetchUser, SelectOrganization, github_configure_view
 
 
 class GitHubOAuth2Provider(OAuth2Provider):
@@ -53,7 +53,6 @@ class GitHubOAuth2Provider(OAuth2Provider):
                 client_secret=self.get_client_secret(),
             ),
             FetchUser(org=self.org),
-            ConfirmEmail(),
         ]
 
     def get_setup_pipeline(self) -> list[AuthView]:
@@ -78,6 +77,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         return {
             "id": user_data["id"],
             "email": user_data["email"],
+            "email_verified": user_data.get("email_verified", False),
             "name": user_data["name"],
             "data": self.get_oauth_data(data),
         }

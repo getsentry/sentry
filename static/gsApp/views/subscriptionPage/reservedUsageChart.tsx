@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {LineSeries as lineSeries} from 'sentry/components/charts/series/lineSeries';
@@ -387,7 +387,7 @@ export function mapStatsToChart({
           other: sumOther,
           overQuota: sumOverQuota,
           spikeProtection: sumSpikeProtection,
-        } as DroppedBreakdown,
+        },
       });
     }
   });
@@ -735,7 +735,7 @@ export function ProductUsageChart({
             ]
           : []),
         lineSeries({
-          markLine: MarkLine({
+          markLine: markLine({
             silent: true,
             lineStyle: {
               color:

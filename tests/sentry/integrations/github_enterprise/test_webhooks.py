@@ -32,6 +32,8 @@ from sentry.integrations.github_enterprise.webhook import (
     get_host,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import PullRequestMergedAction
 from sentry.middleware.integrations.parsers.github_enterprise import (
     GithubEnterpriseRequestParser,
 )
@@ -42,6 +44,7 @@ from sentry.models.repository import Repository
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.action_log import capture_action_log
 
 
 class WebhookTest(APITestCase):
@@ -627,11 +630,12 @@ class PushEventWebhookTest(APITestCase):
 class PullRequestEventWebhook(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
+        self.webhook_secret = "b3002c3e321d4b7880360d397db2ccfd"
         self.metadata = {
             "url": "35.232.149.196",
             "id": "2",
             "name": "test-app",
-            "webhook_secret": "b3002c3e321d4b7880360d397db2ccfd",
+            "webhook_secret": self.webhook_secret,
             "private_key": "private_key",
             "verify_ssl": True,
         }
@@ -655,6 +659,19 @@ class PullRequestEventWebhook(APITestCase):
             provider="integrations:github_enterprise",
             name="baxterthehacker/public-repo",
         )
+
+    def _post_pull_request_event(self, body: bytes) -> None:
+        signature = hmac.new(self.webhook_secret.encode(), body, hashlib.sha1).hexdigest()
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE=f"sha1={signature}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_opened(
@@ -774,6 +791,31 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
         assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+    def test_merged_action_log_attributes_unmapped_actor_to_system(
+        self, mock_get_installation_metadata: MagicMock
+    ) -> None:
+        mock_get_installation_metadata.return_value = self.metadata
+        group = self.create_group(project=self.project, short_id=7)
+        fixes_body = f"Fixes {group.qualified_short_id}"
+
+        opened = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        opened["pull_request"]["body"] = fixes_body
+        merged = orjson.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["body"] = fixes_body
+        merged["pull_request"]["merged_by"] = {"id": 999999, "login": "dependabot[bot]"}
+
+        with self.feature("organizations:pr-lifecycle-activity"):
+            self._post_pull_request_event(orjson.dumps(opened))
+            with capture_action_log() as log:
+                self._post_pull_request_event(orjson.dumps(merged))
+
+        log.assert_logged(
+            PullRequestMergedAction,
+            group_id=group.id,
+            source=ActionSource.GITHUB_ENTERPRISE,
+            actor=SYSTEM_ACTOR,
+        )
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
     @patch(

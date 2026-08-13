@@ -65,9 +65,6 @@ export function IssueListSortOptions({
   // The trigger badge announces the Recommended default. A stored sort means
   // the user has already made an explicit choice, so stop announcing.
   const hasChosenSort = getStoredIssueSort(organization.slug) !== null;
-  const hasProgressSort =
-    organization.features.includes('issue-stream-progress-sort') ||
-    sort === IssueSortOptions.PROGRESS;
   // The explicit v1/v2 sort values are URL-only escape hatches for pinning one of
   // the two recommended scorers; the dropdown just shows them as Recommended.
   const isPinnedRecommended =
@@ -90,7 +87,6 @@ export function IssueListSortOptions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
   return (

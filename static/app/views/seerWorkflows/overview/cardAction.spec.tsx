@@ -9,7 +9,6 @@ import type {
   AutofixStateKey,
   CardAction,
   OverviewRow,
-  RunStatus,
 } from 'sentry/views/seerWorkflows/overview/types';
 
 function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
@@ -91,10 +90,10 @@ describe('IssuePrimaryAction', () => {
   });
 
   it.each([
-    {runStatus: 'processing' as RunStatus, overlay: 'Running'},
-    {runStatus: 'error' as RunStatus, overlay: 'Retry'},
-    {runStatus: 'awaiting_user_input' as RunStatus, overlay: 'Add context'},
-  ])(
+    {runStatus: 'processing', overlay: 'Running'},
+    {runStatus: 'error', overlay: 'Retry'},
+    {runStatus: 'awaiting_user_input', overlay: 'Add context'},
+  ] as const)(
     'paints the $overlay overlay over the section action when the run is $runStatus',
     ({runStatus, overlay}) => {
       // A review_pr card (section anchor) whose live run is mid-flight: the
@@ -168,17 +167,17 @@ describe('IssuePrimaryAction', () => {
 
   it.each([
     {
-      action: {type: 'code_changes_ready'} as CardAction,
+      action: {type: 'code_changes_ready'},
       label: 'Draft PR',
       row: makeRow({runStatus: 'completed'}),
     },
     {
-      action: {type: 'solution_ready'} as CardAction,
+      action: {type: 'solution_ready'},
       label: 'Generate code',
       row: makeRow({runStatus: 'completed'}),
     },
     {
-      action: {type: 'needs_investigation'} as CardAction,
+      action: {type: 'needs_investigation'},
       label: 'Create Plan',
       row: makeRow({runStatus: 'completed'}),
     },
@@ -187,21 +186,21 @@ describe('IssuePrimaryAction', () => {
         type: 'review_pr',
         prUrl: undefined,
         prNumber: undefined,
-      } as CardAction,
+      },
       label: 'Review PR',
       row: makeRow({runStatus: 'completed'}),
     },
     {
-      action: {type: 'needs_investigation'} as CardAction,
+      action: {type: 'needs_investigation'},
       label: 'Retry',
       row: makeRow({runStatus: 'error'}),
     },
     {
-      action: {type: 'needs_investigation'} as CardAction,
+      action: {type: 'needs_investigation'},
       label: 'Add context',
       row: makeRow({runStatus: 'awaiting_user_input'}),
     },
-  ])(
+  ] as const)(
     'links the $label action to the issue when inline opening is unavailable',
     ({action, label, row}) => {
       renderAction(action, row, {inline: false});

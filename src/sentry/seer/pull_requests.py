@@ -11,6 +11,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.endpoints.utils import get_seer_run
+from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
 from sentry.seer.models.run import SeerRun, SeerRunCodingAgentHandoff, SeerRunPullRequest
 from sentry.seer.sentry_data_models import (
     NotifySeerPrCreatedErrorResponse,
@@ -49,6 +50,7 @@ def link_seer_run_pull_requests(
     for entry in pull_requests:
         repo_name = entry.get("repo_name")
         provider = entry.get("provider")
+        repo_external_id = entry.get("repo_external_id")
         pr_payload = entry.get("pull_request") or {}
         pr_number = pr_payload.get("pr_number")
 
@@ -57,6 +59,7 @@ def link_seer_run_pull_requests(
             "seer_run_state_id": seer_run_state_id,
             "repo_name": repo_name,
             "provider": provider,
+            "repo_external_id": repo_external_id,
             "pr_number": pr_number,
         }
 
@@ -67,6 +70,7 @@ def link_seer_run_pull_requests(
             provider=provider,
             pr_number=pr_number,
             log_context=log_context,
+            repo_external_id=repo_external_id,
         )
 
 
@@ -79,10 +83,12 @@ def link_pull_request_to_seer_run(
     pr_number: int | str | None,
     log_context: Mapping[str, Any],
     coding_agent_handoff: SeerRunCodingAgentHandoff | None = None,
+    repo_external_id: str | None = None,
 ) -> PullRequest | None:
     """Idempotently links one PR to ``seer_run``. Never raises -- returns None on
-    failure. Pass ``coding_agent_handoff`` to record which handoff produced the PR.
-    Checks the killswitch itself so every write path respects it.
+    failure. Pass ``coding_agent_handoff`` to record which handoff produced the PR, and
+    ``repo_external_id`` whenever the reporter knows it -- unlike the name, it resolves
+    the repo exactly. Checks the killswitch itself so every write path respects it.
     """
     if options.get("seer.pull-request-linking.killswitch.enabled"):
         return None
@@ -97,13 +103,23 @@ def link_pull_request_to_seer_run(
             repo_name=repo_name,
             provider=provider,
             key=pr_number,
+            repo_external_id=repo_external_id,
         )
     except Exception:
         logger.exception("seer.pr_link.resolve_failed", extra=log_context)
         return None
 
     if resolved.pull_request is None:
-        logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
+        # "ambiguous" (several same-named active repos in the org) and "not_found" are
+        # different bugs with different fixes; the message alone can't tell them apart.
+        logger.warning(
+            "seer.pr_link.repo_unresolved",
+            extra={
+                **log_context,
+                "repo_resolution": resolved.repo_resolution,
+                "provider_unmappable": resolved.provider_unmappable,
+            },
+        )
         return None
 
     try:
@@ -121,8 +137,19 @@ def link_pull_request_to_seer_run(
     if created:
         logger.info(
             "seer.pr_link.created",
-            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            extra={
+                **log_context,
+                "pull_request_id": resolved.pull_request.id,
+                "resolved_by": resolved.resolved_by,
+            },
         )
+        try:
+            reconcile_pull_requests_merged_milestone(seer_run)
+        except Exception:
+            logger.exception(
+                "seer.pr_link.milestone_failed",
+                extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            )
 
     return resolved.pull_request
 

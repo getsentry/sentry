@@ -30,6 +30,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
@@ -743,6 +744,43 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.issue_stream_detector.name,
         }
 
+    def test_query_by_assignee_negation_multiple_values(self) -> None:
+        user = self.create_user(email="exclude@example.com")
+        self.create_member(organization=self.organization, user=user)
+        team = self.create_team(organization=self.organization, slug="exclude-team")
+        self.project.add_team(team)
+
+        self.create_detector(
+            project=self.project,
+            name="User Assigned",
+            type=MetricIssue.slug,
+            owner_user_id=user.id,
+        )
+        self.create_detector(
+            project=self.project,
+            name="Team Assigned",
+            type=MetricIssue.slug,
+            owner_team_id=team.id,
+        )
+        included_detector = self.create_detector(
+            project=self.project,
+            name="Included Detector",
+            type=MetricIssue.slug,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "project": self.project.id,
+                "query": f"!assignee:[{user.email}, #{team.slug}]",
+            },
+        )
+        assert {d["name"] for d in response.data} == {
+            included_detector.name,
+            self.error_detector.name,
+            self.issue_stream_detector.name,
+        }
+
     def test_query_by_assignee_invalid_user(self) -> None:
         self.create_detector(
             project=self.project,
@@ -810,6 +848,54 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             status_code=200,
         )
         assert {d["name"] for d in response.data} == {self.detector.name, self.detector_2.name}
+
+
+@cell_silo_test
+class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseTest):
+    """Tests that the all-projects detector is included when the feature flag is enabled."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_in_list(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_has_null_project_id(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
+        assert all_proj["projectId"] is None
+
+    def test_all_projects_detector_excluded_without_feature(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) not in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_in_id_filter(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.all_projects_detector.id))],
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.all_projects_detector.id)
+
+    def test_all_projects_detector_excluded_from_id_filter_without_feature(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.all_projects_detector.id))],
+        )
+        assert len(response.data) == 0
 
 
 @cell_silo_test
@@ -1113,6 +1199,20 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "999999"},
+            enabled=False,
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"]
+            == "Some detectors were not found or you do not have permission to update them."
+        )
+
+    def test_update_detectors_all_projects_detector_not_mutable(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(all_projects_detector.id)},
             enabled=False,
             status_code=400,
         )

@@ -3,14 +3,13 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DiffStatus,
@@ -111,7 +110,7 @@ export function SnapshotMainContent({
   navButtonRefs,
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
-  const breakpoints = useBreakpoints();
+  const showSplit = useResponsivePropValue({zero: false, xl: true});
   const selectedImage = useMemo(() => {
     if (!selectedItem) {
       return null;
@@ -222,7 +221,7 @@ export function SnapshotMainContent({
       <DiffModeToggle
         diffMode={diffMode}
         onDiffModeChange={handleDiffModeChange}
-        showSplit={breakpoints.sm}
+        showSplit={showSplit}
       />
     </Fragment>
   ) : null;
@@ -559,7 +558,14 @@ function SingleViewLayout({
         diffControls={diffControls}
         soloDiffToggle={soloDiffToggle}
       />
-      <SingleViewScroll ref={scrollRef}>
+      <Stack
+        ref={scrollRef}
+        flex="1 1 0"
+        minHeight="0"
+        width="100%"
+        overflow="auto"
+        padding={{zero: 'xl 0', xl: 'xl', '3xl': 'xl xl xl 0'}}
+      >
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
           <Stack flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
@@ -571,7 +577,7 @@ function SingleViewLayout({
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
-            display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
+            display={{zero: 'none', xl: 'block'}}
           >
             <NavGutter>
               <Tooltip title={t('Previous (↑)')} skipWrapper>
@@ -597,31 +603,10 @@ function SingleViewLayout({
             </NavGutter>
           </Container>
         </Flex>
-      </SingleViewScroll>
+      </Stack>
     </Stack>
   );
 }
-
-const SingleViewScroll = styled('div')`
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-  overflow: auto;
-  padding: ${p => p.theme.space.xl};
-  padding-left: 0;
-  display: flex;
-  flex-direction: column;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-    p.theme.breakpoints.md}) {
-    padding-left: ${p => p.theme.space.xl};
-  }
-`;
 
 const NavGutter = styled('div')`
   position: sticky;

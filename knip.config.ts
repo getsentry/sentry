@@ -19,6 +19,8 @@ const productionEntryPoints = [
   'static/app/components/core/quote/*.tsx',
   'static/app/components/core/markdown/**/*.{ts,tsx}',
   'static/app/components/core/revealOnHover/*.tsx',
+  // TODO: Remove when wired into Seer Explorer
+  'static/app/components/core/chat/thinkingBlock.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
@@ -27,6 +29,9 @@ const productionEntryPoints = [
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
+  // https://github.com/getsentry/sentry/pull/121178
+  'static/app/components/core/table/*.tsx',
+  'static/app/components/core/dragHandle/*.tsx',
 ];
 
 const testingEntryPoints = [
@@ -56,7 +61,7 @@ const config: KnipConfig = {
         'static/**/*.figma.{tsx,jsx}',
       ],
       project: [
-        'static/**/*.{js,ts,tsx}!',
+        'static/**/*.{js,ts,tsx,mdx,less}!',
         'config/**/*.ts',
         'tests/js/**/*.{js,ts,tsx}',
         // fixtures can be ignored in production - it's fine that they are only used in tests
@@ -76,6 +81,9 @@ const config: KnipConfig = {
         'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
       ],
+      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
+      // so do not report them as unused files.
+      ignoreFiles: ['static/**/*.less'],
     },
   },
   ignoreExportsUsedInFile: isProductionMode,

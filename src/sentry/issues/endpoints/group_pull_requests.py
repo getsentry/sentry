@@ -8,6 +8,7 @@ from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,7 +20,12 @@ from sentry.api.serializers.models.pullrequest import (
     get_stored_pull_request_status,
 )
 from sentry.constants import ObjectStatus
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.pull_request_status_batch import (
+    get_checks_and_review,
+    get_provider_installation,
+    get_pull_request_repo_name,
+)
+from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -65,34 +71,18 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
     )
 
 
-def _get_pull_request_repo_name(repository: Repository) -> str:
-    config_name = repository.config.get("name")
-    if isinstance(config_name, str) and config_name:
-        return config_name
-    return repository.name
-
-
 def _fetch_pull_request_status_response(
     pull_request: PullRequest, repository: Repository
 ) -> ProviderPullRequestResponse | None:
-    if repository.integration_id is None:
+    installation = get_provider_installation(pull_request, repository)
+    if installation is None:
         return None
 
-    integration = integration_service.get_integration(
-        integration_id=repository.integration_id,
-        organization_id=pull_request.organization_id,
-        status=ObjectStatus.ACTIVE,
-    )
-    if integration is None:
-        return None
-
-    installation = integration.get_installation(organization_id=pull_request.organization_id)
-    client = installation.get_client()
-    get_pull_request = getattr(client, "get_pull_request", None)
+    get_pull_request = getattr(installation.get_client(), "get_pull_request", None)
     if not callable(get_pull_request):
         return None
 
-    response = get_pull_request(_get_pull_request_repo_name(repository), pull_request.key)
+    response = get_pull_request(get_pull_request_repo_name(repository), pull_request.key)
     if not isinstance(response, Mapping):
         return None
 
@@ -195,6 +185,14 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             for pull_request in pull_requests
         }
 
+        checks_and_review_by_pr_id: dict[int, PullRequestStatusResult] = {}
+        if "checksAndReview" in request.GET.getlist("expand") and features.has(
+            "organizations:issue-pr-checks-status", group.project.organization
+        ):
+            checks_and_review_by_pr_id = get_checks_and_review(
+                pull_requests, repositories_by_id, status_by_pr_id
+            )
+
         # serialize() infers the base PullRequestSerializerResponse from the
         # parent's generic; LinkedPullRequestSerializer returns the narrower type.
         pull_request_responses = cast(
@@ -205,6 +203,7 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
                 serializer=LinkedPullRequestSerializer(
                     date_linked_by_pr_id=date_linked_by_pr_id,
                     status_by_pr_id=status_by_pr_id,
+                    checks_and_review_by_pr_id=checks_and_review_by_pr_id,
                 ),
             ),
         )

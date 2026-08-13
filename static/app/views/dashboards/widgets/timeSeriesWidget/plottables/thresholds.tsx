@@ -5,7 +5,7 @@ import type {
 } from 'echarts';
 
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils/normalizeUnit';
@@ -139,7 +139,7 @@ export class Thresholds implements Plottable {
     style: MarkLineComponentOption['lineStyle'],
     maxOffset = this.maxOffset
   ) {
-    return MarkLine({
+    return markLine({
       animation: false,
       silent: true,
       lineStyle: style,
@@ -226,12 +226,12 @@ export class Thresholds implements Plottable {
       color: (markArea?.itemStyle?.color as string) || undefined,
     }));
 
-    const markLineSeries: SeriesOption[] = markLines.map(markLine => ({
+    const markLineSeries: SeriesOption[] = markLines.map(markLineOption => ({
       type: 'line',
-      markLine,
+      markLine: markLineOption,
       name: this.name,
       data: [],
-      color: (markLine?.lineStyle?.color as string) || undefined,
+      color: (markLineOption?.lineStyle?.color as string) || undefined,
     }));
 
     return [...markAreaSeries, ...markLineSeries];

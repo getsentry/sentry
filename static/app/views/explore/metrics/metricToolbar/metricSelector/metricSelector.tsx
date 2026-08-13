@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {FocusScope} from '@react-aria/focus';
@@ -98,6 +99,7 @@ export function MetricSelector({
   projectIds?: number[];
   usePortal?: boolean;
 }) {
+  const theme = useTheme();
   const triggerId = useId();
 
   const hasMetricUnitsUI = useHasMetricUnitsUI();
@@ -562,7 +564,9 @@ export function MetricSelector({
       </OverlayTrigger.Button>
       {maybePortal(
         <PositionWrapper
-          zIndex={1017}
+          zIndex={
+            usePortal ? theme.zIndex.widgetBuilderDrawer + 1 : theme.zIndex.dropdown
+          }
           {...overlayProps}
           style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
         >

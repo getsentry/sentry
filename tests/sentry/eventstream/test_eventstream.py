@@ -1,18 +1,26 @@
 import logging
+import threading
 import time
 import uuid
 from collections.abc import Generator, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import producer as arroyo_producer
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Topic as ArroyoTopic
 from django.utils import timezone
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_OCCURRENCE
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
+from sentry.conf.types.kafka_definition import Topic
 from sentry.event_manager import EventManager
+from sentry.eventstream.kafka import backend as eventstream_backend
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.eventstream.types import EventStreamEventType
@@ -20,10 +28,128 @@ from sentry.receivers import create_default_projects
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.utils import arroyo_producer as arroyo_producer_utils
 from sentry.utils import json, snuba
 from sentry.utils.eap import hex_to_item_id
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+EVENTSTREAM_TOPICS = [
+    Topic.EVENTS,
+    Topic.TRANSACTIONS,
+    Topic.EVENTSTREAM_GENERIC,
+    Topic.SNUBA_ITEMS,
+]
+
+
+@pytest.fixture
+def isolated_eventstream_producers() -> Generator[None]:
+    storage = MemoryMessageStorage[KafkaPayload]()
+    broker = LocalBroker(storage)
+    for topic in EVENTSTREAM_TOPICS:
+        real_topic = get_topic_definition(topic)["real_topic_name"]
+        broker.create_topic(ArroyoTopic(real_topic), partitions=1)
+
+    def build_local_producer(**_kwargs: Any) -> Any:
+        producer = broker.get_producer()
+        cast_producer = cast(Any, producer)
+        cast_producer.get_config = lambda: {}
+        return producer
+
+    with (
+        patch.object(eventstream_backend, "_ftp_producers", {}),
+        patch.dict(arroyo_producer._pending_futures, clear=True),
+        patch.object(
+            eventstream_backend,
+            "get_arroyo_producer",
+            side_effect=build_local_producer,
+        ),
+    ):
+        yield
+
+
+@override_options({"tasks.producer.eventstream.rollout": 1.0})
+def test_future_tracking_producers_are_unique_per_topic_and_shared_per_process(
+    isolated_eventstream_producers: None,
+) -> None:
+    first = KafkaEventStream()
+    second = KafkaEventStream()
+
+    first_producers = [first.get_producer(topic) for topic in EVENTSTREAM_TOPICS]
+    second_producers = [second.get_producer(topic) for topic in EVENTSTREAM_TOPICS]
+    future_tracking_producers = [
+        producer for producer in first_producers if isinstance(producer, FutureTrackingProducer)
+    ]
+
+    assert len(future_tracking_producers) == len(EVENTSTREAM_TOPICS)
+    assert [producer.name for producer in future_tracking_producers] == [
+        f"sentry.eventstream.kafka.ftp.{topic.value}" for topic in EVENTSTREAM_TOPICS
+    ]
+    assert second_producers == first_producers
+
+
+@override_options({"tasks.producer.eventstream.rollout": 1.0})
+def test_concurrent_calls_build_one_future_tracking_producer(
+    isolated_eventstream_producers: None,
+) -> None:
+    eventstream = KafkaEventStream()
+    thread_count = 8
+    start = threading.Barrier(thread_count)
+    original_builder = arroyo_producer_utils.get_future_tracking_producer
+
+    def slow_build(**kwargs: Any) -> FutureTrackingProducer:
+        time.sleep(0.05)
+        return original_builder(**kwargs)
+
+    producers: list[KafkaProducer | FutureTrackingProducer] = []
+    errors: list[BaseException] = []
+
+    def get_producer() -> None:
+        start.wait()
+        try:
+            producers.append(eventstream.get_producer(Topic.EVENTS))
+        except BaseException as error:
+            errors.append(error)
+
+    with patch.object(eventstream_backend, "get_future_tracking_producer", side_effect=slow_build):
+        threads = [threading.Thread(target=get_producer) for _ in range(thread_count)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    assert errors == []
+    assert len(producers) == thread_count
+    assert len({id(producer) for producer in producers}) == 1
+
+
+@override_options({"tasks.producer.eventstream.rollout": 0.0})
+def test_disabled_future_tracking_rollout_does_not_register_producers(
+    isolated_eventstream_producers: None,
+) -> None:
+    eventstream = KafkaEventStream()
+
+    producers = [eventstream.get_producer(topic) for topic in EVENTSTREAM_TOPICS]
+
+    assert not any(isinstance(producer, FutureTrackingProducer) for producer in producers)
+    assert arroyo_producer._pending_futures == {}
+
+
+@override_options({"tasks.producer.eventstream.rollout": 1.0})
+def test_future_tracking_producer_waits_for_synchronous_send(
+    isolated_eventstream_producers: None,
+) -> None:
+    eventstream = KafkaEventStream()
+    producer = eventstream.get_producer(Topic.EVENTS)
+    assert isinstance(producer, FutureTrackingProducer)
+
+    with patch.object(producer, "produce", wraps=producer.produce) as produce:
+        eventstream._send(project_id=1, _type="insert", extra_data=({},), asynchronous=False)
+
+    produce.assert_called_once()
+    assert produce.call_args.kwargs["asynchronous"] is False
 
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):

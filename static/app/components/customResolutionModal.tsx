@@ -97,7 +97,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const shouldLookupExact = canLookupExactRelease(exactSearch);
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactReleaseResponse} = useQuery({
+  const {data: exactRelease} = useQuery({
     ...apiOptions.as<Release | Release[]>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
       {
@@ -111,11 +111,9 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
       }
     ),
     retry: false,
+    // Guard against intermediaries normalizing the detail URL to the releases collection.
+    select: response => (Array.isArray(response.json) ? null : response.json),
   });
-  // Guard against intermediaries normalizing the detail URL to the releases collection.
-  const exactRelease = Array.isArray(exactReleaseResponse)
-    ? undefined
-    : exactReleaseResponse;
 
   const visibleReleases = useMemo(
     () =>

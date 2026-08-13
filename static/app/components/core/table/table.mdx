@@ -1,0 +1,94 @@
+---
+title: Table
+description: A low-level table component that provides grid-based column tracks, subgrid rows, and column resizing.
+category: layout
+source: '@sentry/scraps/table'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/table/table.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {OverviewDemo} from './__stories__/components';
+
+export const documentation = import('!!type-loader!@sentry/scraps/table');
+
+The `Table` component renders a `<table>` with `display: grid` and `grid-template-columns: subgrid`, so that every row shares one set of column tracks.
+It provides table geometry and column resizing only, without borders, padding, or empty and loading states.
+Higher level components like `SimpleTable` and `GridEditable` add those on top of it.
+
+## Basic Usage
+
+To create a table, pass a `columns` array and compose the contents with `Table.Head`, `Table.Body`, `Table.Row`, `Table.HeadCell`, and `Table.Cell`.
+Columns are passed as data rather than children because a resize needs a stable identity for each column.
+Identify each head cell with `column`, or with `columnIndex` when the cells come from an ordered list rather than a keyed config.
+
+<Storybook.Demo>
+  <OverviewDemo />
+</Storybook.Demo>
+
+```jsx
+const columns = [
+  {key: 'transaction', width: 260},
+  {key: 'browser', width: 160},
+  {key: 'count'},
+];
+
+<Table columns={columns}>
+  <Table.Head>
+    <Table.Row>
+      {columns.map(column => (
+        <Table.HeadCell column={column.key} key={column.key}>
+          {column.key}
+        </Table.HeadCell>
+      ))}
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    {data.map(row => (
+      <Table.Row divider key={row.transaction}>
+        {columns.map(column => (
+          <Table.Cell key={column.key}>{row[column.key]}</Table.Cell>
+        ))}
+      </Table.Row>
+    ))}
+  </Table.Body>
+</Table>;
+```
+
+Drag the right edge of a header cell to resize that column, or double click it to reset the width.
+Each handle is a focusable `DragHandle`, so it can also be tabbed to and resized with the left and right arrow keys.
+
+## Column Widths
+
+Set a column's `width` to a number of pixels or to any CSS track value.
+Omit it to size the column with `minmax(minimumColumnWidth, auto)`, and set `resizable: false` to stop a column from being resized.
+
+```jsx
+<Table
+  columns={[
+    {key: 'transaction', width: 260},
+    {key: 'browser', width: 'max-content', resizable: false},
+    {key: 'count'},
+  ]}
+>
+  ...
+</Table>
+```
+
+Widths are uncontrolled by default, and the component tracks them per column key.
+Pass `onColumnResize` to control them instead, which is how `GridEditable` persists widths to the URL.
+
+## Status Rows
+
+Use `Table.Status` to render a single cell that spans every column, for empty, loading, and error states.
+`Table.StatusBody` wraps it in its own `<tbody>` so that it can sit alongside the table body.
+
+```jsx
+<Table columns={columns}>
+  <Table.Head>...</Table.Head>
+  <Table.Body>
+    <Table.Status>No results found for your query</Table.Status>
+  </Table.Body>
+</Table>
+```
