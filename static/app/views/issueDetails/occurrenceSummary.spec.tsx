@@ -57,14 +57,11 @@ describe('OccurrenceSummary', () => {
 
   it('renders detector details correctly', () => {
     const group = GroupFixture({
+      detectorId: '123',
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
     });
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {detectorId: 123},
-      },
-    });
+    const event = EventFixture();
     render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Monitor ID')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();

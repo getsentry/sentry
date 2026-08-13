@@ -75,20 +75,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     : defaultStatsPeriod;
 
   useEffect(() => {
-    if (event) {
-      // Since detector details are identical across the issue but only provided at the event level,
-      // we need to persist the details in state to prevent breakage when an event is unloaded.
-      const detectorDetails = getDetectorDetails({
-        event,
-        organization,
-        project,
-      });
-      dispatch({
-        type: 'UPDATE_DETECTOR_DETAILS',
-        detectorDetails,
-      });
-    }
-  }, [event, organization, project, dispatch]);
+    dispatch({
+      type: 'UPDATE_DETECTOR_DETAILS',
+      detectorDetails: getDetectorDetails({group, organization}),
+    });
+  }, [group, organization, dispatch]);
 
   const searchText = t(
     'Filter %s\u2026',
