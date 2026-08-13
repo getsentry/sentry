@@ -216,7 +216,9 @@ function SpanTabContentSectionInner({
     isValidationFetching || isValidationLoading || isValidationPlaceholderData;
   const queriesEnabled =
     !isValidationPending && !validationError && validationData?.valid === true;
-  const preservePreviousData = isValidationPending || queriesEnabled;
+  const preservePreviousData =
+    !validationError &&
+    (isValidationPending ? validationData?.valid !== false : queriesEnabled);
 
   // In aggregate mode the table is driven by aggregateSortBys, not the
   // samples sort (which falls back to `-timestamp`), so pick accordingly.
