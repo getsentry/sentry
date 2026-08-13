@@ -42,8 +42,7 @@ describe('flamegraphRendererWebGL', () => {
           ...theme,
           COLORS: {
             ...theme.COLORS,
-            // @ts-expect-error overridee the colors implementation
-            STACK_TO_COLOR: () => {
+            stackToColor: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
               return {
                 colorBuffer: [
