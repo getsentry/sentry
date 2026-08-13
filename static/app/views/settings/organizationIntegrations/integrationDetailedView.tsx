@@ -174,9 +174,8 @@ export default function IntegrationDetailedView() {
       return;
     }
 
-    const {tab: _tab, ...query} = location.query;
-    navigate({query}, {replace: true});
-  }, [activeTab, displayedTab, location.query, navigate]);
+    setActiveTab(null, {history: 'replace'});
+  }, [activeTab, displayedTab, setActiveTab]);
 
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';
