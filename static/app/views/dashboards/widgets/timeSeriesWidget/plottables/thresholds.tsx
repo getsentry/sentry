@@ -226,12 +226,12 @@ export class Thresholds implements Plottable {
       color: (markArea?.itemStyle?.color as string) || undefined,
     }));
 
-    const markLineSeries: SeriesOption[] = markLines.map(markLine => ({
+    const markLineSeries: SeriesOption[] = markLines.map(markLineOption => ({
       type: 'line',
-      markLine,
+      markLine: markLineOption,
       name: this.name,
       data: [],
-      color: (markLine?.lineStyle?.color as string) || undefined,
+      color: (markLineOption?.lineStyle?.color as string) || undefined,
     }));
 
     return [...markAreaSeries, ...markLineSeries];
