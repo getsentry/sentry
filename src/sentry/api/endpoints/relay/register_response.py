@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import orjson
 from django.utils import timezone
 from rest_framework import serializers, status
@@ -17,10 +15,9 @@ from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models.relay import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.tasks.process_buffer import buffer_incr
 
 from . import RelayIdSerializer
-
-RELAY_USAGE_UPDATE_INTERVAL = timedelta(minutes=1)
 
 
 class RelayRegisterResponseSerializer(RelayIdSerializer):
@@ -100,20 +97,16 @@ class RelayRegisterResponseEndpoint(Endpoint):
                 relay.save()
 
             # only update usage for non static relays (static relays should not access the db)
-            relay_usage, _ = RelayUsage.objects.get_or_create(
-                relay_id=relay_id,
-                version=version,
-                defaults={"public_key": public_key},
-            )
-
-            now = timezone.now()
-            # Debounce the updates a bit, there is no need to always run an update.
-            # We've seen that it can come to large bursts of registration requests
-            # contending on the row.
-            max_last_seen = now - RELAY_USAGE_UPDATE_INTERVAL
-            if relay_usage.last_seen < max_last_seen:
-                RelayUsage.objects.filter(pk=relay_usage.pk, last_seen__lt=max_last_seen).update(
-                    last_seen=now, public_key=public_key
+            try:
+                relay_usage = RelayUsage.objects.get(relay_id=relay_id, version=version)
+            except RelayUsage.DoesNotExist:
+                RelayUsage.objects.create(relay_id=relay_id, version=version, public_key=public_key)
+            else:
+                buffer_incr(
+                    model=RelayUsage,
+                    columns={},
+                    filters={"id": relay_usage.id},
+                    extra={"last_seen": timezone.now(), "public_key": public_key},
                 )
 
         assert relay is not None
