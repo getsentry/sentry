@@ -151,9 +151,7 @@ class PrIdCacheTest(TestCase):
     @patch(f"{MODULE_PATH}.cache")
     def test_zero_ttl_reads_nothing(self, mock_cache: MagicMock) -> None:
         with override_options({PR_ID_CACHE_TTL_OPTION: 0}):
-            assert (
-                get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7) is None
-            )
+            assert get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7) is None
 
         mock_cache.get.assert_not_called()
 
