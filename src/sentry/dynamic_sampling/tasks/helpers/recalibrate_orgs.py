@@ -41,8 +41,6 @@ def get_adjusted_factor(org_id: int, source: str) -> float:
         "dynamic_sampling.tasks.recalibrate_orgs.get_adjusted_factor",
         tags={"source": source, "result": "hit" if factor is not None else "miss"},
     )
-    # On a miss the factor is the identity of the multiplication, because the recalibration rule
-    # is a factor rule and thus multiplied with the first sample rate rule that matches after it.
     return 1.0 if factor is None else factor
 
 
