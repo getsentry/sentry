@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 from django.utils import timezone
 
@@ -42,6 +43,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 ERR = ConditionError(msg="test")
+EVALUATION_ID = "00000000-0000-4000-8000-000000000001"
 
 
 def _triggered_when_eval(error: ConditionError | None = None) -> DataConditionGroupEvaluation:
@@ -958,13 +960,19 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
             condition_result=True,
         )
 
-        process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+        result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
         project_ids = self.batch_client.get_project_ids(
             min=0,
             max=self.buffer_timestamp,
         )
         assert list(project_ids.keys()) == [self.project.id]
+
+        evaluation_id = result.evaluations[self.workflow.id].evaluation_id
+        UUID(evaluation_id)
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data()
+        buffered_evaluation = json.loads(next(iter(buffer_data.values())))
+        assert buffered_evaluation["evaluation_id"] == evaluation_id
 
     def test_enqueues_event_if_meets_fast_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -1267,6 +1275,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                     [self.slow_workflow_filter_group.id, slow_workflow_filter_group_2.id],
                     [self.workflow_filter_group.id, workflow_filter_group_2.id],
                     timestamp=current_time,
+                    evaluation_id=EVALUATION_ID,
                 )
             },
         )
@@ -1286,6 +1295,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
                         "event_id": self.event.event_id,
                         "occurrence_id": self.group_event.occurrence_id,
                         "timestamp": current_time,
+                        "evaluation_id": EVALUATION_ID,
                     }
                 )
             },

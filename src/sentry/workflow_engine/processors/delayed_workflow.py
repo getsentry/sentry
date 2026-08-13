@@ -76,6 +76,7 @@ class EventInstance(BaseModel):
     event_id: str
     occurrence_id: str | None = None
     timestamp: datetime | None = None
+    evaluation_id: str | None = None
 
     class Config:
         # Ignore unknown fields; we'd like to be able to add new fields easily.
@@ -625,6 +626,7 @@ def get_groups_to_fire(
                 evaluations.append(
                     DelayedWorkflowEvaluation(
                         workflow_id=workflow_id,
+                        evaluation_id=event_instance.evaluation_id,
                         project_id=project_id,
                         group_id=group_id,
                         event_id=event_instance.event_id,
@@ -663,6 +665,7 @@ def get_groups_to_fire(
                 evaluations.append(
                     DelayedWorkflowEvaluation(
                         workflow_id=workflow_id,
+                        evaluation_id=event_instance.evaluation_id,
                         project_id=project_id,
                         group_id=group_id,
                         event_id=event_instance.event_id,
@@ -715,6 +718,7 @@ def get_groups_to_fire(
         evaluations.append(
             DelayedWorkflowEvaluation(
                 workflow_id=workflow_id,
+                evaluation_id=event_instance.evaluation_id,
                 project_id=project_id,
                 group_id=group_id,
                 event_id=event_instance.event_id,

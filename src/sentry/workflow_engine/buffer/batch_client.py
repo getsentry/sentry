@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import random
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import pydantic
 
@@ -36,6 +37,9 @@ class DelayedWorkflowItem:
     # Should be close to when fast conditions were evaluated to try to be consistent.
     timestamp: datetime
 
+    # Correlates the initial evaluation log with its delayed completion log.
+    evaluation_id: str = field(default_factory=lambda: str(uuid4()))
+
     def buffer_key(self) -> str:
         when_condition_group_str = (
             str(self.delayed_when_group_id) if self.delayed_when_group_id else ""
@@ -50,6 +54,7 @@ class DelayedWorkflowItem:
                 "event_id": self.event.event_id,
                 "occurrence_id": self.event.occurrence_id,
                 "timestamp": self.timestamp,
+                "evaluation_id": self.evaluation_id,
             }
         )
 

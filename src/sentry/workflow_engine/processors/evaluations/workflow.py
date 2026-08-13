@@ -58,6 +58,7 @@ class DelayedWorkflowEvaluation:
     passing_filter_group_ids: frozenset[DataConditionGroupId]
     missing_condition_group_ids: frozenset[DataConditionGroupId]
     triggered_action_ids: tuple[int, ...] = ()
+    evaluation_id: str | None = None
 
     @property
     def outcome(self) -> WorkflowEvaluationOutcome:
@@ -100,6 +101,7 @@ class DelayedWorkflowEvaluation:
         ]
         return {
             "workflow_id": self.workflow_id,
+            **({"evaluation_id": self.evaluation_id} if self.evaluation_id else {}),
             "project_id": self.project_id,
             "event_id": self.event_id,
             "group_id": self.group_id,
@@ -154,6 +156,7 @@ class WorkflowEvaluation(
     workflow_id: WorkflowId
     detector_id: int
     detector_type: str
+    evaluation_id: str | None = None
 
     @property
     def outcome(self) -> WorkflowEvaluationOutcome:
@@ -191,6 +194,7 @@ class WorkflowEvaluation(
         )
         return {
             "workflow_id": self.workflow_id,
+            **({"evaluation_id": self.evaluation_id} if self.evaluation_id else {}),
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
             "project_id": event_data.event.project_id,
