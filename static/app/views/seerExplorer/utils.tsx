@@ -380,6 +380,32 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Asking ${count} ${questionWord}...`
       : `Asked ${count} ${questionWord}`;
   },
+
+  read_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Reading ${path} from ${repo}...` : `Read ${path} from ${repo}`;
+  },
+
+  edit_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Editing ${path} in ${repo}...` : `Edited ${path} in ${repo}`;
+  },
+
+  write_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Writing ${path} in ${repo}...` : `Wrote ${path} in ${repo}`;
+  },
+
+  bash: (args, isLoading) => {
+    if (!args.description || typeof args.description !== 'string') {
+      return isLoading ? 'Using bash tool' : 'Used bash tool';
+    }
+    const description = args.description || '';
+    return (description[0] || '').toUpperCase() + args.description.slice(1);
+  },
 };
 
 /**
