@@ -7,8 +7,10 @@ from django.urls import reverse
 from django.utils import timezone
 from sentry_relay.auth import PublicKey, SecretKey, generate_key_pair
 
+from sentry.api.endpoints.relay.register_response import RELAY_USAGE_UPDATE_INTERVAL
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class RelayRegisterTest(APITestCase):
@@ -518,41 +520,26 @@ class RelayRegisterTest(APITestCase):
         assert rv2.last_seen < after_second_relay
 
     def test_relay_usage_is_updated_at_registration(self) -> None:
-        """
-        Tests that during registration the proper relay usage information
-        is updated
-        """
-
         key_pair = generate_key_pair()
         relay_id = str(uuid4())
-        before_registration = timezone.now()
-        # register one relay
-        self.register_relay(key_pair, "1.1.1", relay_id)
-        after_first_relay = timezone.now()
-        # register another one that should not be updated after this
-        self.register_relay(key_pair, "2.2.2", relay_id)
-        after_second_relay = timezone.now()
-        # re register the first one in order to update the last used time
-        self.register_relay(key_pair, "1.1.1", relay_id)
-        after_re_register = timezone.now()
 
-        rv1 = RelayUsage.objects.get(relay_id=relay_id, version="1.1.1")
-        assert rv1 is not None
-        rv2 = RelayUsage.objects.get(relay_id=relay_id, version="2.2.2")
-        assert rv2 is not None
+        with freeze_time() as frozen_time:
+            self.register_relay(key_pair, "1.1.1", relay_id)
+            relay_usage = RelayUsage.objects.get(relay_id=relay_id, version="1.1.1")
+            first_seen = relay_usage.first_seen
+            last_seen = relay_usage.last_seen
 
-        # check first seen is not modified by re register
-        assert rv1.first_seen > before_registration
-        assert rv1.first_seen < after_first_relay
-        # check last seen shows the time at re-registration
-        assert rv1.last_seen > after_second_relay
-        assert rv1.last_seen < after_re_register
+            frozen_time.shift(RELAY_USAGE_UPDATE_INTERVAL.total_seconds() - 1)
+            self.register_relay(key_pair, "1.1.1", relay_id)
+            relay_usage.refresh_from_db()
+            assert relay_usage.last_seen == last_seen
 
-        # check version 2.2.2 is not affected by version 1.1.1
-        assert rv2.first_seen > after_first_relay
-        assert rv2.last_seen > after_first_relay
-        assert rv2.first_seen < after_second_relay
-        assert rv2.last_seen < after_second_relay
+            frozen_time.shift(2)
+            self.register_relay(key_pair, "1.1.1", relay_id)
+
+            relay_usage.refresh_from_db()
+            assert relay_usage.first_seen == first_seen
+            assert relay_usage.last_seen == timezone.now()
 
     def test_no_db_for_static_relays(self) -> None:
         """
