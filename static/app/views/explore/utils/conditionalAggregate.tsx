@@ -10,6 +10,10 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
+import {
+  isVisualizeEquation,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const IF_SUFFIX = '_if';
 
@@ -215,4 +219,23 @@ export function isConditionalAggregateYAxisValid(yAxis: string): boolean {
     return true;
   }
   return isConditionalAggregateFilterValid(conditional.filter);
+}
+
+/**
+ * True when every series is a non-equation visualize with an invalid `_if` filter.
+ *
+ * Used to skip chart/table requests and show the series-filter error without treating
+ * invalid equations the same way (those keep prior empty/fallback query behavior).
+ */
+export function areAllVisualizesInvalidConditionalFilters(
+  visualizes: readonly Visualize[]
+): boolean {
+  if (!visualizes.length) {
+    return false;
+  }
+  return visualizes.every(
+    visualize =>
+      !isVisualizeEquation(visualize) &&
+      !isConditionalAggregateYAxisValid(visualize.yAxis)
+  );
 }

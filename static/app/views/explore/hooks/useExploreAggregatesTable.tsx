@@ -5,17 +5,23 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
-import {CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  areAllVisualizesInvalidConditionalFilters,
+  CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -69,6 +75,7 @@ function useExploreAggregatesTableImp({
   const dataset = useSpansDataset();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const aggregateFields = useQueryParamsAggregateFields({validate: true});
+  const unvalidatedAggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
   const fields = useMemo(() => {
@@ -101,23 +108,48 @@ function useExploreAggregatesTableImp({
     [aggregateFields]
   );
 
+  const skippedForInvalidConditionalFilter = useMemo(
+    () =>
+      areAllVisualizesInvalidConditionalFilters(
+        unvalidatedAggregateFields.filter(isVisualize)
+      ),
+    [unvalidatedAggregateFields]
+  );
+
+  // Drop orderbys that point at series removed by validation (e.g. invalid `_if`),
+  // otherwise the remaining query can fail. Fall back to the first valid y-axis.
+  const resolvedSortBys = useMemo(() => {
+    const validSortBys = aggregateSortBys.filter(sort =>
+      validateAggregateSort(sort, aggregateFields)
+    );
+    if (validSortBys.length) {
+      return validSortBys;
+    }
+    return defaultAggregateSortBys(
+      aggregateFields
+        .filter(aggregateField => !isGroupBy(aggregateField))
+        .map(aggregateField => aggregateField.yAxis)
+    );
+  }, [aggregateFields, aggregateSortBys]);
+
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
-      orderby: aggregateSortBys.map(formatSort),
+      orderby: resolvedSortBys.map(formatSort),
       query,
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, aggregateSortBys, query, selection]);
+  }, [dataset, fields, resolvedSortBys, query, selection]);
 
   const result = useSpansQuery({
-    // Skip the request when every series was dropped for an invalid `_if` filter.
-    enabled: enabled && hasValidVisualize,
+    // Skip only when every series failed an `_if` filter. Invalid equations still
+    // query with whatever remains (prior behavior).
+    enabled: enabled && (hasValidVisualize || !skippedForInvalidConditionalFilter),
     eventView,
     cursor: aggregateCursor,
     initialData: [],
@@ -128,9 +160,7 @@ function useExploreAggregatesTableImp({
   });
 
   return useMemo(() => {
-    // A disabled query stays `isPending` forever; surface a settled error so the
-    // aggregates table does not spin and the tab can show the same message as the chart.
-    if (!hasValidVisualize) {
+    if (skippedForInvalidConditionalFilter) {
       return {
         eventView,
         fields,
@@ -149,5 +179,5 @@ function useExploreAggregatesTableImp({
       };
     }
     return {eventView, fields, result};
-  }, [eventView, fields, hasValidVisualize, result]);
+  }, [eventView, fields, result, skippedForInvalidConditionalFilter]);
 }

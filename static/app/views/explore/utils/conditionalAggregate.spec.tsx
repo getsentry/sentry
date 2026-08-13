@@ -1,5 +1,10 @@
 import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
+import {
   applyConditionalFilter,
+  areAllVisualizesInvalidConditionalFilters,
   buildConditionalAggregate,
   escapeConditionalFilter,
   isConditionalAggregateFilterValid,
@@ -229,6 +234,35 @@ describe('isConditionalAggregateYAxisValid', () => {
       isConditionalAggregateYAxisValid(
         'count_if(`span.category:db _pi_file_io_main_thread:492262d12c82474e p95(span.duration):>300ms`,span.duration)'
       )
+    ).toBe(false);
+  });
+});
+
+describe('areAllVisualizesInvalidConditionalFilters', () => {
+  it('is false when there are no visualizes', () => {
+    expect(areAllVisualizesInvalidConditionalFilters([])).toBe(false);
+  });
+
+  it('is true when every series has an invalid _if filter', () => {
+    expect(
+      areAllVisualizesInvalidConditionalFilters([
+        new VisualizeFunction('count_if(`p95(span.duration):>100`,span.duration)'),
+      ])
+    ).toBe(true);
+  });
+
+  it('is false when an invalid equation is the only series', () => {
+    expect(
+      areAllVisualizesInvalidConditionalFilters([new VisualizeEquation('equation|')])
+    ).toBe(false);
+  });
+
+  it('is false when any series is still valid', () => {
+    expect(
+      areAllVisualizesInvalidConditionalFilters([
+        new VisualizeFunction('count(span.duration)'),
+        new VisualizeFunction('count_if(`p95(span.duration):>100`,span.duration)'),
+      ])
     ).toBe(false);
   });
 });
