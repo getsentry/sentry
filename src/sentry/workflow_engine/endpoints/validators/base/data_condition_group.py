@@ -46,7 +46,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         """
         for condition in condition_data:
             try:
-                condition_type = Condition(condition.get("type"))
+                condition_type = Condition(str(condition.get("type")))
             except ValueError:
                 raise serializers.ValidationError(
                     f"Invalid condition type, '{condition.get('type')}'"
