@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -57,6 +57,7 @@ export function AutomationHistoryList({
   query,
   emptyMessage = t('No history found'),
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const org = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();

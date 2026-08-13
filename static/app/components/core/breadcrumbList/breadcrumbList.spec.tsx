@@ -4,6 +4,22 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {
+  TranslationContextProvider,
+  type TranslationContextValue,
+} from '@sentry/scraps/translationContext';
+
+const testTranslation: TranslationContextValue = {
+  t: (string, ...args) =>
+    string.replace('%s', typeof args[0] === 'string' ? args[0] : ''),
+  tct: template => template,
+};
+
+function renderWithTranslation(ui: React.ReactElement) {
+  return render(
+    <TranslationContextProvider value={testTranslation}>{ui}</TranslationContextProvider>
+  );
+}
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
@@ -105,7 +121,7 @@ describe('BreadcrumbList container-query collapse', () => {
   });
 
   it('gives the select-projects trigger a descriptive accessible name', async () => {
-    render(
+    renderWithTranslation(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
@@ -132,7 +148,7 @@ describe('BreadcrumbList container-query collapse', () => {
   });
 
   it('collapses non-link parents (select-projects) below the sm breakpoint', async () => {
-    render(
+    renderWithTranslation(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},

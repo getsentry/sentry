@@ -1,5 +1,6 @@
+import {useTranslation} from '@sentry/scraps/translationContext';
+
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {Spinner} from './spinner';
@@ -42,6 +43,8 @@ export function ToolCallIndicator({
   status,
   'aria-label': ariaLabel,
 }: ToolCallIndicatorProps) {
+  const {t} = useTranslation();
+
   if (status === 'content') {
     return null;
   }
@@ -49,7 +52,7 @@ export function ToolCallIndicator({
   return (
     <ToolCallStatusGlyph
       status={status}
-      aria-label={ariaLabel ?? getDefaultAriaLabel(status)}
+      aria-label={ariaLabel ?? getDefaultAriaLabel(status, t)}
     />
   );
 }
@@ -78,7 +81,10 @@ function ToolCallStatusGlyph({
   }
 }
 
-function getDefaultAriaLabel(status: ToolCallStatus): string {
+function getDefaultAriaLabel(
+  status: ToolCallStatus,
+  t: (string: string) => string
+): string {
   switch (status) {
     case 'loading':
       return t('Running...');

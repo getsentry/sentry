@@ -2,10 +2,10 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconCheckmark, IconFire, IconIssues, IconPause, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 interface AlertBadgeProps {
@@ -33,7 +33,11 @@ interface AlertBadgeConfig {
   style: React.CSSProperties;
   text: string;
 }
-function getAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadgeConfig {
+function getAlertBadgeConfig(
+  status: AlertBadgeStatus,
+  theme: Theme,
+  t: (string: string) => string
+): AlertBadgeConfig {
   switch (status) {
     case 'disabled':
       return {
@@ -91,12 +95,13 @@ function getAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadge
  */
 export function AlertBadge(props: AlertBadgeProps) {
   const theme = useTheme();
+  const {t} = useTranslation();
   const status = props.isDisabled
     ? 'disabled'
     : props.isIssue
       ? 'issue'
       : (props.status ?? IncidentStatus.CLOSED);
-  const {text, icon: Icon, style} = getAlertBadgeConfig(status, theme);
+  const {text, icon: Icon, style} = getAlertBadgeConfig(status, theme, t);
 
   return (
     <PaddedContainer data-test-id="alert-badge" align="center" gap="lg">

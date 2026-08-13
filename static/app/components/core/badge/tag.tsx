@@ -2,10 +2,10 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconClose} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -23,6 +23,8 @@ export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProps) {
+  const {t} = useTranslation();
+
   return (
     <TagPill variant={variant} data-test-id="tag-background" ref={ref} {...props}>
       {icon && (
