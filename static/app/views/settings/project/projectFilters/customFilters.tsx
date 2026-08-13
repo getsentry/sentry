@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -32,6 +32,7 @@ import {t} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -523,19 +524,26 @@ const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
 // metrics, and each of those counts under its own category in ingest outcomes.
 type SeriesByCategory = Map<string, number[]>;
 
-function getStatsByReason(stats: UsageSeries | undefined): Map<string, SeriesByCategory> {
-  const statsByReason = new Map<string, SeriesByCategory>();
+type FilteredStats = {
+  intervals: string[];
+  seriesByReason: Map<string, SeriesByCategory>;
+};
 
-  for (const group of stats?.groups ?? []) {
+// One request covers the whole table, so index the outcomes by the reason a row
+// reports under before the table reads them.
+function selectFilteredStats({json}: ApiResponse<UsageSeries>): FilteredStats {
+  const seriesByReason = new Map<string, SeriesByCategory>();
+
+  for (const group of json.groups) {
     const reason = String(group.by.reason ?? '');
     const category = String(group.by.category ?? '');
-    const byCategory = statsByReason.get(reason) ?? new Map<string, number[]>();
+    const byCategory = seriesByReason.get(reason) ?? new Map<string, number[]>();
 
     byCategory.set(category, group.series[STATS_FIELD] ?? []);
-    statsByReason.set(reason, byCategory);
+    seriesByReason.set(reason, byCategory);
   }
 
-  return statsByReason;
+  return {intervals: json.intervals, seriesByReason};
 }
 
 function getCategoryName(category: string): string {
@@ -572,10 +580,10 @@ function FilteredVolumeCells({
   if (isPending) {
     return (
       <Fragment>
-        <SimpleTable.RowCell>
+        <SimpleTable.RowCell data-column-name="trend">
           <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell>
+        <SimpleTable.RowCell data-column-name="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
@@ -587,12 +595,12 @@ function FilteredVolumeCells({
   if (isError) {
     return (
       <Fragment>
-        <SimpleTable.RowCell>
+        <SimpleTable.RowCell data-column-name="trend">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell>
+        <SimpleTable.RowCell data-column-name="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
@@ -654,7 +662,7 @@ function FilteredVolumeCells({
 
   return (
     <Fragment>
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="trend">
         <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
           <MiniBarChart
             stacked
@@ -676,7 +684,7 @@ function FilteredVolumeCells({
           />
         </Container>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="filtered">
         <Flex height={`${CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
@@ -751,14 +759,12 @@ export function CustomFilters({project}: {project: Project}) {
 
   const {data: filters = [], isPending, isError, refetch} = useQuery(queryOptions);
 
-  // One request covers the whole table: outcomes are grouped by reason, and each row
-  // picks out the reason it reports under.
   const {
     data: stats,
     isPending: isStatsPending,
     isError: isStatsError,
-  } = useQuery(
-    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+  } = useQuery({
+    ...apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: project.id,
@@ -770,9 +776,9 @@ export function CustomFilters({project}: {project: Project}) {
         statsPeriod: STATS_PERIOD,
       },
       staleTime: Infinity,
-    })
-  );
-  const statsByReason = useMemo(() => getStatsByReason(stats), [stats]);
+    }),
+    select: selectFilteredStats,
+  });
 
   const invalidate = () => queryClient.invalidateQueries({queryKey});
 
@@ -896,121 +902,168 @@ export function CustomFilters({project}: {project: Project}) {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <CustomFiltersTable>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Conditions')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Trend')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Filtered')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Created')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
-          {visibleFilters.length === 0 && (
-            <SimpleTable.Empty>
-              {filters.length === 0
-                ? t('No inbound filters found')
-                : t('No rules match your search')}
-            </SimpleTable.Empty>
-          )}
-          {visibleFilters.map(filter => (
-            <SimpleTable.Row
-              key={filter.id}
-              variant={filter.active ? 'default' : 'faded'}
-            >
-              <SimpleTable.RowCell>
-                <Switch
-                  aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
-                  checked={filter.active}
-                  disabled={!hasWriteAccess}
-                  onChange={() => handleToggleActive(filter)}
-                />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Text ellipsis>{filter.name}</Text>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Stack align="start" gap="xs">
-                  {filter.conditions.flatMap((condition, conditionIndex) =>
-                    condition.value.map((value, valueIndex) => (
-                      <ConditionTag
-                        key={`${conditionIndex}-${valueIndex}`}
-                        type={condition.type}
-                        value={value}
-                      />
-                    ))
-                  )}
-                </Stack>
-              </SimpleTable.RowCell>
-              <FilteredVolumeCells
-                intervals={stats?.intervals ?? []}
-                seriesByCategory={statsByReason.get(
-                  `${OUTCOMES_REASON_PREFIX}${filter.id}`
-                )}
-                isPending={isStatsPending}
-                isError={isStatsError}
-              />
-              <SimpleTable.RowCell whiteSpace="nowrap">
-                <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell whiteSpace="nowrap">
-                <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Flex gap="sm">
-                  <Button
-                    size="sm"
-                    variant="transparent"
-                    icon={<IconEdit />}
-                    aria-label={t('Edit filter')}
+        <Container containerType="inline-size">
+          <CustomFiltersTable>
+            <SimpleTable.Header>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Active')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Conditions')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false} data-column-name="trend">
+                {t('Trend')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
+                {t('Filtered')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false} data-column-name="created">
+                {t('Created')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+                {t('Edited')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Action')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.Header>
+            {visibleFilters.length === 0 && (
+              <SimpleTable.Empty>
+                {filters.length === 0
+                  ? t('No inbound filters found')
+                  : t('No rules match your search')}
+              </SimpleTable.Empty>
+            )}
+            {visibleFilters.map(filter => (
+              <SimpleTable.Row
+                key={filter.id}
+                variant={filter.active ? 'default' : 'faded'}
+              >
+                <SimpleTable.RowCell>
+                  <Switch
+                    aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
+                    checked={filter.active}
                     disabled={!hasWriteAccess}
-                    onClick={() =>
-                      openModal(
-                        deps => (
-                          <CustomFilterModal
-                            {...deps}
-                            filter={filter}
-                            dataTypeOptions={dataTypeOptions}
-                            onSave={values => handleEdit(filter.id, values)}
-                          />
-                        ),
-                        {modalCss: filterModalCss}
-                      )
-                    }
+                    onChange={() => handleToggleActive(filter)}
                   />
-                  <Confirm
-                    priority="danger"
-                    disabled={!hasWriteAccess}
-                    message={t('Are you sure you want to delete this filter?')}
-                    onConfirm={() => handleDelete(filter.id)}
-                  >
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Text ellipsis>{filter.name}</Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Stack align="start" gap="xs">
+                    {filter.conditions.flatMap((condition, conditionIndex) =>
+                      condition.value.map((value, valueIndex) => (
+                        <ConditionTag
+                          key={`${conditionIndex}-${valueIndex}`}
+                          type={condition.type}
+                          value={value}
+                        />
+                      ))
+                    )}
+                  </Stack>
+                </SimpleTable.RowCell>
+                <FilteredVolumeCells
+                  intervals={stats?.intervals ?? []}
+                  seriesByCategory={stats?.seriesByReason.get(
+                    `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                  )}
+                  isPending={isStatsPending}
+                  isError={isStatsError}
+                />
+                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="created">
+                  <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="edited">
+                  <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Flex gap="sm">
                     <Button
                       size="sm"
                       variant="transparent"
-                      icon={<IconDelete />}
-                      aria-label={t('Delete filter')}
+                      icon={<IconEdit />}
+                      aria-label={t('Edit filter')}
+                      disabled={!hasWriteAccess}
+                      onClick={() =>
+                        openModal(
+                          deps => (
+                            <CustomFilterModal
+                              {...deps}
+                              filter={filter}
+                              dataTypeOptions={dataTypeOptions}
+                              onSave={values => handleEdit(filter.id, values)}
+                            />
+                          ),
+                          {modalCss: filterModalCss}
+                        )
+                      }
                     />
-                  </Confirm>
-                </Flex>
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          ))}
-        </CustomFiltersTable>
+                    <Confirm
+                      priority="danger"
+                      disabled={!hasWriteAccess}
+                      message={t('Are you sure you want to delete this filter?')}
+                      onConfirm={() => handleDelete(filter.id)}
+                    >
+                      <Button
+                        size="sm"
+                        variant="transparent"
+                        icon={<IconDelete />}
+                        aria-label={t('Delete filter')}
+                      />
+                    </Confirm>
+                  </Flex>
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            ))}
+          </CustomFiltersTable>
+        </Container>
       )}
     </Stack>
   );
 }
 
+// A column joins the table only once the conditions still have room to read at that
+// width. The dates need the most room, so they go first as the table narrows, then
+// the trend, then the total.
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns:
-    90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
-    100px 100px 110px;
+  grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 110px;
   overflow-x: auto;
+
+  [data-column-name='trend'],
+  [data-column-name='filtered'],
+  [data-column-name='created'],
+  [data-column-name='edited'] {
+    display: none;
+  }
+
+  @container (min-width: ${p => p.theme.container['2xl']}) {
+    grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 90px 110px;
+
+    [data-column-name='filtered'] {
+      display: flex;
+    }
+  }
+
+  @container (min-width: ${p => p.theme.container['3xl']}) {
+    grid-template-columns:
+      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
+      110px;
+
+    [data-column-name='trend'] {
+      display: flex;
+    }
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    grid-template-columns:
+      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
+      90px 90px 110px;
+
+    [data-column-name='created'],
+    [data-column-name='edited'] {
+      display: flex;
+    }
+  }
 `;
