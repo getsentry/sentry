@@ -6,7 +6,7 @@ import {IconLock, IconMail, IconSettings, IconSubscribed, IconUser} from 'sentry
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/generatedFieldRegistry';
+import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 const ROUTE_ICONS: Record<string, ReactNode> = {
