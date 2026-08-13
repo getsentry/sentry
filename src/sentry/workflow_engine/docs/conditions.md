@@ -438,11 +438,7 @@ Registration does not update these lists automatically:
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | [`SLOW_CONDITIONS`](../models/data_condition.py) | It uses the delayed Workflow query path; delayed query generation and result handling must also support it |
 | `PERCENT_CONDITIONS`                             | It is a delayed percentage comparison                                                                      |
-| `TRIGGER_CONDITIONS`                             | It requires the create-time `ANY_SHORT_CIRCUIT` restriction used by legacy event-state triggers            |
 | `LEGACY_CONDITIONS`                              | It must be hidden from the condition availability endpoint                                                 |
-
-`WORKFLOW_TRIGGER` does not imply membership in `TRIGGER_CONDITIONS`; `EVERY_EVENT` is a
-current counterexample.
 
 A condition whose data must be acquired in the batched phase additionally needs a query
 handler registered in
