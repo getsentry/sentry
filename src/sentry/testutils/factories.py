@@ -86,11 +86,6 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
-    InvestigationCell,
-    InvestigationCellDependency,
-    InvestigationCellExecution,
-    InvestigationCellExecutionProject,
-    InvestigationCellParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -448,22 +443,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell(investigation, position=0, kind="text", **kwargs):
-        return InvestigationCell.objects.create(
-            investigation=investigation, position=position, kind=kind, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block(investigation, position=0, kind="text", **kwargs):
         return InvestigationBlock.objects.create(
             investigation=investigation, position=position, kind=kind, **kwargs
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_dependency(cell, depends_on):
-        return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -477,11 +460,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_parameter(cell, parameter, **kwargs):
-        return InvestigationCellParameter.objects.create(cell=cell, parameter=parameter, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_parameter(block, parameter, **kwargs):
         return InvestigationBlockParameter.objects.create(
             block=block, parameter=parameter, **kwargs
@@ -489,20 +467,8 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution(cell, **kwargs):
-        return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_execution(block, **kwargs):
         return InvestigationBlockExecution.objects.create(block=block, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution_project(execution, project):
-        return InvestigationCellExecutionProject.objects.create(
-            execution=execution, project=project
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
