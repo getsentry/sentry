@@ -960,7 +960,7 @@ class GroupAutofixConditionalGetTest(APITestCase, SnubaTestCase):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
-        self.enterContext(override_options({"seer.autofix.conditional_get.enabled": True}))
+        self.enterContext(override_options({"api.conditional_get.enabled": True}))
         self.group = self.create_group()
         self.login_as(user=self.user)
 
@@ -1056,7 +1056,7 @@ class GroupAutofixConditionalGetTest(APITestCase, SnubaTestCase):
         assert plain["ETag"] != formatted["ETag"]
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    @override_options({"seer.autofix.conditional_get.enabled": False})
+    @override_options({"api.conditional_get.enabled": False})
     def test_disabled_option_sets_no_validator(self, mock_get_explorer_state):
         mock_get_explorer_state.return_value = self._run_state()
 

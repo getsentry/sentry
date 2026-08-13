@@ -1246,9 +1246,9 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Serves 304 responses to autofix state polls when the payload has not changed.
+# Serves 304 responses from endpoints using ConditionalGetResponseMixin.
 register(
-    "seer.autofix.conditional_get.enabled",
+    "api.conditional_get.enabled",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

@@ -193,7 +193,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         "GET": ApiPublishStatus.PUBLIC,
     }
     formatter_adapter = staticmethod(format_autofix)
-    conditional_get_option = "seer.autofix.conditional_get.enabled"
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(

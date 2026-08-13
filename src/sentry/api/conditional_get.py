@@ -21,6 +21,7 @@ else:
 
 CACHE_CONTROL = "private, no-cache"
 METRIC_NAME = "api.conditional_get"
+OPTION_NAME = "api.conditional_get.enabled"
 
 
 def _if_none_match_matches(header: str | None, etag: str) -> bool:
@@ -39,11 +40,10 @@ def _if_none_match_matches(header: str | None, etag: str) -> bool:
 class ConditionalGetResponseMixin(_Base):
     """Answers a repeated GET with 304 when the response body has not changed.
 
-    Endpoints opt in by setting ``conditional_get_option`` to a registered boolean option.
-    The mixin belongs leftmost in the base class list, so it hashes the final payload.
+    Endpoints opt in by inheriting from this mixin. It belongs leftmost in the base
+    class list, so it hashes the final payload. The ``api.conditional_get.enabled``
+    option turns the behaviour off for every endpoint that uses it.
     """
-
-    conditional_get_option: str | None = None
 
     def finalize_response(
         self, request: Request, response: Response, *args: Any, **kwargs: Any
@@ -52,8 +52,7 @@ class ConditionalGetResponseMixin(_Base):
 
         if request.method not in ("GET", "HEAD") or response.status_code != 200:
             return response
-        option = self.conditional_get_option
-        if option is None or not options.get(option):
+        if not options.get(OPTION_NAME):
             return response
         if getattr(response, "accepted_renderer", None) is None:
             return response

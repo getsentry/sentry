@@ -7,16 +7,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.api.conditional_get import ConditionalGetResponseMixin
+from sentry.api.conditional_get import OPTION_NAME, ConditionalGetResponseMixin
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
-
-OPTION = "test.conditional_get.enabled"
 
 
 class DummyConditionalEndpoint(ConditionalGetResponseMixin, Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = ()
-    conditional_get_option: str | None = OPTION
 
     def get(self, request: Request) -> Response[dict[str, Any]]:
         return Response({"value": request.GET.get("value", "a")})
@@ -42,21 +39,16 @@ class DummyHeaderEndpoint(DummyConditionalEndpoint):
         return response
 
 
-class DummyUngatedEndpoint(DummyConditionalEndpoint):
-    conditional_get_option = None
-
-
 _conditional_endpoint = DummyConditionalEndpoint.as_view()
 _error_endpoint = DummyErrorEndpoint.as_view()
 _non_dict_endpoint = DummyNonDictEndpoint.as_view()
 _header_endpoint = DummyHeaderEndpoint.as_view()
-_ungated_endpoint = DummyUngatedEndpoint.as_view()
 
 
 class ConditionalGetResponseMixinTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(override_options({OPTION: True}))
+        self.enterContext(override_options({OPTION_NAME: True}))
 
     def test_get_sets_validator_headers(self) -> None:
         response = _conditional_endpoint(self.make_request(method="GET"))
@@ -169,13 +161,7 @@ class ConditionalGetResponseMixinTest(APITestCase):
 
         assert response.status_code == 304
 
-    def test_endpoint_without_an_option_is_untouched(self) -> None:
-        response = _ungated_endpoint(self.make_request(method="GET"))
-
-        assert response.status_code == 200
-        assert "ETag" not in response
-
-    @override_options({OPTION: False})
+    @override_options({OPTION_NAME: False})
     def test_disabled_option_is_untouched(self) -> None:
         response = _conditional_endpoint(self.make_request(method="GET"))
 
