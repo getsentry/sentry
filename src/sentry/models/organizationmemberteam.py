@@ -16,6 +16,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
@@ -31,7 +32,14 @@ def _reserve_ids(model: type[Model], count: int) -> list[int]:
         return [row_id for (row_id,) in cursor.fetchall()]
 
 
-class OrganizationMemberTeamManager(BaseManager["OrganizationMemberTeam"]):
+class OrganizationMemberTeamQuerySet(BaseQuerySet["OrganizationMemberTeam"]):
+    """Keeps `new_id` equal to `id` on bulk inserts.
+
+    This lives on the queryset rather than the manager because not every bulk insert
+    goes through `objects`: adding a team via a member's `teams` accessor, or any
+    `.using(...)` call, reaches the queryset directly.
+    """
+
     def bulk_create(
         self, objs: Iterable[OrganizationMemberTeam], *args: Any, **kwds: Any
     ) -> list[OrganizationMemberTeam]:
@@ -44,6 +52,11 @@ class OrganizationMemberTeamManager(BaseManager["OrganizationMemberTeam"]):
             row.id = row_id
             row.new_id = row_id
         return super().bulk_create(rows, *args, **kwds)
+
+
+OrganizationMemberTeamManager = BaseManager.from_queryset(
+    OrganizationMemberTeamQuerySet, "OrganizationMemberTeamManager"
+)
 
 
 @cell_silo_model
@@ -75,18 +88,15 @@ class OrganizationMemberTeam(Model):
 
     __repr__ = sane_repr("team_id", "organizationmember_id")
 
-    def save(self, *args: Any, **kwds: Any) -> None:
+    def save(self, **kwds: Any) -> None:
         if self.id is None:
             # Claim the pk up front so `new_id` can be written in the same INSERT.
             self.id = _reserve_ids(type(self), 1)[0]
             self.new_id = self.id
-            # The pk was just claimed from the sequence, so the row cannot exist yet.
-            # Without force_insert Django probes with an UPDATE before inserting,
-            # costing a wasted round trip on every create.
-            # Skipped when the caller passed force_insert positionally.
-            if not args:
-                kwds["force_insert"] = True
-        super().save(*args, **kwds)
+            # A freshly claimed pk cannot already exist, so skip the UPDATE probe
+            # Django would otherwise run before inserting.
+            kwds["force_insert"] = True
+        super().save(**kwds)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {

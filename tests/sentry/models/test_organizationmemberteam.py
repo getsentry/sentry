@@ -139,3 +139,25 @@ class OrganizationMemberTeamShadowIdTest(TestCase):
 
     def test_bulk_create_with_no_objects(self) -> None:
         assert list(OrganizationMemberTeam.objects.bulk_create([])) == []
+
+    # The m2m accessor inserts through-rows via `QuerySet.bulk_create`, bypassing
+    # anything defined on the manager.
+    def test_m2m_add_populates_new_id(self) -> None:
+        member = self.new_member()
+
+        member.teams.add(self.team)
+
+        omt = OrganizationMemberTeam.objects.get(organizationmember=member, team=self.team)
+        assert omt.new_id == omt.id
+
+    # `Manager.using(...)` returns a queryset, so this too skips the manager.
+    def test_queryset_bulk_create_populates_new_id(self) -> None:
+        member = self.new_member()
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        OrganizationMemberTeam.objects.using(using).bulk_create(
+            [OrganizationMemberTeam(organizationmember=member, team=self.team)]
+        )
+
+        omt = OrganizationMemberTeam.objects.get(organizationmember=member, team=self.team)
+        assert omt.new_id == omt.id
