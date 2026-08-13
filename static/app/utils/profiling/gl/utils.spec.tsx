@@ -216,8 +216,8 @@ describe('createShader', () => {
 
 describe('Rect', () => {
   it('initializes an empty rect as 0 width and height rect at 0,0 origin', () => {
-    expect(Rect.Empty()).toEqual(new Rect(0, 0, 0, 0));
-    expect(Rect.Empty().isEmpty()).toBe(true);
+    expect(Rect.empty()).toEqual(new Rect(0, 0, 0, 0));
+    expect(Rect.empty().isEmpty()).toBe(true);
   });
 
   it('clones rect', () => {

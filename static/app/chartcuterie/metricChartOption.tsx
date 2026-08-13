@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
@@ -40,7 +40,7 @@ function createStatusAreaSeries(
   return {
     seriesName: 'Status Area',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
       data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}]],
@@ -53,7 +53,7 @@ function createThresholdSeries(lineColor: string, threshold: number): AreaChartS
   return {
     seriesName: 'Threshold Line',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold}],
@@ -98,7 +98,7 @@ function createIncidentSeries(
   return {
     seriesName: 'Incident Line',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
       data: [
