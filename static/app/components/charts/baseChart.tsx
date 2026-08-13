@@ -53,7 +53,7 @@ import type {
 import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
-import {Legend} from './components/legend';
+import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
@@ -574,7 +574,7 @@ export function BaseChart({
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
-      legend: legend ? Legend({theme, ...legend}) : undefined,
+      legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
