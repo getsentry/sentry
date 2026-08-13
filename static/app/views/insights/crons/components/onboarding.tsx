@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {EmptyState} from '@sentry/scraps/emptyState';
 import {Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -18,26 +18,21 @@ interface Props {
 export function MonitorOnboarding({monitorSlug, project}: Props) {
   return (
     <Panel>
-      <EmptyState
-        padding="3xl"
-        align="center"
-        justify="center"
-        title={t('Instrument your monitor')}
-        action={
-          <Stack gap="2xl" width="100%">
-            <MonitorQuickStartGuide monitorSlug={monitorSlug} project={project} />
-            <WaitingNotice>
-              <WaitingIndicator />
-              {t('Waiting for first Check-in')}
-              <WaitingHelpText>
-                {t(
-                  'This Cron Monitor will not detect misses until the first Check-in has been received.'
-                )}
-              </WaitingHelpText>
-            </WaitingNotice>
-          </Stack>
-        }
-      />
+      <Stack padding="3xl" gap="xl" width="100%">
+        <Heading as="h3" size="2xl">
+          {t('Instrument your monitor')}
+        </Heading>
+        <MonitorQuickStartGuide monitorSlug={monitorSlug} project={project} />
+        <WaitingNotice>
+          <WaitingIndicator />
+          {t('Waiting for first Check-in')}
+          <WaitingHelpText>
+            {t(
+              'This Cron Monitor will not detect misses until the first Check-in has been received.'
+            )}
+          </WaitingHelpText>
+        </WaitingNotice>
+      </Stack>
     </Panel>
   );
 }
