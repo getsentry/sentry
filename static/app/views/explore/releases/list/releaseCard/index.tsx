@@ -441,6 +441,10 @@ export function NewIssuesColumn({children}: {children: React.ReactNode}) {
 const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
+  @container (min-width: ${p => p.theme.container.xl}) {
+    overflow: visible;
+  }
+
   & > * {
     flex: 1;
   }
@@ -448,10 +452,7 @@ const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
 
 export function AdoptionColumn({children}: {children: React.ReactNode}) {
   return (
-    <Container
-      display={{zero: 'none', xl: 'flex'}}
-      overflow={{zero: 'hidden', xl: 'visible'}}
-    >
+    <Container display={{zero: 'none', xl: 'flex'}}>
       {containerProps => (
         <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
       )}
@@ -459,21 +460,21 @@ export function AdoptionColumn({children}: {children: React.ReactNode}) {
   );
 }
 
+const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
+  font-variant-numeric: tabular-nums;
+
+  @container (min-width: ${p => p.theme.container['5xl']}) {
+    overflow: visible;
+  }
+`;
+
 export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
   return (
-    <Container
-      display={{zero: 'none', '5xl': 'flex'}}
-      overflow={{zero: 'hidden', '5xl': 'visible'}}
-    >
+    <Container display={{zero: 'none', '5xl': 'flex'}}>
       {containerProps => (
-        <ReleaseProjectColumn
-          {...containerProps}
-          css={css`
-            font-variant-numeric: tabular-nums;
-          `}
-        >
+        <StyledAdoptionStageColumn {...containerProps}>
           {children}
-        </ReleaseProjectColumn>
+        </StyledAdoptionStageColumn>
       )}
     </Container>
   );
