@@ -130,7 +130,7 @@ export function ScmMessagingChannelPicker({
         <Button
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError}
+          disabled={!channel || !!channelError || isChannelLoading}
           onClick={handleSave}
         >
           {t('Save destination')}
