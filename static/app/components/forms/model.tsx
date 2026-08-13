@@ -768,9 +768,12 @@ export class FormModel {
       return error;
     }
     if (error !== null && typeof error === 'object' && 'message' in error) {
-      return String(error.message);
+      return typeof error.message === 'string' ? error.message : '';
     }
-    return String(error ?? '');
+    if (typeof error === 'number' || typeof error === 'boolean') {
+      return String(error);
+    }
+    return '';
   }
 
   /**
