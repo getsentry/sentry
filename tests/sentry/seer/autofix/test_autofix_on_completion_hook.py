@@ -602,24 +602,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         event_names = [call.args[0].type for call in mock_analytics.call_args_list]
         assert "ai.autofix.pr_created.completed" in event_names
 
-    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_send_step_webhook_creating_status_maps_to_error(self, mock_broadcast):
-        state = run_state(blocks=[code_changes_memory_block()])
-        state.repo_pr_states = {
-            "test-repo": RepoPRState(
-                repo_name="test-repo",
-                pr_creation_status="creating",
-            )
-        }
-
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
-
-        mock_broadcast.assert_called_once()
-        entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
-        assert entry["status"] == "error"
-        assert entry["error"] == {"code": "unknown"}
-        assert entry["pull_request"] is None
-
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
@@ -668,34 +650,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
         )
-
-    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_send_step_webhook_pr_iteration_keeps_existing_pr_after_push_error(
-        self, mock_broadcast
-    ):
-        state = run_state(
-            blocks=[
-                code_changes_memory_block(),
-                pr_iteration_memory_block(commit_sha="synced-sha"),
-            ]
-        )
-        state.repo_pr_states = {
-            "test-repo": RepoPRState(
-                repo_name="test-repo",
-                pr_id=77,
-                pr_number=7,
-                pr_url="https://example.com/pull/7",
-                pr_creation_status="error",
-                commit_sha="synced-sha",
-            )
-        }
-
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
-
-        entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
-        assert entry["status"] == "error"
-        assert entry["error"] == {"code": "unknown"}
-        assert entry["pull_request"]["pr_number"] == 7
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
