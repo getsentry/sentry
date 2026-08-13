@@ -12,7 +12,13 @@ type Props = {
   value?: number | string | boolean | null;
 };
 
-export const Pill = memo(({name, value, children, type, className}: Props) => {
+export const Pill = memo(function PillComponent({
+  name,
+  value,
+  children,
+  type,
+  className,
+}: Props) {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};

@@ -11,6 +11,7 @@ import {
   replayAttachmentsApiOptions,
   replayRecordApiOptions,
 } from 'sentry/utils/replays/hooks/useReplayData';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {useLiveBadge, useLiveRefresh} from './replayLiveIndicator';
 
@@ -205,6 +206,100 @@ describe('useLiveRefresh', () => {
 
     // Polling should not happen for expired replays
     expect(replayEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('should stop polling in real time once the 1-hour window elapses while mounted', async () => {
+    const now = Date.now();
+    const replay = ReplayRecordFixture({
+      started_at: new Date(now - 59 * 60_000), // expires in 1 minute
+      count_segments: 5,
+    });
+
+    const replayEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replay.id}/`,
+      body: {data: {...replay, count_segments: 5}},
+    });
+
+    renderHook(() => useLiveRefresh({replay}), {wrapper: createWrapper()});
+
+    // Poll at least once before the expiry window closes.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+
+    // Advance past the 1-hour boundary, then two more polling intervals.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(90_000);
+    });
+    const callsAtExpiry = replayEndpoint.mock.calls.length;
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+
+    // No further polls once the replay expires.
+    expect(replayEndpoint.mock.calls).toHaveLength(callsAtExpiry);
+  });
+
+  it('should not poll archived replays (null started_at)', async () => {
+    // Archived replays have a null start time; treat them as expired.
+    const replay = {
+      ...ReplayRecordFixture({count_segments: 5}),
+      started_at: null,
+    } as unknown as ReplayRecord;
+
+    const replayEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${replay.id}/`,
+      body: {data: {...replay, count_segments: 10}},
+    });
+
+    renderHook(() => useLiveRefresh({replay}), {wrapper: createWrapper()});
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+
+    expect(replayEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('should resume polling when the replay switches from expired to live', async () => {
+    const now = Date.now();
+    const expiredReplay = ReplayRecordFixture({
+      id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      started_at: new Date(now - 2 * 60 * 60_000), // expired
+      count_segments: 5,
+    });
+    const liveReplay = ReplayRecordFixture({
+      id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      started_at: new Date(now - 60_000), // live
+      count_segments: 5,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${liveReplay.id}/`,
+      body: {data: {...liveReplay, count_segments: 20}},
+    });
+    const expiredEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${expiredReplay.id}/`,
+      body: {data: {...expiredReplay, count_segments: 5}},
+    });
+
+    const {result, rerender} = renderHook(({replay}) => useLiveRefresh({replay}), {
+      wrapper: createWrapper(),
+      initialProps: {replay: expiredReplay},
+    });
+
+    // Page from the expired replay to a live one without remounting the hook.
+    rerender({replay: liveReplay});
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+
+    await waitFor(() => {
+      expect(result.current.shouldShowRefreshButton).toBe(true);
+    });
+    expect(expiredEndpoint).not.toHaveBeenCalled();
   });
 
   it('should provide a doRefresh function that can be called', () => {

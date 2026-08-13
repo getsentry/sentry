@@ -1,10 +1,12 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
-import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
@@ -66,6 +68,11 @@ export interface TraceItemDetailsResponse {
   itemId: string;
   meta: TraceItemDetailsMeta;
   timestamp: string;
+  event?: {
+    breadcrumbs?: {values: RawCrumb[]};
+    contexts?: EventTransaction['contexts'];
+    extra?: EventTransaction['context'];
+  };
   links?: TraceItemResponseLink[];
 }
 
@@ -207,50 +214,32 @@ function useTraceItemDetailsPrefetch({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
-  const projectRef = useRef(project);
-  projectRef.current = project;
-  const queryClient = useQueryClient();
-  const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
-  const [traceItemAttributes, setTraceItemAttributes] = useState<
-    TraceItemResponseAttribute[] | undefined
-  >();
+  const [shouldFetch, setShouldFetch] = useState(false);
 
-  const prefetch = useCallback(() => {
-    const currentProject = projectRef.current;
-    if (!currentProject?.slug) {
-      return;
-    }
-    const timeQueryParams = defined(timestamp)
-      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-      : normalizeDateTimeParams(selection.datetime);
-    const options = traceItemDetailsApiOptions({
+  const {data, isFetching} = useQuery({
+    ...traceItemDetailsApiOptions({
       organizationSlug: organization.slug,
-      projectSlug: currentProject.slug,
+      projectSlug: project?.slug ?? '',
       traceItemId,
       traceItemType,
       referrer,
       traceId,
-      ...timeQueryParams,
-    });
-    queryClient.fetchQuery(options).then(
-      response => {
-        setTraceItemMeta(response?.json?.meta);
-        setTraceItemAttributes(response?.json?.attributes);
-      },
-      () => {}
-    );
-  }, [
-    organization.slug,
-    queryClient,
-    referrer,
-    selection.datetime,
-    timestamp,
-    traceId,
-    traceItemId,
-    traceItemType,
-  ]);
+      ...(timestamp
+        ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+        : normalizeDateTimeParams(selection.datetime)),
+    }),
+    enabled: shouldFetch && !!project?.slug,
+  });
 
-  return {prefetch, project, traceItemMeta, traceItemAttributes};
+  const prefetch = useCallback(() => setShouldFetch(true), []);
+
+  return {
+    prefetch,
+    project,
+    traceItemMeta: data?.meta,
+    traceItemAttributes: data?.attributes,
+    isPending: isFetching,
+  };
 }
 
 export function usePrefetchTraceItemDetailsOnHover({
@@ -278,7 +267,7 @@ export function usePrefetchTraceItemDetailsOnHover({
    */
   hoverPrefetchDisabled?: boolean;
 }) {
-  const {prefetch, project, traceItemMeta, traceItemAttributes} =
+  const {prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
       traceItemId,
       projectId,
@@ -288,20 +277,39 @@ export function usePrefetchTraceItemDetailsOnHover({
       timestamp,
     });
 
+  const ownHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearSharedHoverTimeout = useCallback(() => {
+    if (sharedHoverTimeoutRef.current) {
+      clearTimeout(sharedHoverTimeoutRef.current);
+      sharedHoverTimeoutRef.current = null;
+    }
+    ownHoverTimeoutRef.current = null;
+  }, [sharedHoverTimeoutRef]);
+
   const {hoverProps} = useHover({
     onHoverStart: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-      sharedHoverTimeoutRef.current = setTimeout(prefetch, timeout);
+      clearSharedHoverTimeout();
+      const timeoutId = setTimeout(prefetch, timeout);
+      sharedHoverTimeoutRef.current = timeoutId;
+      ownHoverTimeoutRef.current = timeoutId;
     },
-    onHoverEnd: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-    },
+    onHoverEnd: clearSharedHoverTimeout,
     isDisabled: hoverPrefetchDisabled,
   });
+
+  useEffect(
+    () => () => {
+      if (ownHoverTimeoutRef.current === null) {
+        return;
+      }
+      clearTimeout(ownHoverTimeoutRef.current);
+      if (sharedHoverTimeoutRef.current === ownHoverTimeoutRef.current) {
+        sharedHoverTimeoutRef.current = null;
+      }
+    },
+    [sharedHoverTimeoutRef]
+  );
 
   return {
     hoverProps,
@@ -309,6 +317,7 @@ export function usePrefetchTraceItemDetailsOnHover({
     isProjectReady: Boolean(project?.slug),
     traceItemMeta,
     traceItemAttributes,
+    isTraceItemDetailsPending: isPending,
   };
 }
 

@@ -1,6 +1,9 @@
 import {t} from 'sentry/locale';
 
 export const DASHBOARD_SAVING_MESSAGE = t('Saving changes\u2026');
+export const UNSAVED_FILTERS_MESSAGE = t(
+  'You have unsaved dashboard filters. You can save or discard them.'
+);
 
 export const NUM_DESKTOP_COLS = 6;
 

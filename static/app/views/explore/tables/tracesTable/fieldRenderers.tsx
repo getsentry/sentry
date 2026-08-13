@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {MultiHighlight} from 'sentry/components/highlight';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -151,8 +153,7 @@ const ProjectList = styled('div')`
   padding-right: 8px;
 `;
 
-const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.tokens.border.primary};
+const AvatarStyle = css`
   margin-right: -8px;
   cursor: default;
 
@@ -465,9 +466,8 @@ export function SpanIdRenderer({
     }
 
     return (
-      <Tooltip
-        showUnderline
-        isHoverable
+      <InfoText
+        variant="muted"
         title={
           <Text>
             {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
@@ -491,8 +491,8 @@ export function SpanIdRenderer({
           </Text>
         }
       >
-        <Text variant="muted">{shortSpanId}</Text>
-      </Tooltip>
+        {shortSpanId}
+      </InfoText>
     );
   }
 
@@ -592,11 +592,7 @@ export function TraceIdRenderer({
   const target = getTraceDetailsUrl({
     organization,
     traceSlug: traceId,
-    dateSelection: {
-      start: selection.datetime.start,
-      end: selection.datetime.end,
-      statsPeriod: selection.datetime.period,
-    },
+    dateSelection: normalizeDateTimeParams(selection.datetime),
     timestamp: timestamp / 1000,
     eventId: transactionId,
     location,

@@ -16,6 +16,7 @@ import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAle
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {FeatureFilter} from './featureFilter';
+import {PrCommentRules} from './prCommentRules';
 import {PrCommentsToggle} from './prCommentsToggle';
 import {StatusCheckRules} from './statusCheckRules';
 
@@ -85,6 +86,9 @@ export default function PreprodSettings() {
               docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
             />
             <StatusCheckRules />
+            <Feature features="organizations:preprod-size-analysis-pr-comments">
+              <PrCommentRules />
+            </Feature>
           </Fragment>
         )}
         {tab === 'distribution' && (

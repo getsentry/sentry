@@ -78,6 +78,7 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
+from sentry.taskworker.timeout import InnerTimeoutError
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -93,7 +94,7 @@ from sentry.utils.tracing import trace
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
 
-_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException,)
+_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException, InnerTimeoutError)
 _SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
     ClientError,
     SentryAppSentryError,
@@ -109,6 +110,7 @@ _SENTRY_APP_WEBHOOK_SILENCED = (
     ApiTimeoutError,
     ConnectionError,
     HTTPError,
+    InnerTimeoutError,
     # Anything not retriable should be silenced by default
     *_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
 )

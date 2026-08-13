@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal
 
@@ -12,6 +13,8 @@ from sentry.analytics.events.ai_autofix_pr_events import (
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -20,8 +23,11 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
+from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -163,6 +169,41 @@ def _record_pr_attribution(
             run_id=run_id,
         ).dict(),
     )
+
+
+def handle_pull_requests_merged_milestone(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Reconcile the run's PULL_REQUESTS_MERGED milestone when one of its PRs merges,
+    resolving the run via the SeerRunPullRequest link (covers coding-agent PRs too).
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request or event.get("action") != "closed" or not pull_request.get("merged"):
+        return
+
+    number = pull_request.get("number")
+    if number is None:
+        return
+
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run")
+        .filter(
+            pull_request__organization_id=organization.id,
+            pull_request__repository_id=repo.id,
+            pull_request__key=str(number),
+        )
+        .first()
+    )
+    if link is None:
+        return
+
+    reconcile_pull_requests_merged_milestone(link.seer_run)
 
 
 def _get_pr_timestamp_ms(pull_request: dict[str, Any], action: AnalyticAction) -> int:

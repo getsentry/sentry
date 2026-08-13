@@ -12,8 +12,14 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryBreadcrumbs,
+  type EventTransaction,
+} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -42,7 +48,7 @@ import {Entries} from './sections/entries';
 import {GeneralInfo} from './sections/generalInfo';
 import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
-import {ReplayPreview} from './sections/replayPreview';
+import {getEventTimestampMs, ReplayPreview} from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext} from './sections/sdk';
 
@@ -124,11 +130,19 @@ export function TransactionNodeDetails({
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || !event) {
     return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
+  const project = projects.find(proj => proj.slug === event.projectSlug);
+
+  const breadcrumbEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
+  );
+  const breadcrumbs = (
+    event.entries[breadcrumbEntryIndex] as EntryBreadcrumbs | undefined
+  )?.data;
+  const breadcrumbMeta = event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -199,9 +213,18 @@ export function TransactionNodeDetails({
           <EventEvidence event={event} project={project} disableCollapsePersistence />
         ) : null}
 
-        {replay ? null : <ReplayPreview event={event} organization={organization} />}
+        {replay ? null : (
+          <ReplayPreview
+            replayId={getReplayIdFromEvent(event)}
+            eventTimestampMs={getEventTimestampMs(event)}
+            organization={organization}
+            analyticsParams={getAnalyticsDataForEvent(event)}
+          />
+        )}
 
-        <BreadCrumbs event={event} />
+        {breadcrumbs ? (
+          <BreadCrumbs breadcrumbs={breadcrumbs} meta={breadcrumbMeta} />
+        ) : null}
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
@@ -252,7 +275,9 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
           {hasSDKContext(event) || cacheMetrics.length > 0 ? (
             <BuiltIn event={event} cacheMetrics={cacheMetrics} />
           ) : null}
-          {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
+          {hasAdditionalData(event.context) ? (
+            <AdditionalData extra={event.context} meta={event._meta?.context} />
+          ) : null}
           {hasMeasurements(event) ? (
             <Measurements event={event} location={location} organization={organization} />
           ) : null}

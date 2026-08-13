@@ -50,7 +50,7 @@ class MetricAlertNotificationTemplate(NotificationTemplate[MetricAlertNotificati
         open_period_context=_EXAMPLE_OPEN_PERIOD_CONTEXT,
         new_status=20,  # IncidentStatus.CRITICAL
         title="Critical: Example Alert",
-        title_link="https://sentry.io/organizations/example/alerts/rules/details/1/",
+        title_link="https://sentry.io/organizations/example/monitors/1/",
         text="123 events in the last 5 minutes",
     )
 

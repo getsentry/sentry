@@ -121,6 +121,33 @@ describe('LogsAggregateTable', () => {
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
   });
 
+  it('renders a rate limit message and retry button when rate limited', async () => {
+    const rateLimitError = new RequestError('GET', '/', new Error('rate limited'));
+    rateLimitError.status = 429;
+    const refetch = jest.fn();
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          error: rateLimitError,
+          refetch,
+        })}
+      />,
+      {initialRouterConfig}
+    );
+
+    expect(
+      screen.getByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Aggregates')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
   it('renders data rows', () => {
     render(
       <LogsAggregateTableWithParamsProvider

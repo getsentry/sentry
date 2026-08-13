@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -24,6 +24,16 @@ class SeerRunMirrorStatus(models.TextChoices):
     PENDING = "pending"
     LIVE = "live"
     FAILED = "failed"
+
+
+class SeerRunMilestoneType(models.TextChoices):
+    ROOT_CAUSE = "autofix_root_cause"
+    SOLUTION = "autofix_solution"
+    CODE_CHANGES = "autofix_code_changes"
+    # Aggregate, not per-PR: HAS_PULL_REQUEST means the run opened at least one
+    # PR; PULL_REQUESTS_MERGED means all of the run's PRs are merged.
+    HAS_PULL_REQUEST = "has_pull_request"
+    PULL_REQUESTS_MERGED = "pull_requests_merged"
 
 
 @cell_silo_model
@@ -103,6 +113,13 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
+    # Null for Seer-native PRs. Not unique -- a handoff can report multiple PRs.
+    coding_agent_handoff = FlexibleForeignKey(
+        "seer.SeerRunCodingAgentHandoff",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="pull_request_links",
+    )
 
     class Meta:
         app_label = "seer"
@@ -115,6 +132,57 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
+
+
+class RootCauseArtifactExtras(TypedDict):
+    one_line_description: str
+
+
+class SolutionArtifactExtras(TypedDict):
+    one_line_summary: str
+
+
+class CodeChangesArtifactExtras(TypedDict):
+    # Each patch is AgentFilePatch.dict() verbatim; read back with AgentFilePatch.parse_obj.
+    diffs_by_repo: dict[str, list[dict[str, Any]]]
+
+
+class SeerRunMilestoneExtras(TypedDict, total=False):
+    root_cause_artifact: RootCauseArtifactExtras
+    solution_artifact: SolutionArtifactExtras
+    code_changes_artifact: CodeChangesArtifactExtras
+
+
+@cell_silo_model
+class SeerRunMilestone(DefaultFieldsModel):
+    """Records the progress milestones a run reached.
+
+    A milestone is recorded at most once per run (enforced by the unique
+    constraint), so out-of-order or duplicate delivery is a safe no-op insert.
+    Milestones are aggregate facts about the run, not per-PR events: a run that
+    opens several PRs records HAS_PULL_REQUEST once. Re-running a run from an
+    earlier step may later clear milestones that no longer hold.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
+    )
+    milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunmilestone"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["seer_run", "milestone"],
+                name="seer_runmilestone_unique",
+            ),
+        ]
+
+    __repr__ = sane_repr("seer_run_id", "milestone")
 
 
 class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
@@ -146,6 +214,11 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     )
     # See SeerRunCodingAgentHandoffExtras for the expected shape.
     extras = models.JSONField(db_default={}, default=dict)
+
+    @property
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this handoff produced, via its SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__coding_agent_handoff=self)
 
     class Meta:
         app_label = "seer"

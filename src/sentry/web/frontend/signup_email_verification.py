@@ -18,7 +18,8 @@ from sentry.auth.email_verification import SignupLinkExpired, hash_email, verify
 from sentry.web.frontend.base import BaseView
 
 PENDING_VERIFICATION_SESSION_KEY = "pending_signup_verification_email"
-VERIFIED_SESSION_KEY = "verified_email"
+# Feeds the pending page's expiry_text display
+PENDING_EXPIRY_TEXT_SESSION_KEY = "pending_signup_verification_expiry_minutes"
 
 logger = logging.getLogger("sentry.auth.signup_email_verification")
 
@@ -99,8 +100,6 @@ class BaseSignupVerificationView(BaseView):
                 title="Verification error",
                 message="Please open this link in the same browser where you started signing up, or restart the signup process.",
             )
-
-        request.session[VERIFIED_SESSION_KEY] = email
 
         logger.info(
             "signup_verification.verified",

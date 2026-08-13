@@ -97,23 +97,31 @@ interface UseLiveBadgeParams {
 export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
   const [isLive, setIsLive] = useState(
     // We check for getLiveDurationMs to avoid a flicker.
-
-    // There can exist a time where the replay hasn't expired (Date.now() < started_at + 1 hour), in which case the isLive would show True,
-    // but the liveDuration is 0 (Date.now() > finished_at + 5 minutes), so the setTimeout, having a live duration of 0, would immediately
-    // set isLive to false and cause this flicker
-    Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
+    // There can exist a time where the replay hasn't expired
+    // (Date.now() < started_at + 1 hour), in which case the isLive would show
+    // True, but the liveDuration is 0 (Date.now() > finished_at + 5 minutes),
+    // so the setTimeout, having a live duration of 0, would immediately set
+    // isLive to false and cause this flicker.
+    //
+    // `Date.now()` is impure and can't be read while rendering
+    // (pure-render-functions), so we use a lazy initializer here.
+    () =>
+      Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
   );
 
   const {start: startTimeout} = useTimeout({
-    timeMs: getLiveDurationMs(finishedAt),
+    timeMs: 0,
     onTimeout: () => {
       setIsLive(false);
     },
   });
 
+  // `getLiveDurationMs` calls `Date.now()` internally, so it must not be
+  // called during render (pure-render-functions). Compute it inside the
+  // effect and pass the result to `startTimeout`.
   useEffect(() => {
-    startTimeout();
-  }, [startTimeout]);
+    startTimeout(getLiveDurationMs(finishedAt));
+  }, [startTimeout, finishedAt]);
 
   return {
     isLive,
@@ -132,7 +140,32 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const projectSlug = useReplayProjectSlug({replayRecord: replay})!;
   const {startSummaryRequest} = useReplaySummaryContext();
   const startSummaryRequestRef = useRef(startSummaryRequest);
-  const isReplayExpired = Date.now() > getReplayExpiresAtMs(replay?.started_at ?? null);
+
+  // A replay stops receiving segments 1 hour after it started, so we stop
+  // polling then. `Date.now()` is impure and can't be read while rendering
+  // (pure-render-functions), so we seed the flag with a lazy initializer and
+  // flip it from a timer scheduled in the effect below.
+  const expiresAtMs = getReplayExpiresAtMs(replay?.started_at ?? null);
+  const [isReplayExpired, setIsReplayExpired] = useState(
+    // A null/absent start time (e.g. archived replays) counts as expired.
+    () => Date.now() > expiresAtMs
+  );
+  const {start: startExpiryTimeout, cancel: cancelExpiryTimeout} = useTimeout({
+    timeMs: 0,
+    onTimeout: () => setIsReplayExpired(true),
+  });
+  useEffect(() => {
+    // Re-run when the replay changes (paging through the playlist reuses this
+    // hook instance). `expiresAtMs` is a stable number, unlike `started_at`.
+    const remainingMs = expiresAtMs - Date.now();
+    if (expiresAtMs <= 0 || remainingMs <= 0) {
+      cancelExpiryTimeout();
+      setIsReplayExpired(true);
+      return;
+    }
+    setIsReplayExpired(false);
+    startExpiryTimeout(remainingMs);
+  }, [expiresAtMs, startExpiryTimeout, cancelExpiryTimeout]);
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired && Boolean(replayId),
     replayId,

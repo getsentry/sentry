@@ -1027,8 +1027,10 @@ def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -
 
 
 def percent_increase(result: int | float, comparison_result: int | float) -> int:
-    return (
-        int(max(0, ((result - comparison_result) / comparison_result * 100)))
-        if comparison_result > 0
-        else 0
-    )
+    # No baseline to compare against: treat the current count as the full increase over an
+    # effectively empty prior period, i.e. 0 -> N reads as N*100%.
+    if comparison_result <= 0:
+        return int(max(0, result) * 100)
+
+    change = (result - comparison_result) / comparison_result * 100
+    return int(max(0, change))

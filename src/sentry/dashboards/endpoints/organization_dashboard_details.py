@@ -39,6 +39,7 @@ from sentry.dashboards.endpoints.organization_dashboards import OrganizationDash
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.organization import Organization
@@ -256,6 +257,19 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.visits = F("visits") + 1
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
+
+        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+        if (
+            features.has(
+                "organizations:dashboards-user-last-visited", organization, actor=request.user
+            )
+            and request.user.is_authenticated
+        ):
+            DashboardLastVisited.objects.update_or_create(
+                user_id=request.user.id,
+                dashboard=dashboard,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)
 

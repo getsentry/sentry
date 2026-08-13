@@ -5,7 +5,6 @@ import type {Location} from 'history';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {EventQuery} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -13,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar, isFieldsSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -154,8 +153,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/events/`;
     const tableFetchID = Symbol('tableFetchID');
 
-    const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
-      EventQuery;
+    const apiPayload = eventView.getEventsAPIPayload(location);
 
     // We are now routing to the trace view on clicking event ids. Therefore, we need the trace slug associated to the event id.
     // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.

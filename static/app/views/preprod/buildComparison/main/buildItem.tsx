@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {
@@ -140,9 +140,9 @@ function BuildItemDetails({
         {build.app_info?.build_configuration && (
           <Flex align="center" gap="sm">
             <IconMobile size="xs" variant="muted" />
-            <Tooltip title={t('Build configuration')}>
-              <Text monospace>{build.app_info.build_configuration}</Text>
-            </Tooltip>
+            <InfoText title={t('Build configuration')} monospace>
+              {build.app_info.build_configuration}
+            </InfoText>
           </Flex>
         )}
         {isSizeInfoCompleted(sizeInfo) && (

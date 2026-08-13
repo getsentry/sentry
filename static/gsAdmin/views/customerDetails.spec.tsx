@@ -1182,11 +1182,13 @@ describe('Customer Details', () => {
       })[0]!
     );
 
+    expect(
+      screen.getByRole('option', {name: /Start Enterprise Trial/})
+    ).toBeInTheDocument();
     expect(screen.getByText(/capped event limits/)).toBeInTheDocument();
-    expect(screen.queryByText(/unlimited events/)).not.toBeInTheDocument();
   });
 
-  it('shows unlimited events help text for paid plan enterprise trial', async () => {
+  it('hides Start Enterprise Trial for paid plans', async () => {
     setUpMocks(organization, {plan: 'am3_business', isFree: false});
 
     render(<CustomerDetails />, {
@@ -1205,8 +1207,9 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    expect(screen.getByText(/unlimited events/)).toBeInTheDocument();
-    expect(screen.queryByText(/capped event limits/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Start Enterprise Trial/})
+    ).not.toBeInTheDocument();
   });
 
   it('renders and hides generic confirmation modals', async () => {
@@ -1298,7 +1301,7 @@ describe('Customer Details', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 
     it('renders Allow Trial in the dropdown', async () => {
-      setUpMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
+      setUpMocks(cannotTrialOrg, {canTrial: false, trialPlan: null});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -1320,7 +1323,7 @@ describe('Customer Details', () => {
     });
 
     it('hides Allow Trial in the dropdown when not eligible', async () => {
-      setUpMocks(organization, {canTrial: true, isTrial: false});
+      setUpMocks(organization, {canTrial: true, trialPlan: null});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -1342,7 +1345,7 @@ describe('Customer Details', () => {
     });
 
     it('hides Allow Trial in the dropdown when on active trial', async () => {
-      setUpMocks(organization, {canTrial: false, isTrial: true});
+      setUpMocks(organization, {canTrial: false, trialPlan: 'am1_t'});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -1370,7 +1373,7 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      setUpMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
+      setUpMocks(cannotTrialOrg, {canTrial: false, trialPlan: null});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -2096,7 +2099,7 @@ describe('Customer Details', () => {
     it('can end trial early', async () => {
       const trialOrg = OrganizationFixture();
 
-      setUpMocks(trialOrg, {isTrial: true});
+      setUpMocks(trialOrg, {trialPlan: 'am1_t'});
 
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${trialOrg.slug}/`,

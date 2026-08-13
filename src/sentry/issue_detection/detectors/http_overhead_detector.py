@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import urllib.parse
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
@@ -10,14 +10,17 @@ from sentry.issue_detection.detectors.utils import (
     does_overlap_previous_span,
     get_notification_attachment_body,
     get_span_evidence_value,
-    get_url_from_span,
-    is_filtered_url,
+    log_invalid_span_data,
+    safer_urlparse,
+    span_has_obfuscated_hostname,
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+logger = logging.getLogger("issue_detectors")
 
 
 @dataclass
@@ -71,12 +74,38 @@ class HTTPOverheadDetector(PerformanceDetector):
         if not url or not span_start or not request_start:
             return
 
+        if isinstance(request_start, str):
+            try:
+                # Calling `float` on NaN won't actually raise an error, so we have to fake it, since
+                # even if it's technically a valid float, it's not valid for our purposes
+                if request_start == "NaN":
+                    # We log a custom error below, so all we need is something to get us into the
+                    # `except` block
+                    raise ValueError()
+
+                request_start = float(request_start)
+            except (ValueError, OverflowError) as err:
+                # Smooth over the difference between real errors and the faked NaN case above by
+                # setting a custom error message for both
+                err.args = (
+                    f"could not convert string to `request_start` value: '{request_start}'",
+                )
+                # Track instances of this happening so we know if it's a widespread problem
+                log_invalid_span_data(
+                    span,
+                    detector="http_overhead",
+                    key="http.request.request_start",
+                    value=request_start,
+                    error=err,
+                )
+                return
+
         request_start *= 1000
 
         if url.startswith("/"):
             location = "/"
         else:
-            parsed_url = urllib.parse.urlparse(url)
+            parsed_url = safer_urlparse(url)
             location = parsed_url.netloc
 
         if not location:
@@ -118,9 +147,9 @@ class HTTPOverheadDetector(PerformanceDetector):
         if not span_op or not span_op == "http.client" or not protocol_version == "1.1":
             return False
 
-        # Check if any spans have filtered URLs
-        url = get_url_from_span(span)
-        if is_filtered_url(url):
+        # We match spans based on hostname, so make sure we have a value we can use (not one masked
+        # by data scurbbing or parameterization)
+        if span_has_obfuscated_hostname(span):
             return False
 
         return True

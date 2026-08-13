@@ -1,4 +1,3 @@
-import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -13,6 +12,18 @@ import type {
 } from 'sentry/views/explore/logs/types';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+export interface LogsQueryInfo {
+  dataset: 'logs';
+  field: string[];
+  project: number[];
+  query: string;
+  sort: string[];
+  end?: string;
+  environment?: string[];
+  start?: string;
+  statsPeriod?: string;
+}
 
 type LogsExportModalButtonProps = {
   estimatedRowCount: number;

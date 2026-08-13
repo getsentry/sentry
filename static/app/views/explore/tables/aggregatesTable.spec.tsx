@@ -210,6 +210,49 @@ describe('AggregatesTable', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['id', 'span-id'],
+    ['trace', 'trace-id'],
+  ])('does not link aggregate %s values', (field, value) => {
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: [field, 'count()']}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            data: [{[field]: value, 'count()': 1}],
+            meta: {
+              fields: {
+                [field]: FieldValueType.STRING,
+                'count()': FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              groupBy: field,
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText(value)).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: value})).not.toBeInTheDocument();
+  });
+
   it('uses validated field types when aggregate metadata is missing', async () => {
     const eventView = EventView.fromLocation(
       LocationFixture({

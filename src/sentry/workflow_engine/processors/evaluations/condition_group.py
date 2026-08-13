@@ -1,18 +1,22 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
 
-from sentry.workflow_engine.types import ConditionError
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition import DataConditionEvaluation
 
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+
+
+class GroupEvaluationData(TypedDict):
+    condition_evaluations: list[DataConditionEvaluation]
+    logic_type: DataConditionGroup.Type | str
+
 
 @dataclass(frozen=True, kw_only=True)
-class DataConditionGroupEvaluation(
-    BaseWorkflowEngineEvaluation[
-        list[DataConditionEvaluation],
-        ConditionError,
-    ]
-):
+class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvaluationData]):
     """
     This class is used to track the evaluation of a DataConditionGroup.
 
@@ -21,9 +25,19 @@ class DataConditionGroupEvaluation(
     anywhere we evaluate a condition group.
 
     Inherited properties
-    - result: list[DataConditionEvaluation]
+    - result: bool - evaluation of the logic_type and conditions
+    - data: GroupEvaluationData - The list of condition evaluations and the logic used to evaluate it
     - error: ConditionError
-    - outcome: TriggerResult
+    - triggered: bool - whether the group's conditions passed
     """
 
-    result: list[DataConditionEvaluation] = field(default_factory=list)
+    @property
+    def artifact_fields(self) -> dict[str, Any]:
+        logic_type = self.data["logic_type"]
+        return {
+            "logic_type": getattr(logic_type, "value", logic_type),
+            "result": self.result,
+            "condition_evaluations": [
+                evaluation.to_artifact() for evaluation in self.data["condition_evaluations"]
+            ],
+        }

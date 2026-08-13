@@ -165,8 +165,8 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = f"/organizations/{self.org.slug}/discover/queries/"
-        self.result_path = f"/organizations/{self.org.slug}/discover/results/"
+        self.landing_path = f"/organizations/{self.org.slug}/explore/errors/queries/"
+        self.result_path = f"/organizations/{self.org.slug}/explore/errors/results/"
 
     def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

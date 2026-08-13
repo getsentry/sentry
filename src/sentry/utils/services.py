@@ -10,6 +10,7 @@ from typing import Any
 
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
+from sentry.utils import metrics
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 # TODO: adjust modules to import from new location -- the weird `as` syntax is for mypy
@@ -198,6 +199,12 @@ class Delegator:
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
+            metrics.gauge(
+                "servicedelegator.selected_backends",
+                len(selected_backend_names),
+                tags={"method": attribute_name},
+            )
+
             def call_backend_method(context: Context, backend: Service, is_primary: bool) -> Any:
                 # Update the thread local state in the executor to the provided
                 # context object. This allows the context to be propagated
@@ -210,6 +217,12 @@ class Delegator:
                 # active (or worse, some other backend is already active.)
                 base = self.base
                 assert base not in context.backends
+
+                metrics.incr(
+                    "servicedelegator.call_backend_method",
+                    1,
+                    tags={"method": attribute_name, "primary": is_primary},
+                )
 
                 # Mark the backend as active.
                 context.backends[base] = backend

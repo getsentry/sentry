@@ -1,10 +1,10 @@
-import {noCoreImport} from './no-core-import';
-import {noDoubleDollarInterpolation} from './no-double-dollar-interpolation';
-import {noTokenImport} from './no-token-import';
-import {preferInfoText} from './prefer-info-text';
-import {preferStackForColumnFlex} from './prefer-stack-for-column-flex';
-import {restrictJsxSlotChildren} from './restrict-jsx-slot-children';
-import {useSemanticToken} from './use-semantic-token';
+import {noCoreImport} from './noCoreImport';
+import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation';
+import {noTokenImport} from './noTokenImport';
+import {preferInfoText} from './preferInfoText';
+import {preferStackForColumnFlex} from './preferStackForColumnFlex';
+import {restrictJsxSlotChildren} from './restrictJsxSlotChildren';
+import {useSemanticToken} from './useSemanticToken';
 
 export const rules = {
   'no-core-import': noCoreImport,

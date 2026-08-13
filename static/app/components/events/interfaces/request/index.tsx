@@ -7,6 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
@@ -24,6 +25,7 @@ import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -148,17 +150,52 @@ export function Request({data, event}: RequestProps) {
 
   let actions: React.ReactNode = null;
 
-  if (!isPartial && fullUrl) {
+  const canGenerateCurlCommand = !isPartial && fullUrl;
+
+  const shouldRenderCopyAsDropdown = fullUrl || parsedUrl?.pathname;
+
+  const shouldRenderActions = canGenerateCurlCommand || shouldRenderCopyAsDropdown;
+
+  if (shouldRenderActions) {
     actions = (
-      <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>
-        <SegmentedControl.Item key="formatted">
-          {/* Translators: this means "formatted" rendering (fancy tables) */}
-          {t('Formatted')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="curl" textValue="curl">
-          <Text monospace>curl</Text>
-        </SegmentedControl.Item>
-      </SegmentedControl>
+      <Flex gap="sm" align="center">
+        {canGenerateCurlCommand && (
+          <SegmentedControl
+            aria-label={t('View')}
+            size="xs"
+            value={view}
+            onChange={setView}
+          >
+            <SegmentedControl.Item key="formatted">
+              {/* Translators: this means "formatted" rendering (fancy tables) */}
+              {t('Formatted')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="curl" textValue="curl">
+              <Text monospace>curl</Text>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+
+        {shouldRenderCopyAsDropdown && (
+          <CopyAsDropdown
+            size="xs"
+            items={[
+              {
+                key: 'fullUrl',
+                label: t('Full URL'),
+                onAction: () => copyToClipboard(fullUrl ?? ''),
+                disabled: !fullUrl,
+              },
+              {
+                key: 'path',
+                label: t('Path'),
+                onAction: () => copyToClipboard(parsedUrl?.pathname ?? ''),
+                disabled: !parsedUrl?.pathname,
+              },
+            ]}
+          />
+        )}
+      </Flex>
     );
   }
 

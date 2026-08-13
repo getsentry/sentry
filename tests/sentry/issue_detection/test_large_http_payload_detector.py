@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -250,7 +251,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert self.find_problems(event) == []
 
-    def test_handles_string_payload_size_threshold(self) -> None:
+    def test_handles_valid_string_payload_size(self) -> None:
         spans = [
             create_span(
                 "http.client",
@@ -284,6 +285,31 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    @patch("sentry.issue_detection.detectors.utils.logger.warning")
+    def test_handles_invalid_string_payload_size(self, mock_logger_warning: MagicMock) -> None:
+        span = create_span("http.client", 1000, "GET /api/0/organizations/endpoint1", "hash2")
+        span["project_id"] = self.project.id
+        span["organization_id"] = self.project.organization.id
+        event = create_event([span])
+
+        for invalid_value in ["NaN", "[Filtered]", "dogs are great"]:
+            event["spans"][0]["data"] = {"http.response_content_length": invalid_value}
+
+            assert self.find_problems(event) == []  # No problem found, but also no crash
+            mock_logger_warning.assert_called_with(
+                "issue_detectors.invalid_data",
+                extra={
+                    "detector": "large_http_payload",
+                    "span_id": span["span_id"],
+                    "trace_id": span["trace_id"],
+                    "project_id": span["project_id"],
+                    "org_id": span["organization_id"],
+                    "key": "http.response_content_length",
+                    "value": invalid_value,
+                    "error": f"ValueError(\"invalid literal for int() with base 10: '{invalid_value}'\")",
+                },
+            )
 
     def test_does_not_trigger_detection_for_prefetch_spans(self) -> None:
         spans = [

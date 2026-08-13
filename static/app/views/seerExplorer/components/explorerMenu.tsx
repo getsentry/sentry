@@ -8,9 +8,9 @@ type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
+  onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
-  onLangfuse?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
@@ -284,11 +284,11 @@ export function useExplorerMenu({
 }
 
 function useSlashCommands({
+  onBashMode,
   onMaxSize,
   onMedSize,
   onNew,
   onFeedback,
-  onLangfuse,
   onConversations,
   onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
@@ -354,13 +354,19 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onLangfuse
+      ...(isSentryEmployee && onBashMode
         ? [
             {
-              title: '/langfuse',
-              key: '/langfuse',
-              description: 'Open Langfuse to view session details',
-              handler: onLangfuse,
+              title: '/bash-mode-off',
+              key: '/bash-mode-off',
+              description: 'Disable bash mode tools',
+              handler: () => onBashMode(false),
+            },
+            {
+              title: '/bash-mode-on',
+              key: '/bash-mode-on',
+              description: 'Enable bash mode tools',
+              handler: () => onBashMode(true),
             },
           ]
         : []),
@@ -380,8 +386,8 @@ function useSlashCommands({
       onMaxSize,
       onMedSize,
       onFeedback,
+      onBashMode,
       onCodeMode,
-      onLangfuse,
       onConversations,
       isSentryEmployee,
     ]

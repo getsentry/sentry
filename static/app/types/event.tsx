@@ -266,7 +266,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };
@@ -650,6 +650,7 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
+  gpu_crash?: Record<string, any>;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
@@ -764,6 +765,7 @@ interface EventBase {
   dateCreated?: string;
   device?: Record<string, any>;
   endTimestamp?: number;
+  formatted?: {content: string; format: string};
   groupID?: string;
   groupingConfig?: {
     enhancements: string;

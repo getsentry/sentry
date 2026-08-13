@@ -71,14 +71,12 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.getByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.getByRole('button', {name: 'I like this response'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Feedback Thumbs Down'})
+        screen.getByRole('button', {name: "I don't like this response"})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Copy block content'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy to clipboard'})).toBeInTheDocument();
     });
 
     it('disables both thumbs after thumbs up is clicked', async () => {
@@ -88,8 +86,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(upButton);
 
@@ -104,8 +102,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(downButton);
 
@@ -120,8 +118,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(upButton);
 
@@ -142,7 +140,7 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.queryByRole('button', {name: 'I like this response'})
       ).not.toBeInTheDocument();
     });
 
@@ -154,10 +152,10 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.queryByRole('button', {name: 'I like this response'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Copy block content'})
+        screen.queryByRole('button', {name: 'Copy to clipboard'})
       ).not.toBeInTheDocument();
     });
   });

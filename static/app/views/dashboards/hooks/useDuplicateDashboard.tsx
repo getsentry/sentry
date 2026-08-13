@@ -26,7 +26,10 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   const organization = useOrganization();
 
   const duplicateDashboard = useCallback(
-    async (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
+    async (
+      dashboard: Pick<DashboardListItem, 'id' | 'prebuiltId'>,
+      viewType: 'details' | 'table'
+    ) => {
       try {
         let dashboardDetail: DashboardDetails;
         if (dashboard.prebuiltId) {

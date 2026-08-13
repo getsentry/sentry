@@ -7,14 +7,28 @@ import {
   useMemo,
   useRef,
 } from 'react';
+import {useMatches} from 'react-router-dom';
+
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useParams} from 'sentry/utils/useParams';
 
 import type {
   LLMContextInternalValue,
+  LLMContextLocation,
   LLMContextNode,
   LLMContextNodeSnapshot,
   LLMContextSnapshot,
   LLMContextState,
 } from './llmContextTypes';
+
+/**
+ * The half of the location that needs router hooks to know. The URL and query
+ * string are read from `window.location` at snapshot time instead.
+ */
+interface RouteIdentity {
+  name: string;
+  params: Record<string, string>;
+}
 
 // Internal context — holds the registry operations (registerNode, etc.)
 
@@ -89,15 +103,69 @@ function buildTree(
   return children;
 }
 
+/**
+ * Reports the current route into the provider's location ref.
+ *
+ * A separate component on purpose: `useLocation`/`useParams`/`useMatches` all
+ * re-render their caller on every navigation, and the provider wraps the entire
+ * app — it currently never re-renders after mount and should stay that way. This
+ * renders null, so its own re-renders cost nothing.
+ *
+ * Only the route *pattern* and params need router hooks. The URL and query string
+ * are read straight off `window.location` at snapshot time, which is why they are
+ * absent here.
+ */
+function LocationWatcher({
+  onChange,
+}: {
+  onChange: (location: RouteIdentity) => void;
+}): null {
+  const params = useParams();
+  const matches = useMatches();
+  const name = getRouteStringFromRoutes({matches});
+
+  useEffect(() => {
+    onChange({name, params});
+  }, [name, params, onChange]);
+
+  return null;
+}
+
+/**
+ * Assembles the location at snapshot time. The URL and query string come from
+ * `window.location` rather than a subscription, so they cannot go stale; the
+ * route pattern and params come from the watcher's last report.
+ */
+function readLocation(route: RouteIdentity | null): LLMContextLocation | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const query: Record<string, string | string[]> = {};
+  for (const key of new Set(new URLSearchParams(window.location.search).keys())) {
+    const all = new URLSearchParams(window.location.search).getAll(key);
+    query[key] = all.length > 1 ? all : (all[0] ?? '');
+  }
+
+  return {
+    url: window.location.href,
+    name: route?.name ?? '',
+    params: route?.params ?? {},
+    query,
+  };
+}
+
 function serializeState(
   state: LLMContextState,
   nodeData: Map<string, unknown>,
+  route: RouteIdentity | null,
   fromNodeId?: string
 ): LLMContextSnapshot {
+  const location = readLocation(route);
   if (fromNodeId) {
     const node = state.nodes.get(fromNodeId);
     if (!node) {
-      return {version: state.version, nodes: []};
+      return {version: state.version, nodes: [], location};
     }
     const raw = nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {};
     let priority = 0;
@@ -119,11 +187,13 @@ function serializeState(
           children: buildTree(state.nodes, nodeData, fromNodeId),
         },
       ],
+      location,
     };
   }
   return {
     version: state.version,
     nodes: buildTree(state.nodes, nodeData, undefined),
+    location,
   };
 }
 
@@ -143,9 +213,20 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   // the latest data imperatively via getSnapshot().
   const stateRef = useRef(INITIAL_STATE);
   const nodeDataRef = useRef(new Map<string, unknown>());
+  const routeRef = useRef<RouteIdentity | null>(null);
+
+  // Stable so LocationWatcher's effect doesn't refire on every provider render.
+  const handleRouteChange = useCallback((route: RouteIdentity) => {
+    routeRef.current = route;
+  }, []);
 
   const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
-    return serializeState(stateRef.current, nodeDataRef.current, fromNodeId);
+    return serializeState(
+      stateRef.current,
+      nodeDataRef.current,
+      routeRef.current,
+      fromNodeId
+    );
   }, []);
 
   const registerNode = useCallback(
@@ -184,7 +265,12 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     [getSnapshot, registerNode, unregisterNode, updateNodeData]
   );
 
-  return <LLMInternalContext value={value}>{children}</LLMInternalContext>;
+  return (
+    <LLMInternalContext value={value}>
+      <LocationWatcher onChange={handleRouteChange} />
+      {children}
+    </LLMInternalContext>
+  );
 }
 
 /**
