@@ -13,7 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   DiffTableChangeAmountCell,
-  diffTableHeaderStyles,
+  DiffTableHeaderRow,
   DiffTableWithColumns,
   getDiffChangeElements,
   ITEMS_PER_PAGE,
@@ -171,7 +171,7 @@ export function GroupInsightItemDiffTable({
       <DiffTableWithColumns
         gridTemplateColumns="150px minmax(200px, 3fr) 180px"
         header={
-          <SimpleTable.HeaderRow css={diffTableHeaderStyles}>
+          <DiffTableHeaderRow>
             {tableHeaders.map(header => (
               <SimpleTable.HeaderCell
                 key={header.key}
@@ -192,7 +192,7 @@ export function GroupInsightItemDiffTable({
                 {header.label}
               </SimpleTable.HeaderCell>
             ))}
-          </SimpleTable.HeaderRow>
+          </DiffTableHeaderRow>
         }
       >
         {sortedDiffItems.length === 0 && (
