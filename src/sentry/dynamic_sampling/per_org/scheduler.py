@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
@@ -54,6 +55,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.dynamic_sampling.utils import org_ids_with_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -271,6 +273,18 @@ def schedule_per_org_calculations() -> None:
         dispatched += 1
         return True
 
+    def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
+        # Checked once per cycle instead of on every dispatch, because a per-org feature
+        # check on every tick is too expensive. An org that gains or loses the feature
+        # mid-cycle keeps its previous state until the next snapshot.
+        kept = org_ids_with_dynamic_sampling(organizations)
+        emit_status(
+            SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+            DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
+            amount=len(organizations) - len(kept),
+        )
+        return kept
+
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
@@ -288,6 +302,7 @@ def schedule_per_org_calculations() -> None:
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        prevalidate_batch=keep_orgs_with_dynamic_sampling,
         preserve_queryset_order=True,
     )
     scheduler.tick()

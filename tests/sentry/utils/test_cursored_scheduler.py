@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import cache
@@ -18,6 +18,8 @@ from sentry.utils.cursored_scheduler import (
     _get_tick_interval,
 )
 from sentry.utils.redis import redis_clusters
+
+CURSORED_SCHEDULER = "sentry.utils.cursored_scheduler"
 
 TEST_SCHEDULES = {
     "test-scheduler-beat": {
@@ -400,6 +402,34 @@ class CursoredSchedulerTest(TestCase):
         assert dispatched_pks
         for pk in dispatched_pks:
             assert pk in even_pks
+
+    def test_prevalidate_batch_is_called_in_chunks(self):
+        """The rows are prevalidated a chunk at a time, so a huge queryset stays bounded."""
+        ois = self._create_org_integrations(5)
+        chunk_sizes = []
+
+        def record(rows):
+            chunk_sizes.append(len(rows))
+            return [oi.pk for oi in rows]
+
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=OrganizationIntegration.objects.filter(
+                integration__provider="github",
+                status=ObjectStatus.ACTIVE,
+            ),
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=record,
+        )
+
+        with patch(f"{CURSORED_SCHEDULER}.PREVALIDATE_CHUNK_SIZE", 2):
+            scheduler.tick()
+
+        assert chunk_sizes == [2, 2, 1]
+        snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
+        assert snapshot == sorted(oi.pk for oi in ois)
 
     def test_validate_item_only_sees_prevalidated_items(self):
         """
