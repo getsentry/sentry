@@ -1,5 +1,5 @@
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import FactorReadSource, adjusted_factor_ttl_ms
+from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
 from sentry.utils import metrics
 
 
@@ -37,7 +37,7 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def get_adjusted_factor(org_id: int, source: FactorReadSource) -> float:
+def get_adjusted_factor(org_id: int, source: str) -> float:
     factor = _read_cached_factor(generate_recalibrate_orgs_cache_key(org_id))
     metrics.incr(
         "dynamic_sampling.tasks.recalibrate_orgs.get_adjusted_factor",
@@ -79,7 +79,7 @@ def set_guarded_adjusted_project_factor(project_id: int, adjusted_factor: float)
         delete_adjusted_project_factor(project_id)
 
 
-def get_adjusted_project_factor(project_id: int, source: FactorReadSource) -> float:
+def get_adjusted_project_factor(project_id: int, source: str) -> float:
     factor = _read_cached_factor(generate_recalibrate_projects_cache_key(project_id))
     metrics.incr(
         "dynamic_sampling.tasks.recalibrate_projects.get_adjusted_project_factor",

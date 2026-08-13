@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import FactorReadSource, adjusted_factor_ttl_ms
+from sentry.dynamic_sampling.tasks.constants import adjusted_factor_ttl_ms
 from sentry.utils import metrics
 
 PER_ORG_RECALIBRATION_FACTOR_CACHE_KEY = "ds::per_org:o:{org_id}:recalibration_factor"
@@ -25,7 +25,7 @@ def set_guarded_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def get_adjusted_factor(org_id: int, source: FactorReadSource) -> float:
+def get_adjusted_factor(org_id: int, source: str) -> float:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 

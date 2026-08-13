@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Literal
 
 from sentry import options
 
@@ -7,11 +6,6 @@ from sentry import options
 DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
 
 ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-minutes"
-
-# Where a read of the adjusted factor comes from. Serving reads happen per project config
-# build and decide whether the recalibration rule is emitted at all; task reads happen once
-# per recalibration pass and decide which factor the next one builds on.
-FactorReadSource = Literal["serving", "task"]
 
 
 def adjusted_factor_ttl_ms() -> int:
