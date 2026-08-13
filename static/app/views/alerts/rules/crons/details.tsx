@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {TimezoneProvider, useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -14,7 +15,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';

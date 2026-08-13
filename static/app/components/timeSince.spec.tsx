@@ -1,7 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 
 describe('TimeSince', () => {
   const now = new Date();

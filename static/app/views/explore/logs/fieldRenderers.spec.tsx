@@ -8,8 +8,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';

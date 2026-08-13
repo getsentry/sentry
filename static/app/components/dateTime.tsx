@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
-import {useTimezone} from 'sentry/components/timezoneProvider';
+import {useTimezone} from '@sentry/scraps/timezoneContext';
+
 import {getFormat} from 'sentry/utils/dates';
 import {useUser} from 'sentry/utils/useUser';
 

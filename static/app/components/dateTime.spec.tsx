@@ -2,10 +2,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {DateTime} from './dateTime';
-import {TimezoneProvider} from './timezoneProvider';
 
 describe('DateTime', () => {
   function renderPDT(child: React.ReactElement) {

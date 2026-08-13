@@ -3,12 +3,11 @@ import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
 import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
+import {useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useUser} from 'sentry/utils/useUser';
-
-import {useTimezone} from './timezoneProvider';
 
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;

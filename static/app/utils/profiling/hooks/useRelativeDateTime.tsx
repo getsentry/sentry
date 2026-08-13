@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {useTimezone} from 'sentry/components/timezoneProvider';
+import {useTimezone} from '@sentry/scraps/timezoneContext';
+
 import type {PageFilters} from 'sentry/types/core';
 
 const DAY = 24 * 60 * 60 * 1000;

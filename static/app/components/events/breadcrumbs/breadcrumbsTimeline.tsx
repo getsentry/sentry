@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useTimezone} from '@sentry/scraps/timezoneContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -13,7 +14,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {Timeline} from 'sentry/components/timeline';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defined} from 'sentry/utils/defined';

@@ -8,6 +8,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {TimezoneProvider, useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -16,7 +17,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';

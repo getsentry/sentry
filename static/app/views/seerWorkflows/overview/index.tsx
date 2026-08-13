@@ -3,13 +3,13 @@ import {Fragment} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
+import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
