@@ -66,6 +66,7 @@ describe('IntegrationCrumb', () => {
   });
 
   it('returns to overview when switching from a configured item', async () => {
+    const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {
       path: ':providerKey/:integrationId/',
       name: 'Configure Integration',
@@ -76,15 +77,18 @@ describe('IntegrationCrumb', () => {
         icon: 'https://example.com/custom-integration.png',
       }),
     });
-    const {router} = render(<IntegrationCrumb route={route} routes={[route]} isLast />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
-        location: {
-          pathname: `/settings/${organization.slug}/integrations/github/1/`,
+    const {router} = render(
+      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+          location: {
+            pathname: `/settings/${organization.slug}/integrations/github/1/`,
+          },
         },
-      },
-    });
+      }
+    );
 
     const integrationLink = await screen.findByRole('link', {name: /GitHub/});
     expect(integrationLink).toHaveAttribute(
@@ -104,7 +108,7 @@ describe('IntegrationCrumb', () => {
     );
     expect(
       within(screen.getByRole('button', {name: 'GitHub'})).getAllByRole('img')
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
@@ -153,5 +157,8 @@ describe('IntegrationCrumb', () => {
       'src',
       'https://example.com/shortcut.png?s=120'
     );
+    expect(
+      within(screen.getByRole('button', {name: /Shortcut/})).getAllByRole('img')
+    ).toHaveLength(1);
   });
 });
