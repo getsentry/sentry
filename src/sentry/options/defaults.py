@@ -2334,6 +2334,18 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in minutes of the recalibration factor stored in Redis. The recalibration tasks run every
+# 10 minutes, so at the default of 10 the factor expires at about the same time as the next pass
+# rewrites it, and serving loses the correction whenever a pass is late or fails. Raise this to
+# give the factor more headroom, at the cost of applying a staler factor when a task stops
+# refreshing it.
+register(
+    "dynamic-sampling.recalibration.factor-ttl-minutes",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.

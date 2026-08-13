@@ -1,9 +1,28 @@
 from datetime import timedelta
+from typing import Literal
+
+from sentry import options
 
 # TTL in milliseconds for values persisted by the dynamic sampling tasks.
 DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # 24 hours
-# TTL in milliseconds for the adjusted factor value persisted by the recalibrate org task.
-ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL = 10 * 60 * 1000  # 10 minutes
+
+ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-minutes"
+
+# Where a read of the adjusted factor comes from. Serving reads happen per project config
+# build and decide whether the recalibration rule is emitted at all; task reads happen once
+# per recalibration pass and decide which factor the next one builds on.
+FactorReadSource = Literal["serving", "task"]
+
+
+def adjusted_factor_ttl_ms() -> int:
+    """TTL in milliseconds for the adjusted factor persisted by the recalibration tasks.
+
+    The TTL bounds how far the effective sample rate can drift on a factor that no task
+    refreshes anymore. It has to outlive the interval between two recalibration passes,
+    otherwise the factor expires before it is rewritten and the correction is lost.
+    """
+    return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
+
 
 # Parameters to bound the queries run in Snuba.
 MAX_ORGS_PER_QUERY = 80
