@@ -102,8 +102,22 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
 # The clickhouse functions `fn_span_count` is allowed to wrap its span count in.
-# This is an allowlist because the value lands in a function name position.
-FN_SPAN_COUNT_FUNCTIONS = ["identity", "sum", "avg", "min", "max"]
+# This is an allowlist because the value lands in a function name position. The
+# percentiles are matched as written, and mirror the levels used by the
+# `percentile`/`p50`..`p99` functions below.
+FN_SPAN_COUNT_FUNCTIONS = [
+    "identity",
+    "sum",
+    "avg",
+    "min",
+    "max",
+    "median",
+    "quantile(0.5)",
+    "quantile(0.75)",
+    "quantile(0.90)",
+    "quantile(0.95)",
+    "quantile(0.99)",
+]
 
 
 class DiscoverDatasetConfig(DatasetConfig):

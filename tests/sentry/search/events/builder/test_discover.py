@@ -754,6 +754,50 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
 
+    def test_fn_span_count_allowed_percentile(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=['fn_span_count("db", quantile(0.95))'],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "quantile(0.95)",
+                    [
+                        Function(
+                            "length",
+                            [
+                                Function(
+                                    "arrayFilter",
+                                    [
+                                        Lambda(
+                                            ["x"],
+                                            Function("equals", [Identifier("x"), "db"]),
+                                        ),
+                                        Column("spans.op"),
+                                    ],
+                                )
+                            ],
+                            "span_count",
+                        )
+                    ],
+                    "fn_span_count__db__quantile_0_95",
+                )
+            ],
+        )
+
+    def test_fn_span_count_disallowed_percentile(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="fn argument invalid"):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=['fn_span_count("db", quantile(0.42))'],
+            )
+
     def test_fn_span_count_disallowed_function(self) -> None:
         with pytest.raises(InvalidSearchQuery, match="fn argument invalid"):
             DiscoverQueryBuilder(
