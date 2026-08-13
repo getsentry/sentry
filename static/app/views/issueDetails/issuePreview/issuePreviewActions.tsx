@@ -403,24 +403,8 @@ function ActionButtons({
           onContinueInSeer={onContinueInSeer}
         />
       );
-    case 'pr_iteration':
-      return (
-        <Button
-          {...getAutofixActionProps({
-            analyticsAction: 'view_autofix',
-            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
-            analyticsParams: {destination: 'seer', next_step: 'pr_iteration'},
-            group,
-          })}
-          busy={autofix.isPolling}
-          disabled={disabled || autofix.isPolling}
-          icon={<IconSeer />}
-          onClick={onContinueInSeer}
-        >
-          {t('Continue in Seer')}
-        </Button>
-      );
+    // We are not yet supporting PR iteration
+    // Open PRs will display a link to the PR, closed PRs will display "Restart Autofix"
     default:
       return (
         <StartAutofixAction
