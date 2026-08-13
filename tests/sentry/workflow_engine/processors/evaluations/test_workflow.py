@@ -4,11 +4,15 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
+from sentry.workflow_engine.processors.evaluation_logging import (
+    emit_delayed_workflow_evaluation_logs,
+    emit_workflow_evaluation_logs,
+)
 from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
     DeferredWorkflowEvaluationResult,
+    DelayedWorkflowEvaluation,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationOutcome,
@@ -155,6 +159,88 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
         assert evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
+    def test_delayed_evaluation_artifact_matches_workflow_fields(self) -> None:
+        condition = self.create_data_condition()
+        trigger_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+        filter_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [
+                    DataConditionEvaluation(
+                        condition=condition,
+                        result=True,
+                        triggered=True,
+                        data=[101],
+                    )
+                ],
+                "logic_type": DataConditionGroup.Type.ALL,
+            },
+        )
+        evaluation = DelayedWorkflowEvaluation(
+            workflow_id=10,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+            trigger_group_id=20,
+            trigger_group_evaluation=trigger_evaluation,
+            filter_group_evaluations={30: filter_evaluation},
+            passing_filter_group_ids=frozenset({40}),
+            missing_condition_group_ids=frozenset(),
+            triggered_action_ids=(50,),
+        )
+
+        assert evaluation.to_artifact() == {
+            "workflow_id": 10,
+            "project_id": self.project.id,
+            "group_id": self.group.id,
+            "event_id": self.event.event_id,
+            "outcome": WorkflowEvaluationOutcome.ACTIONS_TRIGGERED,
+            "result_type": "actions",
+            "triggered": True,
+            "error": None,
+            "triggered_action_ids": [50],
+            "deferred": None,
+            "trigger_group_evaluation": {
+                "condition_group_id": 20,
+                "logic_type": DataConditionGroup.Type.ANY,
+                "result": True,
+                "condition_evaluations": [],
+                "triggered": True,
+                "error": None,
+            },
+            "filter_group_evaluations": [
+                {
+                    "condition_group_id": 30,
+                    "logic_type": DataConditionGroup.Type.ALL,
+                    "result": True,
+                    "condition_evaluations": [
+                        {
+                            "condition_id": condition.id,
+                            "condition_type": condition.type,
+                            "input_type": "list",
+                            "input": None,
+                            "result": True,
+                            "triggered": True,
+                            "error": None,
+                        }
+                    ],
+                    "triggered": True,
+                    "error": None,
+                }
+            ],
+            "passing_filter_group_ids": [40],
+            "missing_condition_group_ids": [],
+            "evaluation_source": "delayed",
+        }
+
     def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
         evaluation = DataConditionEvaluation(
@@ -187,6 +273,42 @@ class TestWorkflowEvaluationArtifact(TestCase):
         )
 
         assert evaluation.to_artifact()["input"] == "production"
+
+    def test_delayed_emitter_uses_searchable_workflow_id(self) -> None:
+        evaluation = DelayedWorkflowEvaluation(
+            workflow_id=10,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            event_id=self.event.event_id,
+            trigger_group_id=None,
+            trigger_group_evaluation=DataConditionGroupEvaluation(
+                result=True,
+                triggered=True,
+                data={
+                    "condition_evaluations": [],
+                    "logic_type": DataConditionGroup.Type.ANY,
+                },
+            ),
+            filter_group_evaluations={},
+            passing_filter_group_ids=frozenset(),
+            missing_condition_group_ids=frozenset(),
+        )
+        mock_logger = mock.MagicMock()
+
+        with (
+            Feature({"organizations:workflow-engine-log-evaluations": True}),
+            override_options({"workflow_engine.evaluation_logs_direct_to_sentry": False}),
+        ):
+            assert emit_delayed_workflow_evaluation_logs(
+                mock_logger,
+                organization=self.organization,
+                evaluations=[evaluation],
+            )
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_delayed_workflows.evaluation",
+            extra={**evaluation.to_artifact(), "organization_id": self.organization.id},
+        )
 
     def test_emitter_always_logs_with_feature_enabled(self) -> None:
         evaluation = self._build_evaluation()

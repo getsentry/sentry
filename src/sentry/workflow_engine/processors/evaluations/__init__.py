@@ -2,6 +2,7 @@ __all__ = [
     "DataConditionEvaluation",
     "DataConditionEvaluationException",
     "DataConditionGroupEvaluation",
+    "DelayedWorkflowEvaluation",
     "DetectorEvaluation",
     "DetectorEvaluationData",
     "DetectorEvaluationOutcome",
@@ -23,6 +24,7 @@ from .detector import (
 )
 from .workflow import (
     DeferredWorkflowEvaluationResult,
+    DelayedWorkflowEvaluation,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationData,
