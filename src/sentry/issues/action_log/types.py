@@ -769,7 +769,7 @@ class SeerPRCreatedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
     # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+    pull_requests: Optional[list[dict[str, None | str | dict[str, None | str | int]]]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

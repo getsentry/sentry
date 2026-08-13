@@ -10,6 +10,7 @@ from sentry.issues.action_log.types import (
     ActionSource,
     GroupActionActor,
     SeerIterationStartedAction,
+    SeerPRCreatedAction,
     TriggerAutofixAction,
 )
 from sentry.models.activity import Activity
@@ -729,18 +730,22 @@ class SeerOperatorTest(TestCase):
                     },
                     "repo_name": "owner/repo",
                     "provider": "github",
+                    "status": "completed",
+                    "error": None,
                 }
             ],
         }
 
-        process_autofix_updates(
-            event_type=SentryAppEventType.SEER_PR_CREATED,
-            event_payload=event_payload,
-            organization_id=self.organization.id,
-        )
+        with capture_action_log() as action_log:
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_CREATED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
+        action_log.assert_logged(SeerPRCreatedAction, group_id=self.group.id)
         assert (
             activity.data["pull_requests"][0]["pull_request"]["pr_url"]
             == "https://github.com/owner/repo/pull/42"
