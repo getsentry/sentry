@@ -4,7 +4,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -98,11 +97,7 @@ export function OrganizationApiKeysList({
           </SimpleTable.HeaderRow>
         }
       >
-        {loading && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {loading && <SimpleTable.Loading />}
         {!loading && !hasKeys && (
           <SimpleTable.Empty>{t('No API keys for this organization')}</SimpleTable.Empty>
         )}

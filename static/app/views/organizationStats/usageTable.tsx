@@ -10,7 +10,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IdBadge} from 'sentry/components/idBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -182,11 +181,7 @@ class UsageTable extends Component<Props> {
           </SimpleTable.HeaderRow>
         }
       >
-        {isLoading && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {isLoading && <SimpleTable.Loading />}
         {!isLoading && isEmpty && (
           <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
         )}

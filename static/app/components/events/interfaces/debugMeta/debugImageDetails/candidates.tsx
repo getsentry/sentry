@@ -9,7 +9,6 @@ import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -352,11 +351,7 @@ export class Candidates extends Component<Props, State> {
             </SimpleTable.HeaderRow>
           }
         >
-          {isLoading && (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          )}
+          {isLoading && <SimpleTable.Loading />}
           {!isLoading && !filteredCandidatesByFilter.length && (
             <SimpleTable.Empty>{this.getEmptyMessage().emptyMessage}</SimpleTable.Empty>
           )}

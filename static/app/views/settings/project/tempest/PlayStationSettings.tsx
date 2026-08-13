@@ -170,9 +170,7 @@ export function PlayStationSettings({organization, project}: Props) {
               }
             >
               {isLoading ? (
-                <SimpleTable.Empty>
-                  <LoadingIndicator />
-                </SimpleTable.Empty>
+                <SimpleTable.Loading />
               ) : (
                 tempestCredentials?.map(credential => (
                   <CredentialRow

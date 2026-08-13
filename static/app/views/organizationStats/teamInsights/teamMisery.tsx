@@ -11,7 +11,6 @@ import {Link} from '@sentry/scraps/link';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -104,11 +103,7 @@ function TeamMisery({
               </SimpleTable.HeaderRow>
             }
           >
-            {isLoading && (
-              <SimpleTable.Empty>
-                <LoadingIndicator />
-              </SimpleTable.Empty>
-            )}
+            {isLoading && <SimpleTable.Loading />}
             {!isLoading &&
               (projects.length === 0 || periodTableData?.data?.length === 0) && (
                 <SimpleTable.Empty>

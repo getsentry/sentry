@@ -10,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -280,11 +279,7 @@ function SpikeProtectionProjects({subscription}: Props) {
           </SimpleTable.HeaderRow>
         }
       >
-        {(isLoading || isFetchingProjects) && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {(isLoading || isFetchingProjects) && <SimpleTable.Loading />}
         {!isLoading && !isFetchingProjects && !projects.length && (
           <SimpleTable.Empty>There are no items to display</SimpleTable.Empty>
         )}

@@ -6,7 +6,6 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -198,11 +197,7 @@ export function TeamIssuesBreakdown({
                 </SimpleTable.HeaderRow>
               }
             >
-              {isPending && (
-                <SimpleTable.Empty>
-                  <LoadingIndicator />
-                </SimpleTable.Empty>
-              )}
+              {isPending && <SimpleTable.Loading />}
               {!isPending &&
                 sortedProjectIds.map(({projectId}, idx) => {
                   const project = projects.find(p => p.id === projectId);

@@ -7,7 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -122,11 +121,7 @@ export default function ProjectProguard() {
             </SimpleTable.HeaderRow>
           }
         >
-          {isLoading && (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          )}
+          {isLoading && <SimpleTable.Loading />}
           {!isLoading && mappings?.length === 0 && (
             <SimpleTable.Empty>
               {query

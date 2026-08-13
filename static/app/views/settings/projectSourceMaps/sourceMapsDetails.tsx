@@ -12,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {FileSize} from 'sentry/components/fileSize';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -266,9 +265,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
         }
       >
         {(isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading) && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
+          <SimpleTable.Loading />
         )}
         {!(isDebugIdBundle ? debugIdBundlesArtifactsLoading : artifactsLoading) &&
           (isDebugIdBundle

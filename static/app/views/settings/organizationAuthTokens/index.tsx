@@ -10,7 +10,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
@@ -218,11 +217,7 @@ function OrganizationAuthTokensIndex() {
                 />
               </SimpleTable.Empty>
             )}
-            {!isError && isPending && (
-              <SimpleTable.Empty>
-                <LoadingIndicator />
-              </SimpleTable.Empty>
-            )}
+            {!isError && isPending && <SimpleTable.Loading />}
             {!isError && !isPending && !tokenList?.length && (
               <SimpleTable.Empty>
                 {t("You haven't created any authentication tokens yet.")}

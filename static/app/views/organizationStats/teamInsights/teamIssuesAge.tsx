@@ -8,7 +8,6 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -161,11 +160,7 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
           </SimpleTable.HeaderRow>
         }
       >
-        {isLoading && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {isLoading && <SimpleTable.Loading />}
         {!isLoading && (!oldestIssues || oldestIssues.length === 0) && (
           <SimpleTable.Empty>
             {t('No unresolved issues for this team’s projects')}

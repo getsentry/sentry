@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -34,11 +33,7 @@ export function GroupEventAttachmentsTable({
         </SimpleTable.HeaderRow>
       }
     >
-      {isLoading && (
-        <SimpleTable.Empty>
-          <LoadingIndicator />
-        </SimpleTable.Empty>
-      )}
+      {isLoading && <SimpleTable.Loading />}
       {!isLoading && attachments.length === 0 && (
         <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
       )}

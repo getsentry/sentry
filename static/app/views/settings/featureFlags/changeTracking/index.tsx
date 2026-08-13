@@ -12,7 +12,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -202,11 +201,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             />
           </SimpleTable.Empty>
         )}
-        {!isError && isPending && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {!isError && isPending && <SimpleTable.Loading />}
         {!isError && !isPending && !secretList?.data?.length && (
           <SimpleTable.Empty>
             {t("You haven't linked any providers yet.")}

@@ -13,6 +13,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   HeaderCellContent,
   type SortDirection,
@@ -255,11 +256,20 @@ const Empty = styled(Table.Status)`
   ${emptyCellStyle}
 `;
 
+function Loading(props: ComponentProps<typeof Empty>) {
+  return (
+    <Empty {...props}>
+      <LoadingIndicator />
+    </Empty>
+  );
+}
+
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
+SimpleTable.Loading = Loading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;

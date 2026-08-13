@@ -201,11 +201,7 @@ export default function ProjectDebugSymbols() {
               </SimpleTable.HeaderRow>
             }
           >
-            {isLoadingDebugFiles && (
-              <SimpleTable.Empty>
-                <LoadingIndicator />
-              </SimpleTable.Empty>
-            )}
+            {isLoadingDebugFiles && <SimpleTable.Loading />}
             {!isLoadingDebugFiles && debugFiles?.length === 0 && (
               <SimpleTable.Empty>
                 {query

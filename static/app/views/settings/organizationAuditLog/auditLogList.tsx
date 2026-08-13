@@ -12,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {DateTime} from 'sentry/components/dateTime';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {
   TimeRangeSelector,
@@ -370,11 +369,7 @@ export function AuditLogList({
           </SimpleTable.HeaderRow>
         }
       >
-        {isLoading && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {isLoading && <SimpleTable.Loading />}
         {!isLoading && !hasEntries && entries?.length === 0 && (
           <SimpleTable.Empty>{t('No audit entries available')}</SimpleTable.Empty>
         )}
