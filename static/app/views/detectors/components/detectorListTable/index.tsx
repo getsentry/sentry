@@ -469,6 +469,7 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
+  overflow: clip;
 
   [data-column-name='type'],
   [data-column-name='last-issue'],
@@ -521,7 +522,6 @@ const GridLineOverlayCell = styled(SimpleTable.RowCell)`
 
 const PositionedGridLineOverlay = styled(GridLineOverlay)`
   pointer-events: none;
-  z-index: 3;
 
   display: none;
 

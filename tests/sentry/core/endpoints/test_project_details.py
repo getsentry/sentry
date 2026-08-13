@@ -1468,7 +1468,6 @@ class CopyProjectSettingsTest(APITestCase):
         self.create_project_rule(project=self.other_project, name="rule1")
         self.create_project_rule(project=self.other_project, name="rule2")
         self.create_project_rule(project=self.other_project, name="rule3")
-        # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
     def assert_other_project_settings_not_changed(self):
@@ -1507,10 +1506,8 @@ class CopyProjectSettingsTest(APITestCase):
 
         assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
 
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for high priority issues"
+        # project creation creates a default workflow, not a rule
+        assert not Rule.objects.filter(project_id=project.id).exists()
 
     def test_simple(self) -> None:
         project = self.create_project()
