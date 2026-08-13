@@ -31,17 +31,21 @@ describe('IntegrationCrumb', () => {
   });
 
   it('switches integrations while preserving the selected detail tab', async () => {
+    const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
-    const {router} = render(<IntegrationCrumb route={route} routes={[route]} isLast />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/integrations/:integrationSlug/',
-        location: {
-          pathname: `/settings/${organization.slug}/integrations/github/`,
-          query: {tab: 'overview'},
+    const {router} = render(
+      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/integrations/:integrationSlug/',
+          location: {
+            pathname: `/settings/${organization.slug}/integrations/github/`,
+            query: {tab: 'overview'},
+          },
         },
-      },
-    });
+      }
+    );
 
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'GitHub'})).toHaveAttribute(
@@ -49,6 +53,9 @@ describe('IntegrationCrumb', () => {
         'listbox'
       )
     );
+    expect(
+      within(screen.getByRole('button', {name: 'GitHub'})).getByRole('img')
+    ).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
@@ -95,6 +102,9 @@ describe('IntegrationCrumb', () => {
         'listbox'
       )
     );
+    expect(
+      within(screen.getByRole('button', {name: 'GitHub'})).getAllByRole('img')
+    ).toHaveLength(1);
     await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 

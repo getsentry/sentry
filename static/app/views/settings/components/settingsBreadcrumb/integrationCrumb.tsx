@@ -33,6 +33,9 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
   const isSentryAppRoute = routes.some(
     (item: RouteWithName) => item.path === 'sentry-apps/'
   );
+  const hasFollowingTabTitle =
+    route.path === ':integrationSlug' &&
+    routes.some((item: RouteWithName) => item.path === 'integrations/');
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
     sentryAppApiOptions({
       appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null,
@@ -125,8 +128,7 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
         label: provider.name,
       }))}
       loading={isPending}
-      // The selected tab title follows this provider crumb, so it always needs a divider.
-      showDivider
+      showDivider={hasFollowingTabTitle}
     />
   );
 }
