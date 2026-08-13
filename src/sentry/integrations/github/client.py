@@ -1350,6 +1350,7 @@ def is_rate_limit_response(response: Response) -> bool:
         return True
     return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
 
+
 def resolve_upstream_path(request: PreparedRequest) -> str:
     """Return the final path of the request."""
     proxy_path = request.headers.get(PROXY_PATH)
