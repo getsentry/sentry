@@ -340,6 +340,7 @@ function OnboardingPanel({
                   display={{zero: 'none', xl: 'block'}}
                   pointerEvents="none"
                   overflow="hidden"
+                  flexShrink={0}
                 >
                   <ScrapsImage
                     height="120px"
