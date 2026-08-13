@@ -1215,6 +1215,102 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             assert set(response.data["scopes"]) <= requested_scopes, response.data
         return response.data["token"]
 
+    @staticmethod
+    def _listed_ids(response: Response, *, nested_organization: bool = False) -> set[int]:
+        assert response.status_code == 200, response.content
+        if nested_organization:
+            return {int(item["organization"]["id"]) for item in response.data}
+        return {int(item["id"]) for item in response.data}
+
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
+    def test_agent_organization_index_is_bound_to_minted_organization(self) -> None:
+        """An identity-compatible agent must not turn an org-bound token into a user list.
+
+        ``owner=1`` deliberately exercises the account-close branch, which otherwise
+        reads all ownerships from the compatibility user before applying token bounds.
+        Both cell and control implementations must retain the minted organization cap.
+        """
+        other_org = self.create_organization(owner=self.owner)
+        with self.feature(FLAG):
+            bearer = self._mint_agent_token()
+            for silo_mode in (SiloMode.CELL, SiloMode.CONTROL):
+                for owner_only in (False, True):
+                    with self.subTest(silo_mode=silo_mode.value, owner_only=owner_only):
+                        path = "/api/0/organizations/"
+                        if owner_only:
+                            path += "?owner=1"
+                        with assume_test_silo_mode(silo_mode):
+                            response = APIClient().get(
+                                path,
+                                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+                            )
+
+                        listed_ids = self._listed_ids(response, nested_organization=owner_only)
+                        assert listed_ids == {self.org.id}
+                        assert other_org.id not in listed_ids
+
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
+    def test_agent_project_indexes_retain_org_and_member_project_bounds(self) -> None:
+        """List endpoints must intersect compatibility identity with credential authority."""
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        inaccessible_team = self.create_team(organization=self.org)
+        inaccessible_project = self.create_project(
+            organization=self.org,
+            teams=[inaccessible_team],
+        )
+
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        other_project = self.create_project(organization=other_org, teams=[other_team])
+
+        limited_user = self.create_user()
+        self.create_member(
+            user=limited_user,
+            organization=self.org,
+            role="member",
+            teams=[self.team],
+        )
+        self.create_member(
+            user=limited_user,
+            organization=other_org,
+            role="member",
+            teams=[other_team],
+        )
+        self.login_as(limited_user)
+
+        with self.feature(FLAG):
+            bearer = self._mint_agent_token()
+            client = APIClient()
+            global_response = client.get(
+                "/api/0/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            organization_response = client.get(
+                f"/api/0/organizations/{self.org.slug}/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            cross_org_response = client.get(
+                f"/api/0/organizations/{other_org.slug}/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+
+        expected_ids = {self.project.id}
+        global_ids = self._listed_ids(global_response)
+        organization_ids = self._listed_ids(organization_response)
+        with self.subTest(surface="global_project_index"):
+            assert global_ids == expected_ids
+            assert other_project.id not in global_ids
+        with self.subTest(surface="organization_project_index"):
+            assert organization_ids == expected_ids
+            assert inaccessible_project.id not in organization_ids
+        assert cross_org_response.status_code == 403, cross_org_response.content
+
     def _mutation_payload(self, endpoint: PublicMutationEndpoint) -> dict[str, Any]:
         key = (endpoint.endpoint_name, endpoint.method)
         payloads: dict[tuple[str, str], dict[str, Any]] = {
