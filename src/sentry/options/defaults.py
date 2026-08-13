@@ -1389,6 +1389,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.group_action_log.use_dedicated_outbox",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_pr_lifecycle_action_log.killswitch",
     type=Bool,
     default=False,

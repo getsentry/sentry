@@ -34,9 +34,9 @@ _publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
 
 # Group Action Log — tracks who did what to an issue and how.
 #
-# publish_action() writes a CellOutbox entry; the outbox receiver creates the
-# GroupActionLogEntry on the (eventually separate) grouplog database and kicks
-# off derived-data processing.
+# publish_action() writes an outbox entry; the outbox receiver
+# creates the GroupActionLogEntry on the (eventually separate) grouplog database
+# and kicks off derived-data processing.
 #
 # Most mutation sites should use publish_action_from_context(), which reads attribution
 # from a ContextVar set at the request boundary via action_context_scope().
@@ -102,9 +102,10 @@ def publish_action(
     # load time so it can be imported from models without creating cycles.
     from django.db import router, transaction
 
-    from sentry import features
-    from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+    from sentry import features, options
+    from sentry.hybridcloud.models.outbox import CellOutbox, CellOutboxBase, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -155,15 +156,20 @@ def publish_action(
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
 
-    outbox = CellOutbox(
+    outbox_model: type[CellOutboxBase] = (
+        GroupActionLogOutbox
+        if options.get("issues.group_action_log.use_dedicated_outbox")
+        else CellOutbox
+    )
+    outbox = outbox_model(
         shard_scope=OutboxScope.GROUP_SCOPE,
         shard_identifier=group_id,
         category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-        object_identifier=CellOutbox.next_object_identifier(),
+        object_identifier=outbox_model.next_object_identifier(),
         payload=payload,
     )
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+    with outbox_context(transaction.atomic(router.db_for_write(outbox_model))):
         outbox.save()
 
 

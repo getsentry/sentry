@@ -39,12 +39,14 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -649,6 +651,30 @@ class TestPublishActionWrite(TestCase):
                 category=OutboxCategory.GROUP_ACTION_LOG_EVENT
             ).exists()
             assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
+
+            with outbox_runner():
+                pass
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    @override_options({"issues.group_action_log.use_dedicated_outbox": True})
+    def test_dedicated_outbox_table(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            with outbox_context(flush=False):
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    project=self.group.project,
+                    actor=GroupActionActor.user(self.user.id),
+                )
+
+            assert GroupActionLogOutbox.objects.filter(
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+            ).exists()
+            assert not CellOutbox.objects.filter(
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+            ).exists()
 
             with outbox_runner():
                 pass
