@@ -1333,10 +1333,21 @@ GITHUB_RATE_LIMIT_WINDOW = 3600
 GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
 GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
 GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+GITHUB_RATE_LIMIT_REMAINING = "x-ratelimit-remaining"
+GITHUB_RATE_LIMIT_STATUS_CODES = frozenset((403, 429))
 
 # Requests to this resource do not count against GitHub's primary rate limit, so our
 # internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
 GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
+
+def is_rate_limit_response(response: Response) -> bool:
+    """Return True if GitHub rejected the request because a rate limit was exhausted."""
+    if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
+        return False
+    if response.status_code == 429:
+        return True
+    return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
 
 
 class GitHubApiClient(GitHubBaseClient):
@@ -1426,10 +1437,11 @@ class GitHubApiClient(GitHubBaseClient):
             sentry_sdk.capture_exception(e)
 
         # QA metrics.
-        if is_rate_limited and response.status_code != 429:
+        was_rejected = is_rate_limit_response(response)
+        if is_rate_limited and not was_rejected:
             # We thought we exceeded our rate-limit but actually we didn't.
             metrics.incr("sentry.scm.github.rate_limit.false_positive")
-        elif response.status_code == 429 and not is_rate_limited:
+        elif was_rejected and not is_rate_limited:
             # We thought we had capacity but actually we didn't.
             metrics.incr("sentry.scm.github.rate_limit.false_negative")
 
