@@ -1170,7 +1170,7 @@ const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
         p.withExpanders ? '75px' : ''};
   }
 
-  @container (min-width: ${p => p.theme.container['4xl']}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     && {
       grid-template-columns: minmax(400px, auto) repeat(
           3,
