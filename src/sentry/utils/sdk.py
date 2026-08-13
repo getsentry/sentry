@@ -333,7 +333,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
-    sdk_options["enable_logs"] = True
     sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
