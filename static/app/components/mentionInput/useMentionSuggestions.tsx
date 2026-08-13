@@ -117,8 +117,6 @@ export function useMentionSuggestions<T>({
     [listBoxRef, listState.collection, listState.selectionManager.disabledKeys]
   );
 
-  // The rendered ListBox owns the popup's listbox behavior. This collection hook only
-  // forwards keyboard navigation from the editor, where DOM focus remains.
   const {collectionProps} = useSelectableCollection({
     selectionManager: listState.selectionManager,
     keyboardDelegate,
