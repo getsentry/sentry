@@ -253,6 +253,7 @@ export function ReleaseCard({
                 bottom="0"
                 justify="center"
                 position="absolute"
+                radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
                 width="100%"
                 css={cssTheme => css`
                   background-image: linear-gradient(
@@ -264,11 +265,6 @@ export function ReleaseCard({
                   border-bottom: ${cssTheme.space.md} solid
                     ${cssTheme.tokens.background.primary};
                   border-top: ${cssTheme.space.md} solid transparent;
-                  border-bottom-right-radius: ${cssTheme.radius.md};
-
-                  @container (max-width: ${cssTheme.container['3xl']}) {
-                    border-bottom-left-radius: ${cssTheme.radius.md};
-                  }
                 `}
               >
                 <Button variant="primary" size="xs" onClick={onExpand}>
