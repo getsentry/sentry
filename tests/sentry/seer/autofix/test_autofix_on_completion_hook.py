@@ -543,7 +543,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "provider": "unknown",
                 "repo_name": "test-repo",
                 "status": "error",
-                "error": {"code": "access_denied"},
+                "error": {"code": "missing_permission"},
                 "pull_request": None,
             }
         ]
@@ -594,11 +594,30 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             "provider": "unknown",
             "repo_name": "failed-repo",
             "status": "error",
-            "error": {"code": "access_denied"},
+            "error": {"code": "missing_permission"},
             "pull_request": None,
         }
         event_names = [call.args[0].type for call in mock_analytics.call_args_list]
         assert "ai.autofix.pr_created.completed" in event_names
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_prefers_seer_error_code(self, mock_broadcast):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="refusing to allow a GitHub App to create or update workflow",
+                pr_creation_error_code="workflow_permission",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
+        assert entry["status"] == "error"
+        assert entry["error"] == {"code": "workflow_permission"}
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_creating_status_maps_to_error(self, mock_broadcast):

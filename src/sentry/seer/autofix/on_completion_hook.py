@@ -551,7 +551,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "repo_name": pull_request.repo_name,
                     "status": status,
                     "error": (
-                        {"code": cls._classify_pr_creation_failure(pull_request.pr_creation_error)}
+                        {
+                            "code": pull_request.pr_creation_error_code
+                            or cls._classify_pr_creation_failure(pull_request.pr_creation_error)
+                        }
                         if status == "error"
                         else None
                     ),
@@ -570,12 +573,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
     @staticmethod
     def _classify_pr_creation_failure(error: str | None) -> str:
+        # Fallback for states written before Seer persisted pr_creation_error_code.
         normalized_error = (error or "").lower()
         if any(
             marker in normalized_error
             for marker in ("403", "no write access", "resource not accessible", "forbidden")
         ):
-            return "access_denied"
+            return "missing_permission"
         return "unknown"
 
     @classmethod
