@@ -20,6 +20,7 @@ class PromptBuilder(Protocol):
         culprit: str,
         artifact_key: str | None,
         run_state: "SeerRunState | None" = None,
+        enable_bash_tools: bool = False,
     ) -> str: ...
 
 
@@ -30,6 +31,7 @@ def root_cause_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     return dedent(
         f"""\
@@ -63,6 +65,7 @@ def solution_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     return dedent(
         f"""\
@@ -97,8 +100,9 @@ def code_changes_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
-    return dedent(
+    prompt = dedent(
         f"""\
         Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
 
@@ -115,6 +119,11 @@ def code_changes_prompt(
         """
     )
 
+    if enable_bash_tools:
+        prompt = f"{prompt}Use the bash tool to test and lint the changes you make according to repo standards.\n"
+
+    return prompt
+
 
 def pr_iteration_prompt(
     *,
@@ -123,6 +132,7 @@ def pr_iteration_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    enable_bash_tools: bool = False,
 ) -> str:
     prompt = dedent(
         f"""\

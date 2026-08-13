@@ -641,6 +641,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/test_viewer_context.py                        @getsentry/machine-learning-ai
 /src/sentry/middleware/viewer_context.py                     @getsentry/machine-learning-ai
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
+/src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 ## End of ML & AI
 
 ## Issues
@@ -656,7 +658,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/helpers/events.py                           @getsentry/issue-workflow
 /src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
 /src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
-/src/sentry/api/endpoints/                                  @getsentry/issue-workflow
 /src/sentry/processing_errors/                              @getsentry/issue-detection-backend
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend

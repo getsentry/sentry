@@ -77,5 +77,6 @@ export const TableResizer = styled('div')`
   right: 0;
   display: flex;
   height: var(--column-resizer-height, ${TABLE_HEAD_ROW_HEIGHT}px);
+  pointer-events: none;
   z-index: ${Z_INDEX_RESIZER};
 `;

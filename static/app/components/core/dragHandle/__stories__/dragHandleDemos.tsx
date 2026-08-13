@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {DragHandle, type DragHandleAppearance} from '@sentry/scraps/dragHandle';
+import {DragHandle, type DragHandleVariant} from '@sentry/scraps/dragHandle';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,7 +10,7 @@ const DEFAULT_SIZE = 200;
 
 const clamp = (size: number) => Math.max(MIN_SIZE, Math.min(MAX_SIZE, size));
 
-export function DragHandleDemo({appearance}: {appearance?: DragHandleAppearance}) {
+export function DragHandleDemo({variant}: {variant?: DragHandleVariant}) {
   const [size, setSize] = useState(DEFAULT_SIZE);
 
   return (
@@ -21,12 +21,13 @@ export function DragHandleDemo({appearance}: {appearance?: DragHandleAppearance}
           <Text bold>Sized</Text>
         </Stack>
         <DragHandle
-          appearance={appearance}
+          aria-label="Resize panes"
           isSizedFirst
           max={MAX_SIZE}
           min={MIN_SIZE}
           orientation="horizontal"
           value={size}
+          variant={variant}
           onDoubleClick={() => setSize(DEFAULT_SIZE)}
           onMove={delta => setSize(current => clamp(current + delta))}
         />

@@ -52,22 +52,26 @@ Use `onMoveStart` and `onMoveEnd` when a drag needs to bracket its work, such as
 An `orientation` of `horizontal` lays the panes out in a row and draws a vertical divider between them.
 Set `isSizedFirst` to `false` when the pane being sized sits after the divider, so the cursor and keys still match the direction the divider can move.
 
-## Appearance
+## Variants
 
-The divider line is drawn at all times by default.
-Set `appearance="hover"` to draw it only while the handle is hovered, focused, or held, for surfaces that already have their own separators, such as the column edges of a table.
+The default `solid` variant draws the divider line at all times.
+Use the `ghost` variant to draw it only while the handle is hovered, focused, or held, for surfaces that already have their own separators, such as the column edges of a table.
 
 <Storybook.Demo>
-  <DragHandleDemo appearance="hover" />
+  <DragHandleDemo variant="ghost" />
 </Storybook.Demo>
 
 ```jsx
-<DragHandle appearance="hover" {...props} />
+<DragHandle variant="ghost" {...props} />
 ```
 
 ## Accessibility
 
 The handle is a `separator` with `tabIndex={0}`, and reports `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` from the `value`, `min`, and `max` props.
+
+A focusable separator is a widget, so it must be named: pass either `aria-label` or `aria-labelledby`. Name what the handle resizes, such as `Resize panels`, rather than the handle itself; without a name it is announced as a bare number with no subject.
+
+Prefer `aria-labelledby` when the handle sits inside an element that takes its own name from its content, such as a table header cell. An `aria-label` there would also become part of that cell's name, so the column would announce as `duration Resize duration column`.
 
 The arrow keys along the handle's axis move it by 10px, or by 50px while shift is held.
 Pass `onKeyDown` to handle keys the handle does not claim, such as `Home` and `End`.

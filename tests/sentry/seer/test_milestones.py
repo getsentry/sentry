@@ -7,7 +7,9 @@ from sentry.seer.agent.client_models import (
     Artifact,
     CodingAgentResult,
     CodingAgentState,
+    DiffLine,
     FilePatch,
+    Hunk,
     MemoryBlock,
     Message,
     RepoPRState,
@@ -81,6 +83,52 @@ def _block(
             else None
         ),
         pr_commit_shas=pr_commit_shas,
+    )
+
+
+def _agent_file_patch(path: str = "a.py", value: str = "+added line") -> AgentFilePatch:
+    return AgentFilePatch(
+        repo_name="getsentry/sentry",
+        patch=FilePatch(
+            path=path,
+            type="M",
+            added=1,
+            removed=0,
+            source_file=path,
+            target_file=path,
+            hunks=[
+                Hunk(
+                    source_start=1,
+                    source_length=1,
+                    target_start=1,
+                    target_length=2,
+                    section_header="@@ -1,1 +1,2 @@",
+                    lines=[
+                        DiffLine(
+                            diff_line_no=1,
+                            source_line_no=None,
+                            target_line_no=2,
+                            line_type="+",
+                            value=value,
+                        )
+                    ],
+                )
+            ],
+        ),
+        diff=f"--- a/{path}\n+++ b/{path}\n@@ -1,1 +1,2 @@\n{value}\n",
+    )
+
+
+def _diff_state(*patches: AgentFilePatch) -> SeerRunState:
+    return _state(
+        blocks=[
+            MemoryBlock(
+                id="b",
+                message=Message(role="assistant", content="c"),
+                timestamp="2026-02-10T00:00:00Z",
+                merged_file_patches=list(patches),
+            )
+        ]
     )
 
 
@@ -182,6 +230,26 @@ class MilestonesFromStateTest(TestCase):
         result = milestones_from_state(state)
         assert result[SeerRunMilestoneType.HAS_PULL_REQUEST] == {}
 
+    def test_code_changes_extras_hold_diffs_grouped_by_repo(self) -> None:
+        patch = _agent_file_patch()
+        result = milestones_from_state(_diff_state(patch))
+
+        assert result[SeerRunMilestoneType.CODE_CHANGES] == {
+            "code_changes_artifact": {"diffs_by_repo": {"getsentry/sentry": [patch.dict()]}}
+        }
+
+    def test_no_code_changes_milestone_without_merged_file_patches(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            merged_file_patches=None,
+        )
+        assert SeerRunMilestoneType.CODE_CHANGES not in milestones_from_state(
+            _state(blocks=[block])
+        )
+        assert SeerRunMilestoneType.CODE_CHANGES not in milestones_from_state(_diff_state())
+
     def test_extra_unexpected_artifact_field_is_not_stored(self) -> None:
         block = MemoryBlock(
             id="b",
@@ -235,6 +303,23 @@ class ReconcileMilestonesTest(TestCase):
         reconcile_milestones(self.seer_run, self._root_cause_state("second"))
         assert self._extras(SeerRunMilestoneType.ROOT_CAUSE) == {
             "root_cause_artifact": {"one_line_description": "second"}
+        }
+
+    def test_reconcile_persists_code_changes_diffs(self) -> None:
+        patch = _agent_file_patch()
+        reconcile_milestones(self.seer_run, _diff_state(patch))
+
+        assert self._extras(SeerRunMilestoneType.CODE_CHANGES) == {
+            "code_changes_artifact": {"diffs_by_repo": {"getsentry/sentry": [patch.dict()]}}
+        }
+
+    def test_reconcile_refreshes_code_changes_diffs_on_rerun(self) -> None:
+        reconcile_milestones(self.seer_run, _diff_state(_agent_file_patch(path="a.py")))
+        second = _agent_file_patch(path="b.py", value="+other line")
+        reconcile_milestones(self.seer_run, _diff_state(second))
+
+        assert self._extras(SeerRunMilestoneType.CODE_CHANGES) == {
+            "code_changes_artifact": {"diffs_by_repo": {"getsentry/sentry": [second.dict()]}}
         }
 
     def test_reconcile_sets_date_updated_on_insert_and_conflict_update(self) -> None:

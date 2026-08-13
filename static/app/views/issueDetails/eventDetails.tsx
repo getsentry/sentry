@@ -69,6 +69,8 @@ const FloatingEventNavigation = styled(Sticky)`
 
   &[data-stuck] {
     border-radius: 0;
+    /* Content dropdowns should scroll underneath the floating event navigation. */
+    z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 

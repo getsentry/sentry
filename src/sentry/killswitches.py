@@ -7,11 +7,9 @@ This is similar to existing featureflagging systems we have, but with less
 features and more performant.
 """
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-
-import click
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,44 +18,6 @@ Condition = dict[str, Optional[str]]
 KillswitchConfig = list[Condition]
 LegacyKillswitchConfig = Union[KillswitchConfig, list[int]]
 Context = dict[str, Any]
-
-
-def _update_project_configs(
-    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
-) -> None:
-    """Callback for the relay.drop-transaction-metrics kill switch.
-    On every change, force a recomputation of the corresponding project configs
-    """
-    from sentry.models.organization import Organization
-    from sentry.tasks.relay import schedule_invalidate_project_config
-
-    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
-    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
-
-    # We want to recompute the project config for any project that was added
-    # or removed
-    changed_project_ids = old_project_ids ^ new_project_ids
-
-    if None in changed_project_ids:
-        with click.progressbar(length=Organization.objects.count()) as bar:
-            # Since all other invalidations, which would happen anyway, will de-duplicate
-            # with these ones the extra load of this is reasonable.  A temporary backlog in
-            # the relay_config_bulk queue is just fine.  We have server-side cursors
-            # disabled so .iterator() fetches 50k u64's at once which is about 390kb and
-            # at time of writing yields about 24 batches.
-            for org_id in (
-                Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
-            ):
-                schedule_invalidate_project_config(
-                    trigger="invalidate-all", organization_id=org_id, countdown=0
-                )
-                bar.update(1)
-    else:
-        with click.progressbar(changed_project_ids) as ids:
-            for project_id in ids:
-                schedule_invalidate_project_config(
-                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
-                )
 
 
 @dataclass
@@ -182,22 +142,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "project ID to randomly assign partitions for event messages",
             "message_type": "message type to randomly partition",
         },
-    ),
-    "relay.drop-transaction-metrics": KillswitchInfo(
-        description="""
-        Tell Relay via project config to stop extracting metrics from transactions.
-        Note that this change will not take effect immediately, it takes time
-        for downstream Relay instances to update their caches.
-
-        If project_id is set to None, extraction will be disabled for all projects.
-        In this case, the invalidation of existing project configs can take up to one hour.
-        """,
-        fields={
-            "project_id": "project ID for which we want to stop extracting transaction metrics",
-        },
-        on_change=KillswitchCallback(
-            _update_project_configs, "Trigger invalidation tasks for projects"
-        ),
     ),
     "api.organization.disable-last-deploys": KillswitchInfo(
         description="""

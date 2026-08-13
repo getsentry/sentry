@@ -8,9 +8,8 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
-  const inboxCountNoSeerQuery = `is:unresolved issue.progress:[fix_proposed] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'seat-based-seer-enabled'],
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -27,12 +26,12 @@ describe('IssuesSecondaryNavigation', () => {
     });
   }
 
-  function renderNavigation() {
+  function renderNavigation(testOrganization = organization) {
     render(
       <SecondaryNavigationContextProvider>
         <IssuesSecondaryNavigation />
       </SecondaryNavigationContextProvider>,
-      {organization}
+      {organization: testOrganization}
     );
   }
 
@@ -49,6 +48,7 @@ describe('IssuesSecondaryNavigation', () => {
     const [[, options]] = request.mock.calls;
     expect(options.query.query).toHaveLength(1);
     const [query] = options.query.query;
+    expect(options.query).not.toHaveProperty('project');
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
@@ -56,27 +56,26 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('assigned_or_suggested:me');
   });
 
-  it('only counts fix proposed issues without Seer', async () => {
-    organization.features = ['issue-stream-progress-ui'];
-    const request = mockInboxCount({
-      [inboxCountNoSeerQuery]: 12,
-    });
-
-    renderNavigation();
-
-    expect(await screen.findByText('12')).toBeInTheDocument();
-
-    const [[, options]] = request.mock.calls;
-    expect(options.query.query).toEqual([inboxCountNoSeerQuery]);
-  });
-
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      [inboxCountNoSeerQuery]: 100,
+      [inboxCountQuery]: 100,
     });
 
     renderNavigation();
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
+  });
+
+  it('does not render Inbox or request its count without Autofix access', async () => {
+    const request = mockInboxCount({});
+    const organizationWithoutAutofix = OrganizationFixture({
+      features: ['issue-stream-progress-ui', 'gen-ai-features'],
+    });
+
+    renderNavigation(organizationWithoutAutofix);
+
+    expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });

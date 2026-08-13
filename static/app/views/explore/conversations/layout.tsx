@@ -20,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
-  CONVERSATIONS_LANDING_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,
   CONVERSATIONS_SIDEBAR_LABEL,
   MAX_PICKABLE_DAYS,
@@ -99,7 +99,7 @@ function ConversationsLandingHeader() {
     defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0;
 
   const conversationsBaseUrl = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
 
   if (!hasSavedQuery) {

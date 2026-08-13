@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -62,7 +62,11 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
-from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    SNAPSHOT_ARCHIVE_MANIFEST_FEATURE,
+    SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
+)
 from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ImageMetadata,
@@ -731,6 +735,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         images = data.get("images", {})
         diff_threshold = data.get("diff_threshold")
 
+        if features.has(SNAPSHOT_ARCHIVE_MANIFEST_FEATURE, project.organization) and (
+            SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images
+        ):
+            return Response(
+                {"detail": f"The filename {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME} is reserved."},
+                status=400,
+            )
+
         # VCS info
         head_sha = data.get("head_sha")
         base_sha = data.get("base_sha")
@@ -833,8 +845,10 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
             session = get_preprod_session(project.organization_id, project.id)
-            manifest_json = manifest.json(exclude_none=True)
-            session.put(manifest_json.encode(), key=manifest_key)
+            manifest_bytes = manifest.json(exclude_none=True).encode()
+            manifest_size_bytes = len(manifest_bytes)
+            session.put(manifest_bytes, key=manifest_key)
+            del manifest_bytes
 
         logger.info(
             "Created preprod artifact and stored snapshot manifest",
@@ -846,6 +860,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
+                "manifest_size_bytes": manifest_size_bytes,
             },
         )
 

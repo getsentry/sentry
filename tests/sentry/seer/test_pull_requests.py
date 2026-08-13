@@ -30,6 +30,15 @@ def _warning_events(mock_logger: Mock) -> list[str]:
     return [call.args[0] for call in mock_logger.warning.call_args_list]
 
 
+def _warning_extra(mock_logger: Mock, event: str) -> dict[str, Any]:
+    """The ``extra`` of the single warning logged for ``event``."""
+    extras = [
+        call.kwargs["extra"] for call in mock_logger.warning.call_args_list if call.args[0] == event
+    ]
+    assert len(extras) == 1, f"expected exactly one {event} warning, got {len(extras)}"
+    return extras[0]
+
+
 class LinkSeerRunPullRequestsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
@@ -159,6 +168,48 @@ class LinkSeerRunPullRequestsTest(TestCase):
 
         assert not SeerRunPullRequest.objects.exists()
         assert "seer.pr_link.repo_unresolved" in _warning_events(mock_logger)
+        assert _warning_extra(mock_logger, "seer.pr_link.repo_unresolved")["repo_resolution"] == (
+            "not_found"
+        )
+
+    @patch("sentry.seer.pull_requests.logger")
+    def test_unresolved_repo_reports_ambiguity(self, mock_logger: Mock) -> None:
+        """A provider of "unknown" can't disambiguate same-named repos, so the lookup
+        refuses to guess -- without the reason this reads as a repo we've never seen."""
+        self.create_repo(self.project, name=REPO_NAME, provider="integrations:gitlab")
+
+        self._link(self._payload(provider="unknown"))
+
+        assert not SeerRunPullRequest.objects.exists()
+        assert _warning_extra(mock_logger, "seer.pr_link.repo_unresolved")["repo_resolution"] == (
+            "ambiguous"
+        )
+
+    def test_links_by_reported_repo_external_id(self) -> None:
+        """A GitLab reporter carries the URL path, never the stored display name, so only
+        the payload's external id can resolve the repo."""
+        gitlab_repo = self.create_repo(
+            self.project,
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:28",
+        )
+
+        self._link(
+            [
+                {
+                    "provider": "gitlab",
+                    "repo_name": "my-group/my-project",
+                    "repo_external_id": "gitlab.example.com:28",
+                    "pull_request": {"pr_number": 42},
+                }
+            ]
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=gitlab_repo.id, key="42")
+        assert SeerRunPullRequest.objects.get(pull_request=pull_request).seer_run_id == (
+            self.seer_run.id
+        )
 
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
     def test_killswitch_disables_writes(self, mock_option: Mock) -> None:

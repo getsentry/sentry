@@ -43,7 +43,7 @@ const CONVERSATION_BODY = [
 
 function mockConversation() {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
+    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
     body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
   });
   // The detail pane fetches full attributes per span; keep it empty.

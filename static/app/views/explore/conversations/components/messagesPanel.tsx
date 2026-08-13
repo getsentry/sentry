@@ -14,6 +14,7 @@ import {
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
 import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -112,6 +113,16 @@ export function MessagesPanel({
                 key={message.id}
                 content={message.content}
                 hasXmlTags={hasXmlTags}
+              />
+            );
+          }
+
+          if (message.role === 'embedding') {
+            return (
+              <EmbeddingTurn
+                key={message.id}
+                message={message}
+                isSelected={message.nodeId === selectedNodeId}
               />
             );
           }
@@ -219,13 +230,21 @@ const AssistantTurn = memo(function AssistantTurnImpl({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="compact">
-          <ReasoningSection reasoning={message.reasoning} />
+          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+           * the turn's cost/duration in the thinking row's own meta column. */}
+          <ReasoningSection
+            reasoning={message.reasoning}
+            meta={message.content === '' && hasMeta ? meta : undefined}
+          />
         </MessageRow>
       )}
       {message.content === '' ? (
-        // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
-        // and duration, right-aligned to the meta column like other assistant turns.
-        hasMeta && (
+        // Tool-only turn (no reasoning row to carry it): no bubble, but still
+        // surface the turn's cost and duration, right-aligned to the meta column
+        // like other assistant turns. A reasoning row, when present, shows the
+        // meta itself, so skip this fallback then.
+        hasMeta &&
+        !message.reasoning && (
           <MessageRow from="assistant" density="compact">
             <Flex justify="end" width="100%">
               {meta}
@@ -275,11 +294,85 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
   );
 }
 
-function ReasoningSection({reasoning}: {reasoning: string}) {
+// Standalone row for an embeddings span — unlike tool calls and reasoning,
+// embeddings aren't nested inside an assistant turn: they're positioned in the
+// transcript by their own timestamp, so they render even when there's no
+// generation span nearby (or at all) to attach them to.
+const EmbeddingTurn = memo(function EmbeddingTurnImpl({
+  message,
+  isSelected,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+}) {
+  const organization = useOrganization();
+  const input = message.embeddingInput ?? '';
+  const tokens = message.embeddingTokens;
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <CollapsibleChatRow
+        defaultOpen={isSelected}
+        title={
+          <Text
+            size="sm"
+            variant={message.embeddingHasError ? 'danger' : 'muted'}
+            ellipsis
+            monospace
+          >
+            {t('Creating embedding...')}
+          </Text>
+        }
+        meta={
+          <TurnMeta
+            metric={
+              tokens === undefined || tokens <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  <Count value={tokens} /> {t('tokens')}
+                </Text>
+              )
+            }
+            duration={
+              message.duration === undefined || message.duration <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  {getDuration(message.duration, 2, true)}
+                </Text>
+              )
+            }
+          />
+        }
+        onToggle={open =>
+          trackAnalytics('conversations.detail.expand-embedding', {
+            organization,
+            expanded: open,
+          })
+        }
+      >
+        <Flex>
+          <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+            <MessageText size="sm" align="left" variant="muted" monospace>
+              <AIContentRenderer text={input} inline autoCollapseLimit={10} />
+            </MessageText>
+          </Container>
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
+        </Flex>
+      </CollapsibleChatRow>
+    </MessageRow>
+  );
+});
+
+function ReasoningSection({
+  reasoning,
+  meta,
+}: {
+  reasoning: string;
+  meta?: React.ReactNode;
+}) {
   const organization = useOrganization();
 
   return (
     <CollapsibleChatRow
+      meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
           {t('Thinking...')} {isOpen ? null : reasoning}

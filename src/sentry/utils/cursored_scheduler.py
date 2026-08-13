@@ -39,7 +39,7 @@ Usage:
 The task will be called with the PK as a positional argument:
     process_item.delay(item_pk)
 
-Optional validate_item callback:
+Optional validate_item callback, for a per-item check at dispatch time:
 
     def is_eligible(pk: int) -> bool:
         org = Organization.objects.get_from_cache(id=pk)
@@ -50,8 +50,29 @@ Optional validate_item callback:
         validate_item=is_eligible,
     )
 
-When provided, validate_item is called for each PK before dispatching.
-Items that fail validation are skipped without dispatching the task.
+It runs on every item of every tick, and an item it rejects is not dispatched.
+Use it for a check that must see the state at dispatch time.
+
+Optional prevalidate_batch callback, for a batched check at cycle start. It
+receives the queryset's rows and returns the PKs to keep:
+
+    def has_my_feature(orgs: Sequence[Organization]) -> Collection[int]:
+        results = features.batch_has_for_organizations("organizations:my-feature", orgs)
+        return [org.id for org in orgs if results[f"organization:{org.id}"]]
+
+    scheduler = CursoredScheduler(
+        ...
+        prevalidate_batch=has_my_feature,
+    )
+
+It runs once per cycle, when the PK list is snapshotted. Only the PKs it keeps
+reach Redis, so the rest never occupy a batch and the check costs one
+cycle-start rather than time on every tick. The tradeoff is staleness: an item
+that stops qualifying mid-cycle is still dispatched until the next snapshot.
+
+Getting the rows rather than their PKs means a check that needs more than the PK —
+a feature flag, an option — does not have to fetch them back. Setting it makes the
+cycle-start query load full rows instead of the PK column alone.
 
 By default, the scheduler snapshots PKs in ascending PK order. Set
 preserve_queryset_order=True to retain an explicit, deterministic ordering on
@@ -64,7 +85,7 @@ import logging
 import math
 import random
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Sequence
 from datetime import timedelta
 
 from django.conf import settings
@@ -143,6 +164,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
+        prevalidate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
         shuffle: bool = False,
         preserve_queryset_order: bool = False,
     ):
@@ -160,6 +182,7 @@ class CursoredScheduler[M: Model]:
         self.cache_ttl = int(cycle_duration.total_seconds() * 2)
         self.lock_duration = lock_duration
         self.validate_item = validate_item
+        self.prevalidate_batch = prevalidate_batch
         self.shuffle = shuffle
         self.preserve_queryset_order = preserve_queryset_order
         self._metric_tags = {"scheduler": name}
@@ -239,13 +262,25 @@ class CursoredScheduler[M: Model]:
 
         return True
 
+    def _prevalidated_pks(self, queryset: QuerySet[M]) -> list[int]:
+        """
+        Apply the batch prevalidation function to the queryset.
+        If no prevalidation function is provided, return the PKs in queryset order.
+        """
+        if self.prevalidate_batch is None:
+            return list(queryset.values_list("pk", flat=True))
+
+        rows = list(queryset)
+        kept = set(self.prevalidate_batch(rows))
+        return [row.pk for row in rows if row.pk in kept]
+
     def _initialize_cycle(self) -> int:
         init_start = time.time()
         queryset = self.queryset
         if not self.preserve_queryset_order:
             queryset = queryset.order_by("pk")
 
-        all_pks = list(queryset.values_list("pk", flat=True))
+        all_pks = self._prevalidated_pks(queryset)
 
         if self.shuffle:
             random.shuffle(all_pks)
