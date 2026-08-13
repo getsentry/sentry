@@ -164,7 +164,7 @@ function useChipSegment(interactive: boolean): ChipSegmentProps {
     if (active) {
       return register(id);
     }
-    return () => {};
+    return;
   }, [active, id, register]);
 
   return active ? getItemProps(id) : {};
