@@ -100,6 +100,7 @@ export function useMentionSuggestions<T>({
 
   const listBoxId = useId();
   const listBoxRef = useRef<HTMLUListElement>(null);
+  const listBoxScrollRef = useRef<HTMLDivElement>(null);
   const focusedKey = listState.selectionManager.focusedKey;
   const activeDescendant =
     queryStatus === 'success' && items.length > 0 && focusedKey !== null
@@ -115,14 +116,17 @@ export function useMentionSuggestions<T>({
       }),
     [listBoxRef, listState.collection, listState.selectionManager.disabledKeys]
   );
+
+  // The rendered ListBox owns the popup's listbox behavior. This collection hook only
+  // forwards keyboard navigation from the editor, where DOM focus remains.
   const {collectionProps} = useSelectableCollection({
     selectionManager: listState.selectionManager,
     keyboardDelegate,
     shouldFocusWrap: true,
     shouldUseVirtualFocus: true,
     disallowTypeAhead: true,
-    isVirtualized: true,
     ref: inputRef,
+    scrollRef: listBoxScrollRef,
   });
 
   return {
@@ -133,6 +137,7 @@ export function useMentionSuggestions<T>({
     count: items.length,
     listBoxId,
     listBoxRef,
+    listBoxScrollRef,
     listState,
     queryStatus,
   };
