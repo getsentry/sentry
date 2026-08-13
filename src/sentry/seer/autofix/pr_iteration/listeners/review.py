@@ -32,17 +32,15 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import PullRequestReviewEvent
+from sentry.seer.autofix.pr_iteration.constants import (
+    PR_ITERATION_PROVIDER,
+    PR_ITERATION_PROVIDER_SLUG,
+)
 
 logger = logging.getLogger(__name__)
 
 # We only care about a freshly submitted PR review
 _HANDLED_ACTIONS = frozenset({"submitted"})
-
-# SCM provider name (from the subscription event) -> Sentry repository provider.
-_PROVIDER_TO_REPO_PROVIDER = {
-    "github": "integrations:github",
-    "github_enterprise": "integrations:github_enterprise",
-}
 
 
 @scm_event_stream.listen_for(event_type="pull_request_review")
@@ -94,8 +92,11 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
 
     logger.info("autofix.pr_iteration.review_listener.received", extra=log_extra)
 
-    repo_provider = _PROVIDER_TO_REPO_PROVIDER.get(provider) if provider else None
-    if repo_provider is None:
+    # ``subscription["type"]`` is the integration provider slug, so GitHub
+    # Enterprise — which delivers the same ``pull_request_review`` events — is
+    # turned away here, before any repo query or control-silo RPC. See
+    # ``PR_ITERATION_PROVIDER``.
+    if provider != PR_ITERATION_PROVIDER_SLUG:
         logger.warning("autofix.pr_iteration.review_listener.unsupported_provider", extra=log_extra)
         return None
 
@@ -134,7 +135,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
     repos = Repository.objects.filter(
         organization_id__in=org_ids,
-        provider=repo_provider,
+        provider=PR_ITERATION_PROVIDER,
         external_id=str(repository_id),
     )
 
