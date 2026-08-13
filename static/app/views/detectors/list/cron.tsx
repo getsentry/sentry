@@ -163,9 +163,11 @@ function CronEmptyState() {
         justify="center"
         illustration={
           <Image
-            width={{zero: '100%', xs: '150px', lg: '250px', '2xl': 'auto'}}
+            width={{zero: '100%', xs: '150px', lg: '250px'}}
             src={onboardingImg}
-            alt="Purple bird emerging from an orange birdhouse with gears and a warning sign"
+            alt={t(
+              'Purple bird emerging from an orange birdhouse with gears and a warning sign'
+            )}
           />
         }
         title={t('Monitor Your Cron Jobs')}

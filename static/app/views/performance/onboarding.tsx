@@ -343,6 +343,7 @@ function OnboardingPanel({
                 >
                   <ScrapsImage
                     height="120px"
+                    width="auto"
                     src={emptyTraceImg}
                     alt={t(
                       'A winged insect flying above a tilted browser window with abstract interface elements'

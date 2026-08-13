@@ -101,7 +101,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
         justify="center"
         illustration={
           <Image
-            height={{zero: '150px', '2xl': 'auto'}}
+            height="150px"
             width="auto"
             src={emptyStateImg}
             alt={t(
