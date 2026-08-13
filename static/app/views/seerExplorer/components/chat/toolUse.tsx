@@ -2,7 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
+import {
+  MessageRow,
+  ToolCall,
+  ToolCallIndicator,
+  type ToolCallStatus,
+} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -463,18 +468,17 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const key = toolCall.id ?? `${toolCall.function}-${idx}`;
 
         // Both sources normalize to the same row shape. A classic tool contributes one row for
-        // itself; a Code Mode call contributes one per api call it made.
-        const rows: React.ReactNode[] = linkedCallRows.length
-          ? linkedCallRows.map(({record, label, url, linkKind}) => (
-              <CallRow
+        // itself; a Code Mode call contributes one per api call it made, each rendered as the
+        // shared `ToolCall` so the Explorer and the agent's markdown surface look identical.
+        const rows: React.ReactNode[] = callRows.length
+          ? callRows.map(({record, label, url, linkKind}) => (
+              <CodeModeCallRow
                 key={`${key}-${record.id}`}
-                row={{
-                  label,
-                  url,
-                  failure: callRecordFailure(record),
-                  status: callRecordStatus(record, callsAreSettled),
-                  detail: callRecordDetail(record),
-                }}
+                record={record}
+                label={label}
+                url={url}
+                linkKind={linkKind}
+                settled={callsAreSettled}
                 onLinkClick={trackLinkClick(linkKind)}
               />
             ))
@@ -488,7 +492,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
                     status: ++rendered === 1 ? blockStatus : undefined,
-                    detail: null,
                   }}
                   onLinkClick={handleLinkClick}
                 />,
@@ -555,10 +558,8 @@ interface NavItem {
   url: LocationDescriptor;
 }
 
-/** A row to render, normalized from either a classic tool call or one api call. */
+/** A classic tool-call row, normalized to a label with an optional link. */
 interface RenderRow {
-  /** The request behind the row, when it has one to expand. */
-  detail: ReturnType<typeof callRecordDetail>;
   failure: string | null;
   /** Resolved at construction, so an unlabeled row never reaches the renderer. */
   label: string;
@@ -567,11 +568,11 @@ interface RenderRow {
 }
 
 /**
- * One row in the list — a classic tool call or a single Sentry API call, rendered identically.
+ * One classic tool-call row: a status tick, a monospace label, and an optional inline link.
  *
- * An api call *is* a tool call as far as the reader is concerned: something happened, it succeeded
- * or it did not, and it may point somewhere. Giving the two shapes separate components let their
- * spacing and alignment drift apart, so they share one.
+ * Code Mode api calls render through {@link CodeModeCallRow} (the shared `ToolCall`) instead — a
+ * classic tool has no request to expand, so this stays the simpler label-plus-link shape whose link
+ * lives on the label itself.
  */
 function CallRow({
   row,
@@ -607,58 +608,69 @@ function CallRow({
       <Flex align="center" justify="center" width="12px" height="12px" flexShrink={0}>
         {row.status && <ToolCallIndicator status={row.status} />}
       </Flex>
-      {row.detail ? (
-        // The title is the disclosure's own, so the chevron sits inline with it rather than adding
-        // a second line beneath. The link cannot go inside it: the title renders as a button, and
-        // an anchor nested in a button is invalid HTML that leaves both controls sharing one click
-        // target and one tab stop. `trailingItems` puts it beside the button instead — the title
-        // expands the request, the icon navigates.
-        <Disclosure size="xs">
-          <Disclosure.Title
-            trailingItems={
-              row.url && <RowLink url={row.url} label={row.label} onClick={onLinkClick} />
-            }
-          >
-            {text}
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <CallDetail detail={row.detail} />
-          </Disclosure.Content>
-        </Disclosure>
-      ) : (
-        <Flex align="center" minWidth={0}>
-          {label}
-        </Flex>
-      )}
+      <Flex align="center" minWidth={0}>
+        {label}
+      </Flex>
     </Flex>
   );
 }
 
 /**
- * The row's destination as a control of its own, for a row that also expands.
+ * One Code Mode api call, rendered through the shared `ToolCall` so the Explorer and the agent's
+ * markdown surface stay identical.
  *
- * Visible at rest, unlike the inline variant whose icon the label's hover reveals: there is no
- * label to hover here, and an affordance that only appears under the pointer is one a keyboard
- * user never finds.
+ * The record's label becomes the title, its outcome the leading glyph, its navigable resource a
+ * trailing link chip (a real anchor, so middle/cmd-click still work), and any transport failure a
+ * notification line. The request it ran — and its bounded response body — hangs off the detail slot
+ * below the title.
  */
-function RowLink({
-  url,
+function CodeModeCallRow({
+  record,
   label,
-  onClick,
+  url,
+  linkKind,
+  settled,
+  onLinkClick,
 }: {
   label: string;
-  url: LocationDescriptor;
-  onClick?: (e: React.MouseEvent) => void;
+  linkKind: string;
+  record: CallRecord;
+  settled: boolean;
+  url: LocationDescriptor | null;
+  onLinkClick?: (e: React.MouseEvent) => void;
 }) {
+  const detail = callRecordDetail(record);
+  const failure = callRecordFailure(record);
+
   return (
-    <ToolCallLink to={url} onClick={onClick} aria-label={t('Open %s', label)}>
-      <ToolCallLinkIcon size="xs" />
-    </ToolCallLink>
+    <ToolCall
+      title={label}
+      status={callRecordStatus(record, settled)}
+      reference={
+        url
+          ? {
+              value: navLinkLabel(linkKind) ?? t('Open'),
+              to: url,
+              icon: <IconLink size="xs" />,
+              onClick: onLinkClick,
+            }
+          : undefined
+      }
+      notifications={failure ? [failure] : undefined}
+    >
+      {detail ? <RequestDetail detail={detail} /> : null}
+    </ToolCall>
   );
 }
 
-/** What the row actually ran, and what came back. */
-function CallDetail({
+/**
+ * What the call actually ran, and what came back.
+ *
+ * Lives inside the `ToolCall`'s own collapsible panel, so it does not wrap itself in another
+ * disclosure: the request line summarizes the call and the bounded response body (when there is
+ * one) sits beneath it.
+ */
+function RequestDetail({
   detail,
 }: {
   detail: NonNullable<ReturnType<typeof callRecordDetail>>;
@@ -668,7 +680,7 @@ function CallDetail({
       <Text size="xs" variant="muted" monospace>
         {detail.request}
       </Text>
-      {detail.body && <CodeBlock language="json">{detail.body}</CodeBlock>}
+      {detail.body ? <CodeBlock language="json">{detail.body}</CodeBlock> : null}
     </Stack>
   );
 }
