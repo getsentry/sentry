@@ -8,7 +8,7 @@ import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/core';
@@ -252,7 +252,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       query.statsPeriod = period || undefined;
     }
 
-    const markLine = MarkLine({
+    const markLineOptions = markLine({
       animation: false,
       lineStyle: {
         color: theme.tokens.dataviz.semantic.release,
@@ -320,7 +320,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       seriesName: 'Releases',
       color: theme.tokens.dataviz.semantic.release,
       data: [],
-      markLine,
+      markLine: markLineOptions,
     };
   };
 

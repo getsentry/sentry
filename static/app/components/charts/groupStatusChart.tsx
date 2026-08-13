@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -56,7 +56,7 @@ export function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const markLine = MarkLine({
+    const markLineOptions = markLine({
       silent: true,
       lineStyle: {
         color: theme.tokens.border.transparent.neutral.moderate,
@@ -87,7 +87,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Total Events'),
               data: secondaryStats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: showMarkLine && max > 0 ? markLineOptions : undefined,
             },
             {
               seriesName: t('Matching Events'),
@@ -98,7 +98,7 @@ export function GroupStatusChart({
             {
               seriesName: t('Events'),
               data: stats.map(asChartPoint),
-              markLine: showMarkLine && max > 0 ? markLine : undefined,
+              markLine: showMarkLine && max > 0 ? markLineOptions : undefined,
             },
           ];
 
