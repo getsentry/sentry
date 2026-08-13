@@ -1,4 +1,4 @@
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
 
@@ -11,7 +11,7 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
         Organization = apps.get_model("sentry", "Organization")
         Detector = apps.get_model("workflow_engine", "Detector")
 
-        with assume_test_silo_mode_of(Organization):
+        with unguarded_write(using="default"):
             self.org_with_detector = Organization.objects.create(
                 slug="with-detector", name="With Detector"
             )
@@ -23,7 +23,7 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
             enabled=True,
         )
 
-        with assume_test_silo_mode_of(Organization):
+        with unguarded_write(using="default"):
             self.org_without_detector = Organization.objects.create(
                 slug="without-detector", name="Without Detector"
             )
