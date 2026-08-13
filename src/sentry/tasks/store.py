@@ -24,7 +24,6 @@ from sentry.models.project import Project
 from sentry.relay.datascrubbing import scrub_data
 from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import process_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import get_symbolication_functions
 from sentry.taskworker.namespaces import (
@@ -39,6 +38,7 @@ from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_eve
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.tracing import set_span_data, start_span, trace
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -359,33 +359,15 @@ def do_process_event(
 
     has_changed = data_has_changed
 
-    # Stacktrace based event processors.
-    new_data = process_stacktraces(data)
-
-    if new_data is not None:
-        has_changed = True
-        data = new_data
-
     attachments = data.get("_attachments", None)
 
-    # Second round of datascrubbing after stacktrace and language-specific
-    # processing. First round happened as part of ingest.
+    # Second round of datascrubbing after symbolication. The first round
+    # happened as part of ingest.
     #
-    # *Right now* the only sensitive data that is added in stacktrace
-    # processing are usernames in filepaths, so we run directly after
-    # stacktrace processors.
+    # Symbolication can add sensitive data such as usernames in filepaths.
     #
-    # We do not yet want to deal with context data produced by plugins like
-    # sessionstack or fullstory (which are in `get_event_preprocessors`), as
-    # this data is very unlikely to be sensitive data. This is why scrubbing
-    # happens somewhere in the middle of the pipeline.
-    #
-    # On the other hand, Javascript event error translation is happening after
-    # this block because it uses `get_event_preprocessors`.
-    #
-    # We are fairly confident, however, that this should run *before*
-    # re-normalization as it is hard to find sensitive data in partially
-    # trimmed strings.
+    # This should run before event preprocessors and re-normalization because
+    # it is hard to find sensitive data in partially trimmed strings.
     if has_changed:
         new_data = safe_execute(scrub_data, project=project, event=data)
 
@@ -569,35 +551,42 @@ def _do_save_event(
                 attachments = [a for a in all_attachments if not a.rate_limited]
             project = resolve_project(project_id)
 
-            if killswitch_matches_context(
-                "store.load-shed-save-event-projects",
-                {
-                    "project_id": project_id,
-                    "event_type": event_type,
-                    "platform": data.get("platform") or "none",
-                },
+            with viewer_context_scope(
+                ViewerContext(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    actor_type=ActorType.SYSTEM,
+                )
             ):
-                raise HashDiscarded("Load shedding save_event")
+                if killswitch_matches_context(
+                    "store.load-shed-save-event-projects",
+                    {
+                        "project_id": project_id,
+                        "event_type": event_type,
+                        "platform": data.get("platform") or "none",
+                    },
+                ):
+                    raise HashDiscarded("Load shedding save_event")
 
-            manager = EventManager(data)
-            # event.project.organization is populated after this statement.
-            manager.save(
-                project=project,
-                assume_normalized=True,
-                start_time=start_time,
-                cache_key=cache_key,
-                attachments=attachments,
-            )
-            # Put the updated event back into the cache so that post_process
-            # has the most recent data.
+                manager = EventManager(data)
+                # event.project.organization is populated after this statement.
+                manager.save(
+                    project=project,
+                    assume_normalized=True,
+                    start_time=start_time,
+                    cache_key=cache_key,
+                    attachments=attachments,
+                )
+                # Put the updated event back into the cache so that post_process
+                # has the most recent data.
 
-            # We don't need to update the event in the processing_store for transaction events
-            # because they're not used in post_process.
-            if consumer_type != ConsumerType.Transactions:
-                data = manager.get_data()
-                if not isinstance(data, dict):
-                    data = dict(data.items())
-                processing_store.store(data)
+                # We don't need to update the event in the processing_store for transaction events
+                # because they're not used in post_process.
+                if consumer_type != ConsumerType.Transactions:
+                    data = manager.get_data()
+                    if not isinstance(data, dict):
+                        data = dict(data.items())
+                    processing_store.store(data)
 
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.

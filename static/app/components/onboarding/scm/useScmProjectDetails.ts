@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
@@ -399,7 +400,13 @@ export function useScmProjectDetails({
             variant: 'scm',
           });
           addErrorMessage(t('Failed to create project'));
-          Sentry.captureException(error);
+          captureProjectCreationFailure({
+            error,
+            organization,
+            team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
+            accessTeams,
+            variant: 'scm',
+          });
           return null;
         });
       if (!creation) {
@@ -435,6 +442,7 @@ export function useScmProjectDetails({
       setIsCompleting(false);
     }
   }, [
+    accessTeams,
     alertRuleConfig,
     canSubmit,
     createNotificationAction,

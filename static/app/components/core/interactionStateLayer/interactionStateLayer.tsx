@@ -87,13 +87,15 @@ export const InteractionStateLayer = styled(
           *:active > && {
             opacity: ${p.higherOpacity ? 0.12 : 0.09};
           }
-          ${(p.hasSelectedBackground ?? defaultProps.hasSelectedBackground) &&
-          css`
-            *[aria-expanded='true'] > &&,
-            *[aria-selected='true'] > && {
-              opacity: ${p.higherOpacity ? 0.12 : 0.09};
-            }
-          `}
+          ${
+            (p.hasSelectedBackground ?? defaultProps.hasSelectedBackground) &&
+            css`
+              *[aria-expanded='true'] > &&,
+              *[aria-selected='true'] > && {
+                opacity: ${p.higherOpacity ? 0.12 : 0.09};
+              }
+            `
+          }
         `}
 
   *:disabled &&,

@@ -54,7 +54,6 @@ export function generateLinkToEventInTraceView({
   eventId,
   eventView,
   targetId,
-  demo,
   source,
   view,
   tab,
@@ -63,7 +62,6 @@ export function generateLinkToEventInTraceView({
   organization: Organization;
   timestamp: string | number;
   traceSlug: string;
-  demo?: string;
   eventId?: string;
   eventView?: EventView;
   source?: TraceViewSources;
@@ -81,7 +79,7 @@ export function generateLinkToEventInTraceView({
   if (!traceSlug) {
     Sentry.withScope(scope => {
       scope.setExtras({traceSlug, source});
-      scope.setLevel('warning' as any);
+      scope.setLevel('warning');
       Sentry.captureException(new Error('Trace slug is missing'));
     });
   }
@@ -94,7 +92,6 @@ export function generateLinkToEventInTraceView({
     eventId,
     targetId,
     spanId,
-    demo,
     location,
     source,
     view,

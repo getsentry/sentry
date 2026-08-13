@@ -49,8 +49,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       p.isClickable &&
       css`
         &:active {
-          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
-            .active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.neutral.background.active
+          };
         }
       `}
 
@@ -97,8 +98,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
         background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
         &:hover {
-          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-            .background.active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.accent.selected.background.active
+          };
         }
       }
     `}
@@ -429,12 +431,6 @@ export const AutoRefreshLabel = styled('label')`
   margin-bottom: 0;
 `;
 
-export const AutoRefreshText = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
-`;
-
 export function getLogColors(level: SeverityLevel, theme: Theme) {
   switch (level) {
     case SeverityLevel.DEFAULT:
@@ -508,12 +504,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
 }
 
 export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: inline-flex;
-  }
-
   ${p =>
     p.sidebarOpen &&
     css`
@@ -587,15 +577,6 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
 
 export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
-`;
-
-export const LogsFilterSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(300px, auto) 1fr min-content;
-  }
 `;
 
 export const TraceIconStyleWrapper = styled(Flex)`

@@ -142,7 +142,7 @@ export class DifferentialFlamegraph extends Flamegraph {
     differentialFlamegraph.colorBuffer = makeColorBufferForNodes(
       sourceFlamegraph.frames,
       colorMap,
-      theme.COLORS.FRAME_FALLBACK_COLOR as unknown as ColorChannels
+      theme.COLORS.FRAME_FALLBACK_COLOR
     );
 
     differentialFlamegraph.newFrames = newFrames;

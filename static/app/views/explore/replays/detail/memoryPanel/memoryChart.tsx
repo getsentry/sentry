@@ -132,35 +132,39 @@ interface MemoryChartSeriesProps {
   ref?: React.Ref<ReactEchartsRef>;
 }
 
-const MemoryChartSeries = memo(
-  ({ref, durationMs, memoryFrames, startTimestampMs}: MemoryChartSeriesProps) => {
-    const theme = useTheme();
-    const chartId = useId();
-    const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
-      () => ({
-        autoHeightResize: true,
-        height: 'auto',
-        grid: Grid({
-          left: theme.space.md,
-          right: theme.space.md,
-        }),
-        tooltip: computeChartTooltip(
-          {
-            appendToBody: true,
-            trigger: 'axis',
-            renderMode: 'html',
-            chartId,
-            formatter: values => {
-              const firstValue = Array.isArray(values) ? values[0] : values;
-              const seriesTooltips = toArray(values).map(
-                value => `
+const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
+  ref,
+  durationMs,
+  memoryFrames,
+  startTimestampMs,
+}: MemoryChartSeriesProps) {
+  const theme = useTheme();
+  const chartId = useId();
+  const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
+    () => ({
+      autoHeightResize: true,
+      height: 'auto',
+      grid: Grid({
+        left: theme.space.md,
+        right: theme.space.md,
+      }),
+      tooltip: computeChartTooltip(
+        {
+          appendToBody: true,
+          trigger: 'axis',
+          renderMode: 'html',
+          chartId,
+          formatter: values => {
+            const firstValue = Array.isArray(values) ? values[0] : values;
+            const seriesTooltips = toArray(values).map(
+              value => `
             <div>
               <span className="tooltip-label">${value.marker as string}<strong>${value.seriesName}</strong></span>
               ${formatBytesBase2((value.data as any)[1])}
             </div>
           `
-              );
-              return `
+            );
+            return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
               ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, getFormat({year: true, seconds: true, timeZone: true}), {local: false}))}
@@ -177,111 +181,110 @@ const MemoryChartSeries = memo(
             </div>
           <div class="tooltip-arrow"></div>
         `;
-            },
           },
-          theme
-        ),
-        xAxis: XAxis({
-          type: 'time',
-          axisLabel: {
-            formatter: (time: number) =>
-              formatDuration({
-                duration: [time, 'ms'],
-                precision: 'sec',
-                style: 'hh:mm:ss',
-              }),
-          },
-          theme,
-        }),
-        yAxis: YAxis({
-          type: 'value',
-          theme,
-          minInterval: 1024 * 1024, // input is in bytes, minInterval is a megabyte
-          maxInterval: Math.pow(1024, 4), // maxInterval is a terabyte
-          axisLabel: {
-            // format the axis labels to be whole number values
-            formatter: (value: any) => formatBytesBase2(value, 0),
-          },
-        }),
+        },
+        theme
+      ),
+      xAxis: XAxis({
+        type: 'time',
+        axisLabel: {
+          formatter: (time: number) =>
+            formatDuration({
+              duration: [time, 'ms'],
+              precision: 'sec',
+              style: 'hh:mm:ss',
+            }),
+        },
+        theme,
       }),
-      [startTimestampMs, theme, chartId]
-    );
+      yAxis: YAxis({
+        type: 'value',
+        theme,
+        minInterval: 1024 * 1024, // input is in bytes, minInterval is a megabyte
+        maxInterval: Math.pow(1024, 4), // maxInterval is a terabyte
+        axisLabel: {
+          // format the axis labels to be whole number values
+          formatter: (value: any) => formatBytesBase2(value, 0),
+        },
+      }),
+    }),
+    [startTimestampMs, theme, chartId]
+  );
 
-    const staticSeries = useMemo<AreaChartSeries[]>(
-      () => [
-        {
-          id: 'usedMemory',
-          seriesName: t('Used Heap Memory'),
-          data: memoryFrames.map(frame => ({
-            value: frame.data.memory.usedJSHeapSize,
-            name: frame.offsetMs,
-          })),
-          emphasis: {disabled: true},
-          stack: 'heap-memory',
-          triggerLineEvent: true,
-          lineStyle: {opacity: 0, width: 2},
-        },
-        {
-          id: 'replayStart',
-          seriesName: 'Replay Start',
-          data: [{value: 0, name: 0}],
-          lineStyle: {opacity: 0, width: 0},
-        },
-        {
-          id: 'replayEnd',
-          seriesName: 'Replay End',
-          data: [{value: 0, name: durationMs}],
-          lineStyle: {opacity: 0, width: 0},
-        },
-      ],
-      [durationMs, memoryFrames]
-    );
+  const staticSeries = useMemo<AreaChartSeries[]>(
+    () => [
+      {
+        id: 'usedMemory',
+        seriesName: t('Used Heap Memory'),
+        data: memoryFrames.map(frame => ({
+          value: frame.data.memory.usedJSHeapSize,
+          name: frame.offsetMs,
+        })),
+        emphasis: {disabled: true},
+        stack: 'heap-memory',
+        triggerLineEvent: true,
+        lineStyle: {opacity: 0, width: 2},
+      },
+      {
+        id: 'replayStart',
+        seriesName: 'Replay Start',
+        data: [{value: 0, name: 0}],
+        lineStyle: {opacity: 0, width: 0},
+      },
+      {
+        id: 'replayEnd',
+        seriesName: 'Replay End',
+        data: [{value: 0, name: durationMs}],
+        lineStyle: {opacity: 0, width: 0},
+      },
+    ],
+    [durationMs, memoryFrames]
+  );
 
-    const dynamicSeries = useMemo<AreaChartSeries[]>(
-      () => [
-        {
-          id: 'currentTime',
-          seriesName: t('Current player time'),
+  const dynamicSeries = useMemo<AreaChartSeries[]>(
+    () => [
+      {
+        id: 'currentTime',
+        seriesName: t('Current player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
           data: [],
-          markLine: {
-            symbol: ['', ''],
-            data: [],
-            label: {show: false},
-            lineStyle: {
-              type: 'solid',
-              color: theme.tokens.graphics.accent.vibrant,
-              width: 2,
-            },
+          label: {show: false},
+          lineStyle: {
+            type: 'solid',
+            color: theme.tokens.graphics.accent.vibrant,
+            width: 2,
           },
         },
-        {
-          id: 'hoverTime',
-          seriesName: t('Hover player time'),
+      },
+      {
+        id: 'hoverTime',
+        seriesName: t('Hover player time'),
+        data: [],
+        markLine: {
+          symbol: ['', ''],
           data: [],
-          markLine: {
-            symbol: ['', ''],
-            data: [],
-            label: {show: false},
-            lineStyle: {
-              type: 'solid',
-              color: theme.tokens.graphics.neutral.moderate,
-              width: 2,
-            },
+          label: {show: false},
+          lineStyle: {
+            type: 'solid',
+            color: theme.tokens.graphics.neutral.moderate,
+            width: 2,
           },
         },
-      ],
-      [theme.tokens.graphics.accent.vibrant, theme.tokens.graphics.neutral.moderate]
-    );
+      },
+    ],
+    [theme.tokens.graphics.accent.vibrant, theme.tokens.graphics.neutral.moderate]
+  );
 
-    const series = useMemo(
-      () => staticSeries.concat(dynamicSeries),
-      [dynamicSeries, staticSeries]
-    );
+  const series = useMemo(
+    () => staticSeries.concat(dynamicSeries),
+    [dynamicSeries, staticSeries]
+  );
 
-    return (
-      <div id={chartId}>
-        <AreaChart ref={ref} {...chartOptions} series={series} />
-      </div>
-    );
-  }
-);
+  return (
+    <div id={chartId}>
+      <AreaChart ref={ref} {...chartOptions} series={series} />
+    </div>
+  );
+});
