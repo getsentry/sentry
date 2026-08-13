@@ -19,7 +19,8 @@ if TYPE_CHECKING:
 else:
     _Base = object
 
-CACHE_CONTROL = "private, no-cache"
+# Spelled out rather than "no-cache": some CDNs treat the two differently.
+CACHE_CONTROL = "private, max-age=0, must-revalidate"
 METRIC_NAME = "api.conditional_get"
 
 
