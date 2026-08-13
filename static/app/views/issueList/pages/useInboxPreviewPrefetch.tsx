@@ -23,7 +23,7 @@ export function useInboxPreviewPrefetch(groupId: string) {
           groupId,
           organizationSlug: organization.slug,
           environments,
-          expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+          expandDerivedData: organization.features.includes('issue-inbox'),
         })
       );
     },
