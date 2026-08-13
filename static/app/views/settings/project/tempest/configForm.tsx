@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 
 const schema = z.object({
   tempestFetchScreenshots: z.boolean(),
@@ -22,7 +22,7 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
     {orgSlug: organization.slug, projectSlug: project.slug},
     {initialData: {headers: {}, json: project}}
   );
-  const updateProject = useUpdateProject(currentProject);
+  const projectMutationOptions = useUpdateProjectMutationOptions(currentProject);
 
   return (
     <FieldGroup title={t('General Settings')}>
@@ -30,9 +30,7 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
         name="tempestFetchScreenshots"
         schema={schema}
         initialValue={currentProject.tempestFetchScreenshots ?? false}
-        mutationOptions={{
-          mutationFn: data => updateProject.mutateAsync(data),
-        }}
+        mutationOptions={projectMutationOptions}
       >
         {field => (
           <field.Layout.Row
