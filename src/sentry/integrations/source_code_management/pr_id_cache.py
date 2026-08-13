@@ -66,6 +66,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
+from sentry import options
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -97,12 +98,36 @@ _CACHE_KEY_VERSION = 1
 # key to an arm by a stable hash of the key itself, so an entry is always read
 # under the arm that wrote it, tag the counter with the arm, and compare hit
 # rates across what are then two identical populations.
-PR_ID_CACHE_TTL = 24 * 60 * 60
+#
+# The number itself lives with the registration in ``sentry.options.defaults``,
+# so it can be moved — or the cache switched off outright — without a deploy. It
+# is deliberately not mirrored here: a module constant that the option overrides
+# is a second source of truth that looks authoritative and changes nothing.
+PR_ID_CACHE_TTL_OPTION = "integrations.pr-id-cache.ttl"
 
 # github.com, whose repo ids are unique across every repository GitHub knows
 # about — which is what makes a key without any tenant scope safe. Every other
 # provider, GitHub Enterprise included, is not cached; see the module docstring.
 SUPPORTED_PROVIDER = f"integrations:{IntegrationProviderSlug.GITHUB.value}"
+
+
+def _cache_ttl() -> int | None:
+    """Seconds to keep an entry, or ``None`` to bypass the cache entirely.
+
+    Zero is the off switch, and it turns the cache off on *both* sides rather
+    than storing entries nothing will read: a lookup skips the read and every
+    caller goes back to paying the REST call it paid before this module existed.
+    That is a latency regression and never a correctness one, which is what makes
+    it safe to reach for from the automator mid-incident.
+
+    The question asked of the option is "is this a usable lifetime?", not "is
+    this zero": the options system has no way to declare a bound, so a negative
+    is registerable and settable. Reading it as off keeps that misconfiguration
+    equivalent to the off switch instead of handing the backend a write that is
+    already expired.
+    """
+    ttl = options.get(PR_ID_CACHE_TTL_OPTION)
+    return ttl if ttl > 0 else None
 
 
 def _cache_key(provider: str, repo_external_id: str, pr_number: int) -> str:
@@ -133,6 +158,14 @@ def get_cached_pr_id(
         metrics.incr(
             f"{_METRICS_KEY}.get", tags={"result": "unkeyable", "missing": "repo_external_id"}
         )
+        return None
+
+    # Last, so that the diagnostics above keep their meaning while the cache is
+    # off: `unkeyable` reports rows with nothing to key on, which is an upstream
+    # bug either way. `disabled` therefore counts exactly the lookups that would
+    # otherwise have gone to the backend.
+    if _cache_ttl() is None:
+        metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "disabled"})
         return None
 
     key = _cache_key(provider, repo_external_id, pr_number)
@@ -189,10 +222,18 @@ def set_cached_pr_id(
         )
         return
 
+    # Both sides read the option, so switching it off stops new entries as well
+    # as reads. Entries already stored are left to expire under the TTL they were
+    # written with rather than being deleted.
+    ttl = _cache_ttl()
+    if ttl is None:
+        metrics.incr(f"{_METRICS_KEY}.set", tags={"result": "disabled"})
+        return
+
     key = _cache_key(provider, repo_external_id, pr_number)
 
     try:
-        cache.set(key, pr_id, PR_ID_CACHE_TTL)
+        cache.set(key, pr_id, ttl)
     except Exception:
         logger.exception("scm.pr_id_cache.set_failed", extra={"repo_external_id": repo_external_id})
         metrics.incr(f"{_METRICS_KEY}.set", tags={"result": "error"})

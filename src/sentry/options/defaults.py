@@ -4012,6 +4012,27 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Seconds to remember "this organization has no Autofix run for this PR", the
+# negative half of the PR -> run lookup. 0 disables the cache: every lookup asks
+# Seer. See ``sentry.seer.autofix.pr_iteration.run_resolution``.
+register(
+    "autofix.pr-iteration.no-run-cache-ttl",
+    type=Int,
+    default=24 * 60 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Seconds to keep a cached SCM pull-request number -> pull-request id mapping. 0
+# disables the cache on both sides: no reads, no new entries, and every caller
+# pays the REST round-trip instead. See
+# ``sentry.integrations.source_code_management.pr_id_cache``.
+register(
+    "integrations.pr-id-cache.ttl",
+    type=Int,
+    default=24 * 60 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",

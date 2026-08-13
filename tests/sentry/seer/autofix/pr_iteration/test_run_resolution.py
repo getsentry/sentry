@@ -9,12 +9,13 @@ from sentry.integrations.source_code_management.pr_id_cache import (
 )
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.run_resolution import (
-    NO_RUN_CACHE_TTL,
+    NO_RUN_CACHE_TTL_OPTION,
     get_run_state_for_pr_id,
     resolve_pr_id,
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 MODULE_PATH = "sentry.seer.autofix.pr_iteration.run_resolution"
 METRICS_KEY = "autofix.pr_iteration.run_resolution"
@@ -283,20 +284,74 @@ class GetRunStateForPrIdTest(TestCase):
 
     @patch(f"{MODULE_PATH}.cache")
     @patch(f"{MODULE_PATH}.get_agent_state_from_pr_id")
-    def test_negative_is_written_with_the_long_ttl(
+    def test_negative_is_written_with_the_configured_ttl(
         self, mock_get_state: MagicMock, mock_cache: MagicMock
     ) -> None:
         mock_cache.get.return_value = None
         mock_get_state.return_value = None
 
-        get_run_state_for_pr_id(
-            organization_id=self.organization.id, provider=GITHUB, pr_id=561, caller="mention"
-        )
+        with override_options({NO_RUN_CACHE_TTL_OPTION: 3600}):
+            get_run_state_for_pr_id(
+                organization_id=self.organization.id, provider=GITHUB, pr_id=561, caller="mention"
+            )
 
         key, _value, ttl = mock_cache.set.call_args.args
-        assert ttl == NO_RUN_CACHE_TTL
+        assert ttl == 3600
         assert str(self.organization.id) in key
         assert "561" in key
+
+    @patch(f"{MODULE_PATH}.cache")
+    @patch(f"{MODULE_PATH}.get_agent_state_from_pr_id")
+    def test_zero_ttl_remembers_nothing_and_reads_nothing(
+        self, mock_get_state: MagicMock, mock_cache: MagicMock
+    ) -> None:
+        """The off switch: every lookup asks Seer, so a late-arriving run is seen."""
+        mock_get_state.return_value = None
+
+        with override_options({NO_RUN_CACHE_TTL_OPTION: 0}):
+            for _ in range(2):
+                assert (
+                    get_run_state_for_pr_id(
+                        organization_id=self.organization.id,
+                        provider=GITHUB,
+                        pr_id=565,
+                        caller="mention",
+                    )
+                    is None
+                )
+
+        assert mock_get_state.call_count == 2
+        mock_cache.get.assert_not_called()
+        mock_cache.set.assert_not_called()
+
+    @patch(f"{MODULE_PATH}.get_agent_state_from_pr_id")
+    def test_zero_ttl_sees_a_run_that_appears_after_a_negative(
+        self, mock_get_state: MagicMock
+    ) -> None:
+        """What the long TTL trades away, and what turning it off buys back."""
+        mock_get_state.return_value = None
+
+        with override_options({NO_RUN_CACHE_TTL_OPTION: 0}):
+            assert (
+                get_run_state_for_pr_id(
+                    organization_id=self.organization.id,
+                    provider=GITHUB,
+                    pr_id=566,
+                    caller="mention",
+                )
+                is None
+            )
+
+            mock_get_state.return_value = _run_state()
+            assert (
+                get_run_state_for_pr_id(
+                    organization_id=self.organization.id,
+                    provider=GITHUB,
+                    pr_id=566,
+                    caller="mention",
+                )
+                is not None
+            )
 
     @patch(f"{MODULE_PATH}.metrics.incr")
     @patch(f"{MODULE_PATH}.get_agent_state_from_pr_id")

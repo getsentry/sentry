@@ -25,7 +25,8 @@ Two caches sit under this, and they cache opposite halves for opposite reasons:
 
 * ``pr_id_cache`` caches *positives*, because number -> id can never become
   wrong. Its TTL is a memory budget rather than an invalidation — see
-  ``PR_ID_CACHE_TTL`` — so an expired entry costs a REST call, never a wrong id.
+  ``PR_ID_CACHE_TTL_OPTION`` — so an expired entry costs a REST call, never a
+  wrong id.
 * This module caches only *negatives*, for the same reason and just as long.
   See below.
 
@@ -84,6 +85,7 @@ import logging
 from functools import partial
 from typing import Literal
 
+from sentry import options
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.pr_id_cache import get_or_fetch_pr_id
 from sentry.seer.agent.client_models import SeerRunState
@@ -100,10 +102,15 @@ _METRICS_KEY = "autofix.pr_iteration.run_resolution"
 # age out on their own.
 _CACHE_KEY_VERSION = 1
 
-# 1 day. The answers stored under it cannot become wrong -- see the module
-# docstring -- so this is a memory budget, not an invalidation, exactly like
-# ``PR_ID_CACHE_TTL``.
-NO_RUN_CACHE_TTL = 24 * 60 * 60
+# The answers stored under this cannot become wrong -- see the module docstring
+# -- so it is a memory budget, not an invalidation, exactly like the PR-id cache
+# it sits next to. Both default to a day, and the number for each lives with its
+# registration in ``sentry.options.defaults`` rather than being mirrored here.
+#
+# The argument for a day rests on a race being unreachable, and the cost of being
+# wrong about that is a PR that stays dark for a day -- so the number is
+# reachable without a deploy, and so is switching it off entirely.
+NO_RUN_CACHE_TTL_OPTION = "autofix.pr-iteration.no-run-cache-ttl"
 
 _NO_RUN_SENTINEL = 1
 
@@ -121,8 +128,27 @@ def _no_run_cache_key(*, provider: str, pr_id: int, organization_id: int) -> str
     return f"autofix:pr-iteration:no-run:{_CACHE_KEY_VERSION}:{provider}:{pr_id}:{organization_id}"
 
 
+def _cache_ttl() -> int | None:
+    """Seconds to remember an absence, or ``None`` to remember nothing.
+
+    Zero is the off switch. Turning it off costs a Seer RPC per lookup -- the
+    traffic this module was written to remove -- and buys back the one thing the
+    long TTL gives up: a PR that acquires a run after we looked is picked up on
+    the next webhook instead of a day later.
+
+    Anything that is not a usable lifetime reads as off -- see the matching
+    helper in ``pr_id_cache``, which explains why a negative has to be handled
+    rather than declared impossible.
+    """
+    ttl = options.get(NO_RUN_CACHE_TTL_OPTION)
+    return ttl if ttl > 0 else None
+
+
 def _is_known_missing(*, provider: str, pr_id: int, organization_id: int) -> bool:
     """Whether this org has already been told there is no run for this PR."""
+    if _cache_ttl() is None:
+        return False
+
     try:
         return (
             cache.get(
@@ -141,11 +167,15 @@ def _is_known_missing(*, provider: str, pr_id: int, organization_id: int) -> boo
 
 def _mark_missing(*, provider: str, pr_id: int, organization_id: int) -> None:
     """Remember that this org has no run for this PR."""
+    ttl = _cache_ttl()
+    if ttl is None:
+        return
+
     try:
         cache.set(
             _no_run_cache_key(provider=provider, pr_id=pr_id, organization_id=organization_id),
             _NO_RUN_SENTINEL,
-            NO_RUN_CACHE_TTL,
+            ttl,
         )
     except Exception:
         # Losing a negative only costs an RPC next time round.
@@ -218,7 +248,8 @@ def get_run_state_for_pr_id(
     both "no run exists" and "the run belongs to another organization" -- Seer
     reports the second as a 404 and the caller cannot tell them apart anyway.
 
-    Only that absence is remembered, for :data:`NO_RUN_CACHE_TTL`. Transport
+    Only that absence is remembered, and only for as long as
+    :data:`NO_RUN_CACHE_TTL_OPTION` says -- zero remembers nothing. Transport
     failures and Seer errors other than 404 are *not* remembered: they say nothing
     about whether a run exists, and caching them would turn a blip into a day of
     blindness. They propagate as :class:`SeerApiError` so callers keep reporting

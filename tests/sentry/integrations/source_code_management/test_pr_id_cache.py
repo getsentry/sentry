@@ -3,12 +3,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.integrations.source_code_management.pr_id_cache import (
-    PR_ID_CACHE_TTL,
+    PR_ID_CACHE_TTL_OPTION,
     get_cached_pr_id,
     get_or_fetch_pr_id,
     set_cached_pr_id,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 MODULE_PATH = "sentry.integrations.source_code_management.pr_id_cache"
 METRICS_KEY = "integrations.source_code_management.pr_id_cache"
@@ -131,12 +132,64 @@ class PrIdCacheTest(TestCase):
 
     @patch(f"{MODULE_PATH}.cache")
     def test_ttl_is_applied(self, mock_cache: MagicMock) -> None:
-        set_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7, pr_id=111)
+        with override_options({PR_ID_CACHE_TTL_OPTION: 3600}):
+            set_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7, pr_id=111)
 
         key, value, ttl = mock_cache.set.call_args[0]
         assert value == 111
-        assert ttl == PR_ID_CACHE_TTL
+        assert ttl == 3600
         assert key == "scm:pr-id:1:integrations:github:654321:7"
+
+    @patch(f"{MODULE_PATH}.cache")
+    def test_zero_ttl_stores_nothing(self, mock_cache: MagicMock) -> None:
+        """The off switch, so an entry nothing will read is never written."""
+        with override_options({PR_ID_CACHE_TTL_OPTION: 0}):
+            set_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7, pr_id=111)
+
+        mock_cache.set.assert_not_called()
+
+    @patch(f"{MODULE_PATH}.cache")
+    def test_zero_ttl_reads_nothing(self, mock_cache: MagicMock) -> None:
+        with override_options({PR_ID_CACHE_TTL_OPTION: 0}):
+            assert (
+                get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7) is None
+            )
+
+        mock_cache.get.assert_not_called()
+
+    def test_zero_ttl_sends_every_caller_to_the_fetch(self) -> None:
+        """Turning the cache off is a latency regression, never a wrong id."""
+        calls = []
+
+        def fetch() -> int | None:
+            calls.append(1)
+            return 279147437
+
+        with override_options({PR_ID_CACHE_TTL_OPTION: 0}):
+            for _ in range(2):
+                assert (
+                    get_or_fetch_pr_id(
+                        provider=GITHUB,
+                        repo_external_id="654321",
+                        pr_number=7,
+                        fetch=fetch,
+                    )
+                    == 279147437
+                )
+
+        assert len(calls) == 2
+
+    @patch(f"{MODULE_PATH}.metrics.incr")
+    @patch(f"{MODULE_PATH}.cache")
+    def test_disabled_is_counted_apart_from_a_miss(
+        self, mock_cache: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        with override_options({PR_ID_CACHE_TTL_OPTION: 0}):
+            get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7)
+            set_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7, pr_id=111)
+
+        assert mock_incr.call_args_list[0].kwargs["tags"] == {"result": "disabled"}
+        assert mock_incr.call_args_list[1].kwargs["tags"] == {"result": "disabled"}
 
     @patch(f"{MODULE_PATH}.cache")
     def test_cache_backend_failure_on_set_is_swallowed(self, mock_cache: MagicMock) -> None:
