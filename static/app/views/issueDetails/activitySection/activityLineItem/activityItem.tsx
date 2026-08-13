@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-import * as Sentry from '@sentry/react';
-
 import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -190,7 +188,6 @@ function getActivityItemContent({
 }: GetActivityItemParams): ActivityItem {
   const {activity} = item;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-  const activityContext = {id: activity.id, type: activity.type};
   const seerActivityDuration =
     item.type === 'activity' ? null : getSeerActivityDuration(item);
 
@@ -596,10 +593,8 @@ function getActivityItemContent({
       }
   }
 
-  Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
-    contexts: {activity: activityContext},
-  });
-
+  // Unknown activity type received from the API (e.g. a type added backend-side
+  // before the frontend is deployed). Degrade gracefully without emitting noise.
   return {
     title: t('Activity'),
   };
