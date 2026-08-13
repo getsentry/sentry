@@ -452,10 +452,28 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
     padding-right: 0;
   }
 
-  /* Interactive layout: dense, segmented buttons that own their own padding. */
+  /*
+   * Interactive layout: segmented buttons abut and fill the chip. Redistribute
+   * padding so labels line up exactly with the flat chip — the flat end padding
+   * on the outer edges and half the flat gap on each inner seam, so adjacent
+   * segments sum to a single gap instead of doubling.
+   */
   &:has([data-chip-interactive]) {
     gap: 0;
     padding-inline: 0;
+  }
+  &:has([data-chip-interactive]) [data-chip-interactive] {
+    padding-inline: calc(${p => p.theme.space.xs} / 2);
+  }
+  &:has([data-chip-interactive]) > [data-chip-interactive]:first-child {
+    padding-inline-start: ${p => p.theme.space[SIZES[p.chipSize].pad]};
+  }
+  &:has([data-chip-interactive]) > [data-chip-interactive]:last-child {
+    padding-inline-end: ${p => p.theme.space[SIZES[p.chipSize].pad]};
+  }
+  /* A segment flush against the dismiss keeps a single flat gap on that seam. */
+  &:has([data-chip-interactive]) > [data-chip-interactive]:has(+ [data-chip-dismiss]) {
+    padding-inline-end: ${p => p.theme.space.xs};
   }
 
   /*
@@ -480,7 +498,7 @@ const InteractiveSegment = styled('button')`
   margin: 0;
   border: 0;
   background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
-  padding: 0 ${p => p.theme.space.sm};
+  padding: 0;
   color: inherit;
   cursor: pointer;
 
