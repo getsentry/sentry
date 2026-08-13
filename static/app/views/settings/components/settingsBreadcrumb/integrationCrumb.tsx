@@ -17,7 +17,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
-import type {SettingsBreadcrumbProps} from './types';
+import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
 type IntegrationProviderResponse = {
@@ -30,7 +30,9 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
   const organization = useOrganization();
   const params = useParams();
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
-  const isSentryAppRoute = routes.some(item => item.path === 'sentry-apps/');
+  const isSentryAppRoute = routes.some(
+    (item: RouteWithName) => item.path === 'sentry-apps/'
+  );
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
     sentryAppApiOptions({
       appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null,
