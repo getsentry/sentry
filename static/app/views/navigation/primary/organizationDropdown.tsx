@@ -2,9 +2,11 @@ import {useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
@@ -25,14 +27,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ProjectStarToggle} from 'sentry/views/navigation/primary/projectStarToggle';
 import {useSearchableMenuItems} from 'sentry/views/navigation/primary/useSearchableMenuItems';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
- * How many projects the menu will list directly before it stops trying to show
- * them all. At or below this count, starring is pointless overhead — there is no
- * list to curate — so every project is listed and the section never sits empty.
- * Above it, only starred projects are listed and "All Projects" is the way in.
+ * How many projects the menu lists directly. Most organizations have fewer than
+ * this, so the section shows everything and never sits empty; larger ones get the
+ * most relevant few here and reach the rest through "All Projects".
  */
-const MAX_INLINE_PROJECTS = 8;
+const MAX_INLINE_PROJECTS = 5;
 
 interface OrganizationDropdownProps {
   /**
@@ -62,29 +64,34 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   const {projects} = useProjects();
 
-  // Most organizations have only a handful of projects, where starring is pure
-  // overhead — list them all so the section is never empty. Past that the list
-  // would crowd out the rest of the menu, so it narrows to starred projects and
-  // "All Projects" carries the remainder.
-  const {inlineProjects, isShowingAllProjects} = useMemo(() => {
-    const sorted = orderBy(projects, ['slug']);
+  // Mirrors how ProjectPageFilter picks and orders its list, so the two surfaces
+  // agree on which projects are the relevant ones.
+  const inlineProjects = useMemo(() => {
+    const memberProjects = projects.filter(project => project.isMember);
 
-    if (sorted.length <= MAX_INLINE_PROJECTS) {
-      return {inlineProjects: sorted, isShowingAllProjects: true};
-    }
+    // "My Projects" is the filter's default selection, so prefer it. Users on no
+    // projects at all fall back to everything they can access.
+    const candidates = memberProjects.length > 0 ? memberProjects : projects;
 
-    return {
-      inlineProjects: sorted
-        .filter(project => project.isBookmarked)
-        .slice(0, MAX_INLINE_PROJECTS),
-      isShowingAllProjects: false,
-    };
+    // Starred first, then projects the user is a member of, then alphabetically —
+    // the same precedence the filter's list uses, minus its selection key.
+    return sortBy(candidates, [
+      project => !project.isBookmarked,
+      project => !project.isMember,
+      project => project.slug,
+    ]).slice(0, MAX_INLINE_PROJECTS);
   }, [projects]);
 
   const allProjectsSearch = useSearchableMenuItems({
     items: useMemo(
       () =>
-        orderBy(projects, ['slug']).map(project => ({
+        // Same precedence as the inline list above, so the relevant projects stay
+        // near the top here too.
+        sortBy(projects, [
+          project => !project.isBookmarked,
+          project => !project.isMember,
+          project => project.slug,
+        ]).map(project => ({
           item: makeProjectMenuItem(project, organization, {starrable: true}),
           searchText: project.slug,
         })),
@@ -203,34 +210,41 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         },
         {
           key: 'project-settings',
-          // Reflect what the list below actually is, so the heading does not
-          // promise starred projects when it is showing all of them.
-          label: isShowingAllProjects ? t('Project Settings') : t('Starred Projects'),
+          label: t('Projects'),
           // Project settings belong to the current organization, so they follow
           // the same access rules as the links above.
           hidden: props.hideCurrentOrganizationLinks,
           children: [
-            ...inlineProjects.map(project => makeProjectMenuItem(project, organization)),
+            // Starrable here too, so the star that drives the ordering is visible
+            // on the rows it orders.
+            ...inlineProjects.map(project =>
+              makeProjectMenuItem(project, organization, {starrable: true})
+            ),
             {
               key: 'all-projects',
               label: t('All Projects'),
               leadingItems: <IconAllProjects />,
-              // Set expectations before the click: a small number says the
-              // submenu is trivial, a large one says to expect the search field.
+              // Set expectations before the click: a small number says the submenu
+              // is trivial, a large one says to expect the search field.
               trailingItems: (
                 <Text size="sm" variant="muted" tabular>
                   {projects.length}
                 </Text>
               ),
-              // When every project is already listed above, a submenu would just
-              // repeat those rows, so link straight to the projects index
-              // instead. Otherwise it opens the full searchable list.
-              ...(isShowingAllProjects
-                ? {to: `/settings/${organization.slug}/projects/`}
-                : {
-                    submenu: {title: allProjectsSearch.title},
-                    children: allProjectsSearch.items,
-                  }),
+              submenu: {
+                title: allProjectsSearch.title,
+                // Pinned below the list so it stays reachable in organizations
+                // with enough projects to scroll.
+                footer: organization.access?.includes('project:write') ? (
+                  <MenuComponents.CTALinkButton
+                    icon={<IconAdd />}
+                    to={makeProjectsPathname({path: '/new/', organization})}
+                  >
+                    {t('Create Project')}
+                  </MenuComponents.CTALinkButton>
+                ) : null,
+              },
+              children: allProjectsSearch.items,
             },
           ],
         },

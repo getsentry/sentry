@@ -202,6 +202,7 @@ export function DropdownMenuList({
         closeOnSelect={closeOnSelect}
         disableTextSelection={disableTextSelection}
         menuTitle={submenuOptions.title}
+        menuFooter={submenuOptions.footer}
         shouldCloseOnBlur={false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
@@ -264,16 +265,10 @@ export function DropdownMenuList({
               hasTitle={!!menuTitle}
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                // The overlay above is already capped, so the list only needs to
-                // shrink within it — a hard maxHeight here would let the list
-                // claim the full cap and push a title/footer past it.
-                minHeight: 0,
-              }}
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
-            {menuFooter}
+            {menuFooter && <MenuFooter>{menuFooter}</MenuFooter>}
           </StyledOverlay>
         </DropdownMenuContext>
       </PositionWrapper>
@@ -295,6 +290,13 @@ const DropdownMenuListWrap = styled('ul')<{
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+
+  /* The overlay carries the height cap, so the list scrolls inside whatever space
+  is left over once a title and footer have taken theirs. Without min-height a
+  flex item refuses to shrink below its content, which would push the footer out
+  of the overlay. */
+  flex: 1 1 auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
@@ -333,6 +335,18 @@ const MenuTitle = styled('div')`
   }
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  z-index: 2;
+`;
+
+/**
+ * Sits outside the scrolling list, so footer actions stay reachable no matter how
+ * many items there are.
+ */
+const MenuFooter = styled('div')`
+  flex-shrink: 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 -1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   z-index: 2;
 `;
 
