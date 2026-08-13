@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
@@ -59,13 +59,13 @@ export function KeyStats() {
   const theme = useTheme();
   const {keyId, projectId} = useParams<{keyId: string; projectId: string}>();
 
-  const queryBase = useMemo(() => {
+  const [queryBase] = useState(() => {
     const until = Math.floor(Date.now() / 1000);
     return {
       since: until - 3600 * 24 * 30,
       until,
     };
-  }, []);
+  });
 
   const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(
     [

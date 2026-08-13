@@ -511,13 +511,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -1354,6 +1347,36 @@ register(
 )
 register(
     "issues.backfill_group_action_log.coordinator_inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_batch_size",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s",
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2476,11 +2499,29 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of integrations (bucketed by the provider:integration_id prefix of
+# mailbox_name, so all of an integration's mailboxes switch together) whose
+# drains are dispatched via batch claims instead of the drain-lock lease.
+register(
+    "hybridcloud.webhookpayload.claim_dispatch_rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
     default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Drops GitHub check webhooks that reference no pull request based in their own
+# repo (see ActionFilter.own_repo_pr_actions). Ships off: unlike the other parser
+# drops this one keys off payload shape rather than a header, so it needs a switch
+# that stops the loss immediately if the predicate turns out to be wrong.
+register(
+    "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -2635,6 +2676,14 @@ register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Webhook timeout overrides by installation organization ID. Values are seconds.
+# Example: {"123456": {"webhook_timeout_override": 0.5, "hard_timeout_override": 5.0}}
+register(
+    "sentry-apps.override.organization_ids.webhook.timeouts.sec",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Hard timeout for webhook requests to prevent indefinite hangs.
@@ -3413,7 +3462,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.all_projects_auto_creation_enabled",
+    "workflow_engine.auto_creation.pull_request_workflow",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.all_projects_detector",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

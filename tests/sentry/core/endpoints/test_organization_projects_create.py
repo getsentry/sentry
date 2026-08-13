@@ -42,14 +42,10 @@ class OrganizationProjectsCreateTest(APITestCase):
 
         self.get_error_response(self.organization.slug, status_code=403)
 
-    @with_feature(["organizations:team-roles"])
-    def test_org_member_can_create_project(self) -> None:
-        # Members have project:read scope, which is sufficient for POST /organizations/{org}/projects/.
-        # This verifies the intentionally-lowered scope in OrganizationProjectsPermission.
-        # Orgs default to disable_member_project_creation=True; explicitly enable it here.
+    @with_feature({"organizations:team-roles": False})
+    def test_org_member_can_create_project_when_team_roles_disabled(self) -> None:
         self.organization.flags.disable_member_project_creation = False
         self.organization.save()
-
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.organization, role="member", teams=[]
@@ -91,11 +87,17 @@ class OrganizationProjectsCreateTest(APITestCase):
         mock_add_creator.assert_called_once()
 
     @with_feature({"organizations:team-roles": False})
-    def test_missing_team_roles_flag(self) -> None:
-        response = self.get_error_response(self.organization.slug, name=self.p1, status_code=404)
-        assert response.data == {
-            "detail": "You do not have permission to join a new team as a Team Admin."
-        }
+    def test_org_owner_can_create_project_when_team_roles_disabled(self) -> None:
+        self.organization.flags.disable_member_project_creation = False
+        self.organization.save()
+        owner_user = self.create_user(is_superuser=False)
+        self.create_member(user=owner_user, organization=self.organization, role="owner", teams=[])
+        self.login_as(user=owner_user)
+
+        response = self.get_success_response(self.organization.slug, name=self.p1, status_code=201)
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == project.slug == self.p1
 
     @with_feature(["organizations:team-roles"])
     @patch("sentry.models.team.Team.objects.filter")
@@ -154,8 +156,6 @@ class OrganizationProjectsCreateTest(APITestCase):
 
     @with_feature(["organizations:team-roles"])
     def test_team_slug_is_slugified(self) -> None:
-        self.organization.flags.disable_member_project_creation = False
-        self.organization.save()
         special_email = "test.bad$email@foo.com"
         t1 = "team-testbademail"
         user = self.create_user(email=special_email)

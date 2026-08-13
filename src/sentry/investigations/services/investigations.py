@@ -691,15 +691,22 @@ def update_parameter_values(
         changed_parameter_ids: list[int] = []
         for key, value in values.items():
             parameter = parameters[key]
-            try:
-                validated = validate_parameter_value(
-                    parameter_type=parameter.type,
-                    value=value,
-                    constraints=parameter.validation_constraints,
-                    accessible_project_ids=accessible_project_ids,
-                )
-            except ParameterValidationError as error:
-                raise InvestigationValidationError({"values": {key: str(error)}})
+            if value is None:
+                if parameter.required:
+                    raise InvestigationValidationError(
+                        {"values": {key: f"Missing required parameter: {key}."}}
+                    )
+                validated = None
+            else:
+                try:
+                    validated = validate_parameter_value(
+                        parameter_type=parameter.type,
+                        value=value,
+                        constraints=parameter.validation_constraints,
+                        accessible_project_ids=accessible_project_ids,
+                    )
+                except ParameterValidationError as error:
+                    raise InvestigationValidationError({"values": {key: str(error)}})
             if parameter.saved_value != validated:
                 parameter.saved_value = validated
                 parameter.version += 1

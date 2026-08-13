@@ -253,10 +253,10 @@ class BaseIssueAlertHandler(ABC):
             ).first()
             if alert_rule_workflow:
                 try:
-                    label = Rule.objects.get(
+                    Rule.objects.get(
                         id=alert_rule_workflow.rule_id,
                         project__organization_id=detector.linked_project.organization_id,
-                    ).label
+                    )
                     rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
                     logger.exception(

@@ -11,10 +11,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
-  getImageAttachmentRenderer,
   imageMimeTypes,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -72,7 +72,9 @@ export function Screenshot({
     onDelete(screenshotAttachmentId);
   }
 
-  const AttachmentComponent = getImageAttachmentRenderer(screenshot) ?? ImageViewer;
+  const AttachmentComponent = webmMimeTypes.includes(screenshot.mimetype)
+    ? VideoViewer
+    : ImageViewer;
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (

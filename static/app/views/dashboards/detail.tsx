@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {QueryClient, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -11,7 +10,7 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {
   createDashboard,
@@ -1080,7 +1079,13 @@ class DashboardDetail extends Component<Props, State> {
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
               <NoProjectMessage organization={organization}>
-                <StyledPageHeader>
+                <Grid
+                  columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) max-content'}}
+                  gap="xl"
+                  align="center"
+                  marginBottom="xl"
+                  height={{zero: 'auto', '3xl': '40px'}}
+                >
                   <Layout.Title>
                     <DashboardTitle
                       dashboard={modifiedDashboard ?? dashboard}
@@ -1100,7 +1105,7 @@ class DashboardDetail extends Component<Props, State> {
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
                   />
-                </StyledPageHeader>
+                </Grid>
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
@@ -1513,20 +1518,6 @@ class DashboardDetail extends Component<Props, State> {
     return this.renderDefaultDashboardDetail();
   }
 }
-
-const StyledPageHeader = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-row-gap: ${p => p.theme.space.xl};
-  align-items: center;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
-    grid-column-gap: ${p => p.theme.space.xl};
-    height: 40px;
-  }
-`;
 
 interface DashboardDetailWithInjectedPropsProps extends Omit<
   Props,
