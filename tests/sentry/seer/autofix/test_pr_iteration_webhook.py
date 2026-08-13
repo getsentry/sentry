@@ -106,6 +106,16 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_github_enterprise(self, mock_delay: MagicMock) -> None:
+        # GHE inherits this processor and sends the same issue_comment events,
+        # so the mention lands here and must be dropped before a task is
+        # scheduled — PR iteration is not supported on GHE.
+        self.integration = MagicMock(id=42, provider="github_enterprise")
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event())
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("number")

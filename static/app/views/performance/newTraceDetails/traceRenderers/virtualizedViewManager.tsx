@@ -1101,8 +1101,8 @@ export class VirtualizedViewManager {
       max = Math.max(max, width);
       innerMostNode =
         !innerMostNode ||
-        TraceTree.Depth(this.columns.list.column_nodes[i]!) <
-          TraceTree.Depth(innerMostNode)
+        TraceTree.depth(this.columns.list.column_nodes[i]!) <
+          TraceTree.depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
     }
@@ -1111,7 +1111,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + TraceTree.Depth(innerMostNode) * this.row_depth_padding >
+        translation + TraceTree.depth(innerMostNode) * this.row_depth_padding >
         this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -1129,8 +1129,8 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
 
     return (
-      translation + TraceTree.Depth(node) * this.row_depth_padding < 0 ||
-      translation + TraceTree.Depth(node) * this.row_depth_padding >
+      translation + TraceTree.depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.depth(node) * this.row_depth_padding >
         (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
@@ -1141,7 +1141,7 @@ export class VirtualizedViewManager {
     offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
-    const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
+    const depth_px = -TraceTree.depth(node) * this.row_depth_padding + offset_px;
     const newTransform =
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 

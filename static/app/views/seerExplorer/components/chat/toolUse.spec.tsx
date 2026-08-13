@@ -3,14 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import {NAV_LINK_LABELS} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
   PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
-import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 function createBlock(overrides?: Partial<Block>): Block {
   return {
@@ -514,8 +512,7 @@ describe('ToolUseBlock', () => {
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
     // The row link renders (from the positional channel) and is the only link: a failed dedupe
-    // would add a second one below labeled with the raw kind (telemetry_live_search has no
-    // NAV_LINK_LABELS entry), so assert on the link count rather than an unrelated label.
+    // would add a second one below, so assert on the link count rather than an unrelated label.
     expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(1);
     expect(screen.queryByText('telemetry_live_search')).not.toBeInTheDocument();
@@ -875,8 +872,9 @@ describe('ToolUseBlock', () => {
 
   describe('bus link labels', () => {
     it('labels a kind seer emits rather than showing the raw function name', () => {
-      // Regression: get_log_attributes and get_metric_attributes were emitted by seer but absent
-      // from NAV_LINK_LABELS, so they rendered with their raw function names as the link text.
+      // Regression: get_log_attributes and get_metric_attributes were emitted by seer but had no
+      // label of their own, so they rendered with their raw function names as the link text. A rule
+      // now supplies label and destination together, which is what makes that unreachable.
       const block = createBlock({
         message: {
           role: 'tool_use',
@@ -941,43 +939,5 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('View issue')).toBeInTheDocument();
       expect(screen.getAllByRole('link')).toHaveLength(1);
     });
-  });
-});
-
-// Guards the invariant that NAV_LINK_LABELS and buildToolLinkUrl cover the same set of kinds. Adding
-// a URL builder without a label would make the link silently unrenderable; adding a label without a
-// builder would make it dead. Extend PARAMS when buildToolLinkUrl gains a case.
-describe('navigation link coverage', () => {
-  const PARAMS: Record<string, Record<string, any>> = {
-    get_issue_details: {issue_id: '123'},
-    get_trace_waterfall: {trace_id: 'abc'},
-    get_replay_details: {replay_id: 'replay-1'},
-    get_profile_flamegraph: {profile_id: 'prof-1', project_id: '1'},
-    get_event_details: {issue_id: '123', event_id: 'event-1'},
-    get_log_attributes: {trace_id: 'abc'},
-    get_metric_attributes: {trace_id: 'abc'},
-    telemetry_live_search: {query: 'is:unresolved'},
-  };
-
-  it('labels exactly the kinds that can build a URL', () => {
-    expect(Object.keys(NAV_LINK_LABELS).sort()).toEqual(Object.keys(PARAMS).sort());
-  });
-
-  it('resolves a URL for every labeled kind', () => {
-    const organization = OrganizationFixture();
-    const projects = [{id: '1', slug: 'project-slug'}];
-
-    for (const kind of Object.keys(NAV_LINK_LABELS)) {
-      expect(
-        buildToolLinkUrl({kind, params: PARAMS[kind]!}, organization, projects)
-      ).not.toBeNull();
-    }
-  });
-
-  it('uses human-readable labels, never a raw identifier', () => {
-    for (const [kind, label] of Object.entries(NAV_LINK_LABELS)) {
-      expect(label).not.toBe(kind);
-      expect(label).not.toContain('_');
-    }
   });
 });

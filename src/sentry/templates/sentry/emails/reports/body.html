@@ -469,7 +469,11 @@
         <div title="{{a.message}}" class="issue-message">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
+      {% if a.resolution_url %}
+      <a href="{{ a.resolution_url }}" style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 0 10px; margin-left: auto; text-align: center; line-height: 22px; white-space: nowrap; height: 22px; text-decoration: none; display: inline-block;">{{ a.resolution_label }}</a>
+      {% else %}
       <span style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 0 10px; margin-left: auto; text-align: center; line-height: 22px; white-space: nowrap; height: 22px;">{{ a.resolution_label }}</span>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

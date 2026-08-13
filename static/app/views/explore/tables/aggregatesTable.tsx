@@ -9,7 +9,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -106,7 +106,7 @@ export function AggregatesTable({
   );
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+  const {initialTableStyles, onResizeEnd, onResizeMove, onResizeStart} = useTableStyles(
     visibleAggregateFields.map(aggregateField => {
       if (isGroupBy(aggregateField)) {
         return aggregateField.groupBy;
@@ -188,13 +188,11 @@ export function AggregatesTable({
                     {label}
                   </SortableHeaderCell>
                   {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
+                    <ColumnResizer
+                      columnIndex={i}
+                      onResizeEnd={onResizeEnd}
+                      onResizeMove={onResizeMove}
+                      onResizeStart={onResizeStart}
                     />
                   )}
                 </TableHeadCell>

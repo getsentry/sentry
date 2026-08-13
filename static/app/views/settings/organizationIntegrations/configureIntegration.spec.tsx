@@ -49,12 +49,12 @@ describe('ConfigureIntegration settings tab', () => {
     });
   }
 
-  function renderConfigure() {
+  function renderConfigure(providerKey = 'github') {
     return render(<ConfigureIntegration />, {
       organization: org,
       initialRouterConfig: {
         location: {
-          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
+          pathname: `/settings/${org.slug}/integrations/${providerKey}/${integrationId}/`,
           query: {},
         },
         route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
@@ -63,6 +63,80 @@ describe('ConfigureIntegration settings tab', () => {
   }
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
+
+  it('shows the integration name as a link in the header', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
+      'href',
+      'https://github.com/sentry-demos'
+    );
+    expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
+  });
+
+  it('uses a full domain URL without adding another protocol', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'Azure DevOps',
+      domainName: 'https://example.visualstudio.com/',
+      provider: {...githubProvider, key: 'vsts'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'vsts', slug: 'vsts'})
+    );
+
+    renderConfigure('vsts');
+
+    expect(await screen.findByRole('link', {name: 'Azure DevOps'})).toHaveAttribute(
+      'href',
+      'https://example.visualstudio.com/'
+    );
+  });
+
+  it('shows the PagerDuty integration name without a link for a subdomain', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'PagerDuty',
+      domainName: 'example-account',
+      provider: {...githubProvider, key: 'pagerduty'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'pagerduty', slug: 'pagerduty'})
+    );
+
+    renderConfigure('pagerduty');
+
+    expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
+  });
+
+  it('shows the integration name without a link when there is no domain', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'Slack',
+      domainName: null,
+      provider: {...githubProvider, key: 'slack'},
+      configOrganization: [],
+    });
+    mockRequests(
+      integration,
+      GitHubIntegrationProviderFixture({key: 'slack', slug: 'slack'})
+    );
+
+    renderConfigure('slack');
+
+    expect(await screen.findByText('Slack')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
+  });
 
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(
