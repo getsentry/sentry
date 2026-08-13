@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Block} from 'sentry/views/seerExplorer/types';
 
-import {groupTranscript, ResponseGroup} from './responseGroup';
+import {groupTranscript, deriveThinkingTitle, ResponseGroup} from './responseGroup';
 
 function userBlock(id: string, content: string): Block {
   return {
@@ -88,10 +88,22 @@ describe('groupTranscript', () => {
   });
 });
 
+describe('deriveThinkingTitle', () => {
+  it('summarizes the response with the latest tool activity', () => {
+    const group = [toolUseBlock('t1'), assistantBlock('a1', 'answer')];
+    // telemetry_live_search settles to "Queried spans" (see getToolsStringFromBlock).
+    expect(deriveThinkingTitle(group)).toMatch(/Queried spans/);
+  });
+
+  it('falls back to "Thinking" before any tool has run', () => {
+    expect(deriveThinkingTitle([assistantBlock('a1', 'answer')])).toBe('Thinking');
+  });
+});
+
 describe('ResponseGroup', () => {
   const organization = OrganizationFixture();
 
-  it('renders a single ThinkingBlock for a multi-step response, with the answer outside it', () => {
+  it('renders a single reasoning block titled by the latest activity, answer outside it', () => {
     const group = [
       toolUseBlock('t1'),
       toolUseBlock('t2'),
@@ -102,35 +114,40 @@ describe('ResponseGroup', () => {
       organization,
     });
 
-    // One consolidated "Thinking" block for the whole response — not one per step.
-    expect(screen.getAllByText('Thinking')).toHaveLength(1);
+    // One consolidated reasoning toggle for the whole response, titled by the latest activity.
+    expect(screen.getByRole('button', {name: /Queried spans/})).toBeInTheDocument();
     // The final answer is hoisted out of the collapsible reasoning.
     expect(screen.getByText('The final answer')).toBeInTheDocument();
   });
 
-  it('collapses the tool calls into the ThinkingBlock until it is expanded', async () => {
-    const group = [toolUseBlock('t1'), assistantBlock('a1', 'Done')];
+  it('collapses the reasoning until it is expanded', async () => {
+    const group = [
+      toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
+      assistantBlock('a1', 'Done'),
+    ];
 
     render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
       organization,
     });
 
-    // A completed response's ThinkingBlock starts collapsed, so the tool row is hidden.
-    expect(screen.getByText(/Queried spans/)).not.toBeVisible();
+    // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
+    expect(screen.getByText('my private reasoning')).not.toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', {name: /Thinking/}));
+    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
 
-    expect(screen.getByText(/Queried spans/)).toBeVisible();
+    expect(screen.getByText('my private reasoning')).toBeVisible();
   });
 
-  it('renders no ThinkingBlock when the response is a direct answer with no reasoning', () => {
+  it('renders no reasoning block when the response is a direct answer', () => {
     const group = [assistantBlock('a1', 'Just an answer')];
 
     render(<ResponseGroup group={group} blockIndex={0} blocks={group} showThinking />, {
       organization,
     });
 
-    expect(screen.queryByText('Thinking')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Thinking|Queried/})
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
   });
 
@@ -142,14 +159,13 @@ describe('ResponseGroup', () => {
 
     render(
       <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking={false} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: /Thinking/}));
+    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
 
     expect(screen.queryByText('my private reasoning')).not.toBeInTheDocument();
-    expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
+    // The tool call row still renders (as its own link), just without the reasoning prose.
+    expect(screen.getByRole('link', {name: /Queried spans/})).toBeInTheDocument();
   });
 });

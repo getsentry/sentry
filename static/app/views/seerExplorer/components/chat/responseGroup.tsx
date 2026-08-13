@@ -7,15 +7,17 @@ import {Container} from '@sentry/scraps/layout';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {t} from 'sentry/locale';
+import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import type {
   Block,
   PendingUserInput,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
+import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {hasValidContent} from './shared';
-import {ToolCallList} from './toolUse';
+import {CODE_MODE_TOOLS, ToolCallList} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -79,6 +81,54 @@ function finalAnswer(group: Block[]): Block | null {
     : null;
 }
 
+/**
+ * The most recent user-facing action within a block, or null when it did nothing worth naming.
+ *
+ * Prefers the Code Mode call records (their labels are what the rows show), then falls back to a
+ * classic tool's label — skipping Code Mode's own tool names, which name nothing ("Used
+ * sentry_api_execute tool"). Deliberately never reads `thinking_content`: the title is visible even
+ * when the reasoning is toggled off, so it must not leak it.
+ */
+function latestBlockActivity(block: Block): string | null {
+  const finished = (block.tool_results ?? []).flatMap(
+    result => result?.structuredContent?.calls ?? []
+  );
+  const records = visibleCallRecords(
+    finished.length ? finished : (block.live_calls ?? [])
+  );
+  for (let i = records.length - 1; i >= 0; i--) {
+    const label = callRecordLabel(records[i]!);
+    if (label) {
+      return label;
+    }
+  }
+
+  const calls = block.message.tool_calls ?? [];
+  const labels = getToolsStringFromBlock(block);
+  for (let i = labels.length - 1; i >= 0; i--) {
+    if (labels[i] && !CODE_MODE_TOOLS.has(calls[i]?.function ?? '')) {
+      return labels[i]!;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * A live summary for the response's ThinkingBlock: the latest thing the agent did (the current tool
+ * while streaming), which updates step to step so `ThinkingBlock`'s decode animation replays. Falls
+ * back to a plain "Thinking" before any tool has run.
+ */
+export function deriveThinkingTitle(group: Block[]): string {
+  for (let i = group.length - 1; i >= 0; i--) {
+    const label = latestBlockActivity(group[i]!);
+    if (label) {
+      return label;
+    }
+  }
+  return t('Thinking');
+}
+
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
@@ -138,7 +188,7 @@ export function ResponseGroup({
           {hasTrace ? (
             <MessageRow from="assistant" density="compact">
               <ThinkingBlock
-                title={t('Thinking')}
+                title={deriveThinkingTitle(group)}
                 startTime={startTime}
                 endTime={endTime}
               >
