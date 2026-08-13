@@ -78,9 +78,16 @@ const METRIC_NAME_COLUMN: TableColumn<string> = {
 interface AggregatesTabProps {
   traceMetric: TraceMetric;
   isMetricOptionsEmpty?: boolean;
+  queriesEnabled?: boolean;
+  showEmptyResults?: boolean;
 }
 
-export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+export function AggregatesTab({
+  traceMetric,
+  isMetricOptionsEmpty,
+  queriesEnabled,
+  showEmptyResults,
+}: AggregatesTabProps) {
   const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -88,17 +95,30 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const visualize = useMetricVisualize();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
-    enabled: isVisualizeFunction(visualize)
-      ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
-      : isVisualizeEquation(visualize) && Boolean(visualize.expression.text),
+    enabled:
+      queriesEnabled !== false &&
+      (isVisualizeFunction(visualize)
+        ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
+        : isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
     limit: RESULT_LIMIT,
     traceMetric,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
+  const resultForDisplay = showEmptyResults
+    ? {
+        ...result,
+        data: [],
+        error: null,
+        isError: false,
+        isFetching: false,
+        isLoading: false,
+        isPending: false,
+      }
+    : result;
 
   const columns = useMemo(
-    () => decodeColumnOrder(eventView.fields, result.meta),
-    [eventView, result.meta]
+    () => decodeColumnOrder(eventView.fields, resultForDisplay.meta),
+    [eventView, resultForDisplay.meta]
   );
   const sorts = useQueryParamsAggregateSortBys();
   const setSorts = useSetQueryParamsAggregateSortBys();
@@ -118,7 +138,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     select: selectTraceItemTagCollection(),
   });
 
-  const meta = result.meta ?? {};
+  const meta = resultForDisplay.meta ?? {};
 
   // When no group bys are selected, prepend the metric name as a virtual group-by column
   const displayFields = useMemo(() => {
@@ -177,9 +197,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
-  const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
+  const topResultsCount = topEvents
+    ? Math.min(resultForDisplay.data?.length ?? 0, topEvents)
+    : 0;
 
-  const isPending = result.isPending && !isMetricOptionsEmpty;
+  const isPending = resultForDisplay.isPending && !isMetricOptionsEmpty;
 
   return (
     <AggregatesSimpleTable style={tableStyle}>
@@ -235,12 +257,12 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       </AggregatesStyledHeader>
 
       <AggregatesTableBody>
-        {result.isError ? (
+        {resultForDisplay.isError ? (
           <SimpleTable.Empty>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </SimpleTable.Empty>
-        ) : result.data?.length ? (
-          result.data.map((row, i) => {
+        ) : resultForDisplay.data?.length ? (
+          resultForDisplay.data.map((row, i) => {
             const displayRow =
               groupBys.length === 0
                 ? {...row, [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name}

@@ -34,6 +34,7 @@ import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMe
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {
   MetricsGraph,
   getMetricsChartTypeOptions,
@@ -117,6 +118,19 @@ export function MetricPanel({
   const visualizes = useMetricVisualizes();
   const setVisualizes = useSetMetricVisualizes();
   const setAggregateFields = useSetMetricAggregateFields();
+  const {
+    data: validationData,
+    error: validationError,
+    isFetching: isValidationFetching,
+    isLoading: isValidationLoading,
+    isPlaceholderData: isValidationPlaceholderData,
+  } = useValidateMetricsTab();
+
+  const isValidationPending =
+    isValidationFetching || isValidationLoading || isValidationPlaceholderData;
+  const isValidationValid =
+    !isValidationPending && !validationError && validationData?.valid === true;
+  const showEmptyResults = !isValidationPending && !isValidationValid;
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
 
@@ -143,9 +157,11 @@ export function MetricPanel({
     }
   }, [visualize, referenceMap]);
 
-  const areQueriesEnabled = isVisualizeFunction(visualize)
-    ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
-    : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
+  const areQueriesEnabled =
+    isValidationValid &&
+    (isVisualizeFunction(visualize)
+      ? Boolean(traceMetric.name) && !isMetricOptionsEmpty
+      : isVisualizeEquation(visualize) && Boolean(visualize.expression.text));
 
   const metricSamplesTableResult = useMetricSamplesTable({
     disabled: !areQueriesEnabled,
@@ -170,6 +186,7 @@ export function MetricPanel({
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
     enabled:
+      isValidationValid &&
       !(areHeatMapsEnabled && isHeatmap) &&
       (!isMetricOptionsEmpty ||
         (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
@@ -195,8 +212,21 @@ export function MetricPanel({
     query: userQuery,
     interval: heatMapBucketDimensions?.interval,
     yBuckets: heatMapBucketDimensions?.yBuckets,
-    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
+    enabled:
+      isValidationValid && areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
   });
+  const timeseriesResultForDisplay = showEmptyResults
+    ? getEmptyQueryResult({...timeseriesResult, meta: undefined}, {})
+    : timeseriesResult;
+  const heatMapDataForDisplay = showEmptyResults
+    ? {
+        error: null,
+        isFetching: false,
+        isPartial: false,
+        isPending: false,
+        series: undefined,
+      }
+    : heatMapData;
 
   useMetricsPanelAnalytics({
     interval,
@@ -323,15 +353,16 @@ export function MetricPanel({
                     <Container minWidth="0" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
-                          heatMapData={heatMapData}
+                          heatMapData={heatMapDataForDisplay}
                           actions={actions}
                           title={title}
                           queryLabel={queryLabel}
                         />
                       ) : (
                         <MetricsGraph
-                          timeseriesResult={timeseriesResult}
+                          timeseriesResult={timeseriesResultForDisplay}
                           actions={actions}
+                          queriesEnabled={isValidationValid}
                           isMetricOptionsEmpty={isMetricOptionsEmpty}
                           title={title}
                         />
@@ -340,6 +371,8 @@ export function MetricPanel({
                     <Container minWidth="0">
                       <MetricInfoTabs
                         traceMetric={traceMetric}
+                        queriesEnabled={isValidationValid}
+                        showEmptyResults={showEmptyResults}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
                       />
                     </Container>
@@ -352,6 +385,27 @@ export function MetricPanel({
       </PanelBody>
     </Panel>
   );
+}
+
+function getEmptyQueryResult<
+  TResult extends {
+    data: unknown;
+    error: unknown;
+    isError: boolean;
+    isFetching: boolean;
+    isLoading: boolean;
+    isPending: boolean;
+  },
+>(result: TResult, data: TResult['data']): TResult {
+  return {
+    ...result,
+    data,
+    error: null,
+    isError: false,
+    isFetching: false,
+    isLoading: false,
+    isPending: false,
+  };
 }
 
 function DnDPlaceholder({

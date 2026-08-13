@@ -92,6 +92,7 @@ interface MetricsGraphProps {
   actions: React.ReactNode;
   timeseriesResult: SortedTimeSeries;
   isMetricOptionsEmpty?: boolean;
+  queriesEnabled?: boolean;
   title?: string;
 }
 
@@ -99,6 +100,7 @@ export function MetricsGraph({
   timeseriesResult,
   actions,
   isMetricOptionsEmpty,
+  queriesEnabled,
   title,
 }: MetricsGraphProps) {
   const metricQueries = useMultiMetricsQueryParams();
@@ -118,6 +120,7 @@ export function MetricsGraph({
       timeseriesResult={timeseriesResult}
       actions={actions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      queriesEnabled={queriesEnabled}
       title={title}
     />
   );
@@ -129,6 +132,7 @@ interface GraphProps {
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
   isMetricOptionsEmpty?: boolean;
+  queriesEnabled?: boolean;
   title?: string;
 }
 
@@ -138,6 +142,7 @@ function Graph({
   visualizes,
   actions,
   isMetricOptionsEmpty,
+  queriesEnabled,
   title,
 }: GraphProps) {
   const aggregate = visualize.yAxis;
@@ -149,8 +154,9 @@ function Graph({
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
     enabled:
-      Boolean(traceMetric.name) ||
-      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+      queriesEnabled !== false &&
+      (Boolean(traceMetric.name) ||
+        (isVisualizeEquation(visualize) && Boolean(visualize.expression.text))),
     query: isVisualizeEquation(visualize)
       ? getEquationMetricsTotalFilter(visualize.expression.text)
       : createTraceMetricEventsFilter([traceMetric]),

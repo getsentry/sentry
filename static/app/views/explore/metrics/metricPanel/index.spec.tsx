@@ -169,6 +169,78 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
+  it('does not run metric queries when validation fails', async () => {
+    const validationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: 'unknown attribute', fields: [], valid: false},
+        valid: false,
+      },
+      statusCode: 400,
+    });
+    const samplesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+      match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
+    });
+    const aggregatesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.metric-aggregates-table'}),
+      ],
+    });
+    const normalRawCountMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal',
+        }),
+      ],
+    });
+    const totalRawCountMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal-extrapolated-total',
+        }),
+      ],
+    });
+    const timeseriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: []},
+    });
+
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization,
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({mode: Mode.AGGREGATE}),
+        traceMetric,
+      }),
+    });
+
+    await waitFor(() => expect(validationMock).toHaveBeenCalled());
+    expect(await screen.findByText('No aggregates found')).toBeInTheDocument();
+    expect(samplesMock).not.toHaveBeenCalled();
+    expect(aggregatesMock).not.toHaveBeenCalled();
+    expect(normalRawCountMock).not.toHaveBeenCalled();
+    expect(totalRawCountMock).not.toHaveBeenCalled();
+    expect(timeseriesMock).not.toHaveBeenCalled();
+  });
+
   it('renders the metric panel', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
