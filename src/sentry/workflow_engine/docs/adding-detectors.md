@@ -231,7 +231,7 @@ independent consecutive-sample counter for every priority.
 An example evaluation:
 
 ```python
-# The detectors treshold settings
+# The detectors threshold settings
 @property
 def thresholds(self) -> DetectorThresholds:
     return {
