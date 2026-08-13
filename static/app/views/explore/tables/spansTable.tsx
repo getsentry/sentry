@@ -4,7 +4,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -62,7 +62,7 @@ export function SpansTable({
   const {result, eventView} = spansTableResult;
 
   const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+  const {initialTableStyles, onResizeEnd, onResizeMove, onResizeStart} = useTableStyles(
     visibleFields,
     tableRef,
     {minimumColumnWidth: 50}
@@ -122,13 +122,11 @@ export function SpansTable({
                     {label}
                   </SortableHeaderCell>
                   {i !== visibleFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
+                    <ColumnResizer
+                      columnIndex={i}
+                      onResizeEnd={onResizeEnd}
+                      onResizeMove={onResizeMove}
+                      onResizeStart={onResizeStart}
                     />
                   )}
                 </TableHeadCell>
