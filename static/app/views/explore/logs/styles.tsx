@@ -49,8 +49,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       p.isClickable &&
       css`
         &:active {
-          background-color: ${p.theme.tokens.interactive.transparent.neutral.background
-            .active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.neutral.background.active
+          };
         }
       `}
 
@@ -97,8 +98,9 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
         background-color: ${p.theme.tokens.background.transparent.accent.muted};
 
         &:hover {
-          background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-            .background.active};
+          background-color: ${
+            p.theme.tokens.interactive.transparent.accent.selected.background.active
+          };
         }
       }
     `}
@@ -550,7 +552,7 @@ export const FloatingBottomContainer = styled('div')<{
   justify-content: center;
 `;
 
-export const HoveringRowLoadingRendererContainer = styled('div')<{
+export const HoveringRowLoadingRendererContainer = styled('tr')<{
   headerHeight: number;
   height: number;
   position: 'top' | 'bottom';
@@ -571,6 +573,13 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   justify-content: center;
   height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
+
+  > td {
+    align-items: center;
+    min-height: 0;
+    padding: 0;
+    width: 100%;
+  }
 `;
 
 export const StyledPageFilterBar = styled(PageFilterBar)`

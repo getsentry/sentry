@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
-import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
+import {keepPreviousData, useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
@@ -102,7 +102,9 @@ function useLogsApiOptions({
   const frozenTraceIds = useLogsFrozenTraceIds();
   const frozenTraceTimestamp = useLogsFrozenTraceTimestamp();
   const frozenReplayInfo = useLogsFrozenReplayInfo();
-  const {maxPickableDays} = useMaxPickableDays({dataCategories: LOGS_DATA_CATEGORIES});
+  const {maxPickableDays} = useMaxPickableDays({
+    dataCategories: LOGS_DATA_CATEGORIES,
+  });
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
@@ -349,7 +351,9 @@ export function getIngestDelayFilterValue(timestamp: bigint) {
 }
 
 function getIngestDelayFilter() {
-  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(getMaxIngestDelayTimestamp())}`;
+  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(
+    getMaxIngestDelayTimestamp()
+  )}`;
 }
 
 function getParamBasedQuery(
@@ -439,11 +443,13 @@ function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): 
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
+  preservePreviousData,
   referrer,
   staleTime: staleTimeOverride,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
+  preservePreviousData?: boolean;
   referrer?: string;
   staleTime?: number;
 } = {}) {
@@ -524,7 +530,10 @@ export function useInfiniteLogsQuery({
       ) {
         const retryOptions: QueryKeyEndpointOptions = {
           ...baseOptions,
-          query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          query: {
+            ...baseOptions?.query,
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          },
         };
         response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
@@ -552,6 +561,7 @@ export function useInfiniteLogsQuery({
     getNextPageParam,
     initialPageParam,
     enabled: !disabled,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
     staleTime:
       staleTimeOverride ??
       (autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView)),
@@ -623,7 +633,10 @@ export function useInfiniteLogsQuery({
     });
   }, [highFidelity, queryClient, queryKeyWithInfinite, sortBys]);
 
-  const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
+  const {virtualStreamedTimestamp} = useVirtualStreaming({
+    data,
+    highFidelity,
+  });
 
   // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
   // for all pages as most empty pages would have been evicted already.
@@ -728,7 +741,9 @@ export function useInfiniteLogsQuery({
   });
 
   return {
+    dataUpdatedAt: queryResult.dataUpdatedAt,
     error,
+    errorUpdatedAt: queryResult.errorUpdatedAt,
     isError,
     isFetching,
     isPending:

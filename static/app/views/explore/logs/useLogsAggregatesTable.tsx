@@ -75,6 +75,8 @@ export function useLogsAggregatesTable({
 
   return {
     data: result.data?.json,
+    dataUpdatedAt: result.dataUpdatedAt,
+    errorUpdatedAt: result.errorUpdatedAt,
     isLoading: result.isLoading,
     isPending: result.isPending,
     isError: result.isError,

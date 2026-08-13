@@ -27,7 +27,7 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
-  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
+  const {data, error, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -46,6 +46,7 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
 
   return {
     data,
+    error,
     isFetching,
     isPlaceholderData,
     isLoading,

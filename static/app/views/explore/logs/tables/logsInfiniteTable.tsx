@@ -971,11 +971,13 @@ function HoveringRowLoadingRenderer({
       headerHeight={isEmbedded ? 0 : 45}
       height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
-      <LoadingIndicator
-        size={
-          isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
-        }
-      />
+      <TableBodyCell>
+        <LoadingIndicator
+          size={
+            isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
+          }
+        />
+      </TableBodyCell>
     </HoveringRowLoadingRendererContainer>
   );
 }

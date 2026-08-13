@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useEffectEvent, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
@@ -58,6 +58,11 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  getEmptyQueryResult,
+  getQueryValidationState,
+  usePreserveQueryResult,
+} from 'sentry/views/explore/queryValidation';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {SPANS_TABLE_LIMIT} from 'sentry/views/explore/spans/constants';
 import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
@@ -212,13 +217,13 @@ function SpanTabContentSectionInner({
     isPlaceholderData: isValidationPlaceholderData,
   } = useValidateSpansTab();
 
-  const isValidationPending =
-    isValidationFetching || isValidationLoading || isValidationPlaceholderData;
-  const queriesEnabled =
-    !isValidationPending && !validationError && validationData?.valid === true;
-  const preservePreviousData =
-    !validationError &&
-    (isValidationPending ? validationData?.valid !== false : queriesEnabled);
+  const {preservePreviousData, queriesEnabled} = getQueryValidationState({
+    data: validationData,
+    error: validationError,
+    isFetching: isValidationFetching,
+    isLoading: isValidationLoading,
+    isPlaceholderData: isValidationPlaceholderData,
+  });
 
   // In aggregate mode the table is driven by aggregateSortBys, not the
   // samples sort (which falls back to `-timestamp`), so pick accordingly.
@@ -325,7 +330,11 @@ function SpanTabContentSectionInner({
     : {
         ...displayedAggregatesTableResult,
         result: getEmptyQueryResult(
-          {...displayedAggregatesTableResult.result, pageLinks: undefined},
+          {
+            ...displayedAggregatesTableResult.result,
+            isFetching: false,
+            pageLinks: undefined,
+          },
           []
         ),
       };
@@ -334,7 +343,7 @@ function SpanTabContentSectionInner({
     : {
         ...displayedSpansTableResult,
         result: getEmptyQueryResult(
-          {...displayedSpansTableResult.result, pageLinks: undefined},
+          {...displayedSpansTableResult.result, isFetching: false, pageLinks: undefined},
           []
         ),
       };
@@ -342,11 +351,17 @@ function SpanTabContentSectionInner({
     ? displayedTracesTableResult
     : {
         error: null,
-        result: getEmptyQueryResult(displayedTracesTableResult.result, undefined),
+        result: getEmptyQueryResult(
+          {...displayedTracesTableResult.result, isFetching: false},
+          undefined
+        ),
       };
   const timeseriesResultForDisplay = preservePreviousData
     ? displayedTimeseriesResult
-    : getEmptyQueryResult({...displayedTimeseriesResult, meta: undefined}, {});
+    : getEmptyQueryResult(
+        {...displayedTimeseriesResult, isFetching: false, meta: undefined},
+        {}
+      );
 
   const [interval] = useChartInterval();
 
@@ -458,48 +473,6 @@ function SpanTabContentSectionInner({
       </TourElement>
     </ExploreContentSection>
   );
-}
-
-function getEmptyQueryResult<
-  TResult extends {
-    data: unknown;
-    error: unknown;
-    isError: boolean;
-    isFetching: boolean;
-    isLoading: boolean;
-    isPending: boolean;
-  },
->(result: TResult, data: TResult['data']): TResult {
-  return {
-    ...result,
-    data,
-    error: null,
-    isError: false,
-    isFetching: false,
-    isLoading: false,
-    isPending: false,
-  };
-}
-
-function usePreserveQueryResult<T>(
-  result: T,
-  preservePreviousData: boolean,
-  queryState: {
-    dataUpdatedAt: number;
-    errorUpdatedAt: number;
-    isPending: boolean;
-  }
-): T {
-  const [lastSettledResult, setLastSettledResult] = useState(result);
-  const updateLastSettledResult = useEffectEvent(() => setLastSettledResult(result));
-
-  useEffect(() => {
-    if (!queryState.isPending) {
-      updateLastSettledResult();
-    }
-  }, [queryState.dataUpdatedAt, queryState.errorUpdatedAt, queryState.isPending]);
-
-  return preservePreviousData && queryState.isPending ? lastSettledResult : result;
 }
 
 const SpanTabContentSection = registerLLMContext(

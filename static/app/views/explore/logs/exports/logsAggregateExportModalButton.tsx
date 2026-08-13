@@ -17,11 +17,13 @@ import {
 type LogsAggregateExportModalButtonProps = {
   isLoading: boolean;
   tableData: OurLogsAggregateResponseItem[];
+  disabled?: boolean;
   error?: Error | null;
   pageLinks?: string | null;
 };
 
 export function LogsAggregateExportModalButton({
+  disabled,
   error,
   isLoading,
   pageLinks,
@@ -46,6 +48,7 @@ export function LogsAggregateExportModalButton({
 
   return (
     <LogsExportModalButton
+      disabled={disabled}
       error={error}
       estimatedRowCount={estimatedRowCount}
       isLoading={isLoading}

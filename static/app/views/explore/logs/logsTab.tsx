@@ -89,9 +89,13 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  getEmptyQueryResult,
+  usePreserveQueryResult,
+} from 'sentry/views/explore/queryValidation';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {useRawCounts} from 'sentry/views/explore/useRawCounts';
+import {type RawCounts, useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -100,6 +104,11 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
+};
+
+const EMPTY_RAW_COUNTS: RawCounts = {
+  normal: {count: null, isLoading: false},
+  total: {count: null, isLoading: false},
 };
 
 interface LogsSearchBarProps {
@@ -260,6 +269,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const tableData = useLogsPageDataQueryResult();
+  const {infiniteLogsQueryResult, preservePreviousData, queriesEnabled} =
+    useLogsPageData();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
   const visualizes = useQueryParamsVisualizes();
@@ -293,22 +304,43 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     }
   }, [autorefreshEnabled]);
 
-  const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
+  const queriedRawLogCounts = useRawCounts({
+    dataset: DiscoverDatasets.OURLOGS,
+    enabled: queriesEnabled,
+    preservePreviousData,
+  });
+  const rawLogCounts = preservePreviousData ? queriedRawLogCounts : EMPTY_RAW_COUNTS;
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
     return [...uniqueYAxes];
   }, [visualizes]);
 
-  const timeseriesResult = useLogsTimeseries({
-    enabled: true,
+  const queriedTimeseriesResult = useLogsTimeseries({
+    enabled: queriesEnabled,
     tableData,
     timeseriesIngestDelay,
   });
-  const aggregatesTableResult = useLogsAggregatesTable({
-    enabled: mode === Mode.AGGREGATE,
+  const queriedAggregatesTableResult = useLogsAggregatesTable({
+    enabled: queriesEnabled && mode === Mode.AGGREGATE,
     limit: 50,
   });
+  const preservedTimeseriesResult = usePreserveQueryResult(
+    queriedTimeseriesResult,
+    preservePreviousData,
+    queriedTimeseriesResult
+  );
+  const preservedAggregatesTableResult = usePreserveQueryResult(
+    queriedAggregatesTableResult,
+    preservePreviousData,
+    queriedAggregatesTableResult
+  );
+  const timeseriesResult = preservePreviousData
+    ? preservedTimeseriesResult
+    : getEmptyQueryResult({...preservedTimeseriesResult, meta: undefined}, {});
+  const aggregatesTableResult = preservePreviousData
+    ? preservedAggregatesTableResult
+    : getEmptyQueryResult(preservedAggregatesTableResult, undefined);
 
   const {
     attributes: {
@@ -437,8 +469,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     };
   }, [pageFilters.selection.datetime, autorefreshEnabled]);
 
-  const {infiniteLogsQueryResult} = useLogsPageData();
-
   return (
     <LogsSidebarProvider value={setSidebarOpen}>
       <LogsSearchSection datePageFilterProps={datePageFilterProps} />
@@ -472,6 +502,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               </Container>
               {mode === Mode.AGGREGATE ? (
                 <LogsAggregateExportModalButton
+                  disabled={!queriesEnabled}
                   isLoading={aggregatesTableResult.isPending}
                   tableData={aggregatesTableResult.data?.data ?? []}
                   error={aggregatesTableResult.error}
@@ -479,6 +510,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                 />
               ) : (
                 <LogsDirectExportModalButton
+                  disabled={!queriesEnabled}
                   isLoading={tableData.isPending}
                   tableData={tableData.data}
                   error={tableData.error}
@@ -514,7 +546,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                     <Button
                       size="sm"
                       icon={<IconRefresh />}
-                      disabled={!canManuallyRefresh}
+                      disabled={!canManuallyRefresh || !queriesEnabled}
                       onClick={refreshTable}
                       aria-label={t('Refresh')}
                     />

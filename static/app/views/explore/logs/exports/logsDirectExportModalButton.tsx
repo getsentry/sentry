@@ -14,10 +14,12 @@ import {
 type LogsDirectExportModalButtonProps = {
   isLoading: boolean;
   tableData: OurLogsResponseItem[];
+  disabled?: boolean;
   error?: Error | null;
 };
 
 export function LogsDirectExportModalButton({
+  disabled,
   error,
   isLoading,
   tableData,
@@ -29,10 +31,11 @@ export function LogsDirectExportModalButton({
     field: [...fields],
     sort: sortBys.map(formatExportSort),
   });
-  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
+  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length, !disabled);
 
   return (
     <LogsExportModalButton
+      disabled={disabled}
       error={error}
       estimatedRowCount={estimatedRowCount}
       isLoading={isLoading}
