@@ -1,6 +1,12 @@
 from django.conf import settings
 
-from sentry.scm.private.rate_limit import RedisRateLimitProvider, total_limit_key, usage_count_key
+from sentry.scm.private.rate_limit import (
+    RedisRateLimitProvider,
+    WindowState,
+    total_limit_key,
+    usage_count_key,
+    window_state_key,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils import redis
 
@@ -9,44 +15,96 @@ def _client():
     return redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER)
 
 
-class TestRedisRateLimitProviderGetAndSet(TestCase):
+class TestRedisRateLimitProviderGetRateLimitState(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = RedisRateLimitProvider()
         self.total_key = total_limit_key("github", self.organization.id)
-        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared")
+        self.window_key = window_state_key("github", self.organization.id)
         client = _client()
         client.delete(self.total_key)
-        client.delete(self.usage_key)
+        client.delete(self.window_key)
 
     def test_returns_none_limit_when_total_key_missing(self) -> None:
-        limit, usage = self.provider.get_and_set_rate_limit(
-            self.total_key, self.usage_key, expiration=60
-        )
+        limit, window = self.provider.get_rate_limit_state(self.total_key, self.window_key)
         assert limit is None
-        assert usage == 1
+        assert window is None
 
     def test_returns_limit_when_total_key_set(self) -> None:
         _client().set(self.total_key, 500)
-        limit, usage = self.provider.get_and_set_rate_limit(
-            self.total_key, self.usage_key, expiration=60
-        )
+        limit, _ = self.provider.get_rate_limit_state(self.total_key, self.window_key)
         assert limit == 500
-        assert usage == 1
+
+    def test_returns_window_state_when_set(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=42, reset=1600), 600)
+        _, window = self.provider.get_rate_limit_state(self.total_key, self.window_key)
+        assert window == WindowState(used=42, reset=1600)
+
+    def test_returns_none_window_for_unparseable_value(self) -> None:
+        _client().set(self.window_key, "garbage")
+        _, window = self.provider.get_rate_limit_state(self.total_key, self.window_key)
+        assert window is None
+
+
+class TestRedisRateLimitProviderIncrUsage(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = RedisRateLimitProvider()
+        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared")
+        _client().delete(self.usage_key)
+
+    def test_returns_one_on_first_call(self) -> None:
+        assert self.provider.incr_usage(self.usage_key, expiration=60) == 1
 
     def test_increments_usage_on_each_call(self) -> None:
-        _client().set(self.total_key, 100)
-        self.provider.get_and_set_rate_limit(self.total_key, self.usage_key, expiration=60)
-        self.provider.get_and_set_rate_limit(self.total_key, self.usage_key, expiration=60)
-        _, usage = self.provider.get_and_set_rate_limit(
-            self.total_key, self.usage_key, expiration=60
-        )
-        assert usage == 3
+        self.provider.incr_usage(self.usage_key, expiration=60)
+        self.provider.incr_usage(self.usage_key, expiration=60)
+        assert self.provider.incr_usage(self.usage_key, expiration=60) == 3
 
     def test_usage_key_has_ttl_set(self) -> None:
-        self.provider.get_and_set_rate_limit(self.total_key, self.usage_key, expiration=60)
+        self.provider.incr_usage(self.usage_key, expiration=60)
         ttl = _client().ttl(self.usage_key)
         assert 0 < ttl <= 60
+
+
+class TestRedisRateLimitProviderSetWindowState(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = RedisRateLimitProvider()
+        self.window_key = window_state_key("github", self.organization.id)
+        _client().delete(self.window_key)
+
+    def test_writes_window_state_with_ttl(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=42, reset=1600), 600)
+        assert _client().get(self.window_key) == "42:1600"
+        assert 0 < _client().ttl(self.window_key) <= 600
+
+    def test_overwrites_existing_window_state(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=1, reset=1600), 600)
+        self.provider.set_window_state(self.window_key, WindowState(used=99, reset=1600), 600)
+        assert _client().get(self.window_key) == "99:1600"
+
+
+class TestWindowStateExpiresWithTheProviderWindow(TestCase):
+    """
+    The window state key carries the provider's reset instant, so it must not outlive the window it
+    describes. A stale report would charge the next window for the previous one's usage.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = RedisRateLimitProvider()
+        self.total_key = total_limit_key("github", self.organization.id)
+        self.window_key = window_state_key("github", self.organization.id)
+        client = _client()
+        client.delete(self.total_key)
+        client.delete(self.window_key)
+
+    def test_expired_window_state_is_not_returned(self) -> None:
+        self.provider.set_window_state(self.window_key, WindowState(used=42, reset=1600), 600)
+        _client().delete(self.window_key)
+        _, window = self.provider.get_rate_limit_state(self.total_key, self.window_key)
+        assert window is None
 
 
 class TestRedisRateLimitProviderGetAccountedUsage(TestCase):
