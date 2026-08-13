@@ -10,7 +10,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  LinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -38,6 +41,7 @@ import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcr
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
 import {IssuePreviewAutofixSummary} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofixSummary';
+import {IssuePreviewSection} from 'sentry/views/issueDetails/issuePreview/issuePreviewSection';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -130,6 +134,7 @@ function IssuePreviewContent() {
   const autofix = useExplorerAutofix(group, {
     enabled: hasAutofix,
   });
+  const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -230,12 +235,19 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      {/* Autofix summary goes at the top, so to avoid pop-in we block everything until it's available */}
-      {hasAutofix && autofix.isLoading ? (
+      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {(hasAutofix && autofix.isLoading) || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
-          <LinkedPullRequests group={group} showEmptyState={false} />
+          {linkedPullRequests.data?.pullRequests.length ? (
+            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+              <IssuePreviewSection.Content>
+                <LinkedPullRequests group={group} showEmptyState={false} />
+              </IssuePreviewSection.Content>
+            </IssuePreviewSection>
+          ) : null}
           {hasAutofix ? (
             <IssuePreviewAutofixSummary
               key={group.id}

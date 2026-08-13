@@ -15,6 +15,7 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
@@ -26,6 +27,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     maybe_trigger_drain,
     schedule_webhook_delivery,
 )
+from sentry.silo.client import CellSiloClient
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
@@ -2004,6 +2006,37 @@ class PushTriggerTest(TestCase):
         # No claim in lease mode: the batch stays due for the scheduler's view.
         webhook.refresh_from_db()
         assert webhook.schedule_for < timezone.now()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_lease_lock_outlives_a_single_delivery(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        with patch.object(cache, "add", wraps=cache.add) as mock_add:
+            maybe_trigger_drain(webhook.mailbox_name)
+        trigger_ttl = mock_add.call_args.kwargs["timeout"]
+
+        with patch.object(cache, "set", wraps=cache.set) as mock_set:
+            deliver_webhooks._refresh_drain_lock(webhook.mailbox_name)
+        refresh_ttl = mock_set.call_args.kwargs["timeout"]
+
+        # Both the TTL the drain inherits and the one it writes must outlast a single
+        # delivery, or the lock expires mid-drain and the scheduler dispatches a
+        # second drain over the same records.
+        assert trigger_ttl > 2 * CellSiloClient.timeout
+        assert refresh_ttl > 2 * CellSiloClient.timeout
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options(CLAIM_MODE_OPTIONS)
+    def test_claim_guard_keeps_the_short_ttl(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        with patch.object(cache, "add", wraps=cache.add) as mock_add:
+            maybe_trigger_drain(webhook.mailbox_name)
+
+        # Claim mode releases the lock before returning. Sizing its TTL for a delivery
+        # would strand the mailbox that long whenever a dispatcher dies mid-claim.
+        assert mock_add.call_args.kwargs["timeout"] == DRAIN_LOCK_TTL
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})

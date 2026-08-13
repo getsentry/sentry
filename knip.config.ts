@@ -29,6 +29,9 @@ const productionEntryPoints = [
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
+  // https://github.com/getsentry/sentry/pull/121178
+  'static/app/components/core/table/*.tsx',
+  'static/app/components/core/dragHandle/*.tsx',
 ];
 
 const testingEntryPoints = [

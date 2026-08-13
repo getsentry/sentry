@@ -2,7 +2,9 @@ import type {CSSProperties, ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
+import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
 import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
 import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
@@ -19,7 +21,6 @@ import {
   GridHead,
   GridHeadCell,
   GridHeadCellStatic,
-  GridResizer,
   GridRow,
   Header,
   HeaderButtonContainer,
@@ -29,11 +30,7 @@ import type {GridColumnOrder, GridColumnSortBy, GridData} from './types';
 
 export type * from './types';
 
-// Auto layout width.
-export const COL_WIDTH_UNDEFINED = -1;
-
-// Set to 90 as the edit/trash icons need this much space.
-export const COL_WIDTH_MINIMUM = 90;
+export {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 type GridEditableProps<
   DataRow,
@@ -151,7 +148,7 @@ export function GridEditable<
     [minimumColWidth, props.grid.prependColumnWidths]
   );
 
-  const {onResizeMouseDown, applyTemplate} = useColumnResize({
+  const {applyTemplate, onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef: refGrid,
     getResizeTemplate: (columnIndex, newWidth) => {
       const nextColumnOrder = [...props.columnOrder];
@@ -167,7 +164,6 @@ export function GridEditable<
         width: newWidth,
       });
     },
-    writeResizerHeightVar: true,
   });
 
   const onResetColumnSize = (e: React.MouseEvent, i: number) => {
@@ -207,30 +203,28 @@ export function GridEditable<
               {item}
             </GridHeadCellStatic>
           ))}
-        {
-          // Note that onResizeMouseDown assumes GridResizer is nested
-          // 1 levels under GridHeadCell
-          props.columnOrder.map((column, i) => (
-            <GridHeadCell
-              aria-sort={getAriaSort(
-                props.columnSortBy.find(sort => sort.key === column.key)?.order
-              )}
-              data-test-id="grid-head-cell"
-              key={`${i}.${String(column.key)}`}
-              isFirst={i === 0}
-            >
-              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-              {i !== numColumn - 1 && resizable && (
-                <GridResizer
-                  dataRows={!error && !isLoading && data ? data.length : 0}
-                  onMouseDown={e => onResizeMouseDown(e, i)}
-                  onDoubleClick={e => onResetColumnSize(e, i)}
-                  onContextMenu={onResizeMouseDown}
-                />
-              )}
-            </GridHeadCell>
-          ))
-        }
+        {props.columnOrder.map((column, i) => (
+          <GridHeadCell
+            aria-sort={getAriaSort(
+              props.columnSortBy.find(sort => sort.key === column.key)?.order
+            )}
+            data-test-id="grid-head-cell"
+            key={`${i}.${String(column.key)}`}
+            isFirst={i === 0}
+          >
+            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+            {i !== numColumn - 1 && resizable && (
+              <ColumnResizer
+                columnIndex={i}
+                minimumColumnWidth={minimumColWidth}
+                onResetColumnSize={onResetColumnSize}
+                onResizeEnd={onResizeEnd}
+                onResizeMove={onResizeMove}
+                onResizeStart={onResizeStart}
+              />
+            )}
+          </GridHeadCell>
+        ))}
       </GridRow>
     );
   }

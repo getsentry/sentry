@@ -152,11 +152,19 @@ class DeliveryDropped(Exception):
 
 DRAIN_LOCK_TTL = 15
 """
-Seconds the drain lock survives without a refresh.
+Seconds the claim guard survives without a refresh. Claim-mode dispatchers release
+it before returning, so this is crash cover for one that died mid-claim.
+"""
 
-In claim mode the lock only guards the claim itself, so the TTL is crash cover;
-in lease mode the push-triggered drain holds it for its whole run, refreshing per
-delivery, so the TTL bounds how long a dead drain blocks its mailbox.
+
+LEASE_DRAIN_LOCK_TTL = 2 * CellSiloClient.timeout + DRAIN_LOCK_TTL
+"""
+Seconds a lease-mode drain's lock survives without a refresh.
+
+A lease drain refreshes once per record, right before delivering it, so the widest
+gap between refreshes is one delivery — bounded by the cell client's connect plus
+read timeout, plus the queue wait before the first refresh. Under that, the lock
+expires mid-drain and the scheduler dispatches a second drain over the same records.
 """
 
 
@@ -165,9 +173,12 @@ def _drain_lock_key(mailbox_name: str) -> str:
 
 
 def _refresh_drain_lock(mailbox_name: str) -> None:
-    """Refresh the drain lock TTL to signal the drain task is still active."""
+    """Refresh the drain lock TTL to signal the drain task is still active.
+
+    Only lease-mode drains refresh.
+    """
     try:
-        cache.set(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL)
+        cache.set(_drain_lock_key(mailbox_name), 1, timeout=LEASE_DRAIN_LOCK_TTL)
     except Exception:
         pass
 
@@ -394,7 +405,8 @@ def _maybe_trigger_drain_lease(mailbox_name: str) -> None:
     trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
     lock_acquired = False
     try:
-        if cache.add(lock_key, 1, timeout=DRAIN_LOCK_TTL):
+        # The dispatched drain inherits this lock and only refreshes once picked up.
+        if cache.add(lock_key, 1, timeout=LEASE_DRAIN_LOCK_TTL):
             lock_acquired = True
             # Only drain if the true mailbox head (lowest ID) is ready to deliver.
             # We must check the head specifically — filtering by schedule_for first

@@ -62,6 +62,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
@@ -1349,6 +1350,13 @@ def is_rate_limit_response(response: Response) -> bool:
         return True
     return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
 
+def resolve_upstream_path(request: PreparedRequest) -> str:
+    """Return the final path of the request."""
+    proxy_path = request.headers.get(PROXY_PATH)
+    if proxy_path:
+        return f"/{trim_leading_slashes(proxy_path)}"
+    return request.path_url
+
 
 class GitHubApiClient(GitHubBaseClient):
     """
@@ -1410,7 +1418,11 @@ class GitHubApiClient(GitHubBaseClient):
         # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
         # rate limiter entirely. Counting these requests would both consume quota we don't owe and
         # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
-        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+        #
+        # The path has to be resolved rather than read off the request: in a cell silo the URL has
+        # already been rewritten to target the control silo proxy, so `path_url` names the proxy
+        # endpoint and never matches.
+        if resolve_upstream_path(request).partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
             return super()._do_send(session, request, session_settings)
 
         is_rate_limited = False
