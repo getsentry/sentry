@@ -119,13 +119,13 @@ describe('IssuePreviewAutofixSummary', () => {
 
     expect(
       screen.getAllByRole('heading', {level: 3}).map(heading => heading.textContent)
-    ).toEqual(['Proposal', 'Implementation Plan', 'Root Cause']);
+    ).toEqual(['Code Changes', 'Implementation Plan', 'Root Cause']);
 
-    const proposal = screen.getByRole('region', {name: 'Proposal'});
+    const proposal = screen.getByRole('region', {name: 'Code Changes'});
     const plan = screen.getByRole('region', {name: 'Implementation Plan'});
     const rootCause = screen.getByRole('region', {name: 'Root Cause'});
 
-    expect(within(proposal).getByRole('button', {name: 'Proposal'})).toHaveAttribute(
+    expect(within(proposal).getByRole('button', {name: 'Code Changes'})).toHaveAttribute(
       'aria-expanded',
       'true'
     );
@@ -195,7 +195,7 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
   });
 
   it('renders the section with a loading indicator while it is processing', () => {
@@ -226,7 +226,7 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
   });
 
   it.each([
@@ -260,7 +260,7 @@ describe('IssuePreviewAutofixSummary', () => {
       />
     );
 
-    expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
     ).not.toBeInTheDocument();

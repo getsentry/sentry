@@ -45,7 +45,10 @@ export function IssuePreviewAutofixProposalSection({
 
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
-      <IssuePreviewSection aria-label={t('Proposal')} defaultExpanded={defaultExpanded}>
+      <IssuePreviewSection
+        aria-label={t('Code Changes')}
+        defaultExpanded={defaultExpanded}
+      >
         <IssuePreviewSection.Title
           trailingItems={
             <Fragment>
@@ -54,15 +57,15 @@ export function IssuePreviewAutofixProposalSection({
             </Fragment>
           }
         >
-          {t('Proposal')}
+          {t('Code Changes')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
           <RetryableAutofixSection.Prompt
-            placeholder={t('Give Seer additional context to improve this proposal.')}
+            placeholder={t('Give Seer additional context to improve these code changes.')}
             prompt={t('How can this code change be improved?')}
           />
           {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating proposal...')}</WorkingIndicator>
+            <WorkingIndicator>{t('Generating code changes...')}</WorkingIndicator>
           ) : patchesByRepo.size > 0 ? (
             <Text>{proposalSummary}</Text>
           ) : (
