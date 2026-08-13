@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -17,12 +17,13 @@ import {
 } from 'sentry/views/automations/hooks';
 
 interface AutomationsTableActionsProps {
-  allResultsVisible: boolean;
+  allInQuerySelected: boolean;
   canDisable: boolean;
   canEnable: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
   togglePageSelected: (pageSelected: boolean) => void;
 }
 
@@ -31,11 +32,11 @@ export function AutomationsTableActions({
   pageSelected,
   togglePageSelected,
   queryCount,
-  allResultsVisible,
+  allInQuerySelected,
+  setAllInQuerySelected,
   canEnable,
   canDisable,
 }: AutomationsTableActionsProps) {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
 
   const {selection} = usePageFilters();
@@ -131,72 +132,88 @@ export function AutomationsTableActions({
   };
 
   return (
-    <Fragment>
-      <SimpleTable.HeaderRow>
-        <SimpleTable.HeaderCell variant="full-width" divider={false}>
-          <Flex align="center" padding="0 xl" gap="md" width="100%">
-            <Checkbox
-              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-              onChange={s => {
-                togglePageSelected(s.target.checked);
-                setAllInQuerySelected(false);
-              }}
-            />
-            {canEnable && (
-              <Button
-                size="xs"
-                onClick={() => handleUpdate({enabled: true})}
-                disabled={isUpdating}
-              >
-                {t('Enable')}
-              </Button>
-            )}
-            {canDisable && (
-              <Button
-                size="xs"
-                onClick={() => handleUpdate({enabled: false})}
-                disabled={isUpdating}
-              >
-                {t('Disable')}
-              </Button>
-            )}
+    <SimpleTable.HeaderRow>
+      <SimpleTable.HeaderCell variant="full-width" divider={false}>
+        <Flex align="center" padding="0 xl" gap="md" width="100%">
+          <Checkbox
+            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            onChange={s => {
+              togglePageSelected(s.target.checked);
+              setAllInQuerySelected(false);
+            }}
+          />
+          {canEnable && (
             <Button
               size="xs"
-              variant="danger"
-              onClick={handleDelete}
-              disabled={isDeleting}
+              onClick={() => handleUpdate({enabled: true})}
+              disabled={isUpdating}
             >
-              {t('Delete')}
+              {t('Enable')}
             </Button>
-          </Flex>
-        </SimpleTable.HeaderCell>
-      </SimpleTable.HeaderRow>
-      {pageSelected && !allResultsVisible && (
-        <SimpleTable.FullWidthRow>
-          <Alert variant="warning" system showIcon={false}>
-            <Flex justify="center" wrap="wrap" gap="md">
-              {allInQuerySelected ? (
-                tct('Selected all [count] alerts that match this search query.', {
-                  count: queryCount,
-                })
-              ) : (
-                <Fragment>
-                  {tn(
-                    '%s alert on this page selected.',
-                    '%s alerts on this page selected.',
-                    selected.size
-                  )}
-                  <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                    {tct('Select all [count] alerts that match this search query.', {
-                      count: queryCount,
-                    })}
-                  </Button>
-                </Fragment>
+          )}
+          {canDisable && (
+            <Button
+              size="xs"
+              onClick={() => handleUpdate({enabled: false})}
+              disabled={isUpdating}
+            >
+              {t('Disable')}
+            </Button>
+          )}
+          <Button size="xs" variant="danger" onClick={handleDelete} disabled={isDeleting}>
+            {t('Delete')}
+          </Button>
+        </Flex>
+      </SimpleTable.HeaderCell>
+    </SimpleTable.HeaderRow>
+  );
+}
+
+interface AutomationsTableActionsBannerProps {
+  allInQuerySelected: boolean;
+  allResultsVisible: boolean;
+  pageSelected: boolean;
+  queryCount: string;
+  selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
+}
+
+export function AutomationsTableActionsBanner({
+  selected,
+  pageSelected,
+  allResultsVisible,
+  queryCount,
+  allInQuerySelected,
+  setAllInQuerySelected,
+}: AutomationsTableActionsBannerProps) {
+  if (!pageSelected || allResultsVisible) {
+    return null;
+  }
+
+  return (
+    <SimpleTable.FullWidthRow>
+      <Alert variant="warning" system showIcon={false}>
+        <Flex justify="center" wrap="wrap" gap="md">
+          {allInQuerySelected ? (
+            tct('Selected all [count] alerts that match this search query.', {
+              count: queryCount,
+            })
+          ) : (
+            <Fragment>
+              {tn(
+                '%s alert on this page selected.',
+                '%s alerts on this page selected.',
+                selected.size
               )}
-            </Flex>
-          </Alert>
-        </SimpleTable.FullWidthRow>
-      )}
-    </Fragment>
+              <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                {tct('Select all [count] alerts that match this search query.', {
+                  count: queryCount,
+                })}
+              </Button>
+            </Fragment>
+          )}
+        </Flex>
+      </Alert>
+    </SimpleTable.FullWidthRow>
   );
 }
