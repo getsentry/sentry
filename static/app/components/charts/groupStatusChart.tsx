@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -56,7 +56,7 @@ export function GroupStatusChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    const markLine = MarkLine({
+    const markLine = createMarkLine({
       silent: true,
       lineStyle: {
         color: theme.tokens.border.transparent.neutral.moderate,

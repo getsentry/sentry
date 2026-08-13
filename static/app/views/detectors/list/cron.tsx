@@ -66,7 +66,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <Cell
+    <SimpleTable.RowCell
       data-column-name="visualization"
       padding="lg 0"
       borderLeft="muted"
@@ -93,7 +93,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
           );
         })}
       </Stack>
-    </Cell>
+    </SimpleTable.RowCell>
   );
 }
 
@@ -228,14 +228,14 @@ export default function CronDetectorsList() {
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
-            <Cell
+            <SimpleTable.RowCell
               data-column-name="visualization"
               padding="lg 0"
               borderLeft="muted"
               height="100%"
             >
               <CheckInPlaceholder />
-            </Cell>
+            </SimpleTable.RowCell>
           );
         }
         if (detector.type === 'monitor_check_in_failure') {
@@ -277,10 +277,6 @@ export default function CronDetectorsList() {
     </MonitorViewContext.Provider>
   );
 }
-
-const Cell = styled(SimpleTable.RowCell)`
-  z-index: 4;
-`;
 
 const TimelineFadeIn = styled('div')`
   width: 100%;
