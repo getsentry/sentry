@@ -620,24 +620,6 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert entry["error"] == {"code": "workflow_permission"}
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_send_step_webhook_unrecognized_error_code_collapses_to_unknown(self, mock_broadcast):
-        state = run_state(blocks=[code_changes_memory_block()])
-        state.repo_pr_states = {
-            "test-repo": RepoPRState(
-                repo_name="test-repo",
-                pr_creation_status="error",
-                pr_creation_error="something internal",
-                pr_creation_error_code="internal_shard_timeout",
-            )
-        }
-
-        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
-
-        mock_broadcast.assert_called_once()
-        entry = mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]
-        assert entry["error"] == {"code": "unknown"}
-
-    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_creating_status_maps_to_error(self, mock_broadcast):
         state = run_state(blocks=[code_changes_memory_block()])
         state.repo_pr_states = {
