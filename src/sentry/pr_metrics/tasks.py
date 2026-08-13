@@ -61,9 +61,8 @@ SWEEP_STORE_BUDGET = timedelta(seconds=240)
 # which raises BaseException and takes the run's counters and log line with it.
 SWEEP_PROCESSING_DEADLINE = int(2 * SWEEP_STORE_BUDGET.total_seconds()) + 60
 
-# Ceiling on the backlog lookups: the age lookup reads the head of the index, so it
-# pays for dead entries and attributed rows that nothing here controls. A
-# pathological table should cost the gauges, not the deleting.
+# Ceiling on each backlog lookup. A pathological table should cost the gauges, not
+# the deleting.
 SWEEP_BACKLOG_QUERY_TIMEOUT = timedelta(seconds=5)
 
 # forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
@@ -223,6 +222,28 @@ def _unswept(
     return queryset.exclude(Exists(attributed)).order_by(date_field)
 
 
+def _oldest_date(
+    queryset: QuerySet[_ActivityStore], date_field: str, alias: str
+) -> datetime | None:
+    """One date off the head of the index, bounded. Raises ``OperationalError`` on expiry."""
+    with statement_timeout(alias, SWEEP_BACKLOG_QUERY_TIMEOUT):
+        return queryset.using(alias).values_list(date_field, flat=True).first()
+
+
+def _report_backlog_query_failure(store: str, lookup: str) -> None:
+    # `lookup` stays out of the tags: it would be a new tag key, which Datadog drops
+    # until its tag config allows it. The log line carries it instead.
+    metrics.incr(
+        "pr_metrics.activity_sweep.backlog_query_failed",
+        tags={"store": store},
+        sample_rate=1.0,
+    )
+    logger.exception(
+        "pr_metrics.activity_sweep.backlog_query_failed",
+        extra={"store": store, "lookup": lookup},
+    )
+
+
 def _report_backlog_depth(
     model: type[_ActivityStore],
     date_field: str,
@@ -237,60 +258,55 @@ def _report_backlog_depth(
 
     - ``backlog_lag_seconds`` — how far the deletion frontier trails the cutoff.
       Zero is drained, and since the cutoff advances an hour per hour, the slope is
-      the drain ETA. Needs no row count: an ANALYZE re-baseline moves
-      ``pg_class.reltuples`` by more than this sweep deletes in a week.
+      the drain ETA. Needs no row count, which ``pg_class.reltuples`` cannot supply
+      anyway: an ANALYZE re-baseline moves it by more than this sweep deletes in a
+      week.
     - ``oldest_row_age_seconds`` — age of the oldest row of any kind. The sweep can
       never delete an attributed row, so a large age against a zero lag names the
       prefix every batch query walks past.
 
-    Bounded and degraded to a counter on expiry: measuring the work must not cost
-    us the work.
+    Each lookup is bounded and degrades on its own: measuring the work must not cost
+    us the work, and the age lookup — which starts at the head of the index, dead
+    entries and all — must not cost us the cheap seek from the frontier either.
     """
     alias = router.db_for_read(model)
+
+    lag: float | None = None
     try:
-        with statement_timeout(alias, SWEEP_BACKLOG_QUERY_TIMEOUT):
-            oldest_unswept = (
-                _unswept(model, date_field, cutoff, frontier)
-                .using(alias)
-                .values_list(date_field, flat=True)
-                .first()
-            )
-            oldest_row = (
-                model.objects.using(alias)
-                .order_by(date_field)
-                .values_list(date_field, flat=True)
-                .first()
-            )
-    except OperationalError:
-        metrics.incr(
-            "pr_metrics.activity_sweep.backlog_query_failed",
-            tags={"store": store},
-            sample_rate=1.0,
+        oldest_unswept = _oldest_date(
+            _unswept(model, date_field, cutoff, frontier), date_field, alias
         )
-        logger.exception("pr_metrics.activity_sweep.backlog_query_failed", extra={"store": store})
-        return {"backlog_lag_seconds": None, "oldest_row_age_seconds": None}
-
-    # A drained store has no unswept row: that is a lag of zero, not an absent
-    # reading — the gauge is meant to bottom out.
-    lag = (cutoff - oldest_unswept).total_seconds() if oldest_unswept is not None else 0.0
-    metrics.gauge(
-        "pr_metrics.activity_sweep.backlog_lag_seconds",
-        lag,
-        tags={"store": store},
-        sample_rate=1.0,
-        unit="second",
-    )
-
-    # An empty store has no oldest row; zero would read as "a row arrived just now".
-    age = (dj_timezone.now() - oldest_row).total_seconds() if oldest_row is not None else None
-    if age is not None:
+    except OperationalError:
+        _report_backlog_query_failure(store, "lag")
+    else:
+        # A drained store has no unswept row: that is a lag of zero, not an absent
+        # reading — the gauge is meant to bottom out.
+        lag = (cutoff - oldest_unswept).total_seconds() if oldest_unswept is not None else 0.0
         metrics.gauge(
-            "pr_metrics.activity_sweep.oldest_row_age_seconds",
-            age,
+            "pr_metrics.activity_sweep.backlog_lag_seconds",
+            lag,
             tags={"store": store},
             sample_rate=1.0,
             unit="second",
         )
+
+    age: float | None = None
+    try:
+        oldest_row = _oldest_date(model.objects.order_by(date_field), date_field, alias)
+    except OperationalError:
+        _report_backlog_query_failure(store, "age")
+    else:
+        # An empty store has no oldest row; zero would read as "a row arrived just now".
+        if oldest_row is not None:
+            age = (dj_timezone.now() - oldest_row).total_seconds()
+            metrics.gauge(
+                "pr_metrics.activity_sweep.oldest_row_age_seconds",
+                age,
+                tags={"store": store},
+                sample_rate=1.0,
+                unit="second",
+            )
+
     return {"backlog_lag_seconds": lag, "oldest_row_age_seconds": age}
 
 
@@ -303,9 +319,9 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
     someone switched the sweep off. Only ``_report_backlog_depth`` says how far
     behind any of them leaves us.
 
-    The batch cap cannot hold the run inside its processing deadline, since a batch
-    costs whatever the database charges for it that minute — and an overrun is a
-    broker kill, which takes the counters and the log line with it.
+    The batch cap alone cannot hold the run inside its processing deadline — a batch
+    costs whatever the database charges for it that minute — so the run also carries
+    a wall-clock budget, checked between batches.
 
     ``cleanup.abort_execution`` stops the sweep — the switch the cleanup command
     honours, re-read per batch so it halts a run already in flight.
@@ -357,8 +373,8 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
         tags={"store": store},
         sample_rate=1.0,
     )
-    # `capped` says only that the cap was hit; a store idling at a handful of batches
-    # is what says the caps elsewhere are a backlog draining, not the steady state.
+    # `capped` only says the cap was hit; a store idling at a handful of batches is
+    # what says the caps elsewhere are a backlog draining, not the steady state.
     metrics.gauge(
         "pr_metrics.activity_sweep.batches_used", batches, tags={"store": store}, sample_rate=1.0
     )

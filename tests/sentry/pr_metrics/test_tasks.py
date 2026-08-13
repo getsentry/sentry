@@ -453,6 +453,34 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
             "PullRequestActivityLog",
         }
 
+    @patch("sentry.pr_metrics.tasks.metrics")
+    def test_an_expired_age_lookup_still_reports_the_lag(self, mock_metrics: Any) -> None:
+        # The age lookup starts at the head of the index and pays for whatever dead
+        # entries and attributed rows sit there, while the lag seek resumes past
+        # them. One shared timeout would let the expensive read discard the cheap
+        # one — the reading this task exists to emit.
+        self._make_pr("1", when=self.quiet)
+        expired = OperationalError("canceling statement due to statement timeout")
+
+        # Per store, in order: the lag seek, then the head-of-index age lookup.
+        with patch(
+            "sentry.pr_metrics.tasks._oldest_date",
+            side_effect=[self.quiet, expired, self.quiet, expired],
+        ):
+            sweep_unattributed_pr_activity_task()
+
+        for value, tags in gauge_calls(mock_metrics, LAG_METRIC):
+            assert value == pytest.approx(timedelta(hours=1).total_seconds(), abs=60), tags
+        assert {tags["store"] for _, tags in gauge_calls(mock_metrics, LAG_METRIC)} == {
+            "PullRequestActivity",
+            "PullRequestActivityLog",
+        }
+        assert gauge_calls(mock_metrics, OLDEST_ROW_METRIC) == []
+        assert self._stores_reporting(mock_metrics, "backlog_query_failed") == {
+            "PullRequestActivity",
+            "PullRequestActivityLog",
+        }
+
     @patch("sentry.pr_metrics.tasks.SWEEP_STORE_BUDGET", timedelta(0))
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_running_out_of_time_reports_separately_from_the_batch_cap(
