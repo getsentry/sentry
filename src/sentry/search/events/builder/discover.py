@@ -423,10 +423,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
-                    # Top-event rows return ISO timestamps that may include a UTC offset
-                    # (e.g. "...+00:00"). ClickHouse DateTime rejects offset strings, and
-                    # Snuba expects naive UTC. Convert to UTC first, then drop tzinfo;
-                    # do not only strip the offset label.
+                    # Convert offset timestamps to the naive UTC form expected by Snuba.
                     normalized_values: list[Any] = []
                     for value in values_list:
                         if isinstance(value, str):
