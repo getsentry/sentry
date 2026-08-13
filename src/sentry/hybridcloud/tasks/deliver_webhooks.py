@@ -257,7 +257,7 @@ def _record_dispatch(
     mode: str,
     drain: DispatchOutcome,
     mailbox_name: str,
-    claimed: int | None = None,
+    claimed: int = 0,
 ) -> None:
     """
     Record a drain enqueue so push- and scheduler-dispatched work stay comparable.
@@ -266,8 +266,13 @@ def _record_dispatch(
     one. A scheduler drain can claim up to MAX_MAILBOX_DRAIN records where a push
     drain typically claims one or two, so the two shares are different numbers.
 
-    Lease-mode push triggers claim nothing, so they have no depth to report and
-    emit the counter alone rather than a fabricated size.
+    Emitted unconditionally, including the zero a lease-mode push trigger claims:
+    a tag value with no samples yields no series at all rather than a line of
+    zeros, which blanks any formula comparing the two dispatchers. Zeros leave
+    `.sum` untouched, and `{mode:claim}` recovers a true claim depth from `.avg`.
+
+    `.sum` under-attributes push while lease mode is the majority — those drains
+    deliver webhooks no claim ever counted. It converges as the rollout ramps.
     """
     tags = {
         "dispatcher": dispatcher,
@@ -276,8 +281,7 @@ def _record_dispatch(
         "provider": _provider_from_mailbox(mailbox_name),
     }
     metrics.incr("hybridcloud.deliver_webhooks.dispatch", tags=tags)
-    if claimed is not None:
-        metrics.distribution("hybridcloud.deliver_webhooks.dispatch.claimed", claimed, tags=tags)
+    metrics.distribution("hybridcloud.deliver_webhooks.dispatch.claimed", claimed, tags=tags)
 
 
 def _claim_and_dispatch(

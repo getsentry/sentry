@@ -1599,10 +1599,12 @@ class DispatchMetricTest(TestCase):
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_push_lease_dispatch_counted_without_a_claim_size(
+    def test_push_lease_dispatch_claims_zero(
         self, mock_drain: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        # Lease mode claims nothing: counted, but without an invented claim size.
+        # Lease mode runs no claim UPDATE, so zero is the true claim size. Skipping
+        # the emit instead would leave this dispatcher with no series at all while
+        # lease mode is the majority, blanking any push-vs-scheduler formula.
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
 
         maybe_trigger_drain(webhook.mailbox_name)
@@ -1615,7 +1617,17 @@ class DispatchMetricTest(TestCase):
                 "provider": "github",
             }
         ]
-        assert self.claimed_calls(mock_metrics) == []
+        assert self.claimed_calls(mock_metrics) == [
+            (
+                0,
+                {
+                    "dispatcher": "push",
+                    "mode": "lease",
+                    "drain": "sequential",
+                    "provider": "github",
+                },
+            )
+        ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
