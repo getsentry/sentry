@@ -2,7 +2,8 @@ import type {MouseEvent, ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconSpan} from 'sentry/icons';
@@ -140,10 +141,11 @@ function getStatusLabel(status: ToolCallStatus): string | undefined {
 /**
  * A single agent tool call within a `ThinkingBlock`.
  *
- * Renders as a title line (with an optional trailing `reference` chip) preceded
- * by a leading glyph that communicates lifecycle status; see
- * `ToolCallIndicator`. When the call produces a primary result, pass `output` to
- * surface it as a chip under an `Output:` label.
+ * Built on the same outline `Disclosure` as `ThinkingBlock`: the lifecycle glyph
+ * (`ToolCallIndicator`) is the leading item, the `title` is the toggle, and an
+ * optional `reference` chip trails it. `output` and `notifications` sit under the
+ * title and stay visible; pass `children` to tuck supplementary detail (e.g. the
+ * request/response) into the collapsible panel.
  */
 export function ToolCall({
   title,
@@ -154,37 +156,36 @@ export function ToolCall({
   children,
 }: ToolCallProps) {
   return (
-    <Flex gap="md" align="start" width="100%">
-      <Container paddingTop="sm">
-        <ToolCallIndicator status={status} aria-label={getStatusLabel(status)} />
-      </Container>
-      <Stack gap="xs" flex={1} minWidth={0}>
-        <Flex align="center" justify="between" gap="md" minHeight="24px">
-          <Text size="sm" variant="secondary" monospace>
-            {title}
-          </Text>
-          {reference ? <ReferenceChip reference={reference} /> : null}
-        </Flex>
+    <Disclosure variant="outline" size="sm" gap="xs" flex={1}>
+      <Disclosure.Title
+        leadingItems={
+          <ToolCallIndicator status={status} aria-label={getStatusLabel(status)} />
+        }
+        trailingItems={reference ? <ReferenceChip reference={reference} /> : undefined}
+      >
+        <Text size="sm" variant="secondary" monospace>
+          {title}
+        </Text>
+      </Disclosure.Title>
 
-        {output ? (
-          <SecondaryBox>
-            <Flex align="center" gap="sm" wrap="wrap">
-              <Text size="sm" variant="secondary" monospace bold>
-                {t('Output:')}
-              </Text>
-              <ReferenceChip reference={output} />
-            </Flex>
-          </SecondaryBox>
-        ) : null}
+      {output ? (
+        <SecondaryBox>
+          <Flex align="center" gap="sm" wrap="wrap">
+            <Text size="sm" variant="secondary" monospace bold>
+              {t('Output:')}
+            </Text>
+            <ReferenceChip reference={output} />
+          </Flex>
+        </SecondaryBox>
+      ) : null}
 
-        {notifications?.map((note, i) => (
-          <Text key={i} size="sm" variant="muted">
-            {note}
-          </Text>
-        ))}
+      {notifications?.map((note, i) => (
+        <Text key={i} size="sm" variant="muted">
+          {note}
+        </Text>
+      ))}
 
-        {children}
-      </Stack>
-    </Flex>
+      {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
+    </Disclosure>
   );
 }

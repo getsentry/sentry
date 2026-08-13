@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ToolCall} from '@sentry/scraps/chat';
 
@@ -69,12 +69,19 @@ describe('ToolCall', () => {
     );
   });
 
-  it('renders supplementary detail passed as children', () => {
+  it('reveals supplementary detail children when expanded', async () => {
     render(
       <ToolCall title="Query spans" status="success">
         <div>GET /api/0/traces/a3805648/</div>
       </ToolCall>
     );
-    expect(screen.getByText('GET /api/0/traces/a3805648/')).toBeInTheDocument();
+
+    // Detail lives in the collapsible panel, so it is hidden until the title is toggled.
+    const detail = screen.getByText('GET /api/0/traces/a3805648/');
+    expect(detail).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: /Query spans/}));
+
+    expect(detail).toBeVisible();
   });
 });
