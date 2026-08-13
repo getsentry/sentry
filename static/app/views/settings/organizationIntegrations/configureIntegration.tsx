@@ -486,6 +486,8 @@ function IntegrationNavigationHeader({
   integration: Integration;
   action?: React.ReactNode;
 }) {
+  const externalUrl = getIntegrationExternalUrl(integration);
+
   return (
     <Fragment>
       <SentryDocumentTitle title={integration.provider.name} />
@@ -495,16 +497,17 @@ function IntegrationNavigationHeader({
             <Text as="span">{t('Configurations')}</Text>
             <Divider />
             <IntegrationIcon size={18} integration={integration} />
-            <Text>
-              {({className}) => (
-                <ExternalLink
-                  className={className}
-                  href={`https://${integration.domainName}`}
-                >
-                  {integration.name}
-                </ExternalLink>
-              )}
-            </Text>
+            {externalUrl ? (
+              <Text>
+                {({className}) => (
+                  <ExternalLink className={className} href={externalUrl}>
+                    {integration.name}
+                  </ExternalLink>
+                )}
+              </Text>
+            ) : (
+              <Text>{integration.name}</Text>
+            )}
           </Flex>
         }
         action={action}
@@ -512,6 +515,23 @@ function IntegrationNavigationHeader({
       <BreadcrumbTitle title={integration.provider.name} />
     </Fragment>
   );
+}
+
+function getIntegrationExternalUrl(integration: Integration): string | null {
+  const {domainName} = integration;
+  if (!domainName) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(domainName)) {
+    return domainName;
+  }
+
+  if (integration.provider.key === 'pagerduty') {
+    return `https://${domainName}.pagerduty.com`;
+  }
+
+  return `https://${domainName}`;
 }
 
 function PagerdutyAddServicesButton({

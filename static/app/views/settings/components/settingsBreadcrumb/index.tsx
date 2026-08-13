@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -18,8 +17,8 @@ import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  [t('Configure Integration')]: IntegrationCrumb,
-  [t('Integration Details')]: IntegrationCrumb,
+  'Configure Integration': IntegrationCrumb,
+  'Integration Details': IntegrationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
 } as const;
