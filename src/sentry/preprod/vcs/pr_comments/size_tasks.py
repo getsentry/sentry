@@ -8,14 +8,19 @@ from taskbroker_client.retry import Retry
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.integration_utils import get_commit_context_client
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.vcs.pr_comments.size_templates import format_size_pr_comment
 from sentry.preprod.vcs.pr_comments.tasks import (
+    get_comment_id_for_comparison,
     lock_pr_comparisons_for_update,
     resolve_pr_comment_context,
     save_pr_comment_result,
 )
 from sentry.preprod.vcs.status_checks.size.rules import get_status_check_rules
-from sentry.preprod.vcs.status_checks.size.tasks import evaluate_size_and_format_messages
+from sentry.preprod.vcs.status_checks.size.tasks import (
+    evaluate_size_and_format_messages,
+    is_artifact_size_skipped,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -27,6 +32,28 @@ COMMENT_TYPE = "size"
 
 ENABLED_OPTION_KEY = "sentry:preprod_size_pr_comments_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_pr_comments_rules"
+
+
+def _commit_has_unskipped_size_metrics(artifact: PreprodArtifact) -> bool:
+    """Whether any artifact on this commit has size metrics that are not skipped.
+
+    ``get_sibling_artifacts_for_commit`` deduplicates by (app_id, artifact_type,
+    build_configuration_id) and resolves the caller's own key to the caller, so a
+    CI retry can substitute the skipped artifact that dispatched this task for the
+    analyzed one that the comment was rendered from. The evaluation then reports no
+    size data for a commit that has some, and refreshing on that would replace a
+    real size table with the all-skipped body. Consult the undeduplicated set,
+    reusing the evaluation's own predicate so the two cannot diverge.
+    """
+    metrics_by_artifact: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    for metrics in PreprodArtifactSizeMetrics.objects.filter(
+        preprod_artifact__commit_comparison_id=artifact.commit_comparison_id,
+        # Mirrors the organization filter get_sibling_artifacts_for_commit applies.
+        preprod_artifact__project__organization_id=artifact.project.organization_id,
+    ):
+        metrics_by_artifact.setdefault(metrics.preprod_artifact_id, []).append(metrics)
+
+    return any(not is_artifact_size_skipped(rows) for rows in metrics_by_artifact.values())
 
 
 @instrumented_task(
@@ -59,27 +86,6 @@ def create_preprod_size_pr_comment_task(
         )
         return
 
-    # Compute rules, triggered rules, and the comment body BEFORE taking the lock
-    # so the (DB-heavy) size evaluation stays out of the locked transaction that
-    # holds the GitHub call. Only find-existing -> gate -> post -> save run under
-    # the lock.
-    all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
-    rules = get_status_check_rules(artifact.project, option_key=RULES_OPTION_KEY)
-    evaluation = evaluate_size_and_format_messages(artifact.project, all_artifacts, rules)
-
-    # Unlike the status check (which posts a neutral "skipped" check regardless),
-    # a comment should only exist when there is size data to report. No evaluated
-    # artifacts means every sibling was skipped or had no size metrics.
-    if not evaluation.evaluated_artifacts:
-        logger.info(
-            "preprod.size_pr_comments.create.no_size_data",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
-    triggered_rules = evaluation.triggered_rules
-    comment_body = format_size_pr_comment(evaluation.title, evaluation.subtitle, evaluation.summary)
-
     api_error: Exception | None = None
 
     try:
@@ -91,6 +97,52 @@ def create_preprod_size_pr_comment_task(
                 target_id=commit_comparison.id,
                 comment_type=COMMENT_TYPE,
             )
+
+            # Evaluate under the lock. The lock serializes the GitHub writes, so an
+            # evaluation computed before acquiring it can already be stale when it
+            # is posted: a sibling-completion task that read a PENDING metrics row
+            # can block here while the skipped-artifact refresh writes the correct
+            # body, then take the lock and restore "Processing..." permanently.
+            # create_preprod_pr_comment_task formats its body under the lock for the
+            # same reason.
+            all_artifacts = list(artifact.get_sibling_artifacts_for_commit())
+            rules = get_status_check_rules(artifact.project, option_key=RULES_OPTION_KEY)
+            evaluation = evaluate_size_and_format_messages(artifact.project, all_artifacts, rules)
+
+            triggered_rules = evaluation.triggered_rules
+            comment_body = format_size_pr_comment(
+                evaluation.title, evaluation.subtitle, evaluation.summary
+            )
+
+            if not evaluation.evaluated_artifacts:
+                # Unlike the status check (which posts a neutral "skipped" check
+                # regardless), a comment should only be created when there is size
+                # data to report. No evaluated artifacts means every sibling was
+                # skipped or had no size metrics.
+                #
+                # A comment this commit already owns is still refreshed, so a sibling
+                # that rendered as processing before it was marked skipped does not
+                # stay that way for the life of the PR. A comment owned by a
+                # different commit is left alone: artifacts upload one at a time, so
+                # a newer commit whose first artifact is filtered would otherwise
+                # flap the comment to "skipped" before its real build lands.
+                own_comment_id = get_comment_id_for_comparison(cc, COMMENT_TYPE)
+                if not own_comment_id or own_comment_id != existing_comment_id:
+                    logger.info(
+                        "preprod.size_pr_comments.create.no_size_data",
+                        extra={"preprod_artifact_id": artifact.id},
+                    )
+                    return
+
+                # An empty evaluation is only authoritative for the deduplicated
+                # sibling list it was computed from, so confirm against the raw set
+                # before overwriting a comment with the all-skipped body.
+                if _commit_has_unskipped_size_metrics(artifact):
+                    logger.info(
+                        "preprod.size_pr_comments.create.no_size_data_but_commit_has_metrics",
+                        extra={"preprod_artifact_id": artifact.id},
+                    )
+                    return
 
             # The trigger check gates first creation only; once a comment exists it is
             # always updated to reflect current state. With no rules configured, post a

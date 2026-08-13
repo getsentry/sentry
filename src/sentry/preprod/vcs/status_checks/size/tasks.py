@@ -162,7 +162,7 @@ def evaluate_size_and_format_messages(
     evaluated_artifacts = [
         a
         for a in evaluated_artifacts
-        if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
+        if not is_artifact_size_skipped(size_metrics_map.get(a.id, []))
     ]
 
     triggered_rules: list[TriggeredRule] = []
@@ -429,7 +429,7 @@ def _fetch_base_size_metrics(
     return base_artifact_map, base_metrics_by_artifact
 
 
-def _is_artifact_size_skipped(
+def is_artifact_size_skipped(
     size_metrics_list: list[PreprodArtifactSizeMetrics],
 ) -> bool:
     """Check if artifact should be excluded because size analysis was skipped."""

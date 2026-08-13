@@ -227,15 +227,30 @@ def create_preprod_pr_comment_task(
         raise api_error
 
 
+def get_comment_id_for_comparison(
+    commit_comparison: CommitComparison,
+    comment_type: str,
+) -> str | None:
+    """Return the comment id recorded on this specific comparison, if any.
+
+    Comments are keyed per PR, so a comment may belong to a different commit on
+    the same PR. Callers that need to know whether a given comparison is the one
+    that created the comment should use this rather than
+    ``find_existing_comment_id``, which searches the whole PR.
+    """
+    extras = commit_comparison.extras or {}
+    comment_id = extras.get("pr_comments", {}).get(comment_type, {}).get("comment_id")
+    return str(comment_id) if comment_id else None
+
+
 def find_existing_comment_id(
     comparisons: Sequence[CommitComparison],
     comment_type: str,
 ) -> str | None:
     for cc in comparisons:
-        extras = cc.extras or {}
-        comment_id = extras.get("pr_comments", {}).get(comment_type, {}).get("comment_id")
+        comment_id = get_comment_id_for_comparison(cc, comment_type)
         if comment_id:
-            return str(comment_id)
+            return comment_id
     return None
 
 
