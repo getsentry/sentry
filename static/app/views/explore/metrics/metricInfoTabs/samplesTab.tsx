@@ -4,6 +4,7 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 interface SamplesTabProps {
   traceMetric: TraceMetric;
   isMetricOptionsEmpty?: boolean;
+  preservePreviousData?: boolean;
   queriesEnabled?: boolean;
   showEmptyResults?: boolean;
 }
@@ -11,6 +12,7 @@ interface SamplesTabProps {
 export function SamplesTab({
   traceMetric,
   isMetricOptionsEmpty,
+  preservePreviousData,
   queriesEnabled,
   showEmptyResults,
 }: SamplesTabProps) {
@@ -18,6 +20,7 @@ export function SamplesTab({
     <MetricsSamplesTable
       traceMetric={traceMetric}
       queriesEnabled={queriesEnabled}
+      preservePreviousData={preservePreviousData}
       showEmptyResults={showEmptyResults}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
     />

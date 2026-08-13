@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {keepPreviousData} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -20,6 +21,7 @@ import {
   AlwaysPresentTraceMetricFields,
   NONE_UNIT,
 } from 'sentry/views/explore/metrics/constants';
+import {usePreserveMetricQueryResult} from 'sentry/views/explore/metrics/hooks/usePreserveMetricQueryResult';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricsFrozenSearch,
@@ -44,12 +46,15 @@ interface UseMetricSamplesTableOptions {
   limit: number;
   disabled?: boolean;
   ingestionDelaySeconds?: number;
+  preservePreviousData?: boolean;
   queryExtras?: RPCQueryExtras;
   staleTime?: number;
   traceMetric?: TraceMetric;
 }
 
 interface MetricSamplesTableResult {
+  dataUpdatedAt: number;
+  errorUpdatedAt: number;
   result: {
     data: TraceMetricEventsResponseItem[] | undefined;
     isFetched: boolean;
@@ -219,6 +224,7 @@ export function useMetricSamplesTable({
   ingestionDelaySeconds,
   queryExtras,
   staleTime,
+  preservePreviousData,
 }: UseMetricSamplesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
     (result: MetricSamplesTableResult['result']) => {
@@ -229,7 +235,7 @@ export function useMetricSamplesTable({
     []
   );
 
-  return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
+  const result = useProgressiveQuery<typeof useMetricSamplesTableImpl>({
     queryHookImplementation: useMetricSamplesTableImpl,
     queryHookArgs: {
       enabled: !disabled,
@@ -239,10 +245,17 @@ export function useMetricSamplesTable({
       ingestionDelaySeconds,
       queryExtras,
       staleTime,
+      preservePreviousData,
     },
     queryOptions: {
       canTriggerHighAccuracy,
     },
+  });
+
+  return usePreserveMetricQueryResult(result, Boolean(preservePreviousData), {
+    dataUpdatedAt: result.dataUpdatedAt,
+    errorUpdatedAt: result.errorUpdatedAt,
+    isPending: Boolean(result.isPending),
   });
 }
 
@@ -254,6 +267,7 @@ function useMetricSamplesTableImpl({
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
   staleTime,
+  preservePreviousData,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
   const {queryKey, other} = useMetricsQueryKey({
     limit,
@@ -266,11 +280,14 @@ function useMetricSamplesTableImpl({
 
   const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
     enabled,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
     staleTime: staleTime ?? getStaleTimeForEventView(other.eventView),
   });
 
   return {
+    dataUpdatedAt: result.dataUpdatedAt,
     error: result.error ?? undefined,
+    errorUpdatedAt: result.errorUpdatedAt,
     isError: result.isError,
     isFetching: result.isFetching,
     isPending: result.isPending,

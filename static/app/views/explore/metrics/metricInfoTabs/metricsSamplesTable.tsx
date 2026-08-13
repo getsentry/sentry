@@ -38,6 +38,7 @@ const TWO_MINUTE_DELAY = 120;
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  preservePreviousData?: boolean;
   queriesEnabled?: boolean;
   showEmptyResults?: boolean;
   source?: MetricsSamplesTableSource;
@@ -49,6 +50,7 @@ export function MetricsSamplesTable({
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
+  preservePreviousData,
   queriesEnabled,
   showEmptyResults,
 }: MetricsSamplesTableProps) {
@@ -72,6 +74,7 @@ export function MetricsSamplesTable({
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+    preservePreviousData,
   });
   const dataForDisplay = showEmptyResults ? [] : data;
   const errorForDisplay = showEmptyResults ? undefined : error;

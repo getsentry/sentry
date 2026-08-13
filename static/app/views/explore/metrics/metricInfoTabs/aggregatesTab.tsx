@@ -78,6 +78,7 @@ const METRIC_NAME_COLUMN: TableColumn<string> = {
 interface AggregatesTabProps {
   traceMetric: TraceMetric;
   isMetricOptionsEmpty?: boolean;
+  preservePreviousData?: boolean;
   queriesEnabled?: boolean;
   showEmptyResults?: boolean;
 }
@@ -85,6 +86,7 @@ interface AggregatesTabProps {
 export function AggregatesTab({
   traceMetric,
   isMetricOptionsEmpty,
+  preservePreviousData,
   queriesEnabled,
   showEmptyResults,
 }: AggregatesTabProps) {
@@ -103,6 +105,7 @@ export function AggregatesTab({
     limit: RESULT_LIMIT,
     traceMetric,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+    preservePreviousData,
   });
   const resultForDisplay = showEmptyResults
     ? {

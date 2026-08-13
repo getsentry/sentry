@@ -92,6 +92,7 @@ interface MetricsGraphProps {
   actions: React.ReactNode;
   timeseriesResult: SortedTimeSeries;
   isMetricOptionsEmpty?: boolean;
+  preservePreviousData?: boolean;
   queriesEnabled?: boolean;
   title?: string;
 }
@@ -100,6 +101,7 @@ export function MetricsGraph({
   timeseriesResult,
   actions,
   isMetricOptionsEmpty,
+  preservePreviousData,
   queriesEnabled,
   title,
 }: MetricsGraphProps) {
@@ -120,6 +122,7 @@ export function MetricsGraph({
       timeseriesResult={timeseriesResult}
       actions={actions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      preservePreviousData={preservePreviousData}
       queriesEnabled={queriesEnabled}
       title={title}
     />
@@ -132,6 +135,7 @@ interface GraphProps {
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
   isMetricOptionsEmpty?: boolean;
+  preservePreviousData?: boolean;
   queriesEnabled?: boolean;
   title?: string;
 }
@@ -142,6 +146,7 @@ function Graph({
   visualizes,
   actions,
   isMetricOptionsEmpty,
+  preservePreviousData,
   queriesEnabled,
   title,
 }: GraphProps) {
@@ -161,6 +166,7 @@ function Graph({
       ? getEquationMetricsTotalFilter(visualize.expression.text)
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
+    preservePreviousData,
   });
 
   const chartInfo = useMemo(() => {

@@ -296,6 +296,68 @@ describe('MetricPanel', () => {
     expect(timeseriesMock).not.toHaveBeenCalled();
   });
 
+  it('preserves previous results while validation is pending', async () => {
+    const initialQueryParams = queryParams.replace({mode: Mode.AGGREGATE});
+    const revalidatingQueryParams = initialQueryParams.replace({query: 'span.op:db'});
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-options',
+      }),
+    ]);
+    const revalidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+      asyncDelay: 100_000,
+      match: [MockApiClient.matchQuery({query: 'span.op:db'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [{'sum(value,bar,distribution,none)': 12345}],
+        meta: {
+          fields: {'sum(value,bar,distribution,none)': 'number'},
+          units: {},
+          dataScanned: 'full',
+        },
+      },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.metric-aggregates-table'}),
+      ],
+    });
+    const {rerender} = render(
+      <MetricPanelWithQueryParams
+        queryParams={initialQueryParams}
+        traceMetric={traceMetric}
+      />,
+      {organization}
+    );
+
+    const aggregatesTable = await screen.findByRole('table');
+    expect(await within(aggregatesTable).findByText('bar')).toBeInTheDocument();
+
+    rerender(
+      <MetricPanelWithQueryParams
+        queryParams={revalidatingQueryParams}
+        traceMetric={traceMetric}
+      />
+    );
+
+    await waitFor(() => expect(revalidationMock).toHaveBeenCalled());
+    expect(within(aggregatesTable).getByText('bar')).toBeInTheDocument();
+  });
+
   it('renders the metric panel', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
