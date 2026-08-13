@@ -481,15 +481,19 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   /*
    * Overflow stays visible so a segment's focus ring isn't clipped. Round the
    * leading and trailing children instead, so their hover/active backgrounds
-   * still follow the chip's corners in the flush interactive layout.
+   * still follow the chip's corners in the flush interactive layout. The inner
+   * radius is the chip radius minus the 1px border so the corners stay
+   * concentric with the chip.
    */
   & > :first-child {
-    border-start-start-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
-    border-end-start-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
+    border-start-start-radius: calc(
+      ${p => p.theme.radius[SIZES[p.chipSize].radius]} - 1px
+    );
+    border-end-start-radius: calc(${p => p.theme.radius[SIZES[p.chipSize].radius]} - 1px);
   }
   & > :last-child {
-    border-start-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
-    border-end-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
+    border-start-end-radius: calc(${p => p.theme.radius[SIZES[p.chipSize].radius]} - 1px);
+    border-end-end-radius: calc(${p => p.theme.radius[SIZES[p.chipSize].radius]} - 1px);
   }
 `;
 
