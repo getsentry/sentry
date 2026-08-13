@@ -499,8 +499,8 @@ function IntegrationNavigationHeader({
             <IntegrationIcon size={18} integration={integration} />
             {externalUrl ? (
               <Text>
-                {props => (
-                  <ExternalLink {...props} href={externalUrl}>
+                {textProps => (
+                  <ExternalLink {...textProps} href={externalUrl}>
                     {integration.name}
                   </ExternalLink>
                 )}
