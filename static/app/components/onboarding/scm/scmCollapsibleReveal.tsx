@@ -23,6 +23,8 @@ export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealP
           key="content"
           id={id}
           initial={{height: 0, opacity: 0, overflow: 'hidden'}}
+          // Settle to overflow visible once open so focus rings at the edges
+          // and menus opening past the bounds are not clipped.
           animate={{
             height: 'auto',
             opacity: 1,
