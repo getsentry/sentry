@@ -528,7 +528,7 @@ function getIntegrationExternalUrl(integration: Integration): string | null {
   }
 
   if (integration.provider.key === 'pagerduty') {
-    return `https://${domainName}.pagerduty.com`;
+    return null;
   }
 
   return `https://${domainName}`;

@@ -102,7 +102,7 @@ describe('ConfigureIntegration settings tab', () => {
     );
   });
 
-  it('builds a PagerDuty URL from the account subdomain', async () => {
+  it('shows the PagerDuty integration name without a link for a subdomain', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'PagerDuty',
       domainName: 'example-account',
@@ -116,10 +116,8 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure('pagerduty');
 
-    expect(await screen.findByRole('link', {name: 'PagerDuty'})).toHaveAttribute(
-      'href',
-      'https://example-account.pagerduty.com'
-    );
+    expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
   });
 
   it('shows the integration name without a link when there is no domain', async () => {
