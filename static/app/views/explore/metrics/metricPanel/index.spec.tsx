@@ -59,6 +59,28 @@ function createWrapper({
   };
 }
 
+function MetricPanelWithQueryParams({
+  queryParams,
+  traceMetric,
+}: {
+  queryParams: ReadableQueryParams;
+  traceMetric: TraceMetric;
+}) {
+  return (
+    <MultiMetricsQueryParamsProvider>
+      <MetricsQueryParamsProvider
+        traceMetric={traceMetric}
+        queryParams={queryParams}
+        setQueryParams={() => {}}
+        setTraceMetric={() => {}}
+        removeMetric={() => {}}
+      >
+        <MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />
+      </MetricsQueryParamsProvider>
+    </MultiMetricsQueryParamsProvider>
+  );
+}
+
 function setupMocks(orgSlug: string) {
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/events-timeseries/`,
@@ -169,7 +191,12 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
-  it('does not run metric queries when validation fails', async () => {
+  it('keeps empty results while revalidating after validation fails', async () => {
+    const invalidQueryParams = queryParams.replace({
+      mode: Mode.AGGREGATE,
+      query: 'missing.key:foo',
+    });
+    const revalidatingQueryParams = invalidQueryParams.replace({query: 'span.op:http'});
     const validationMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       method: 'GET',
@@ -183,6 +210,22 @@ describe('MetricPanel', () => {
         valid: false,
       },
       statusCode: 400,
+      match: [MockApiClient.matchQuery({query: 'missing.key:foo'})],
+    });
+    const revalidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+      asyncDelay: 100_000,
+      match: [MockApiClient.matchQuery({query: 'span.op:http'})],
     });
     const samplesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -224,16 +267,28 @@ describe('MetricPanel', () => {
       body: {timeSeries: []},
     });
 
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({
-        queryParams: queryParams.replace({mode: Mode.AGGREGATE}),
-        traceMetric,
-      }),
-    });
+    const {rerender} = render(
+      <MetricPanelWithQueryParams
+        queryParams={invalidQueryParams}
+        traceMetric={traceMetric}
+      />,
+      {
+        organization,
+      }
+    );
 
     await waitFor(() => expect(validationMock).toHaveBeenCalled());
     expect(await screen.findByText('No aggregates found')).toBeInTheDocument();
+
+    rerender(
+      <MetricPanelWithQueryParams
+        queryParams={revalidatingQueryParams}
+        traceMetric={traceMetric}
+      />
+    );
+
+    await waitFor(() => expect(revalidationMock).toHaveBeenCalled());
+    expect(screen.getByText('No aggregates found')).toBeInTheDocument();
     expect(samplesMock).not.toHaveBeenCalled();
     expect(aggregatesMock).not.toHaveBeenCalled();
     expect(normalRawCountMock).not.toHaveBeenCalled();

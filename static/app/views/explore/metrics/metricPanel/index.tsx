@@ -130,7 +130,10 @@ export function MetricPanel({
     isValidationFetching || isValidationLoading || isValidationPlaceholderData;
   const isValidationValid =
     !isValidationPending && !validationError && validationData?.valid === true;
-  const showEmptyResults = !isValidationPending && !isValidationValid;
+  const preservePreviousData =
+    !validationError &&
+    (isValidationPending ? validationData?.valid !== false : isValidationValid);
+  const showEmptyResults = !preservePreviousData;
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
 
