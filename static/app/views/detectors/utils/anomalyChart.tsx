@@ -3,7 +3,7 @@ import type {MarkAreaComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 
@@ -129,7 +129,7 @@ function createAnomalyMarkerSeries(
   return {
     seriesName: 'Anomaly Line',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'dashed'},
       label: {

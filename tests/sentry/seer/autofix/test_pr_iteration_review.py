@@ -163,6 +163,20 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
+    def test_skips_github_enterprise(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
+        # PR iteration is not supported on GHE, which delivers the same
+        # pull_request_review events. It must be dropped here, before the
+        # control-silo integration lookup and before any task is scheduled.
+        self._mock_org_contexts(mock_contexts)
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            handle_pull_request_review_for_autofix_iteration(
+                self._event(provider="github_enterprise")
+            )
+        assert mock_contexts.call_count == 0
+        mock_delay.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
+    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
     def test_skips_when_missing_ids(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
         with self.feature("organizations:autofix-pr-iteration-manual"):

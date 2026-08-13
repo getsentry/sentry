@@ -4,6 +4,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
@@ -28,6 +29,7 @@ class DetectorTest(BaseWorkflowTest):
         self.detector.save()
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_detectors_by_organization(self) -> None:
         project_detector = self.create_detector(project=self.project)
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
@@ -35,6 +37,7 @@ class DetectorTest(BaseWorkflowTest):
         assert project_detector in result
         assert all_projects_detector in result
 
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_excludes_other_organizations(self) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
