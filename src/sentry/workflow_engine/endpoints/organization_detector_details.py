@@ -76,8 +76,8 @@ def remove_detector(
     request: Request, organization: Organization, detector: Detector
 ) -> Response[None]:
     """
-    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
-    for backwards compatibility and can be moved back under DELETE after API deprecation.
+    Delete a given detector. Extracted from the DELETE method for the now-removed legacy
+    alert rule endpoints; it can be moved back under DELETE.
     """
     if not can_delete_detector(detector, request):
         raise PermissionDenied

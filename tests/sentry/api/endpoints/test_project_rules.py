@@ -31,8 +31,65 @@ from sentry.workflow_engine.models import (
     Condition,
     Workflow,
 )
-from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+
+def assert_serializer_results_match(
+    rule_response: dict[str, Any], workflow_response: dict[str, Any]
+) -> None:
+    rule_conditions = sorted(rule_response.get("conditions", []), key=lambda t: t.get("id", ""))
+    workflow_conditions = sorted(
+        workflow_response.get("conditions", []), key=lambda t: t.get("id", "")
+    )
+
+    for rule_condition_data, workflow_condition_data in zip(rule_conditions, workflow_conditions):
+        assert rule_condition_data == workflow_condition_data
+
+    rule_filters = sorted(rule_response.get("filters", []), key=lambda t: t.get("id", ""))
+    workflow_filters = sorted(workflow_response.get("filters", []), key=lambda t: t.get("id", ""))
+    assert len(rule_filters) == len(workflow_filters)
+
+    for rule_filter_data, workflow_filter_data in zip(rule_filters, workflow_filters):
+        assert rule_filter_data == workflow_filter_data
+
+    rule_actions = sorted(rule_response.get("actions", []), key=lambda t: t.get("id", ""))
+    workflow_actions = sorted(workflow_response.get("actions", []), key=lambda t: t.get("id", ""))
+    assert len(rule_actions) == len(workflow_actions)
+
+    # this is not read by the front end
+    for rule_action in rule_actions:
+        if rule_action.get("hasSchemaFormConfig"):
+            del rule_action["hasSchemaFormConfig"]
+
+    for rule_action_data, workflow_action_data in zip(rule_actions, workflow_actions):
+        del rule_action_data["uuid"]
+        if rule_action_data.get("legacy_rule_id"):
+            del rule_action_data["legacy_rule_id"]
+        if rule_action_data.get("workflow_id"):
+            del rule_action_data["workflow_id"]
+        # NotifyEventAction dual-writes to WEBHOOK("webhooks"), which serializes back as
+        # NotifyEventServiceAction(service="webhooks"). This divergence is intentional, so treat the
+        # two forms as equal.
+        if (
+            rule_action_data.get("id") == "sentry.rules.actions.notify_event.NotifyEventAction"
+            and workflow_action_data.get("id")
+            == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+            and workflow_action_data.get("service") == "webhooks"
+        ):
+            continue
+        assert rule_action_data == workflow_action_data
+
+    # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value
+    # which is then translated to 'any' in the serializer as 'any-short' can't be rendered in the old UI
+    # this may cause confusion if the old rule is changed to be 'all' but it can't be helped
+    assert rule_response.get("filterMatch") == workflow_response.get("filterMatch")
+    assert rule_response.get("frequency") == workflow_response.get("frequency")
+    assert rule_response.get("name") == workflow_response.get("name")
+    assert rule_response.get("environment") == workflow_response.get("environment")
+    assert rule_response.get("projects") == workflow_response.get("projects")
+    assert rule_response.get("status") == workflow_response.get("status")
+    assert rule_response.get("snooze") == workflow_response.get("snooze")
+    assert rule_response.get("owner") == workflow_response.get("owner")
 
 
 class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
