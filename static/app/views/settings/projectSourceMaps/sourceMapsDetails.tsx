@@ -74,10 +74,10 @@ function ArtifactsTableRow({
         </Flex>
         {artifactColumnDetails}
       </ArtifactColumn>
-      {type && <TypeColumn>{type}</TypeColumn>}
-      <SizeColumn>
+      {type && <AlignedRightColumn>{type}</AlignedRightColumn>}
+      <AlignedRightColumn>
         <FileSize bytes={size} />
-      </SizeColumn>
+      </AlignedRightColumn>
       <ActionsColumn>
         <Tooltip
           title={tct(
@@ -395,15 +395,7 @@ const ArtifactColumn = styled(SimpleTable.RowCell)`
   justify-content: center;
 `;
 
-const TypeColumn = styled(SimpleTable.RowCell)`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const SizeColumn = styled(SimpleTable.RowCell)`
+const AlignedRightColumn = styled(SimpleTable.RowCell)`
   display: flex;
   justify-content: flex-end;
   text-align: right;
