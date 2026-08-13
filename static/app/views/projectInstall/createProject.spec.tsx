@@ -727,18 +727,7 @@ describe('CreateProject', () => {
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
       expect(getSubmitButton()).toBeEnabled();
 
-      await userEvent.click(screen.getByText(/When there are more than/));
-      expect(getSubmitButton()).toBeEnabled();
-
-      await userEvent.clear(screen.getByTestId('range-input'));
-      expect(getSubmitButton()).toBeDisabled();
-
-      await userEvent.type(screen.getByTestId('range-input'), '2712');
-      expect(getSubmitButton()).toBeEnabled();
-
-      await userEvent.clear(screen.getByTestId('range-input'));
-      expect(getSubmitButton()).toBeDisabled();
-
+      // Notifying via integration requires a channel to be picked
       await userEvent.click(
         screen.getByRole('checkbox', {
           name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
@@ -755,7 +744,7 @@ describe('CreateProject', () => {
       expect(projectCreationMockRequest).toHaveBeenCalled();
     });
 
-    it('fires alert_selected and alert_threshold_edited with variant=legacy', async () => {
+    it('fires alert_selected with variant=legacy', async () => {
       renderFrameworkModalMockRequests({
         organization,
         teamSlug: teamWithAccess.slug,
@@ -764,43 +753,12 @@ describe('CreateProject', () => {
 
       render(<CreateProject />, {organization});
 
-      // Switch to custom alerts: fires the alert-selected event, and reveals the
-      // threshold input.
-      await userEvent.click(screen.getByText(/When there are more than/));
+      await userEvent.click(
+        screen.getByRole('radio', {name: /create my own alerts later/i})
+      );
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'project_creation.project_details_alert_selected',
-        expect.objectContaining({option: 'custom', variant: 'legacy'})
-      );
-
-      // Edit the threshold: fires the threshold-edited event.
-      await userEvent.type(screen.getByTestId('range-input'), '5');
-      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'project_creation.alert_threshold_edited',
-        expect.objectContaining({field: 'threshold', variant: 'legacy'})
-      );
-    });
-
-    it('does not fire alert_threshold_edited unless custom alerts are selected', async () => {
-      renderFrameworkModalMockRequests({
-        organization,
-        teamSlug: teamWithAccess.slug,
-      });
-      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-
-      render(<CreateProject />, {organization});
-
-      // Default is high-priority. Metric/interval Selects stay interactive while
-      // the custom radio is unselected (their wrappers call preventDefault), so
-      // an edit must not count as a custom-threshold change.
-      await selectEvent.select(screen.getByText('occurrences of'), /users affected/);
-
-      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-        'project_creation.alert_threshold_edited',
-        expect.anything()
-      );
-      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-        'project_creation.project_details_alert_selected',
-        expect.objectContaining({option: 'custom'})
+        expect.objectContaining({option: 'create_later', variant: 'legacy'})
       );
     });
 

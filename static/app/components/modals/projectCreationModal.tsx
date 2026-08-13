@@ -123,11 +123,7 @@ export default function ProjectCreationModal({
       clearIndicators();
       trackAnalytics('project_modal.created', {
         organization,
-        issue_alert: alertRuleConfig.defaultRules
-          ? 'Default'
-          : alertRuleConfig.shouldCreateCustomRule
-            ? 'Custom'
-            : 'No Rule',
+        issue_alert: alertRuleConfig.defaultRules ? 'Default' : 'No Rule',
         project_id: projectData.id,
       });
 
@@ -160,9 +156,6 @@ export default function ProjectCreationModal({
           <Subtitle>{t('Set your alert frequency')}</Subtitle>
           <IssueAlertOptions
             alertSetting={alertForm?.alertSetting}
-            interval={alertForm?.interval}
-            metric={alertForm?.metric}
-            threshold={alertForm?.threshold}
             onFieldChange={(field, value) => {
               setAlertForm(prev => ({
                 ...prev,

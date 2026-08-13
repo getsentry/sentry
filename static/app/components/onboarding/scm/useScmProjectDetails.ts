@@ -212,18 +212,11 @@ export function useScmProjectDetails({
       if (key === 'alertSetting') {
         const optionMap: Record<number, string> = {
           [RuleAction.DEFAULT_ALERT]: 'high_priority',
-          [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
           [RuleAction.CREATE_ALERT_LATER]: 'create_later',
         };
         trackAnalytics('project_creation.project_details_alert_selected', {
           organization,
-          option: optionMap[value as number] ?? String(value),
-          variant: 'scm',
-        });
-      } else if (key === 'threshold' || key === 'metric' || key === 'interval') {
-        trackAnalytics('project_creation.alert_threshold_edited', {
-          organization,
-          field: key,
+          option: optionMap[value] ?? String(value),
           variant: 'scm',
         });
       }
@@ -319,9 +312,6 @@ export function useScmProjectDetails({
     projectNameResolved === savedForm.projectName &&
     teamSlugResolved === savedForm.teamSlug &&
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
-    alertRuleConfig.interval === savedAlert?.interval &&
-    alertRuleConfig.metric === savedAlert?.metric &&
-    alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
       hasNotificationAction ? buildNotificationSelection(notificationProps) : undefined,
       savedForm?.notificationSelection
@@ -349,13 +339,10 @@ export function useScmProjectDetails({
       notificationSelection,
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
-    // (see createProject.tsx): Custom > Default > No Rule, derived from the
-    // configured alert setting.
+    // (see createProject.tsx): Default > No Rule, derived from the configured
+    // alert setting.
     let issueAlert: 'Custom' | 'Default' | 'No Rule';
     switch (alertRuleConfig.alertSetting) {
-      case RuleAction.CUSTOMIZED_ALERTS:
-        issueAlert = 'Custom';
-        break;
       case RuleAction.CREATE_ALERT_LATER:
         issueAlert = 'No Rule';
         break;
