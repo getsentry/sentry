@@ -23,7 +23,7 @@ export function FeedbackSetupPanel() {
   }, [organization]);
 
   return (
-    <Panel style={{maxHeight: '100%', overflow: 'hidden', margin: 0}}>
+    <Panel style={{margin: 0}}>
       <EmptyState
         padding="3xl"
         align="center"
