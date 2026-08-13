@@ -991,24 +991,37 @@ describe('ToolUseBlock', () => {
       );
     });
 
-    it('keeps the request detail collapsed until the row is expanded', async () => {
-      const block = codeModeCallsBlock([issueCall]);
+    it('decomposes the request query into inline input chips, no disclosure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          resolved_path:
+            '/api/0/organizations/test-org/events/?dataset=spans&project=ml-service',
+          title: 'Query spans',
+        },
+      ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-      const detail = screen.getByText('GET /api/0/organizations/test-org/issues/123/');
-      expect(detail).not.toBeVisible();
-
-      await userEvent.click(screen.getByRole('button', {name: /Retrieve an issue/}));
-
-      expect(detail).toBeVisible();
+      // A tool call is not a disclosure: the request reads as always-visible input chips rather
+      // than a raw line hidden behind an expand toggle on the title.
+      expect(screen.queryByRole('button', {name: /Query spans/})).not.toBeInTheDocument();
+      expect(screen.getByText('Input:')).toBeInTheDocument();
+      expect(screen.getByText('dataset')).toBeInTheDocument();
+      expect(screen.getByText('spans')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('ml-service')).toBeInTheDocument();
     });
 
-    it('surfaces a failed call through a notification', () => {
+    it('shows the HTTP status code in the trailing chip and the error under Output', () => {
       const block = codeModeCallsBlock([
         {...issueCall, status: 500, title: 'Retrieve an issue'},
       ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
+      // Status code trails the title; the error prints under Output, mirroring Input.
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('Output:')).toBeInTheDocument();
       expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
     });
   });

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
@@ -192,13 +193,26 @@ export function ResponseGroup({
                 startTime={startTime}
                 endTime={endTime}
               >
-                {group.map(block => {
+                {group.map((block, i) => {
                   const isAnswer = block === answer;
+                  // A block's own tool calls render after its thinking, so they count as "after";
+                  // "before" is an earlier block's tool calls. Thinking that is flanked on both
+                  // sides gets extra breathing room to set it apart; leading/trailing thinking does
+                  // not, so it stays tight against the answer or the block edge.
+                  const toolCallBefore = group
+                    .slice(0, i)
+                    .some(b => Boolean(b.message.tool_calls?.length));
+                  const toolCallAtOrAfter = group
+                    .slice(i)
+                    .some(b => Boolean(b.message.tool_calls?.length));
+                  const thinkingBetweenToolCalls = toolCallBefore && toolCallAtOrAfter;
                   return (
                     <Fragment key={block.id}>
                       {showThinking &&
                         hasValidContent(block.message.thinking_content) && (
-                          <SeerMarkdown raw={block.message.thinking_content} />
+                          <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                            <SeerMarkdown raw={block.message.thinking_content} />
+                          </ThinkingProse>
                         )}
                       {!isAnswer && hasValidContent(block.message.content) && (
                         <SeerMarkdown raw={block.message.content} />
@@ -231,3 +245,23 @@ export function ResponseGroup({
     </Container>
   );
 }
+
+// The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
+// space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the
+// answer or the block edge.
+const ThinkingProse = styled('div')`
+  min-width: 0;
+  font-family: ${p => p.theme.font.family.sans};
+  font-size: ${p => p.theme.font.size.sm};
+
+  &[data-spaced='true'] {
+    padding-block: ${p => p.theme.space.lg};
+  }
+
+  & > :first-child {
+    margin-top: 0;
+  }
+  & > :last-child {
+    margin-bottom: 0;
+  }
+`;
