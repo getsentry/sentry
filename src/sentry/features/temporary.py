@@ -372,11 +372,11 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Fetch CI check status from the provider for pull requests linked to an issue
     manager.add("organizations:issue-pr-checks-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Merge issue platform category searches into a single Snuba query
-    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enables the shared issue/event formatter module (markdown/xml output for LLMs)
     manager.add("organizations:issue-standardized-markdown-for-llm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Batch latest-event attachment lookups in the issue stream
-    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new issue stream progress views
@@ -554,7 +554,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # Assisted query agent feature flags — forwarded to Seer as TranslateRequestOptions
+    # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy
     manager.add("organizations:seer-assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM project expansion feature

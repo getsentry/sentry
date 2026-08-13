@@ -511,13 +511,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -2683,6 +2676,14 @@ register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Webhook timeout overrides by installation organization ID. Values are seconds.
+# Example: {"123456": {"webhook_timeout_override": 0.5, "hard_timeout_override": 5.0}}
+register(
+    "sentry-apps.override.organization_ids.webhook.timeouts.sec",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Hard timeout for webhook requests to prevent indefinite hangs.

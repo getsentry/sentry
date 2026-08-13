@@ -55,11 +55,7 @@ _BILLABLE_OUTCOMES = [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
-    # The proto contract defines `end` as inclusive (midnight of the last
-    # included day). Snuba queries use a half-open interval [start, end),
-    # so we add one day to convert inclusive→exclusive. Without this, all
-    # hourly rows on the last day would be excluded.
-    end = _timestamp_to_datetime(request.end) + timedelta(days=1)
+    end = _inclusive_end_to_exclusive(request.end)
     # Proto categories use different int values from Relay/ClickHouse
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
     categories = [proto_to_sentry_category(c) for c in request.categories]
@@ -79,6 +75,10 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
             sample_rate=1.0,
         )
 
+    return _build_response(rows, _latest_usage_timestamp(rows))
+
+
+def _latest_usage_timestamp(rows: list[dict]) -> datetime | None:
     last_usage_ts: datetime | None = None
     for row in rows:
         row_max = row.get("max_ts")
@@ -87,8 +87,7 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
         parsed = datetime.fromisoformat(row_max).replace(tzinfo=timezone.utc)
         if last_usage_ts is None or parsed > last_usage_ts:
             last_usage_ts = parsed
-
-    return _build_response(rows, last_usage_ts)
+    return last_usage_ts
 
 
 def _build_query(
@@ -98,10 +97,10 @@ def _build_query(
     categories: Sequence[int],
     *,
     total_outcomes: Sequence[int] | None = None,
+    additional_groupby: Sequence[str] = (),
 ) -> Request:
     # Half-open interval [start, end) — standard sentry.snuba.outcomes convention.
-    # `end` has already been shifted +1 day in query_outcomes_usage() to convert
-    # the proto's inclusive end into the exclusive boundary Snuba expects.
+    # Callers are responsible for adapting their API's interval semantics.
     where = [
         Condition(Column("org_id"), Op.EQ, org_id),
         Condition(Column("timestamp"), Op.GTE, start),
@@ -110,64 +109,19 @@ def _build_query(
     if categories:
         where.append(Condition(Column("category"), Op.IN, categories))
 
+    groupby_columns = [*additional_groupby, "category", "time"]
+    select: list[Column | Function] = [
+        *[Column(name) for name in groupby_columns],
+        Function("max", [Column("timestamp")], "max_ts"),
+    ]
+    select.extend(_usage_aggregates(total_outcomes))
+
     query = Query(
         match=Entity("outcomes"),
-        select=[
-            Column("category"),
-            Column("time"),
-            Function("max", [Column("timestamp")], "max_ts"),
-            _total_function(total_outcomes),
-            Function(
-                "sumIf",
-                [Column("quantity"), Function("equals", [Column("outcome"), Outcome.ACCEPTED])],
-                "accepted",
-            ),
-            Function(
-                "sumIf",
-                [
-                    Column("quantity"),
-                    Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
-                ],
-                "dropped",
-            ),
-            Function(
-                "sumIf",
-                [Column("quantity"), Function("equals", [Column("outcome"), Outcome.FILTERED])],
-                "filtered",
-            ),
-            Function("sumIf", [Column("quantity"), _over_quota_condition()], "over_quota"),
-            Function(
-                "sumIf",
-                [
-                    Column("quantity"),
-                    Function(
-                        "and",
-                        [
-                            Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
-                            Function("equals", [Column("reason"), "smart_rate_limit"]),
-                        ],
-                    ),
-                ],
-                "spike_protection",
-            ),
-            Function(
-                "sumIf",
-                [
-                    Column("quantity"),
-                    Function(
-                        "and",
-                        [
-                            Function("equals", [Column("outcome"), Outcome.FILTERED]),
-                            Function("startsWith", [Column("reason"), "Sampled:"]),
-                        ],
-                    ),
-                ],
-                "dynamic_sampling",
-            ),
-        ],
-        groupby=[Column("category"), Column("time")],
+        select=select,
+        groupby=[Column(name) for name in groupby_columns],
         where=where,
-        orderby=[OrderBy(Column("time"), Direction.ASC)],
+        orderby=[OrderBy(Column(name), Direction.ASC) for name in [*additional_groupby, "time"]],
         granularity=Granularity(_DAILY_GRANULARITY),
         limit=Limit(_QUERY_LIMIT),
     )
@@ -180,45 +134,104 @@ def _build_query(
 
 
 def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsageResponse:
-    # Two-level accumulator: days_map[day_str][category_id] -> usage fields.
+    # Two-level accumulator: days_map[day_str][category_id] -> category usage.
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
     #
     # NOTE: CategoryUsage.category carries Relay/Sentry int values (not proto
     # DataCategory ints). We need to convert this to proto enum values because
     # downstream consumers indiscriminately convert the values from proto to relay values. See the TODO in getsentry's
     # usage_pricer/service.py for the planned migration.
-    days_map: defaultdict[str, dict[int, dict[str, int]]] = defaultdict(dict)
+    days_map: defaultdict[str, dict[int, CategoryUsage]] = defaultdict(dict)
 
     for row in rows:
-        day = row["time"]
-        category = sentry_to_proto_category(int(row["category"]))
-        if category == ProtoDataCategory.DATA_CATEGORY_UNKNOWN:
-            # Sentry category has no proto mapping; skipping prevents it
-            # from colliding with a different proto category at the same int.
+        category_usage = _category_usage_from_row(row)
+        if category_usage is None:
             continue
-        days_map[day][category] = {
-            "total": int(row["total"]),
-            "accepted": int(row["accepted"]),
-            "dropped": int(row["dropped"]),
-            "filtered": int(row["filtered"]),
-            "over_quota": int(row["over_quota"]),
-            "spike_protection": int(row["spike_protection"]),
-            "dynamic_sampling": int(row["dynamic_sampling"]),
-        }
+        days_map[row["time"]][category_usage.category] = category_usage
 
     days = []
     for day_str in sorted(days_map):
         date = _parse_day(day_str)
-        usage = [
-            CategoryUsage(category=cat, data=UsageData(**fields))  # type: ignore[arg-type]
-            for cat, fields in sorted(days_map[day_str].items())
-        ]
+        usage = [category_usage for _, category_usage in sorted(days_map[day_str].items())]
         days.append(DailyUsage(date=date, usage=usage))
 
     response = GetUsageResponse(days=days, seats=[])
     if last_usage_ts is not None:
         response.last_usage_ts.FromDatetime(last_usage_ts)
     return response
+
+
+def _usage_aggregates(total_outcomes: Sequence[int] | None) -> list[Function]:
+    return [
+        _total_function(total_outcomes),
+        Function(
+            "sumIf",
+            [Column("quantity"), Function("equals", [Column("outcome"), Outcome.ACCEPTED])],
+            "accepted",
+        ),
+        Function(
+            "sumIf",
+            [
+                Column("quantity"),
+                Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
+            ],
+            "dropped",
+        ),
+        Function(
+            "sumIf",
+            [Column("quantity"), Function("equals", [Column("outcome"), Outcome.FILTERED])],
+            "filtered",
+        ),
+        Function("sumIf", [Column("quantity"), _over_quota_condition()], "over_quota"),
+        Function(
+            "sumIf",
+            [
+                Column("quantity"),
+                Function(
+                    "and",
+                    [
+                        Function("equals", [Column("outcome"), Outcome.RATE_LIMITED]),
+                        Function("equals", [Column("reason"), "smart_rate_limit"]),
+                    ],
+                ),
+            ],
+            "spike_protection",
+        ),
+        Function(
+            "sumIf",
+            [
+                Column("quantity"),
+                Function(
+                    "and",
+                    [
+                        Function("equals", [Column("outcome"), Outcome.FILTERED]),
+                        Function("startsWith", [Column("reason"), "Sampled:"]),
+                    ],
+                ),
+            ],
+            "dynamic_sampling",
+        ),
+    ]
+
+
+def _category_usage_from_row(row: dict) -> CategoryUsage | None:
+    category = sentry_to_proto_category(int(row["category"]))
+    if category == ProtoDataCategory.DATA_CATEGORY_UNKNOWN:
+        # Sentry category has no proto mapping; skipping prevents it
+        # from colliding with a different proto category at the same int.
+        return None
+    return CategoryUsage(
+        category=category,
+        data=UsageData(
+            total=int(row["total"]),
+            accepted=int(row["accepted"]),
+            dropped=int(row["dropped"]),
+            filtered=int(row["filtered"]),
+            over_quota=int(row["over_quota"]),
+            spike_protection=int(row["spike_protection"]),
+            dynamic_sampling=int(row["dynamic_sampling"]),
+        ),
+    )
 
 
 def _total_function(outcomes: Sequence[int] | None) -> Function:
@@ -275,6 +288,11 @@ def _over_quota_condition() -> Function:
 
 def _timestamp_to_datetime(ts: Timestamp) -> datetime:
     return ts.ToDatetime(tzinfo=timezone.utc)
+
+
+def _inclusive_end_to_exclusive(ts: Timestamp) -> datetime:
+    """Convert the API's inclusive end day to Snuba's exclusive boundary."""
+    return _timestamp_to_datetime(ts) + timedelta(days=1)
 
 
 def _parse_day(value: str) -> Date:
