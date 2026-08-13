@@ -6,7 +6,7 @@ from concurrent.futures import as_completed
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Exists, Min, Subquery, Value, When
+from django.db.models import Case, CharField, Exists, Subquery, Value, When
 from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from requests import Response
