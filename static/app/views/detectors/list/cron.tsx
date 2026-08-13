@@ -163,7 +163,7 @@ function CronEmptyState() {
         justify="center"
         illustration={
           <Image
-            width={{zero: '100%', xs: '150px', lg: '250px'}}
+            width={{zero: '300px', md: '150px', '2xl': '300px'}}
             src={onboardingImg}
             alt={t(
               'Purple bird emerging from an orange birdhouse with gears and a warning sign'
