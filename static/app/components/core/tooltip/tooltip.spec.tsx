@@ -1,6 +1,7 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Container} from '@sentry/scraps/layout';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 describe('Tooltip', () => {
   let originalResizeObserver: typeof window.ResizeObserver;
@@ -200,5 +201,140 @@ describe('Tooltip', () => {
 
     await userEvent.click(screen.getByText('Copy'));
     expect(handleAncestorClick).not.toHaveBeenCalled();
+  });
+
+  describe('content padding', () => {
+    // This suite stubs `getComputedStyle` so that it cannot see emotion rules
+    // (tests/js/setup.ts), which rules out asserting padding directly — and
+    // makes a negative style assertion pass vacuously. Emotion derives the
+    // class name from a hash of the serialized styles, so comparing classes
+    // between two renders is a real assertion about the CSS they produce.
+    async function paddingClassName(padding?: TooltipProps['padding']) {
+      const {unmount} = render(
+        <Tooltip title="test" padding={padding}>
+          <button>My Button</button>
+        </Tooltip>
+      );
+      await userEvent.hover(screen.getByText('My Button'));
+      const className = screen.getByText('test').closest('[data-tooltip]')?.className;
+      unmount();
+
+      return className;
+    }
+
+    it('pads the content by default', async () => {
+      const byDefault = await paddingClassName();
+
+      // Every tooltip that has not opted out depends on this default, so it is
+      // the regression guard for the existing call sites.
+      expect(byDefault).toBeTruthy();
+      expect(byDefault).toBe(await paddingClassName('md lg'));
+    });
+
+    it('drops the content padding when opted out', async () => {
+      expect(await paddingClassName('0')).not.toBe(await paddingClassName());
+    });
+  });
+
+  describe('sections', () => {
+    it('renders a header label alongside its trailing value', async () => {
+      render(
+        <Tooltip
+          padding="0"
+          title={<Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>}
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(screen.getByText('Last Seen')).toBeInTheDocument();
+      expect(screen.getByText('8mo ago')).toBeInTheDocument();
+    });
+
+    it('renders a footer label alongside its trailing value', async () => {
+      render(
+        <Tooltip
+          padding="0"
+          title={<Tooltip.Footer trailing="UTC">Times shown in</Tooltip.Footer>}
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(screen.getByText('Times shown in')).toBeInTheDocument();
+      expect(screen.getByText('UTC')).toBeInTheDocument();
+    });
+
+    it('renders every row into the one body grid', async () => {
+      render(
+        <Tooltip
+          padding="0"
+          title={
+            <Tooltip.Body columns="max-content 1fr">
+              <Tooltip.Row>
+                <span>PDT</span>
+                <span>Jul 28, 2026</span>
+              </Tooltip.Row>
+              <Tooltip.Row>
+                <span>UTC</span>
+                <span>Jul 29, 2026</span>
+              </Tooltip.Row>
+            </Tooltip.Body>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      // Sharing one grid is what keeps a column aligned between the rows when
+      // one row's cell is wider than the other's.
+      const firstRow = screen.getByText('PDT').parentElement;
+      const secondRow = screen.getByText('UTC').parentElement;
+
+      expect(firstRow).toBeInTheDocument();
+      expect(firstRow?.parentElement).toBe(secondRow?.parentElement);
+    });
+
+    it('renders a row as a layout-less wrapper so its cells join that grid', async () => {
+      // A row that established its own layout box would align its columns only
+      // against itself, so what it renders has to stay `display: contents`.
+      // Same class as the reference means the same serialized styles.
+      const reference = render(
+        <Container display="contents">
+          <span>reference cell</span>
+        </Container>
+      );
+      const referenceClassName =
+        screen.getByText('reference cell').parentElement?.className;
+      reference.unmount();
+
+      render(
+        <Tooltip
+          padding="0"
+          title={
+            <Tooltip.Body>
+              <Tooltip.Row>
+                <span>row cell</span>
+              </Tooltip.Row>
+            </Tooltip.Body>
+          }
+        >
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(referenceClassName).toBeTruthy();
+      expect(screen.getByText('row cell').parentElement?.className).toBe(
+        referenceClassName
+      );
+    });
   });
 });

@@ -5,7 +5,23 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {
+  Container,
+  type ContainerProps,
+  Flex,
+  getSpacing,
+  Grid,
+  type GridProps,
+  rc,
+} from '@sentry/scraps/layout';
+// Imported from the module rather than the `text` barrel on purpose. That
+// barrel also re-exports `Prose`, which reaches `code` -> `codeBlock` ->
+// `Button`, and `Button` imports this file — so going through it would close an
+// import cycle and leave `Button` undefined at module-eval time.
+import {Text} from '@sentry/scraps/text/text';
+
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {defined} from 'sentry/utils/defined';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
@@ -38,14 +54,25 @@ export interface TooltipProps extends UseHoverOverlayProps {
    * Additional style rules for the tooltip content.
    */
   overlayStyle?: React.CSSProperties | SerializedStyles;
+  /**
+   * Padding around the tooltip content.
+   *
+   * Set to `'0'` when composing `Tooltip.Header`, `Tooltip.Body` and
+   * `Tooltip.Footer` — each section applies its own padding so that it can span
+   * the full width of the overlay, which a shared outer padding would prevent.
+   *
+   * @default 'md lg'
+   */
+  padding?: ContainerProps['padding'];
 }
 
-export function Tooltip({
+function TooltipComponent({
   children,
   overlayStyle,
   title,
   disabled = false,
   maxWidth,
+  padding = 'md lg',
   isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
@@ -113,6 +140,7 @@ export function Tooltip({
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
+                  padding={padding}
                   arrowProps={arrowProps}
                   originPoint={arrowData}
                   placement={placement}
@@ -136,9 +164,9 @@ function stopPropagation(e: React.SyntheticEvent) {
 }
 
 const TooltipContent = styled(Overlay, {
-  shouldForwardProp: prop => prop !== 'maxWidth',
-})<{maxWidth?: number}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  shouldForwardProp: prop => prop !== 'maxWidth' && prop !== 'padding',
+})<{maxWidth?: number; padding?: TooltipProps['padding']}>`
+  ${p => rc('padding', p.padding, p.theme, getSpacing)};
   overflow-wrap: break-word;
   max-width: ${p => p.maxWidth ?? 225}px;
   color: ${p => p.theme.tokens.content.primary};
@@ -146,3 +174,138 @@ const TooltipContent = styled(Overlay, {
   line-height: 1.2;
   text-align: center;
 `;
+
+interface TooltipHeaderProps {
+  /**
+   * What the section describes, e.g. "Last Seen".
+   */
+  children: React.ReactNode;
+  /**
+   * Optional value pinned to the opposite edge of the header, e.g. the
+   * relative time the rows below resolve.
+   */
+  trailing?: React.ReactNode;
+}
+
+/**
+ * Names what the section below it describes. Written in sentence case — weight
+ * and position carry the hierarchy, so it is deliberately not uppercased and
+ * carries no bottom border.
+ */
+function TooltipHeader({children, trailing}: TooltipHeaderProps) {
+  return (
+    <Flex align="center" justify="between" gap="xs" padding="md lg">
+      <Text bold align="left">
+        {children}
+      </Text>
+      {defined(trailing) && (
+        <Text bold align="right" wrap="nowrap">
+          {trailing}
+        </Text>
+      )}
+    </Flex>
+  );
+}
+
+interface TooltipBodyProps {
+  children: React.ReactNode;
+  /**
+   * The column tracks rows are laid out in. `Tooltip.Row` renders its children
+   * straight into these tracks, so a column stays aligned across every row even
+   * when one row's cell is wider than the same cell in the row above.
+   *
+   * @default '1fr'
+   */
+  columns?: GridProps['columns'];
+  /**
+   * @default '2xs sm'
+   */
+  gap?: GridProps['gap'];
+}
+
+/**
+ * The padded region a tooltip's rows are laid out in, and the grid those rows
+ * share.
+ */
+function TooltipBody({children, columns = '1fr', gap = '2xs sm'}: TooltipBodyProps) {
+  return (
+    <Grid columns={columns} gap={gap} align="center" padding="md lg">
+      {children}
+    </Grid>
+  );
+}
+
+interface TooltipRowProps {
+  children: React.ReactNode;
+}
+
+/**
+ * One row of a `Tooltip.Body`. Renders as `display: contents` so that its
+ * children become grid items of the body itself rather than of a nested box —
+ * a row that owned its own grid would align its columns only against itself.
+ */
+function TooltipRow({children}: TooltipRowProps) {
+  return <Container display="contents">{children}</Container>;
+}
+
+interface TooltipFooterProps {
+  children: React.ReactNode;
+  /**
+   * Optional value pinned to the opposite edge of the footer.
+   */
+  trailing?: React.ReactNode;
+}
+
+/**
+ * Trailing note for a tooltip, e.g. what the rows above are qualified by. Muted
+ * so it reads as secondary to them.
+ */
+function TooltipFooter({children, trailing}: TooltipFooterProps) {
+  return (
+    <Flex align="center" justify="between" gap="xs" padding="md lg">
+      <Text variant="muted" align="left">
+        {children}
+      </Text>
+      {defined(trailing) && (
+        <Text variant="muted" align="right" wrap="nowrap">
+          {trailing}
+        </Text>
+      )}
+    </Flex>
+  );
+}
+
+/**
+ * Tooltips show contextual information about an element on hover.
+ *
+ * For content that is a row of labelled values rather than a sentence, compose
+ * it from the sections rather than passing a block of markup. Each section
+ * applies its own padding so that it spans the full width of the overlay, which
+ * means the tooltip has to opt out of the shared content padding:
+ *
+ * ```tsx
+ * <Tooltip
+ *   padding="0"
+ *   title={
+ *     <Fragment>
+ *       <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
+ *       <Tooltip.Body columns="max-content 1fr max-content">
+ *         <Tooltip.Row>{cells}</Tooltip.Row>
+ *       </Tooltip.Body>
+ *     </Fragment>
+ *   }
+ * >
+ *   {trigger}
+ * </Tooltip>
+ * ```
+ *
+ * Sections set their own text alignment, because a tooltip centers its content
+ * by default — right for a sentence, wrong for a row of labelled values. They
+ * set no font size, so they inherit the tooltip's.
+ */
+export const Tooltip = Object.assign(TooltipComponent, {
+  Header: TooltipHeader,
+  Body: TooltipBody,
+  Row: TooltipRow,
+  Footer: TooltipFooter,
+});

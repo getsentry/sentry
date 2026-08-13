@@ -11,8 +11,12 @@ resources:
     WAI-ARIA Tooltip Practices: https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
 ---
 
+import {Fragment} from 'react';
+
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Storybook from 'sentry/stories';
@@ -194,6 +198,76 @@ Tooltips can display rich content including formatted text, multiple lines, and 
   <Button>Multi-line text</Button>
 </Tooltip>
 ```
+
+## Structured Content
+
+When a tooltip carries labelled values rather than a sentence, compose it out of
+`Tooltip.Header`, `Tooltip.Body` and `Tooltip.Footer`. Each section applies its own
+padding so that it spans the full width of the overlay, which means the tooltip itself has
+to opt out of the shared content padding with `padding="0"`.
+
+`Tooltip.Row` renders its children directly into the column tracks declared by
+`Tooltip.Body`, so a column stays aligned across every row — below, the two dates line up
+even though `PDT` and `UTC` are different widths. A row that owned its own grid would only
+align against itself.
+
+<Storybook.Demo>
+  <Tooltip
+    padding="0"
+    maxWidth={280}
+    forceVisible
+    title={
+      <Fragment>
+        <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
+        <Tooltip.Body columns="max-content 1fr max-content">
+          <Tooltip.Row>
+            <Tag variant="info">PDT</Tag>
+            <Text>Jul 28, 2026</Text>
+            <Text align="right">11:40 PM</Text>
+          </Tooltip.Row>
+          <Tooltip.Row>
+            <Tag variant="muted">UTC</Tag>
+            <Text>Jul 29, 2026</Text>
+            <Text align="right">6:40 AM</Text>
+          </Tooltip.Row>
+        </Tooltip.Body>
+      </Fragment>
+    }
+  >
+    <Button>Structured content</Button>
+  </Tooltip>
+</Storybook.Demo>
+```jsx
+<Tooltip
+  padding="0"
+  maxWidth={280}
+  title={
+    <Fragment>
+      <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
+      <Tooltip.Body columns="max-content 1fr max-content">
+        <Tooltip.Row>
+          <Tag variant="info">PDT</Tag>
+          <Text>Jul 28, 2026</Text>
+          <Text align="right">11:40 PM</Text>
+        </Tooltip.Row>
+        <Tooltip.Row>
+          <Tag variant="muted">UTC</Tag>
+          <Text>Jul 29, 2026</Text>
+          <Text align="right">6:40 AM</Text>
+        </Tooltip.Row>
+      </Tooltip.Body>
+    </Fragment>
+  }
+>
+  <Button>Structured content</Button>
+</Tooltip>
+```
+
+Sections deliberately do not set a font size, so they inherit the tooltip's. They do set
+their own text alignment, because the tooltip centers content by default — right for a
+sentence, wrong for a row of labelled values.
+
+Headers are written in sentence case. Do not uppercase them.
 
 ## Disabled State
 
