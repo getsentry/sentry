@@ -140,3 +140,32 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
             notification_uuid=str(uuid.uuid4()),
             workflow_id=self.workflow.id,
         )  # action should be triggerable
+
+    @mock.patch(
+        "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
+    )
+    def test_validate_installation_uuid(
+        self, mock_trigger_sentry_app_action_creators: mock.MagicMock
+    ) -> None:
+        """Accept installation UUID as targetIdentifier and normalize to app id."""
+        mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
+            success=True, message="success"
+        )
+        data = {
+            "type": Action.Type.SENTRY_APP,
+            "config": {
+                "targetType": ActionType.SENTRY_APP,
+                "targetIdentifier": self.sentry_app_installation.uuid,
+            },
+            "data": {"settings": self.sentry_app_settings},
+        }
+
+        validator = BaseActionValidator(
+            data=data,
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is True
+        action = validator.save()
+        assert action.config["target_identifier"] == str(self.sentry_app.id)
+
