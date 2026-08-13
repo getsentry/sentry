@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import type {QueryStatus} from '@tanstack/react-query';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
@@ -25,18 +26,15 @@ import {type Mention, type MentionInputValue, reconcileMentions} from './model';
 import {CaretAnchor, MentionEditor, SuggestionStatus} from './styles';
 import type {MentionInputProps} from './types';
 import {useMentionSuggestions} from './useMentionSuggestions';
-import type {MentionSuggestionStatus} from './useMentionSuggestions';
 
-function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.ReactNode {
+function getSuggestionStatusMessage(status: QueryStatus): React.ReactNode {
   switch (status) {
-    case 'empty':
-      return t('No suggestions found');
     case 'error':
       return t('Unable to load suggestions');
-    case 'loading':
+    case 'pending':
       return t('Loading suggestions…');
-    case 'ready':
-      return null;
+    case 'success':
+      return t('No suggestions found');
   }
 }
 
@@ -150,7 +148,6 @@ export function MentionInput<TSuggestion>({
   const theme = useTheme();
   const {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef} =
     useEditorValueSync(inputValue);
-  const listBoxRef = useRef<HTMLUListElement>(null);
   const dismissedRequestKeyRef = useRef<string | null>(null);
   const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
 
@@ -166,16 +163,15 @@ export function MentionInput<TSuggestion>({
     focusedKey,
     getSuggestion,
     listBoxId,
-    listBoxRef: setListBoxRef,
+    listBoxRef,
     listState,
-    requestKey,
-    status: suggestionStatus,
+    queryStatus,
   } = useMentionSuggestions({
     activeMention,
     activeSource,
     inputRef,
-    listBoxRef,
   });
+  const hasSuggestions = queryStatus === 'success' && suggestionCount > 0;
 
   const updateActiveMention = (nextValue = value) => {
     const input = inputRef.current;
@@ -358,7 +354,7 @@ export function MentionInput<TSuggestion>({
 
         if (event.key === 'Escape') {
           event.preventDefault();
-          dismissedRequestKeyRef.current = requestKey;
+          dismissedRequestKeyRef.current = getRequestKey(activeMention);
           setActiveMention(null);
         }
       }
@@ -399,12 +395,12 @@ export function MentionInput<TSuggestion>({
               maxHeight="200px"
               overflowY="auto"
             >
-              {suggestionStatus === 'ready' ? (
+              {hasSuggestions ? (
                 <ListBox
                   id={listBoxId}
                   aria-label={t('%s suggestions', activeSource.label)}
                   autoFocus="first"
-                  ref={setListBoxRef}
+                  ref={listBoxRef}
                   listState={listState}
                   overlayIsOpen
                   onAction={selectSuggestion}
@@ -414,7 +410,7 @@ export function MentionInput<TSuggestion>({
                 />
               ) : (
                 <SuggestionStatus>
-                  {getDefaultSuggestionStatus(suggestionStatus)}
+                  {getSuggestionStatusMessage(queryStatus)}
                 </SuggestionStatus>
               )}
             </Container>
@@ -422,7 +418,7 @@ export function MentionInput<TSuggestion>({
         </PositionWrapper>
       ) : null}
       <VisuallyHidden aria-live="polite">
-        {isOpen && suggestionStatus === 'ready'
+        {isOpen && hasSuggestions
           ? tn('%s suggestion available', '%s suggestions available', suggestionCount)
           : null}
       </VisuallyHidden>
