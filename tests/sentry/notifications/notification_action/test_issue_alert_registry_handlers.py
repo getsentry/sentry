@@ -209,20 +209,13 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             ]
         }
 
-    def test_create_rule_instance_from_action_uses_workflow_name_not_stale_rule_label(
+    def test_rule_instance_from_action_uses_workflow_name_not_stale_rule_label(
         self,
     ) -> None:
-        """Regression test: label should come from Workflow.name, not the legacy Rule.label.
-
-        When a user renames the alert (updating Workflow.name), the legacy
-        Rule.label may be stale. Slack/PD read the synthetic Rule's label, so
-        it must reflect the Workflow name, not the stale Rule label.
-        """
         self.workflow.update(name="Renamed Alert Name")
         rule = self.handler.create_rule_instance_from_action(
             self.action, self.detector, self.event_data, workflow_id=self.workflow.id
         )
-
         assert isinstance(rule, Rule)
         assert rule.label == "Renamed Alert Name"
         assert rule.label != self.rule.label  # legacy rule label is still "Test Alert"
