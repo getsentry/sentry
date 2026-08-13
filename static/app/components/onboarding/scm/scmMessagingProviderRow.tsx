@@ -53,7 +53,9 @@ function deriveVisualState({
   messagingSetup,
   isConfiguring,
   isRemoving,
+  awaitingInstall,
 }: {
+  awaitingInstall: boolean;
   installState: ReturnType<typeof useAddIntegration>['state'];
   isConfiguring: boolean;
   isRemoving: boolean;
@@ -73,8 +75,15 @@ function deriveVisualState({
     if (installState.status === 'cancelled' && installState.lastError) {
       return 'install-error';
     }
-    // Install confirmed — stay in loading until the view model catches up.
-    if (installState.status === 'complete' && viewModel.status !== 'connected') {
+    // Hold the spinner only while waiting for the just-installed integration to
+    // surface. Once the view model settles to anything other than `installable`
+    // (connected or permission-limited) that state is terminal, so falling
+    // through avoids spinning forever on an ineligible or vanished integration.
+    if (
+      installState.status === 'complete' &&
+      awaitingInstall &&
+      viewModel.status === 'installable'
+    ) {
       return 'loading';
     }
   }
@@ -139,6 +148,9 @@ export function ScmMessagingProviderRow({
   const {startFlow, state: installState} = useAddIntegration();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  // `useAddIntegration` never leaves `complete`, so latch the post-install wait
+  // ourselves and release it once the integration surfaces.
+  const [awaitingInstall, setAwaitingInstall] = useState(false);
 
   const isConfigured =
     messagingSetup.mode === 'selected' &&
@@ -151,6 +163,7 @@ export function ScmMessagingProviderRow({
     messagingSetup,
     isConfiguring,
     isRemoving,
+    awaitingInstall,
   });
 
   // When the integration goes away (e.g. removed externally), close any
@@ -159,6 +172,14 @@ export function ScmMessagingProviderRow({
     if (viewModel.status !== 'connected') {
       setIsConfiguring(false);
       setIsRemoving(false);
+    }
+  }, [viewModel.status]);
+
+  // Release the post-install latch once the integration surfaces (connected or
+  // permission-limited), so a later external removal cannot re-trigger loading.
+  useEffect(() => {
+    if (viewModel.status !== 'installable') {
+      setAwaitingInstall(false);
     }
   }, [viewModel.status]);
 
@@ -171,6 +192,7 @@ export function ScmMessagingProviderRow({
   }, [isConfigured]);
 
   const handleConnect = useCallback(() => {
+    setAwaitingInstall(true);
     startFlow({
       provider: viewModel.provider,
       organization,
@@ -213,7 +235,7 @@ export function ScmMessagingProviderRow({
 
   return (
     <ScmSelectableContainer isSelected={isConfigured}>
-      <RowBody>
+      <Stack>
         {(visualState === 'loading' || visualState === 'installing') && (
           <Flex justify="center" align="center" padding="lg">
             <LoadingIndicator mini style={{margin: 0}} />
@@ -277,7 +299,7 @@ export function ScmMessagingProviderRow({
             })}
           </ChannelPickerSlot>
         )}
-      </RowBody>
+      </Stack>
     </ScmSelectableContainer>
   );
 }
@@ -421,11 +443,6 @@ function RowActions({
 
   return null;
 }
-
-const RowBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const IconWrapper = styled('div')`
   flex-shrink: 0;
