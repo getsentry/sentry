@@ -1548,9 +1548,8 @@ class ProviderMetricTagTest(TestCase):
 @control_silo_test
 class DispatchMetricTest(TestCase):
     """
-    Push- and scheduler-dispatched drains must land on one metric so their shares
-    are comparable. Every dispatch path is pinned here: a path that stops emitting
-    silently attributes its work to the other dispatcher.
+    One test per dispatch path: a path that stops emitting silently attributes its
+    work to the other dispatcher.
     """
 
     def dispatch_tags(self, mock_metrics: MagicMock) -> list[dict[str, str]]:
@@ -1603,9 +1602,7 @@ class DispatchMetricTest(TestCase):
     def test_push_lease_dispatch_counted_without_a_claim_size(
         self, mock_drain: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        # Lease mode claims nothing, so this path has no depth to report. It must
-        # still be counted, or push work looks like it stops during the ramp — but
-        # it must not invent a claim size.
+        # Lease mode claims nothing: counted, but without an invented claim size.
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
 
         maybe_trigger_drain(webhook.mailbox_name)
@@ -1619,36 +1616,6 @@ class DispatchMetricTest(TestCase):
             }
         ]
         assert self.claimed_calls(mock_metrics) == []
-
-    @override_options(CLAIM_MODE_OPTIONS)
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_scheduler_claim_dispatch_attributed_to_scheduler(
-        self, mock_drain: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-
-        schedule_webhook_delivery()
-
-        assert self.dispatch_tags(mock_metrics) == [
-            {
-                "dispatcher": "scheduler",
-                "mode": "claim",
-                "drain": "sequential",
-                "provider": "github",
-            }
-        ]
-        assert self.claimed_calls(mock_metrics) == [
-            (
-                1,
-                {
-                    "dispatcher": "scheduler",
-                    "mode": "claim",
-                    "drain": "sequential",
-                    "provider": "github",
-                },
-            )
-        ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -1682,12 +1649,11 @@ class DispatchMetricTest(TestCase):
     @override_options(CLAIM_MODE_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
-    def test_claimed_reports_batch_depth_not_one_per_dispatch(
+    def test_scheduler_claim_dispatch_reports_batch_depth(
         self, mock_drain_parallel: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        # The whole point of the distribution: one dispatch can carry many webhooks,
-        # so dispatch share and webhook share are different numbers. A counter alone
-        # would report this deep drain as a single unit of work.
+        # Deep on purpose: `claimed` must report the batch, not one per dispatch,
+        # or webhook share collapses back into dispatch share.
         for _ in range(PARALLEL_DRAIN_THRESHOLD):
             self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
 

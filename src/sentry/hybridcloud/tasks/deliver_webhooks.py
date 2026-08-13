@@ -260,20 +260,14 @@ def _record_dispatch(
     claimed: int | None = None,
 ) -> None:
     """
-    Record that a drain task was enqueued, so push- and scheduler-dispatched work
-    are comparable on one chart rather than only through each path's own counters.
+    Record a drain enqueue so push- and scheduler-dispatched work stay comparable.
 
-    Two instruments, because the two questions have different answers. `dispatch`
-    counts enqueues and rides every path. `dispatch.claimed` carries the size of
-    the claim behind the enqueue, which is what makes webhook volume — not just
-    invocation count — attributable: a scheduler drain can claim up to
-    MAX_MAILBOX_DRAIN records while a push drain typically claims one or two, so
-    dispatch share and delivery share are not the same number.
+    `dispatch` counts enqueues; `dispatch.claimed` carries the claim behind each
+    one. A scheduler drain can claim up to MAX_MAILBOX_DRAIN records where a push
+    drain typically claims one or two, so the two shares are different numbers.
 
-    `claimed` is omitted only by the lease-mode push trigger, which claims nothing
-    at all (its dedupe is the lock the drain holds). It has no depth to report, so
-    it lands in the counter alone and `dispatch.claimed` stays free of a fabricated
-    value. That gap closes on its own once the claim rollout retires lease mode.
+    Lease-mode push triggers claim nothing, so they have no depth to report and
+    emit the counter alone rather than a fabricated size.
     """
     tags = {
         "dispatcher": dispatcher,
