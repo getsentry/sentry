@@ -26,6 +26,38 @@ class PrIdCacheTest(TestCase):
     def test_get_misses_for_unknown_pr(self) -> None:
         assert get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=99) is None
 
+    @patch(f"{MODULE_PATH}.metrics.incr")
+    def test_unknown_pr_is_counted_as_a_miss(self, mock_incr: MagicMock) -> None:
+        get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=99)
+
+        assert [(call.args[0], call.kwargs["tags"]) for call in mock_incr.call_args_list] == [
+            (f"{METRICS_KEY}.get", {"result": "miss"}),
+        ]
+
+    @patch(f"{MODULE_PATH}.cache")
+    def test_unusable_cached_value_is_not_returned(self, mock_cache: MagicMock) -> None:
+        # `True` is the one worth pinning: bool is an int subclass, so it would
+        # sail through an isinstance check and be handed back as a PR id.
+        mock_cache.get.return_value = True
+
+        assert get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7) is None
+
+    @patch(f"{MODULE_PATH}.metrics.incr")
+    @patch(f"{MODULE_PATH}.cache")
+    def test_unusable_cached_value_is_counted_apart_from_a_miss(
+        self, mock_cache: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        # Nothing here writes a non-int, so one turning up means the entry did
+        # not come from `set_cached_pr_id`. Counted as a miss it would be
+        # indistinguishable from ordinary cold-cache traffic.
+        mock_cache.get.return_value = "279147437"
+
+        get_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7)
+
+        assert [(call.args[0], call.kwargs["tags"]) for call in mock_incr.call_args_list] == [
+            (f"{METRICS_KEY}.get", {"result": "invalid"}),
+        ]
+
     def test_pr_number_scopes_the_entry(self) -> None:
         set_cached_pr_id(provider=GITHUB, repo_external_id="654321", pr_number=7, pr_id=111)
 

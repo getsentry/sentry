@@ -81,11 +81,22 @@ _CACHE_KEY_VERSION = 1
 # 1 day. There is no correctness reason to expire an entry — the mapping it holds
 # can never become wrong — so the only question this number answers is how much
 # cache memory we are willing to spend to keep entries around for a repeat
-# lookup. We are starting deliberately short rather than guessing high, because
-# we do not yet know how long a PR keeps being touched. Widen it once
-# ``integrations.source_code_management.pr_id_cache.get``, split by its
-# ``result`` tag, shows the misses are entries that expired rather than PRs seen
-# for the first time.
+# lookup. Note that every warm re-``set``s the key and pushes the deadline out,
+# so what expires is not a PR first seen a day ago but one that has been silent
+# for a day: ``sentry.integrations.github.webhook`` renews it on every
+# ``pull_request`` event and ``sentry.seer.autofix.pr_iteration.check_suites`` on
+# every ``check_suite``. We are starting deliberately short rather than guessing
+# high, because we do not yet know how long a PR stays quiet before someone
+# mentions ``@sentry`` on it.
+#
+# ``integrations.source_code_management.pr_id_cache.get`` will not tell you
+# whether widening this would pay, whichever way you split it: ``cache.get``
+# returns ``None`` for an entry that expired and for one that was never stored
+# alike, so ``result:miss`` folds the two together and no tag on it can take them
+# apart after the fact. Deciding needs the two TTLs running at once — assign each
+# key to an arm by a stable hash of the key itself, so an entry is always read
+# under the arm that wrote it, tag the counter with the arm, and compare hit
+# rates across what are then two identical populations.
 PR_ID_CACHE_TTL = 24 * 60 * 60
 
 # github.com, whose repo ids are unique across every repository GitHub knows
@@ -107,8 +118,8 @@ def get_cached_pr_id(
     """The GitHub PR id previously stored for this repo + PR number, if any.
 
     Returns ``None`` for a miss, for an unkeyable/unsupported repo (anything but
-    ``SUPPORTED_PROVIDER``), and for a cache backend failure — all three mean
-    "ask GitHub".
+    ``SUPPORTED_PROVIDER``), for a cache backend failure, and for a stored value
+    this module would not have written — all four mean "ask GitHub".
     """
 
     if not provider:
@@ -133,9 +144,19 @@ def get_cached_pr_id(
         metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "error"})
         return None
 
+    if value is None:
+        metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "miss"})
+        return None
+
+    # Counted apart from the miss it is indistinguishable from at the call site:
+    # nothing here writes a non-int, so one turning up means the entry did not
+    # come from `set_cached_pr_id` — a key collision, or an encoding change that
+    # went out without the version bump above. Folded into `miss` it would read
+    # as ordinary cold-cache traffic.
+    #
     # bool is an int subclass and would sail through an isinstance check.
     if not isinstance(value, int) or isinstance(value, bool):
-        metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "miss"})
+        metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "invalid"})
         return None
 
     metrics.incr(f"{_METRICS_KEY}.get", tags={"result": "hit"})
