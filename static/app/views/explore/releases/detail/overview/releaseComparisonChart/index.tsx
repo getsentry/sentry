@@ -1,5 +1,5 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -1105,32 +1105,10 @@ export function ReleaseComparisonChart({
           </ChartContainer>
         </ErrorBoundary>
       </ChartPanel>
-      <PanelTable
-        css={cssTheme => css`
-          border-top-left-radius: 0;
-          border-top-right-radius: 0;
-
-          && {
-            grid-template-columns:
-              repeat(4, minmax(min-content, 1fr))
-              ${withExpanders ? '75px' : ''};
-          }
-
-          @container (min-width: ${cssTheme.container['4xl']}) {
-            && {
-              grid-template-columns:
-                minmax(400px, auto)
-                repeat(3, minmax(min-content, 1fr))
-                ${withExpanders ? '75px' : ''};
-            }
-          }
-
-          > * {
-            border-bottom: 1px solid ${cssTheme.tokens.border.primary};
-          }
-        `}
+      <ChartTable
         headers={getTableHeaders(withExpanders)}
         data-test-id="release-comparison-table"
+        withExpanders={withExpanders}
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
         {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
@@ -1152,7 +1130,7 @@ export function ReleaseComparisonChart({
             </Flex>
           </ShowMoreWrapper>
         )}
-      </PanelTable>
+      </ChartTable>
     </Fragment>
   );
 }
@@ -1181,6 +1159,29 @@ const DescriptionCell = styled(Cell)`
 const Change = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
+`;
+
+const ChartTable = styled(PanelTable)<{withExpanders: boolean}>`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
+  && {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
+        p.withExpanders ? '75px' : ''};
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    && {
+      grid-template-columns: minmax(400px, auto) repeat(
+          3,
+          minmax(min-content, 1fr)
+        ) ${p => (p.withExpanders ? '75px' : '')};
+    }
+  }
+
+  > * {
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`
