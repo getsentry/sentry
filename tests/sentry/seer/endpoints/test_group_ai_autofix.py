@@ -990,7 +990,7 @@ class GroupAutofixConditionalGetTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.data
         assert re.fullmatch(r'"[0-9a-f]{32}"', response["ETag"])
-        assert response["Cache-Control"] == "private, max-age=0, must-revalidate"
+        assert response["Cache-Control"] == "private, no-cache"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_identical_requests_share_an_etag(self, mock_get_explorer_state):
@@ -1013,7 +1013,7 @@ class GroupAutofixConditionalGetTest(APITestCase, SnubaTestCase):
         assert response.status_code == 304
         assert response.content == b""
         assert response["ETag"] == first["ETag"]
-        assert response["Cache-Control"] == "private, max-age=0, must-revalidate"
+        assert response["Cache-Control"] == "private, no-cache"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_stale_validator_returns_the_full_body(self, mock_get_explorer_state):

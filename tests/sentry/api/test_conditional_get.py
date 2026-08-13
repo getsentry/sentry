@@ -63,7 +63,7 @@ class ConditionalGetResponseMixinTest(APITestCase):
 
         assert response.status_code == 200
         assert re.fullmatch(r'"[0-9a-f]{32}"', response["ETag"])
-        assert response["Cache-Control"] == "private, max-age=0, must-revalidate"
+        assert response["Cache-Control"] == "private, no-cache"
         assert "Cookie" in response["Vary"]
         assert "Authorization" in response["Vary"]
 
@@ -90,7 +90,7 @@ class ConditionalGetResponseMixinTest(APITestCase):
         assert response.status_code == 304
         assert response.content == b""
         assert response["ETag"] == first["ETag"]
-        assert response["Cache-Control"] == "private, max-age=0, must-revalidate"
+        assert response["Cache-Control"] == "private, no-cache"
 
     def test_stale_validator_returns_the_full_body(self) -> None:
         current = _conditional_endpoint(self.make_request(method="GET"))["ETag"]
