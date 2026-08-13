@@ -36,9 +36,6 @@ DATA_TYPE_BY_CONDITION_TYPE: Mapping[
 }
 
 
-CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
-
-
 @cell_silo_model
 class CustomInboundFilter(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
@@ -55,9 +52,3 @@ class CustomInboundFilter(DefaultFieldsModel):
         db_table = "sentry_custominboundfilter"
 
     __repr__ = sane_repr("project_id", "name")
-
-    def get_outcomes_id(self) -> str:
-        """
-        Builds the identifier this filter reports under, in Relay's filter config and in outcomes.
-        """
-        return f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{self.id}"

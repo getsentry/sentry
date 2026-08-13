@@ -6,10 +6,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import (
-    CUSTOM_INBOUND_FILTER_ID_PREFIX,
-    CustomInboundFilter,
-)
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -51,14 +48,12 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert first_data == {
             "id": str(first_filter.id),
-            "outcomesId": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{first_filter.id}",
             "name": "Release filter",
             "active": True,
             "conditions": [{"type": "release", "value": ["1.*"]}],
         }
         assert second_data == {
             "id": str(second_filter.id),
-            "outcomesId": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{second_filter.id}",
             "name": "Error filter",
             "active": False,
             "conditions": [{"type": "error_message", "value": ["TypeError*"]}],

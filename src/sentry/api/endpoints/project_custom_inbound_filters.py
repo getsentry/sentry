@@ -55,14 +55,6 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
 
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
     id = serializers.CharField(read_only=True)
-    outcomesId = serializers.CharField(
-        source="get_outcomes_id",
-        read_only=True,
-        help_text=(
-            "The reason this filter reports under in ingest outcomes. Query the "
-            "organization stats endpoint by this reason to count what the filter dropped."
-        ),
-    )
     name = serializers.CharField(
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
     )
@@ -83,15 +75,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
     class Meta:
         model = CustomInboundFilter
-        fields = [
-            "id",
-            "outcomesId",
-            "name",
-            "active",
-            "conditions",
-            "dateCreated",
-            "dateUpdated",
-        ]
+        fields = ["id", "name", "active", "conditions", "dateCreated", "dateUpdated"]
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)

@@ -17,7 +17,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.models.custominboundfilter import CUSTOM_INBOUND_FILTER_ID_PREFIX
+from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam

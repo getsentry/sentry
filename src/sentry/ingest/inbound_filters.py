@@ -508,6 +508,9 @@ def get_generic_filters(
     }
 
 
+CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
+
+
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     """
     Matches events whose exception type, exception value, or log entry message
@@ -636,6 +639,8 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions)
         if condition is not None:
-            generic_filters.append(_generic_filter(custom_filter.get_outcomes_id(), condition))
+            generic_filters.append(
+                _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)
+            )
 
     return generic_filters
