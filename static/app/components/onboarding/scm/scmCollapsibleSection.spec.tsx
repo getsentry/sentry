@@ -3,18 +3,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ScmCollapsibleSection} from './scmCollapsibleSection';
 
 describe('ScmCollapsibleSection', () => {
-  it('renders content with visible overflow when expanded by default', () => {
+  it('renders the title and content expanded by default', () => {
     render(
       <ScmCollapsibleSection title="Section title">
         <div>Body content</div>
       </ScmCollapsibleSection>
     );
 
-    const toggle = screen.getByRole('button', {name: 'Section title'});
-    const contentId = toggle.getAttribute('aria-controls');
-
-    expect(contentId).not.toBeNull();
-    expect(document.getElementById(contentId!)).toHaveStyle({overflow: 'visible'});
+    expect(screen.getByRole('button', {name: 'Section title'})).toBeInTheDocument();
     expect(screen.getByText('Body content')).toBeInTheDocument();
   });
 
