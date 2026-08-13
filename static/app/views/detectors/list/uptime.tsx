@@ -1,5 +1,4 @@
 import {useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -43,7 +42,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   });
 
   return (
-    <Cell
+    <SimpleTable.RowCell
       data-column-name="visualization"
       padding="lg 0"
       borderLeft="muted"
@@ -62,7 +61,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
           />
         )}
       </Flex>
-    </Cell>
+    </SimpleTable.RowCell>
   );
 }
 
@@ -82,14 +81,14 @@ export default function UptimeDetectorsList() {
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (
-            <Cell
+            <SimpleTable.RowCell
               data-column-name="visualization"
               padding="lg 0"
               borderLeft="muted"
               height="100%"
             >
               <CheckInPlaceholder />
-            </Cell>
+            </SimpleTable.RowCell>
           );
         }
         if (detector.type === 'uptime_domain_failure') {
@@ -129,7 +128,3 @@ export default function UptimeDetectorsList() {
     </MonitorViewContext.Provider>
   );
 }
-
-const Cell = styled(SimpleTable.RowCell)`
-  z-index: 4;
-`;
