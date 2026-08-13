@@ -11,7 +11,8 @@ import type {TagVariant} from 'sentry/utils/theme';
 
 import {Tag, type TagProps} from './tag';
 
-function getDefaultTitle(type: FeatureBadgeProps['type'], t: (string: string) => string) {
+function useDefaultTitle(type: FeatureBadgeProps['type']) {
+  const {t} = useTranslation();
   switch (type) {
     case 'alpha':
       return t('This feature is internal and available for QA purposes');
@@ -50,8 +51,8 @@ export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'
 }
 
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
-  const {t} = useTranslation();
-  const title = tooltipProps?.title ?? getDefaultTitle(type, t);
+  const defaultTitle = useDefaultTitle(type);
+  const title = tooltipProps?.title ?? defaultTitle;
 
   const {ref, isInsideInteractiveElement, isInteractiveElementFocusVisible} =
     useIsInsideInteractiveElement(props.ref);

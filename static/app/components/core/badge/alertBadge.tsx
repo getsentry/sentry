@@ -33,11 +33,8 @@ interface AlertBadgeConfig {
   style: React.CSSProperties;
   text: string;
 }
-function getAlertBadgeConfig(
-  status: AlertBadgeStatus,
-  theme: Theme,
-  t: (string: string) => string
-): AlertBadgeConfig {
+function useAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadgeConfig {
+  const {t} = useTranslation();
   switch (status) {
     case 'disabled':
       return {
@@ -95,13 +92,12 @@ function getAlertBadgeConfig(
  */
 export function AlertBadge(props: AlertBadgeProps) {
   const theme = useTheme();
-  const {t} = useTranslation();
   const status = props.isDisabled
     ? 'disabled'
     : props.isIssue
       ? 'issue'
       : (props.status ?? IncidentStatus.CLOSED);
-  const {text, icon: Icon, style} = getAlertBadgeConfig(status, theme, t);
+  const {text, icon: Icon, style} = useAlertBadgeConfig(status, theme);
 
   return (
     <PaddedContainer data-test-id="alert-badge" align="center" gap="lg">

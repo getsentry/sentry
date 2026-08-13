@@ -43,17 +43,14 @@ export function ToolCallIndicator({
   status,
   'aria-label': ariaLabel,
 }: ToolCallIndicatorProps) {
-  const {t} = useTranslation();
+  const defaultAriaLabel = useDefaultAriaLabel(status);
 
   if (status === 'content') {
     return null;
   }
 
   return (
-    <ToolCallStatusGlyph
-      status={status}
-      aria-label={ariaLabel ?? getDefaultAriaLabel(status, t)}
-    />
+    <ToolCallStatusGlyph status={status} aria-label={ariaLabel ?? defaultAriaLabel} />
   );
 }
 
@@ -81,10 +78,8 @@ function ToolCallStatusGlyph({
   }
 }
 
-function getDefaultAriaLabel(
-  status: ToolCallStatus,
-  t: (string: string) => string
-): string {
+function useDefaultAriaLabel(status: ToolCallStatus): string {
+  const {t} = useTranslation();
   switch (status) {
     case 'loading':
       return t('Running...');
