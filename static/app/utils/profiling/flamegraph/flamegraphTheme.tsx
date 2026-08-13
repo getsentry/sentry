@@ -74,6 +74,8 @@ export interface FlamegraphTheme {
     SPAN_FRAME_BORDER: string;
     SPAN_FRAME_LINE_PATTERN: string;
     SPAN_FRAME_LINE_PATTERN_BACKGROUND: string;
+    UI_FRAME_COLOR_FROZEN: ColorChannels;
+    UI_FRAME_COLOR_SLOW: ColorChannels;
     stackToColor: (
       frames: readonly FlamegraphFrame[],
       colorMapFn: ColorMapFn,
@@ -83,8 +85,6 @@ export interface FlamegraphTheme {
       colorBuffer: number[];
       colorMap: Map<Frame['key'], ColorChannels>;
     };
-    UI_FRAME_COLOR_FROZEN: ColorChannels;
-    UI_FRAME_COLOR_SLOW: ColorChannels;
   };
   FONTS: {
     FONT: string;
