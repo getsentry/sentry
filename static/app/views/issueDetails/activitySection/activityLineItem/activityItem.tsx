@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
