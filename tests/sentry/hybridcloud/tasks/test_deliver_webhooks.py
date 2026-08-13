@@ -18,6 +18,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
+    Dispatcher,
     _claim_and_dispatch,
     _use_claim_dispatch,
     drain_mailbox,
@@ -185,7 +186,9 @@ class ScheduleWebhooksTest(TestCase):
             schedule_for=claimed_for,
         )
 
-        outcome = _claim_and_dispatch(webhook.id, webhook.mailbox_name)
+        outcome = _claim_and_dispatch(
+            webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
+        )
 
         assert outcome == "not_due"
         mock_drain.delay.assert_not_called()
@@ -208,7 +211,9 @@ class ScheduleWebhooksTest(TestCase):
         )
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            outcome = _claim_and_dispatch(webhook.id, webhook.mailbox_name)
+            outcome = _claim_and_dispatch(
+                webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
+            )
 
         assert outcome == "sequential"
         mock_drain.delay.assert_called_once_with(webhook.id, claimed_count=1)
@@ -1537,6 +1542,153 @@ class ProviderMetricTagTest(TestCase):
 
         assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
             {"outcome": "race", "provider": "gitlab"}
+        ]
+
+
+@control_silo_test
+class DispatchMetricTest(TestCase):
+    """
+    One test per dispatch path: a path that stops emitting silently attributes its
+    work to the other dispatcher.
+    """
+
+    def dispatch_tags(self, mock_metrics: MagicMock) -> list[dict[str, str]]:
+        return [
+            c[1].get("tags", {})
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.dispatch"
+        ]
+
+    def claimed_calls(self, mock_metrics: MagicMock) -> list[tuple[int, dict[str, str]]]:
+        return [
+            (c[0][1], c[1].get("tags", {}))
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.dispatch.claimed"
+        ]
+
+    @override_options(CLAIM_MODE_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_push_claim_dispatch_attributed_to_push(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        assert self.dispatch_tags(mock_metrics) == [
+            {
+                "dispatcher": "push",
+                "mode": "claim",
+                "drain": "sequential",
+                "provider": "github",
+            }
+        ]
+        assert self.claimed_calls(mock_metrics) == [
+            (
+                1,
+                {
+                    "dispatcher": "push",
+                    "mode": "claim",
+                    "drain": "sequential",
+                    "provider": "github",
+                },
+            )
+        ]
+
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_push_lease_dispatch_claims_zero(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # Lease mode runs no claim UPDATE, so zero is the true claim size. Skipping
+        # the emit instead would leave this dispatcher with no series at all while
+        # lease mode is the majority, blanking any push-vs-scheduler formula.
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        assert self.dispatch_tags(mock_metrics) == [
+            {
+                "dispatcher": "push",
+                "mode": "lease",
+                "drain": "sequential",
+                "provider": "github",
+            }
+        ]
+        assert self.claimed_calls(mock_metrics) == [
+            (
+                0,
+                {
+                    "dispatcher": "push",
+                    "mode": "lease",
+                    "drain": "sequential",
+                    "provider": "github",
+                },
+            )
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_scheduler_lease_dispatch_attributed_to_scheduler(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        schedule_webhook_delivery()
+
+        assert self.dispatch_tags(mock_metrics) == [
+            {
+                "dispatcher": "scheduler",
+                "mode": "lease",
+                "drain": "sequential",
+                "provider": "github",
+            }
+        ]
+        assert self.claimed_calls(mock_metrics) == [
+            (
+                1,
+                {
+                    "dispatcher": "scheduler",
+                    "mode": "lease",
+                    "drain": "sequential",
+                    "provider": "github",
+                },
+            )
+        ]
+
+    @override_options(CLAIM_MODE_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
+    def test_scheduler_claim_dispatch_reports_batch_depth(
+        self, mock_drain_parallel: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # Deep on purpose: `claimed` must report the batch, not one per dispatch,
+        # or webhook share collapses back into dispatch share.
+        for _ in range(PARALLEL_DRAIN_THRESHOLD):
+            self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        schedule_webhook_delivery()
+
+        assert self.dispatch_tags(mock_metrics) == [
+            {
+                "dispatcher": "scheduler",
+                "mode": "claim",
+                "drain": "parallel",
+                "provider": "github",
+            }
+        ]
+        assert self.claimed_calls(mock_metrics) == [
+            (
+                PARALLEL_DRAIN_THRESHOLD,
+                {
+                    "dispatcher": "scheduler",
+                    "mode": "claim",
+                    "drain": "parallel",
+                    "provider": "github",
+                },
+            )
         ]
 
 
