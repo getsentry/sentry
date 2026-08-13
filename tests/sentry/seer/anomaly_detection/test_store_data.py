@@ -11,6 +11,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleThresholdType,
 )
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
 from sentry.snuba import errors, metrics_performance
 from sentry.snuba.dataset import Dataset
@@ -25,6 +27,7 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.users.models.user import User
 from sentry.utils.snuba import SnubaTSResult
 
 pytestmark = pytest.mark.sentry_metrics
@@ -48,19 +51,19 @@ class AlertRuleBase(APITestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization()
 
     @cached_property
-    def project(self):
+    def project(self) -> Project:
         return self.create_project(organization=self.organization)
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user()
 
     @cached_property
-    def alert_rule_dict(self):
+    def alert_rule_dict(self) -> dict[str, Any]:
         return {
             "aggregate": "count()",
             "query": "",
@@ -90,7 +93,7 @@ class AlertRuleBase(APITestCase):
         }
 
     @cached_property
-    def dynamic_alert_rule_dict(self):
+    def dynamic_alert_rule_dict(self) -> dict[str, Any]:
         return {
             "aggregate": "count()",
             "query": "",
