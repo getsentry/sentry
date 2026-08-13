@@ -229,7 +229,7 @@ function decodeConfigSpace(): [number, number] {
   return [startedAtMs, endedAtMs];
 }
 
-const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
+const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.empty();
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
 const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_BATTERY_CHART = FlamegraphChartModel.Empty;
