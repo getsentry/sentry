@@ -1,16 +1,19 @@
 import {useMemo} from 'react';
 
-import {ExternalLink} from '@sentry/scraps/link';
-
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -48,7 +51,6 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 import {WidgetWrapper} from './styles';
 
@@ -224,8 +226,14 @@ function Graph({
     return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
+  const showFooter =
+    showChart &&
+    (timeseriesResult.isPending ||
+      timeseriesResult.isFetching ||
+      plottablesCanBeVisualized(plottables));
 
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
@@ -236,24 +244,13 @@ function Graph({
         Actions={actions}
         Visualization={
           showEmptyState ? (
-            <GenericWidgetEmptyStateWarning
-              message={tct(
-                'No application metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use application metrics.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
-                      {t('learn more')}
-                    </ExternalLink>
-                  ),
-                }
-              )}
-            />
+            <TimeSeriesWidgetVisualization.NoData />
           ) : showChart ? (
             <ChartVisualization chartInfo={chartInfo} />
           ) : undefined
         }
         Footer={
-          showChart ? (
+          showFooter ? (
             <ConfidenceFooter
               chartInfo={chartInfo}
               isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}

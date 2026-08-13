@@ -81,11 +81,23 @@ function MetricPanelWithQueryParams({
   );
 }
 
-function setupMocks(orgSlug: string) {
+type TimeseriesResponse = {timeSeries: Array<ReturnType<typeof TimeSeriesFixture>>};
+
+function setupMocks(
+  orgSlug: string,
+  timeseriesResponse:
+    | TimeseriesResponse
+    | ((
+        url: string,
+        options: {query: Record<string, string | string[] | undefined>}
+      ) => TimeseriesResponse) = {
+    timeSeries: [TimeSeriesFixture()],
+  }
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/events-timeseries/`,
     method: 'GET',
-    body: {timeSeries: [TimeSeriesFixture()]},
+    body: timeseriesResponse,
   });
 
   // Catch-all for /events/ requests not matched by specific referrer mocks
@@ -365,6 +377,109 @@ describe('MetricPanel', () => {
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+  });
+
+  it('shows the standard chart empty state when no metrics are available', async () => {
+    setupEventsMock(
+      [],
+      [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          referrer: 'api.explore.metric-options',
+        }),
+      ]
+    );
+
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization,
+      additionalWrapper: createWrapper({queryParams, traceMetric}),
+    });
+
+    expect(
+      await screen.findByRole('heading', {name: 'No data to plot.'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Try adjusting the filters.')).toBeInTheDocument();
+  });
+
+  it('does not show raw counts when there is no data to plot', async () => {
+    const populatedSeries = TimeSeriesFixture({
+      yAxis: 'sum(value,bar,distribution,none)',
+      meta: {
+        ...TimeSeriesFixture().meta,
+        dataScanned: 'full',
+      },
+      values: [
+        {
+          timestamp: 1729796400000,
+          value: 1,
+          sampleCount: 1,
+          sampleRate: 1,
+        },
+      ],
+    });
+    MockApiClient.clearMockResponses();
+    const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
+    setupMocks(organization.slug, (_url, options) => {
+      const requestedYAxis = options.query.yAxis;
+      return {
+        timeSeries:
+          options.query.query === 'span.op:db'
+            ? []
+            : [
+                {
+                  ...populatedSeries,
+                  yAxis: Array.isArray(requestedYAxis)
+                    ? requestedYAxis[0]!
+                    : requestedYAxis!,
+                },
+              ],
+      };
+    });
+    setupEventsMock(metricFixtures.detailedFixtures, [
+      MockApiClient.matchQuery({
+        dataset: 'tracemetrics',
+        referrer: 'api.explore.metric-options',
+      }),
+    ]);
+    const totalRawCountMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [{'count(value)': 1}],
+        meta: {fields: {'count(value)': 'integer'}, units: {}},
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal-extrapolated-total',
+        }),
+      ],
+    });
+    const initialQueryParams = queryParams.replace({query: ''});
+    const filteredQueryParams = initialQueryParams.replace({query: 'span.op:db'});
+
+    const {rerender} = render(
+      <MetricPanelWithQueryParams
+        queryParams={initialQueryParams}
+        traceMetric={traceMetric}
+      />,
+      {organization}
+    );
+
+    const metricPanel = await screen.findByTestId('metric-panel');
+    await waitFor(() => expect(metricPanel).toHaveTextContent('1 data point'));
+
+    rerender(
+      <MetricPanelWithQueryParams
+        queryParams={filteredQueryParams}
+        traceMetric={traceMetric}
+      />
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'No data to plot.'})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(totalRawCountMock).toHaveBeenCalled());
+    expect(metricPanel).not.toHaveTextContent('Estimated from 0 matches of 1 data point');
   });
 
   it('renders the visualize label badge', async () => {
