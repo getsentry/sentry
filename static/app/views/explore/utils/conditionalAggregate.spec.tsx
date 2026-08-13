@@ -2,6 +2,8 @@ import {
   applyConditionalFilter,
   buildConditionalAggregate,
   escapeConditionalFilter,
+  isConditionalAggregateFilterValid,
+  isConditionalAggregateYAxisValid,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
   withReadableConditionalFilter,
@@ -175,5 +177,58 @@ describe('supportsConditionalAggregateFilter', () => {
     ]) {
       expect(supportsConditionalAggregateFilter(aggregate)).toBe(false);
     }
+  });
+});
+
+describe('isConditionalAggregateFilterValid', () => {
+  it('accepts empty filters', () => {
+    expect(isConditionalAggregateFilterValid('')).toBe(true);
+    expect(isConditionalAggregateFilterValid('   ')).toBe(true);
+  });
+
+  it('accepts attribute filters', () => {
+    expect(isConditionalAggregateFilterValid('span.op:db')).toBe(true);
+  });
+
+  it('rejects incomplete filters', () => {
+    expect(isConditionalAggregateFilterValid('span.op:')).toBe(false);
+  });
+
+  it('rejects aggregate filter keys', () => {
+    expect(isConditionalAggregateFilterValid('p95(span.duration):>100')).toBe(false);
+    expect(isConditionalAggregateFilterValid('count():>0')).toBe(false);
+    // Duration units make the parser treat this as free text without duration
+    // config; still reject it as an aggregate key.
+    expect(isConditionalAggregateFilterValid('p95(span.duration):>300ms')).toBe(false);
+  });
+
+  it('rejects aggregate keys mixed with valid attribute filters', () => {
+    expect(
+      isConditionalAggregateFilterValid(
+        'span.category:db _pi_file_io_main_thread:492262d12c82474e p95(span.duration):>300ms'
+      )
+    ).toBe(false);
+  });
+});
+
+describe('isConditionalAggregateYAxisValid', () => {
+  it('accepts plain aggregates and valid _if filters', () => {
+    expect(isConditionalAggregateYAxisValid('count(span.duration)')).toBe(true);
+    expect(isConditionalAggregateYAxisValid('count_if(`span.op:db`,span.duration)')).toBe(
+      true
+    );
+  });
+
+  it('rejects _if filters that use aggregate keys', () => {
+    expect(
+      isConditionalAggregateYAxisValid(
+        'count_if(`p95(span.duration):>100`,span.duration)'
+      )
+    ).toBe(false);
+    expect(
+      isConditionalAggregateYAxisValid(
+        'count_if(`span.category:db _pi_file_io_main_thread:492262d12c82474e p95(span.duration):>300ms`,span.duration)'
+      )
+    ).toBe(false);
   });
 });

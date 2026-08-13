@@ -7,6 +7,7 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {IconHide} from 'sentry/icons/iconHide';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
@@ -44,6 +45,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
+  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
@@ -298,6 +300,9 @@ function ToolbarVisualizeItem({
     onSearch: onFilterSearch,
     searchSource: 'explore-conditional-aggregate',
     placeholder: t('Filter spans for this series'),
+    // Attribute-only, same as metrics / samples-mode search: never offer visualize
+    // aggregates (p95, count, …) as series-filter keys.
+    supportedAggregates: [],
   });
 
   const showFilterSearchBar =
@@ -327,6 +332,15 @@ function ToolbarVisualizeItem({
             // portaling to cover every menu.
             portalTarget={document.body}
             disableFullWidthFilterKeyMenu
+            // Same "Invalid key" UX as metrics: aggregates are not valid series-filter
+            // keys (metrics gets this from validate; we list visualize aggregates).
+            invalidFilterKeys={[
+              ...(spanSearchQueryBuilderProps.invalidFilterKeys ?? []),
+              ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+            ]}
+            invalidMessages={{
+              [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+            }}
           />
         ) : undefined
       }

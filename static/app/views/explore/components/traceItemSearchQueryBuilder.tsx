@@ -45,6 +45,7 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
+  invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -127,6 +128,7 @@ export function useTraceItemSearchQueryBuilderProps({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
@@ -240,6 +242,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
+      invalidMessages,
     }),
     [
       asyncFilterKeyRegistryQueryKey,
@@ -259,6 +262,7 @@ export function useTraceItemSearchQueryBuilderProps({
       getTraceItemAttributeValues,
       initialQuery,
       invalidFilterKeys,
+      invalidMessages,
       itemType,
       matchKeySuggestions,
       namespace,
@@ -315,6 +319,7 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
   showSearchIcon,
   disableFullWidthFilterKeyMenu,
 }: TraceItemSearchQueryBuilderProps) {
@@ -355,6 +360,7 @@ export function TraceItemSearchQueryBuilder({
     allowedAttributeKeys,
     datetime,
     invalidFilterKeys,
+    invalidMessages,
   });
 
   return (

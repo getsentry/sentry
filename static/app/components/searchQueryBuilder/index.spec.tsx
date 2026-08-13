@@ -6379,6 +6379,84 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('invalidFilterKeys', () => {
+    it('marks listed simple keys as invalid', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['browser']}
+          initialQuery="browser:Chrome"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'browser:Chrome'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Invalid key. "browser" is not a supported search key.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks aggregate filters invalid when the bare aggregate name is listed', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['p95']}
+          invalidMessages={{
+            [InvalidReason.INVALID_KEY]:
+              'Aggregates cannot be used in conditional filters',
+          }}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            p95: {
+              key: 'p95',
+              name: 'p95',
+              kind: FieldKind.FUNCTION,
+            },
+            'transaction.duration': {
+              key: 'transaction.duration',
+              name: 'transaction.duration',
+              kind: FieldKind.FIELD,
+            },
+          }}
+          fieldDefinitionGetter={key => {
+            if (key === 'p95') {
+              return {
+                kind: FieldKind.FUNCTION,
+                valueType: FieldValueType.DURATION,
+                parameters: [
+                  {
+                    name: 'column',
+                    kind: 'column' as const,
+                    columnTypes: [FieldValueType.DURATION],
+                    defaultValue: 'transaction.duration',
+                    required: true,
+                  },
+                ],
+              };
+            }
+            return defaultProps.fieldDefinitionGetter?.(key) ?? null;
+          }}
+          initialQuery="p95(transaction.duration):>100"
+        />
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'p95(transaction.duration):>100'})
+      ).toHaveAttribute('aria-invalid', 'true');
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Aggregates cannot be used in conditional filters')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('invalidMessages', () => {
     it('should customize invalid messages', async () => {
       render(

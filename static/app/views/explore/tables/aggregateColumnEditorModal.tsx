@@ -16,6 +16,7 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -70,6 +71,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
+  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
@@ -525,6 +527,13 @@ function AggregateSelector({
       onSearch: handleFilterSearch,
       searchSource: 'explore-conditional-aggregate',
       placeholder: t('Filter spans for this series'),
+      // Attribute-only, same "Invalid key" UX as metrics for aggregates in the filter:
+      // never offer visualize aggregates, and mark them invalid if typed.
+      supportedAggregates: [],
+      invalidFilterKeys: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+      invalidMessages: {
+        [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
+      },
     }),
     [booleanTags, filter, handleFilterSearch, numberTags, stringTags]
   );

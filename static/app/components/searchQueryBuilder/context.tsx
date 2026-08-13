@@ -29,7 +29,7 @@ import type {
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResult} from 'sentry/components/searchSyntax/parser';
+import {InvalidReason, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
@@ -64,6 +64,11 @@ interface SearchQueryBuilderConfigContextData {
   getSuggestedFilterKey: (key: string) => string | null;
   getTagKeys: GetTagKeys | undefined;
   getTagValues: GetTagValues;
+  /**
+   * Optional override for the tooltip shown when a key is in `invalidFilterKeys`.
+   * Falls back to the default "Invalid key..." copy when unset.
+   */
+  invalidFilterKeyMessage: string | undefined;
   invalidFilterKeys: string[];
   matchKeySuggestions: Array<{key: string; valuePattern: RegExp}> | undefined;
   namespace: string | undefined;
@@ -273,6 +278,8 @@ export function SearchQueryBuilderProvider({
     [invalidFilterKeys]
   );
 
+  const invalidFilterKeyMessage = invalidMessages?.[InvalidReason.INVALID_KEY];
+
   const parseQuery = useCallback(
     (query: string) =>
       parseQueryBuilderValue(query, getFieldDefinitionWithTagMetadata, {
@@ -411,6 +418,7 @@ export function SearchQueryBuilderProvider({
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagKeys: getTagKeys ? registeredGetTagKeys : undefined,
       getTagValues,
+      invalidFilterKeyMessage,
       invalidFilterKeys: stableInvalidFilterKeys,
       matchKeySuggestions,
       namespace,
@@ -433,6 +441,7 @@ export function SearchQueryBuilderProvider({
     getTagKeys,
     registeredGetTagKeys,
     getTagValues,
+    invalidFilterKeyMessage,
     stableInvalidFilterKeys,
     matchKeySuggestions,
     namespace,

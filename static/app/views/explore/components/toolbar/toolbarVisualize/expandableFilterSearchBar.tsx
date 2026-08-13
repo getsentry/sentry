@@ -173,7 +173,9 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   &[data-expanded='true'],
   &:focus-within {
     overflow: visible;
-    z-index: ${p => p.theme.zIndex.dropdown};
+    /* Above Explore chart content, below CompactSelect overlays (dropdown) and
+     * AttributeDetails (tooltip) so argument menus/tooltips stay usable. */
+    z-index: ${p => p.theme.zIndex.header};
 
     [data-test-id='search-query-builder'] {
       background-color: ${p => p.theme.tokens.background.primary};

@@ -1,8 +1,29 @@
+import {
+  parseQueryBuilderValue,
+  queryIsValid,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {t} from 'sentry/locale';
 import {parseFunction, type ParsedFunction} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
 
 const IF_SUFFIX = '_if';
+
+/**
+ * Shown when a visualize aggregate is used as a key in a series `_if` filter.
+ */
+export const CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE = t(
+  'Aggregates cannot be used in conditional filters'
+);
+
+/**
+ * Chart / table error when a series `_if` filter is invalid and querying is skipped.
+ */
+export const CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE = t('Invalid series filter');
 
 /**
  * Span aggregates that the EAP `_if` combinator is generated for. Everything else
@@ -25,6 +46,14 @@ const FILTERABLE_AGGREGATES: string[] = [
   AggregationKey.P99,
   AggregationKey.P100,
 ];
+
+/**
+ * Matches visualize aggregates used as search keys, with or without args
+ * (`p95:`, `p95(span.duration):`, `count():`).
+ */
+const VISUALIZE_AGGREGATE_KEY_PATTERN = new RegExp(
+  `(^|[\\s(!])(?:${ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.join('|')})(?:\\([^)]*\\))?:`
+);
 
 export type ConditionalAggregate = ParsedFunction;
 
@@ -137,4 +166,53 @@ export function supportsConditionalAggregateFilter(aggregateName: string): boole
  */
 export function hasConditionalAggregateFilter(yAxis: string): boolean {
   return Boolean(parseConditionalAggregate(yAxis)?.filter);
+}
+
+/**
+ * True when the filter uses a visualize aggregate as a search key
+ * (`p95(span.duration):>300ms`, `count():>0`, …).
+ *
+ * The search parser often falls back to free text for these when duration/numeric
+ * config is missing (e.g. empty `filterKeys`), so `queryIsValid` alone is not enough.
+ */
+function filterContainsVisualizeAggregateKey(filter: string): boolean {
+  return VISUALIZE_AGGREGATE_KEY_PATTERN.test(filter);
+}
+
+/**
+ * Whether a series `_if` filter is safe to send to the backend.
+ *
+ * Mirrors the series-filter search bar: aggregates are not valid filter keys, and
+ * parser errors (e.g. missing values) are also rejected. Empty filters are valid
+ * (no combinator).
+ */
+export function isConditionalAggregateFilterValid(filter: string): boolean {
+  if (!filter.trim()) {
+    return true;
+  }
+
+  // Aggregates are never valid series-filter keys. Check the string first so cases
+  // the parser treats as free text (e.g. `p95(span.duration):>300ms` without
+  // duration config) still block the backend request.
+  if (filterContainsVisualizeAggregateKey(filter)) {
+    return false;
+  }
+
+  const parsed = parseQueryBuilderValue(filter, key => getFieldDefinition(key, 'span'), {
+    filterKeys: {},
+    // Same list the toolbar / column editor pass as `invalidFilterKeys`.
+    invalidFilterKeys: ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  });
+  return queryIsValid(parsed);
+}
+
+/**
+ * Whether a visualize yAxis's `_if` filter (if any) is valid for querying.
+ */
+export function isConditionalAggregateYAxisValid(yAxis: string): boolean {
+  const conditional = parseConditionalAggregate(yAxis);
+  if (!conditional?.filter) {
+    return true;
+  }
+  return isConditionalAggregateFilterValid(conditional.filter);
 }

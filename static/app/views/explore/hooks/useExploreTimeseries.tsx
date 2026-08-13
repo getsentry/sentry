@@ -111,10 +111,21 @@ function useExploreTimeseriesImpl({
       fields,
       orderby,
       topEvents,
-      enabled,
+      // When every series has an invalid `_if` filter (or equation), do not hit the API.
+      enabled: enabled && validYAxes.length > 0,
       ...queryExtras,
     };
-  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
+  }, [
+    enabled,
+    fields,
+    interval,
+    orderby,
+    query,
+    queryExtras,
+    topEvents,
+    yAxes,
+    validYAxes.length,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,

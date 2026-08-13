@@ -15,6 +15,7 @@ import {
   useQueryParamsExtrapolate,
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import {CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE} from 'sentry/views/explore/utils/conditionalAggregate';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -95,6 +96,11 @@ function useExploreAggregatesTableImp({
     return allFields.filter(Boolean);
   }, [aggregateFields]);
 
+  const hasValidVisualize = useMemo(
+    () => aggregateFields.some(aggregateField => !isGroupBy(aggregateField)),
+    [aggregateFields]
+  );
+
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -110,7 +116,8 @@ function useExploreAggregatesTableImp({
   }, [dataset, fields, aggregateSortBys, query, selection]);
 
   const result = useSpansQuery({
-    enabled,
+    // Skip the request when every series was dropped for an invalid `_if` filter.
+    enabled: enabled && hasValidVisualize,
     eventView,
     cursor: aggregateCursor,
     initialData: [],
@@ -121,6 +128,26 @@ function useExploreAggregatesTableImp({
   });
 
   return useMemo(() => {
+    // A disabled query stays `isPending` forever; surface a settled error so the
+    // aggregates table does not spin and the tab can show the same message as the chart.
+    if (!hasValidVisualize) {
+      return {
+        eventView,
+        fields,
+        result: {
+          ...result,
+          data: [],
+          error: new Error(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
+          isError: true,
+          isFetched: true,
+          isFetching: false,
+          isLoading: false,
+          isPending: false,
+          isSuccess: false,
+          status: 'error' as const,
+        },
+      };
+    }
     return {eventView, fields, result};
-  }, [eventView, fields, result]);
+  }, [eventView, fields, hasValidVisualize, result]);
 }

@@ -182,4 +182,41 @@ describe('useExploreAggregatesTable', () => {
       })
     );
   });
+
+  it('does not query when the only series has an invalid conditional filter', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      method: 'GET',
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useExploreAggregatesTable({
+          query: 'test value',
+          enabled: true,
+          limit: 100,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({
+                  yAxes: ['count_if(`p95(span.duration):>100`,span.duration)'],
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.current.result.isPending).toBe(false);
+    expect(result.current.result.isError).toBe(true);
+    expect(result.current.result.error).toEqual(new Error('Invalid series filter'));
+  });
 });
