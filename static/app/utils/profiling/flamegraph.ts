@@ -44,7 +44,7 @@ export class Flamegraph {
   sort: 'left heavy' | 'alphabetical' | 'call order' = 'call order';
 
   depth = 0;
-  configSpace: Rect = Rect.Empty();
+  configSpace: Rect = Rect.empty();
   root: FlamegraphFrame = {
     key: -1,
     parent: null,
