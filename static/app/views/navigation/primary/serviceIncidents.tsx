@@ -32,7 +32,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
-          <Stack as="ul" padding="0" gap="md">
+          <Stack as="ul" margin="0" padding="0" gap="md">
             {incidents.map(incident => (
               <Stack key={incident.id} as="li">
                 <ServiceIncidentDetails incident={incident} />

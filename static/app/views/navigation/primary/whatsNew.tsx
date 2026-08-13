@@ -128,7 +128,7 @@ function WhatsNewBroadcastList({
   }
 
   return (
-    <Stack overscrollBehavior="contain" gap="xl" as="ul" padding="0">
+    <Stack overscrollBehavior="contain" gap="xl" as="ul" margin="0" padding="0">
       {broadcasts.map((item, idx) => {
         return (
           <Stack key={item.id} as="li">
