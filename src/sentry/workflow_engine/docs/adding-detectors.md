@@ -217,7 +217,7 @@ evaluations required before transition:
 @property
 def thresholds(self) -> DetectorThresholds:
     return {
-        DetectorPriorityLevel.HIGH: self.detector.config["failure_threshold"],
+        DetectorPriorityLevel.: self.detector.config["failure_threshold"],
         DetectorPriorityLevel.OK: self.detector.config["recovery_threshold"],
     }
 ```
@@ -227,33 +227,6 @@ to see X number of a non-OK evaluations to trigger the detector. An OK
 evaluation clears non-OK counters before advancing the OK counter. An evaluation equal
 to the current durable state clears accumulated counters. These rules are not simply an
 independent consecutive-sample counter for every priority.
-
-An example evaluation:
-
-```python
-# The detectors threshold settings
-@property
-def thresholds(self) -> DetectorThresholds:
-    return {
-        DetectorPriorityLevel.HIGH: 2,
-        DetectorPriorityLevel.OK: 1
-    }
-
-# The evaluation results
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered
-
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.OK
-- DetectorPriorityLevel.HIGH
-===> Detector is _not_ triggered, requires two consecutive hits
-- DetectorPriorityLevel.OK
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered
-
-```
 
 A detector that can trigger but never produce `OK` evaluations will not resolve through
 the stateful handler.
@@ -269,6 +242,60 @@ state transition.
 the key to `DetectorEvaluation.data` and the engine fingerprint. If product evidence
 must contain the key, include it in the extracted evaluation value or implement and
 test the required custom orchestration.
+
+### Example Threshold Evaluation
+Here's an illustration of how a threshold works; specifically how the `OK` result will
+reset the threshold counts. Note that if it the priority is de-escalating, it does *not*
+reset the threshold counts. See 
+
+#### Detector Threshold Settings
+```python
+@property
+def thresholds(self) -> DetectorThresholds:
+    return {
+        DetectorPriorityLevel.HIGH: 2,
+        DetectorPriorityLevel.LOW: 2,
+        DetectorPriorityLevel.OK: 1
+    }
+```
+#### Example Evaluation Results
+
+##### Example 1 - Consecutive Triggers
+```python
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered at HIGH
+```
+
+##### Example 2 - OK resets thresholds
+```python
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.OK
+- DetectorPriorityLevel.HIGH   # Note that the Detector does *not* trigger here
+- DetectorPriorityLevel.OK
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered at HIGH
+```
+
+##### Example 3 - De-escalation does _not_ reset thresholds
+```python
+- DetectorPriorityLevel.OK
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.LOW
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered at HIGH
+```
+
+##### Example 4 - Escalating detectors do _not_ reset thresholds
+```python
+- DetectorPriorityLevel.LOW
+- DetectorPriorityLevel.HIGH
+- DetectorPriorityLevel.LOW
+===> Detector is triggered at LOW
+- DetectorPriorityLevel.HIGH
+===> Detector is triggered at HIGH
+```
 
 ## Define the Issue and Detector Type
 
