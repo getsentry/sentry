@@ -715,7 +715,9 @@ export class Results extends Component<Props, State> {
                 />
                 {savedQueryDataset === SavedQueryDatasets.ERRORS &&
                   !getDiscoverDeprecationEnabled(organization) &&
-                  getTransactionsDeprecation(organization) && (
+                  getTransactionsDeprecation(organization) &&
+                  // so we know the transaction migration is done before showing this banner
+                  organization.features.includes('expose-migrated-discover-queries') && (
                     <Alert.Container>
                       <Alert variant="info">
                         {t(

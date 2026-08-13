@@ -124,6 +124,27 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert kwargs["payload"]["run_id"] == 123
         assert kwargs["payload"]["root_cause"]["one_line_description"] == "null deref in handler"
 
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    def test_completed_result_matches_run_with_autofix_source(
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock
+    ) -> None:
+        # Runs dispatched after the feature rename persist source="autofix".
+        self.agent_run.source = "autofix"
+        self.agent_run.save()
+        mock_fetch.return_value = self._run_state()
+
+        deliver_autofix_rca_result(
+            organization_id=self.organization.id,
+            run_uuid=self.agent_run.run.uuid,
+            status="completed",
+            result=VALID_RESULT,
+            error=None,
+        )
+
+        self.agent_run.refresh_from_db()
+        assert self.agent_run.extras["status"] == "completed"
+
     def test_error_status_recorded(self) -> None:
         agent_run = self.agent_run
 
