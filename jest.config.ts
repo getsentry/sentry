@@ -284,6 +284,10 @@ const config: Config.InitialOptions = {
     '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
     '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
 
+    // conduit-client 1.0.0 declares a CommonJS export that is not included in
+    // the package. Jest can use the shipped CommonJS-compatible JS bundle.
+    '^conduit-client$': '<rootDir>/node_modules/conduit-client/dist/index.js',
+
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
