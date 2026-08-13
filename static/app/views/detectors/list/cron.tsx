@@ -176,7 +176,7 @@ function CronEmptyState() {
         )}
         action={
           <Stack gap="xl" width="100%">
-            <Flex gap="xl" wrap="wrap">
+            <Flex gap="xl" wrap="wrap" width="100%" maxWidth="600px">
               {platformGuides
                 .filter(({platform}) => !['cli', 'http'].includes(platform))
                 .map(({platform, label}) => (
