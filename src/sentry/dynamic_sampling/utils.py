@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
@@ -19,25 +17,6 @@ def has_dynamic_sampling(
     return organization is not None and features.has(
         DYNAMIC_SAMPLING_FEATURE, organization, actor=actor
     )
-
-
-def org_ids_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-    """The batched form of has_dynamic_sampling. Returns the ids that have it, in the
-    order they were given, and raises on an empty result: the batch check returns an
-    empty mapping on error, which would otherwise read as "none of them".
-    """
-    if not organizations:
-        return []
-
-    results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
-    if not results:
-        raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
-
-    return [
-        organization.id
-        for organization in organizations
-        if results.get(f"organization:{organization.id}", False)
-    ]
 
 
 def has_custom_dynamic_sampling(

@@ -9,6 +9,7 @@ from django.db.models import Exists, F, OuterRef
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
@@ -55,7 +56,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
-from sentry.dynamic_sampling.utils import org_ids_with_dynamic_sampling
+from sentry.dynamic_sampling.utils import DYNAMIC_SAMPLING_FEATURE
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -274,7 +275,12 @@ def schedule_per_org_calculations() -> None:
         return True
 
     def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-        kept = org_ids_with_dynamic_sampling(organizations)
+        # An empty result means the check failed, which would otherwise read as "none of them".
+        results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
+        if not results:
+            raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
+
+        kept = [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
         emit_status(
             SCHEDULER_BUCKET_ORG_STATUS_METRIC,
             DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
