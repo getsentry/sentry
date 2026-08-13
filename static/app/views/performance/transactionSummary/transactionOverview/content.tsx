@@ -209,7 +209,10 @@ function EAPSummaryContentInner({
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
-          <Container order={{xl: 1, '5xl': 0}} column={{xl: '1 / 4', '5xl': 'auto'}}>
+          <Container
+            order={{zero: 0, xl: 1, '5xl': 0}}
+            column={{zero: 'auto', xl: '1 / 4', '5xl': 'auto'}}
+          >
             <TraceItemSearchQueryBuilder
               {...spanSearchQueryBuilderProps}
               disallowFreeText
