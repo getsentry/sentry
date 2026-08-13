@@ -52,7 +52,6 @@ export function getTraceDetailsUrl({
   spanId,
   eventId,
   targetId,
-  demo,
   location,
   source,
   view,
@@ -62,7 +61,6 @@ export function getTraceDetailsUrl({
   location: Location;
   organization: Organization;
   traceSlug: string;
-  demo?: string;
   eventId?: string;
   source?: TraceViewSources;
   spanId?: string;
@@ -98,7 +96,6 @@ export function getTraceDetailsUrl({
       timestamp: getTimeStampFromTableDateField(timestamp),
       eventId,
       targetId,
-      demo,
       source,
       tab,
     },

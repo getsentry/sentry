@@ -927,13 +927,30 @@ def replace_all_seer_project_repos(
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
-    """Check if a project has connected repositories for Seer automation."""
-    return SeerProjectRepository.objects.filter(
+    """Check if a project has connected repositories for Seer automation.
+
+    For free cohort orgs (no SeerProjectRepository rows), falls back to
+    checking ProjectRepository directly.
+    """
+    has_seer_repos = SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__project__organization_id=organization.id,
         project_repository__project__status=ObjectStatus.ACTIVE,
         project_repository__repository__status=ObjectStatus.ACTIVE,
     ).exists()
+    if has_seer_repos:
+        return True
+
+    # Free cohort orgs have ProjectRepository rows but no SeerProjectRepository rows.
+    if is_free_cohort_org(organization):
+        return ProjectRepository.objects.filter(
+            project=project,
+            project__organization_id=organization.id,
+            project__status=ObjectStatus.ACTIVE,
+            repository__status=ObjectStatus.ACTIVE,
+        ).exists()
+
+    return False
 
 
 def get_autofix_repos_from_project_code_mappings(
