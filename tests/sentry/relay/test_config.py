@@ -251,7 +251,7 @@ def test_project_config_custom_inbound_filters_v2(
     if has_custom_filters and has_inbound_filters_v2:
         assert custom_filters == [
             {
-                "id": active_filter.get_outcomes_id(),
+                "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{active_filter.id}",
                 "isEnabled": True,
                 "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
             }

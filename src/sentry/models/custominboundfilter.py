@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from enum import StrEnum
 
@@ -39,8 +38,6 @@ DATA_TYPE_BY_CONDITION_TYPE: Mapping[
 
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 
-_ID_HASH_LENGTH = 12
-
 
 @cell_silo_model
 class CustomInboundFilter(DefaultFieldsModel):
@@ -62,9 +59,5 @@ class CustomInboundFilter(DefaultFieldsModel):
     def get_outcomes_id(self) -> str:
         """
         Builds the identifier this filter reports under, in Relay's filter config and in outcomes.
-
-        The row id is hashed together with the project so that the identifier does not
-        disclose how many filters exist, and cannot be guessed for another project.
         """
-        digest = hashlib.sha256(f"{self.project_id}:{self.id}".encode()).hexdigest()
-        return f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{digest[:_ID_HASH_LENGTH]}"
+        return f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{self.id}"

@@ -11,6 +11,7 @@ from sentry.ingest.inbound_filters import (
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
 )
+from sentry.models.custominboundfilter import CUSTOM_INBOUND_FILTER_ID_PREFIX
 from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -353,7 +354,7 @@ def test_custom_inbound_filter_condition_translation(
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
     assert generic_filter == {
-        "id": custom_filter.get_outcomes_id(),
+        "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}",
         "isEnabled": True,
         "condition": expected_condition,
     }
@@ -385,7 +386,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         "version": 1,
         "filters": [
             {
-                "id": custom_filter.get_outcomes_id(),
+                "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}",
                 "isEnabled": True,
                 "condition": {
                     "op": "and",
@@ -477,7 +478,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     )
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["id"] == valid_filter.get_outcomes_id()
+    assert generic_filter["id"] == f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{valid_filter.id}"
 
 
 @django_db_all
@@ -492,7 +493,7 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
 
     generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
-        custom_filter.get_outcomes_id() for custom_filter in created
+        f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}" for custom_filter in created
     ]
 
 
@@ -552,7 +553,8 @@ def test_get_generic_filters_gates_each_source_on_its_feature(
 
     assert generic_filters is not None
     assert [f["id"] for f in generic_filters["filters"]] == [
-        (custom_filter.get_outcomes_id() if id == "cif" else id) for id in expected_ids
+        f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}" if id == "cif" else id
+        for id in expected_ids
     ]
 
 
