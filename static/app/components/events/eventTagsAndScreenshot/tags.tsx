@@ -42,7 +42,7 @@ export function EventTagsDataSection({
   };
 
   const tagsWithMeta = useMemo(() => {
-    return associateTagsWithMeta({tags: event.tags, meta: event._meta?.tags});
+    return associateTagsWithMeta({tags: event.tags ?? [], meta: event._meta?.tags});
   }, [event.tags, event._meta?.tags]);
 
   const filteredTags = useMemo(() => {
