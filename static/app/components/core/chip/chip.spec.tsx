@@ -43,7 +43,9 @@ describe('Chip', () => {
         // @ts-expect-error onDismiss is not allowed alongside readonly
         <Chip readonly property="browser" value="Chrome" onDismiss={() => {}} />
       );
-      expect(screen.queryByRole('button', {name: 'Remove browser Chrome'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Remove browser Chrome'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -148,6 +150,41 @@ describe('Chip', () => {
 
       await userEvent.keyboard('{ArrowLeft}');
       expect(screen.getByRole('button', {name: 'Remove'})).toHaveFocus();
+    });
+
+    it('moves the tab stop to follow the focused section', async () => {
+      render(<InteractiveChip />);
+
+      await userEvent.tab();
+      await userEvent.keyboard('{ArrowRight}');
+
+      // The single tab stop follows focus rather than snapping back to the first
+      // section, so tabbing away and back returns to where the user left off.
+      expect(screen.getByRole('button', {name: 'browser'})).toHaveAttribute(
+        'tabindex',
+        '-1'
+      );
+      expect(screen.getByRole('button', {name: 'is'})).toHaveAttribute('tabindex', '0');
+    });
+
+    it('keeps the managed tab stop authoritative over a caller tabIndex', () => {
+      render(
+        <Chip.Root>
+          <Chip.Property onClick={() => {}} tabIndex={5}>
+            browser
+          </Chip.Property>
+          <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+        </Chip.Root>
+      );
+      // A caller tabIndex must not override roving management in auto mode.
+      expect(screen.getByRole('button', {name: 'browser'})).toHaveAttribute(
+        'tabindex',
+        '0'
+      );
+      expect(screen.getByRole('button', {name: 'Chrome'})).toHaveAttribute(
+        'tabindex',
+        '-1'
+      );
     });
 
     it('defers focus to caller props in manual mode', () => {

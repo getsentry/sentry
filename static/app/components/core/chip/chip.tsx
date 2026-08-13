@@ -270,7 +270,10 @@ function ChipSection({
       ref={ref}
       type="button"
       data-chip-interactive=""
-      {...mergeProps(segmentProps, rest, {onClick})}
+      // `segmentProps` comes last so the roving-managed tabIndex/handlers stay
+      // authoritative over any caller-supplied `tabIndex`. In manual mode
+      // `segmentProps` is empty, so caller props win there instead.
+      {...mergeProps(rest, segmentProps, {onClick})}
     >
       {content}
     </InteractiveSegment>
@@ -328,7 +331,7 @@ function ChipDismiss({onClick, ref, ...rest}: ChipDismissProps) {
       icon={<IconClose size="xs" />}
       aria-label={t('Remove')}
       data-chip-dismiss=""
-      {...mergeProps(segmentProps, rest, {
+      {...mergeProps(rest, segmentProps, {
         onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
           event.stopPropagation();
           onClick?.(event);
@@ -410,7 +413,10 @@ export function Chip({
       <ChipValue variant={valueVariant}>{value}</ChipValue>
       {!readonly && onDismiss ? (
         <ChipDismiss
-          aria-label={t('Remove %s', [property, operator, value].filter(Boolean).join(' '))}
+          aria-label={t(
+            'Remove %s',
+            [property, operator, value].filter(Boolean).join(' ')
+          )}
           onClick={() => onDismiss()}
         />
       ) : null}
