@@ -21,7 +21,7 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -441,7 +441,7 @@ export function LogsInfiniteTable({
     dataLength: data?.length ?? 0,
   });
 
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+  const {initialTableStyles, onResizeEnd, onResizeMove, onResizeStart} = useTableStyles(
     fields.slice(),
     tableRef,
     {
@@ -650,7 +650,9 @@ export function LogsInfiniteTable({
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
             validatedFieldTypes={validatedFieldTypes}
-            onResizeMouseDown={onResizeMouseDown}
+            onResizeEnd={onResizeEnd}
+            onResizeMove={onResizeMove}
+            onResizeStart={onResizeStart}
           />
         )}
         {!isPending && logsPinning && (
@@ -784,19 +786,23 @@ function LogsTableHeader({
   numberAttributes,
   stringAttributes,
   validatedFieldTypes = {},
-  onResizeMouseDown,
+  onResizeEnd,
+  onResizeMove,
+  onResizeStart,
 }: Pick<
   LogsTableProps,
   'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
 > & {
   isFrozen: boolean;
-  onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
+  onResizeEnd: () => void;
+  onResizeMove: (delta: number) => void;
+  onResizeStart: (columnIndex: number, cell: HTMLElement | null) => void;
 }) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const {meta, isPending} = useLogsPageDataQueryResult();
   const resolvedMeta = useMemo(
     () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
     [meta, validatedFieldTypes]
@@ -857,9 +863,11 @@ function LogsTableHeader({
                 {headerLabel}
               </SortableHeaderCell>
               {index !== fields.length - 1 && (
-                <GridResizer
-                  dataRows={!isError && !isPending && data ? data.length : 0}
-                  onMouseDown={e => onResizeMouseDown(e, index)}
+                <ColumnResizer
+                  columnIndex={index}
+                  onResizeEnd={onResizeEnd}
+                  onResizeMove={onResizeMove}
+                  onResizeStart={onResizeStart}
                 />
               )}
             </LogTableHeadCell>

@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from '.';
 
@@ -396,7 +403,9 @@ describe('Tabs overflow', () => {
     expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('button', {name: 'More tabs'})
+    );
   });
 
   it('activates an overflowing tab when selected from the menu', async () => {
