@@ -21,6 +21,11 @@ import type {Theme} from 'sentry/utils/theme';
 
 import {useStableMergeRef} from './useStableMergeRef';
 
+// `Symbol` is a capitalized JS built-in that cannot be renamed. Alias it at
+// module scope so the React Compiler does not flag call sites inside hooks as
+// potential component invocations (CapitalizedCalls diagnostic).
+const createToken = Symbol;
+
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
     {
@@ -307,7 +312,7 @@ function useHoverOverlay({
   // Stable identity for this instance — used by warmUpGroup to tell each
   // listener whether it's the one that just opened (skip self-close) or a
   // sibling that should snap shut.
-  const selfTokenRef = useRef(Symbol('hoverOverlay'));
+  const selfTokenRef = useRef(createToken('hoverOverlay'));
 
   const [status, setStatus] = useState<OverlayStatus>('idle');
   const statusRef = useRef<OverlayStatus>('idle');
