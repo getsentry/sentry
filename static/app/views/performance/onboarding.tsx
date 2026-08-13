@@ -223,7 +223,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
             width={{zero: '150px', '3xl': '480px', '4xl': '600px'}}
             loading="eager"
             src={emptyStateImg}
-            alt="Stylized line chart with purple and orange lines trending upward against a pink background"
+            alt={t("Stylized line chart with purple and orange lines trending upward against a pink background")}
             style={{maxWidth: '100%', userSelect: 'none'}}
           />
         }

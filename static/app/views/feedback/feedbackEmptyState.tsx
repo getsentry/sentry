@@ -100,7 +100,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
           height={{zero: '150px', '2xl': 'auto'}}
           width="auto"
           src={emptyStateImg}
-          alt="Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window"
+          alt={t("Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window")}
         />
       }
       title={t('What do users think?')}
