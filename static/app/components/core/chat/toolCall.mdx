@@ -15,9 +15,11 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
 
-The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`. A
-leading glyph communicates lifecycle `status` (a spinner while running, a
-semantic icon once settled — see `ToolCallIndicator`).
+The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
+Like `ThinkingBlock`, it is an outline `Disclosure`: a leading glyph communicates
+lifecycle `status` (a spinner while running, a semantic icon once settled — see
+`ToolCallIndicator`), the `title` is the toggle, and any `children` expand into
+the panel below.
 
 ## Anatomy
 
@@ -123,9 +125,9 @@ anchor supporting middle/cmd-click and keyboard access) rather than an
 
 ## Detail
 
-Pass `children` to render supplementary detail beneath the call — for example an
-expandable request/response. It aligns under the title rather than the status
-glyph.
+Pass `children` to tuck supplementary detail beneath the call — for example an
+expandable request/response. It lives in the collapsible panel, revealed by
+toggling the title.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
