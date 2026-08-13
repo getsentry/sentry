@@ -68,10 +68,11 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
   const {selection} = usePageFilters();
   const selectionString = JSON.stringify(selection);
   const previousSelection = usePrevious(selectionString);
-  const {infiniteLogsQueryResult} = useLogsPageData();
+  const {infiniteLogsQueryResult, queriesEnabled} = useLogsPageData();
   const {isError, fetchPreviousPage} = infiniteLogsQueryResult;
 
   useLogsAutoRefreshInterval({
+    enabled: queriesEnabled,
     fetchPreviousPage: () => fetchPreviousPage() as any,
     isError,
   });

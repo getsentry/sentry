@@ -20,9 +20,11 @@ import {parseLinkHeaderFromLogsPage} from 'sentry/views/explore/logs/utils';
  * Handles rate limiting, error checking, and timeout conditions.
  */
 export function useLogsAutoRefreshInterval({
+  enabled,
   fetchPreviousPage,
   isError,
 }: {
+  enabled: boolean;
   fetchPreviousPage: () =>
     | false
     | Promise<
@@ -156,7 +158,7 @@ export function useLogsAutoRefreshInterval({
   // Set up the refresh interval
   useEffect(() => {
     resetTrackingState();
-    if (autoRefresh === 'enabled') {
+    if (enabled && autoRefresh === 'enabled') {
       fetchPageWithChecks();
       intervalRef.current = setInterval(fetchPageWithChecks, refreshInterval);
     }
@@ -165,5 +167,5 @@ export function useLogsAutoRefreshInterval({
       resetTrackingState();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, enabled, refreshInterval]);
 }

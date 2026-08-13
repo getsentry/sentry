@@ -333,7 +333,16 @@ describe('LogsTabContent', () => {
     });
 
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
-      initialRouterConfig,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+          },
+        },
+      },
       organization,
       additionalWrapper: ValidatedProviderWrapper,
     });
