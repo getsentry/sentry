@@ -768,7 +768,7 @@ export class FormModel {
       return error;
     }
     if (error !== null && typeof error === 'object' && 'message' in error) {
-      return String((error as {message: unknown}).message);
+      return String(error.message);
     }
     return String(error ?? '');
   }
