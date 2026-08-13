@@ -52,4 +52,29 @@ describe('ToolCall', () => {
     );
     expect(screen.getByText('Truncated to 100 rows')).toBeInTheDocument();
   });
+
+  it('renders a reference with a `to` as a real link', () => {
+    render(
+      <ToolCall
+        title="Read trace waterfall"
+        status="success"
+        reference={{label: 'Trace', value: 'a3805648', to: '/traces/a3805648/'}}
+      />
+    );
+
+    // LinkButton renders an anchor (href, middle/cmd-click) with role="button".
+    expect(screen.getByRole('button', {name: /a3805648/})).toHaveAttribute(
+      'href',
+      '/traces/a3805648/'
+    );
+  });
+
+  it('renders supplementary detail passed as children', () => {
+    render(
+      <ToolCall title="Query spans" status="success">
+        <div>GET /api/0/traces/a3805648/</div>
+      </ToolCall>
+    );
+    expect(screen.getByText('GET /api/0/traces/a3805648/')).toBeInTheDocument();
+  });
 });

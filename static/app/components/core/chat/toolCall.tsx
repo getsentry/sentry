@@ -1,6 +1,7 @@
-import type {ReactNode} from 'react';
+import type {MouseEvent, ReactNode} from 'react';
+import type {LocationDescriptor} from 'history';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,8 +13,8 @@ import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
 
 /**
  * A compact chip referencing an entity a tool call produced or acted on (e.g.
- * `Trace: a3805648`). Rendered as a small button so it can optionally link to
- * the referenced resource.
+ * `Trace: a3805648`). Renders as a real link when given `to`, an interactive
+ * button when given `onClick`, or a non-interactive display chip otherwise.
  */
 export interface ToolCallReference {
   /**
@@ -29,10 +30,16 @@ export interface ToolCallReference {
    */
   label?: string;
   /**
-   * Fires when the chip is activated. When omitted the chip is still rendered
-   * but non-interactive.
+   * Fires when the chip is activated. When omitted (and no `to` is set) the chip
+   * is still rendered but non-interactive. Receives the event so callers can stop
+   * propagation or record analytics; pair it with `to` to track a navigation.
    */
-  onClick?: () => void;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /**
+   * Navigation target. When set, the chip renders as a real link (anchor) so it
+   * supports middle/cmd-click and keyboard access, rather than an `onClick` button.
+   */
+  to?: LocationDescriptor;
 }
 
 interface ToolCallProps {
@@ -45,6 +52,12 @@ interface ToolCallProps {
    * The tool call's headline (e.g. `Query spans`, `Read trace waterfall`).
    */
   title: string;
+  /**
+   * Supplementary detail rendered beneath the title and output — e.g. an
+   * expandable request/response for the call. Kept in the title's column so it
+   * aligns under the headline rather than the status glyph.
+   */
+  children?: ReactNode;
   /**
    * Short status lines surfaced beneath the call (e.g. "Truncated to 100 rows").
    */
@@ -60,27 +73,39 @@ interface ToolCallProps {
   reference?: ToolCallReference;
 }
 
+function ChipContent({label, value}: {value: string; label?: string}) {
+  return label ? (
+    <Text size="sm">
+      {`${label}: `}
+      <Text size="sm" bold>
+        {value}
+      </Text>
+    </Text>
+  ) : (
+    <Text size="sm" bold>
+      {value}
+    </Text>
+  );
+}
+
 function ReferenceChip({reference}: {reference: ToolCallReference}) {
-  const {label, value, icon, onClick} = reference;
+  const {label, value, icon, onClick, to} = reference;
+  const chipIcon = icon ?? <IconSpan size="xs" />;
+  const content = <ChipContent label={label} value={value} />;
+
+  // A navigation target renders as a real anchor so middle/cmd-click and keyboard access work; an
+  // `onClick`-only chip stays a button; a chip with neither is a non-interactive display chip.
+  if (to) {
+    return (
+      <LinkButton size="xs" icon={chipIcon} to={to} onClick={onClick}>
+        {content}
+      </LinkButton>
+    );
+  }
+
   return (
-    <Button
-      size="xs"
-      icon={icon ?? <IconSpan size="xs" />}
-      onClick={onClick}
-      disabled={!onClick}
-    >
-      {label ? (
-        <Text size="sm">
-          {`${label}: `}
-          <Text size="sm" bold>
-            {value}
-          </Text>
-        </Text>
-      ) : (
-        <Text size="sm" bold>
-          {value}
-        </Text>
-      )}
+    <Button size="xs" icon={chipIcon} onClick={onClick} disabled={!onClick}>
+      {content}
     </Button>
   );
 }
@@ -126,6 +151,7 @@ export function ToolCall({
   output,
   reference,
   notifications,
+  children,
 }: ToolCallProps) {
   return (
     <Flex gap="md" align="start" width="100%">
@@ -156,6 +182,8 @@ export function ToolCall({
             {note}
           </Text>
         ))}
+
+        {children}
       </Stack>
     </Flex>
   );
