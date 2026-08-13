@@ -31,6 +31,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=10, minute=0, second=0, microsecond=0
 )

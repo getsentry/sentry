@@ -485,26 +485,9 @@ METRIC_PERCENTILES = {
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
 METRIC_FUNCTION_LIST_BY_TYPE = {
-    "generic_distribution": [
-        "apdex",
-        "avg",
-        "p50",
-        "p75",
-        "p90",
-        "p95",
-        "p99",
-        "p100",
-        "max",
-        "min",
+    "generic_counter": [
         "sum",
-        "percentile",
-        "http_error_count",
-        "http_error_rate",
-    ],
-    "generic_set": [
-        "count_miserable",
-        "user_misery",
-        "count_unique",
+        "count",
     ],
 }
 

@@ -18,7 +18,6 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
@@ -46,6 +45,11 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
 
 
 @pytest.mark.snuba_ci
@@ -2029,34 +2033,8 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             start=self.day_ago,
             use_case_id=UseCaseID.TRANSACTIONS,
         )
-        assert result == [
-            {
-                "name": "measurements.something_custom",
-                "type": "generic_distribution",
-                "operations": [
-                    "avg",
-                    "count",
-                    "histogram",
-                    "max",
-                    "max_timestamp",
-                    "min",
-                    "min_timestamp",
-                    "p50",
-                    "p75",
-                    "p90",
-                    "p95",
-                    "p99",
-                    "sum",
-                ],
-                "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
-                "mri": something_custom_metric,
-            }
-        ]
+        # Custom measurements lived on generic metrics distributions, which are no longer queryable.
+        assert result == []
 
     def test_metric_outside_query_daterange(self) -> None:
         something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
@@ -2083,34 +2061,8 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             use_case_id=UseCaseID.TRANSACTIONS,
         )
 
-        assert result == [
-            {
-                "name": "measurements.something_custom",
-                "type": "generic_distribution",
-                "operations": [
-                    "avg",
-                    "count",
-                    "histogram",
-                    "max",
-                    "max_timestamp",
-                    "min",
-                    "min_timestamp",
-                    "p50",
-                    "p75",
-                    "p90",
-                    "p95",
-                    "p99",
-                    "sum",
-                ],
-                "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
-                "mri": something_custom_metric,
-            }
-        ]
+        # Custom measurements lived on generic metrics distributions, which are no longer queryable.
+        assert result == []
 
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
     def test_broken_custom_metric(self, mocked_parse_mri: mock.MagicMock) -> None:

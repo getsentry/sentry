@@ -348,9 +348,6 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
 
 _ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
     "c": "generic_metrics_counters",
-    "s": "generic_metrics_sets",
-    "d": "generic_metrics_distributions",
-    "g": "generic_metrics_gauges",
 }
 _ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
     "c": "metrics_counters",
@@ -363,10 +360,14 @@ def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC[parsed_mri.entity]
+        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC.get(parsed_mri.entity)
+        if entity_key is None:
+            return []
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = _ENTITY_KEY_MAPPING_GENERIC[parsed_mri.entity]
+        entity_key = _ENTITY_KEY_MAPPING_GENERIC.get(parsed_mri.entity)
+        if entity_key is None:
+            return []
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
 
 

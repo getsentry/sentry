@@ -23,6 +23,11 @@ from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property

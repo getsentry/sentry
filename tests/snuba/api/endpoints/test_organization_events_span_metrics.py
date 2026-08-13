@@ -10,6 +10,11 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 SPAN_DURATION_MRI = "d:spans/duration@millisecond"
 
 

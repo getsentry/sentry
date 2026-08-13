@@ -8,6 +8,11 @@ from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-measurements-meta"

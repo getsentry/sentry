@@ -20,6 +20,11 @@ from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 @freeze_time()
 class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCase):

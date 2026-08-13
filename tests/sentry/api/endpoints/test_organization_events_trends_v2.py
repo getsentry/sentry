@@ -11,6 +11,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):

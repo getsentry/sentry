@@ -18,6 +18,11 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 class TestSlackImageBlockBuilder(
     MetricsEnhancedPerformanceTestCase,

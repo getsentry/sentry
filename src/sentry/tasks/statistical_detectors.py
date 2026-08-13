@@ -9,19 +9,11 @@ from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
     BooleanCondition,
-    BooleanOp,
     Column,
     Condition,
-    CurriedFunction,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
     Limit,
-    LimitBy,
     Op,
     Or,
-    OrderBy,
     Query,
     Request,
     Storage,
@@ -38,12 +30,8 @@ from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
-from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
-from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
     DetectorAlgorithm,
@@ -51,10 +39,7 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.issue_platform_adapter import (
-    fingerprint_regression,
-    send_regression_to_platform,
-)
+from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
@@ -694,141 +679,13 @@ def fetch_continuous_examples(raw_examples):
     return examples
 
 
-BACKEND_TRANSACTION_OPS = [
-    # Common
-    "function.aws",
-    "function.aws.lambda",
-    "http.server",
-    "serverless.function",
-    # Python
-    "asgi.server",
-    # Ruby
-    "rails.request",
-]
-
-
 def query_transactions(
     projects: list[Project],
     start: datetime,
     transactions_per_project: int = TRANSACTIONS_PER_PROJECT,
 ) -> list[DetectorPayload]:
-    start = start - timedelta(hours=1)
-    start = start.replace(minute=0, second=0, microsecond=0)
-    end = start + timedelta(hours=1)
-
-    org_ids = list({p.organization_id for p in projects})
-    project_ids = list({p.id for p in projects})
-
-    use_case_id = UseCaseID.TRANSACTIONS
-
-    # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
-    # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
-    #
-    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
-    # DURATION_LIGHT.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
-    transaction_op_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction.op",
-    )
-
-    # if our time range is more than an hour, use the hourly granularity
-    granularity = 3600 if int(end.timestamp()) - int(start.timestamp()) >= 3600 else 60
-
-    # This query returns the top `transactions_per_project` transaction names by count in the specified
-    # [start, end) time period along with the p95 of each transaction in that time period
-    # this is written in raw SnQL because the metrics layer does not support the limitby clause which is necessary for this operation to work
-
-    query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
-        select=[
-            Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95",
-            ),
-            Function(
-                "countIf",
-                (Column("value"), Function("equals", (Column("metric_id"), duration_metric_id))),
-                "count",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction_name",
-            ),
-        ],
-        groupby=[
-            Column("project_id"),
-            Column("transaction_name"),
-        ],
-        where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-            Condition(
-                Column(f"tags_raw[{transaction_op_metric_id}]"),
-                Op.IN,
-                list(BACKEND_TRANSACTION_OPS),
-            ),
-        ],
-        limitby=LimitBy([Column("project_id")], transactions_per_project),
-        orderby=[
-            OrderBy(Column("project_id"), Direction.DESC),
-            OrderBy(Column("count"), Direction.DESC),
-        ],
-        granularity=Granularity(granularity),
-        limit=Limit(len(project_ids) * transactions_per_project),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="statistical_detectors",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
-        },
-    )
-    data = raw_snql_query(
-        request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
-    )["data"]
-    return [
-        DetectorPayload(
-            project_id=row["project_id"],
-            group=row["transaction_name"],
-            fingerprint=fingerprint_regression(row["transaction_name"]),
-            count=row["count"],
-            value=row["p95"],
-            timestamp=start,
-        )
-        for row in data
-    ]
+    # Transaction duration lived on generic metrics distributions, which are no longer queryable.
+    return []
 
 
 def query_transactions_timeseries(
@@ -836,156 +693,9 @@ def query_transactions_timeseries(
     start: datetime,
     agg_function: str,
 ) -> Generator[tuple[int, int | str, SnubaTSResult]]:
-    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
-    start = end - timedelta(days=days_to_query)
-    use_case_id = UseCaseID.TRANSACTIONS
-    interval = 3600  # 1 hour
-
-    project_objects = {p for p, _ in transactions}
-    project_ids = [project.id for project in project_objects]
-    org_ids = list({project.organization_id for project in project_objects})
-    # The only tag available on DURATION_LIGHT is `transaction`: as long as
-    # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
-    # will be faster to query.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
-
-    transactions_condition = None
-    if len(transactions) == 1:
-        project, transaction_name = transactions[0]
-        transactions_condition = BooleanCondition(
-            BooleanOp.AND,
-            [
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("transaction"), Op.EQ, transaction_name),
-            ],
-        )
-    else:
-        transactions_condition = BooleanCondition(
-            BooleanOp.OR,
-            [
-                BooleanCondition(
-                    BooleanOp.AND,
-                    [
-                        Condition(Column("project_id"), Op.EQ, project.id),
-                        Condition(Column("transaction"), Op.EQ, transaction_name),
-                    ],
-                )
-                for project, transaction_name in transactions
-            ],
-        )
-
-    query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
-        select=[
-            Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95_transaction_duration",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction",
-            ),
-        ],
-        groupby=[
-            Column("transaction"),
-            Column("project_id"),
-            Function(
-                "toStartOfInterval",
-                (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
-                "time",
-            ),
-        ],
-        where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
-            Condition(Column("project_id"), Op.IN, list(project_ids)),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-            transactions_condition,
-        ],
-        orderby=[
-            OrderBy(Column("project_id"), Direction.ASC),
-            OrderBy(Column("transaction"), Direction.ASC),
-            OrderBy(
-                Function(
-                    "toStartOfInterval",
-                    (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
-                    "time",
-                ),
-                Direction.ASC,
-            ),
-        ],
-        granularity=Granularity(interval),
-        limit=Limit(10000),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="statistical_detectors",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value,
-            "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
-        },
-    )
-    data = raw_snql_query(
-        request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value
-    )["data"]
-
-    results = {}
-    for index, datapoint in enumerate(data or []):
-        key = (datapoint["project_id"], datapoint["transaction"])
-        if key not in results:
-            results[key] = {
-                "data": [datapoint],
-            }
-        else:
-            data = results[key]["data"]
-            data.append(datapoint)
-
-    for key, item in results.items():
-        project_id, transaction_name = key
-        formatted_result = SnubaTSResult(
-            {
-                "data": zerofill(
-                    item["data"],
-                    start,
-                    end,
-                    interval,
-                    ["time"],
-                ),
-                "project": project_id,
-            },
-            start,
-            end,
-            interval,
-        )
-        yield project_id, transaction_name, formatted_result
+    # Transaction duration lived on generic metrics distributions, which are no longer queryable.
+    return
+    yield
 
 
 def query_functions(projects: list[Project], start: datetime) -> list[DetectorPayload]:

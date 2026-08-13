@@ -263,8 +263,7 @@ def _transform_orderby(query_orderby):
 
 def _derive_mri_to_apply(project_ids, select, orderby):
     mri_dictionary = {
-        "generic_metrics_distributions": TransactionMRI.DURATION.value,
-        "generic_metrics_sets": TransactionMRI.USER.value,
+        "generic_metrics_counters": TransactionMRI.DURATION.value,
     }
     mri_to_apply = TransactionMRI.DURATION.value
 

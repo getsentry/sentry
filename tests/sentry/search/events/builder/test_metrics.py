@@ -34,6 +34,11 @@ from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 def _metric_percentile_definition(
     org_id: int, quantile: str, field: str = "transaction.duration", alias: str | None = None
@@ -1740,19 +1745,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             query="",
             selected_columns=["p50(transaction.duration)"],
         )
-        snql_query = orig_query.get_snql_query()
-        assert len(snql_query) == 1
-        query = snql_query[0].query
-        self.assertCountEqual(
-            query.where,
-            [
-                *self.default_conditions,
-                *_metric_conditions(self.organization.id, ["transaction.duration"]),
-            ],
-        )
-        assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert query.match.name == "generic_metrics_distributions"
-        assert query.granularity.granularity == 60
+        with pytest.raises(IncompatibleMetricsQuery):
+            orig_query.get_snql_query()
 
     def test_default_conditions(self) -> None:
         query = TimeseriesMetricQueryBuilder(

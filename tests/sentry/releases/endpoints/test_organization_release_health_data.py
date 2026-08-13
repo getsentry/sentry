@@ -553,6 +553,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_max_and_min_on_distributions(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             self.store_performance_metric(
@@ -587,6 +588,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
@@ -626,6 +628,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_multi_field_orderby(self) -> None:
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for v_rating in ("good", "meh", "poor"):
@@ -673,6 +676,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": 0,
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
@@ -711,6 +715,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count]
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_pagination(self) -> None:
         for tag, value, numbers in (
             ("tag1", "value1", [4, 5, 6]),
@@ -754,6 +759,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         assert groups[0]["by"] == {"tag1": "value1"}
         assert groups[0]["totals"] == {f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": 5}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_limit_with_orderby_is_overridden_by_paginator_limit(self) -> None:
         """
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
@@ -783,6 +789,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_one_entity_no_data(self) -> None:
         """
         Test that ensures that when metrics data is available then an empty response is returned
@@ -808,6 +815,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 0
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -868,6 +876,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_multi_field_orderby_percentile_with_many_fields_one_entity(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -966,6 +975,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1024,6 +1034,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"count_unique({TransactionMetricKey.USER.value})": [users],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_paginator(self) -> None:
         """
         Test that ensures when transactions are ordered correctly when all the fields requested
@@ -1126,6 +1137,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             ],
         }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
@@ -1153,6 +1165,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_one_field_orderby_with_no_groupby_returns_one_row(self) -> None:
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
@@ -1182,6 +1195,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_orderby_percentile_with_many_fields_multiple_entities_with_missing_data(self) -> None:
         """
         Test that ensures when transactions table has null values for some fields (i.e. fields
@@ -1230,6 +1244,8 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
                 f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
             }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_limit_without_orderby(self) -> None:
         """
         Test that ensures when an `orderBy` clause is not set, then we still get groups that fit
@@ -1524,6 +1540,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             status_code=400,
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_transaction_status_unknown_error(self) -> None:
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
@@ -2158,6 +2175,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "Failed to parse 'transaction.all'. The metric name must belong to a public metric."
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_failure_rate_transaction(self) -> None:
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
@@ -2239,6 +2257,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 f"Failed to parse '{private_name}'. The metric name must belong to a public metric."
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_apdex_transactions(self) -> None:
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         self.store_performance_metric(
@@ -2269,6 +2288,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.apdex": 0.6666666666666666}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_miserable_users(self) -> None:
         for subvalue in [1, 2]:
             self.store_performance_metric(
@@ -2299,6 +2319,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {"transaction.miserable_user": 2}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_user_misery(self) -> None:
         for subvalue in [3, 4]:
             self.store_performance_metric(

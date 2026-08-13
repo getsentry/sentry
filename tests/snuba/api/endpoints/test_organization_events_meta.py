@@ -96,6 +96,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_custom_measurements_query_uses_units(self) -> None:
         self.store_transaction_metric(
             33,

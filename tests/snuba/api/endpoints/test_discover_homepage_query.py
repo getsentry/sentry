@@ -171,6 +171,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             created_by_id=self.user.id, organization=self.org, is_homepage=True
         ).exists()
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_put_allows_custom_measurements_in_equations_with_query(self) -> None:
         # Having a custom measurement stored implies that a transaction with this measurement has been stored
         BaseMetricsTestCase.store_metric(

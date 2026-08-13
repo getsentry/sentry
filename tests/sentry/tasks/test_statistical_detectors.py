@@ -23,7 +23,6 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
-from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
@@ -47,7 +46,6 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
-from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
@@ -343,7 +341,7 @@ def test_detect_transaction_trends(
 
 
 @mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
-@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
@@ -351,7 +349,7 @@ def test_detect_transaction_trends(
 def test_detect_transaction_trends_auto_resolution(
     produce_occurrence_to_kafka,
     detect_transaction_change_points,
-    raw_snql_query,
+    query_transactions,
     mock_uuid4,
     timestamp,
     project,
@@ -359,17 +357,17 @@ def test_detect_transaction_trends_auto_resolution(
     n = 150
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
 
-    raw_snql_query.side_effect = [
-        {
-            "data": [
-                {
-                    "project_id": project.id,
-                    "transaction_name": "/123",
-                    "count": 100,
-                    "p95": 100 if i < 25 or i >= 50 else 300,
-                },
-            ],
-        }
+    query_transactions.side_effect = [
+        [
+            DetectorPayload(
+                project_id=project.id,
+                group="/123",
+                fingerprint="/123",
+                count=100,
+                value=100 if i < 25 or i >= 50 else 300,
+                timestamp=ts,
+            ),
+        ]
         for i, ts in enumerate(timestamps)
     ]
 
@@ -1715,13 +1713,8 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
             self.num_transactions + 1,  # detect if any extra transactions are returned
         )
 
-        assert len(res) == len(self.projects) * self.num_transactions
-        for trend_payload in res:
-            assert trend_payload.count == 2
-            # p95 is  calculated by a probabilistic data structure, as such the value won't actually be 9.5 since we only have
-            # one sample at 9.5, but it should be close
-            assert trend_payload.value > 9
-            assert trend_payload.timestamp == self.hour_ago
+        # Transaction duration lived on generic metrics distributions, which are no longer queryable.
+        assert res == []
 
 
 @pytest.mark.sentry_metrics
@@ -1774,108 +1767,8 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             )
         ]
 
-        end = self.now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-        start = end - timedelta(days=14)
-        first_timeseries_time = self.now - timedelta(hours=2)
-        second_timeseries_time = self.now - timedelta(hours=1)
-        assert results == [
-            (
-                self.projects[0].id,
-                "transaction_1",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[0].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-            (
-                self.projects[0].id,
-                "transaction_2",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_2",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_2",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[0].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-            (
-                self.projects[1].id,
-                "transaction_1",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[1].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-        ]
+        # Transaction duration lived on generic metrics distributions, which are no longer queryable.
+        assert results == []
 
     def test_query_transactions_single_timeseries(self) -> None:
         results = [
@@ -1886,7 +1779,7 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 "p95(transaction.duration)",
             )
         ]
-        assert len(results) == 1
+        assert results == []
 
     @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
     @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")

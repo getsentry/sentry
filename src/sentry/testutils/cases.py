@@ -1639,6 +1639,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
+            # Generic metrics sets/gauges/distributions are no longer registered in Snuba.
+            if metric_type in {"s", "d", "g"}:
+                return
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
         else:
             entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"

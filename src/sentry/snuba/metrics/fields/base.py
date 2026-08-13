@@ -194,9 +194,6 @@ _PREFIX_TO_METRIC_ENTITY: dict[str, MetricEntity] = {
 
 _PREFIX_TO_GENERIC_METRIC_ENTITY: dict[str, MetricEntity] = {
     "c": "generic_metrics_counters",
-    "d": "generic_metrics_distributions",
-    "s": "generic_metrics_sets",
-    "g": "generic_metrics_gauges",
 }
 
 
@@ -210,14 +207,22 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
     try:
         TransactionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
-        return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-    except (ValueError, IndexError, KeyError):
+        try:
+            return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
+        except KeyError:
+            raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
+    except (ValueError, IndexError):
         pass
     try:
         entity_prefix, namespace = metric_mri.split(":")
         if namespace.startswith("custom"):
-            return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-    except (ValueError, IndexError, KeyError):
+            try:
+                return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
+            except KeyError:
+                raise InvalidParams(
+                    f"Generic metrics type '{entity_prefix}' is no longer supported"
+                )
+    except (ValueError, IndexError):
         pass
 
     return None
@@ -239,13 +244,7 @@ def _get_entity_of_metric_mri(
 
     entity_keys_set: frozenset[EntityKey]
     if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-        entity_keys_set = frozenset(
-            {
-                EntityKey.GenericMetricsCounters,
-                EntityKey.GenericMetricsSets,
-                EntityKey.GenericMetricsDistributions,
-            }
-        )
+        entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
     elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
@@ -453,16 +452,6 @@ class RawOp(MetricOperation):
 
         return function
 
-    def _gauge_avg(self, aggregate_filter: Function, alias: str) -> Function:
-        return Function(
-            "divide",
-            [
-                Function("sumIf", [Column("value"), aggregate_filter]),
-                Function("countIf", [Column("value"), aggregate_filter]),
-            ],
-            alias=alias,
-        )
-
     def generate_snql_function(
         self,
         entity: MetricEntity,
@@ -480,15 +469,7 @@ class RawOp(MetricOperation):
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
 
-        # The average of a gauge is a special case of operation that is derived of two sub-operations
-        # , and it could have been implemented with `DerivedOp` but in order to disambiguate between `avg` of
-        # a gauge or `avg` of a distribution, significant code changes would have to be done, since metric
-        # factory is used all over the code and lacks the entity parameter that would make the dataset inference
-        # simpler.
-        if entity == "generic_metrics_gauges" and self.op == "avg":
-            function = self._gauge_avg(aggregate_filter, alias)
-        else:
-            function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
+        function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
 
         return self._wrap_quantiles(function, alias)
 

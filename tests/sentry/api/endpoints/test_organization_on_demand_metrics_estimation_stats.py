@@ -28,6 +28,11 @@ MINUTE = timedelta(minutes=1)
 
 pytestmark = pytest.mark.sentry_metrics
 
+pytest.skip(
+    "Generic metrics sets, gauges, and distributions are no longer queryable",
+    allow_module_level=True,
+)
+
 
 @freeze_time(MOCK_DATETIME)
 class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMetricsLayerTestCase):
