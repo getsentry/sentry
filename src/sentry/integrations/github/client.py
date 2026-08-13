@@ -1343,12 +1343,9 @@ GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
 
 
 def _header_int(response: Response, header: str) -> int | None:
-    value = response.headers.get(header)
-    if value is None:
-        return None
     try:
-        return int(value)
-    except ValueError:
+        return int(response.headers.get(header))
+    except (TypeError, ValueError):
         return None
 
 
