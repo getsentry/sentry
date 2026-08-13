@@ -53,9 +53,11 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
                 )
 
             condition_handler = get_condition_handler(condition_type)
-            if (condition_handler.group == DataConditionHandler.Group.WORKFLOW_TRIGGER) and (
-                logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
-            ):
+
+            if (
+                condition_handler is not None
+                and condition_handler.group == DataConditionHandler.Group.WORKFLOW_TRIGGER
+            ) and (logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value):
                 raise serializers.ValidationError("Triggers' logic type must be 'any-short'")
 
     def update_or_create_condition(
