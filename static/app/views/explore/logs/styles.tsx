@@ -552,7 +552,7 @@ export const FloatingBottomContainer = styled('div')<{
   justify-content: center;
 `;
 
-export const HoveringRowLoadingRendererContainer = styled(TableRow)<{
+export const HoveringRowLoadingRendererContainer = styled('tr')<{
   headerHeight: number;
   height: number;
   position: 'top' | 'bottom';
