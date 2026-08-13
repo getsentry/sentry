@@ -59,7 +59,6 @@ describe('ProjectFilters', () => {
     dateUpdated: string;
     id: string;
     name: string | null;
-    outcomesId: string;
   };
 
   function CustomInboundFilterFixture(
@@ -68,7 +67,6 @@ describe('ProjectFilters', () => {
     return {
       id: '1',
       name: 'A filter',
-      outcomesId: 'custom-inbound-filter:aaaa1111bbbb',
       active: true,
       conditions: [{type: 'error_message', value: ['*Error*']}],
       dateCreated: '2024-01-01T00:00:00Z',
@@ -511,11 +509,11 @@ describe('ProjectFilters', () => {
           // A filter on errors reports its volume under the error category, and the
           // same filter on logs under the log category, so both have to be summed.
           {
-            by: {reason: 'custom-inbound-filter:aaaa1111bbbb', category: 'error'},
+            by: {reason: 'custom-inbound-filter:1', category: 'error'},
             series: {'sum(quantity)': [4, 6]},
           },
           {
-            by: {reason: 'custom-inbound-filter:aaaa1111bbbb', category: 'log_item'},
+            by: {reason: 'custom-inbound-filter:1', category: 'log_item'},
             series: {'sum(quantity)': [1, 1]},
           },
           // A reason belonging to a built-in filter must not land on a row.
@@ -528,16 +526,8 @@ describe('ProjectFilters', () => {
     });
 
     renderInboundFilters([
-      CustomInboundFilterFixture({
-        id: '1',
-        name: 'Has outcomes',
-        outcomesId: 'custom-inbound-filter:aaaa1111bbbb',
-      }),
-      CustomInboundFilterFixture({
-        id: '2',
-        name: 'Never matched',
-        outcomesId: 'custom-inbound-filter:cccc2222dddd',
-      }),
+      CustomInboundFilterFixture({id: '1', name: 'Has outcomes'}),
+      CustomInboundFilterFixture({id: '2', name: 'Never matched'}),
     ]);
 
     expect(await screen.findByText('12')).toBeInTheDocument();

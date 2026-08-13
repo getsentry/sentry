@@ -59,9 +59,6 @@ type CustomInboundFilter = {
   dateUpdated: string;
   id: string;
   name: string | null;
-  // The reason this filter reports under in ingest outcomes, which is how its
-  // dropped volume is looked up.
-  outcomesId: string;
 };
 
 type PropertyOption = {label: string; value: ConditionType};
@@ -490,6 +487,10 @@ const STATS_PERIOD = '30d';
 const STATS_INTERVAL = '1d';
 const STATS_FIELD = 'sum(quantity)';
 
+// A custom filter reports under this reason in ingest outcomes, followed by its id.
+// The backend builds the same string when it sends the filter to Relay.
+const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
+
 // Sums the filtered volume per outcome reason. Outcomes come grouped by category as
 // well, because a filter drops errors, logs, or metrics, and each of those counts
 // under its own category.
@@ -828,7 +829,7 @@ export function CustomFilters({project}: {project: Project}) {
               <SimpleTable.RowCell>
                 <FilteredVolume
                   intervals={stats?.intervals ?? []}
-                  series={seriesByReason.get(filter.outcomesId)}
+                  series={seriesByReason.get(`${OUTCOMES_REASON_PREFIX}${filter.id}`)}
                   isPending={isStatsPending}
                   isError={isStatsError}
                 />
