@@ -215,6 +215,10 @@ function ConfigureIntegration() {
     }
   }, [navigate, organization, providerKey]);
 
+  if (isErrorConfig || isErrorIntegration) {
+    return <LoadingError />;
+  }
+
   if (isLoadingConfig || isLoadingIntegration || isPlaceholderData) {
     return (
       <Fragment>
@@ -222,10 +226,6 @@ function ConfigureIntegration() {
         <LoadingIndicator />
       </Fragment>
     );
-  }
-
-  if (isErrorConfig || isErrorIntegration) {
-    return <LoadingError />;
   }
 
   if (!provider || !integration) {
