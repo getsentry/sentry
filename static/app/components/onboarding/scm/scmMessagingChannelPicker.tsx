@@ -115,7 +115,6 @@ export function ScmMessagingChannelPicker({
             disabled={integrationDisabled}
             value={integration}
             options={integrationOptions}
-            onChange={() => {}}
           />
         </Stack>
         <Stack gap="xs">
