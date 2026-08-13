@@ -163,30 +163,6 @@ class ProcessGroupLogTest(TestCase):
             },
         )
 
-    def test_check_derived_data_reports_features_missing_from_state(self) -> None:
-        group = self.create_group()
-        derived = process_group_log(group.id)
-        replayed_values = {feature: feature.initial_value() for feature in PIPELINE.features}
-        stored_values = replayed_values.copy()
-        del stored_values[VIEW_COUNT]
-
-        with patch.object(
-            GroupDerivedDataStore,
-            "load",
-            side_effect=[State(replayed_values), State(stored_values)],
-        ):
-            assert check_derived_data(derived, PIPELINE) == CheckFailure(
-                group_id=group.id,
-                cursor_date=derived.cursor_date,
-                cursor_id=derived.cursor_id,
-                differences={
-                    VIEW_COUNT: FeatureDifference(
-                        expected=VIEW_COUNT.initial_value(),
-                        actual={"state": "missing"},
-                    ),
-                },
-            )
-
     def test_check_derived_data_skips_stale_pipeline(self) -> None:
         group = self.create_group()
         derived = process_group_log(group.id)

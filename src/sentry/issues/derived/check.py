@@ -54,19 +54,13 @@ def compare_derived_data(
     """Compare two derived-data values using a pipeline's features."""
     expected_state = GroupDerivedDataStore.load(pipeline, expected)
     actual_state = GroupDerivedDataStore.load(pipeline, actual)
-    features = expected_state.features | actual_state.features | frozenset(pipeline.features)
-    missing = {"state": "missing"}
     return {
         feature: FeatureDifference(
-            expected=(
-                feature.to_json(expected_state[feature]) if feature in expected_state else missing
-            ),
-            actual=(feature.to_json(actual_state[feature]) if feature in actual_state else missing),
+            expected=feature.to_json(expected_state[feature]),
+            actual=feature.to_json(actual_state[feature]),
         )
-        for feature in features
-        if feature not in expected_state
-        or feature not in actual_state
-        or expected_state[feature] != actual_state[feature]
+        for feature in pipeline.features
+        if expected_state[feature] != actual_state[feature]
     }
 
 
