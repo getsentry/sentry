@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
@@ -337,16 +336,8 @@ export function ReleaseIssues({
           position="top-start"
         >
           {tourProps => (
-            <Container
-              {...tourProps}
-              width={{zero: '100%', md: 'max-content'}}
-              css={css`
-                & > [role='radiogroup'] {
-                  width: 100%;
-                }
-              `}
-            >
-              <SegmentedControl
+            <Container {...tourProps} width={{zero: '100%', md: 'max-content'}}>
+              <FullWidthSegmentedControl
                 aria-label={t('Issue type')}
                 size="xs"
                 value={issuesType}
@@ -363,7 +354,7 @@ export function ReleaseIssues({
                     />
                   </SegmentedControl.Item>
                 ))}
-              </SegmentedControl>
+              </FullWidthSegmentedControl>
             </Container>
           )}
         </DemoTourElement>
@@ -418,4 +409,8 @@ export function ReleaseIssues({
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const FullWidthSegmentedControl = styled(SegmentedControl<IssuesType>)`
+  width: 100%;
 `;
