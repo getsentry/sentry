@@ -16,7 +16,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import (
     PROJECT_ID,
     create_span,
-    get_event,
     modify_span_start,
 )
 
@@ -343,6 +342,18 @@ class HTTPOverheadDetectorTest(TestCase):
                 },
             )
 
-    def test_filtered_url(self) -> None:
-        injection_event = get_event("http-overhead/http-overhead-filtered-url")
-        assert len(self.find_problems(injection_event)) == 0
+    def test_ignores_spans_with_scrubbed_hostname(self) -> None:
+        event = _valid_http_overhead_event("https://[Filtered]/dogs/1121")
+        assert self.find_problems(event) == []
+
+    def test_treats_bracketed_path_values_as_parameters(self) -> None:
+        parameterized_path_event = _valid_http_overhead_event(
+            "https://dogs.are.great/dogs/[number]"
+        )
+        normal_path_event = _valid_http_overhead_event("https://dogs.are.great/dogs/1231")
+
+        # The same problem is detected whether we parameterize during detection or treat a bracketed
+        # value as an already-parameterized value
+        assert self.find_problems(parameterized_path_event)[0].fingerprint == (
+            self.find_problems(normal_path_event)[0].fingerprint
+        )
