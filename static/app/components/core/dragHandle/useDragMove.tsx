@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMove} from '@react-aria/interactions';
 
 import {setDocumentDragging} from 'sentry/utils/setDocumentDragging';
@@ -8,6 +8,11 @@ import type {Orientation} from './dragHandle';
 const KEYBOARD_STEP = 10;
 
 const KEYBOARD_STEP_LARGE = 50;
+
+const AXIS_KEYS: Record<Orientation, Set<string>> = {
+  horizontal: new Set(['ArrowLeft', 'ArrowRight', 'Left', 'Right']),
+  vertical: new Set(['ArrowUp', 'ArrowDown', 'Up', 'Down']),
+};
 
 interface UseDragMoveOptions {
   onMove: (delta: number) => void;
@@ -65,5 +70,19 @@ export function useDragMove({
     },
   });
 
-  return {isHeld, moveProps};
+  // useMove counts a key across the axis as a move, so it would start and end a move
+  // this hook then drops, leaving a consumer to commit a size that never changed.
+  const axisMoveProps = useMemo(
+    () => ({
+      ...moveProps,
+      onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+        if (AXIS_KEYS[orientation].has(event.key)) {
+          moveProps.onKeyDown?.(event);
+        }
+      },
+    }),
+    [moveProps, orientation]
+  );
+
+  return {isHeld, moveProps: axisMoveProps};
 }

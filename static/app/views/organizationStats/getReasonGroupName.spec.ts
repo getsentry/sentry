@@ -116,6 +116,15 @@ describe('getReasonGroupName', () => {
     );
   });
 
+  it('groups every custom inbound filter under one label', () => {
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:1')).toBe(
+      'Custom Inbound Filter'
+    );
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:2')).toBe(
+      'Custom Inbound Filter'
+    );
+  });
+
   it('groups all dynamic sampling reason codes into "dynamic sampling" label', () => {
     const testCases: Array<[string, string]> = [
       ['Sampled:1000,1004,1500', 'dynamic sampling'],

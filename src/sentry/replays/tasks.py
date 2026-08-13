@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
-from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
@@ -55,7 +55,11 @@ def delete_replay(
 ) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
-    archive_replay(project_id, replay_id)
+    # It would be _much better_ to actually fetch the Replay's timestamp here,
+    # and issue `archive_replay` with a timestamp. Something to fix in the near
+    # future. Otherwise, if the delete event is too far away from the Replay it
+    # might show up as un-archived in the UI depending on the query range.
+    archive_replay(project_id, replay_id, timezone.now())
     delete_replay_recording(project_id, replay_id)
 
     if has_seer_data and organization_id is not None:
@@ -68,9 +72,7 @@ def delete_replay(
 @instrumented_task(
     name=PROCESS_REPLAY_RECORDING_TASK_NAME,
     namespace=replays_raw_tasks,
-    processing_deadline_duration=90,
     retry=Retry(times=3, delay=5),
-    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
 )
 def process_replay_recording(message_bytes: bytes) -> None:
@@ -184,9 +186,9 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment_model.delete()
 
 
-def archive_replay(project_id: int, replay_id: str) -> None:
+def archive_replay(project_id: int, replay_id: str, timestamp: datetime) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
-    message = archive_event(project_id, replay_id)
+    message = archive_event(project_id, replay_id, timestamp)
 
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
@@ -206,7 +208,6 @@ def archive_replay(project_id: int, replay_id: str) -> None:
 )
 def run_bulk_replay_delete_job(
     replay_delete_job_id: int,
-    offset: int | None = None,
     limit: int = 100,
     has_seer_data: bool = False,
     total_deleted: int = 0,
@@ -218,11 +219,6 @@ def run_bulk_replay_delete_job(
     Pages through the job's range with a keyset cursor on `cityHash64(replay_id)` and chains a
     follow-up activation per page. Each page is idempotent: re-running one re-deletes blobs that
     are already gone (a swallowed 404) and re-publishes an archive event.
-
-    `offset` is the cursor from the previous deploy's `OFFSET` pagination. It is accepted and
-    ignored so activations enqueued before this deploy still resolve; such an activation restarts
-    its window from the beginning rather than failing. Remove the argument once the queue has
-    drained.
     """
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 

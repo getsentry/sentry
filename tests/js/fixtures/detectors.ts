@@ -9,6 +9,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  AllProjectsDetector,
   CronDetector,
   CronMonitorDataSource,
   ErrorDetector,
@@ -133,6 +134,20 @@ export function IssueStreamDetectorFixture(
   return {
     ...BASE_DETECTOR,
     name: 'Issue Stream Detector',
+    id: '4',
+    type: 'issue_stream',
+    ...params,
+  };
+}
+
+export function AllProjectsDetectorFixture(
+  params: Partial<AllProjectsDetector> = {}
+): AllProjectsDetector {
+  return {
+    ...BASE_DETECTOR,
+    projectId: null,
+    config: {organizationId: 1},
+    name: 'All Projects Detector',
     id: '4',
     type: 'issue_stream',
     ...params,

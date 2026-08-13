@@ -4,6 +4,7 @@ import {
   AutomationFixture,
 } from 'sentry-fixture/automations';
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
@@ -98,6 +99,24 @@ describe('AutomationDetail', () => {
     expect(screen.getByRole('heading', {name: 'Throttling'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Conditions'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
+  });
+
+  it('shows all projects for an all-projects detector', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [AllProjectsDetectorFixture({id: '10'})],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    expect(await screen.findByText('All Projects')).toBeInTheDocument();
   });
 
   it('can disable an enabled automation', async () => {

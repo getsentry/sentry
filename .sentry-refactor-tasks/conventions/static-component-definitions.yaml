@@ -24,10 +24,28 @@ detect: |
   called as lower-cased functions and do not hold component state. Do not flag a
   stable component selected from already-created module-level component types.
 
+  The analyzer decides this syntactically: it flags a JSX element whose type it
+  cannot trace back to a module-scope binding. What makes a selection opaque is
+  a *call expression* in that chain, not the selection itself. So
+  `getRenderer(a) ?? Fallback` is flagged even though every value it can return
+  is module-level, because the analyzer does not look inside `getRenderer`.
+  Wrapping the same call in `useMemo` does not help — `useMemo(...)` is itself a
+  call, so the JSX type is still a call result. Selections it *can* trace are
+  accepted: a ternary between imported identifiers, a ternary through an
+  intermediate boolean, and indexing a module-level object of components (with
+  either a literal, a ternary, or a variable key) all pass.
+
 fix: |
   Move the component or component-factory call to module scope. Pass changing
-  render data through props. When selecting among existing component types,
-  create each type statically and choose the reference during render.
+  render data through props.
+
+  When selecting among existing component types, make the selection itself
+  visible at the call site rather than returning a component from a helper:
+  choose between module-level identifiers with a ternary, or index a
+  module-level record of components. A helper may still compute a *discriminant*
+  (a mimetype, a string key, a boolean) — only returning the component type from
+  a call is opaque. Do not reach for `useMemo`: the reference was already stable,
+  and memoizing a call result leaves the finding in place.
 
 examples:
   bad:
@@ -38,6 +56,20 @@ examples:
         }
         return <Child />;
       }
+    - |
+      // The JSX type is a call result, so the analyzer cannot see that every
+      // branch of getViewer returns a module-level component.
+      function Preview({file}) {
+        const Viewer = getViewer(file) ?? TextViewer;
+        return <Viewer file={file} />;
+      }
+    - |
+      // Still a call result. useMemo changes nothing here: the reference was
+      // already stable, so this memoizes a value that never varied.
+      function Preview({file}) {
+        const Viewer = useMemo(() => getViewer(file) ?? TextViewer, [file.kind]);
+        return <Viewer file={file} />;
+      }
   good:
     - |
       function Child() {
@@ -45,6 +77,21 @@ examples:
       }
       function Parent() {
         return <Child />;
+      }
+    - |
+      // The selection is visible at the call site, so both branches are traceable
+      // to module scope. A helper computing the *discriminant* stays fine.
+      function Preview({file}) {
+        const Viewer = isVideo(file.kind) ? VideoViewer : TextViewer;
+        return <Viewer file={file} />;
+      }
+    - |
+      // Indexing a module-level record also traces cleanly, including when the
+      // key comes from a helper.
+      const VIEWERS = {video: VideoViewer, text: TextViewer} as const;
+      function Preview({file}) {
+        const Viewer = VIEWERS[getViewerKind(file)];
+        return <Viewer file={file} />;
       }
 
 detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} StaticComponents'

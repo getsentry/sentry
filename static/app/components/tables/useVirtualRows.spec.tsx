@@ -8,11 +8,17 @@ const ROW_COUNT = 100;
 const ROW_HEIGHT = 20;
 const VIEWPORT_HEIGHT = 100;
 
-function TestList() {
+interface TestListProps {
+  estimateKey?: unknown;
+  rowHeight?: number;
+}
+
+function TestList({estimateKey, rowHeight = ROW_HEIGHT}: TestListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const {paddingBottom, paddingTop, virtualItems} = useVirtualRows({
     count: ROW_COUNT,
-    estimateSize: () => ROW_HEIGHT,
+    estimateKey,
+    estimateSize: () => rowHeight,
     getScrollElement: () => scrollRef.current,
   });
 
@@ -20,7 +26,7 @@ function TestList() {
     <div ref={scrollRef}>
       <div data-test-id="padding-top" style={{height: paddingTop}} />
       {virtualItems.map(item => (
-        <div key={item.key} data-test-id="row" style={{height: ROW_HEIGHT}} />
+        <div key={item.key} data-test-id="row" style={{height: rowHeight}} />
       ))}
       <div data-test-id="padding-bottom" style={{height: paddingBottom}} />
     </div>
@@ -32,12 +38,12 @@ function TestList() {
  * rendered rows they must always add up to the full list height. Getting that
  * total wrong is what leaves blank gaps or an unreachable scroll range.
  */
-function spannedHeight() {
+function spannedHeight(rowHeight = ROW_HEIGHT) {
   const top = parseInt(screen.getByTestId('padding-top').style.height, 10);
   const bottom = parseInt(screen.getByTestId('padding-bottom').style.height, 10);
   const rendered = screen.queryAllByTestId('row').length;
 
-  return top + rendered * ROW_HEIGHT + bottom;
+  return top + rendered * rowHeight + bottom;
 }
 
 const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
@@ -69,5 +75,21 @@ describe('useVirtualRows', () => {
     render(<TestList />);
 
     expect(spannedHeight()).toBe(ROW_COUNT * ROW_HEIGHT);
+  });
+
+  it('renders the window rather than every row', () => {
+    render(<TestList />);
+
+    const rendered = screen.getAllByTestId('row').length;
+    expect(rendered).toBeLessThan(ROW_COUNT);
+    expect(rendered).toBeGreaterThanOrEqual(VIEWPORT_HEIGHT / ROW_HEIGHT);
+  });
+
+  it('respans the list when the estimate key reports new sizes', () => {
+    const {rerender} = render(<TestList estimateKey={ROW_HEIGHT} />);
+
+    rerender(<TestList estimateKey={ROW_HEIGHT * 2} rowHeight={ROW_HEIGHT * 2} />);
+
+    expect(spannedHeight(ROW_HEIGHT * 2)).toBe(ROW_COUNT * ROW_HEIGHT * 2);
   });
 });

@@ -5,6 +5,7 @@ import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 
+import {t} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
@@ -198,6 +199,7 @@ export function SplitPanel({
     panes.push(
       <DragHandle
         key="divider"
+        aria-label={t('Resize panels')}
         isSizedFirst={isSizedFirst}
         max={max}
         min={min}

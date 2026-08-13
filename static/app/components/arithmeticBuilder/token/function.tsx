@@ -85,10 +85,25 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
+  const {getFieldDefinition} = useArithmeticBuilder();
+
+  const resolveArgumentLabel = useCallback(
+    (index: number, fallbackLabel: string) => {
+      const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
+        index
+      ];
+      if (fieldDefinition?.kind === 'column') {
+        return fieldDefinition?.defaultLabel ?? fallbackLabel;
+      }
+      return fallbackLabel;
+    },
+    [getFieldDefinition, functionToken]
+  );
+
   const [args, setArguments] = useState(
-    functionToken.attributes.map(attr => {
+    functionToken.attributes.map((attr, index) => {
       return {
-        label: attr.attribute,
+        label: resolveArgumentLabel(index, attr.attribute),
         value: attr.text,
       };
     })
@@ -97,13 +112,19 @@ function ArgumentsGrid({
   const updateArgumentAtIndex = (index: number, argument: string) => {
     setArguments(prev =>
       prev.map((item, i) =>
-        index === i ? {...item, value: argument, label: prettifyTagKey(argument)} : item
+        index === i
+          ? {
+              ...item,
+              value: argument,
+              label: resolveArgumentLabel(index, prettifyTagKey(argument)),
+            }
+          : item
       )
     );
   };
 
   if (!args.length) {
-    return '()';
+    return <BaseGridCell>()</BaseGridCell>;
   }
 
   return (
@@ -246,8 +267,30 @@ function InternalInput({
   const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
   const hasPrevArgument = argumentIndex > 0;
 
+  const {
+    dispatch,
+    functionArguments: builderFunctionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  } = useArithmeticBuilder();
+
+  const parameterDefinition = useMemo(
+    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    [argumentIndex, getFieldDefinition, functionToken]
+  );
+
+  const resolveDisplayLabel = useCallback(
+    (fallback: string): string =>
+      parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+        ? parameterDefinition.defaultLabel
+        : fallback,
+    [parameterDefinition]
+  );
+
+  const initialLabel = resolveDisplayLabel(argument.label);
+
   const [inputValue, setInputValue] = useState('');
-  const [currentValue, setCurrentValue] = useState(argument.label);
+  const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
@@ -263,18 +306,6 @@ function InternalInput({
     setInputValue('');
     updateSelectionIndex();
   }, [updateSelectionIndex]);
-
-  const {
-    dispatch,
-    functionArguments: builderFunctionArguments,
-    getFieldDefinition,
-    getSuggestedKey,
-  } = useArithmeticBuilder();
-
-  const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
-    [argumentIndex, getFieldDefinition, functionToken]
-  );
 
   const updateAttrsWith = useCallback(
     (value: string) => {
@@ -314,13 +345,9 @@ function InternalInput({
     });
   }, [attributesFilter, builderFunctionArguments, getFieldDefinition]);
 
-  const attributeItems = useAttributeItems({
-    allowedAttributes,
-    filterValue,
-  });
+  const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
-    // If this is a dropdown parameter, use the predefined options
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
@@ -338,8 +365,34 @@ function InternalInput({
         }));
     }
 
-    // Otherwise, use the attribute-based items
-    return attributeItems;
+    // Remap labels (e.g. span.duration → spans for count), then filter
+    let result = attributeItems;
+    if (
+      parameterDefinition?.kind === 'column' &&
+      parameterDefinition.defaultLabel &&
+      parameterDefinition.defaultValue
+    ) {
+      result = result.map(item =>
+        item.value === parameterDefinition.defaultValue
+          ? {
+              ...item,
+              label: parameterDefinition.defaultLabel,
+              textValue: parameterDefinition.defaultLabel,
+            }
+          : item
+      );
+    }
+
+    if (filterValue) {
+      const lower = filterValue.toLowerCase();
+      result = result.filter(
+        item =>
+          item.value.includes(filterValue) ||
+          (item.textValue?.toLowerCase().includes(lower) ?? false)
+      );
+    }
+
+    return result;
   }, [parameterDefinition, filterValue, attributeItems]);
 
   const shouldCloseOnInteractOutside = useCallback((el: Element) => {
@@ -354,6 +407,21 @@ function InternalInput({
     resetInputValue();
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
+
+  const resolveValue = useCallback(
+    (raw: string): string => {
+      if (
+        parameterDefinition?.kind === 'column' &&
+        parameterDefinition.defaultLabel &&
+        parameterDefinition.defaultValue &&
+        raw === parameterDefinition.defaultLabel
+      ) {
+        return parameterDefinition.defaultValue;
+      }
+      return raw;
+    },
+    [parameterDefinition]
+  );
 
   const onTextInputBlur = useCallback(() => {
     if (inputValue) {
@@ -400,7 +468,9 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
-    setCurrentValue(value);
+    value = resolveValue(value);
+
+    setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
 
     dispatch({
@@ -421,6 +491,8 @@ function InternalInput({
     argument.label,
     getSuggestedKey,
     parameterDefinition,
+    resolveDisplayLabel,
+    resolveValue,
     onArgumentsChange,
     argumentIndex,
     dispatch,
@@ -540,8 +612,7 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      // Check if there's a next argument to focus on
-      setCurrentValue(prettifyTagKey(option.value));
+      setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
       if (hasNextArgument) {
         focusTarget(
           argumentsListState,
@@ -566,6 +637,7 @@ function InternalInput({
     },
     [
       hasNextArgument,
+      resolveDisplayLabel,
       resetInputValue,
       argumentsListState,
       argumentItem.key,
@@ -618,7 +690,7 @@ function InternalInput({
           placeholder={
             parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
               ? (argument.label ?? parameterDefinition.placeholder)
-              : argument.label
+              : resolveDisplayLabel(argument.label)
           }
           inputLabel={
             parameterDefinition?.kind === 'column'
@@ -669,29 +741,18 @@ function InternalInput({
   );
 }
 
-function useAttributeItems({
-  allowedAttributes,
-  filterValue,
-}: {
-  allowedAttributes: FunctionArgument[];
-  filterValue: string;
-}): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config
-  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
-    const items = filterValue
-      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
-      : allowedAttributes;
-
-    return items.map(item => ({
+function useAttributeItems(
+  allowedAttributes: FunctionArgument[]
+): Array<SelectOptionWithKey<string>> {
+  return useMemo(() => {
+    return allowedAttributes.map(item => ({
       key: item.name,
       label: item.label ?? item.name,
       value: item.name,
       textValue: item.name,
       hideCheck: true,
     }));
-  }, [allowedAttributes, filterValue]);
-
-  return attributes;
+  }, [allowedAttributes]);
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
@@ -701,6 +762,7 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
   height: fit-content;
+  min-height: 24px;
   /* Ensures that filters do not grow outside of the container */
   min-width: 0;
   max-width: 100%;
@@ -754,6 +816,7 @@ const BaseGridCell = styled('div')`
   align-items: center;
   position: relative;
   height: 100%;
+  min-height: 22px;
 `;
 
 const FunctionGridCell = styled(BaseGridCell)`

@@ -501,7 +501,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         )
         self.store_span(span)
 
-        response = self.client.get(
+        response = self.client_get(
             url,
             {
                 "query": "",
@@ -548,7 +548,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
 
         self.store_spans(spans)
 
-        response = self.client.get(
+        response = self.client_get(
             url,
             {
                 "lowerBound": "0",
@@ -566,7 +566,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         assert data[0]["span.duration"] == 200
         assert data[1]["span.duration"] == 20
 
-        response = self.client.get(
+        response = self.client_get(
             url,
             {
                 "lowerBound": "0",
@@ -630,7 +630,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             spans,
         )
 
-        response = self.client.get(
+        response = self.client_get(
             url,
             {
                 "query": "",

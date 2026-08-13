@@ -17,6 +17,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
+    PullRequestAttributionSignalType,
     PullRequestLifecycleState,
 )
 from sentry.models.repository import Repository
@@ -51,12 +52,24 @@ class PullRequestSerializerResponse(TypedDict):
     externalUrl: str
 
 
+LinkedPullRequestAttributionAgent = Literal["cursor", "github_copilot", "claude_code", "unknown"]
+
+
 class LinkedPullRequestSeerAttributionResponse(TypedDict):
     type: Literal["seer"]
     id: Literal["seer"]
+    agent: LinkedPullRequestAttributionAgent | None
 
 
 LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
+
+
+DELEGATED_AGENT_BY_SIGNAL_TYPE: dict[str, LinkedPullRequestAttributionAgent] = {
+    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: "cursor",
+    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: "github_copilot",
+    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: "claude_code",
+    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: "unknown",
+}
 
 
 class LinkedPullRequestResponse(PullRequestSerializerResponse):
@@ -117,12 +130,22 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
 def _serialize_attribution(
     attributions: Sequence[PullRequestAttribution],
 ) -> LinkedPullRequestAttributionResponse | None:
+    signal_types = {attribution.signal_type for attribution in attributions}
+    for signal_type, agent in DELEGATED_AGENT_BY_SIGNAL_TYPE.items():
+        if signal_type in signal_types:
+            return {
+                "type": "seer",
+                "id": "seer",
+                "agent": agent,
+            }
+
     if not any(is_seer_attribution(attribution) for attribution in attributions):
         return None
 
     return {
         "type": "seer",
         "id": "seer",
+        "agent": None,
     }
 
 

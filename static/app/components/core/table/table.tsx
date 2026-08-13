@@ -11,6 +11,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -235,7 +236,12 @@ export function Table({
 
   return (
     <TableContext value={contextValue}>
-      <TableGrid {...props} ref={gridRef} role="table">
+      <TableGrid
+        {...props}
+        ref={gridRef}
+        role="table"
+        style={template ? {...props.style, gridTemplateColumns: template} : props.style}
+      >
         {children}
       </TableGrid>
     </TableContext>
@@ -294,11 +300,14 @@ function HeadCell({
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
+  const fallbackId = useId();
+  const cellId = props.id || fallbackId;
 
   return (
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
       {...props}
+      id={cellId}
       ref={cellRef}
       role="columnheader"
     >
@@ -312,12 +321,13 @@ function HeadCell({
       {showResizer && (
         <TableResizer onContextMenu={event => event.preventDefault()}>
           <DragHandle
-            appearance="hover"
+            aria-labelledby={cellId}
             isSizedFirst
             max={Math.max(max, context.minimumColumnWidth)}
             min={context.minimumColumnWidth}
             orientation="horizontal"
             value={Math.max(width, context.minimumColumnWidth)}
+            variant="ghost"
             onDoubleClick={event => context.onResetColumnSize(event, index)}
             onMove={context.onResizeMove}
             onMoveEnd={context.onResizeEnd}

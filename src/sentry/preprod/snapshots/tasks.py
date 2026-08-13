@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import orjson
 from django.contrib.postgres.fields import ArrayField
@@ -683,6 +683,7 @@ def process_snapshot_comparison_chunk(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     session = get_preprod_session(org_id, project_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
@@ -735,6 +736,7 @@ def compare_snapshots(
     org_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     task_start_time = timezone.now()
     logger.info(
@@ -1113,6 +1115,7 @@ def finalize_snapshot_comparison(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    **kwargs: Any,
 ) -> None:
     comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
     if comparison is None:

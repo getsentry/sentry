@@ -88,13 +88,12 @@ describe('OrganizationStats', () => {
       },
     });
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
 
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
 
     // Render the chart and project table
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     // Render the cards
@@ -158,7 +157,7 @@ describe('OrganizationStats', () => {
     });
     render(<OrganizationStats />, {organization});
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(await screen.findByTestId('error-messages')).toBeInTheDocument();
   });
@@ -172,7 +171,7 @@ describe('OrganizationStats', () => {
     });
     render(<OrganizationStats />, {organization});
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
@@ -261,7 +260,7 @@ describe('OrganizationStats', () => {
     });
 
     expect(await screen.findByText('All Projects')).toBeInTheDocument();
-    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     mockRequest.mock.calls.forEach(([_path, {query}]) => {
@@ -284,7 +283,7 @@ describe('OrganizationStats', () => {
     });
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
@@ -312,7 +311,7 @@ describe('OrganizationStats', () => {
     });
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
@@ -338,7 +337,7 @@ describe('OrganizationStats', () => {
       organization: newOrg,
     });
 
-    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);
