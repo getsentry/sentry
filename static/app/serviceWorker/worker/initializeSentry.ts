@@ -3,6 +3,7 @@ import type {Breadcrumb} from '@sentry/browser';
 
 import {
   IGNORED_BREADCRUMB_FETCH_HOSTS,
+  IGNORED_ERROR_DENY_URLS,
   IGNORED_SPAN_NAMES,
   SENTRY_RELEASE_VERSION,
   SPA_DSN,
@@ -36,6 +37,7 @@ export function initializeSentry({
   isInitialized = true;
   Sentry.init({
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig.allowUrls,
+    denyUrls: IGNORED_ERROR_DENY_URLS,
     dsn: SPA_DSN || dsn,
     release: SENTRY_RELEASE_VERSION ?? sentryConfig.release,
     environment: sentryConfig.environment,

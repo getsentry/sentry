@@ -14,6 +14,22 @@ export const IGNORED_SPAN_NAMES = ['amplitude.com', 'pendo.io', 'reload.getsentr
 // pollute our breadcrumbs since they may occur a LOT.
 //
 // XXX(epurkhiser): Note some of these hosts may only apply to sentry.io.
+/**
+ * Deny errors originating from browser extensions. These are third-party
+ * scripts injected into Sentry pages and are not actionable by us.
+ * See: https://docs.sentry.io/platforms/javascript/configuration/filtering/#decluttering-sentry
+ */
+export const IGNORED_ERROR_DENY_URLS = [
+  // Chrome and generic extension paths (e.g. /extensions/google/setup/)
+  /extensions\//i,
+  // Chrome extension protocol
+  /^chrome-extension:\/\//i,
+  // Firefox extension protocol
+  /^moz-extension:\/\//i,
+  // Safari extension protocol
+  /^safari-extension:\/\//i,
+];
+
 export const SPA_MODE_ALLOW_URLS = [
   'localhost',
   'dev.getsentry.net',
