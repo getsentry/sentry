@@ -2,22 +2,35 @@ const liveObservers = new Set<MockResizeObserver>();
 
 export class MockResizeObserver implements ResizeObserver {
   private callback: ResizeObserverCallback;
+  private targets = new Set<Element>();
 
   constructor(callback: ResizeObserverCallback) {
     this.callback = callback;
     liveObservers.add(this);
   }
 
-  observe() {}
+  observe(target: Element) {
+    this.targets.add(target);
+  }
 
-  unobserve() {}
+  unobserve(target: Element) {
+    this.targets.delete(target);
+  }
 
   disconnect() {
+    this.targets.clear();
     liveObservers.delete(this);
   }
 
   notify() {
-    this.callback([], this);
+    if (!this.targets.size) {
+      return;
+    }
+
+    this.callback(
+      Array.from(this.targets, target => ({target}) as ResizeObserverEntry),
+      this
+    );
   }
 }
 
