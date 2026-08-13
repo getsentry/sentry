@@ -39,13 +39,14 @@ def should_log_workflows(organization: Organization, result: ProcessWorkflowsRes
 def _emit_evaluation_artifacts(
     logger: Logger,
     *,
-    organization_id: int,
+    organization_id: int | None,
     artifacts: list[dict[str, object]],
     log_prefix: str,
 ) -> None:
     direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
     for artifact in artifacts:
-        artifact["organization_id"] = organization_id
+        if organization_id is not None:
+            artifact["organization_id"] = organization_id
 
         if direct_to_sentry:
             sdk_logger.info(log_prefix, attributes=artifact)
@@ -56,17 +57,17 @@ def _emit_evaluation_artifacts(
 def emit_detector_evaluation_logs(
     logger: Logger,
     *,
-    organization: Organization,
+    organization: Organization | None,
     result: ProcessDetectorsResult,
     log_prefix: str = DETECTOR_EVALUATION_LOG_PREFIX,
 ) -> bool:
     """Sample a detector and emit one self-contained artifact per grouped evaluation."""
-    if not _should_emit_evaluation_logs(organization):
+    if organization is not None and not _should_emit_evaluation_logs(organization):
         return False
 
     _emit_evaluation_artifacts(
         logger,
-        organization_id=organization.id,
+        organization_id=organization.id if organization is not None else None,
         artifacts=result.evaluation_artifacts(),
         log_prefix=log_prefix,
     )

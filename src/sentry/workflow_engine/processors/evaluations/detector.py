@@ -2,7 +2,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, TypedDict
 
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorResult
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorResult,
+)
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition_group import DataConditionGroupEvaluation
@@ -16,6 +21,7 @@ class DetectorEvaluationData(TypedDict):
 
 class DetectorEvaluationOutcome(StrEnum):
     COMPLETED = "completed"
+    ERROR = "error"
     NO_RESULTS = "no_results"
 
 
@@ -63,14 +69,25 @@ class ProcessDetectorsResult:
     detector_type: str
     project_id: int | None
     evaluations: dict[DetectorGroupKey, DetectorEvaluation]
+    error: ConditionError | None = None
+
+    @property
+    def evaluation_error(self) -> ConditionError | None:
+        return self.error or next(
+            (evaluation.error for evaluation in self.evaluations.values() if evaluation.error),
+            None,
+        )
 
     @property
     def outcome(self) -> DetectorEvaluationOutcome:
+        if self.evaluation_error:
+            return DetectorEvaluationOutcome.ERROR
         if self.evaluations:
             return DetectorEvaluationOutcome.COMPLETED
         return DetectorEvaluationOutcome.NO_RESULTS
 
-    def to_artifact(self) -> dict[str, object]:
+    @property
+    def artifact_data(self) -> dict[str, object]:
         return {
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
@@ -78,12 +95,17 @@ class ProcessDetectorsResult:
             "outcome": self.outcome,
         }
 
+    def to_artifact(self) -> dict[str, object]:
+        return {
+            **self.artifact_data,
+            "error": self.evaluation_error.msg if self.evaluation_error else None,
+        }
+
     def evaluation_artifacts(self) -> list[dict[str, object]]:
-        detector_artifact = self.to_artifact()
         if not self.evaluations:
-            return [detector_artifact]
+            return [self.to_artifact()]
 
         return [
-            {**detector_artifact, **evaluation.to_artifact()}
+            {**self.artifact_data, **evaluation.to_artifact()}
             for evaluation in self.evaluations.values()
         ]
