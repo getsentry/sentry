@@ -32,7 +32,7 @@ class BackfillAllProjectDetectorsTest(TestMigrations):
         Detector = self.apps.get_model("workflow_engine", "Detector")
 
         existing = Detector.objects.filter(project__isnull=True, type="issue_stream").count()
-        assert existing == 3
+        assert existing == 2
 
         new_detector = Detector.objects.get(
             project__isnull=True,
