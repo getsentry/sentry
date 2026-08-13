@@ -22,11 +22,9 @@ def has_dynamic_sampling(
 
 
 def org_ids_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-    """The batched form of has_dynamic_sampling, for callers that check many organizations
-    at once. Returns the ids of those that have it, in the order they were given.
-
-    Raises on an empty result, because the alternative is to silently treat every
-    organization as if it had no dynamic sampling.
+    """The batched form of has_dynamic_sampling. Returns the ids that have it, in the
+    order they were given, and raises on an empty result: the batch check returns an
+    empty mapping on error, which would otherwise read as "none of them".
     """
     if not organizations:
         return []

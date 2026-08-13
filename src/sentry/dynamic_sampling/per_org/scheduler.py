@@ -274,9 +274,6 @@ def schedule_per_org_calculations() -> None:
         return True
 
     def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-        # Checked once per cycle instead of on every dispatch, because a per-org feature
-        # check on every tick is too expensive. An org that gains or loses the feature
-        # mid-cycle keeps its previous state until the next snapshot.
         kept = org_ids_with_dynamic_sampling(organizations)
         emit_status(
             SCHEDULER_BUCKET_ORG_STATUS_METRIC,

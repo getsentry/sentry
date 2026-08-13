@@ -111,9 +111,7 @@ LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
 RPUSH_CHUNK_SIZE = 10_000
-# How many rows a single prevalidate_batch call gets. It bounds both the rows held in
-# memory at cycle start and the size of whatever query the check runs per call, which
-# matters for a queryset of millions of rows.
+# How many rows a single prevalidate_batch call gets.
 PREVALIDATE_CHUNK_SIZE = 10_000
 
 
