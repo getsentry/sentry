@@ -550,8 +550,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "provider": pull_request.provider or "unknown",
                     "repo_name": pull_request.repo_name,
                     "status": status,
-                    "error_code": (
-                        cls._classify_pr_creation_failure(pull_request.pr_creation_error)
+                    "error": (
+                        {"code": cls._classify_pr_creation_failure(pull_request.pr_creation_error)}
                         if status == "error"
                         else None
                     ),
