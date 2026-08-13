@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -227,16 +227,12 @@ const IconWrapper = styled('span')`
 `;
 
 function ResponsiveNavTabsBadge({children}: {children: React.ReactNode}) {
-  return <NavTabsBadge variant="muted">{children}</NavTabsBadge>;
+  return (
+    <Container as="span" display={{zero: 'none', xl: 'inline-flex'}}>
+      <Badge variant="muted">{children}</Badge>
+    </Container>
+  );
 }
-
-const NavTabsBadge = styled(Badge)`
-  display: none;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    display: inline-flex;
-  }
-`;
 
 const BadgeWrapper = styled('div')`
   margin-left: 0;
