@@ -1,6 +1,5 @@
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
-import {t} from 'sentry/locale';
+import {AutofixStartCardContent} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -15,7 +14,10 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
     enabled: aiConfig.hasAutofix,
   });
   let state: IssuePreviewSeerState = 'summary';
-  if (group.derivedData?.progress === ProgressState.ASSIGNED) {
+  if (
+    group.derivedData?.progress === ProgressState.ASSIGNED &&
+    !aiConfig.isAutofixSetupLoading
+  ) {
     if (
       !aiConfig.hasAutofixQuota ||
       (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked)
@@ -32,8 +34,7 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
     hasAutofix: aiConfig.hasAutofix,
     isLoading:
       aiConfig.hasAutofix &&
-      state !== 'configure' &&
-      (autofix.isLoading || aiConfig.isAutofixSetupLoading),
+      (aiConfig.isAutofixSetupLoading || (state !== 'configure' && autofix.isLoading)),
     shouldShowSeerActions:
       aiConfig.hasAutofix && (state === 'start' || state === 'summary'),
     state,
@@ -58,19 +59,7 @@ export function IssuePreviewSeerContent({
   }
 
   if (state === 'start') {
-    return (
-      <AutofixStartCard
-        action={{
-          icon: null,
-          label: t('Find Root Cause'),
-          style: {width: 'fit-content'},
-          variant: 'secondary',
-        }}
-        autofix={autofix}
-        group={group}
-        referrer="issue_inbox"
-      />
-    );
+    return <AutofixStartCardContent />;
   }
 
   return <IssuePreviewAutofixSummary autofix={autofix} groupId={group.id} />;

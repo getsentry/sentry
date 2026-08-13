@@ -9,7 +9,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {LinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  LinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -34,11 +37,12 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {IssuePreviewActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewActions';
+import {IssuePreviewSection} from 'sentry/views/issueDetails/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
   useIssuePreviewSeer,
 } from 'sentry/views/issueDetails/issuePreview/issuePreviewSeer';
-import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeerActions';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
@@ -128,6 +132,7 @@ function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer(group, project);
+  const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -200,8 +205,10 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        {previewSeer.shouldShowSeerActions ? (
-          <IssuePreviewSeerActions
+        {previewSeer.isLoading ? (
+          <Placeholder width="120px" height="32px" />
+        ) : previewSeer.shouldShowSeerActions ? (
+          <IssuePreviewActions
             autofix={previewSeer.autofix}
             group={group}
             disabled={disableActions}
@@ -227,12 +234,19 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      {/* Autofix summary goes at the top, so to avoid pop-in we block everything until it's available */}
-      {previewSeer.isLoading ? (
+      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {previewSeer.isLoading || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
-          <LinkedPullRequests group={group} showEmptyState={false} />
+          {linkedPullRequests.data?.pullRequests.length ? (
+            <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
+              <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
+              <IssuePreviewSection.Content>
+                <LinkedPullRequests group={group} showEmptyState={false} />
+              </IssuePreviewSection.Content>
+            </IssuePreviewSection>
+          ) : null}
           {previewSeer.hasAutofix && (
             <IssuePreviewSeerContent
               key={group.id}

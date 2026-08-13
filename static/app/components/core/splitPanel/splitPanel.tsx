@@ -1,10 +1,11 @@
-import {useCallback, useImperativeHandle, useRef} from 'react';
+import {useCallback, useImperativeHandle, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 
+import {t} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
@@ -111,13 +112,10 @@ export function SplitPanel({
     [onResizeEnd]
   );
 
-  const {
-    isHeld,
-    onPointerDown,
-    setSize,
-    size: containerSize,
-  } = useResizableDrawer({
-    // Flip the drag axis when the sized pane sits after the divider.
+  const [isHeld, setIsHeld] = useState(false);
+  const dragStateRef = useRef<{size: number; startSize: number} | null>(null);
+
+  const {setSize, size: containerSize} = useResizableDrawer({
     direction:
       orientation === 'horizontal'
         ? isSizedFirst
@@ -130,7 +128,6 @@ export function SplitPanel({
     min,
     max,
     onResize: newSize => onResize?.(newSize),
-    onResizeEnd: ({startSize, endSize}) => handleResizeEnd(startSize, endSize),
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
@@ -148,39 +145,46 @@ export function SplitPanel({
     handleResizeEnd(visibleSize, target);
   };
 
+  const handleMoveStart = () => {
+    dragStateRef.current = {size: visibleSize, startSize: visibleSize};
+    setIsHeld(true);
+  };
+
+  const handleMove = (delta: number) => {
+    const state = dragStateRef.current;
+    if (!state) {
+      return;
+    }
+
+    const sizeDelta = isSizedFirst ? delta : -delta;
+    state.size = Math.max(min, Math.min(max, state.size + sizeDelta));
+
+    setSize(Math.round(state.size), true);
+  };
+
+  const handleMoveEnd = () => {
+    const state = dragStateRef.current;
+    dragStateRef.current = null;
+    setIsHeld(false);
+
+    if (state) {
+      handleResizeEnd(state.startSize, Math.round(state.size));
+    }
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    const step = event.shiftKey ? 50 : 10;
-    const isHorizontal = orientation === 'horizontal';
-    const towardStartKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
-    const towardEndKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
-
-    // Keys map to physical separator direction; moving it toward `end` grows
-    // the sized pane only when it sits first, and shrinks it otherwise.
-    const growKey = isSizedFirst ? towardEndKey : towardStartKey;
-    const shrinkKey = isSizedFirst ? towardStartKey : towardEndKey;
-
-    // Step from the visible size so it still moves after the container shrank.
-    const current = visibleSize;
-
     let newSize: number | null = null;
-    if (event.key === shrinkKey) {
-      newSize = Math.max(min, current - step);
-    } else if (event.key === growKey) {
-      newSize = Math.min(max, current + step);
-    } else if (event.key === 'Home') {
-      // Separator to the start edge.
+    if (event.key === 'Home') {
       newSize = isSizedFirst ? min : max;
     } else if (event.key === 'End') {
-      // Separator to the end edge.
       newSize = isSizedFirst ? max : min;
     }
 
-    // Skip when the target is an unbounded max (not yet measured); min and
-    // stepped targets are always finite, so this only gates the edge keys.
+    // Skip when the target is an unbounded max (not yet measured).
     if (newSize !== null && Number.isFinite(newSize)) {
       event.preventDefault();
       setSize(newSize, true);
-      handleResizeEnd(current, newSize);
+      handleResizeEnd(visibleSize, newSize);
     }
   };
 
@@ -195,7 +199,7 @@ export function SplitPanel({
     panes.push(
       <DragHandle
         key="divider"
-        isHeld={isHeld}
+        aria-label={t('Resize panels')}
         isSizedFirst={isSizedFirst}
         max={max}
         min={min}
@@ -203,7 +207,9 @@ export function SplitPanel({
         value={visibleSize}
         onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
-        onPointerDown={onPointerDown}
+        onMove={handleMove}
+        onMoveEnd={handleMoveEnd}
+        onMoveStart={handleMoveStart}
       />,
       <Pane key="fill" size={null}>
         {fill}

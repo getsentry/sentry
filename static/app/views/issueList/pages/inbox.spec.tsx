@@ -206,11 +206,13 @@ describe('InboxPage', () => {
       integration: {ok: false, reason: null},
       seerReposLinked: false,
     }),
+    autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
     autofixSetup?: ReturnType<typeof AutofixSetupFixture>;
+    autofixSetupDelay?: Promise<unknown>;
     group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
@@ -234,6 +236,7 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -288,9 +291,16 @@ describe('InboxPage', () => {
     return preview;
   }
 
-  function mockAssignedPreview(autofixSetup: ReturnType<typeof AutofixSetupFixture>) {
+  function mockAssignedPreview(
+    autofixSetup: ReturnType<typeof AutofixSetupFixture>,
+    autofixSetupDelay?: Promise<unknown>
+  ) {
     mockSuccessfulSections();
-    mockIssuePreview({group: assignedGroup, autofixSetup});
+    mockIssuePreview({
+      group: assignedGroup,
+      autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {autofixSetupDelay}),
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/onboarding-check/',
       body: {
@@ -929,8 +939,32 @@ describe('InboxPage', () => {
 
     expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
     expect(
-      within(preview).getAllByRole('button', {name: 'Find Root Cause'})
-    ).toHaveLength(2);
+      within(preview).getByRole('button', {name: 'Find Root Cause'})
+    ).toBeInTheDocument();
+  });
+
+  it('waits for Seer setup before showing assigned issue actions', async () => {
+    const autofixSetupDelay = Promise.withResolvers<void>();
+    mockAssignedPreview(
+      AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+      autofixSetupDelay.promise
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Resolve'})
+    ).not.toBeInTheDocument();
+
+    autofixSetupDelay.resolve();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
   });
 
   it('shows project setup for an assigned issue with paid Seer', async () => {

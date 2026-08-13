@@ -1,14 +1,15 @@
-import {type CSSProperties, type ReactNode, useState} from 'react';
+import {type CSSProperties, useState} from 'react';
 import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -16,12 +17,6 @@ import type {Group} from 'sentry/types/group';
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
-  action?: {
-    icon: ReactNode;
-    label: string;
-    variant: ButtonProps['variant'];
-    style?: CSSProperties;
-  };
   /**
    * Called after a run has been successfully started. The sidebar uses this to
    * open the Seer drawer; surfaces that already render the autofix in place
@@ -32,11 +27,6 @@ interface AutofixStartCardProps {
 }
 
 export function AutofixStartCard({
-  action = {
-    icon: <IconBug />,
-    label: t('Start Analysis'),
-    variant: 'primary',
-  },
   autofix,
   group,
   onStarted,
@@ -60,46 +50,51 @@ export function AutofixStartCard({
 
   return (
     <Stack gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
+      <AutofixStartCardContent />
       <Button
         size="md"
-        style={action.style}
-        icon={action.icon}
-        aria-label={action.label}
-        variant={action.variant}
+        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
+        aria-label={t('Start Analysis')}
+        variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        busy={startingRun}
+        disabled={startingRun}
       >
-        {action.label}
+        {t('Start Analysis')}
       </Button>
     </Stack>
+  );
+}
+
+export function AutofixStartCardContent() {
+  return (
+    <Flex
+      border="muted"
+      radius="md"
+      padding="lg"
+      gap="lg"
+      align="center"
+      justify="between"
+    >
+      <Container>
+        <Text>{t('Have Seer...')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue')}</li>
+          <li>{t('Outline a plan')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+      </Container>
+      <ImageContainer
+        justify="end"
+        align="center"
+        aspectRatio="9 / 16"
+        height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
+      >
+        <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+      </ImageContainer>
+    </Flex>
   );
 }
 
