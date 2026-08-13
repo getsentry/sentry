@@ -91,6 +91,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.gating import is_pr_metrics_enabled
 from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
@@ -179,6 +180,9 @@ def handle_attribution(
     action = event.get("action")
     github_user = (pull_request or {}).get("user")
     if not (action and github_user):
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
@@ -418,6 +422,9 @@ def handle_emission(
     if event.get("action") != "closed":
         return
 
+    if not is_pr_metrics_enabled(organization):
+        return
+
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
@@ -557,6 +564,9 @@ def handle_metrics(
     if not pull_request:
         return
 
+    if not is_pr_metrics_enabled(organization):
+        return
+
     if not features.has("organizations:pr-metrics-emit", organization):
         return
 
@@ -602,6 +612,9 @@ def handle_activity(
     pull_request_data = event.get("pull_request")
     action = event.get("action")
     if not action or (action not in _ACTIVITY_ACTIONS and action not in _DOC_ONLY_ACTIONS):
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     # reopened/edited exist only on the document path; skip the whole path —
@@ -652,6 +665,9 @@ def handle_comment(
     legacy COMMENT_CREATED row). Other actions are ignored.
     """
     if event.get("action") != "created":
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -715,6 +731,9 @@ def handle_review(
     """
     action = event.get("action")
     if action not in ("submitted", "dismissed"):
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -786,6 +805,9 @@ def handle_review_comment(
     if event.get("action") != "created":
         return
 
+    if not is_pr_metrics_enabled(organization):
+        return
+
     if not is_activity_tracking_enabled(organization):
         return
 
@@ -833,6 +855,9 @@ def handle_review_thread(
     """Record review thread resolved / unresolved events."""
     action = event.get("action")
     if action not in ("resolved", "unresolved"):
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -901,6 +926,9 @@ def handle_check_suite(
     if event.get("action") != "completed":
         return
 
+    if not is_pr_metrics_enabled(organization):
+        return
+
     if not is_activity_tracking_enabled(organization):
         return
 
@@ -949,6 +977,9 @@ def handle_check_run(
     entries from other repos are filtered in ``_prs_from_check_payload``.
     """
     if event.get("action") != "completed":
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not is_activity_tracking_enabled(organization):

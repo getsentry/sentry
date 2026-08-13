@@ -34,11 +34,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import cell_silo_test
 
+PR_METRICS_FLAG = "organizations:pr-metrics"
 ACTIVITY_FLAG = "organizations:pr-metrics-activity"
 DOC_FLAG = "organizations:pr-metrics-activity-document"
 
 
-@with_feature(ACTIVITY_FLAG)
+@with_feature([PR_METRICS_FLAG, ACTIVITY_FLAG])
 @cell_silo_test
 class ActivityDocumentWritePathTest(TestCase):
     def setUp(self) -> None:

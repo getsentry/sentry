@@ -172,7 +172,13 @@ def _doc_suite(
 
 
 @cell_silo_test
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+    ]
+)
 class PrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -1689,6 +1695,7 @@ EXTERNAL_ID = "556677"
 @cell_silo_test
 @with_feature(
     [
+        "organizations:pr-metrics",
         "organizations:pr-metrics-activity",
         "organizations:gen-ai-features",
         "organizations:pr-metrics-emit",
@@ -1847,7 +1854,13 @@ class MultiOrgEmissionDedupeTest(TestCase):
 
 
 @cell_silo_test
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+    ]
+)
 class DeduplicationKeyTest(TestCase):
     """The same provider PR, fanned out to one row per org, must build the same
     opaque deduplication_key so a consumer can collapse them."""

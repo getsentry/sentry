@@ -27,6 +27,7 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
     parse_pull_request_url,
 )
+from sentry.pr_metrics.gating import is_pr_metrics_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -303,13 +304,16 @@ def attribute_delegated_agent_pull_request(
     delegated run was launched against, mirroring the field already on
     ``SentryAppSignalDetails``.
 
-    Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
-    this inside the polling/webhook flow, so any failure is logged and swallowed
-    rather than allowed to interrupt that flow.
+    Gated behind ``organizations:pr-metrics``, then ``organizations:pr-metrics-attribution``.
+    Best-effort: callers run this inside the polling/webhook flow, so any failure is
+    logged and swallowed rather than allowed to interrupt that flow.
     """
     try:
         organization = Organization.objects.get(id=organization_id, status=ObjectStatus.ACTIVE)
     except Organization.DoesNotExist:
+        return
+
+    if not is_pr_metrics_enabled(organization):
         return
 
     if not features.has("organizations:pr-metrics-attribution", organization):
