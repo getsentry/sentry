@@ -331,15 +331,12 @@ Use tabs to organize related content into distinct views:
 
 ### URL Synchronization
 
-Sync tabs with URL parameters for shareable links:
+Sync tabs with URL parameters for shareable links by integrating with `useQueryState` from `nuqs`:
 
 ```jsx
-const [tab, setTab] = useState(queryParams.tab || 'overview');
+import {useQueryState} from 'nuqs';
 
-useEffect(() => {
-  // Update URL when tab changes
-  router.push({pathname, query: {...query, tab}});
-}, [tab]);
+const [tab, setTab] = useQueryState('overview');
 
 <Tabs value={tab} onChange={setTab}>
   {/* tabs */}
