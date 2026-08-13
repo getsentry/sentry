@@ -191,7 +191,9 @@ describe('call record rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('Retrieving span abc in trace def')).toBeInTheDocument();
-    expect(screen.queryByText('Retrieving waterfall for trace def')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Retrieving waterfall for trace def')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps a lib row that made no api calls of its own', () => {

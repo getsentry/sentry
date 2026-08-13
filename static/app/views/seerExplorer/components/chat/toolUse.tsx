@@ -392,7 +392,9 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           // narrows `label` for the render below, which is why it is not a plain Boolean check.
           .filter((row): row is typeof row & {label: string} => Boolean(row.label));
 
-        const residualNavItems = navItems.filter(item => !claimedLinkKinds.has(item.kind));
+        const residualNavItems = navItems.filter(
+          item => !claimedLinkKinds.has(item.kind)
+        );
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
