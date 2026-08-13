@@ -193,7 +193,7 @@ class OrganizationAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             token = self._mint(sessionId="s1").data["token"]
             for silo_mode in (SiloMode.CELL, SiloMode.CONTROL):
-                with self.subTest(silo_mode=silo_mode):
+                with self.subTest(silo_mode=silo_mode.value):
                     with assume_test_silo_mode(silo_mode):
                         response = APIClient().get(
                             "/api/0/organizations/?owner=1",
