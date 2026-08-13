@@ -3,10 +3,11 @@ import {useEffect} from 'react';
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Image} from '@sentry/scraps/image';
 
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,31 +23,35 @@ export function FeedbackSetupPanel() {
   }, [organization]);
 
   return (
-    <OnboardingPanel
-      style={{maxHeight: '100%', overflow: 'hidden', margin: 0}}
-      illustration={
-        <Image
-          width="auto"
-          height={{zero: '150px', lg: '185px'}}
-          loading="eager"
-          src={feedbackOnboardingImg}
-          alt="Illustration of a purple character pushing a wheelbarrow filled with feedback speech bubbles"
-        />
-      }
-      title={t('Set Up User Feedback')}
-      description={t(
-        'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
-      )}
-      action={
-        <Button
-          onClick={activateSidebar}
-          variant="primary"
-          analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
-          analyticsEventKey="feedback.index-click-onboarding-setup"
-        >
-          {t('Set Up Now')}
-        </Button>
-      }
-    />
+    <Panel style={{maxHeight: '100%', overflow: 'hidden', margin: 0}}>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            width="auto"
+            height={{zero: '150px', lg: '185px'}}
+            loading="eager"
+            src={feedbackOnboardingImg}
+            alt="Illustration of a purple character pushing a wheelbarrow filled with feedback speech bubbles"
+          />
+        }
+        title={t('Set Up User Feedback')}
+        description={t(
+          'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
+        )}
+        action={
+          <Button
+            onClick={activateSidebar}
+            variant="primary"
+            analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
+            analyticsEventKey="feedback.index-click-onboarding-setup"
+          >
+            {t('Set Up Now')}
+          </Button>
+        }
+      />
+    </Panel>
   );
 }

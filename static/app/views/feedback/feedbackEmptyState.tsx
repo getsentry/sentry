@@ -4,11 +4,12 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Image} from '@sentry/scraps/image';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import {OnboardingPanel} from 'sentry/components/onboardingPanel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -93,45 +94,47 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
 
   // Show landing page after projects have loaded and it is confirmed no projects have feedback
   return (
-    <OnboardingPanel
-      data-test-id="user-feedback-empty"
-      illustration={
-        <Image
-          height={{zero: '150px', '2xl': 'auto'}}
-          width="auto"
-          src={emptyStateImg}
-          alt={t(
-            'Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window'
-          )}
-        />
-      }
-      title={t('What do users think?')}
-      description={t(
-        "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
-      )}
-      action={
-        <Fragment>
-          <Button
-            variant="primary"
-            onClick={activateSidebarIssueDetails}
-            analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
-            analyticsEventKey="feedback.issue-details-click-onboarding-setup"
-          >
-            {t('Set up now')}
-          </Button>
-          <Button
-            onClick={() => {
-              Sentry.showReportDialog({
-                // should never make it to the Sentry API, but just in case, use throwaway id
-                eventId: '00000000000000000000000000000000',
-              });
-              trackAnalyticsInternal('user_feedback.dialog_opened');
-            }}
-          >
-            {t('See an example')}
-          </Button>
-        </Fragment>
-      }
-    />
+    <Panel>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            height={{zero: '150px', '2xl': 'auto'}}
+            width="auto"
+            src={emptyStateImg}
+            alt={t("Illustration of a feedback form with thumbs-up and thumbs-down options in a browser window")}
+          />
+        }
+        title={t('What do users think?')}
+        description={t(
+          "You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive."
+        )}
+        action={
+          <Fragment>
+            <Button
+              variant="primary"
+              onClick={activateSidebarIssueDetails}
+              analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+              analyticsEventKey="feedback.issue-details-click-onboarding-setup"
+            >
+              {t('Set up now')}
+            </Button>
+            <Button
+              onClick={() => {
+                Sentry.showReportDialog({
+                  // should never make it to the Sentry API, but just in case, use throwaway id
+                  eventId: '00000000000000000000000000000000',
+                });
+                trackAnalyticsInternal('user_feedback.dialog_opened');
+              }}
+            >
+              {t('See an example')}
+            </Button>
+          </Fragment>
+        }
+      />
+    </Panel>
   );
 }

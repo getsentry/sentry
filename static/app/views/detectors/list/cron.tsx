@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,9 +13,9 @@ import {Text} from '@sentry/scraps/text';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -155,60 +156,65 @@ function CronEmptyState() {
   };
 
   return (
-    <OnboardingPanel
-      illustration={
-        <Image
-          width={{zero: '100%', xs: '150px', lg: '250px', '2xl': 'auto'}}
-          src={onboardingImg}
-          alt="Purple bird emerging from an orange birdhouse with gears and a warning sign"
-        />
-      }
-      title={t('Monitor Your Cron Jobs')}
-      description={t(
-        "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
-      )}
-      action={
-        <Stack gap="xl" width="100%">
-          <Flex gap="xl" wrap="wrap">
-            {platformGuides
-              .filter(({platform}) => !['cli', 'http'].includes(platform))
-              .map(({platform, label}) => (
-                <Stack key={platform} gap="xs" align="center">
-                  <PlatformLinkButton
-                    variant="secondary"
-                    to={makeCreateUrl(platform)}
-                    aria-label={t('Create %s Monitor', platform)}
-                  >
-                    <PlatformIcon platform={platform} format="lg" size="100%" />
-                  </PlatformLinkButton>
-                  <Text variant="muted">{label}</Text>
-                </Stack>
-              ))}
-          </Flex>
-          <Flex gap="md" wrap="wrap">
-            <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
-              Sentry CLI
-            </LinkButton>
-            <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
-              HTTP (cURL)
-            </LinkButton>
-            <LinkButton
-              size="sm"
-              to={{
-                pathname: baseUrl,
-                query: {
-                  detectorType: 'monitor_check_in_failure',
-                  project: defaultProject?.id ?? '',
-                  skipGuideDetection: true,
-                },
-              }}
-            >
-              {t('Manual Setup')}
-            </LinkButton>
-          </Flex>
-        </Stack>
-      }
-    />
+    <Panel>
+      <EmptyState
+        padding="3xl"
+        align="center"
+        justify="center"
+        illustration={
+          <Image
+            width={{zero: '100%', xs: '150px', lg: '250px', '2xl': 'auto'}}
+            src={onboardingImg}
+            alt="Purple bird emerging from an orange birdhouse with gears and a warning sign"
+          />
+        }
+        title={t('Monitor Your Cron Jobs')}
+        description={t(
+          "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
+        )}
+        action={
+          <Stack gap="xl" width="100%">
+            <Flex gap="xl" wrap="wrap">
+              {platformGuides
+                .filter(({platform}) => !['cli', 'http'].includes(platform))
+                .map(({platform, label}) => (
+                  <Stack key={platform} gap="xs" align="center">
+                    <PlatformLinkButton
+                      variant="secondary"
+                      to={makeCreateUrl(platform)}
+                      aria-label={t('Create %s Monitor', platform)}
+                    >
+                      <PlatformIcon platform={platform} format="lg" size="100%" />
+                    </PlatformLinkButton>
+                    <Text variant="muted">{label}</Text>
+                  </Stack>
+                ))}
+            </Flex>
+            <Flex gap="md" wrap="wrap">
+              <LinkButton size="sm" icon={<IconTerminal />} to={makeCreateUrl('cli')}>
+                Sentry CLI
+              </LinkButton>
+              <LinkButton size="sm" icon={<IconGlobe />} to={makeCreateUrl('http')}>
+                HTTP (cURL)
+              </LinkButton>
+              <LinkButton
+                size="sm"
+                to={{
+                  pathname: baseUrl,
+                  query: {
+                    detectorType: 'monitor_check_in_failure',
+                    project: defaultProject?.id ?? '',
+                    skipGuideDetection: true,
+                  },
+                }}
+              >
+                {t('Manual Setup')}
+              </LinkButton>
+            </Flex>
+          </Stack>
+        }
+      />
+    </Panel>
   );
 }
 
