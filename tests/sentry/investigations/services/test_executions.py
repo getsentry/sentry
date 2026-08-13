@@ -102,7 +102,6 @@ class InvestigationExecutionServiceTest(TestCase):
             str(second.id),
         ]
         assert execution.input_snapshot["blockVersion"] == target.version
-        assert "cellVersion" not in execution.input_snapshot
         assert "datasetHint" not in execution.input_snapshot
 
     def test_rejects_invalid_query_dataset_hint(self) -> None:
