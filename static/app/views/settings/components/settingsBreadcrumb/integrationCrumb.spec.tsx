@@ -30,7 +30,7 @@ describe('IntegrationCrumb', () => {
     });
   });
 
-  it('switches integrations while preserving the selected detail tab', async () => {
+  it('switches integrations while clearing the selected detail tab', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
     const {router} = render(
@@ -62,7 +62,7 @@ describe('IntegrationCrumb', () => {
     expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/integrations/slack/`
     );
-    expect(router.location.query).toEqual({tab: 'overview'});
+    expect(router.location.query).toEqual({});
   });
 
   it('returns to overview when switching from a configured item', async () => {

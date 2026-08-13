@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
@@ -168,14 +168,6 @@ export default function IntegrationDetailedView() {
   const displayTabs =
     !provider || integrationFeatures.includes(provider.key) ? tabs : tabsWithoutFeatures;
   const displayedTab = displayTabs.includes(activeTab) ? activeTab : 'overview';
-
-  useEffect(() => {
-    if (displayedTab === activeTab) {
-      return;
-    }
-
-    setActiveTab(null, {history: 'replace'});
-  }, [activeTab, displayedTab, setActiveTab]);
 
   const description = provider?.metadata.description ?? '';
   const author = provider?.metadata.author ?? '';

@@ -107,10 +107,9 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
       }
       onCrumbSelect={providerKey => {
         const {tab: _tab, ...queryWithoutTab} = location.query;
-        const query = configuredItemSelected ? queryWithoutTab : location.query;
         navigate({
           pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
-          query,
+          query: queryWithoutTab,
         });
       }}
       onOpenChange={open => {

@@ -401,7 +401,7 @@ describe('IntegrationDetailedView', () => {
     });
 
     expect(await screen.findByRole('heading', {name: 'Overview'})).toBeInTheDocument();
-    expect(router.location.query).toEqual({});
+    expect(router.location.query).toEqual({tab: 'features'});
   });
 
   it('renders alerts without crashing when variant is not provided', async () => {
