@@ -350,10 +350,10 @@ function ResponsivePanel({
 }: React.ComponentProps<typeof Panel> & {reloading: boolean}) {
   return (
     <Container display={{zero: 'block', '3xl': 'flex'}}>
-      {({className}) => (
+      {containerProps => (
         <Panel
           {...props}
-          className={className}
+          {...containerProps}
           css={css`
             opacity: ${reloading ? 0.5 : 1};
             pointer-events: ${reloading ? 'none' : 'auto'};
@@ -431,8 +431,8 @@ export const ReleaseProjectColumn = styled('div')`
 export function NewIssuesColumn({children}: {children: React.ReactNode}) {
   return (
     <Text align={{zero: 'left', xl: 'right'}} tabular>
-      {({className}) => (
-        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
       )}
     </Text>
   );
@@ -452,8 +452,8 @@ export function AdoptionColumn({children}: {children: React.ReactNode}) {
       display={{zero: 'none', xl: 'flex'}}
       overflow={{zero: 'hidden', xl: 'visible'}}
     >
-      {({className}) => (
-        <StyledAdoptionColumn className={className}>{children}</StyledAdoptionColumn>
+      {containerProps => (
+        <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
       )}
     </Container>
   );
@@ -465,9 +465,9 @@ export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
       display={{zero: 'none', '5xl': 'flex'}}
       overflow={{zero: 'hidden', '5xl': 'visible'}}
     >
-      {({className}) => (
+      {containerProps => (
         <ReleaseProjectColumn
-          className={className}
+          {...containerProps}
           css={css`
             font-variant-numeric: tabular-nums;
           `}
@@ -482,8 +482,8 @@ export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
 export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
   return (
     <Text align={{zero: 'left', xl: 'center', '5xl': 'right'}} tabular>
-      {({className}) => (
-        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
       )}
     </Text>
   );
@@ -492,8 +492,8 @@ export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
 export function DisplaySmallCol({children}: {children: React.ReactNode}) {
   return (
     <Text align="right" display={{zero: 'none', xl: 'block'}} tabular>
-      {({className}) => (
-        <ReleaseProjectColumn className={className}>{children}</ReleaseProjectColumn>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
       )}
     </Text>
   );

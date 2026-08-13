@@ -22,9 +22,9 @@ type Props = {
 export function ReleasesStatusOptions({selected, onSelect}: Props) {
   return (
     <Container width={{zero: '100%', '2xl': 'max-content'}}>
-      {({className}) => (
+      {containerProps => (
         <ReleasesDropdown
-          className={className}
+          {...containerProps}
           label={t('Status')}
           options={options}
           selected={selected}

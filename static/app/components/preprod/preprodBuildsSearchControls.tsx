@@ -110,8 +110,8 @@ export function PreprodBuildsSearchControls({
       </Container>
       {onExportCsv && (
         <Container width={{zero: '100%', md: 'max-content'}}>
-          {({className}) => (
-            <Button className={className} icon={<IconDownload />} onClick={onExportCsv}>
+          {containerProps => (
+            <Button {...containerProps} icon={<IconDownload />} onClick={onExportCsv}>
               {t('Download CSV')}
             </Button>
           )}
@@ -122,9 +122,9 @@ export function PreprodBuildsSearchControls({
           maxWidth={{zero: 'none', md: '200px'}}
           width={{zero: '100%', md: 'max-content'}}
         >
-          {({className}) => (
+          {containerProps => (
             <CompactSelect
-              className={className}
+              {...containerProps}
               options={displaySelectOptions}
               value={display}
               onChange={option => onDisplayChange(option.value)}

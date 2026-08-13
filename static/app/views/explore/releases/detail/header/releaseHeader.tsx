@@ -229,8 +229,8 @@ const IconWrapper = styled('span')`
 function ResponsiveNavTabsBadge({children}: {children: React.ReactNode}) {
   return (
     <Container display={{zero: 'none', xl: 'inline-flex'}}>
-      {({className}) => (
-        <Badge className={className} variant="muted">
+      {containerProps => (
+        <Badge {...containerProps} variant="muted">
           {children}
         </Badge>
       )}

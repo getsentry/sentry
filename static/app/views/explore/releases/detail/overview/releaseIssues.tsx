@@ -375,9 +375,9 @@ export function ReleaseIssues({
           margin="md 0"
         >
           <Container width={{zero: '100%', md: 'max-content'}}>
-            {({className}) => (
+            {containerProps => (
               <LinkButton
-                className={className}
+                {...containerProps}
                 to={getIssuesUrl(
                   version,
                   location,

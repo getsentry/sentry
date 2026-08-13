@@ -46,9 +46,9 @@ export function ReleasesSortOptions({
 
   return (
     <Container width={{zero: '100%', '2xl': 'max-content'}}>
-      {({className}) => (
+      {containerProps => (
         <ReleasesDropdown
-          className={className}
+          {...containerProps}
           label={t('Sort By')}
           options={sortOptions}
           selected={selected}

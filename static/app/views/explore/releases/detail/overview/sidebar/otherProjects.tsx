@@ -46,10 +46,10 @@ export function OtherProjects({projects, location, version, organization}: Props
           {projects.map(project => (
             <Fragment key={project.id}>
               <Text size="md" variant="inherit">
-                {({className}) => (
+                {containerProps => (
                   <Grid
+                    {...containerProps}
                     align="center"
-                    className={className}
                     columns={{
                       zero: '1fr max-content',
                       '3xl': '200px max-content',

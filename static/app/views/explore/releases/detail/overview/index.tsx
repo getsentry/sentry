@@ -313,17 +313,17 @@ function ReleaseOverview() {
             marginBottom="xl"
           >
             <Container width={{zero: '100%', md: 'max-content'}}>
-              {({className}) => (
+              {containerProps => (
                 <EnvironmentPageFilter
-                  className={className}
+                  {...containerProps}
                   triggerProps={{style: {width: '100%'}}}
                 />
               )}
             </Container>
             <Container width={{zero: '100%', md: 'max-content'}}>
-              {({className}) => (
+              {containerProps => (
                 <TimeRangeSelector
-                  className={className}
+                  {...containerProps}
                   relative={
                     period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
                   }

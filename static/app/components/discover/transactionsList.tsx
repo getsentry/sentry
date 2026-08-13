@@ -355,9 +355,9 @@ class _TransactionsList extends Component<Props> {
     return (
       <Grid columns={{zero: '1fr', md: 'repeat(2, max-content)'}} gap="md">
         <Container width={{zero: '100%', md: 'max-content'}}>
-          {({className}) => (
+          {containerProps => (
             <CompactSelect
-              className={className}
+              {...containerProps}
               trigger={triggerProps => (
                 <OverlayTrigger.Button
                   {...triggerProps}

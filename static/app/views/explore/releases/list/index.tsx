@@ -460,8 +460,8 @@ function ReleasesListInnerPage() {
             <Layout.Main width="full">
               <Stack gap="md">
                 <Container width={{zero: '100%', md: 'max-content'}}>
-                  {({className}) => (
-                    <PageFilterBar className={className} condensed>
+                  {containerProps => (
+                    <PageFilterBar {...containerProps} condensed>
                       <ProjectPageFilter />
                       <EnvironmentPageFilter
                         disabled={
@@ -569,9 +569,9 @@ function ReleasesListInnerPage() {
                       gap="xl"
                     >
                       <Container column={{zero: 'auto', md: '1 / -1', '2xl': 'auto'}}>
-                        {({className}) => (
+                        {containerProps => (
                           <SearchQueryBuilder
-                            className={className}
+                            {...containerProps}
                             onSearch={handleSearch}
                             initialQuery={activeQuery}
                             filterKeys={RELEASE_FILTER_KEYS}
@@ -673,8 +673,8 @@ function ReleasesHeader() {
 function ReleasesBodySearch({children}: {children: React.ReactNode}) {
   return (
     <Container paddingBottom="0">
-      {({className}) => (
-        <ExploreBodySearch className={className}>{children}</ExploreBodySearch>
+      {containerProps => (
+        <ExploreBodySearch {...containerProps}>{children}</ExploreBodySearch>
       )}
     </Container>
   );
