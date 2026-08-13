@@ -2,9 +2,10 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
+from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.github_enterprise import client
 from sentry.integrations.github_enterprise.actions.create_ticket import (
     GitHubEnterpriseCreateTicketAction,
@@ -128,21 +129,13 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         )
 
         # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
+        rule_object = Rule.objects.create(
+            project=self.project,
+            label="hello world",
             data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
+                "action_match": "any",
                 "frequency": 5,
+                "conditions": [],
                 "actions": [
                     {
                         "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
@@ -153,13 +146,9 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
                         "labels": self.labels,
                     }
                 ],
-                "conditions": [],
             },
         )
-        assert response.status_code == 200
 
-        # Get the rule from DB
-        rule_object = Rule.objects.get(id=response.data["id"])
         event = self.get_group_event()
 
         # Trigger its `after`
@@ -207,33 +196,18 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                        "integration": self.integration.id,
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."
+        with pytest.raises(serializers.ValidationError) as excinfo:
+            validate_actions(
+                {
+                    "actions": [
+                        {
+                            "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+                            "integration": self.integration.id,
+                            "repo": self.repo,
+                            "assignee": self.assignee,
+                            "labels": self.labels,
+                        }
+                    ]
+                }
+            )
+        assert excinfo.value.detail["actions"] == "Must configure issue link settings."

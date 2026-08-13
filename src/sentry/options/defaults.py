@@ -1762,21 +1762,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Brownout schedule for the deprecated alerts API endpoints.
-# 5 minute blackout every half hour
-register(
-    "api.deprecation.alerts-cron",
-    default="0,30 * * * *",
-    type=String,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "api.deprecation.alerts-duration",
-    type=Int,
-    default=300,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to disable misbehaving use case IDs
 register(
     "sentry-metrics.indexer.disabled-namespaces",

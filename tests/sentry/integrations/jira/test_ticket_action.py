@@ -1,10 +1,11 @@
 from unittest import mock
 
 import pytest
-from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
+from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
@@ -63,21 +64,13 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )[0]
 
     def configure_valid_alert_rule(self):
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
+        rule_object = Rule.objects.create(
+            project=self.project,
+            label="hello world",
             data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
+                "action_match": "any",
                 "frequency": 5,
+                "conditions": [],
                 "actions": [
                     {
                         "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
@@ -88,11 +81,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                         "project": "10000",
                     }
                 ],
-                "conditions": [],
             },
         )
-        assert response.status_code == 200
-        return response
+        return rule_object
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_ticket_rules(self, mock_record_event: mock.MagicMock) -> None:
@@ -100,10 +91,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            response = self.configure_valid_alert_rule()
+            rule_object = self.configure_valid_alert_rule()
 
-            # Get the rule from DB
-            rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_group_event()
 
             # Trigger its `after`
@@ -160,9 +149,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            response = self.configure_valid_alert_rule()
+            rule_object = self.configure_valid_alert_rule()
 
-            rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
             with pytest.raises(IntegrationConfigurationError):
@@ -181,35 +169,21 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         """
         Test that the absence of dynamic_form_fields in the action fails validation
         """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                        "integration": self.integration.id,
-                        "issuetype": "1",
-                        "name": "Create a Jira ticket in the Jira Cloud account",
-                        "project": "10000",
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."
+        with pytest.raises(serializers.ValidationError) as excinfo:
+            validate_actions(
+                {
+                    "actions": [
+                        {
+                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                            "integration": self.integration.id,
+                            "issuetype": "1",
+                            "name": "Create a Jira ticket in the Jira Cloud account",
+                            "project": "10000",
+                        }
+                    ]
+                }
+            )
+        assert excinfo.value.detail["actions"] == "Must configure issue link settings."
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
@@ -226,9 +200,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            response = self.configure_valid_alert_rule()
+            rule_object = self.configure_valid_alert_rule()
 
-            rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
             with pytest.raises(IntegrationFormError):
@@ -248,10 +221,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            response = self.configure_valid_alert_rule()
+            rule_object = self.configure_valid_alert_rule()
 
-            # Get the rule from DB
-            rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
             with pytest.raises(IntegrationConfigurationError):

@@ -844,7 +844,6 @@ from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
-from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -3016,11 +3015,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/artifact-lookup/$",
         ProjectArtifactLookupEndpoint.as_view(),
         name="sentry-api-0-project-artifact-lookup",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/$",
-        ProjectRulesEndpoint.as_view(),
-        name="sentry-api-0-project-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/(?P<replay_id>[^/]+)/$",

@@ -508,7 +508,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/reprocessing/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/enable/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/group-history/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/stats/'
