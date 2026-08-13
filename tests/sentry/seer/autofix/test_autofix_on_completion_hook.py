@@ -531,6 +531,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 repo_name="test-repo",
                 pr_creation_status="error",
                 pr_creation_error="Resource not accessible by integration",
+                pr_creation_error_code="missing_permission",
             )
         }
 
@@ -568,6 +569,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 repo_name="failed-repo",
                 pr_creation_status="error",
                 pr_creation_error="Resource not accessible by integration",
+                pr_creation_error_code="missing_permission",
             ),
         }
 
@@ -601,7 +603,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert "ai.autofix.pr_created.completed" in event_names
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_send_step_webhook_prefers_seer_error_code(self, mock_broadcast):
+    def test_send_step_webhook_error_code_passthrough(self, mock_broadcast):
         state = run_state(blocks=[code_changes_memory_block()])
         state.repo_pr_states = {
             "test-repo": RepoPRState(
