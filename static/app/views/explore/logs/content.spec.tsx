@@ -355,11 +355,7 @@ describe('LogsPage', () => {
 
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
 
-      await waitFor(() => {
-        expect(screen.getByTestId('logs-table')).toBeInTheDocument();
-      });
-
-      expect(screen.getAllByTestId('log-table-row')).toHaveLength(5);
+      expect(await screen.findAllByTestId('log-table-row')).toHaveLength(5);
 
       expect(rowDetailsMock).not.toHaveBeenCalled();
 
