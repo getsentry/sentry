@@ -85,9 +85,9 @@ def calculate_recalibration_factor(
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
     #
-    # A volume that overshoots reports a rate above 1, which is not a sample rate any org can
-    # have. Treating it as fully sampled keeps the factor pointing the right way, whereas the
-    # raw ratio scales it down by however far the two sources happened to disagree.
+    # The two sides of the volume come from different sources counting different populations,
+    # so the ratio can legitimately land above 1. That is not a sample rate, so treat it as
+    # fully sampled rather than scaling the factor down by however far the sources differed.
     effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
@@ -106,8 +106,8 @@ def get_cached_per_org_recalibration_factor(org_id: int) -> float:
 def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
     """The raw ratio, deliberately left unclamped unlike the one the factor is computed from.
 
-    A rate above 1 is the only signal that the two sources behind the volume disagreed, and
-    by how much. Clamping it here would hide that from the comparison log.
+    A rate above 1 is the only signal of how far apart the two sources behind the volume
+    are. Clamping it here would hide that from the comparison log.
     """
     if volume is None or volume.indexed is None or volume.total <= 0:
         return None

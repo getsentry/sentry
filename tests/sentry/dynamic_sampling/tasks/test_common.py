@@ -148,14 +148,6 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
         assert org_volume is None
 
 
-class TestOrganizationDataVolume:
-    def test_is_overshooting(self) -> None:
-        assert OrganizationDataVolume(org_id=1, total=100, indexed=172).is_overshooting()
-        assert not OrganizationDataVolume(org_id=1, total=100, indexed=100).is_overshooting()
-        assert not OrganizationDataVolume(org_id=1, total=100, indexed=25).is_overshooting()
-        assert not OrganizationDataVolume(org_id=1, total=100, indexed=None).is_overshooting()
-
-
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """

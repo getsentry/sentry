@@ -223,15 +223,6 @@ class OrganizationDataVolume:
     def is_valid_for_recalibration(self) -> bool:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
-    def is_overshooting(self) -> bool:
-        """Whether more items were stored than were seen, which no single source can report.
-
-        A volume assembled from two sources can land here, because neither side constrains
-        the other. See ``get_recalibration_organization_volume``, which pairs an outcomes
-        total with an EAP sample count.
-        """
-        return self.indexed is not None and self.indexed > self.total
-
 
 class GetActiveOrgsVolumes:
     """
