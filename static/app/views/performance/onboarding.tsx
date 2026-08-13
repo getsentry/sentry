@@ -227,7 +227,9 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
               width={{zero: '150px', '3xl': '480px', '4xl': '600px'}}
               loading="eager"
               src={emptyStateImg}
-              alt={t("Stylized line chart with purple and orange lines trending upward against a pink background")}
+              alt={t(
+                'Stylized line chart with purple and orange lines trending upward against a pink background'
+              )}
               style={{maxWidth: '100%', userSelect: 'none'}}
             />
           }
@@ -339,7 +341,13 @@ function OnboardingPanel({
                   pointerEvents="none"
                   overflow="hidden"
                 >
-                  <ScrapsImage height="120px" src={emptyTraceImg} alt="" />
+                  <ScrapsImage
+                    height="120px"
+                    src={emptyTraceImg}
+                    alt={t(
+                      'A winged insect flying above a tilted browser window with abstract interface elements'
+                    )}
+                  />
                 </Container>
               </Flex>
               <Divider />
