@@ -12,6 +12,7 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text, type TextProps} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
@@ -262,7 +263,11 @@ function ChipSection({
   );
 
   if (!isInteractive) {
-    return <InertSegment>{content}</InertSegment>;
+    return (
+      <Flex display="inline-flex" align="center">
+        {content}
+      </Flex>
+    );
   }
 
   return (
@@ -466,11 +471,6 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
     border-start-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
     border-end-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
   }
-`;
-
-const InertSegment = styled('div')`
-  display: inline-flex;
-  align-items: center;
 `;
 
 const InteractiveSegment = styled('button')`
