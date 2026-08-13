@@ -1,12 +1,9 @@
-import {useRef, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
 import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
@@ -16,16 +13,10 @@ import {
   toSelectedSdk,
 } from 'sentry/components/onboarding/scm/scmPlatformHelpers';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
-import {useTeams} from 'sentry/utils/useTeams';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import type {StepProps} from './types';
@@ -55,13 +46,11 @@ export function ScmPlatformFeatures({
   selectedRepository,
   genBackButton,
 }: ScmPlatformFeaturesProps) {
-  const organization = useOrganization();
-
-  const {teams, fetching: isLoadingTeams} = useTeams();
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const createProject = useCreateProject();
-  const isCompletingRef = useRef(false);
-  const [isCompleting, setIsCompleting] = useState(false);
+  const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
+    createdProjectSlug,
+    onProjectCreated,
+    selectedRepository,
+  });
 
   // React Query dedupes with the core's call; we only need detectedPlatformKey
   // here so handleContinue's auto-create path can fall back to the
@@ -89,19 +78,11 @@ export function ScmPlatformFeatures({
     }
   };
 
-  const existingProject = createdProjectSlug
-    ? projects.find(p => p.slug === createdProjectSlug)
-    : undefined;
-
   // Control auto-creates the project and needs both stores loaded. Treatment
   // only stages platform/features here; its messaging step owns creation.
-  const autoCreateDataPending =
-    !deferProjectCreation && (isLoadingTeams || !projectsLoaded);
+  const autoCreateDataPending = !deferProjectCreation && isDataPending;
 
   async function handleContinue() {
-    if (isCompletingRef.current) {
-      return;
-    }
     // Persist derived defaults if the user accepted them without an explicit click
     if (currentPlatformKey && !selectedPlatform?.key) {
       setPlatform(currentPlatformKey);
@@ -125,56 +106,13 @@ export function ScmPlatformFeatures({
       return;
     }
 
-    // If a project was already created for this platform (e.g. the user
-    // went back after the project received its first event), reuse it.
-    // If the platform changed, abandon the old project and create a new
-    // one — matching legacy onboarding behavior.
     // `platform` is forwarded because setPlatform's context update has not
     // propagated to the captured onComplete closure yet, and goNextStep's
     // SETUP_DOCS guard would otherwise block navigation.
-    if (existingProject?.platform === platform.key) {
-      onComplete(platform, {product: currentFeatures});
-      return;
-    }
-
-    const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
-
-    isCompletingRef.current = true;
-    setIsCompleting(true);
-    try {
-      let project: Project;
-      try {
-        project = await createProject.mutateAsync({
-          name: platform.key,
-          platform,
-          default_rules: true,
-          firstTeamSlug: firstAdminTeam?.slug,
-        });
-      } catch (error) {
-        addErrorMessage(t('Failed to create project'));
-        Sentry.captureException(error);
-        return;
-      }
-
-      onProjectCreated(project.slug);
-
-      if (selectedRepository?.id) {
-        try {
-          await fetchMutation({
-            url: `/projects/${organization.slug}/${project.slug}/repo/`,
-            method: 'POST',
-            data: {repositoryId: selectedRepository.id},
-          });
-        } catch (error) {
-          Sentry.captureException(error);
-        }
-      }
-
-      onComplete(platform, {product: currentFeatures});
-    } finally {
-      isCompletingRef.current = false;
-      setIsCompleting(false);
-    }
+    await createOrReuseProject({
+      platform,
+      onSuccess: () => onComplete(platform, {product: currentFeatures}),
+    });
   }
 
   return (
@@ -228,8 +166,8 @@ export function ScmPlatformFeatures({
                   features: currentFeatures,
                 }}
                 onClick={handleContinue}
-                disabled={!currentPlatformKey || isCompleting || autoCreateDataPending}
-                busy={isCompleting}
+                disabled={!currentPlatformKey || isCreating || autoCreateDataPending}
+                busy={isCreating}
               >
                 {t('Continue')}
               </Button>
