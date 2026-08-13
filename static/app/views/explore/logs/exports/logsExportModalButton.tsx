@@ -32,6 +32,7 @@ type LogsExportModalButtonProps = {
   supportsAllColumns: boolean;
   tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
   title: string;
+  disabled?: boolean;
   error?: Error | null;
 };
 
@@ -65,6 +66,7 @@ export function useLogsQueryInfo({
 }
 
 export function LogsExportModalButton({
+  disabled,
   error,
   estimatedRowCount,
   isLoading,
@@ -105,6 +107,7 @@ export function LogsExportModalButton({
   return (
     <ExploreExportModalButton
       config={config}
+      disabled={disabled}
       isDataEmpty={!tableData?.length}
       isDataError={error !== null}
       isDataLoading={isLoading}

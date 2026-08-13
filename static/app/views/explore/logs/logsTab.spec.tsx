@@ -1,7 +1,13 @@
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -45,6 +51,16 @@ const datePageFilterProps: DatePageFilterProps = {
   }),
 };
 
+const validValidationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
+};
+
 beforeEach(() => {
   mockElementSize();
 });
@@ -62,6 +78,17 @@ describe('LogsTabContent', () => {
         source="location"
       >
         <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      </LogsQueryParamsProvider>
+    );
+  }
+
+  function ValidatedProviderWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsPageDataProvider validateQuery>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>
     );
   }
@@ -183,15 +210,7 @@ describe('LogsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       method: 'GET',
-      body: {
-        dataset: [],
-        environment: [],
-        field: [],
-        orderby: [],
-        projects: [],
-        query: {error: null, fields: [], valid: true},
-        valid: true,
-      },
+      body: validValidationBody,
     });
 
     MockApiClient.addMockResponse({
@@ -208,41 +227,45 @@ describe('LogsTabContent', () => {
       additionalWrapper: ProviderWrapper,
     });
 
-    expect(eventTableMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          statsPeriod: '14d',
-          dataset: 'ourlogs',
-          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
-          sort: 'sentry.message.parameters.0',
-          query: 'severity:error',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            statsPeriod: '14d',
+            dataset: 'ourlogs',
+            field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
+            sort: 'sentry.message.parameters.0',
+            query: 'severity:error',
+          }),
+        })
+      );
+    });
 
-    expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          dataset: 'ourlogs',
-          disableAggregateExtrapolation: '0',
-          environment: [],
-          excludeOther: 0,
-          groupBy: [],
-          interval: '1h',
-          partial: 1,
-          project: [2],
-          query: 'severity:error',
-          referrer: 'api.explore.ourlogs-timeseries',
-          sampling: 'NORMAL',
-          sort: '-count_message',
-          statsPeriod: '14d',
-          yAxis: ['count(message)'],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'ourlogs',
+            disableAggregateExtrapolation: '0',
+            environment: [],
+            excludeOther: 0,
+            groupBy: [],
+            interval: '1h',
+            partial: 1,
+            project: [2],
+            query: 'severity:error',
+            referrer: 'api.explore.ourlogs-timeseries',
+            sampling: 'NORMAL',
+            sort: '-count_message',
+            statsPeriod: '14d',
+            yAxis: ['count(message)'],
+          }),
+        })
+      );
+    });
 
     const table = screen.getByTestId('logs-table');
     await screen.findByText('some log message1');
@@ -250,13 +273,176 @@ describe('LogsTabContent', () => {
     expect(table).toHaveTextContent(/some log message2/);
   });
 
+  it('does not run logs queries when validation fails', async () => {
+    MockApiClient.clearMockResponses();
+    const validationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        ...validValidationBody,
+        query: {
+          error: 'unknown attribute',
+          fields: [
+            {
+              attrType: null,
+              error: 'unknown attribute',
+              name: 'missing.key',
+              valid: false,
+            },
+          ],
+          valid: false,
+        },
+        valid: false,
+      },
+      statusCode: 400,
+    });
+    const blockedEventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {},
+    });
+    const blockedTimeseriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: {},
+    });
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ValidatedProviderWrapper,
+    });
+
+    await waitFor(() => expect(validationMock).toHaveBeenCalled());
+    expect(blockedEventsMock).not.toHaveBeenCalled();
+    expect(blockedTimeseriesMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+  });
+
+  it('preserves valid logs while revalidating and clears them when invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+      match: [MockApiClient.matchQuery({query: 'severity:error'})],
+    });
+    const delayedValidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+      asyncDelay: 100_000,
+      match: [MockApiClient.matchQuery({query: 'severity:warning'})],
+    });
+    const invalidValidationBody: EventValidationData = {
+      ...validValidationBody,
+      query: {
+        error: 'unknown attribute',
+        fields: [
+          {
+            attrType: null,
+            error: 'unknown attribute',
+            name: 'missing.key',
+            valid: false,
+          },
+        ],
+        valid: false,
+      },
+      valid: false,
+    };
+    const invalidValidationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: invalidValidationBody,
+      statusCode: 400,
+      match: [MockApiClient.matchQuery({query: 'missing.key:foo'})],
+    });
+    const unvalidatedTableMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}}},
+      match: [
+        MockApiClient.matchQuery({
+          query: 'severity:warning',
+          referrer: 'api.explore.logs-table',
+        }),
+      ],
+    });
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ValidatedProviderWrapper,
+      }
+    );
+
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+
+    router.navigate(
+      `/organizations/${organization.slug}/explore/logs/?${LOGS_QUERY_KEY}=severity%3Awarning`
+    );
+    await waitFor(() => expect(delayedValidationMock).toHaveBeenCalled());
+    expect(screen.getByText('some log message1')).toBeInTheDocument();
+    expect(unvalidatedTableMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+
+    router.navigate(
+      `/organizations/${organization.slug}/explore/logs/?${LOGS_QUERY_KEY}=missing.key%3Afoo`
+    );
+    await waitFor(() => expect(invalidValidationMock).toHaveBeenCalled());
+    await waitForElementToBeRemoved(() => screen.queryByText('some log message1'));
+    expect(screen.getByText('No logs found')).toBeInTheDocument();
+    expect(unvalidatedTableMock).not.toHaveBeenCalled();
+  });
+
   it('removes invalid selected columns after validation', async () => {
     const validationBody: EventValidationData = {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
-        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
+        {
+          attrType: 'boolean',
+          error: null,
+          name: 'custom.enabled',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -333,7 +519,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -406,7 +597,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -588,7 +784,9 @@ describe('LogsTabContent', () => {
       organization,
       additionalWrapper: ProviderWrapper,
     });
-    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    const refreshButton = await screen.findByRole('button', {
+      name: 'Refresh',
+    });
     expect(refreshButton).toBeDisabled();
   });
 });

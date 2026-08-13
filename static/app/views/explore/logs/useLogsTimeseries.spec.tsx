@@ -79,7 +79,9 @@ describe('useLogsTimeseries', () => {
           enabled: true,
           timeseriesIngestDelay: 0n,
           tableData: {
+            dataUpdatedAt: 0,
             error: null,
+            errorUpdatedAt: 0,
             isError: false,
             isFetching: false,
             isPending: false,

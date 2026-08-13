@@ -65,7 +65,7 @@ export default function LogsContent() {
                 source="location"
               >
                 <LogsHeader />
-                <LogsPageDataProvider allowHighFidelity>
+                <LogsPageDataProvider allowHighFidelity validateQuery>
                   {defined(onboardingProject) ? (
                     <LogsTabOnboarding
                       organization={organization}

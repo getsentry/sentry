@@ -44,9 +44,9 @@ function useLogsExportEstimateTimeseries({
  * Intentionally coincidentally the same semantics as the default count(logs) chart.
  * This way, the default view requests are deduplicated.
  */
-export function useLogsExportEstimatedRowCount(tableDataLength: number) {
+export function useLogsExportEstimatedRowCount(tableDataLength: number, enabled = true) {
   const baseRequest = useLogsTimeseriesRequest({
-    enabled: true,
+    enabled,
     timeseriesIngestDelay: getMaxIngestDelayTimestamp(),
     yAxesOverride: [DEFAULT_LOGS_TIMESERIES_Y_AXIS],
   });
@@ -56,7 +56,7 @@ export function useLogsExportEstimatedRowCount(tableDataLength: number) {
     queryHookImplementation: useLogsExportEstimateTimeseries,
     queryHookArgs: {
       baseRequest,
-      enabled: true,
+      enabled,
     },
     queryOptions: {
       canTriggerHighAccuracy: result => {
