@@ -15,14 +15,8 @@ export function SampleDrawerContainer(props: GridProps) {
 export const SampleDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
-  /* Move the scrollbar to the left edge */
-  scroll-margin: 0 ${p => p.theme.space.xl};
   display: flex;
   gap: ${p => p.theme.space.xl};
   flex-direction: column;
   min-height: 0;
-  direction: rtl;
-  * {
-    direction: ltr;
-  }
 `;

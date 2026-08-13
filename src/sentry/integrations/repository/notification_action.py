@@ -85,14 +85,21 @@ class NotificationActionNotificationMessageRepository:
         """
         try:
             base_filter = self._parent_notification_message_base_filter()
-            instance: NotificationMessage = (
+            filtered_ids = (
                 self._model.objects.filter(base_filter)
                 .filter(
                     action=action,
                     group=group,
                     open_period_start=open_period_start,
                 )
-                .latest("date_added")
+                .order_by()
+                .values("id")
+            )
+            # We filter in a subquery and order/limit outside of it, as this helps us hit the
+            # partial index better. The general index looks appealing when it is a bad fit because of
+            # a small number of rather popular (group, action) pairs that match a huge number of rows.
+            instance: NotificationMessage = self._model.objects.filter(id__in=filtered_ids).latest(
+                "date_added"
             )
             return NotificationActionNotificationMessage.from_model(instance=instance)
         except NotificationMessage.DoesNotExist:

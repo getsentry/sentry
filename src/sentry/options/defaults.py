@@ -511,13 +511,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -3469,7 +3462,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.all_projects_auto_creation_enabled",
+    "workflow_engine.auto_creation.pull_request_workflow",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.all_projects_detector",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

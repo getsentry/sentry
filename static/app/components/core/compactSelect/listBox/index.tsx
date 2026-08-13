@@ -37,7 +37,6 @@ interface ListBoxProps<T extends ListItemBase>
       | 'selectedKeys'
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
-      | 'autoFocus'
       | 'isVirtualized'
     > {
   /**
@@ -123,6 +122,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
 export function ListBox<T extends ListItemBase>({
   ref,
   listState,
+  autoFocus,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
@@ -148,6 +148,7 @@ export function ListBox<T extends ListItemBase>({
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
+      autoFocus,
       label,
       shouldFocusWrap,
       shouldFocusOnHover,
