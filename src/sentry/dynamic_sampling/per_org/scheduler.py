@@ -275,9 +275,9 @@ def schedule_per_org_calculations() -> None:
         return True
 
     def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-        # An empty result means the check failed, which would otherwise read as "none of them".
+        # A None result means the check failed, which would otherwise read as "none of them".
         results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
-        if not results:
+        if results is None:
             raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
 
         kept = [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
