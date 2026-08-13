@@ -62,7 +62,7 @@ const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
 // Code Mode's tool names cover every action it can take, so "Used sentry_api_execute tool" names
 // nothing. These rows are built from the calls the execute reported instead; the tool's own label
 // is never rendered, and a call that produced nothing to show renders no row at all.
-const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
+export const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
 
 // Which `ResourceKind` glyph a call row's reference chip shows, keyed by the `links.tsx` rule id
 // that resolved it (`linkKind`) — not every rule has a Telemetry Icons entry (`get_project_details`
