@@ -17,6 +17,7 @@ def backfill_all_project_detectors(
     existing = set(
         Detector.objects.filter(
             project__isnull=True,
+            type="issue_stream",
         ).values_list("config__organization_id", flat=True)
     )
 
