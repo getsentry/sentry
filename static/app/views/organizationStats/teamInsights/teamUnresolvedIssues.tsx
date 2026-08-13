@@ -18,7 +18,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {
   barAxisLabel,
   convertDayValueObjectToSeries,
@@ -241,17 +241,8 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledSimpleTable = styled(SimpleTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.font.size.md};
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const RightAligned = styled('span')`

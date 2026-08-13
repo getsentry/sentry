@@ -20,6 +20,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
+import {TeamInsightsTable} from './styles';
+
 interface TeamIssuesAgeProps {
   organization: Organization;
   teamSlug: string;
@@ -216,17 +218,8 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledSimpleTable = styled(SimpleTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.15fr 0.15fr 0.25fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.font.size.md};
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const ProjectTitleContainer = styled('div')`

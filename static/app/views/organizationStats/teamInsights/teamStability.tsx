@@ -22,7 +22,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {groupByTrend} from './utils';
 
 interface TeamStabilityProps extends DateTimeObject {
@@ -282,17 +282,8 @@ export function TeamStability({
   );
 }
 
-const StyledSimpleTable = styled(SimpleTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
-  font-size: ${p => p.theme.font.size.md};
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const RightAligned = styled('span')`

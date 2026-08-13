@@ -25,7 +25,7 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {groupByTrend} from './utils';
 
 type TeamMiseryProps = {
@@ -304,17 +304,8 @@ export function TeamMiseryWrapper({
   );
 }
 
-const StyledSimpleTable = styled(SimpleTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;
-  font-size: ${p => p.theme.font.size.md};
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`

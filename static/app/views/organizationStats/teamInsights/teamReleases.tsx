@@ -24,7 +24,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
 interface TeamReleasesProps extends DateTimeObject {
@@ -320,17 +320,8 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledSimpleTable = styled(SimpleTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.font.size.md};
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const RightAligned = styled('span')`

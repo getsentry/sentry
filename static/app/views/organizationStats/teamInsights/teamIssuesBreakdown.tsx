@@ -18,7 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 interface StatusCounts {
@@ -246,19 +246,10 @@ const IssuesChartWrapper = styled(ChartWrapper)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledSimpleTable = styled(SimpleTable, {
+const StyledSimpleTable = styled(TeamInsightsTable, {
   shouldForwardProp: prop => prop !== 'numActions',
 })<{numActions: number}>`
   grid-template-columns: 1fr ${p => ' 0.2fr'.repeat(p.numActions)} 0.2fr;
-  font-size: ${p => p.theme.font.size.md};
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  box-shadow: unset;
-
-  [role='cell'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const AlignRight = styled('div')`
