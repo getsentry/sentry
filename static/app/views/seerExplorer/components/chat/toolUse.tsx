@@ -273,7 +273,7 @@ interface ToolCallListProps {
   getPageReferrer?: () => string;
 }
 
-function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
+export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
