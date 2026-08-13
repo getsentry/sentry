@@ -88,7 +88,6 @@ const selectedDiscordSetup: ScmMessagingSetup = {
   integrationId: '20',
   channelId: '1234567890',
   channelName: '#general',
-  actionTarget: '1234567890',
 };
 
 const selectedSlackSetup: ScmMessagingSetup = {
@@ -97,7 +96,6 @@ const selectedSlackSetup: ScmMessagingSetup = {
   integrationId: '10',
   channelId: 'C123',
   channelName: '#general',
-  actionTarget: '#general',
 };
 
 describe('ScmMessagingChannelPicker', () => {
@@ -120,7 +118,6 @@ describe('ScmMessagingChannelPicker', () => {
         integrationId: '10',
         channelId: 'C123',
         channelName: '#general',
-        actionTarget: '#general',
       });
     });
 
@@ -137,7 +134,6 @@ describe('ScmMessagingChannelPicker', () => {
         integrationId: '20',
         channelId: '1234567890',
         channelName: '#general',
-        actionTarget: '1234567890',
       });
     });
 
@@ -173,7 +169,6 @@ describe('ScmMessagingChannelPicker', () => {
         integrationId: '20',
         channelId: channelUrl,
         channelName: channelUrl,
-        actionTarget: channelUrl,
       });
     });
   });
@@ -194,7 +189,6 @@ describe('ScmMessagingChannelPicker', () => {
         integrationId: '20',
         channelId: '1234567890',
         channelName: '#general',
-        actionTarget: '1234567890',
       });
     });
 
@@ -213,7 +207,6 @@ describe('ScmMessagingChannelPicker', () => {
         integrationId: '10',
         channelId: 'C123',
         channelName: '#general',
-        actionTarget: '#general',
       });
     });
   });

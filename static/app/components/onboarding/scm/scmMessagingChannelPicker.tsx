@@ -40,7 +40,7 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const providerKey = integration.provider.key as ScmMessagingProviderKey;
 
-  const {channelSelectedBy, channelTargetedBy} = providerDetails[providerKey];
+  const {channelSelectedBy} = providerDetails[providerKey];
 
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(() => {
     if (existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey) {
@@ -107,7 +107,6 @@ export function ScmMessagingChannelPicker({
       providerKey,
       integrationId: integration.id,
       ...stored,
-      actionTarget: stored[channelTargetedBy],
     });
   };
 
