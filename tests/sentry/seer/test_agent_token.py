@@ -130,8 +130,6 @@ class AgentTokenAuthAndGateTest(TestCase):
                 agent_token.decode_principal_subject(subject)
 
     def test_valid_token_supplies_compatibility_user_and_preserves_agent_auth(self) -> None:
-        # The agent remains the credential while legacy identity-only callsites receive an
-        # ephemeral representation of the user who delegated to it.
         request = self._agent_request(self.owner, ["org:read"], method="GET")
         assert request.user.is_authenticated
         assert request.user.id == self.owner.id

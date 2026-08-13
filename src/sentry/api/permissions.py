@@ -212,8 +212,6 @@ class SentryPermission(ScopedPermission):
         extra = {"organization_id": organization.id, "user_id": user_id}
 
         if request.auth:
-            # Agent authorization is selected by credential type, never by the
-            # compatibility request.user returned by AgentTokenAuthentication.
             if agent_auth is not None:
                 request.access = access.from_rpc_auth(
                     auth=agent_auth, rpc_user_org_context=org_context

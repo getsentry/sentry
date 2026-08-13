@@ -169,9 +169,9 @@ class OrganizationIndexEndpoint(Endpoint):
         queryset = Organization.objects.distinct()
 
         if owner_only and request.user.is_authenticated:
-            # This is used when closing an account. An agent's compatibility user
-            # supplies identity, but the credential still caps that identity to the
-            # organization for which it was minted.
+            # This is used when closing an account
+
+            # also fetches organizations in which you are a member of an owner team
             queryset = Organization.objects.get_organizations_where_user_is_owner(
                 user_id=request.user.id
             )

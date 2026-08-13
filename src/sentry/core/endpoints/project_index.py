@@ -49,9 +49,6 @@ class ProjectIndexEndpoint(Endpoint):
             queryset = queryset.none()
 
         if is_agent_auth(request.auth):
-            # The compatibility user carries identity only. Keep the global list
-            # intersected with both the credential's organization and the delegating
-            # member's project/team access.
             if request.auth.organization_id is None or request.auth.user_id is None:
                 queryset = queryset.none()
             else:

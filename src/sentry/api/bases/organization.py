@@ -839,7 +839,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         actor_id = None
         has_perms = None
         key = None
-        # Agent authority is re-derived from live membership on every request.
         if not is_agent_auth(request.auth):
             if request.user.is_authenticated:
                 actor_id = "user:%s" % request.user.id

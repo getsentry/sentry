@@ -135,8 +135,6 @@ class OrganizationAgentTokenTest(APITestCase):
         assert "org:write" not in claims["scopes"]
 
     def test_agent_token_cannot_mint(self) -> None:
-        # Minting is user-initiated. The agent credential must be rejected even though its
-        # compatibility request.user resolves to the delegating user.
         self.login_as(self.owner)
         with self.feature(FLAG):
             minted = self._mint(sessionId="s1")

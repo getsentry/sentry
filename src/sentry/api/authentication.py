@@ -684,10 +684,6 @@ class AgentTokenAuthentication(StandardAuthentication):
         ):
             fail("feature_flag_off", user_id=user_id, org_id=auth_token.organization_id)
 
-        # Legacy callsites use request.user for identity, serialization, feature flags,
-        # preferences, and ownership. Give them the delegating user without creating a
-        # proxy-user row, but strip platform elevation: an agent token must never inherit
-        # staff/superuser authority or global user permissions outside its own scopes.
         compatibility_user = user.copy(
             update={
                 "is_staff": False,

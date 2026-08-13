@@ -928,9 +928,6 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    # request.user is only a compatibility identity for an agent request. Dispatch on
-    # the credential before user/staff/superuser handling so every caller of this shared
-    # factory, including server-rendered views, preserves the member and token scope caps.
     if request.auth is not None and is_agent_auth(request.auth):
         if rpc_user_org_context is None:
             return DEFAULT
@@ -1035,8 +1032,6 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
-    # As in from_request_org_and_scopes, the compatibility user on an agent request
-    # carries identity only. Credential type must select the scope-capped access path.
     if request.auth is not None and is_agent_auth(request.auth):
         if organization is None:
             return DEFAULT

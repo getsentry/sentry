@@ -178,9 +178,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         queryset: QuerySet[Project]
         if is_agent_auth(request.auth):
-            # OrganizationPermission has already built member-derived, token-capped
-            # request.access. The compatibility user must not turn this into the
-            # broader browser-user project listing.
             queryset = Project.objects.filter(organization=organization)
             if not request.access.has_global_access:
                 queryset = queryset.filter(id__in=request.access.accessible_project_ids)

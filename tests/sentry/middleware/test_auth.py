@@ -119,8 +119,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
         return token
 
     def test_process_request_valid_agent_token(self) -> None:
-        # Legacy identity-shaped callsites receive the delegating user, while the agent
-        # credential remains the authorization authority.
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
@@ -153,8 +151,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth is None
 
     def test_process_request_agent_token_supplies_compatibility_user_on_non_api_path(self) -> None:
-        # The compatibility identity is supplied regardless of path; the bearer remains
-        # distinguishable as an agent credential in request.auth.
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
@@ -168,8 +164,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth.user_id == self.user.id
 
     def test_process_request_agent_token_wins_over_session(self) -> None:
-        # An Authorization header takes precedence over a session cookie: the agent bearer
-        # is processed and its delegating user replaces the unrelated session user.
         session_user = self.create_user()
         request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
         with assume_test_silo_mode(SiloMode.MONOLITH):
