@@ -29,7 +29,10 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
+import {
+  DetectorsTableActions,
+  DetectorsTableActionsBanner,
+} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
@@ -99,8 +102,18 @@ export function DetectorListTable({
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
-  const [selected, setSelected] = useState(new Set<string>());
+  const [selected, setSelectedIds] = useState(new Set<string>());
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
+
+  // Selecting every match only holds while something is selected, so emptying the
+  // selection has to clear it too.
+  const setSelected = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+    if (ids.size === 0) {
+      setAllInQuerySelected(false);
+    }
+  }, []);
 
   const detectorIds = new Set(detectors.map(d => d.id));
   const togglePageSelected = (pageSelected: boolean) => {
@@ -124,7 +137,7 @@ export function DetectorListTable({
       }
       setSelected(newSelected);
     },
-    [selected]
+    [selected, setSelected]
   );
 
   const canEnable = useMemo(
@@ -165,87 +178,100 @@ export function DetectorListTable({
         hasVisualization={hasVisualization}
         isVisualizationExpanded={isVisualizationExpanded}
         additionalColumns={additionalColumns}
-      >
-        {selected.size === 0 ? (
-          <SimpleTable.HeaderRow>
-            <HeaderCell sortKey="name">
-              <Flex gap="md" align="center">
-                <SelectAllHeaderCheckbox
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  onChange={checked => togglePageSelected(checked)}
-                />
-                <span>{t('Name')}</span>
-              </Flex>
-            </HeaderCell>
-            <HeaderCell data-column-name="type" divider sortKey="type">
-              {t('Type')}
-            </HeaderCell>
-            <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
-              {t('Last Issue')}
-            </HeaderCell>
-            <HeaderCell data-column-name="assignee" divider>
-              {t('Assignee')}
-            </HeaderCell>
-            <HeaderCell
-              data-column-name="connected-automations"
-              divider
-              sortKey="connectedWorkflows"
-            >
-              {t('Alerts')}
-            </HeaderCell>
-            {additionalColumns.map(col => (
-              <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
-            ))}
-            {hasVisualization && detectors.length > 0 && (
-              <VisualizationHeaderCell
-                data-column-name="visualization"
-                ref={elementRef}
-                role="columnheader"
-                scope="col"
+        header={
+          selected.size === 0 ? (
+            <SimpleTable.HeaderRow>
+              <HeaderCell sortKey="name">
+                <Flex gap="md" align="center">
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                  <span>{t('Name')}</span>
+                </Flex>
+              </HeaderCell>
+              <HeaderCell data-column-name="type" divider sortKey="type">
+                {t('Type')}
+              </HeaderCell>
+              <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
+                {t('Last Issue')}
+              </HeaderCell>
+              <HeaderCell data-column-name="assignee" divider>
+                {t('Assignee')}
+              </HeaderCell>
+              <HeaderCell
+                data-column-name="connected-automations"
+                divider
+                sortKey="connectedWorkflows"
               >
-                <GridLineLabels timeWindowConfig={timeWindowConfig} />
-              </VisualizationHeaderCell>
-            )}
-            {hasVisualization && (
-              <VisualizationExpandButtonCell role="columnheader" scope="col">
-                <Button
-                  size="xs"
-                  variant="transparent"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={isVisualizationExpanded ? 'right' : 'left'}
-                    />
-                  }
-                  aria-label={
-                    isVisualizationExpanded
-                      ? t('Collapse visualization')
-                      : t('Expand visualization')
-                  }
-                  tooltipProps={{
-                    title: isVisualizationExpanded
-                      ? t('Collapse visualization')
-                      : t('Expand visualization'),
-                  }}
-                  onClick={() => setIsVisualizationExpanded(v => !v)}
-                />
-              </VisualizationExpandButtonCell>
-            )}
-          </SimpleTable.HeaderRow>
-        ) : (
-          <DetectorsTableActions
-            key="actions"
+                {t('Alerts')}
+              </HeaderCell>
+              {additionalColumns.map(col => (
+                <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
+              ))}
+              {hasVisualization && detectors.length > 0 && (
+                <VisualizationHeaderCell
+                  data-column-name="visualization"
+                  ref={elementRef}
+                  role="columnheader"
+                  scope="col"
+                >
+                  <GridLineLabels timeWindowConfig={timeWindowConfig} />
+                </VisualizationHeaderCell>
+              )}
+              {hasVisualization && (
+                <VisualizationExpandButtonCell role="columnheader" scope="col">
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={
+                      <IconChevron
+                        isDouble
+                        direction={isVisualizationExpanded ? 'right' : 'left'}
+                      />
+                    }
+                    aria-label={
+                      isVisualizationExpanded
+                        ? t('Collapse visualization')
+                        : t('Expand visualization')
+                    }
+                    tooltipProps={{
+                      title: isVisualizationExpanded
+                        ? t('Collapse visualization')
+                        : t('Expand visualization'),
+                    }}
+                    onClick={() => setIsVisualizationExpanded(v => !v)}
+                  />
+                </VisualizationExpandButtonCell>
+              )}
+            </SimpleTable.HeaderRow>
+          ) : (
+            <DetectorsTableActions
+              key="actions"
+              selected={selected}
+              pageSelected={pageSelected}
+              togglePageSelected={togglePageSelected}
+              queryCount={queryCount}
+              allInQuerySelected={allInQuerySelected}
+              setAllInQuerySelected={setAllInQuerySelected}
+              showDisable={canDisable}
+              showEnable={canEnable}
+              canEdit={canEditDetectors}
+              hasSystemCreatedDetectors={hasSystemCreatedDetectors}
+              // TODO: Check if metric detector limit is reached
+              detectorLimitReached={false}
+            />
+          )
+        }
+      >
+        {selected.size > 0 && (
+          <DetectorsTableActionsBanner
             selected={selected}
             pageSelected={pageSelected}
-            togglePageSelected={togglePageSelected}
-            queryCount={queryCount}
             allResultsVisible={allResultsVisible}
-            showDisable={canDisable}
-            showEnable={canEnable}
-            canEdit={canEditDetectors}
-            hasSystemCreatedDetectors={hasSystemCreatedDetectors}
-            // TODO: Check if metric detector limit is reached
-            detectorLimitReached={false}
+            queryCount={queryCount}
+            allInQuerySelected={allInQuerySelected}
+            setAllInQuerySelected={setAllInQuerySelected}
           />
         )}
         {isError && <SimpleTable.Empty>{t('Error loading monitors')}</SimpleTable.Empty>}

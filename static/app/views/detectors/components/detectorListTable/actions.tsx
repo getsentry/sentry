@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -16,13 +16,14 @@ import {useDeleteDetectorsMutation} from 'sentry/views/detectors/hooks/useDelete
 import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDetectorsMutation';
 
 interface DetectorsTableActionsProps {
-  allResultsVisible: boolean;
+  allInQuerySelected: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
   hasSystemCreatedDetectors: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
   showDisable: boolean;
   showEnable: boolean;
   togglePageSelected: (pageSelected: boolean) => void;
@@ -33,14 +34,14 @@ export function DetectorsTableActions({
   pageSelected,
   togglePageSelected,
   queryCount,
-  allResultsVisible,
+  allInQuerySelected,
+  setAllInQuerySelected,
   showEnable,
   showDisable,
   canEdit,
   hasSystemCreatedDetectors,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
 
   const canDelete = canEdit && !hasSystemCreatedDetectors;
@@ -138,97 +139,118 @@ export function DetectorsTableActions({
   };
 
   return (
-    <Fragment>
-      <SimpleTable.HeaderRow>
-        <SimpleTable.HeaderCell variant="full-width" divider={false}>
-          <Flex align="center" padding="0 xl" gap="md" width="100%">
-            <Checkbox
-              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-              onChange={s => {
-                togglePageSelected(s.target.checked);
-                setAllInQuerySelected(false);
-              }}
-            />
-            {showEnable && (
-              <Tooltip
-                title={
-                  canEdit
-                    ? detectorLimitReached
-                      ? "You've reached your plan's limit on metric monitors."
-                      : ''
-                    : 'You do not have permission to modify the selected monitors.'
-                }
-                disabled={canEdit && !detectorLimitReached}
-              >
-                <Button
-                  size="xs"
-                  onClick={() => handleUpdate({enabled: true})}
-                  disabled={isUpdating || !canEdit || detectorLimitReached}
-                >
-                  {t('Enable')}
-                </Button>
-              </Tooltip>
-            )}
-            {showDisable && (
-              <Tooltip
-                title="You do not have permission to modify the selected monitors."
-                disabled={canEdit}
-              >
-                <Button
-                  size="xs"
-                  onClick={() => handleUpdate({enabled: false})}
-                  disabled={isUpdating || !canEdit}
-                >
-                  {t('Disable')}
-                </Button>
-              </Tooltip>
-            )}
+    <SimpleTable.HeaderRow>
+      <SimpleTable.HeaderCell variant="full-width" divider={false}>
+        <Flex align="center" padding="0 xl" gap="md" width="100%">
+          <Checkbox
+            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            onChange={s => {
+              togglePageSelected(s.target.checked);
+              setAllInQuerySelected(false);
+            }}
+          />
+          {showEnable && (
             <Tooltip
               title={
-                hasSystemCreatedDetectors
-                  ? t('Monitors managed by Sentry cannot be deleted.')
-                  : t('You do not have permission to delete the selected monitors.')
+                canEdit
+                  ? detectorLimitReached
+                    ? "You've reached your plan's limit on metric monitors."
+                    : ''
+                  : 'You do not have permission to modify the selected monitors.'
               }
-              disabled={canDelete}
+              disabled={canEdit && !detectorLimitReached}
             >
               <Button
                 size="xs"
-                variant="danger"
-                onClick={handleDelete}
-                disabled={isDeleting || !canDelete}
+                onClick={() => handleUpdate({enabled: true})}
+                disabled={isUpdating || !canEdit || detectorLimitReached}
               >
-                {t('Delete')}
+                {t('Enable')}
               </Button>
             </Tooltip>
-          </Flex>
-        </SimpleTable.HeaderCell>
-      </SimpleTable.HeaderRow>
-      {pageSelected && !allResultsVisible && (
-        <SimpleTable.FullWidthRow>
-          <Alert variant="warning" system showIcon={false}>
-            <Flex justify="center" wrap="wrap" gap="md">
-              {allInQuerySelected ? (
-                tct('Selected all [count] monitors that match this search query.', {
-                  count: queryCount,
-                })
-              ) : (
-                <Fragment>
-                  {tn(
-                    '%s monitor on this page selected.',
-                    '%s monitors on this page selected.',
-                    selected.size
-                  )}
-                  <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                    {tct('Select all [count] monitors that match this search query.', {
-                      count: queryCount,
-                    })}
-                  </Button>
-                </Fragment>
+          )}
+          {showDisable && (
+            <Tooltip
+              title="You do not have permission to modify the selected monitors."
+              disabled={canEdit}
+            >
+              <Button
+                size="xs"
+                onClick={() => handleUpdate({enabled: false})}
+                disabled={isUpdating || !canEdit}
+              >
+                {t('Disable')}
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip
+            title={
+              hasSystemCreatedDetectors
+                ? t('Monitors managed by Sentry cannot be deleted.')
+                : t('You do not have permission to delete the selected monitors.')
+            }
+            disabled={canDelete}
+          >
+            <Button
+              size="xs"
+              variant="danger"
+              onClick={handleDelete}
+              disabled={isDeleting || !canDelete}
+            >
+              {t('Delete')}
+            </Button>
+          </Tooltip>
+        </Flex>
+      </SimpleTable.HeaderCell>
+    </SimpleTable.HeaderRow>
+  );
+}
+
+interface DetectorsTableActionsBannerProps {
+  allInQuerySelected: boolean;
+  allResultsVisible: boolean;
+  pageSelected: boolean;
+  queryCount: string;
+  selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
+}
+
+export function DetectorsTableActionsBanner({
+  selected,
+  pageSelected,
+  allResultsVisible,
+  queryCount,
+  allInQuerySelected,
+  setAllInQuerySelected,
+}: DetectorsTableActionsBannerProps) {
+  if (!pageSelected || allResultsVisible) {
+    return null;
+  }
+
+  return (
+    <SimpleTable.FullWidthRow>
+      <Alert variant="warning" system showIcon={false}>
+        <Flex justify="center" wrap="wrap" gap="md">
+          {allInQuerySelected ? (
+            tct('Selected all [count] monitors that match this search query.', {
+              count: queryCount,
+            })
+          ) : (
+            <Fragment>
+              {tn(
+                '%s monitor on this page selected.',
+                '%s monitors on this page selected.',
+                selected.size
               )}
-            </Flex>
-          </Alert>
-        </SimpleTable.FullWidthRow>
-      )}
-    </Fragment>
+              <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                {tct('Select all [count] monitors that match this search query.', {
+                  count: queryCount,
+                })}
+              </Button>
+            </Fragment>
+          )}
+        </Flex>
+      </Alert>
+    </SimpleTable.FullWidthRow>
   );
 }
