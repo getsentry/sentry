@@ -388,6 +388,31 @@ class TriggerPrIterationFromReviewTest(TestCase):
             == 555
         )
 
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The listener
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._run()
+
+        self.mock_get_integration.assert_not_called()
+        self.mock_get_state.assert_not_called()
+        client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
     def test_returns_when_get_pull_request_fails(self) -> None:
         client = self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value
         client.get_pull_request.side_effect = ApiError("boom")

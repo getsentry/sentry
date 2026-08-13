@@ -575,6 +575,22 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # Everything below reads the provider off the constant rather than the
+        # repo, so this is where the two are held to be the same thing. The entry
+        # point already rejects anything else, which makes reaching this a
+        # disagreement between that gate and this task rather than ordinary
+        # traffic — hence warning, and hence the provider in `extra`.
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.unsupported_provider",
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo.id,
+                "provider": repo.provider,
+            },
+        )
+        return None
+
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         logger.warning(
@@ -597,11 +613,6 @@ def trigger_pr_iteration_from_comment(
         # PR number, but Seer's run lookup is keyed on GitHub's numeric PR id.
         # The mapping is immutable, so it is cached; the fetch above only runs
         # when no webhook has warmed this PR yet.
-        #
-        # The provider is pinned to github.com: the entry point,
-        # ``handle_issue_comment_for_autofix_iteration`` in
-        # ``sentry/seer/autofix/pr_iteration/mention.py``, turns away everything
-        # but ``PR_ITERATION_PROVIDER_SLUG`` before dispatching this task.
         pr_id = get_or_fetch_pr_id(
             provider=PR_ITERATION_PROVIDER,
             repo_external_id=repo.external_id,
@@ -891,6 +902,16 @@ def trigger_pr_iteration_from_review(
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
 
+    if repo.provider != PR_ITERATION_PROVIDER:
+        # See the matching guard in `trigger_pr_iteration_from_comment`: the
+        # provider read below comes from the constant, so it is held equal to the
+        # repo's here, before any external call.
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.unsupported_provider",
+            extra={**log_extra, "provider": repo.provider},
+        )
+        return None
+
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
@@ -910,12 +931,6 @@ def trigger_pr_iteration_from_review(
         # run lookup is keyed on GitHub's numeric PR id. A pull_request or
         # check_suite webhook on this PR has almost certainly warmed the cache
         # already, so the fetch above is the exception rather than the rule.
-        #
-        # The provider is pinned to github.com: the entry point,
-        # ``handle_pull_request_review_for_autofix_iteration`` in
-        # ``sentry/seer/autofix/pr_iteration/listeners/review.py``, turns away
-        # everything but ``PR_ITERATION_PROVIDER_SLUG`` before dispatching this
-        # task.
         pr_id = get_or_fetch_pr_id(
             provider=PR_ITERATION_PROVIDER,
             repo_external_id=repo.external_id,

@@ -249,6 +249,39 @@ class TriggerPrIterationFromCommentTest(TestCase):
             is None
         )
 
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_stops_on_a_repo_whose_provider_is_not_pinned(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+    ) -> None:
+        # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
+        # instead of the repo, so a GHE repo reaching this task would key its
+        # per-instance repo id into a cache that only github.com ids are unique
+        # in — and ask Seer for a run under the wrong provider. The entry point
+        # rejects GHE before dispatch; this pins that the task does not depend on
+        # it having done so.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        self.repo.provider = "integrations:github_enterprise"
+        self.repo.save()
+
+        self._call()
+
+        mock_get_integration.assert_not_called()
+        mock_get_state.assert_not_called()
+        client = mock_integration.get_installation.return_value.get_client.return_value
+        client.get_pull_request.assert_not_called()
+        assert (
+            get_cached_pr_id(
+                provider="integrations:github",
+                repo_external_id=self.repo.external_id,
+                pr_number=7,
+            )
+            is None
+        )
+
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
