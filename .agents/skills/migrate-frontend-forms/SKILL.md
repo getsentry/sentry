@@ -603,7 +603,7 @@ After adding or updating `FormSearch` wrappers, regenerate the field registry so
 pnpm run extract-form-fields
 ```
 
-This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` components, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/components/core/form/generatedFieldRegistry.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
+This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSearch>` components, extracts field metadata (`name`, `label`, `hintText`, `route`), and writes the generated registry to `static/app/views/settings/generatedFieldRegistry.ts`. **Commit this generated file** alongside your migration PR — it is part of the source tree.
 
 > Run the command after **any** change to forms inside a `FormSearch` wrapper (adds, removals, label changes). The generated file is checked in and should not be edited manually.
 
