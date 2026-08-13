@@ -14,14 +14,28 @@ import {Divider} from './divider';
 import {IntegrationCrumb} from './integrationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
-import type {RouteWithName, SettingsBreadcrumbProps} from './types';
+import type {RouteWithName} from './types';
 
-const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  'Configure Integration': IntegrationCrumb,
-  'Integration Details': IntegrationCrumb,
-  Project: ProjectCrumb,
-  Team: TeamCrumb,
+const MENU_ROUTE_PATHS = {
+  configureIntegration: ':providerKey/:integrationId/',
+  integrationDetails: ':integrationSlug',
+  project: 'projects/:projectId/',
+  team: ':teamId/',
 } as const;
+
+function getMenuForRoute(path?: string) {
+  switch (path) {
+    case MENU_ROUTE_PATHS.configureIntegration:
+    case MENU_ROUTE_PATHS.integrationDetails:
+      return IntegrationCrumb;
+    case MENU_ROUTE_PATHS.project:
+      return ProjectCrumb;
+    case MENU_ROUTE_PATHS.team:
+      return TeamCrumb;
+    default:
+      return;
+  }
+}
 
 type Props = {
   params: Record<string, string | undefined>;
@@ -46,7 +60,7 @@ export function SettingsBreadcrumb({params}: Props) {
         const pathTitle =
           pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
-        const Menu = MENUS[route.name];
+        const Menu = getMenuForRoute(route.path);
 
         if (Menu) {
           return (
