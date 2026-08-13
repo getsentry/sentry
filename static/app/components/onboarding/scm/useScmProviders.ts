@@ -90,7 +90,9 @@ export function useScmProviders(): ScmProvidersData {
     activeIntegrations,
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
-    isError: providersQuery.isError || integrationsQuery.isError,
+    // Loading errors only: a failed focus refetch keeps cached data, and
+    // consumers treat this flag as fatal (full error screen).
+    isError: providersQuery.isLoadingError || integrationsQuery.isLoadingError,
     refetch: () => {
       providersQuery.refetch();
       integrationsQuery.refetch();
