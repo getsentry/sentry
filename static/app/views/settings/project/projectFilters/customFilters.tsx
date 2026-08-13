@@ -1,7 +1,8 @@
-import {useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {Fragment, useMemo, useState} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import startCase from 'lodash/startCase';
 import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -17,6 +18,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -24,8 +26,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -487,82 +491,199 @@ const STATS_PERIOD = '30d';
 const STATS_INTERVAL = '1d';
 const STATS_FIELD = 'sum(quantity)';
 
+// The trend chart keeps this box whatever a row dropped, so that every row in the
+// table lines up. The number beside it centers on the same box.
+const CHART_HEIGHT = 36;
+const CHART_WIDTH = 160;
+
+// Headroom above the tallest bar of a row, which leaves room for the mark line and
+// its label. The chart scales to the row it draws, so the same ratio on every row
+// puts every tallest bar at one height. The default axis instead rounds a maximum
+// below ten up to ten, which makes a row that dropped five look shorter than a row
+// that dropped five hundred.
+const CHART_HEADROOM = 1.3;
+
+// Plot area inside the chart box. `containLabel` would size it around the labels of
+// the row it draws, which puts the bars of one row at a different height from the
+// next. Fixed insets hold the baseline at one height, level with the number beside
+// it, and keep the right edge clear for the mark line label.
+const CHART_GRID = {top: 6, bottom: 6, left: 0, right: 25, containLabel: false};
+
+// The categories a custom filter drops data in, one per data type the backend
+// accepts. `error` covers default and security events too, which the stats endpoint
+// folds into it. Byte categories, such as `log_byte`, report the same data a second
+// time in bytes, so counting them would multiply what a filter dropped.
+const STATS_CATEGORIES = ['error', 'log_item', 'trace_metric'];
+
 // A custom filter reports under this reason in ingest outcomes, followed by its id.
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
 
-// Sums the filtered volume per outcome reason. Outcomes come grouped by category as
-// well, because a filter drops errors, logs, or metrics, and each of those counts
-// under its own category.
-function getSeriesByReason(stats: UsageSeries | undefined): Map<string, number[]> {
-  const seriesByReason = new Map<string, number[]>();
+// What one filter dropped, per data category. A filter drops errors, logs, or trace
+// metrics, and each of those counts under its own category in ingest outcomes.
+type SeriesByCategory = Map<string, number[]>;
+
+function getStatsByReason(stats: UsageSeries | undefined): Map<string, SeriesByCategory> {
+  const statsByReason = new Map<string, SeriesByCategory>();
 
   for (const group of stats?.groups ?? []) {
     const reason = String(group.by.reason ?? '');
-    const series = group.series[STATS_FIELD] ?? [];
-    const summed = seriesByReason.get(reason);
+    const category = String(group.by.category ?? '');
+    const byCategory = statsByReason.get(reason) ?? new Map<string, number[]>();
 
-    if (summed) {
-      series.forEach((value, index) => {
-        summed[index] = (summed[index] ?? 0) + value;
-      });
-    } else {
-      seriesByReason.set(reason, [...series]);
-    }
+    byCategory.set(category, group.series[STATS_FIELD] ?? []);
+    statsByReason.set(reason, byCategory);
   }
 
-  return seriesByReason;
+  return statsByReason;
 }
 
-function FilteredVolume({
+function getCategoryName(category: string): string {
+  const info = DATA_CATEGORY_INFO[category as DataCategoryExact];
+  return startCase(info?.displayName ?? category);
+}
+
+// The categories a filter dropped data in, largest first, so that the tallest one
+// sits at the bottom of the stack.
+function getCategorySeries(seriesByCategory: SeriesByCategory | undefined) {
+  return Array.from(seriesByCategory ?? [], ([category, values]) => ({
+    category,
+    values,
+    total: values.reduce((sum, value) => sum + value, 0),
+  }))
+    .filter(({total}) => total > 0)
+    .sort((a, b) => b.total - a.total);
+}
+
+// Renders the trend and the total, one table cell each.
+function FilteredVolumeCells({
   intervals,
-  series,
+  seriesByCategory,
   isPending,
   isError,
 }: {
   intervals: string[];
   isError: boolean;
   isPending: boolean;
-  series: number[] | undefined;
+  seriesByCategory: SeriesByCategory | undefined;
 }) {
+  const theme = useTheme();
+
   if (isPending) {
-    return <Placeholder height="30px" width="80px" />;
-  }
-
-  if (isError) {
-    return <Text variant="muted">{'—'}</Text>;
-  }
-
-  const total = series?.reduce((sum, value) => sum + value, 0) ?? 0;
-  if (total === 0) {
     return (
-      <Text variant="muted" size="sm">
-        {t('None')}
-      </Text>
+      <Fragment>
+        <SimpleTable.RowCell>
+          <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Flex height={`${CHART_HEIGHT}px`} align="center">
+            <Placeholder height="16px" width="40px" />
+          </Flex>
+        </SimpleTable.RowCell>
+      </Fragment>
     );
   }
 
+  if (isError) {
+    return (
+      <Fragment>
+        <SimpleTable.RowCell>
+          <Flex height={`${CHART_HEIGHT}px`} align="center">
+            <Text variant="muted">{'—'}</Text>
+          </Flex>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Flex height={`${CHART_HEIGHT}px`} align="center">
+            <Text variant="muted">{'—'}</Text>
+          </Flex>
+        </SimpleTable.RowCell>
+      </Fragment>
+    );
+  }
+
+  const categories = getCategorySeries(seriesByCategory);
+  const total = categories.reduce(
+    (sum, {total: categoryTotal}) => sum + categoryTotal,
+    0
+  );
+
+  // The mark line sits at the tallest stack, which is higher than any one category.
+  // A filter that dropped nothing keeps the empty chart, and shows no mark line.
+  const peak = Math.max(
+    0,
+    ...intervals.map((_, index) =>
+      categories.reduce((sum, {values}) => sum + (values[index] ?? 0), 0)
+    )
+  );
+
+  const markLine = MarkLine({
+    silent: true,
+    animation: false,
+    lineStyle: {
+      color: theme.tokens.border.transparent.neutral.moderate,
+      type: [4, 3], // Sets line type to "dashed" with 4 length and 3 gap
+      opacity: 0.6,
+      cap: 'round', // Rounded edges for the dashes
+    },
+    data: [{yAxis: peak}],
+    label: {
+      show: true,
+      position: 'end',
+      opacity: 1,
+      color: theme.tokens.content.secondary,
+      fontFamily: 'Rubik',
+      fontSize: 10,
+      formatter: formatAbbreviatedNumber(peak),
+    },
+  });
+
+  const colors = theme.chart.getColorPalette(Math.max(categories.length, 1));
+
+  const series = categories.length
+    ? categories.map(({category, values}, index) => ({
+        seriesName: getCategoryName(category),
+        markLine: index === 0 && peak > 0 ? markLine : undefined,
+        data: intervals.map((name, i) => ({name, value: values[i] ?? 0})),
+      }))
+    : [
+        {
+          seriesName: t('Filtered'),
+          data: intervals.map(name => ({name, value: 0})),
+        },
+      ];
+
   return (
-    <Flex align="center" gap="sm">
-      <Container width="80px">
-        <MiniBarChart
-          height={30}
-          isGroupedByDate
-          showTimeInTooltip
-          hideZeros
-          series={[
-            {
-              seriesName: t('Filtered'),
-              data: intervals.map((name, index) => ({
-                name,
-                value: series?.[index] ?? 0,
-              })),
-            },
-          ]}
-        />
-      </Container>
-      <Text size="sm">{formatAbbreviatedNumber(total)}</Text>
-    </Flex>
+    <Fragment>
+      <SimpleTable.RowCell>
+        <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
+          <MiniBarChart
+            stacked
+            animateBars
+            showXAxisLine
+            showMarkLineLabel
+            hideZeros
+            isGroupedByDate
+            showTimeInTooltip
+            height={CHART_HEIGHT}
+            barOpacity={1}
+            hideDelay={50}
+            markLineLabelSide="right"
+            grid={CHART_GRID}
+            colors={colors}
+            tooltip={{appendToBody: true}}
+            yAxisMax={peak > 0 ? peak * CHART_HEADROOM : undefined}
+            series={series}
+          />
+        </Container>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Flex height={`${CHART_HEIGHT}px`} align="center">
+          <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
+            {formatAbbreviatedNumber(total)}
+          </Text>
+        </Flex>
+      </SimpleTable.RowCell>
+    </Fragment>
   );
 }
 
@@ -643,6 +764,7 @@ export function CustomFilters({project}: {project: Project}) {
         project: project.id,
         outcome: 'filtered',
         field: STATS_FIELD,
+        category: STATS_CATEGORIES,
         groupBy: ['reason', 'category'],
         interval: STATS_INTERVAL,
         statsPeriod: STATS_PERIOD,
@@ -650,7 +772,7 @@ export function CustomFilters({project}: {project: Project}) {
       staleTime: Infinity,
     })
   );
-  const seriesByReason = useMemo(() => getSeriesByReason(stats), [stats]);
+  const statsByReason = useMemo(() => getStatsByReason(stats), [stats]);
 
   const invalidate = () => queryClient.invalidateQueries({queryKey});
 
@@ -781,8 +903,9 @@ export function CustomFilters({project}: {project: Project}) {
             <SimpleTable.HeaderCell divider={false}>
               {t('Conditions')}
             </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell divider={false}>{t('Trend')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>
-              {t('Filtered (30d)')}
+              {t('Filtered')}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>
               {t('Created')}
@@ -826,14 +949,14 @@ export function CustomFilters({project}: {project: Project}) {
                   )}
                 </Stack>
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <FilteredVolume
-                  intervals={stats?.intervals ?? []}
-                  series={seriesByReason.get(`${OUTCOMES_REASON_PREFIX}${filter.id}`)}
-                  isPending={isStatsPending}
-                  isError={isStatsError}
-                />
-              </SimpleTable.RowCell>
+              <FilteredVolumeCells
+                intervals={stats?.intervals ?? []}
+                seriesByCategory={statsByReason.get(
+                  `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                )}
+                isPending={isStatsPending}
+                isError={isStatsError}
+              />
               <SimpleTable.RowCell whiteSpace="nowrap">
                 <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
               </SimpleTable.RowCell>
@@ -887,7 +1010,7 @@ export function CustomFilters({project}: {project: Project}) {
 
 const CustomFiltersTable = styled(SimpleTable)`
   grid-template-columns:
-    90px minmax(160px, 1fr) minmax(240px, 2fr) 150px 100px
-    100px 110px;
+    90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
+    100px 100px 110px;
   overflow-x: auto;
 `;

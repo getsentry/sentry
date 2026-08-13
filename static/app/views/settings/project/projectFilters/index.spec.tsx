@@ -500,14 +500,14 @@ describe('ProjectFilters', () => {
     expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
   });
 
-  it('shows the volume each filter dropped, and none for a filter with no outcomes', async () => {
-    MockApiClient.addMockResponse({
+  it('shows the volume each filter dropped, and zero for a filter with no outcomes', async () => {
+    const statsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: {
         intervals: ['2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'],
         groups: [
-          // A filter on errors reports its volume under the error category, and the
-          // same filter on logs under the log category, so both have to be summed.
+          // One filter reports under one reason, and drops data in every category it
+          // applies to. The row stacks the categories and totals them.
           {
             by: {reason: 'custom-inbound-filter:1', category: 'error'},
             series: {'sum(quantity)': [4, 6]},
@@ -515,6 +515,10 @@ describe('ProjectFilters', () => {
           {
             by: {reason: 'custom-inbound-filter:1', category: 'log_item'},
             series: {'sum(quantity)': [1, 1]},
+          },
+          {
+            by: {reason: 'custom-inbound-filter:1', category: 'trace_metric'},
+            series: {'sum(quantity)': [2, 3]},
           },
           // A reason belonging to a built-in filter must not land on a row.
           {
@@ -530,9 +534,22 @@ describe('ProjectFilters', () => {
       CustomInboundFilterFixture({id: '2', name: 'Never matched'}),
     ]);
 
-    expect(await screen.findByText('12')).toBeInTheDocument();
-    expect(screen.getByText('None')).toBeInTheDocument();
+    expect(await screen.findByText('17')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.queryByText('99')).not.toBeInTheDocument();
+
+    // Byte categories report the same data a second time, in bytes, so the request
+    // has to ask for the counting categories alone.
+    expect(statsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/stats_v2/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          outcome: 'filtered',
+          category: ['error', 'log_item', 'trace_metric'],
+          groupBy: ['reason', 'category'],
+        }),
+      })
+    );
   });
 
   it('keeps a condition type it does not know', async () => {
