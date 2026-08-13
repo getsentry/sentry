@@ -600,21 +600,31 @@ class WorkflowEngineRuleSerializer(Serializer):
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
 
+        # Key attrs by the original item_list instances. `_fetch_workflows`
+        # returns a fresh queryset, and serialize() looks up attrs with the
+        # caller's objects via attrs.get(o, {}).
+        workflows_by_id = {workflow.id: workflow for workflow in workflows}
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
-        for workflow in workflows:
-            result[workflow]["created_by"] = self._fetch_workflow_created_by(workflow, users)
+        for original in item_list:
+            workflow = workflows_by_id.get(original.id)
+            if workflow is None:
+                # Workflow disappeared between list and prefetch (e.g. deletion).
+                # Leave empty attrs; serialize() already swallows failures.
+                continue
+
+            result[original]["created_by"] = self._fetch_workflow_created_by(workflow, users)
 
             owner = self._fetch_workflow_owner(workflow)
             if owner:
-                result[workflow]["owner"] = owner
+                result[original]["owner"] = owner
 
-            result[workflow]["environment"] = workflow.environment
-            result[workflow]["projects"] = list(workflow_to_projects[workflow.id])
-            result[workflow]["rule_id"] = workflow_rule_ids.get(
+            result[original]["environment"] = workflow.environment
+            result[original]["projects"] = list(workflow_to_projects[workflow.id])
+            result[original]["rule_id"] = workflow_rule_ids.get(
                 workflow.id, get_fake_id_from_object_id(workflow.id)
             )
 
-            result[workflow]["action_match"] = (
+            result[original]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
             )
 
@@ -623,15 +633,15 @@ class WorkflowEngineRuleSerializer(Serializer):
             prefetched_wdcgs: list[WorkflowDataConditionGroup] = workflow.prefetched_wdcgs  # type: ignore[attr-defined]
             if not prefetched_wdcgs:
                 # Workflow has no WorkflowDataConditionGroups - set defaults
-                result[workflow]["filter_match"] = None
-                result[workflow]["conditions"] = []
-                result[workflow]["filters"] = []
-                result[workflow]["actions"] = []
+                result[original]["filter_match"] = None
+                result[original]["conditions"] = []
+                result[original]["filters"] = []
+                result[original]["actions"] = []
                 continue
 
             # pick first DCG for filter_match (rules only have 1)
             workflow_dcg = prefetched_wdcgs[0]
-            result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
+            result[original]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # build up actions data
             actions = actions_by_dcg.get(workflow_dcg.condition_group_id, [])
@@ -735,7 +745,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 serialized_actions.append(action_data)
 
             # Generate conditions and filters
-            projects = result[workflow]["projects"]
+            projects = result[original]["projects"]
             if projects:
                 conditions, filters = self._generate_rule_conditions_filters(
                     workflow, projects[0], workflow_dcg
@@ -754,8 +764,8 @@ class WorkflowEngineRuleSerializer(Serializer):
                     except (ValueError, TypeError):
                         continue
 
-            result[workflow]["conditions"] = conditions
-            result[workflow]["filters"] = filters
+            result[original]["conditions"] = conditions
+            result[original]["filters"] = filters
 
             trigger_conditions = (
                 list(workflow.when_condition_group.conditions.all())
@@ -773,12 +783,12 @@ class WorkflowEngineRuleSerializer(Serializer):
                     errors.append({"detail": f"Filter not supported: {filter_condition.type}"})
 
             if len(errors):
-                result[workflow]["errors"] = errors
+                result[original]["errors"] = errors
 
             if "lastTriggered" in self.expand:
-                result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
+                result[original]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
 
-            result[workflow]["actions"] = serialized_actions
+            result[original]["actions"] = serialized_actions
 
         return result
 

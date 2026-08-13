@@ -120,9 +120,16 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
         match=data["action_match"],
     )
 
-    try:
-        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-    except WorkflowDataConditionGroup.DoesNotExist:
+    # Prefer the oldest IF DCG. Some dual-written workflows have more than one
+    # WorkflowDataConditionGroup (e.g. multi if/then). `.get()` raises
+    # MultipleObjectsReturned and 500s legacy rule updates.
+    workflow_dcg = (
+        WorkflowDataConditionGroup.objects.filter(workflow=workflow)
+        .order_by("id")
+        .select_related("condition_group")
+        .first()
+    )
+    if workflow_dcg is None:
         # OK state because we can recreate the IF DCG but should not happen
         logger.info(
             "IF DCG for workflow does not exist, recreating",
@@ -138,6 +145,8 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
             filter_match=data["filter_match"],
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=if_dcg)
+    else:
+        if_dcg = workflow_dcg.condition_group
 
     update_dcg(
         dcg=if_dcg,

@@ -372,6 +372,26 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         assert workflow.enabled is False
 
 
+
+    def test_update_with_multiple_workflow_dcgs(self) -> None:
+        """Legacy rule update should not 500 when a workflow has multiple IF DCGs."""
+        workflow = Workflow.objects.get(
+            id=AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id).workflow.id
+        )
+        extra_dcg = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=extra_dcg)
+        assert WorkflowDataConditionGroup.objects.filter(workflow=workflow).count() >= 2
+
+        self.issue_alert.data["frequency"] = 5
+        self.issue_alert.save()
+
+        updated = update_migrated_issue_alert(self.issue_alert)
+        assert updated is not None
+        assert updated.id == workflow.id
+
 class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
     def setUp(self) -> None:
         super().setUp()
