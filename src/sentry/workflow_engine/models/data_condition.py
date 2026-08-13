@@ -258,7 +258,9 @@ class DataCondition(DefaultFieldsModel):
         )
 
 
-def get_condition_handler(condition_type: Condition) -> DataConditionHandler:
+def get_condition_handler(
+    condition_type: Condition,
+) -> type[DataConditionHandler[Any]] | None:
     if condition_type not in CONDITION_OPS:
         try:
             return condition_handler_registry.get(condition_type)
