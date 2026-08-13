@@ -62,6 +62,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
@@ -1338,6 +1339,64 @@ GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
 # internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
 GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
 
+# GitHub meters several quota pools independently, each with its own limit and window. Usage
+# against one pool tells us nothing about another, and their limits differ by more than two
+# orders of magnitude (`search` is 30/minute, `core` is at least 5000/hour), so they must be
+# tracked separately.
+# https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+GITHUB_RESOURCE_CORE = "core"
+GITHUB_RESOURCE_SEARCH = "search"
+GITHUB_RESOURCE_CODE_SEARCH = "code_search"
+GITHUB_RESOURCE_GRAPHQL = "graphql"
+
+# Routes authenticated with the app's JWT rather than an installation token are metered against
+# the app, not the installation. Keep them out of the installation's `core` pool.
+GITHUB_RESOURCE_APP = "app"
+
+GITHUB_RESOURCE_WINDOWS = {
+    GITHUB_RESOURCE_CORE: 3600,
+    GITHUB_RESOURCE_GRAPHQL: 3600,
+    GITHUB_RESOURCE_APP: 3600,
+    GITHUB_RESOURCE_SEARCH: 60,
+    GITHUB_RESOURCE_CODE_SEARCH: 60,
+}
+
+
+def resolve_rate_limit_resource(path: str) -> str:
+    """
+    Map an upstream GitHub path to the quota pool GitHub meters it against.
+
+    Anything unrecognized is attributed to `core`, which is where GitHub accounts for the
+    overwhelming majority of REST routes.
+    """
+    path = path.partition("?")[0]
+    if not path.startswith("/"):
+        path = f"/{path}"
+
+    if path == "/graphql":
+        return GITHUB_RESOURCE_GRAPHQL
+    if path == "/search/code":
+        return GITHUB_RESOURCE_CODE_SEARCH
+    if path.startswith("/search/"):
+        return GITHUB_RESOURCE_SEARCH
+    if path.startswith("/app/") or path == "/app":
+        return GITHUB_RESOURCE_APP
+    return GITHUB_RESOURCE_CORE
+
+
+def resolve_upstream_path(request: PreparedRequest) -> str:
+    """
+    Return the path of the GitHub request this prepared request will ultimately perform.
+
+    In a cell silo the request is rewritten to target the control silo proxy before it reaches
+    `_do_send`, so `path_url` names the proxy endpoint rather than the GitHub route. The real
+    path is carried in the proxy path header.
+    """
+    proxy_path = request.headers.get(PROXY_PATH)
+    if proxy_path:
+        return f"/{trim_leading_slashes(proxy_path)}"
+    return request.path_url
+
 
 class GitHubApiClient(GitHubBaseClient):
     """
@@ -1382,6 +1441,7 @@ class GitHubApiClient(GitHubBaseClient):
             rate_limit_provider=RedisRateLimitProvider(),
             rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
             referrer_allocation=REFERRER_ALLOCATION,
+            resource_windows=GITHUB_RESOURCE_WINDOWS,
         )
 
     @contextlib.contextmanager
@@ -1396,19 +1456,25 @@ class GitHubApiClient(GitHubBaseClient):
     def _do_send(
         self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
     ) -> Response:
+        path = resolve_upstream_path(request)
+
         # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
         # rate limiter entirely. Counting these requests would both consume quota we don't owe and
         # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
-        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+        if path.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
             return super()._do_send(session, request, session_settings)
+
+        # Quota is metered per resource on GitHub's side, so the counter we consult and the
+        # capacity we record must both be scoped to the resource this request belongs to.
+        resource = resolve_rate_limit_resource(path)
 
         is_rate_limited = False
         try:
-            if self.__rate_limiter.is_rate_limited(self.__referrer):
+            if self.__rate_limiter.is_rate_limited(self.__referrer, resource=resource):
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
                 is_rate_limited = True
-                metrics.incr("sentry.scm.github.rate_limit_exceeded")
+                metrics.incr("sentry.scm.github.rate_limit_exceeded", tags={"resource": resource})
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
@@ -1417,7 +1483,7 @@ class GitHubApiClient(GitHubBaseClient):
 
         try:
             capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
-            self.__rate_limiter.set_total_capacity(capacity=capacity)
+            self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
         except KeyError:
             # GitHub didn't return rate-limit headers for some unknown reason.
             metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
@@ -1428,9 +1494,9 @@ class GitHubApiClient(GitHubBaseClient):
         # QA metrics.
         if is_rate_limited and response.status_code != 429:
             # We thought we exceeded our rate-limit but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_positive")
+            metrics.incr("sentry.scm.github.rate_limit.false_positive", tags={"resource": resource})
         elif response.status_code == 429 and not is_rate_limited:
             # We thought we had capacity but actually we didn't.
-            metrics.incr("sentry.scm.github.rate_limit.false_negative")
+            metrics.incr("sentry.scm.github.rate_limit.false_negative", tags={"resource": resource})
 
         return response
