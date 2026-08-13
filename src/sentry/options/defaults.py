@@ -332,6 +332,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.pull-request.rate-limit",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",

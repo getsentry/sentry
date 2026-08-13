@@ -376,35 +376,24 @@ class PullRequest(Model):
         """
         Returns a Q object that filters for unused PRs.
         This is the inverse of what makes a PR "in use".
+
+        Every keep condition is bounded, either by ``cutoff_date`` or by the lifetime
+        of the object that references the PR. A condition that can be true forever
+        makes the PR immortal: retention scans it in every run and can never remove it.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        # Subquery for checking if there's a valid GroupLink
+        # Bounded by the *group's* lifetime, not the PR's: an issue that is still
+        # alive shows this PR (issue detail, weekly report, resolution activity), and
+        # the join through ``group__project`` drops the link once either is gone.
+        # GroupLink is deleted with its Group, which retention ages out on last_seen.
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id=OuterRef("id"),
                 group__project__isnull=False,
-            )
-        )
-
-        # Subquery for checking if comment has valid group_ids
-        # Note: Django aliases the table as U0 in the EXISTS subquery
-        comment_has_valid_group = Exists(
-            PullRequestComment.objects.filter(
-                pull_request_id=OuterRef("id"),
-                group_ids__isnull=False,
-            )
-            .exclude(group_ids__len=0)
-            .extra(
-                where=[
-                    """EXISTS (
-                        SELECT 1 FROM sentry_groupedmessage g
-                        WHERE g.id = ANY(U0.group_ids)
-                    )"""
-                ]
             )
         )
 
@@ -414,8 +403,21 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
-        commit_in_release = Exists(ReleaseCommit.objects.filter(commit_id=OuterRef("commit_id")))
-        commit_in_head = Exists(ReleaseHeadCommit.objects.filter(commit_id=OuterRef("commit_id")))
+        # Bounded by the *release's* recency: what a release surfaces is the
+        # commit -> PR link on its commit list, so a release past the retention
+        # window has no claim on the PR. Commits in a release are themselves kept
+        # forever (see CommitDeletionTask), so keying on the commit would not bound
+        # this at all.
+        commit_in_release = Exists(
+            ReleaseCommit.objects.filter(
+                commit_id=OuterRef("commit_id"), release__date_added__gte=cutoff_date
+            )
+        )
+        commit_in_head = Exists(
+            ReleaseHeadCommit.objects.filter(
+                commit_id=OuterRef("commit_id"), release__date_added__gte=cutoff_date
+            )
+        )
         commit_exists = Exists(
             PullRequestCommit.objects.filter(
                 pull_request_id=OuterRef("id"),
@@ -425,10 +427,9 @@ class PullRequest(Model):
         # Define what makes a PR "in use" (should be kept)
         keep_conditions = (
             Q(date_added__gte=cutoff_date)
-            | recent_comment_exists
-            | commit_exists
-            | grouplink_exists
-            | comment_has_valid_group
+            | Q(recent_comment_exists)
+            | Q(commit_exists)
+            | Q(grouplink_exists)
         )
 
         # Return the inverse - we want PRs that DON'T meet any keep conditions
