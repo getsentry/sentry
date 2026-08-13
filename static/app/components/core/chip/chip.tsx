@@ -432,7 +432,6 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   display: inline-flex;
   align-items: stretch;
   box-sizing: border-box;
-  overflow: hidden;
   height: ${p => SIZES[p.chipSize].height};
   /* Inert layout: generous end padding, tight gap between the value parts. */
   gap: ${p => p.theme.space.xs};
@@ -452,6 +451,20 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   &:has([data-chip-interactive]) {
     gap: 0;
     padding-inline: 0;
+  }
+
+  /*
+   * Overflow stays visible so a segment's focus ring isn't clipped. Round the
+   * leading and trailing children instead, so their hover/active backgrounds
+   * still follow the chip's corners in the flush interactive layout.
+   */
+  & > :first-child {
+    border-start-start-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
+    border-end-start-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
+  }
+  & > :last-child {
+    border-start-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
+    border-end-end-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
   }
 `;
 
