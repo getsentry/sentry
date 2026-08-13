@@ -286,7 +286,6 @@ export type IssueEventParameters = {
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
-    rule_id: string;
   };
   'quick_trace.connected_services': {
     projects: number;

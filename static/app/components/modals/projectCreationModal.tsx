@@ -119,24 +119,6 @@ export default function ProjectCreationModal({
         },
       });
 
-      let ruleId: string | undefined;
-      if (alertRuleConfig.shouldCreateCustomRule) {
-        const ruleData = await api.requestPromise(
-          `/projects/${organization.slug}/${projectData.slug}/rules/`,
-          {
-            method: 'POST',
-            data: {
-              name: alertRuleConfig.name,
-              conditions: alertRuleConfig.conditions,
-              actions: alertRuleConfig.actions,
-              actionMatch: alertRuleConfig.actionMatch,
-              frequency: alertRuleConfig.frequency,
-            },
-          }
-        );
-        ruleId = ruleData.id;
-      }
-
       ProjectsStore.onCreateSuccess(projectData, organization.slug);
       clearIndicators();
       trackAnalytics('project_modal.created', {
@@ -147,7 +129,6 @@ export default function ProjectCreationModal({
             ? 'Custom'
             : 'No Rule',
         project_id: projectData.id,
-        rule_id: ruleId || '',
       });
 
       addSuccessMessage(`Created project ${projectData.slug}`);

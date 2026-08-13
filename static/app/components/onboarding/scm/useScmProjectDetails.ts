@@ -149,9 +149,8 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection).
+  const {notificationProps} = useScmNotificationAction(
     restoredNotificationSelectionRef.current
   );
 
@@ -377,8 +376,6 @@ export function useScmProjectDetails({
           project_id: existingProject.id,
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
-          notification_rule_created: false,
-          rule_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -391,7 +388,6 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -411,7 +407,7 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project} = creation;
 
       if (selectedRepository?.id) {
         await linkProjectToRepository({
@@ -426,8 +422,6 @@ export function useScmProjectDetails({
         project_id: project.id,
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
-        notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
         variant: 'scm',
       });
 
@@ -440,7 +434,6 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,
