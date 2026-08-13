@@ -61,7 +61,7 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps extends Omit<
+interface CompositeSelectProps extends Omit<
   ControlProps,
   'clearable' | 'triggerProps' | 'trigger'
 > {

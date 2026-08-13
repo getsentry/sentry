@@ -148,7 +148,7 @@ function TimelineSkeleton() {
   );
 }
 
-const TimelineRow = memo(function TimelineRow({
+const TimelineRow = memo(function TimelineRowImpl({
   node,
   onSelectNode,
   isSelected,
@@ -203,8 +203,8 @@ const TimelineRow = memo(function TimelineRow({
                     title={title}
                     mode="overflowOnly"
                     size="sm"
-                    variant={isSelected ? 'primary' : 'muted'}
-                    monospace
+                    variant="primary"
+                    bold
                   >
                     {title}
                   </InfoText>
@@ -331,7 +331,7 @@ function getSpanPresentation(
         color,
         isTool: false,
         title: name || op,
-        secondary: model ? `${op} (${model})` : op,
+        secondary: model,
       };
     }
     case GenAiOperationType.AI_CLIENT: {

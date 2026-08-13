@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_TYPE_TO_SOURCE,
@@ -26,6 +28,7 @@ from sentry.notifications.platform.types import (
     NotificationTextBlockType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
@@ -196,6 +199,28 @@ class ActivityAlertBaseTest(TestCase):
         data = build_activity_notification_data(activity, target=target)
 
         assert data.user_settings_url is None
+
+    @with_feature("organizations:issue-stream-progress-ui")
+    def test_build_activity_notification_data_seer_activity_inbox_url(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SEER_RCA_STARTED.value
+        )
+        data = build_activity_notification_data(activity)
+
+        expected_inbox_url = self.organization.absolute_url(
+            f"organizations/{self.organization.slug}/issues/inbox/",
+            query=urlencode({"project": self.project.id, "preview": self.group.id}),
+        )
+        assert absolute_uri(expected_inbox_url) == data.issue_url
+
+    @with_feature("organizations:issue-stream-progress-ui")
+    def test_build_activity_notification_data_non_seer_activity_uses_issue_url(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SET_RESOLVED.value
+        )
+        data = build_activity_notification_data(activity)
+
+        assert absolute_uri(self.group.get_absolute_url()) == data.issue_url
 
 
 class ActivitySeerAlertBaseTest(TestCase):

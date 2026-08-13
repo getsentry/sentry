@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry import buffer, eventstream
-from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -16,7 +16,6 @@ from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
 
@@ -271,14 +270,24 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert new_group.times_seen_pending == 3
         assert new_group.times_seen_with_pending == 168
 
-    @with_feature("organizations:hard-delete-derived-data-invalidation")
     def test_merge_invalidates_derived_data(self) -> None:
         project = self.create_project()
         old_group = self.create_group(project)
         new_group = self.create_group(project)
 
+        # new_group has a log entry that its GDD cursor already reflects.
+        new_entry = self.create_group_action_log_entry(
+            group=new_group, date_added=before_now(minutes=5)
+        )
         derived = GroupDerivedData.objects.create(
-            group=new_group, cursor_date=before_now(minutes=5), cursor_id=100
+            group=new_group,
+            cursor_date=new_entry.date_added,
+            cursor_id=new_entry.id,
+        )
+        # old_group has a historical entry that will be reassigned to
+        # new_group by the merge — a history rewrite from new_group's view.
+        old_entry = self.create_group_action_log_entry(
+            group=old_group, date_added=before_now(minutes=10)
         )
 
         with self.tasks():
@@ -286,12 +295,13 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=old_group.id).exists() is False
 
-        # The derived data is invalidated: the stale row is deleted and rebuilt
-        # from scratch by the scheduled processing task.
+        # The derived data is rebuilt to reflect both merged log entries.
         rebuilt = GroupDerivedData.objects.get(group_id=new_group.id)
-        assert rebuilt.id != derived.id
-        assert rebuilt.cursor_date == EPOCH
-        assert rebuilt.cursor_id == 0
+        assert rebuilt.id == derived.id  # soft rebuild: same row, updated
+        old_entry.refresh_from_db()
+        # Latest entry (new_entry) determines the final cursor.
+        assert rebuilt.cursor_date == new_entry.date_added
+        assert rebuilt.cursor_id == new_entry.id
 
     @mock_redis_buffer()
     def test_merge_original_group_id(self) -> None:

@@ -304,17 +304,6 @@ export declare namespace TraceTree {
     | 'root';
   type NodePath = `${NodeType}-${string}`;
 
-  type Metadata = {
-    event_id: string | undefined;
-    project_slug: string | undefined;
-    // This is used to track the traceslug associated with a trace in a replay.
-    // This is necessary because a replay has multiple traces and the current ui requires
-    // us to merge them into one trace. We still need to keep track of the original traceSlug
-    // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
-    replayTraceSlug?: string;
-    spans?: number;
-  };
-
   type OpsBreakdown = Array<{
     count: number;
     op: string;
@@ -383,15 +372,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static Loading(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'loading';
     trace.build();
     return trace;
   }
 
-  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static ErrorState(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'error';
     trace.build();
     return trace;
@@ -1545,7 +1534,7 @@ function traceQueueIterator(
 ) {
   if (!isTraceSplitResult(trace)) {
     // Eap spans are not sorted by default
-    const spans = [...trace].sort((a, b) => a.start_timestamp - b.start_timestamp);
+    const spans = trace.toSorted((a, b) => a.start_timestamp - b.start_timestamp);
     for (const span of spans) {
       visitor(root, span);
     }
@@ -1558,10 +1547,10 @@ function traceQueueIterator(
   const tLen = trace.transactions.length;
   const oLen = trace.orphan_errors.length;
 
-  const transactions = [...trace.transactions].sort(
+  const transactions = trace.transactions.toSorted(
     (a, b) => a.start_timestamp - b.start_timestamp
   );
-  const orphan_errors = [...trace.orphan_errors].sort(
+  const orphan_errors = trace.orphan_errors.toSorted(
     (a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0)
   );
   // Items in each queue are sorted by timestamp, so we just take

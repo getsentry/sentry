@@ -17,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcIntegration
@@ -55,6 +56,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import ReplayDeletionJobModel
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -183,6 +185,48 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_investigation(self, *args, **kwargs):
+        return Factories.create_investigation(*args, **kwargs)
+
+    def create_investigation_project(self, *args, **kwargs):
+        return Factories.create_investigation_project(*args, **kwargs)
+
+    def create_investigation_favorite(self, *args, **kwargs):
+        return Factories.create_investigation_favorite(*args, **kwargs)
+
+    def create_investigation_cell(self, *args, **kwargs):
+        return Factories.create_investigation_cell(*args, **kwargs)
+
+    def create_investigation_block(self, *args, **kwargs):
+        return Factories.create_investigation_block(*args, **kwargs)
+
+    def create_investigation_cell_dependency(self, *args, **kwargs):
+        return Factories.create_investigation_cell_dependency(*args, **kwargs)
+
+    def create_investigation_block_dependency(self, *args, **kwargs):
+        return Factories.create_investigation_block_dependency(*args, **kwargs)
+
+    def create_investigation_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_parameter(*args, **kwargs)
+
+    def create_investigation_cell_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_cell_parameter(*args, **kwargs)
+
+    def create_investigation_block_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_block_parameter(*args, **kwargs)
+
+    def create_investigation_cell_execution(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution(*args, **kwargs)
+
+    def create_investigation_block_execution(self, *args, **kwargs):
+        return Factories.create_investigation_block_execution(*args, **kwargs)
+
+    def create_investigation_cell_execution_project(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution_project(*args, **kwargs)
+
+    def create_investigation_block_execution_project(self, *args, **kwargs):
+        return Factories.create_investigation_block_execution_project(*args, **kwargs)
+
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
@@ -232,6 +276,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
+    def create_replay_deletion_job(self, project=None, **kwargs) -> ReplayDeletionJobModel:
+        if project is None:
+            project = self.project
+        return Factories.create_replay_deletion_job(project, **kwargs)
 
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
@@ -665,6 +714,9 @@ class Fixtures:
     ) -> Integration:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
+        return Factories.create_gcp_service_account(*args, **kwargs)
 
     def create_organization_contributor(
         self,

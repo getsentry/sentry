@@ -4,14 +4,13 @@ import time
 import sentry_sdk
 from django.db import connections, router, transaction
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import relay_tasks
+from sentry.taskworker.namespaces import relay_invalidation_tasks, relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
@@ -213,7 +212,8 @@ def compute_projectkey_config(key):
 
 @instrumented_task(
     name="sentry.tasks.relay.invalidate_project_config",
-    namespace=relay_tasks,
+    namespace=relay_invalidation_tasks,
+    alias_namespace=relay_tasks,
     processing_deadline_duration=25 * 60 + 5,
     silo_mode=SiloMode.CELL,
 )
@@ -354,10 +354,11 @@ def schedule_invalidate_project_config(
         name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         set_span_tag(span, "transaction_db", transaction_db)
-        if (
-            options.get("relay.invalidation-direct-outside-atomic")
-            and not connections[transaction_db].in_atomic_block
-        ):
+        connection = connections[transaction_db]
+        # Outside an atomic block, on_commit() runs the callback immediately under
+        # autocommit, but raises TransactionManagementError under manual transaction
+        # management, which is how the taskworker runs. Schedule directly in that case.
+        if not connection.in_atomic_block and not connection.get_autocommit():
             _do_schedule()
         else:
             transaction.on_commit(_do_schedule, using=transaction_db)

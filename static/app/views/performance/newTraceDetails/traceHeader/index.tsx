@@ -13,6 +13,7 @@ import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
@@ -26,6 +27,7 @@ import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/u
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
+import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
 export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
@@ -51,6 +53,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
     logs: props.overview.logs.representative,
@@ -96,18 +99,27 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent gap="xs">
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization: props.organization,
-              location,
-              moduleURLBuilder,
-              traceSlug: props.traceSlug,
-              project,
-              view,
-            })}
+        {hasNewBreadcrumbs ? (
+          <TraceBreadcrumbs
+            organization={props.organization}
+            traceSlug={props.traceSlug}
+            project={project}
+            rootEventResults={props.rootEventResults}
           />
-        </TopBar.Slot>
+        ) : (
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization: props.organization,
+                location,
+                moduleURLBuilder,
+                traceSlug: props.traceSlug,
+                project,
+                view,
+              })}
+            />
+          </TopBar.Slot>
+        )}
         <TopBar.Slot name="feedback">
           <FeedbackButton
             feedbackOptions={traceViewFeedbackOptions}

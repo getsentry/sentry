@@ -71,12 +71,13 @@ describe('LinkedPullRequests', () => {
     expect(linkedPullRequest).toHaveAccessibleName(
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
-    await userEvent.hover(within(linkedPullRequest).getByText('#123'));
-    expect(await screen.findByText('Fix widget crash on startup')).toBeInTheDocument();
+    await userEvent.hover(linkedPullRequest);
+    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(list).getByText('#123')).toBeInTheDocument();
-    expect(within(list).getByText('#124')).toBeInTheDocument();
-    expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
+    expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
+    expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();
+    expect(within(list).getByText('Fix widget crash on startup')).toBeInTheDocument();
+    expect(within(list).getByText('Remove unused widget fallback')).toBeInTheDocument();
     expect(within(list).getByText('Merged')).toBeInTheDocument();
     expect(within(list).getByText('Closed')).toBeInTheDocument();
     expect(within(linkedPullRequest).getByText('AL')).toBeInTheDocument();
@@ -93,6 +94,81 @@ describe('LinkedPullRequests', () => {
     expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
     expect(closedStatus.querySelector('svg')).toBeInTheDocument();
     expect(pullRequestsMock).toHaveBeenCalledTimes(1);
+    expect(pullRequestsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {expand: 'checksAndReview'}})
+    );
+  });
+
+  it('renders a delegated agent attribution', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository,
+              author: {name: 'cursor[bot]', email: 'cursor[bot]@localhost'},
+            }),
+            attribution: {type: 'seer', id: 'seer', agent: 'cursor'},
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Pull request created by Cursor Cloud Agent via Seer',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'cursor'})).toHaveAttribute(
+      'src',
+      'https://github.com/cursor.png?s=120'
+    );
+  });
+
+  it('renders checks and review details when available', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: null,
+            checksStatus: 'failure',
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            reviewStatus: 'changes_requested',
+            status: 'open',
+          },
+          {
+            ...PullRequestFixture({id: '124', repository}),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    const list = await screen.findByRole('list', {name: 'Linked pull requests'});
+    const withDetails = within(list).getByRole('link', {name: /Pull request #123/});
+    const withoutDetails = within(list).getByRole('link', {name: /Pull request #124/});
+
+    expect(within(withDetails).getByText('Checks failed')).toBeInTheDocument();
+    expect(within(withDetails).getByText('Changes requested')).toBeInTheDocument();
+    expect(within(withoutDetails).queryByText('Checks failed')).not.toBeInTheDocument();
+    expect(
+      within(withoutDetails).queryByText('Changes requested')
+    ).not.toBeInTheDocument();
   });
 
   it('deduplicates pull request ids from group activity', () => {

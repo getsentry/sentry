@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -390,3 +391,123 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def _api_token_request(self, data, features):
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+        with self.feature(features):
+            return self.client.get(
+                self.url,
+                data=data,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"] == {
+            "org_id": self.organization.id,
+            "org_slug": self.organization.slug,
+            # no dataset param was passed, so the requested value is empty
+            "requested_dataset": "",
+            # but the default dataset is used
+            "effective_dataset": "discover",
+            "endpoint_name": "organization-events-timeseries",
+        }
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "transactions",
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["effective_dataset"] == "transactions"
+        assert kwargs["attributes"]["requested_dataset"] == "transactions"
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": False,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_for_non_external_request(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+        }
+        # do_request uses a session login, not an API token
+        self.do_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()
+
+    @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
+    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
+        data = {
+            "start": self.start,
+            "end": self.end,
+            "interval": "1h",
+            "project": [self.project.id],
+            "dataset": "errors",
+        }
+        self._api_token_request(
+            data,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:events-endpoint-transactions-discover-blocked": True,
+            },
+        )
+
+        mock_sdk_logger.warning.assert_not_called()

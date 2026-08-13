@@ -186,4 +186,19 @@ describe('Tooltip', () => {
 
     expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
+
+  it('does not trigger the wrapping element when clicking tooltip content', async () => {
+    const handleAncestorClick = jest.fn();
+
+    render(
+      <button type="button" onClick={handleAncestorClick}>
+        <Tooltip title={<span>Copy</span>} isHoverable forceVisible>
+          <div>Trigger</div>
+        </Tooltip>
+      </button>
+    );
+
+    await userEvent.click(screen.getByText('Copy'));
+    expect(handleAncestorClick).not.toHaveBeenCalled();
+  });
 });

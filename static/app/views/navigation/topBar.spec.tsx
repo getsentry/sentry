@@ -1,43 +1,54 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Flex} from '@sentry/scraps/layout';
 
 import {TopBar} from './topBar';
 
-function renderTopBar() {
-  render(
+const theme = ThemeFixture();
+
+jest.mock('sentry/utils/useFeedbackForm', () => ({
+  useFeedbackForm: () => jest.fn(),
+}));
+
+jest.mock('sentry/views/seerExplorer/utils', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/utils'),
+  isSeerExplorerEnabled: () => true,
+}));
+
+function renderTopBar(width?: number) {
+  if (width !== undefined) {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  }
+
+  const topBar = (
     <TopBar.Slot.Provider>
       <TopBar />
       <TopBar.Slot name="title">Page title</TopBar.Slot>
-    </TopBar.Slot.Provider>,
-    {organization: OrganizationFixture()}
+    </TopBar.Slot.Provider>
   );
+
+  render(<Flex containerType="inline-size">{topBar}</Flex>, {
+    organization: OrganizationFixture({
+      features: ['gen-ai-features', 'seer-explorer'],
+    }),
+  });
 }
 
-describe('TopBar title slot', () => {
+describe('TopBar', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders the title as an h1 by default', () => {
     renderTopBar();
 
     expect(
       screen.getByRole('heading', {name: 'Page title', level: 1})
     ).toBeInTheDocument();
-  });
-
-  it('hides the empty breadcrumbs outlet when only the title slot is used', () => {
-    renderTopBar();
-
-    const emptyBreadcrumbsOutlet = Array.from(
-      screen.getByRole('banner').querySelectorAll<HTMLElement>('*')
-    ).find(element =>
-      getEmotionRules(element).some(
-        rule => /display:\s*none/.test(rule) && /flex:\s*0 1 auto/.test(rule)
-      )
-    );
-
-    expect(emptyBreadcrumbsOutlet).toBeDefined();
   });
 
   it('keeps BreadcrumbList titles inside the single TopBar heading', () => {
@@ -54,9 +65,30 @@ describe('TopBar title slot', () => {
       {organization: OrganizationFixture()}
     );
 
-    expect(within(screen.getByRole('banner')).getAllByRole('heading')).toHaveLength(1);
+    expect(screen.queryByRole('heading', {name: 'Issues'})).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', {name: 'Current Issue', level: 1})
     ).toBeInTheDocument();
+  });
+
+  it('uses icon-only actions below sm', () => {
+    renderTopBar(Number.parseFloat(theme.container.sm) - 1);
+
+    expect(screen.queryByText('Command Palette')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
+  });
+
+  it('shows the Ask Seer label while keeping other actions compact at sm', () => {
+    renderTopBar(Number.parseFloat(theme.container.sm));
+    const askSeerButton = screen.getByRole('button', {name: 'Ask Seer'});
+
+    expect(screen.queryByText('Command Palette')).not.toBeInTheDocument();
+    expect(screen.getByText('Ask Seer')).toBeInTheDocument();
+    expect(screen.queryByText('/')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toEqual([
+      askSeerButton,
+      screen.getByRole('button', {name: 'Command Palette'}),
+      screen.getByRole('button', {name: 'Give Feedback'}),
+    ]);
   });
 });

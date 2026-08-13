@@ -7,7 +7,7 @@ from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -121,9 +121,3 @@ def test_return_global_config_on_right_version(
 def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
-
-
-@django_db_all
-def test_global_config_histogram_outliers(insta_snapshot: InstaSnapshotter) -> None:
-    config = get_global_config()
-    insta_snapshot(config["metricExtraction"])

@@ -35,6 +35,7 @@ export function useGetTraceItemAttributeKeys({
     async (
       queryString?: string
     ): Promise<{
+      arrayAttributes: TagCollection;
       booleanAttributes: TagCollection;
       numberAttributes: TagCollection;
       stringAttributes: TagCollection;

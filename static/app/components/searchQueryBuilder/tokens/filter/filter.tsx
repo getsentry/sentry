@@ -1,4 +1,4 @@
-import {Fragment, useContext, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -14,7 +14,6 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -43,6 +42,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -55,17 +55,167 @@ interface FilterValueProps extends SearchQueryTokenProps {
   onActiveChange: (active: boolean) => void;
 }
 
+const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
+const FILTER_VALUE_FALLBACK_MAX_LENGTH = 40;
+const FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH = 20;
+const ELLIPSIS = '\u2026';
+
+function ellipsizeFilterValue(value: string, maxLength: number, multi: boolean): string {
+  if (!multi) {
+    return middleEllipsis(value, maxLength, FILTER_VALUE_ELLIPSIS_DELIMITER);
+  }
+
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  if (maxLength <= 2) {
+    return `${value.slice(0, Math.max(0, maxLength - 1))}${ELLIPSIS}`;
+  }
+
+  const visibleLength = maxLength - 1;
+  const prefixLength = Math.ceil(visibleLength / 2);
+  const suffixLength = Math.floor(visibleLength / 2);
+  return `${value.slice(0, prefixLength)}${ELLIPSIS}${value.slice(-suffixLength)}`;
+}
+
+/**
+ * Fit middle-ellipsis to the element's available width.
+ *
+ * Always starts from the full value so that when the constraint loosens
+ * (e.g. the window grows), content can reclaim width before we measure.
+ */
+function fitMiddleEllipsisToElement(
+  value: string,
+  fallbackMaxLength: number,
+  element: HTMLElement,
+  multi: boolean
+): string {
+  if (value.length <= 0) {
+    return value;
+  }
+
+  const previousText = element.textContent;
+  const previousWidth = element.style.width;
+  const fallback = ellipsizeFilterValue(value, fallbackMaxLength, multi);
+
+  try {
+    // Expand to the full value first so content-sized ancestors can grow up to their
+    // max-width when the window/search bar is no longer constraining them.
+    element.textContent = value;
+    element.style.width = '';
+
+    if (element.clientWidth <= 0) {
+      return fallback;
+    }
+
+    if (element.scrollWidth <= element.clientWidth) {
+      return value;
+    }
+
+    // Lock and reuse the constrained width so temporary candidate text cannot
+    // collapse a flex item during the search. Since these dimensions are
+    // integer-rounded, the styled end padding keeps glyphs away from the
+    // trailing clipping edge.
+    const availableWidth = element.clientWidth;
+    element.style.width = `${availableWidth}px`;
+
+    let low = 1;
+    let high = value.length;
+    element.textContent = ELLIPSIS;
+    let best = element.scrollWidth <= availableWidth ? ELLIPSIS : '';
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = ellipsizeFilterValue(value, mid, multi);
+      element.textContent = candidate;
+      if (element.scrollWidth <= availableWidth) {
+        best = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return best;
+  } finally {
+    element.textContent = previousText;
+    element.style.width = previousWidth;
+  }
+}
+
+function TruncatedFilterDisplayValue({
+  value,
+  fallbackMaxLength,
+  multi = false,
+}: {
+  fallbackMaxLength: number;
+  value: string;
+  multi?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [displayValue, setDisplayValue] = useState(() =>
+    ellipsizeFilterValue(value, fallbackMaxLength, multi)
+  );
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    let isFitting = false;
+    const update = () => {
+      if (isFitting) {
+        return;
+      }
+      isFitting = true;
+      try {
+        const next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
+        setDisplayValue(prev => (prev === next ? prev : next));
+      } finally {
+        isFitting = false;
+      }
+    };
+
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    // Observe the search bar (or viewport) — not the value itself. After
+    // truncating the chip is content-sized, so it won't grow on window expand
+    // unless we re-fit from an ancestor that actually resized.
+    const observed =
+      element.closest('[data-test-id="search-query-builder"]') ??
+      document.documentElement;
+
+    const observer = new ResizeObserver(update);
+    observer.observe(observed);
+    return () => observer.disconnect();
+  }, [value, fallbackMaxLength, multi]);
+
+  const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
+
+  return (
+    <Truncated ref={ref} data-overflowing={displayValue === value ? undefined : 'true'}>
+      {displayValue}
+    </Truncated>
+  );
+}
+
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
-  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
     return (
-      <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-        {prettifyTagKey(token.value.text)}
-      </FilterValueSingleTruncatedValue>
+      <TruncatedFilterDisplayValue
+        value={prettifyTagKey(token.value.text)}
+        fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+      />
     );
   }
 
@@ -77,26 +227,24 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
       if (items.length === 1 && items[0]!.value) {
         return (
-          <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-            {formatFilterValue({token: items[0]!.value, valueType})}
-          </FilterValueSingleTruncatedValue>
+          <TruncatedFilterDisplayValue
+            value={formatFilterValue({token: items[0]!.value, valueType})}
+            fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+          />
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <Flex
-          align="center"
-          wrap={wrapTokens ? 'wrap' : 'nowrap'}
-          gap="xs"
-          maxWidth="400px"
-        >
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
-              <FilterMultiValueTruncated $wrap={wrapTokens}>
-                {formatFilterValue({token: item.value!, valueType})}
-              </FilterMultiValueTruncated>
+              <TruncatedFilterDisplayValue
+                value={formatFilterValue({token: item.value!, valueType})}
+                fallbackMaxLength={FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH}
+                multi
+              />
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
               ) : null}
@@ -115,9 +263,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     }
     default: {
       return (
-        <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-          {formatFilterValue({token: token.value, valueType})}
-        </FilterValueSingleTruncatedValue>
+        <TruncatedFilterDisplayValue
+          value={formatFilterValue({token: token.value, valueType})}
+          fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+        />
       );
     }
   }
@@ -362,24 +511,29 @@ const DeleteButton = styled(UnstyledButton)`
 
 const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
+  /* Offset the preceding value's clipping allowance without affecting the
+   * trailing space before the next value. */
+  margin-inline-start: -2px;
 `;
 
-const FilterMultiValueTruncated = styled('div')<{$wrap?: boolean}>`
+const FilterMultiValueTruncated = styled('div')`
   display: block;
-  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
-  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
-  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
-  max-width: ${p => (p.$wrap ? '100%' : '110px')};
-  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-inline-end: 2px;
+  max-width: 110px;
+  width: fit-content;
+  min-width: 0;
 `;
 
-const FilterValueSingleTruncatedValue = styled('div')<{$wrap?: boolean}>`
+const FilterValueSingleTruncatedValue = styled('div')`
   display: block;
-  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
-  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
-  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-inline-end: 2px;
   max-width: 100%;
-  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
+  width: 100%;
+  min-width: 0;
 `;

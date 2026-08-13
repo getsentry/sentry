@@ -10,7 +10,6 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     availableReservedBudgetTypes: {},
     dashboardLimit: 10,
     metricDetectorLimit: 20,
-    features: [],
     hasOnDemandModes: false,
     id: 'am3_f',
     isEnterprise: false,

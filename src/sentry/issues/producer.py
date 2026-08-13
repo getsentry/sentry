@@ -17,7 +17,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_future_tracking_producer
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.safe import get_path, set_path
 
@@ -44,7 +44,7 @@ def _get_occurrence_producer() -> KafkaProducer:
     )
 
 
-_occurrence_producer = get_producer(
+_occurrence_producer = get_future_tracking_producer(
     producer_name="sentry.issues.producer",
     producer_factory=_get_occurrence_producer,
 )

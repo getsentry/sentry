@@ -249,10 +249,10 @@ export function getWidgetDiscoverUrl(
     }
   });
   discoverLocation.query.field = fields;
-  discoverLocation.query.query = applyDashboardFilters(
-    query.conditions,
-    dashboardFilters
-  );
+  discoverLocation.query.query = applyDashboardFilters({
+    baseQuery: query.conditions,
+    dashboardFilters,
+  });
 
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
   const projectParam =
@@ -278,11 +278,12 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(
-      widget.queries?.[0]?.conditions,
+    query: applyDashboardFilters({
+      baseQuery: widget.queries?.[0]?.conditions,
       dashboardFilters,
-      widget.widgetType
-    ),
+      widgetType: widget.widgetType,
+      skipParens: true, // Issue search does not support parens
+    }),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -305,7 +306,7 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
-    query: applyDashboardFilters('', dashboardFilters),
+    query: applyDashboardFilters({baseQuery: '', dashboardFilters}),
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
     project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
@@ -358,7 +359,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
+    (!defined(dashboard.environment) || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined
@@ -589,18 +590,26 @@ function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
 
 export const performanceScoreTooltip = t('peformance_score is not supported in Discover');
 
-export function applyDashboardFilters(
-  baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined,
-  widgetType?: WidgetType
-): string | undefined {
+export function applyDashboardFilters({
+  baseQuery,
+  dashboardFilters,
+  widgetType,
+  skipParens,
+}: {
+  baseQuery: string | undefined;
+  dashboardFilters: DashboardFilters | undefined;
+  skipParens?: boolean;
+  widgetType?: WidgetType;
+}): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(
     dashboardFilters,
     widgetType
   );
   if (dashboardFilterConditions) {
     if (baseQuery) {
-      return `(${baseQuery}) ${dashboardFilterConditions}`;
+      return skipParens
+        ? `${baseQuery} ${dashboardFilterConditions}`
+        : `(${baseQuery}) ${dashboardFilterConditions}`;
     }
     return dashboardFilterConditions;
   }

@@ -4,8 +4,10 @@ import os
 from unittest import mock
 from uuid import uuid4
 
+from sentry.attachments.base import CachedAttachment
 from sentry.models.eventattachment import EventAttachment, normalize_content_type
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class EventAttachmentDeleteTest(TestCase):
@@ -48,6 +50,27 @@ class EventAttachmentDeleteTest(TestCase):
 
         mock_get_session.return_value.delete.assert_not_called()
         assert not EventAttachment.objects.filter(id=attachment.id).exists()
+
+
+class EventAttachmentPutfileTest(TestCase):
+    @mock.patch("sentry.models.eventattachment.get_attachments_session")
+    @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
+    @override_options({"objectstore.enable_for.attachments": 1})
+    def test_objectstore_upload_stores_filename(
+        self,
+        mock_get_org: mock.Mock,
+        mock_get_session: mock.Mock,
+    ) -> None:
+        mock_get_session.return_value.put.return_value = "some-key"
+
+        result = EventAttachment.putfile(
+            self.project.id,
+            # Long enough that it cannot be stored inline.
+            CachedAttachment(name="hello.png", content_type="image/png", data=b"x" * 200),
+        )
+
+        assert result.blob_path == "v2/some-key"
+        assert mock_get_session.return_value.put.call_args.kwargs["filename"] == "hello.png"
 
 
 class NormalizeContentTypeTest(TestCase):

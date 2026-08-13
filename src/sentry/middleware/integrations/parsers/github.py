@@ -8,18 +8,19 @@ import orjson
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.github.check_payloads import references_own_repo_pull_request
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
 from sentry.integrations.github.webhook_types import (
     _CONTROL_ONLY_EVENTS,
-    CELL_PROCESSED_CHECK_RUN_ACTIONS,
+    CELL_PROCESSED_ACTIONS,
     CELL_PROCESSED_GITHUB_EVENTS,
-    GITHUB_CHECK_RUN_ACTIONS,
     GITHUB_WEBHOOK_TYPE_HEADER,
-    GithubWebhookType,
+    ActionFilter,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -29,6 +30,46 @@ from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
+    """Metric tag for a webhook action, bounded to the actions GitHub documents.
+
+    The body is not signature-verified until it reaches the cell, so an action that
+    GitHub would not have sent — malformed, or attacker-supplied — must never reach
+    a tag value verbatim.
+    """
+    if isinstance(action, str) and action in action_filter.known:
+        return action
+    return "unknown"
+
+
+def _forwarded_event_tags(
+    github_event: str | None,
+    event: Mapping[str, Any],
+    action: Any,
+    action_filter: ActionFilter | None,
+) -> dict[str, str]:
+    """Tags for the counter of events that survive filtering and get stored.
+
+    Read against ``github.webhook.drop_unprocessed_event`` to see what share of each
+    event type control still forwards. ``action`` is tagged only for the event types
+    that are action-filtered; on the rest the tag would be unbounded.
+    """
+    tags = {"event_type": github_event or "unknown"}
+    if action_filter is None or github_event is None:
+        return tags
+
+    tags["action"] = _bounded_action_tag(action, action_filter)
+    # The container holding "pull_requests" is named after the event itself, and only
+    # the completed action has a cell-side consumer that reads it. Keyed off the
+    # action rather than `own_repo_pr_actions` so the series measures the share a
+    # drop could reclaim even before one is enabled for that event type.
+    if action == "completed":
+        tags["has_own_repo_pr"] = (
+            "true" if references_own_repo_pull_request(event, github_event) else "false"
+        )
+    return tags
 
 
 class GithubRequestParser(BaseRequestParser):
@@ -129,31 +170,54 @@ class GithubRequestParser(BaseRequestParser):
         if github_event and github_event not in CELL_PROCESSED_GITHUB_EVENTS:
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",
-                tags={"event_type": github_event or "unknown"},
+                tags={
+                    "event_type": github_event or "unknown",
+                    "reason": "unprocessed_event_type",
+                },
             )
             return HttpResponse(status=202)
 
-        # check_run is by far the highest-volume event type and only some actions
-        # have a cell-side consumer (see CELL_PROCESSED_CHECK_RUN_ACTIONS); drop the
-        # rest, most notably "created" which is roughly half of all deliveries.
-        if github_event == GithubWebhookType.CHECK_RUN:
-            action = event.get("action")
-            if not (isinstance(action, str) and action in CELL_PROCESSED_CHECK_RUN_ACTIONS):
-                # The body is not signature-verified until it reaches the cell, so
-                # only known check_run actions may be tagged verbatim to keep tag
-                # cardinality bounded.
-                metrics.incr(
-                    "github.webhook.drop_unprocessed_event",
-                    tags={
-                        "event_type": github_event,
-                        "action": (
-                            action
-                            if isinstance(action, str) and action in GITHUB_CHECK_RUN_ACTIONS
-                            else "unknown"
-                        ),
-                    },
-                )
-                return HttpResponse(status=202)
+        # For the highest-volume event types, only some actions have a cell-side
+        # consumer (see CELL_PROCESSED_ACTIONS); drop the rest.
+        action = event.get("action")
+        action_filter = CELL_PROCESSED_ACTIONS.get(github_event or "")
+        if action_filter is not None and not (
+            isinstance(action, str) and action in action_filter.consumed
+        ):
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={
+                    "event_type": github_event,
+                    "action": _bounded_action_tag(action, action_filter),
+                    "reason": "unconsumed_action",
+                },
+            )
+            return HttpResponse(status=202)
+
+        # A check payload whose `pull_requests` are all based in other repos is a
+        # no-op for every consumer of these actions, so it never needs storing. This
+        # predicate reads the unverified body rather than a header, so it stays behind
+        # an option — see the register() call for why.
+        if (
+            action_filter is not None
+            and action in action_filter.own_repo_pr_actions
+            and options.get("hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr")
+            and not references_own_repo_pull_request(event, github_event or "")
+        ):
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={
+                    "event_type": github_event,
+                    "action": _bounded_action_tag(action, action_filter),
+                    "reason": "no_own_repo_pr",
+                },
+            )
+            return HttpResponse(status=202)
+
+        metrics.incr(
+            "github.webhook.forwarded_event",
+            tags=_forwarded_event_tags(github_event, event, action, action_filter),
+        )
 
         response = self.get_response_from_webhookpayload(
             cells=cells,

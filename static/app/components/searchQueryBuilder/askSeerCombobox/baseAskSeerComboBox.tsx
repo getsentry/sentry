@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
+import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
@@ -34,6 +35,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
+
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -96,12 +98,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -118,6 +122,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  // Input.withComponent('div') retains Input's ref type even though this renders a div.
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -194,14 +199,14 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     ...props,
     items,
     defaultItems: [],
-    selectedKey: null,
+    value: null,
     allowsCustomValue: true,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     inputValue: searchQuery,
     onInputChange: onSearchQueryChange,
     defaultFilter: () => true,
-    onSelectionChange(key) {
+    onChange(key) {
       if (typeof key !== 'string') {
         return;
       }
@@ -267,6 +272,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       buttonRef,
       listBoxRef,
       popoverRef,
+      ariaHideOutsideRef: containerRef,
       'aria-label': t('Ask Seer with Natural Language'),
       onFocus: () => {
         state.open();
@@ -418,6 +424,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const hasResults = queries.length > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
+  const isUnsupported = Boolean(unsupportedReason) && !hasResults;
+  const hasQueryStatus =
+    hasAskSeerUxRework && (isPending || isError || hasResults || isUnsupported);
 
   useEffect(() => {
     if (enableAISearch && hasAskSeerUxRework && isDisplayingResults) {
@@ -440,7 +449,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     : Boolean(openForm);
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -448,13 +457,23 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
+          hasQueryStatus={hasQueryStatus}
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
       </InputWrapper>
       <ButtonsWrapper>
+        {hasQueryStatus ? (
+          <AskSeerQueryStatusIndicator
+            hasResults={hasResults}
+            isError={isError}
+            isPending={isPending}
+            unsupportedReason={unsupportedReason}
+          />
+        ) : null}
         <Button
+          ref={buttonRef}
           size="xs"
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
@@ -512,7 +531,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           )}
           {showFooter ? (
             <Flex
+              containerType="inline-size"
               justify={showLeftFooterAction ? 'between' : 'end'}
+              align="start"
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
@@ -521,7 +542,11 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              <Flex gap="sm">
+              <Flex
+                direction={{zero: 'column', md: 'row'}}
+                align={{zero: 'start', md: 'center'}}
+                gap="sm"
+              >
                 {showLeftFooterAction ? (
                   <Button
                     icon={<IconSync />}
@@ -607,7 +632,7 @@ const InputWrapper = styled('div')`
   height: 100%;
 `;
 
-const InvisibleInput = styled('input')`
+const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`
   position: absolute;
   inset: 0;
   resize: none;
@@ -622,7 +647,10 @@ const InvisibleInput = styled('input')`
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
-  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: ${p =>
+    p.hasQueryStatus
+      ? `calc(${p.theme.space['3xl']} + ${p.theme.space['2xl']})`
+      : `calc(${p.theme.space['3xl']} + ${p.theme.space.xs})`};
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);

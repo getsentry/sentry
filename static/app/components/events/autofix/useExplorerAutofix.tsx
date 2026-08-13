@@ -47,6 +47,7 @@ import {
   type RepoPRState,
   type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
+import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.
@@ -228,7 +229,18 @@ export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
-const POLL_INTERVAL = 1000;
+/**
+ * Poll interval while a run is active, so streaming blocks show up promptly in
+ * the drawer.
+ */
+const ACTIVE_POLL_INTERVAL = 1000;
+
+/**
+ * Poll interval while idle and only watching an already created PR. These are
+ * slow external events (automated CI iteration pushes, review comments), so
+ * polling stays cheap rather than matching the active-run rate.
+ */
+const PR_POLL_INTERVAL = 10000;
 
 function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
@@ -317,8 +329,12 @@ export const getPollInterval = ({
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
   const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
 
-  if (shouldPollPR || shouldPollProcessing) {
-    return POLL_INTERVAL;
+  if (shouldPollProcessing) {
+    return ACTIVE_POLL_INTERVAL;
+  }
+
+  if (shouldPollPR) {
+    return PR_POLL_INTERVAL;
   }
 
   return false;
@@ -360,7 +376,9 @@ function buildSection(
   blocks: Block[],
   runState: ExplorerAutofixState | null
 ): AutofixSection {
-  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+  // Both channels: the classic block field and Code Mode's structuredContent
+  // (codemode-structured-content-only).
+  const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
   const section: AutofixSection = {
     index,
@@ -497,7 +515,7 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
 }
 
 export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration');
+  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
@@ -603,7 +621,11 @@ export function useExplorerAutofix(
     ]);
   }, []);
 
-  const {data: apiData, isPending} = useQuery({
+  const {
+    data: apiData,
+    isFetching,
+    isPending,
+  } = useQuery({
     ...explorerAutofixApiOptions(orgSlug, groupId),
     retry: false,
     enabled,
@@ -935,9 +957,11 @@ export function useExplorerAutofix(
      */
     runState,
     /**
-     * Whether the initial data fetch is pending.
+     * Whether we're fetching without an existing run to display.
+     * This includes background refetches of a cached null response so callers do not
+     * treat that stale response as confirmation that no run exists.
      */
-    isLoading: isPending,
+    isLoading: isPending || (isFetching && !runState),
     /**
      * Whether we're actively processing (used for UI indicators).
      */

@@ -259,6 +259,9 @@ export function getSamplesTargetAtIndex(
   const queryString = queryToUpdate.query ?? '';
   const search = new MutableSearch(queryString);
   for (const groupBy of queryToUpdate.groupBys) {
+    if (!groupBy) {
+      continue;
+    }
     const value = row[groupBy];
     search.setFilterValues(groupBy, [value]);
   }
