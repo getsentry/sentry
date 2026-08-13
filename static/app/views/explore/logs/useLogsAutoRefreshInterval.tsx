@@ -145,26 +145,32 @@ export function useLogsAutoRefreshInterval({
     isError,
   ]);
 
-  const resetTrackingState = () => {
+  const clearRefreshInterval = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+  };
+
+  const resetTrackingState = () => {
     startTimeRef.current = Date.now();
     consecutivePagesWithMoreDataRef.current = 0;
-    isRefreshRunningRef.current = false;
   };
+
+  useEffect(() => {
+    resetTrackingState();
+  }, [autoRefresh]);
 
   // Set up the refresh interval
   useEffect(() => {
-    resetTrackingState();
+    clearRefreshInterval();
     if (enabled && autoRefresh === 'enabled') {
       fetchPageWithChecks();
       intervalRef.current = setInterval(fetchPageWithChecks, refreshInterval);
     }
 
     return () => {
-      resetTrackingState();
+      clearRefreshInterval();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, enabled, refreshInterval]);
