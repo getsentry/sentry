@@ -1,6 +1,7 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {
   render,
@@ -101,5 +102,46 @@ describe('IntegrationCrumb', () => {
       `/settings/${organization.slug}/integrations/slack/`
     );
     expect(router.location.query).toEqual({});
+  });
+
+  it('shows the Sentry App icon on its overview page', async () => {
+    const parentRoute = {path: 'sentry-apps/', name: 'Integrations'};
+    const route = {path: ':integrationSlug', name: 'Details'};
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/shortcut/',
+      body: SentryAppFixture({
+        name: 'Shortcut',
+        slug: 'shortcut',
+        avatars: [
+          {
+            avatarType: 'upload',
+            avatarUrl: 'https://example.com/shortcut.png',
+            avatarUuid: 'shortcut-avatar',
+            color: true,
+            photoType: 'logo',
+          },
+        ],
+      }),
+    });
+
+    render(<IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />, {
+      organization,
+      initialRouterConfig: {
+        route: '/settings/:orgId/sentry-apps/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
+        },
+      },
+    });
+
+    const integrationLink = await screen.findByRole('link', {name: /Shortcut/});
+    expect(integrationLink).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/sentry-apps/shortcut/`
+    );
+    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+      'src',
+      'https://example.com/shortcut.png?s=120'
+    );
   });
 });
