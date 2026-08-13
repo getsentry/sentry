@@ -28,6 +28,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -394,13 +395,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-            create_preprod_status_check_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact_id_int,
-                    "caller": "artifact_update_endpoint",
-                }
-            )
-
         mobile_app_info = head_artifact.get_mobile_app_info()
         build_version = mobile_app_info.build_version if mobile_app_info else None
         build_number = mobile_app_info.build_number if mobile_app_info else None
@@ -469,6 +463,19 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "error_message": error_message,
                 },
             )
+
+        # Queue status check and PR comment updates only after size eligibility
+        # has finalized the metrics row they read.
+        if updated_fields:
+            task_kwargs = {
+                "preprod_artifact_id": artifact_id_int,
+                "caller": "artifact_update_endpoint",
+            }
+            create_preprod_status_check_task.apply_async(kwargs=task_kwargs)
+            if not can_run_size:
+                # If size analysis does not run, no completion task will update
+                # the comment, so refresh it now.
+                create_preprod_size_pr_comment_task.apply_async(kwargs=task_kwargs)
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
         if can_run_distro:
