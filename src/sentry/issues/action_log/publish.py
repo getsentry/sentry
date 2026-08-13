@@ -102,10 +102,11 @@ def publish_action(
     # load time so it can be imported from models without creating cycles.
     from django.db import router, transaction
 
-    from sentry import features, options
+    from sentry import features
     from sentry.hybridcloud.models.outbox import CellOutbox, CellOutboxBase, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
     from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+    from sentry.options.rollout import in_rollout_group
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -158,7 +159,7 @@ def publish_action(
 
     outbox_model: type[CellOutboxBase] = (
         GroupActionLogOutbox
-        if options.get("issues.group_action_log.use_dedicated_outbox")
+        if in_rollout_group("issues.group_action_log.dedicated_outbox_rollout", group_id)
         else CellOutbox
     )
     outbox = outbox_model(

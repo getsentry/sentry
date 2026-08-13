@@ -657,7 +657,7 @@ class TestPublishActionWrite(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
-    @override_options({"issues.group_action_log.use_dedicated_outbox": True})
+    @override_options({"issues.group_action_log.dedicated_outbox_rollout": 1.0})
     def test_dedicated_outbox_table(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_context(flush=False):
