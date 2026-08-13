@@ -45,6 +45,7 @@ describe('SplitPanel', () => {
       />
     );
 
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '100');
   });
@@ -101,6 +102,8 @@ describe('SplitPanel', () => {
     expect(separator).toHaveAttribute('aria-orientation', 'vertical');
     expect(separator).toHaveAttribute('aria-valuemin', '100');
     expect(separator).toHaveAttribute('aria-valuemax', '600');
+
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(separator).toHaveAttribute('aria-valuenow', '200');
     expect(separator).toHaveAttribute('tabindex', '0');
@@ -120,12 +123,14 @@ describe('SplitPanel', () => {
       />
     );
 
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '200');
 
     // Lets a parent seed the size from a post-mount measurement without a remount.
     act(() => ref.current?.setSize(350));
 
+    // https://github.com/testing-library/jest-dom/issues/735
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '350');
   });
@@ -192,12 +197,16 @@ describe('SplitPanel', () => {
 
       const separator = screen.getByRole('separator');
       // `initialSize` seeds the starting value.
+
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '400');
 
       await userEvent.dblClick(separator);
 
       // Resets to the canonical default and reports it so consumers can persist.
+
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '200');
       expect(onResizeEnd).toHaveBeenCalledWith({
@@ -223,6 +232,8 @@ describe('SplitPanel', () => {
 
       const separator = screen.getByRole('separator');
       // Renders floored at min, not the seeded -50.
+
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '100');
 
@@ -261,6 +272,8 @@ describe('SplitPanel', () => {
         endSize: 110,
         direction: 'increase',
       });
+
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '110');
     });
@@ -305,6 +318,7 @@ describe('SplitPanel', () => {
       // the container is measured, so it must not set an infinite size.
       await userEvent.keyboard('{Home}');
 
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       expect(separator).toHaveAttribute('aria-valuenow', '200');
       expect(onResizeEnd).not.toHaveBeenCalled();
@@ -350,6 +364,7 @@ describe('SplitPanel', () => {
       const separator = screen.getByRole('separator');
       dragHandle(separator, {from: 200, to: 150});
 
+      // https://github.com/testing-library/jest-dom/issues/735
       // eslint-disable-next-line jest-dom/prefer-to-have-value
       await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '150'));
       await waitFor(() =>

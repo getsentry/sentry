@@ -6,7 +6,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {Legend} from 'sentry/components/charts/components/legend';
+import {legend as makeLegend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -479,7 +479,7 @@ function UsageChartBody({
             }
       }
       onLegendSelectChanged={onLegendSelectChanged}
-      legend={Legend({
+      legend={makeLegend({
         right: 10,
         top: 5,
         data: chartLegendData(),

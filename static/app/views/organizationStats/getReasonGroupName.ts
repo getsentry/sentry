@@ -169,7 +169,9 @@ function getFilteredReasonGroupName(reason: string): string {
     return 'dynamic sampling';
   }
 
-  return startCase(reason);
+  // A filter that exists once per configured instance, such as a custom inbound
+  // filter, appends its id after a colon. Every instance belongs to one group.
+  return startCase(reason.split(':')[0]);
 }
 
 function getInvalidReasonGroupName(reason: string): string {

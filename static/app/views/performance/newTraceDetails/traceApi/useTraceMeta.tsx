@@ -332,10 +332,6 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
     allowAbsolutePageDatetime: true,
   });
 
-  // demo has the format ${projectSlug}:${eventId}
-  // used to query a demo transaction event from the backend.
-  const mode = decodeScalar(normalizedParams.demo) ? 'demo' : undefined;
-
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isLoading, status} = useQuery({
     queryKey: ['traceData', traces.map(trace => trace.traceSlug)],
@@ -373,43 +369,6 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
     staleTime: 1000 * 60 * 10,
     enabled: traces.length > 0,
   });
-
-  /**
-   * When projects don't have performance set up, we allow them to view a sample
-   * transaction. The backend creates the sample transaction, however the trace is
-   * created async, so when the page loads, we cannot guarantee that querying the trace
-   * will succeed as it may not have been stored yet. When this happens, we assemble a
-   * fake trace response to only include the transaction that had already been created
-   * and stored already so that the users can visualize in the context of a trace. The
-   * trace meta query has to reflect this by returning a single transaction and project.
-   */
-  if (mode === 'demo') {
-    return {
-      errors: [],
-      status: 'success',
-      isLoading: false,
-      data: isEAP
-        ? {
-            errorsCount: 0,
-            logsCount: 0,
-            metricsCount: 0,
-            performanceIssuesCount: 0,
-            spansCount: 0,
-            spansCountMap: {},
-            transactionChildCountMap: {},
-            uptimeCount: 0,
-          }
-        : {
-            errors: 0,
-            performance_issues: 0,
-            projects: 1,
-            transactions: 1,
-            transaction_child_count_map: {},
-            span_count: 0,
-            span_count_map: {},
-          },
-    };
-  }
 
   const allRequestsFailed = data?.apiErrors.length === traces.length;
 

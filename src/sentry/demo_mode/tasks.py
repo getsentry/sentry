@@ -239,7 +239,7 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                response = source_project_debug_file._get_objectstore_session().get(
+                response = source_project_debug_file.get_objectstore_session().get(
                     source_project_debug_file.storage_path
                 )
                 if response is None:

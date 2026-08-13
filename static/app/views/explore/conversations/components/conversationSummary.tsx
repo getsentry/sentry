@@ -11,11 +11,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconOpen, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -48,6 +50,8 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Project the conversation belongs to; rendered beneath the title. */
+  project?: AvatarProject;
   /** Conversation title when Sentry has one; falls back to the id when null. */
   title?: string | null;
 }
@@ -58,6 +62,7 @@ export function ConversationSummary({
   nodes,
   conversationId,
   title,
+  project,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -138,6 +143,12 @@ export function ConversationSummary({
         <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
           {isLoading ? (
             <Fragment>
+              {project && (
+                <Flex align="center" gap="xs">
+                  <Placeholder width="16px" height="16px" />
+                  <Placeholder width="80px" height="14px" />
+                </Flex>
+              )}
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
@@ -153,6 +164,7 @@ export function ConversationSummary({
             </Fragment>
           ) : (
             <Fragment>
+              {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
                 {userDisplayName ? (

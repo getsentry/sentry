@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
 from django.db.models import Exists, F, OuterRef
@@ -17,6 +17,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_rebalanced_transactions_with_cache,
     compare_recalibration_factor_with_cache,
     get_cached_organization_sample_rate,
+    get_cached_per_org_recalibration_factor,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
@@ -41,6 +42,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_recalibration_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
@@ -51,6 +53,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
+from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -86,7 +89,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume_5m = get_eap_organization_volume(config)
+    # Recalibration pairs this volume with an outcomes query later in the task. The end is
+    # fixed here instead of taken twice from the clock, and truncated to the minute because
+    # the outcomes query widens its window to whole minutes.
+    org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
+    org_volume_5m = get_eap_organization_volume(config, end=org_volume_end)
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
@@ -171,9 +178,30 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         )
 
     if is_org_in_recalibration_rollout(org_id):
-        calculated_factor = config.recalibrate()
+        recalibration_volume = get_recalibration_organization_volume(
+            config,
+            org_volume_5m,
+            time_interval=timedelta(minutes=5),
+            end=org_volume_end,
+        )
+        # recalibrate overwrites this factor, so read it first to keep the state the EAP loop
+        # started this pass from.
+        previous_eap_factor = get_cached_per_org_recalibration_factor(config.organization.id)
+        calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
-        compare_recalibration_factor_with_cache(config, calculated_factor, cached_factor)
+        try:
+            compare_recalibration_factor_with_cache(
+                config,
+                recalibration_volume,
+                calculated_factor,
+                cached_factor,
+                previous_eap_factor=previous_eap_factor,
+                legacy_volume=get_organization_volume(
+                    config.organization.id, time_interval=timedelta(minutes=5)
+                ),
+            )
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
 
     return None
 

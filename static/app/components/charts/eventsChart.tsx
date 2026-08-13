@@ -55,6 +55,38 @@ type ChartComponent =
   | React.ComponentType<AreaChartProps>
   | React.ComponentType<LineChartProps>;
 
+function resolveChartComponent({
+  chartComponent,
+  showDaily,
+  timeseriesLength,
+  forceChartType,
+  yAxis,
+}: {
+  timeseriesLength: number;
+  yAxis: string;
+  chartComponent?: ChartComponent;
+  forceChartType?: string;
+  showDaily?: boolean;
+}): ChartComponent {
+  if (defined(chartComponent)) {
+    return chartComponent;
+  }
+  if (showDaily) {
+    return BarChart;
+  }
+  if (timeseriesLength > 1) {
+    switch (forceChartType || aggregateMultiPlotType(yAxis)) {
+      case 'line':
+        return LineChart;
+      case 'area':
+        return AreaChart;
+      default:
+        throw new Error(`Unknown multi plot type for ${yAxis}`);
+    }
+  }
+  return AreaChart;
+}
+
 type ChartProps = {
   currentSeriesNames: string[];
   loading: boolean;
@@ -130,29 +162,6 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
 
-  function getChartComponent(): ChartComponent {
-    if (defined(chartComponent)) {
-      return chartComponent;
-    }
-
-    if (showDaily) {
-      return BarChart;
-    }
-
-    if (timeseriesData.length > 1) {
-      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return LineChart;
-        case 'area':
-          return AreaChart;
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
-    }
-
-    return AreaChart;
-  }
-
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
     const newSeriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
@@ -170,7 +179,13 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = getChartComponent();
+  const ChartComponent = resolveChartComponent({
+    chartComponent,
+    showDaily,
+    timeseriesLength: timeseriesData.length,
+    forceChartType,
+    yAxis,
+  });
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),

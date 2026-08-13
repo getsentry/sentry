@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -20,9 +21,19 @@ interface Props {
   automationId: string;
 }
 
-function ConnectedProjectRow({projectId}: {projectId: string}) {
+function ConnectedProjectRow({projectId}: {projectId: string | null}) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
+  const project = useProjectFromId({project_id: projectId ?? undefined});
+
+  if (projectId === null) {
+    return (
+      <SimpleTable.Row>
+        <SimpleTable.RowCell>
+          <Text>{t('All Projects')}</Text>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
+    );
+  }
 
   if (!project) {
     return null;

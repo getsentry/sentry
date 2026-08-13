@@ -20,7 +20,6 @@ import {
   useContainerBreakpoint,
   useResponsivePropValue,
   type Responsive,
-  // eslint-disable-next-line boundaries/dependencies
 } from './styles';
 
 const theme = ThemeFixture();

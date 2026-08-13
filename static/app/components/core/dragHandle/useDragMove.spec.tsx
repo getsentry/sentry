@@ -3,8 +3,19 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useDragMove} from '@sentry/scraps/dragHandle';
 
-function TestHandle({onMove = jest.fn()}: {onMove?: (delta: number) => void}) {
-  const {isHeld, moveProps} = useDragMove({onMove, orientation: 'horizontal'});
+interface TestHandleProps {
+  onMove?: (delta: number) => void;
+  onMoveEnd?: () => void;
+  onMoveStart?: () => void;
+}
+
+function TestHandle({onMove = jest.fn(), onMoveEnd, onMoveStart}: TestHandleProps) {
+  const {isHeld, moveProps} = useDragMove({
+    onMove,
+    onMoveEnd,
+    onMoveStart,
+    orientation: 'horizontal',
+  });
 
   return <div {...moveProps} data-is-held={isHeld} data-test-id="handle" tabIndex={0} />;
 }
@@ -40,12 +51,18 @@ describe('useDragMove', () => {
 
   it('ignores arrow keys across the drag axis', async () => {
     const onMove = jest.fn();
-    render(<TestHandle onMove={onMove} />);
+    const onMoveEnd = jest.fn();
+    const onMoveStart = jest.fn();
+    render(
+      <TestHandle onMove={onMove} onMoveEnd={onMoveEnd} onMoveStart={onMoveStart} />
+    );
 
     await userEvent.tab();
     await userEvent.keyboard('{ArrowDown}');
 
+    expect(onMoveStart).not.toHaveBeenCalled();
     expect(onMove).not.toHaveBeenCalled();
+    expect(onMoveEnd).not.toHaveBeenCalled();
   });
 
   it('suppresses hover and selection on the document while dragging', () => {

@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -202,7 +202,7 @@ export function TeamReleases({
               seriesName: t('This Period'),
               silent: true,
               data: seriesData,
-              markLine: MarkLine({
+              markLine: markLine({
                 silent: true,
                 lineStyle: {color: theme.colors.gray200, type: 'dashed', width: 1},
                 data: [{yAxis: totalPeriodAverage}],

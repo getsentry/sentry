@@ -5,7 +5,6 @@ import os
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any
-from urllib.parse import urlparse
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
@@ -14,9 +13,9 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
-    is_filtered_url,
     parameterize_url,
     parameterize_url_with_result,
+    safer_urlparse,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -125,13 +124,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
-        if is_filtered_url(url):
-            return False
-
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        parsed_url = safer_urlparse(str(url))
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
@@ -259,7 +255,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return ""
 
         url = get_url_from_span(repeating_span)
-        parsed_url = urlparse(url)
+        parsed_url = safer_urlparse(url)
         return parsed_url.path or ""
 
     def _fingerprint(self) -> str | None:

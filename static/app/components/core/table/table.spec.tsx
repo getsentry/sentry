@@ -187,6 +187,19 @@ describe('Table', () => {
     expect(resizers()[0]).toHaveAttribute('aria-orientation', 'vertical');
   });
 
+  it('names each resize handle after the column it resizes', () => {
+    render(<TestTable />);
+
+    expect(resizers()[0]).toHaveAccessibleName('name');
+    expect(resizers()[1]).toHaveAccessibleName('count');
+  });
+
+  it('leaves each header cell named by its own content', () => {
+    render(<TestTable />);
+
+    expect(screen.getAllByRole('columnheader')[0]).toHaveAccessibleName('name');
+  });
+
   it('commits a resize when a focused handle is arrowed', async () => {
     const onColumnResize = jest.fn();
     render(<TestTable onColumnResize={onColumnResize} />);

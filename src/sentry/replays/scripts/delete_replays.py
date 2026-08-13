@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
@@ -26,9 +25,11 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
 from sentry.replays.usecases.delete import (
     SNUBA_RETRY_EXCEPTIONS,
+    MatchedRow,
     datetime_as_start_of_day_conditions,
     day_aligned_windows,
     delete_seer_replay_data,
+    snuba_timestamp_as_utc,
 )
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
@@ -121,7 +122,7 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Que
 def delete_replay_ids(
     project_id: int,
     organization_id: int,
-    rows: list[tuple[int, str, int]],
+    rows: list[MatchedRow],
     has_seer_data: bool,
     total_replays: int,
     *,
@@ -153,8 +154,8 @@ def delete_replay_ids(
         # This also gives us reasonable assurances that if the script ran to completion the customer
         # will not be able to access their deleted data even if the actual deletion takes place some
         # time later
-        for _, replay_id, _ in rows:
-            archive_replay(project_id, replay_id)
+        for row in rows:
+            archive_replay(project_id, row["replay_id"].replace("-", ""), row["timestamp"])
     else:
         # Archiving is the only step the customer can observe. Without it they keep their Replays.
         logger.warning(
@@ -164,9 +165,8 @@ def delete_replay_ids(
         )
 
     if has_seer_data and delete_seer_data:
-        # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         logger.info("Deleting Seer data for %d Replays.", len(rows), extra=logging_context)
-        replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
+        replay_ids = [row["replay_id"] for row in rows]
         # Raises once the request's retries are spent, which aborts the run!
         delete_seer_replay_data(organization_id, project_id, replay_ids)
 
@@ -178,8 +178,13 @@ def delete_replay_ids(
         # Because this operation could involve millions of requests to the blob storage provider we
         # schedule the tasks to run on a cluster of workers. This allows us to parallelize the work
         # and complete the task as quickly as possible.
-        for retention_days, replay_id, max_segment_id in rows:
-            delete_replays_script_async.delay(retention_days, project_id, replay_id, max_segment_id)
+        for row in rows:
+            delete_replays_script_async.delay(
+                row["retention_days"],
+                project_id,
+                row["replay_id"].replace("-", ""),
+                row["max_segment_id"],
+            )
 
     logger.info(
         "Finished processing %d Replays.",
@@ -197,7 +202,7 @@ def _get_rows_matching_deletion_pattern(
     start: datetime,
     search_filters: Sequence[QueryToken],
     environment: list[str],
-) -> tuple[list[tuple[int, str, int]], bool, int | None]:
+) -> tuple[list[MatchedRow], bool, int | None]:
     where = handle_search_filters(scalar_search_config, search_filters)
 
     if environment:
@@ -223,6 +228,7 @@ def _get_rows_matching_deletion_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            Function("max", parameters=[Column("timestamp")], alias="finished_at"),
             replay_id_hash_column,
         ],
         where=[
@@ -262,7 +268,12 @@ def _get_rows_matching_deletion_pattern(
 
     return (
         [
-            (item["retention_days"], item["replay_id"].replace("-", ""), item["max_segment_id"])
+            {
+                "retention_days": item["retention_days"],
+                "replay_id": item["replay_id"],
+                "max_segment_id": item["max_segment_id"],
+                "timestamp": snuba_timestamp_as_utc(item["finished_at"]),
+            }
             for item in data
             if item["max_segment_id"] is not None
         ],

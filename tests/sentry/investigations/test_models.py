@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import pytest
 from django.db import IntegrityError, router, transaction
 
 from sentry.backup.scopes import RelocationScope
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
     InvestigationCell,
     InvestigationCellDependency,
     InvestigationCellExecution,
@@ -160,6 +167,11 @@ class InvestigationModelTest(TestCase):
             Investigation,
             InvestigationProject,
             InvestigationFavoriteUser,
+            InvestigationBlock,
+            InvestigationBlockDependency,
+            InvestigationBlockParameter,
+            InvestigationBlockExecution,
+            InvestigationBlockExecutionProject,
             InvestigationCell,
             InvestigationCellDependency,
             InvestigationParameter,
@@ -168,3 +180,26 @@ class InvestigationModelTest(TestCase):
             InvestigationCellExecutionProject,
         )
         assert all(model.__relocation_scope__ == RelocationScope.Excluded for model in models)
+
+    def test_block_schema_is_independent_from_cell_schema(self) -> None:
+        block = self.create_investigation_block(investigation=self.investigation)
+        parameter = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="project",
+            label="Project",
+            type="project",
+            position=0,
+        )
+        parameter_link = self.create_investigation_block_parameter(block=block, parameter=parameter)
+        execution = self.create_investigation_block_execution(
+            block=block,
+            executor="manual",
+            block_version=1,
+            input_fingerprint="b" * 64,
+        )
+
+        assert block._meta.db_table == "investigations_investigationblock"
+        assert block.investigation.blocks.get() == block
+        assert parameter_link.block == block
+        assert execution.block == block
+        assert self.cell.investigation.cells.get() == self.cell

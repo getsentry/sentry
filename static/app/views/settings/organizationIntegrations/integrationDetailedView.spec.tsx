@@ -150,8 +150,18 @@ describe('IntegrationDetailedView', () => {
       organization,
     });
     expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Overview'})).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
+  });
+
+  it('shows the selected tab in the breadcrumb while loading data', () => {
+    render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket'),
+      organization,
+    });
+
+    expect(screen.getByRole('heading', {name: 'Overview'})).toBeInTheDocument();
   });
 
   it('view configurations', async () => {
@@ -162,6 +172,7 @@ describe('IntegrationDetailedView', () => {
     expect(
       await screen.findByText('{fb715533-bbd7-4666-aa57-01dc93dd9cc0}')
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configurations'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
@@ -381,6 +392,16 @@ describe('IntegrationDetailedView', () => {
     });
     expect(await screen.findByText('overview')).toBeInTheDocument();
     expect(screen.queryByText('features')).not.toBeInTheDocument();
+  });
+
+  it('returns to overview when the selected integration does not support the tab', async () => {
+    const {router} = render(<IntegrationDetailedView />, {
+      initialRouterConfig: createRouterConfig('bitbucket', {tab: 'features'}),
+      organization,
+    });
+
+    expect(await screen.findByRole('heading', {name: 'Overview'})).toBeInTheDocument();
+    expect(router.location.query).toEqual({tab: 'features'});
   });
 
   it('renders alerts without crashing when variant is not provided', async () => {
