@@ -34,7 +34,9 @@ export function FeedbackSetupPanel() {
             height={{zero: '150px', lg: '185px'}}
             loading="eager"
             src={feedbackOnboardingImg}
-            alt={t("Illustration of a purple character pushing a wheelbarrow filled with feedback speech bubbles")}
+            alt={t(
+              'Illustration of a purple character pushing a wheelbarrow filled with feedback speech bubbles'
+            )}
           />
         }
         title={t('Set Up User Feedback')}
