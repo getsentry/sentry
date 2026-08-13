@@ -244,11 +244,13 @@ must contain the key, include it in the extracted evaluation value or implement 
 test the required custom orchestration.
 
 ### Example Threshold Evaluation
+
 Here's an illustration of how a threshold works; specifically how the `OK` result will
-reset the threshold counts. Note that if it the priority is de-escalating, it does *not*
-reset the threshold counts. See 
+reset the threshold counts. Note that if it the priority is de-escalating, it does _not_
+reset the threshold counts. See
 
 #### Detector Threshold Settings
+
 ```python
 @property
 def thresholds(self) -> DetectorThresholds:
@@ -258,9 +260,11 @@ def thresholds(self) -> DetectorThresholds:
         DetectorPriorityLevel.OK: 1
     }
 ```
+
 #### Example Evaluation Results
 
 ##### Example 1 - Consecutive Triggers
+
 ```python
 - DetectorPriorityLevel.HIGH
 - DetectorPriorityLevel.HIGH
@@ -268,6 +272,7 @@ def thresholds(self) -> DetectorThresholds:
 ```
 
 ##### Example 2 - OK resets thresholds
+
 ```python
 - DetectorPriorityLevel.HIGH
 - DetectorPriorityLevel.OK
@@ -279,6 +284,7 @@ def thresholds(self) -> DetectorThresholds:
 ```
 
 ##### Example 3 - De-escalation does _not_ reset thresholds
+
 ```python
 - DetectorPriorityLevel.OK
 - DetectorPriorityLevel.HIGH
@@ -288,6 +294,7 @@ def thresholds(self) -> DetectorThresholds:
 ```
 
 ##### Example 4 - Escalating detectors do _not_ reset thresholds
+
 ```python
 - DetectorPriorityLevel.LOW
 - DetectorPriorityLevel.HIGH
