@@ -4,13 +4,16 @@ from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.utils import registry
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
     DataConditionInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler
 
 
 class DataConditionGroupInput(TypedDict):
@@ -40,7 +43,15 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         break upon updating.
         """
         for condition in condition_data:
-            if (condition.get("type") in TRIGGER_CONDITIONS) and (
+            try:
+                condition_type = Condition(condition.get("type"))
+                condition_handler = condition_handler_registry.get(condition_type)
+            except (registry.NoRegistrationExistsError, ValueError):
+                raise serializers.ValidationError(
+                    f"Invalid condition type, '{condition.get('type')}'"
+                )
+
+            if (condition_handler.group == DataConditionHandler.Group.WORKFLOW_TRIGGER) and (
                 logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
             ):
                 raise serializers.ValidationError("Triggers' logic type must be 'any-short'")

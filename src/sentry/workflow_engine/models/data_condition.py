@@ -70,13 +70,6 @@ class Condition(StrEnum):
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
 
-TRIGGER_CONDITIONS = [
-    Condition.FIRST_SEEN_EVENT,
-    Condition.ISSUE_RESOLVED_TRIGGER,
-    Condition.REAPPEARED_EVENT,
-    Condition.REGRESSION_EVENT,
-]
-
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
