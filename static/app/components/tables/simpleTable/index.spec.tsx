@@ -3,7 +3,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 describe('SimpleTable component', () => {
-  it('renders headers andcells', () => {
+  it('renders headers and cells', () => {
     render(
       <SimpleTable
         header={
@@ -115,5 +115,44 @@ describe('SimpleTable component', () => {
 
     expect(header.tagName).toBe('TH');
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
+  });
+
+  it('renders a single spanning cell when given a full width row', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.FullWidthRow data-test-id="banner">Banner</SimpleTable.FullWidthRow>
+      </SimpleTable>
+    );
+
+    const row = screen.getByTestId('banner');
+
+    expect(within(row).getAllByRole('cell')).toHaveLength(1);
+    expect(within(row).getByRole('cell', {name: 'Banner'})).toBeInTheDocument();
+  });
+
+  it('renders the empty state as a cell when there are no rows', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Empty>No results</SimpleTable.Empty>
+      </SimpleTable>
+    );
+
+    expect(screen.getByRole('cell', {name: 'No results'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'No results'})
+    ).not.toBeInTheDocument();
   });
 });
