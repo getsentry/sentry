@@ -20,7 +20,7 @@ import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 
-import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
@@ -474,7 +474,7 @@ export function useChartXRangeSelection({
       return;
     }
 
-    return ToolBox(
+    return getToolBox(
       {
         show: false, // Prevent the toolbox from being shown, we enable selection on load
       },
