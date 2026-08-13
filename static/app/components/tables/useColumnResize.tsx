@@ -19,6 +19,7 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
 
 interface ColumnResizeState {
   columnIndex: number;
+  moved: boolean;
   width: number;
 }
 
@@ -55,7 +56,7 @@ export function useColumnResize<T extends HTMLElement>({
   );
 
   const onResizeStart = useCallback((columnIndex: number, cell: HTMLElement | null) => {
-    resizeStateRef.current = {columnIndex, width: cell?.offsetWidth ?? 0};
+    resizeStateRef.current = {columnIndex, moved: false, width: cell?.offsetWidth ?? 0};
   }, []);
 
   const onResizeMove = useCallback(
@@ -68,6 +69,7 @@ export function useColumnResize<T extends HTMLElement>({
       // Accumulated at full precision, but reported rounded: pointer deltas are
       // fractional on a scaled display, and a consumer may persist the width.
       state.width += delta;
+      state.moved = true;
 
       // Several pointer moves can land in one frame, and they would all write the
       // same template, so only the newest is kept.
@@ -91,6 +93,12 @@ export function useColumnResize<T extends HTMLElement>({
     // track widths through `getResizeTemplate` have no other chance to see the last one.
     cancelPendingFrame();
     resizeStateRef.current = null;
+
+    // A drag that never travelled along the axis has nothing to commit, and committing
+    // would pin an auto-sized column to the width it happened to have.
+    if (!state.moved) {
+      return;
+    }
 
     const width = Math.round(state.width);
     applyTemplate(getResizeTemplate(state.columnIndex, width));

@@ -127,6 +127,25 @@ describe('useColumnResize', () => {
     expect(onColumnResizeEnd).not.toHaveBeenCalled();
   });
 
+  it('does not commit a width when arrowed across the resize axis', async () => {
+    const onColumnResizeEnd = jest.fn();
+    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+
+    await userEvent.tab();
+    await userEvent.keyboard('{ArrowDown}');
+
+    expect(onColumnResizeEnd).not.toHaveBeenCalled();
+  });
+
+  it('does not commit a width when the drag never travelled along the axis', () => {
+    const onColumnResizeEnd = jest.fn();
+    render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
+
+    dragHandle(resizer(), {from: 100, to: 100, y: 60});
+
+    expect(onColumnResizeEnd).not.toHaveBeenCalled();
+  });
+
   // jsdom reports every element as zero-sized, so the geometry the resizer observes
   // has to be stubbed before the observers are triggered by hand.
   function stubGeometry({cell, table}: {cell: number; table: number}) {
