@@ -7,7 +7,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -33,7 +33,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
   }
 
   // create a markline series using hydrated flag data
-  const markLine = MarkLine({
+  const markLineOption = markLine({
     animation: false,
     lineStyle: {
       color: theme.colors.pink400,
@@ -94,7 +94,7 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
     id: 'flag-lines',
     data: [],
     color: theme.colors.pink400,
-    markLine,
+    markLine: markLineOption,
     type: 'line', // use this type so the bar chart doesn't shrink/grow
   };
 }

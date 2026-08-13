@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
@@ -30,7 +30,7 @@ export function useReleaseMarkLineSeries({
     return null;
   }
 
-  const markLine = MarkLine({
+  const markLineOption = markLine({
     animation: false,
     lineStyle: {
       color: theme.tokens.graphics.accent.vibrant,
@@ -90,7 +90,7 @@ export function useReleaseMarkLineSeries({
     id: 'release-lines',
     seriesName: t('Releases'),
     data: [],
-    markLine,
+    markLine: markLineOption,
     color: theme.tokens.graphics.accent.vibrant,
     type: 'line',
   };
