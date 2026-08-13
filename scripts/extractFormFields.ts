@@ -581,7 +581,7 @@ try {
 
   const outputPath = path.join(
     THIS_DIR,
-    '../static/app/components/core/form/generatedFieldRegistry.ts'
+    '../static/app/views/settings/generatedFieldRegistry.ts'
   );
 
   generateRegistryFile(fields, outputPath);
