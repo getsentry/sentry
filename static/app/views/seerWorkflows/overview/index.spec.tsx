@@ -133,12 +133,12 @@ describe('AutofixOverview', () => {
       observe(target: Element) {
         this.callback(
           [{target, isIntersecting: true} as IntersectionObserverEntry],
-          this as unknown as IntersectionObserver
+          this
         );
       }
       unobserve() {}
       disconnect() {}
-    } as unknown as typeof IntersectionObserver;
+    };
   });
   afterAll(() => {
     window.IntersectionObserver = OriginalIntersectionObserver;

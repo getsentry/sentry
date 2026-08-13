@@ -870,7 +870,7 @@ async function assertHighlightedRowAtIndex(
 
 describe('trace view', () => {
   beforeEach(() => {
-    globalThis.ResizeObserver = MockResizeObserver as any;
+    globalThis.ResizeObserver = MockResizeObserver;
     mockQueryString('');
     MockDate.reset();
 
@@ -1313,7 +1313,7 @@ describe('trace view', () => {
               ],
               toCompressedOffset: (timestamp: number) => timestamp - traceStart,
               toRealTimestamp: (offset: number) => traceStart + offset,
-            } as TraceTimeCompression;
+            };
           });
 
         try {

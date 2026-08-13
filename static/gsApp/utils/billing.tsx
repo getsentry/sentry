@@ -863,7 +863,7 @@ export function checkIsAddOnChildCategory(
  *
  * If the data category has no sibling categories, `checkReserved` is ignored and we return the parent add-on.
  */
-export function getParentAddOn(
+function getParentAddOn(
   subscription: Subscription | null,
   category: DataCategory,
   checkReserved: boolean

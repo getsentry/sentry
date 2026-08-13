@@ -22,6 +22,10 @@ from sentry.integrations.github.blame import (
     is_graphql_response,
 )
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
+from sentry.integrations.github.pull_request_status import (
+    create_pull_request_status_query,
+    extract_pull_request_statuses_from_response,
+)
 from sentry.integrations.github.utils import get_jwt, get_last_page_number, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -36,7 +40,12 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.source_code_management.status_check import StatusCheckClient
+from sentry.integrations.source_code_management.status_check import (
+    PullRequestStatusClient,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+    StatusCheckClient,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
@@ -53,6 +62,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.silo.base import control_silo_function
+from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
@@ -156,6 +166,7 @@ class GitHubApiRequestType(StrEnum):
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
     GET_PULL_REQUEST_FILES = "get_pull_request_files"
     GET_PULL_REQUEST_FROM_COMMIT = "get_pull_request_from_commit"
+    GET_PULL_REQUEST_STATUS = "get_pull_request_status"
     GET_RATE_LIMIT = "get_rate_limit"
     GET_REPO = "get_repo"
     GET_REPO_TREE = "get_repo_tree"
@@ -445,7 +456,12 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubBaseClient(
-    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+    GithubProxyClient,
+    RepositoryClient,
+    CommitContextClient,
+    RepoTreesClient,
+    StatusCheckClient,
+    PullRequestStatusClient,
 ):
     allow_redirects = True
 
@@ -1215,6 +1231,67 @@ class GitHubBaseClient(
             },
         )
 
+    def _get_pull_request_status_cache_key(self, pull_request: PullRequestStatusRequest) -> str:
+        cache_key_data: dict[str, str | bool] = {
+            "repo": pull_request.repo,
+            "pull_number": pull_request.pull_number,
+        }
+        if pull_request.include_files:
+            cache_key_data["include_files"] = True
+        cache_data = orjson.dumps(cache_key_data).decode()
+        return self.get_cache_key("/graphql/pull-request-status", "", cache_data)
+
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        """Return checks and review state, fetching all cache misses in one query."""
+        results: dict[PullRequestStatusRequest, PullRequestStatusResult] = {}
+        cache_keys: dict[PullRequestStatusRequest, str] = {}
+        uncached_pull_requests: list[PullRequestStatusRequest] = []
+
+        for pull_request in dict.fromkeys(pull_requests):
+            cache_key = self._get_pull_request_status_cache_key(pull_request)
+            cache_keys[pull_request] = cache_key
+            cached_result = self.check_cache(cache_key)
+            if isinstance(cached_result, PullRequestStatusResult):
+                results[pull_request] = cached_result
+            else:
+                uncached_pull_requests.append(pull_request)
+
+        if not uncached_pull_requests:
+            return results
+
+        data = create_pull_request_status_query(uncached_pull_requests)
+        response = self.post(
+            path="/graphql",
+            data=data,
+            allow_text=False,
+            api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_STATUS,
+        )
+
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                raise ApiError("\n".join(error.get("message", "") for error in errors))
+            logger.info(
+                "github.get_pull_request_statuses.partial_errors",
+                extra={"error_count": len(errors)},
+            )
+
+        fetched_results = extract_pull_request_statuses_from_response(
+            response, uncached_pull_requests
+        )
+        for pull_request, result in fetched_results.items():
+            # Short enough that checks still appear to advance while CI runs.
+            self.set_cache(cache_keys[pull_request], result, 60)
+        results.update(fetched_results)
+        return results
+
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/checks/runs#create-a-check-run
@@ -1257,10 +1334,29 @@ GITHUB_RATE_LIMIT_WINDOW = 3600
 GITHUB_RATE_LIMIT_CAPACITY = "x-ratelimit-limit"
 GITHUB_RATE_LIMIT_USED = "x-ratelimit-used"
 GITHUB_RATE_LIMIT_RESET = "x-ratelimit-reset"
+GITHUB_RATE_LIMIT_REMAINING = "x-ratelimit-remaining"
+GITHUB_RATE_LIMIT_STATUS_CODES = frozenset((403, 429))
 
 # Requests to this resource do not count against GitHub's primary rate limit, so our
 # internal rate limiter ignores them. https://docs.github.com/en/rest/rate-limit
 GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
+
+
+def is_rate_limit_response(response: Response) -> bool:
+    """Return True if GitHub rejected the request because a rate limit was exhausted."""
+    if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
+        return False
+    if response.status_code == 429:
+        return True
+    return response.headers.get(GITHUB_RATE_LIMIT_REMAINING) == "0"
+
+
+def resolve_upstream_path(request: PreparedRequest) -> str:
+    """Return the final path of the request."""
+    proxy_path = request.headers.get(PROXY_PATH)
+    if proxy_path:
+        return f"/{trim_leading_slashes(proxy_path)}"
+    return request.path_url
 
 
 class GitHubApiClient(GitHubBaseClient):
@@ -1323,7 +1419,11 @@ class GitHubApiClient(GitHubBaseClient):
         # The rate-limit resource is not itself rate limited by GitHub, so we skip the internal
         # rate limiter entirely. Counting these requests would both consume quota we don't owe and
         # pollute the recorded capacity with the rate-limit resource's own (unrelated) headers.
-        if request.path_url.partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
+        #
+        # The path has to be resolved rather than read off the request: in a cell silo the URL has
+        # already been rewritten to target the control silo proxy, so `path_url` names the proxy
+        # endpoint and never matches.
+        if resolve_upstream_path(request).partition("?")[0] == GITHUB_RATE_LIMIT_RESOURCE_PATH:
             return super()._do_send(session, request, session_settings)
 
         is_rate_limited = False
@@ -1350,10 +1450,11 @@ class GitHubApiClient(GitHubBaseClient):
             sentry_sdk.capture_exception(e)
 
         # QA metrics.
-        if is_rate_limited and response.status_code != 429:
+        was_rejected = is_rate_limit_response(response)
+        if is_rate_limited and not was_rejected:
             # We thought we exceeded our rate-limit but actually we didn't.
             metrics.incr("sentry.scm.github.rate_limit.false_positive")
-        elif response.status_code == 429 and not is_rate_limited:
+        elif was_rejected and not is_rate_limited:
             # We thought we had capacity but actually we didn't.
             metrics.incr("sentry.scm.github.rate_limit.false_negative")
 

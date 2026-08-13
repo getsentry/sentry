@@ -6,11 +6,12 @@ from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 
 class TeamProjectsListTest(APITestCase):
@@ -135,15 +136,14 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        rule = Rule.objects.get(project=project)
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
 
-        assert (
-            rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
-        )
-
-        # Ensure that creating the default alert rule does trigger the
+        # Ensure that creating the default workflow does not trigger the
         # alert_rule_created signal
-        assert signal_handler.call_count == 1
+        assert signal_handler.call_count == 0
         alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self) -> None:

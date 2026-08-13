@@ -16,6 +16,7 @@ from sentry.issue_detection.detectors.span_first.run_detectors import (
     run_detector,
     run_span_first_detectors,
 )
+from sentry.issue_detection.performance_detection import get_detection_settings
 from sentry.issue_detection.performance_problem import PerformanceProblem, PerformanceProblemDict
 from sentry.issue_detection.types import StandaloneSpan
 from sentry.issues.grouptype import (
@@ -145,7 +146,7 @@ class RunSpanFirstDetectorsTest(TestCase):
                 [SLOW_DB_SLUG, N_PLUS_ONE_API_SLUG],
                 dummy_segment[0],
                 dummy_segment,
-                self.project,
+                get_detection_settings(self.project),
             )
 
             assert set(span_first_problems_by_grouptype.keys()) == {

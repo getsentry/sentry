@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
@@ -91,6 +91,95 @@ describe('PreprodBuildsTable', () => {
     expect(
       screen.queryByRole('link', {name: /Non Installable App/})
     ).not.toBeInTheDocument();
+  });
+
+  it('renders install groups in distribution rows', () => {
+    const buildWithOneGroup = {
+      ...baseBuild,
+      distribution_info: {
+        ...baseBuild.distribution_info,
+        install_groups: ['internal'],
+      },
+    };
+    const buildWithThreeGroups = {
+      ...baseBuild,
+      id: 'build-2',
+      distribution_info: {
+        ...baseBuild.distribution_info,
+        install_groups: ['qa', 'beta', 'release-candidate'],
+      },
+    };
+
+    render(
+      <PreprodBuildsTable
+        builds={[buildWithOneGroup, buildWithThreeGroups]}
+        display={PreprodBuildsDisplay.DISTRIBUTION}
+        isLoading={false}
+        organizationSlug={organization.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('internal')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.getByText('release-candidate')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/more install groups/)).not.toBeInTheDocument();
+  });
+
+  it('collapses install groups beyond the visible limit', async () => {
+    const buildWithManyGroups = {
+      ...baseBuild,
+      distribution_info: {
+        ...baseBuild.distribution_info,
+        install_groups: ['internal', 'qa', 'beta', 'design-review', 'release-candidate'],
+      },
+    };
+
+    render(
+      <PreprodBuildsTable
+        builds={[buildWithManyGroups]}
+        display={PreprodBuildsDisplay.DISTRIBUTION}
+        isLoading={false}
+        organizationSlug={organization.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('internal')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.queryByText('design-review')).not.toBeInTheDocument();
+    expect(screen.queryByText('release-candidate')).not.toBeInTheDocument();
+
+    const overflow = screen.getByLabelText('2 more install groups');
+    expect(overflow).toHaveTextContent('+2');
+
+    await userEvent.hover(overflow);
+    expect(
+      await screen.findByText('design-review, release-candidate')
+    ).toBeInTheDocument();
+  });
+
+  it('does not render install groups in the size view', () => {
+    const buildWithGroup = {
+      ...baseBuild,
+      distribution_info: {
+        ...baseBuild.distribution_info,
+        install_groups: ['internal'],
+      },
+    };
+
+    render(
+      <PreprodBuildsTable
+        builds={[buildWithGroup]}
+        isLoading={false}
+        organizationSlug={organization.slug}
+      />,
+      {organization}
+    );
+
+    expect(screen.queryByText('internal')).not.toBeInTheDocument();
   });
 
   it('prefers build_number_raw over the synthesized build_number', () => {

@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 import type {RefObject} from 'react';
 import {css, keyframes} from '@emotion/react';
 import {useReducedMotion} from 'framer-motion';
@@ -90,6 +90,45 @@ export function useStreamingAnimation(
       activeAnimations = [];
     };
   }, [containerRef, enabled, prefersReducedMotion]);
+}
+
+/**
+ * Runs the glyph-decode reveal on a single element whenever `key` changes.
+ *
+ * Unlike `useStreamingAnimation` (which observes a container of streaming
+ * block children), this targets one element whose text is swapped wholesale —
+ * e.g. a status/title label that updates in place.
+ *
+ * The caller MUST key the target element by the same value passed as `key`
+ * (e.g. `<span key={title} ref={ref}>{title}</span>`). `animateElement`
+ * replaces the element's text node with per-glyph spans, so React must remount
+ * the element on change rather than patch the now-mutated text node.
+ *
+ * The initial mount is skipped so the effect only fires on subsequent changes.
+ * Requires `streamingAnimationStyles` to be present in the tree.
+ */
+export function useTextDecodeAnimation(
+  ref: RefObject<HTMLElement | null>,
+  key: unknown
+): void {
+  const prefersReducedMotion = useReducedMotion();
+  const isInitial = useRef(true);
+
+  useLayoutEffect(() => {
+    if (isInitial.current) {
+      isInitial.current = false;
+      return;
+    }
+    if (prefersReducedMotion) {
+      return;
+    }
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    const animation = animateElement(element);
+    return () => animation.destroy();
+  }, [ref, key, prefersReducedMotion]);
 }
 
 const STAGGER_MS = 8;

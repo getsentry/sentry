@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
@@ -145,18 +146,51 @@ def get_eap_organization_volume(
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
 
+def get_recalibration_organization_volume(
+    config: OrganizationVolumeConfig,
+    eap_volume: OrganizationDataVolume | None,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
+) -> OrganizationDataVolume | None:
+    if eap_volume is None or eap_volume.indexed is None:
+        return None
+
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
+    if outcomes_volume is None:
+        return None
+
+    return OrganizationDataVolume(
+        org_id=config.organization.id,
+        total=outcomes_volume.total,
+        indexed=eap_volume.indexed,
+    )
+
+
 def get_outcomes_organization_volume(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     end_time = end or datetime.now(UTC)
+
+    # The outcomes query widens its window outwards to whole intervals. Minute resolution
+    # keeps a short window from covering a whole hour, but it cannot be used throughout: it is
+    # capped at MAX_POINTS intervals, which a 24-hour window is rejected for. The end is
+    # truncated to the resolution so that nothing is widened and the window covers the
+    # interval that was asked for, rather than up to one resolution step more.
+    if time_interval >= timedelta(hours=1):
+        interval = "1h"
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+    else:
+        interval = "1m"
+        end_time = end_time.replace(second=0, microsecond=0)
     start_time = end_time - time_interval
 
     query = QueryDefinition(
         fields=["sum(quantity)"],
         start=start_time.isoformat(),
         end=end_time.isoformat(),
+        interval=interval,
         organization_id=config.organization.id,
         project_ids=[project.id for project in config.projects],
         outcome=["accepted"],
@@ -178,8 +212,6 @@ def get_generic_metrics_organization_volume(
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
-
     end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 

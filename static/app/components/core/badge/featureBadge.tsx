@@ -39,7 +39,7 @@ const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
 
 export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental' | 'debug';
-  tooltipProps?: Partial<TooltipProps>;
+  tooltipProps?: Omit<Partial<TooltipProps>, 'isHoverable' | 'skipWrapper'>;
 }
 
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
@@ -53,10 +53,11 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
       title={title}
       position="right"
       {...tooltipProps}
+      isHoverable
+      skipWrapper
       forceVisible={
         isInteractiveElementFocusVisible ? 'delayed' : tooltipProps?.forceVisible
       }
-      skipWrapper
     >
       <SquareTag
         {...props}

@@ -213,7 +213,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
   grid-template-areas: 'star name project envs query creator last-visited created stars actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto auto 48px;
+    auto auto auto minmax(80px, max-content) 48px;
 
   ${p =>
     p.hideCreatedBy &&
@@ -221,7 +221,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
       grid-template-areas: 'star name project envs query last-visited created stars actions';
       grid-template-columns:
         40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-        auto auto 48px;
+        auto auto minmax(80px, max-content) 48px;
     `}
 
   @container (max-width: ${p => p.theme.container['3xl']}) {
@@ -231,7 +231,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
     ${p =>
       p.hideCreatedBy &&
       css`
-        grid-template-areas: 'star name project query creator actions';
+        grid-template-areas: 'star name project query actions';
         grid-template-columns: 40px 20% minmax(auto, 120px) minmax(0, 1fr) 48px;
       `}
 

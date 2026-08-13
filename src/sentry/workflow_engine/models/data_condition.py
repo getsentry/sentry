@@ -38,13 +38,14 @@ class Condition(StrEnum):
     EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
+    EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
     ISSUE_OPEN_DURATION = "issue_open_duration"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
     ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
@@ -64,9 +65,6 @@ class Condition(StrEnum):
     EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
-
-    # Migration Only
-    EVERY_EVENT = "every_event"
 
     # Activity trigger conditions
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
