@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'framer-motion';
 import debounce from 'lodash/debounce';
-import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -32,8 +31,10 @@ import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
+  platformOptionGroups,
   platformOptions,
   shouldSuggestFramework,
+  toPlatformOption,
   toSelectedSdk,
 } from './scmPlatformHelpers';
 import {ScmSearchControl} from './scmSearchControl';
@@ -330,36 +331,31 @@ export function ScmPlatformFeaturesCore({
 
   // Ensure the selected platform is always present in the dropdown options
   // so the Select can resolve and display it. When the framework suggestion
-  // modal picks a key not in the static list, prepend it.
-  const manualPickerOptions = useMemo(() => {
+  // modal picks a key not in the static list, prepend it in an unlabeled
+  // section (the Select's groupHeading style hides empty headings).
+  const manualPickerOptionGroups = useMemo(() => {
     const key = currentPlatformKey;
     if (!key || platformOptions.some(o => o.value === key)) {
-      return platformOptions;
+      return platformOptionGroups;
     }
     const info = getPlatformInfo(key);
     if (!info) {
-      return platformOptions;
+      return platformOptionGroups;
     }
-    return [
-      {
-        value: info.id,
-        label: info.name,
-        textValue: `${info.name} ${info.id}`,
-        leadingItems: <PlatformIcon platform={info.id} size={16} alt="" />,
-      },
-      ...platformOptions,
-    ];
+    return [{label: '', options: [toPlatformOption(info)]}, ...platformOptionGroups];
   }, [currentPlatformKey]);
 
   const manualPickerFilteredOptions = useMemo(
     () =>
-      manualPickerOptions.filter(option =>
-        matchesPlatformOption(
-          {label: option.label, value: option.value, data: option},
-          manualPickerFilter
-        )
-      ),
-    [manualPickerFilter, manualPickerOptions]
+      manualPickerOptionGroups
+        .flatMap(group => group.options)
+        .filter(option =>
+          matchesPlatformOption(
+            {label: option.label, value: option.value, data: option},
+            manualPickerFilter
+          )
+        ),
+    [manualPickerFilter, manualPickerOptionGroups]
   );
 
   const latestSearchValuesRef = useRef({
@@ -515,7 +511,7 @@ export function ScmPlatformFeaturesCore({
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={manualPickerOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
@@ -526,7 +522,7 @@ export function ScmPlatformFeaturesCore({
       ) : (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={manualPickerOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}

@@ -2,7 +2,9 @@ import {PlatformIcon} from 'platformicons';
 
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {popularPlatformCategories} from 'sentry/data/platformPickerCategories';
 import {platforms} from 'sentry/data/platforms';
+import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
@@ -33,14 +35,36 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-export const platformOptions = platforms
-  .toSorted((a, b) => comparePlatformNames(a.name, b.name))
-  .map(platform => ({
-    value: platform.id,
-    label: platform.name,
-    textValue: `${platform.name} ${platform.id}`,
-    leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
-  }));
+export const toPlatformOption = (platform: PlatformIntegration) => ({
+  value: platform.id,
+  label: platform.name,
+  textValue: `${platform.name} ${platform.id}`,
+  leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
+});
+
+// A flat A-Z list buries the platforms most users want, and a popularity sort
+// reads as random without a visible boundary. Section the dropdown instead:
+// the existing curated Popular list first (same order as the legacy Popular
+// tab), then everything else under a labeled heading, ordered like the legacy
+// picker's All tab.
+export const platformOptionGroups = [
+  {
+    label: t('Popular'),
+    options: Array.from(popularPlatformCategories)
+      .map(key => platformsByKey.get(key))
+      .filter(platform => platform !== undefined)
+      .map(toPlatformOption),
+  },
+  {
+    label: t('Other platforms'),
+    options: platforms
+      .filter(platform => !popularPlatformCategories.has(platform.id))
+      .toSorted((a, b) => comparePlatformNames(a.name, b.name))
+      .map(toPlatformOption),
+  },
+].filter(group => group.options.length > 0);
+
+export const platformOptions = platformOptionGroups.flatMap(group => group.options);
 
 export function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
