@@ -18,8 +18,8 @@ import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
-import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
   evidenceButtonProps: EvidenceButtonProps;
@@ -111,7 +111,10 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -157,7 +160,10 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -192,7 +198,10 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -219,7 +228,10 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -246,7 +258,10 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }

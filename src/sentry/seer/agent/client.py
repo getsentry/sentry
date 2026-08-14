@@ -540,6 +540,8 @@ class SeerAgentClient:
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        force_ce: bool | None = None,
+        force_frontend_code_search: bool | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -556,6 +558,9 @@ class SeerAgentClient:
 
         flush=False: leave the row for the async outbox runner to drain and
         retry. Use for background callers (e.g. night shift).
+
+        force_ce if set forces context engine on/off, force_frontend_code_search
+        likewise for frontend source code search.
         """
         user_id = (
             self.user.id
@@ -582,7 +587,10 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(),
+                agent_run_options=self._build_agent_run_options(
+                    force_ce=force_ce,
+                    force_frontend_code_search=force_frontend_code_search,
+                ),
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -611,8 +619,18 @@ class SeerAgentClient:
             "organizations:seer-explorer-embeds", self.organization, actor=self.user
         )
 
-    def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
-        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
+    def _build_agent_run_options(
+        self,
+        *,
+        override_ce_enable: bool = True,
+        force_ce: bool | None = None,
+        force_frontend_code_search: bool | None = None,
+    ) -> dict[str, Any]:
+        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run.
+
+        force_ce if set forces context engine on/off, force_frontend_code_search
+        likewise for frontend source code search.
+        """
         opts: dict[str, Any] = {}
 
         if _has_context_engine(self.organization, self.user):
@@ -626,6 +644,9 @@ class SeerAgentClient:
         ):
             opts["is_context_engine_enabled"] = override_ce_enable
 
+        if force_ce is not None:
+            opts["is_context_engine_enabled"] = force_ce
+
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
@@ -633,12 +654,8 @@ class SeerAgentClient:
         ):
             opts["enable_frontend_code_search"] = True
 
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["use_agent_sandbox"] = True
+        if force_frontend_code_search is not None:
+            opts["enable_frontend_code_search"] = force_frontend_code_search
 
         if features.has(
             "organizations:seer-explorer-thinking-summary",
@@ -775,13 +792,6 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["enable_frontend_code_search"] = True
-
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["use_agent_sandbox"] = True
 
         if features.has(
             "organizations:seer-explorer-thinking-summary",

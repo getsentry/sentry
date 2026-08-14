@@ -293,6 +293,17 @@ class TestStoppingPointFromRun(TestCase):
             == AutofixStoppingPoint.CODE_CHANGES.value
         )
 
+    def test_matches_runs_created_with_the_autofix_source(self) -> None:
+        self._create_run(
+            123,
+            extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value},
+            source="autofix",
+        )
+        assert (
+            _stopping_point_from_run(self.organization, 123)
+            == AutofixStoppingPoint.CODE_CHANGES.value
+        )
+
     def test_is_scoped_to_the_organization(self) -> None:
         self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
         assert _stopping_point_from_run(self.create_organization(), 123) is None
@@ -307,6 +318,13 @@ class TestStoppingPointFromRun(TestCase):
 
     def test_group_and_referrer_returns_autofix_rca_context(self) -> None:
         self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value})
+        assert _group_and_referrer_from_run(self.organization, 123) == (
+            self.group.id,
+            AutofixReferrer.WEB,
+        )
+
+    def test_group_and_referrer_matches_the_autofix_source(self) -> None:
+        self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value}, source="autofix")
         assert _group_and_referrer_from_run(self.organization, 123) == (
             self.group.id,
             AutofixReferrer.WEB,
