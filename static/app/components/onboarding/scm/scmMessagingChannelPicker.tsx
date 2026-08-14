@@ -42,17 +42,20 @@ export function ScmMessagingChannelPicker({
 
   const {channelSelectedBy} = providerDetails[providerKey];
 
-  const [channel, setChannel] = useState<IntegrationChannel | undefined>(() => {
-    if (existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey) {
-      // Seed by whatever field this provider's options are keyed on. Seeding the
-      // wrong one resolves to no option and handleSave rewrites the identifiers.
-      return {
-        label: existingSetup.channelName,
-        value: existingSetup[channelSelectedBy],
-      };
-    }
-    return;
-  });
+  // The saved destination we're editing, if any. Drives both the dropdown seed
+  // and the preserve-on-no-op-save logic below.
+  const savedSelection =
+    existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey
+      ? existingSetup
+      : undefined;
+
+  const [channel, setChannel] = useState<IntegrationChannel | undefined>(() =>
+    // Seed by whatever field this provider's options are keyed on. Seeding the
+    // wrong one resolves to no option and handleSave rewrites the identifiers.
+    savedSelection
+      ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
+      : undefined
+  );
 
   const providersToIntegrations = useMemo(
     () => ({[providerKey]: [integration]}),
@@ -97,10 +100,23 @@ export function ScmMessagingChannelPicker({
           (ch: Channel) => ch[RAW_CHANNEL_FIELD[channelSelectedBy]] === channel.value
         );
 
-    const stored = {
-      channelId: rawChannel?.id ?? channel.value,
-      channelName: rawChannel?.display ?? channel.value,
-    };
+    // Prefer the resolved raw channel. If it can't be resolved (empty/errored
+    // /channels/ or a dropped channel) but the selection is unchanged, keep the
+    // stored identifiers — otherwise id-keyed providers (msteams, discord) would
+    // overwrite channelName with the id and break name-based revalidation. A new
+    // value falls through to itself.
+    let stored: {channelId: string; channelName: string};
+
+    if (rawChannel) {
+      stored = {channelId: rawChannel.id, channelName: rawChannel.display};
+    } else if (savedSelection && channel.value === savedSelection[channelSelectedBy]) {
+      stored = {
+        channelId: savedSelection.channelId,
+        channelName: savedSelection.channelName,
+      };
+    } else {
+      stored = {channelId: channel.value, channelName: channel.value};
+    }
 
     onConfigured({
       mode: 'selected',

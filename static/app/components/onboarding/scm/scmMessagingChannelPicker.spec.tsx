@@ -37,6 +37,20 @@ const discordIntegration = OrganizationIntegrationsFixture({
   },
 });
 
+const msteamsIntegration = OrganizationIntegrationsFixture({
+  id: '30',
+  name: 'test-team',
+  provider: {
+    key: 'msteams',
+    slug: 'msteams',
+    name: 'MS Teams',
+    canAdd: true,
+    canDisable: false,
+    features: [],
+    aspects: {},
+  },
+});
+
 // Both providers format `display` as `#{name}`; only `id` distinguishes them,
 // which is what makes the name/ID mixup easy to write and hard to spot.
 const slackChannel = {id: 'C123', name: 'general', display: '#general', type: 'channel'};
@@ -96,6 +110,14 @@ const selectedSlackSetup: ScmMessagingSetup = {
   integrationId: '10',
   channelId: 'C123',
   channelName: '#general',
+};
+
+const selectedMsTeamsSetup: ScmMessagingSetup = {
+  mode: 'selected',
+  providerKey: 'msteams',
+  integrationId: '30',
+  channelId: '19:abc123@thread.tacv2',
+  channelName: 'General',
 };
 
 describe('ScmMessagingChannelPicker', () => {
@@ -206,6 +228,47 @@ describe('ScmMessagingChannelPicker', () => {
         providerKey: 'slack',
         integrationId: '10',
         channelId: 'C123',
+        channelName: '#general',
+      });
+    });
+
+    it('preserves stored MS Teams identifiers when the channel list is empty', async () => {
+      // msteams selects by id but validates by name, so overwriting channelName
+      // with the id (the fallback when the list can't resolve the selection)
+      // breaks revalidation. An empty /channels/ must not corrupt the saved name.
+      mockChannels('30', []);
+      const {onConfigured} = renderPicker({
+        integration: msteamsIntegration,
+        existingSetup: selectedMsTeamsSetup,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith({
+        mode: 'selected',
+        providerKey: 'msteams',
+        integrationId: '30',
+        channelId: '19:abc123@thread.tacv2',
+        channelName: 'General',
+      });
+    });
+
+    it('preserves stored Discord identifiers when the saved channel is absent from the list', async () => {
+      // /channels/ no longer returns the saved channel; a no-op re-save must keep
+      // the stored name rather than overwrite it with the id.
+      mockChannels('20', []);
+      const {onConfigured} = renderPicker({
+        integration: discordIntegration,
+        existingSetup: selectedDiscordSetup,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith({
+        mode: 'selected',
+        providerKey: 'discord',
+        integrationId: '20',
+        channelId: '1234567890',
         channelName: '#general',
       });
     });
