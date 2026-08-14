@@ -6,23 +6,14 @@ from redis import RedisError
 
 from sentry.utils import redis
 
-# Providers meter several independent quota pools. GitHub, for example, meters `core`,
-# `search`, and `graphql` separately, with limits that differ by two orders of magnitude.
-# Callers that do not distinguish between pools fall back to this one.
-DEFAULT_RESOURCE = "core"
-
 
 def usage_count_key(
-    provider: str,
-    integration_id: int,
-    time_bucket: int,
-    referrer: str,
-    resource: str = DEFAULT_RESOURCE,
+    provider: str, integration_id: int, time_bucket: int, referrer: str, resource: str
 ) -> str:
     return f"rl:scm:{provider}:{integration_id}:{resource}:{referrer}:{time_bucket}"
 
 
-def total_limit_key(provider: str, integration_id: int, resource: str = DEFAULT_RESOURCE) -> str:
+def total_limit_key(provider: str, integration_id: int, resource: str) -> str:
     return f"limit:scm:{provider}:{integration_id}:{resource}"
 
 
@@ -101,7 +92,7 @@ class DynamicRateLimiter:
         """Return the length of the rate-limit window for a resource."""
         return self.resource_windows.get(resource, self.rate_limit_window_seconds)
 
-    def is_rate_limited(self, referrer: str, resource: str = DEFAULT_RESOURCE) -> bool:
+    def is_rate_limited(self, referrer: str, resource: str) -> bool:
         """
         Returns true if the quota for this organization has been exhausted.
 
@@ -159,12 +150,12 @@ class DynamicRateLimiter:
         capacity: int,
         consumed: int,
         next_window_start: int,
-        resource: str = DEFAULT_RESOURCE,
+        resource: str,
     ) -> None:
         """Update the store with select rate-limit metadata."""
         self.set_total_capacity(capacity, resource)
 
-    def set_total_capacity(self, capacity: int, resource: str = DEFAULT_RESOURCE) -> None:
+    def set_total_capacity(self, capacity: int, resource: str) -> None:
         """Set the service capacity if it does not match what already exists."""
         if capacity != self.recorded_capacity.get(resource):
             key = total_limit_key(self.provider, self.integration_id, resource)

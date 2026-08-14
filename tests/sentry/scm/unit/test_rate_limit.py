@@ -86,7 +86,7 @@ class TestIsRateLimited:
             get_and_set_return=(100, 10),
             referrer_allocation={"my_referrer": 1.0},
         )
-        assert limiter.is_rate_limited("my_referrer") is False
+        assert limiter.is_rate_limited("my_referrer", "default") is False
 
     def test_allocated_referrer_exhausted_quota(self) -> None:
         """Referrer at quota limit is rate limited."""
@@ -94,22 +94,22 @@ class TestIsRateLimited:
             get_and_set_return=(10, 11),
             referrer_allocation={"my_referrer": 1.0},
         )
-        assert limiter.is_rate_limited("my_referrer") is True
+        assert limiter.is_rate_limited("my_referrer", "default") is True
 
     def test_shared_referrer_with_excess_quota(self) -> None:
         """Shared referrer with remaining quota is not rate limited."""
         limiter, _ = make_limiter(get_and_set_return=(100, 10))
-        assert limiter.is_rate_limited("shared") is False
+        assert limiter.is_rate_limited("shared", "default") is False
 
     def test_shared_referrer_exhausted_quota(self) -> None:
         """Shared referrer at quota limit is rate limited."""
         limiter, _ = make_limiter(get_and_set_return=(10, 11))
-        assert limiter.is_rate_limited("shared") is True
+        assert limiter.is_rate_limited("shared", "default") is True
 
     def test_unknown_referrer_exhausted_shared_quota(self) -> None:
         """Shared referrer at quota limit is rate limited."""
         limiter, _ = make_limiter(get_and_set_return=(10, 11))
-        assert limiter.is_rate_limited("abc") is True
+        assert limiter.is_rate_limited("abc", "default") is True
 
     def test_fails_open_when_limit_not_set(self) -> None:
         """Rate limit fails open if no limit is cached."""
@@ -117,13 +117,13 @@ class TestIsRateLimited:
             get_and_set_return=(None, 100_000_000),
             referrer_allocation={"my_referrer": 0.000000001},
         )
-        assert limiter.is_rate_limited("my_referrer") is False
+        assert limiter.is_rate_limited("my_referrer", "default") is False
 
     def test_caches_recorded_capacity_after_check(self) -> None:
         """is_rate_limited stores the service capacity on the instance, keyed by resource."""
         limiter, _ = make_limiter(get_and_set_return=(500, 1))
-        limiter.is_rate_limited("shared")
-        assert limiter.recorded_capacity == {"core": 500}
+        limiter.is_rate_limited("shared", "default")
+        assert limiter.recorded_capacity == {"default": 500}
 
     def test_fully_reserved_quota(self) -> None:
         """Assert fully allocated referrer pool exhausts shared referrer by default."""
@@ -131,7 +131,7 @@ class TestIsRateLimited:
             get_and_set_return=(100, 10),
             referrer_allocation={"my_referrer": 1.0},
         )
-        assert limiter.is_rate_limited("shared") is True
+        assert limiter.is_rate_limited("shared", "default") is True
 
     def test_reads_capacity_and_usage_scoped_to_the_resource(self) -> None:
         """Each resource must consult its own capacity and its own usage counter."""
@@ -222,21 +222,21 @@ class TestSetTotalCapacity:
     def test_writes_capacity_when_no_prior_value(self) -> None:
         """Capacity is written when the resource has no recorded capacity."""
         limiter, provider = make_limiter()
-        limiter.set_total_capacity(5000)
-        assert provider.set_kvs == {"limit:scm:github:1:core": (5000, None)}
+        limiter.set_total_capacity(5000, "default")
+        assert provider.set_kvs == {"limit:scm:github:1:default": (5000, None)}
 
     def test_writes_capacity_when_value_differs(self) -> None:
         """Capacity is written when it differs from the resource's recorded capacity."""
         limiter, provider = make_limiter()
         limiter.recorded_capacity["core"] = 1000
-        limiter.set_total_capacity(5000)
-        assert provider.set_kvs == {"limit:scm:github:1:core": (5000, None)}
+        limiter.set_total_capacity(5000, "default")
+        assert provider.set_kvs == {"limit:scm:github:1:default": (5000, None)}
 
     def test_skips_write_when_capacity_matches(self) -> None:
         """No write occurs when capacity matches the resource's recorded capacity."""
         limiter, provider = make_limiter()
-        limiter.recorded_capacity["core"] = 5000
-        limiter.set_total_capacity(5000)
+        limiter.recorded_capacity["default"] = 5000
+        limiter.set_total_capacity(5000, "default")
         assert provider.set_kvs == {}
 
     def test_writes_capacity_to_the_resource_key(self) -> None:
@@ -258,7 +258,7 @@ class TestSetTotalCapacity:
     def test_caches_written_capacity(self) -> None:
         """A repeated write of the same capacity is elided."""
         limiter, provider = make_limiter()
-        limiter.set_total_capacity(5000)
+        limiter.set_total_capacity(5000, "default")
         provider.set_kvs.clear()
-        limiter.set_total_capacity(5000)
+        limiter.set_total_capacity(5000, "default")
         assert provider.set_kvs == {}

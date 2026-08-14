@@ -13,8 +13,8 @@ class TestRedisRateLimitProviderGetAndSet(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = RedisRateLimitProvider()
-        self.total_key = total_limit_key("github", self.organization.id)
-        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared")
+        self.total_key = total_limit_key("github", self.organization.id, "default")
+        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared", "default")
         client = _client()
         client.delete(self.total_key)
         client.delete(self.usage_key)
@@ -54,8 +54,8 @@ class TestRedisRateLimitProviderGetAccountedUsage(TestCase):
         super().setUp()
         self.provider = RedisRateLimitProvider()
         self.keys = [
-            usage_count_key("github", self.organization.id, 1000, "emerge"),
-            usage_count_key("github", self.organization.id, 1000, "autofix"),
+            usage_count_key("github", self.organization.id, 1000, "emerge", "default"),
+            usage_count_key("github", self.organization.id, 1000, "autofix", "default"),
         ]
         client = _client()
         for key in self.keys:
@@ -82,8 +82,8 @@ class TestRedisRateLimitProviderSetKeyValues(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = RedisRateLimitProvider()
-        self.limit_key = total_limit_key("github", self.organization.id)
-        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared")
+        self.limit_key = total_limit_key("github", self.organization.id, "default")
+        self.usage_key = usage_count_key("github", self.organization.id, 1000, "shared", "default")
         client = _client()
         client.delete(self.limit_key)
         client.delete(self.usage_key)
