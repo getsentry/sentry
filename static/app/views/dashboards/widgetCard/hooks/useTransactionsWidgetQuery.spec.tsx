@@ -6,7 +6,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
@@ -74,7 +73,7 @@ describe('useTransactionsSeriesQuery', () => {
     });
   });
 
-  it('makes a request to the metrics enhanced dataset with the correct mep state', async () => {
+  it('uses the transactions dataset even when mep state would have enabled metrics', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
@@ -102,7 +101,6 @@ describe('useTransactionsSeriesQuery', () => {
         organization,
         pageFilters,
         enabled: true,
-        mepSetting: MEPState.AUTO,
       })
     );
 
@@ -111,7 +109,7 @@ describe('useTransactionsSeriesQuery', () => {
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.TRANSACTIONS,
           }),
         })
       );
@@ -174,7 +172,7 @@ describe('useTransactionsTableQuery', () => {
     });
   });
 
-  it('makes a request to the metrics enhanced dataset with the correct mep state', async () => {
+  it('uses the transactions dataset even when mep state would have enabled metrics', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.TABLE,
       queries: [
@@ -202,7 +200,6 @@ describe('useTransactionsTableQuery', () => {
         organization,
         pageFilters,
         enabled: true,
-        mepSetting: MEPState.AUTO,
       })
     );
 
@@ -211,7 +208,7 @@ describe('useTransactionsTableQuery', () => {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.TRANSACTIONS,
           }),
         })
       );

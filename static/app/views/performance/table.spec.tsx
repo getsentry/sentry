@@ -326,7 +326,7 @@ describe('Performance > Table', () => {
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', async () => {
+    it('does not send metrics dataset params', async () => {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -341,7 +341,6 @@ describe('Performance > Table', () => {
           setError={jest.fn()}
           summaryConditions=""
           projects={data.projects}
-          isMEPEnabled
         />
       );
 
@@ -366,7 +365,6 @@ describe('Performance > Table', () => {
               'count_miserable(user)',
               'user_misery()',
             ],
-            dataset: 'metrics',
             per_page: 50,
             project: ['1', '2'],
             query: 'event.type:transaction transaction:/api*',
@@ -376,6 +374,7 @@ describe('Performance > Table', () => {
           }),
         })
       );
+      expect(eventsMock.mock.calls[0][1].query.dataset).toBeUndefined();
     });
   });
 });

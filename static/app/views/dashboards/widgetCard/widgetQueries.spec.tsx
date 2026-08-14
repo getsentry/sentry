@@ -701,7 +701,7 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('charts send metricsEnhanced requests', async () => {
+  it('charts do not send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -745,7 +745,7 @@ describe('Dashboards > WidgetQueries', () => {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'discover'}),
       })
     );
 
@@ -754,12 +754,12 @@ describe('Dashboards > WidgetQueries', () => {
     });
   });
 
-  it('tables send metricsEnhanced requests', async () => {
+  it('tables do not send metricsEnhanced requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        meta: {title: 'string', isMetricsData: true},
+        meta: {title: 'string', isMetricsData: false},
         data: [{title: 'ValueError'}],
       },
     });
@@ -789,12 +789,12 @@ describe('Dashboards > WidgetQueries', () => {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'discover'}),
       })
     );
 
     await waitFor(() => {
-      expect(setIsMetricsMock).toHaveBeenCalledWith(true);
+      expect(setIsMetricsMock).toHaveBeenCalledWith(false);
     });
   });
 

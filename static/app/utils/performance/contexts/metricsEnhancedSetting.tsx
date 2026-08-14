@@ -57,17 +57,10 @@ export enum MEPState {
 const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
-export function canUseMetricsData(organization: Organization) {
-  const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
-
-  // For plans transitioning from AM2 to AM3, we still want to show metrics
-  // until 90d after 100% transaction ingestion to avoid spikes in charts
-  // coming from old sampling rates.
-  const isTransitioningPlan = organization.features.includes(
-    'dashboards-metrics-transition'
-  );
-
-  return isRollingOut || isTransitioningPlan;
+export function canUseMetricsData(_organization: Organization) {
+  // Generic metrics performance data is no longer used for landing pages,
+  // dashboards, or other MEP UI. Always query the transactions dataset.
+  return false;
 }
 
 export function MEPSettingProvider({
@@ -131,7 +124,13 @@ export function MEPSettingProvider({
     AutoSampleState.UNSET
   );
 
-  const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
+  // When metrics are unavailable, always stay on the transactions path even if a
+  // caller tries to force metrics-only via props or query params.
+  const metricSettingState = canUseMEP
+    ? isControlledMEP
+      ? _hasMEPState
+      : _metricSettingState
+    : MEPState.TRANSACTIONS_ONLY;
 
   const shouldQueryProvideMEPAutoParams =
     canUseMEP && metricSettingState === MEPState.AUTO;

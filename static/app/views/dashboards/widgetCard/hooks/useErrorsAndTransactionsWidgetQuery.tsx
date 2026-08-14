@@ -11,7 +11,6 @@ import type {
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -19,7 +18,6 @@ import type {
 } from 'sentry/utils/discover/discoverQuery';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -73,7 +71,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
+    mepSetting: _mepSetting,
     onDemandControlContext,
     widgetInterval,
   } = params;
@@ -89,7 +87,9 @@ export function useErrorsAndTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  // Generic metrics performance data is deprecated; always use transactions/discover.
+  // On-demand metrics below is a separate extraction path and remains unchanged.
+  const isMEPEnabled = false;
   const useOnDemandMetrics = shouldUseOnDemandMetrics(
     organization,
     filteredWidget,
@@ -338,7 +338,7 @@ export function useErrorsAndTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
+    mepSetting: _mepSetting,
     onDemandControlContext,
   } = params;
 
@@ -353,7 +353,8 @@ export function useErrorsAndTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+  // Generic metrics performance data is deprecated; always use transactions/discover.
+  const isMEPEnabled = false;
   const useOnDemandMetrics = shouldUseOnDemandMetrics(
     organization,
     filteredWidget,
