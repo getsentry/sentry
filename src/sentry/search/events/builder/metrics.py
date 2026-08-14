@@ -77,7 +77,7 @@ from sentry.snuba.metrics.query import (
 )
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.snuba.query_sources import QuerySource
-from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
+from sentry.utils.snuba import DATASETS, bulk_snuba_queries, is_datetime_type, raw_snql_query
 from sentry.utils.tracing import start_span
 
 
@@ -1310,7 +1310,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                     value_map_strings = []
                     for key in groupby_aliases:
                         value = row[key]
-                        if meta_dict.get(key) == "DateTime":
+                        if is_datetime_type(meta_dict.get(key)):
                             value = datetime.fromisoformat(value).replace(tzinfo=None)
                             groupby_key += (str(value),)
                         else:

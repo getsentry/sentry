@@ -754,7 +754,10 @@ def translate_meta_results(
             record["type"] = defined_parent_meta_type
         elif alias_type == AliasMetaType.TAG:
             record["type"] = "string"
-        elif alias_type == AliasMetaType.DATASET_COLUMN or alias_type == AliasMetaType.TIME_COLUMN:
+        elif alias_type == AliasMetaType.TIME_COLUMN:
+            record["name"] = parsed_alias
+            record["type"] = "datetime"
+        elif alias_type == AliasMetaType.DATASET_COLUMN:
             record["name"] = parsed_alias
 
         if record not in results:

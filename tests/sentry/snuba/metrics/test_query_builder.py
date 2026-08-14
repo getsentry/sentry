@@ -1188,9 +1188,9 @@ def test_translate_meta_results() -> None:
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
             {"name": "metric_id", "type": "UInt64"},
-            {"name": "bucketed_time", "type": "UInt64"},
+            {"name": "bucketed_time", "type": "datetime"},
             {"name": "project.id", "type": "UInt64"},
-            {"name": "time", "type": "UInt64"},
+            {"name": "time", "type": "datetime"},
         ],
         key=lambda elem: elem["name"],
     )

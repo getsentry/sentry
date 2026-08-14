@@ -17,7 +17,6 @@ from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.snuba.meta import normalize_clickhouse_meta
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -55,12 +54,12 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseID.SESSIONS,
         )
-        assert normalize_clickhouse_meta(data["meta"]) == sorted(
+        assert data["meta"] == sorted(
             [
                 {"name": "environment", "type": "string"},
                 {"name": "release", "type": "string"},
                 {"name": "sum(sentry.sessions.session)", "type": "Float64"},
-                {"name": "bucketed_time", "type": "DateTime"},
+                {"name": "bucketed_time", "type": "datetime"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -133,10 +132,10 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         group = data["groups"][0]
         assert group["totals"]["errored_sessions_alias"] == 7
         assert group["series"]["errored_sessions_alias"] == [0, 4, 0, 0, 0, 3]
-        assert normalize_clickhouse_meta(data["meta"]) == sorted(
+        assert data["meta"] == sorted(
             [
                 {"name": "errored_sessions_alias", "type": "Float64"},
-                {"name": "bucketed_time", "type": "DateTime"},
+                {"name": "bucketed_time", "type": "datetime"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -266,10 +265,10 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert group["totals"]["foreground_anr_alias"] == 0.25
         assert group["series"]["anr_alias"] == [None, 0.5, None, None, None, None]
         assert group["series"]["foreground_anr_alias"] == [None, 0.25, None, None, None, None]
-        assert normalize_clickhouse_meta(data["meta"]) == sorted(
+        assert data["meta"] == sorted(
             [
                 {"name": "anr_alias", "type": "Float64"},
-                {"name": "bucketed_time", "type": "DateTime"},
+                {"name": "bucketed_time", "type": "datetime"},
                 {"name": "foreground_anr_alias", "type": "Float64"},
             ],
             key=lambda elem: elem["name"],

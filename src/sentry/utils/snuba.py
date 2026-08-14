@@ -1395,6 +1395,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
 
             # Forward and reverse translation maps from model ids to snuba keys, per column
             body["data"] = [reverse(d) for d in body["data"]]
+            _normalize_result_meta(body.get("meta"))
             results.append(body)
 
         return results
@@ -1916,6 +1917,22 @@ JSON_TYPE_MAP = {
 }
 
 
+def is_datetime_type(snuba_type: str | None) -> bool:
+    """True for product datetime and ClickHouse DateTime timezone variants."""
+    return bool(snuba_type) and (
+        snuba_type == "datetime" or snuba_type == "DateTime" or snuba_type.startswith("DateTime(")
+    )
+
+
+def _normalize_result_meta(meta: object) -> None:
+    """Map ClickHouse DateTime timezone args to a plain datetime type."""
+    if not isinstance(meta, list):
+        return
+    for column in meta:
+        if isinstance(column, dict) and is_datetime_type(column.get("type")):
+            column["type"] = "datetime"
+
+
 def get_json_type(snuba_type):
     """
     Convert Snuba/Clickhouse type to JSON type
@@ -1931,8 +1948,7 @@ def get_json_type(snuba_type):
     if snuba_type.startswith("Array("):
         return "array"
 
-    # Bare DateTime plus DateTime('UTC') / DateTime('Universal') are all dates.
-    if snuba_type == "DateTime" or snuba_type.startswith("DateTime("):
+    if is_datetime_type(snuba_type):
         return "date"
 
     return JSON_TYPE_MAP.get(snuba_type, "string")

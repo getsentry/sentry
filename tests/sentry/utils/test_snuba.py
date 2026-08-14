@@ -25,12 +25,14 @@ from sentry.utils.snuba import (
     SnubaRequest,
     UnqualifiedQueryError,
     _bulk_snuba_query,
+    _normalize_result_meta,
     _prepare_query_params,
     _snuba_query,
     get_json_type,
     get_query_params_to_update_for_projects,
     get_snuba_column_name,
     get_snuba_translators,
+    is_datetime_type,
     quantize_time,
 )
 
@@ -170,6 +172,7 @@ class SnubaUtilsTest(TestCase):
         assert get_json_type("Array(String)") == "array"
         assert get_json_type("DateTime") == "date"
         assert get_json_type("DateTime('UTC')") == "date"
+        assert get_json_type("datetime") == "date"
         assert get_json_type("Char") == "string"
         assert get_json_type("unknown") == "string"
         assert get_json_type("") == "string"
@@ -786,3 +789,33 @@ class SnubaResponseCompressionTest(unittest.TestCase):
         self._run_query(mock.Mock(spec=DeleteQuery, storage_name="events"))
         headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
         assert "Accept-Encoding" not in headers
+
+
+def test_is_datetime_type() -> None:
+    assert is_datetime_type("datetime")
+    assert is_datetime_type("DateTime")
+    assert is_datetime_type("DateTime('UTC')")
+    assert is_datetime_type("DateTime('Universal')")
+    assert not is_datetime_type("DateTime64")
+    assert not is_datetime_type("UInt64")
+    assert not is_datetime_type(None)
+    assert get_json_type("datetime") == "date"
+    assert get_json_type("DateTime") == "date"
+    assert get_json_type("DateTime('UTC')") == "date"
+    assert get_json_type("DateTime('Universal')") == "date"
+
+
+def test_normalize_result_meta_datetime() -> None:
+    meta = [
+        {"name": "time", "type": "DateTime('UTC')"},
+        {"name": "count", "type": "UInt64"},
+        {"name": "started", "type": "DateTime"},
+        {"name": "bucketed_time", "type": "DateTime('Universal')"},
+    ]
+    _normalize_result_meta(meta)
+    assert meta == [
+        {"name": "time", "type": "datetime"},
+        {"name": "count", "type": "UInt64"},
+        {"name": "started", "type": "datetime"},
+        {"name": "bucketed_time", "type": "datetime"},
+    ]

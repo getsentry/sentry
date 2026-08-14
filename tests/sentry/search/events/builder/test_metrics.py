@@ -31,7 +31,6 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.naming_layer import SpanMetricKey
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from tests.sentry.snuba.meta import normalize_clickhouse_meta
 
 pytestmark = [
     pytest.mark.sentry_metrics,
@@ -737,7 +736,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p100_measurements_lcp": 1000,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "p95_transaction_duration", "type": "Float64"},
@@ -779,7 +778,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 1,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "p95_transaction_duration", "type": "Float64"},
@@ -824,7 +823,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 2,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "UInt64"},
@@ -870,7 +869,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 1,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "UInt64"},
@@ -1187,7 +1186,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 0,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "UInt64"},
@@ -1353,7 +1352,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 2,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "UInt64"},
@@ -1409,7 +1408,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "count_unique_user": 1,
         }
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "UInt64"},
@@ -1859,9 +1858,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "p50_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1927,9 +1926,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "p50_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1968,9 +1967,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"time": f"{date_prefix}16:00:00+00:00", "epm_3600": 3 / (3600 / 60)},
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "epm_3600", "type": "Float64"},
             ],
         )
@@ -2010,9 +2009,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             {"time": f"{date_prefix}01:00:00+00:00", "epm_3600": 1 / (3600 / 60)},
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "epm_3600", "type": "Float64"},
             ],
         )
@@ -2057,9 +2056,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "p50_transaction_duration", "type": "Float64"},
             ],
         )
@@ -2148,9 +2147,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "count", "type": "Float64"},
             ],
         )
@@ -2252,9 +2251,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "p75_measurements_fp", "type": "Float64"},
             ],
         )
@@ -2284,8 +2283,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "failure_count": 1.0}]
-        assert normalize_clickhouse_meta(result["meta"]) == [
-            {"name": "time", "type": "DateTime"},
+        assert result["meta"] == [
+            {"name": "time", "type": "datetime"},
             {"name": "failure_count", "type": "Float64"},
         ]
 
@@ -2351,9 +2350,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "failure_rate", "type": "Float64"},
             ],
         )
@@ -2418,9 +2417,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "apdex_10", "type": "Float64"},
             ],
         )
@@ -2499,9 +2498,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             },
         ]
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
             ],
         )
@@ -2532,8 +2531,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "epm": 1 / 60}]
-        assert normalize_clickhouse_meta(result["meta"]) == [
-            {"name": "time", "type": "DateTime"},
+        assert result["meta"] == [
+            {"name": "time", "type": "datetime"},
             {"name": "epm", "type": "Float64"},
         ]
 
@@ -2563,8 +2562,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         result = query.run_query("test_query")
         assert result["data"][:1] == [{"time": timestamp.isoformat(), "eps": 1 / 60 / 60}]
-        assert normalize_clickhouse_meta(result["meta"]) == [
-            {"name": "time", "type": "DateTime"},
+        assert result["meta"] == [
+            {"name": "time", "type": "datetime"},
             {"name": "eps", "type": "Float64"},
         ]
 
@@ -2656,9 +2655,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "count", "type": "Float64"},
                 {"name": "count_web_vitals_measurements_lcp_good", "type": "Float64"},
                 {"name": "customtag1", "type": "string"},
@@ -2766,9 +2765,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "count", "type": "Float64"},
                 {"name": "customtag1", "type": "string"},
                 {"name": "customtag2", "type": "string"},
@@ -2876,9 +2875,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
         self.assertCountEqual(
-            normalize_clickhouse_meta(result["meta"]),
+            result["meta"],
             [
-                {"name": "time", "type": "DateTime"},
+                {"name": "time", "type": "datetime"},
                 {"name": "count", "type": "Float64"},
                 {"name": "customtag1", "type": "string"},
                 {"name": "customtag2", "type": "string"},
@@ -3086,7 +3085,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
 
         assert result["data"] == [{"d:spans/on_demand@none": 200.0}]
-        meta = normalize_clickhouse_meta(result["meta"])
+        meta = result["meta"]
         assert len(meta) == 1
         assert meta[0]["name"] == "d:spans/on_demand@none"
 
@@ -3149,7 +3148,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             result = query.run_query("test_query")
 
             assert result["data"] == [{"c:spans/on_demand@none": float(value)}]
-            meta = normalize_clickhouse_meta(result["meta"])
+            meta = result["meta"]
             assert len(meta) == 1
             assert meta[0]["name"] == "c:spans/on_demand@none"
 
@@ -3194,7 +3193,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         # (1 failure / 2 total) = 0.5
         assert result["data"] == [{"c:spans/on_demand@none": 0.5}]
-        meta = normalize_clickhouse_meta(result["meta"])
+        meta = result["meta"]
         assert len(meta) == 1
         assert meta[0]["name"] == "c:spans/on_demand@none"
 
@@ -3239,7 +3238,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         # (1 satisfactory + (1 tolerable / 2)) / (2 total) = 0.75
         assert result["data"] == [{"c:spans/on_demand@none": 0.75}]
-        meta = normalize_clickhouse_meta(result["meta"])
+        meta = result["meta"]
         assert len(meta) == 1
         assert meta[0]["name"] == "c:spans/on_demand@none"
 
