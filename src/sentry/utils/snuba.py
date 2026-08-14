@@ -1485,17 +1485,29 @@ def _raw_delete_query(
             f"Expected request to contain a DeleteQuery but it was of type {type(request.query)}"
         )
 
-    # Enter hub such that http spans are properly nested
     with metrics.timer("snuba.client.delete_query"):
         referrer = headers.get("referer", "unknown")
         with start_span(op="snuba_delete.validation", name=referrer) as span:
             set_span_tag(span, "snuba.referrer", referrer)
             body = request.serialize()
 
-        with start_span(op="snuba_delete.run", name=body) as span:
+        from sentry.utils.snuba_delete_auth import snuba_delete_auth_headers
+
+        project_ids = list(query.column_conditions.get("project_id") or [])
+        organization_ids = []
+        raw_org = (request.tenant_ids or {}).get("organization_id")
+        if raw_org is not None:
+            organization_ids = [int(raw_org)]
+        auth_headers = snuba_delete_auth_headers(
+            project_ids=project_ids,
+            organization_ids=organization_ids,
+        )
+        outbound_headers = {**headers, **auth_headers}
+
+        with start_span(op="snuba_delete.run", name=referrer) as span:
             set_span_tag(span, "snuba.referrer", referrer)
             return _snuba_pool.urlopen(
-                "DELETE", f"/{query.storage_name}", body=body, headers=headers
+                "DELETE", f"/{query.storage_name}", body=body, headers=outbound_headers
             )
 
 
