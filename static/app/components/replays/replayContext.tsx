@@ -548,6 +548,9 @@ export function Provider({
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false, {seek: isVideoReplay});
+        // Pausing without a seek skips rrweb's `backToNormal()`, so `SkipEnd`
+        // never fires to clear this
+        setFFSpeed(0);
       }
     };
 

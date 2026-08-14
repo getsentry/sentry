@@ -1,3 +1,4 @@
+import {ReplayerEvents} from '@sentry-internal/rrweb';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -14,6 +15,7 @@ const mockPause = jest.fn();
 const mockPlay = jest.fn();
 const mockVideoPause = jest.fn();
 const mockVideoPlay = jest.fn();
+const mockReplayerHandlers = new Map<string, (arg: any) => void>();
 
 jest.mock('@sentry-internal/rrweb', () => {
   const actual = jest.requireActual('@sentry-internal/rrweb');
@@ -25,7 +27,9 @@ jest.mock('@sentry-internal/rrweb', () => {
       getCurrentTime: () => 0,
       getMirror: () => null,
       iframe: document.createElement('iframe'),
-      on: jest.fn(),
+      on: jest.fn((event: string, handler: (arg: any) => void) => {
+        mockReplayerHandlers.set(event, handler);
+      }),
       pause: mockPause,
       play: mockPlay,
       setConfig: jest.fn(),
@@ -48,12 +52,13 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
 const startedAt = new Date('2023-12-25T00:00:00');
 
 function TestPlayer() {
-  const {setRoot, togglePlayPause} = useReplayContext();
+  const {fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
 
   return (
     <div ref={setRoot}>
       <button onClick={() => togglePlayPause(true)}>Play</button>
       <button onClick={() => togglePlayPause(false)}>Pause</button>
+      <span>Fast forward: {fastForwardSpeed}</span>
     </div>
   );
 }
@@ -90,6 +95,12 @@ async function startPlaying() {
   await userEvent.click(screen.getByRole('button', {name: 'Play'}));
   // Starting playback also seeks, which is not what these tests are about
   jest.clearAllMocks();
+}
+
+function startFastForwarding() {
+  act(() => {
+    mockReplayerHandlers.get(ReplayerEvents.SkipStart)?.({speed: 8});
+  });
 }
 
 function setVisibility(visibilityState: 'hidden' | 'visible') {
@@ -160,5 +171,25 @@ describe('replayContext', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Play'}));
 
     expect(mockPlay).toHaveBeenCalledWith(expect.any(Number));
+  });
+
+  it('clears the fast forward speed when the tab is hidden while skipping', async () => {
+    renderPlayer();
+    await startPlaying();
+    startFastForwarding();
+
+    setVisibility('hidden');
+
+    expect(screen.getByText('Fast forward: 0')).toBeInTheDocument();
+  });
+
+  it('keeps the fast forward speed when the tab stays visible while skipping', async () => {
+    renderPlayer();
+    await startPlaying();
+    startFastForwarding();
+
+    setVisibility('visible');
+
+    expect(screen.getByText('Fast forward: 8')).toBeInTheDocument();
   });
 });
