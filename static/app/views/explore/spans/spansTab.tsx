@@ -215,9 +215,9 @@ function SpanTabContentSectionInner({
   const isValidationPending =
     isValidationFetching || isValidationLoading || isValidationPlaceholderData;
   const queriesEnabled =
-    !isValidationPending && !validationError && validationData?.valid === true;
+    !isValidationPending && (Boolean(validationError) || validationData?.valid === true);
   const preservePreviousData =
-    !validationError &&
+    Boolean(validationError) ||
     (isValidationPending ? validationData?.valid !== false : queriesEnabled);
 
   // In aggregate mode the table is driven by aggregateSortBys, not the

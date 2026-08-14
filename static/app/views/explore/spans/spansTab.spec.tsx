@@ -305,7 +305,7 @@ describe('SpansTabContent', () => {
     expect(unvalidatedEventsMock).not.toHaveBeenCalled();
   });
 
-  it('shows unexpected validation failures without running spans queries', async () => {
+  it('shows unexpected validation failures while running spans queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       method: 'GET',
@@ -329,8 +329,10 @@ describe('SpansTabContent', () => {
     });
 
     expect(await screen.findByText('Validation unavailable')).toBeInTheDocument();
-    expect(eventsMock).not.toHaveBeenCalled();
-    expect(eventsTimeseriesMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalled();
+      expect(eventsTimeseriesMock).toHaveBeenCalled();
+    });
   });
 
   it('should fire analytics once per change', async () => {
