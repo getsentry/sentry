@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {initializeTraceMetricsTest} from 'sentry-fixture/tracemetrics';
 
 import {
@@ -101,7 +101,13 @@ describe('MetricsAggregateExportModalButton', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: PageFiltersFixture({
+          datetime: {start: null, end: null, period: '24h', utc: null},
+        }),
+      })
+    );
   });
 
   it('downloads locally without a server export when all rows are loaded', async () => {
@@ -143,6 +149,8 @@ describe('MetricsAggregateExportModalButton', () => {
               field: ['model', SUM_AGGREGATE, COUNT_AGGREGATE],
               query: 'model:gpt-5',
               sort: [`-${SUM_AGGREGATE}`],
+              // The aggregates table doesn't delay its window, so neither does its export
+              statsPeriod: '24h',
             }),
           }),
         })

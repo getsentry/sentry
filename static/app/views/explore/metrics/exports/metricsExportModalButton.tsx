@@ -1,6 +1,7 @@
 import {downloadRows, type ExportableRow} from 'sentry/components/exports/downloadRows';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
@@ -17,7 +18,7 @@ export interface MetricsQueryInfo {
   end?: string;
   environment?: string[];
   start?: string;
-  statsPeriod?: string;
+  statsPeriod?: string | StatsPeriodRange;
 }
 
 type MetricsExportModalButtonProps = {
@@ -33,10 +34,12 @@ export function useMetricsQueryInfo({
   field,
   query,
   sort,
+  statsPeriodRange,
 }: {
   field: string[];
   query: string;
   sort: string[];
+  statsPeriodRange?: StatsPeriodRange;
 }): MetricsQueryInfo {
   const {selection} = usePageFilters();
   const {start, end, period: statsPeriod} = selection.datetime;
@@ -48,10 +51,14 @@ export function useMetricsQueryInfo({
     query,
     project: projects,
     sort,
-    start: start ? new Date(start).toISOString() : undefined,
-    end: end ? new Date(end).toISOString() : undefined,
-    statsPeriod: statsPeriod || undefined,
     environment: environments,
+    ...(statsPeriodRange
+      ? {statsPeriod: statsPeriodRange}
+      : {
+          start: start ? new Date(start).toISOString() : undefined,
+          end: end ? new Date(end).toISOString() : undefined,
+          statsPeriod: statsPeriod || undefined,
+        }),
   };
 }
 
