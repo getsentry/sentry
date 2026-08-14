@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, Throttled, ValidationError
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
+from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -268,7 +269,9 @@ class HandleQueryErrorsTest(APITestCase):
         """A SnubaError wrapping a urllib3 timeout stays a 504."""
         with pytest.raises(APIException) as exc_info:
             with handle_query_errors():
-                raise SnubaError(ReadTimeoutError(None, "/query", "read timed out"))
+                raise SnubaError(
+                    ReadTimeoutError(HTTPConnectionPool("snuba"), "/query", "read timed out")
+                )
 
         assert exc_info.value.status_code == 504
 
