@@ -57,7 +57,6 @@ describe('useScmMessagingProviders', () => {
     mockIntegrations([
       OrganizationIntegrationsFixture({
         id: '10',
-        provider: {key: 'slack'} as any,
         status: 'active',
         organizationIntegrationStatus: 'active',
       }),
@@ -81,7 +80,7 @@ describe('useScmMessagingProviders', () => {
     mockIntegrations([
       OrganizationIntegrationsFixture({
         id: '11',
-        provider: {key: 'discord'} as any,
+        provider: {...OrganizationIntegrationsFixture().provider, key: 'discord'},
         status: 'disabled',
         organizationIntegrationStatus: 'active',
       }),
@@ -100,7 +99,7 @@ describe('useScmMessagingProviders', () => {
     mockIntegrations([
       OrganizationIntegrationsFixture({
         id: '12',
-        provider: {key: 'msteams'} as any,
+        provider: {...OrganizationIntegrationsFixture().provider, key: 'msteams'},
         status: 'active',
         organizationIntegrationStatus: 'active',
         configData: {installationType: 'tenant'},
@@ -122,7 +121,7 @@ describe('useScmMessagingProviders', () => {
     mockIntegrations([
       OrganizationIntegrationsFixture({
         id: '13',
-        provider: {key: 'msteams'} as any,
+        provider: {...OrganizationIntegrationsFixture().provider, key: 'msteams'},
         status: 'active',
         organizationIntegrationStatus: 'active',
         configData: {installationType: 'team'},
