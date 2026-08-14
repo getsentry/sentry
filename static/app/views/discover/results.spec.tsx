@@ -1523,7 +1523,10 @@ describe('Results', () => {
       });
 
       const link = await screen.findByRole('link', {name: 'Explore Queries'});
-      expect(link).toHaveAttribute('href', '/explore/saved-queries/');
+      expect(link).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/explore/saved-queries/'
+      );
 
       expect(mockRequests.eventsResultsMock).not.toHaveBeenCalled();
       expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();
