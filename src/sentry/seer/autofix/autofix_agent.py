@@ -1004,7 +1004,9 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
             "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
         )
 
-    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id).first()
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
     is_automated_run = seer_run is not None and seer_run.referrer in AUTOMATED_AUTOFIX_REFERRERS
     if is_automated_run:
         settings_url = group.organization.absolute_url("/settings/seer/")
