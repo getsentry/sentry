@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {FieldValueType, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
@@ -269,16 +270,14 @@ export function getFilterValueDisplayParts({
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
-      const values = token.value.items.slice(0, maxItems).map(item =>
-        formatFilterValue({
-          token: item.value!,
-          valueType,
-        })
-      );
+      const valueTokens = token.value.items.map(item => item.value).filter(defined);
+      const values = valueTokens
+        .slice(0, maxItems)
+        .map(valueToken => formatFilterValue({token: valueToken, valueType}));
 
       return {
         values,
-        overflowCount: token.value.items.length - values.length,
+        overflowCount: valueTokens.length - values.length,
         joiner: token.negated ? 'and' : 'or',
       };
     }

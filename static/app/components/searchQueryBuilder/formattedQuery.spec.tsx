@@ -43,12 +43,12 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders filters as string-based chips', () => {
+  it('renders filters with a trailing list comma as string-based chips', () => {
     render(
       <FormattedQuery
         {...defaultProps}
         filterRenderer="chip"
-        query="browser.name:[Firefox,Chrome]"
+        query="browser.name:[Firefox,Chrome,]"
       />
     );
 
