@@ -1,4 +1,7 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from sentry.investigations.agent import (
     _maybe_start_title_generation,
@@ -8,6 +11,7 @@ from sentry.investigations.agent import (
     synchronize_title,
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
+from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -551,3 +555,54 @@ class InvestigationAgentTest(TestCase):
         assert "Checkout errors breached 100 events" in prompt
         assert "checkout-api" in prompt
         assert "Avoid generic titles" in prompt
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:
+        self.investigation.update(
+            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
+        )
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        assert mock_client.return_value.start_run.call_count == 0
+        self.investigation.refresh_from_db()
+        assert self.investigation.title_generation_status == "running"
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_dispatch_failure_releases_the_in_flight_status(
+        self, mock_client: MagicMock
+    ) -> None:
+        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+
+        def start_run(prompt: str, **kwargs: Any) -> None:
+            kwargs["on_run_created"](self.seer_run)
+            raise RuntimeError("Seer is unavailable")
+
+        mock_client.return_value.start_run.side_effect = start_run
+
+        with pytest.raises(RuntimeError):
+            _maybe_start_title_generation(self.investigation, None)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title_seer_run_id == self.seer_run.id
+        assert self.investigation.title_generation_status == "failed"
+
+    def test_title_increments_the_investigation_version(self) -> None:
+        self.investigation.update(
+            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
+        )
+        version = self.investigation.version
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content="Checkout errors above threshold"),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+        assert self.investigation.version == version + 1
+        self.investigation.refresh_from_db()
+        assert self.investigation.version == version + 1

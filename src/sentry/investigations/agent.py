@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import ast
 import html
+from enum import StrEnum
 from typing import Any
 
 from django.db import router, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
@@ -17,7 +19,10 @@ from sentry.investigations.models import (
     InvestigationBlockKind,
     InvestigationStatus,
 )
-from sentry.investigations.services.investigations import mark_downstream_blocks_stale
+from sentry.investigations.services.investigations import (
+    DEFAULT_INVESTIGATION_TITLE,
+    mark_downstream_blocks_stale,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
@@ -29,6 +34,7 @@ from sentry.utils import json
 
 MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
+IMPORT_NOT_ALLOWED_ERROR = "This import is not allowed in an investigation query."
 PRIVATE_TRANSCRIPT_KEYS = {
     "authorization",
     "credentials",
@@ -38,6 +44,18 @@ PRIVATE_TRANSCRIPT_KEYS = {
     "signature",
     "token",
 }
+
+
+class TitleGenerationStatus(StrEnum):
+    """Values stored in `Investigation.title_generation_status`."""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
 
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
@@ -128,7 +146,7 @@ def start_execution_run(
 
 
 def _mark_dispatched(execution: InvestigationBlockExecution, seer_run_id: int) -> None:
-    InvestigationBlockExecution.objects.filter(id=execution.id).update(
+    execution.update(
         seer_run_id=seer_run_id,
         status=InvestigationBlockExecutionStatus.RUNNING,
         started_at=timezone.now(),
@@ -242,10 +260,10 @@ def _code_policy_error(
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             if any(alias.name.split(".", 1)[0] not in allowed_imports for alias in node.names):
-                return "This import is not allowed in an investigation query."
+                return IMPORT_NOT_ALLOWED_ERROR
         if isinstance(node, ast.ImportFrom):
             if node.module is None or node.module.split(".", 1)[0] not in allowed_imports:
-                return "This import is not allowed in an investigation query."
+                return IMPORT_NOT_ALLOWED_ERROR
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
@@ -532,8 +550,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
         allowed_project_slugs=set(execution.input_snapshot.get("projectSlugs", [])),
     )
     pending_import_lint = off_policy and all(
-        block.get("policyError") == "This import is not allowed in an investigation query."
-        and not block.get("toolResults")
+        block.get("policyError") == IMPORT_NOT_ALLOWED_ERROR and not block.get("toolResults")
         for block in blocks
         if block.get("policyError")
     )
@@ -555,7 +572,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             interrupt_run(
                 execution.block.investigation.organization, execution.seer_run.seer_run_state_id
             )
-        InvestigationBlockExecution.objects.filter(id=execution.id).update(
+        execution.update(
             status=InvestigationBlockExecutionStatus.FAILED,
             transcript=blocks,
             transcript_truncated=transcript_truncated,
@@ -571,13 +588,21 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
         "awaiting_user_input": InvestigationBlockExecutionStatus.AWAITING_INPUT,
     }.get(state.status)
     if status:
-        InvestigationBlockExecution.objects.filter(id=execution.id).exclude(
-            status__in=[
-                InvestigationBlockExecutionStatus.COMPLETED,
-                InvestigationBlockExecutionStatus.FAILED,
-                InvestigationBlockExecutionStatus.CANCELLED,
-            ]
-        ).update(status=status, transcript=blocks, transcript_truncated=transcript_truncated)
+        updated = (
+            InvestigationBlockExecution.objects.filter(id=execution.id)
+            .exclude(
+                status__in=[
+                    InvestigationBlockExecutionStatus.COMPLETED,
+                    InvestigationBlockExecutionStatus.FAILED,
+                    InvestigationBlockExecutionStatus.CANCELLED,
+                ]
+            )
+            .update(status=status, transcript=blocks, transcript_truncated=transcript_truncated)
+        )
+        if updated:
+            execution.status = status
+            execution.transcript = blocks
+            execution.transcript_truncated = transcript_truncated
         return
 
     database = router.db_for_write(InvestigationBlockExecution)
@@ -698,20 +723,8 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
-    database = router.db_for_write(Investigation)
-    with transaction.atomic(using=database):
-        investigation = (
-            Investigation.objects.select_for_update()
-            .select_related("organization")
-            .get(id=investigation.id)
-        )
-        if (
-            investigation.title != "Untitled investigation"
-            or investigation.title_generation_status in {"pending", "running"}
-        ):
-            return
-        investigation.title_generation_status = "pending"
-        investigation.save(update_fields=["title_generation_status", "date_updated"])
+    if investigation.title != DEFAULT_INVESTIGATION_TITLE:
+        return
     user = user_service.get_user(user_id=user_id) if user_id else None
     client = SeerAgentClient(
         investigation.organization,
@@ -739,9 +752,19 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         f"<block_context>\n{block_context}\n</block_context>"
     )
 
+    database = router.db_for_write(Investigation)
+    with transaction.atomic(using=database):
+        locked = Investigation.objects.select_for_update().get(id=investigation.id)
+        if (
+            locked.title != DEFAULT_INVESTIGATION_TITLE
+            or locked.title_generation_status in IN_FLIGHT_TITLE_STATUSES
+        ):
+            return
+        locked.update(title_generation_status=TitleGenerationStatus.PENDING)
+
     def link_title_run(run: Any) -> None:
         Investigation.objects.filter(id=investigation.id).update(
-            title_seer_run_id=run.id, title_generation_status="running"
+            title_seer_run_id=run.id, title_generation_status=TitleGenerationStatus.RUNNING
         )
 
     try:
@@ -755,9 +778,9 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
             on_run_created=link_title_run,
         )
     except Exception:
-        Investigation.objects.filter(id=investigation.id, title_generation_status="pending").update(
-            title_generation_status="failed"
-        )
+        Investigation.objects.filter(
+            id=investigation.id, title_generation_status__in=IN_FLIGHT_TITLE_STATUSES
+        ).update(title_generation_status=TitleGenerationStatus.FAILED)
         raise
 
 
@@ -767,7 +790,7 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
     ):
         if state.status in {"processing", "awaiting_user_input"}:
             interrupt_run(investigation.organization, state.run_id)
-        Investigation.objects.filter(id=investigation.id).update(title_generation_status="failed")
+        investigation.update(title_generation_status=TitleGenerationStatus.FAILED)
         return
     if state.status in {"processing", "awaiting_user_input"}:
         return
@@ -779,11 +802,15 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
         ),
         "",
     )
-    updates: dict[str, Any] = {"title_generation_status": "completed" if title else "failed"}
-    if title and investigation.title == "Untitled investigation":
+    updates: dict[str, Any] = {
+        "title_generation_status": (
+            TitleGenerationStatus.COMPLETED if title else TitleGenerationStatus.FAILED
+        )
+    }
+    if title and investigation.title == DEFAULT_INVESTIGATION_TITLE:
         updates["title"] = title
-        updates["version"] = investigation.version + 1
-    Investigation.objects.filter(id=investigation.id).update(**updates)
+        updates["version"] = F("version") + 1
+    investigation.update(**updates)
 
 
 def interrupt_run(organization: Organization, run_id: int) -> None:
