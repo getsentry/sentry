@@ -476,6 +476,50 @@ describe('SpansTabContent', () => {
     });
   });
 
+  it('preserves sample columns and sorts on the trace tab', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validValidationBody,
+    });
+    const tracesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/traces/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              table: 'trace',
+              field: ['id', 'span.name', 'invalid.attribute'],
+              sort: '-timestamp',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(tracesMock).toHaveBeenCalled());
+    expect(validateMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/validate/`,
+      expect.objectContaining({
+        query: expect.not.objectContaining({
+          field: expect.anything(),
+          orderby: expect.anything(),
+        }),
+      })
+    );
+    expect(router.location.query.field).toEqual(['id', 'span.name', 'invalid.attribute']);
+    expect(router.location.query.sort).toBe('-timestamp');
+  });
+
   it('inserts group bys from aggregate mode as fields in samples mode', async () => {
     let fields: readonly string[] = [];
     let groupBys: readonly string[] = [];
