@@ -5,7 +5,6 @@ Metrics Service Layer Tests for Performance
 import re
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
-from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -18,7 +17,6 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
@@ -29,7 +27,7 @@ from sentry.snuba.metrics import (
     MetricGroupByField,
     MetricOrderByField,
 )
-from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import (
     TransactionMetricKey,
     TransactionMRI,
@@ -39,7 +37,6 @@ from sentry.snuba.metrics.naming_layer import (
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils.cases import (
     BaseMetricsLayerTestCase,
-    MetricsEnhancedPerformanceTestCase,
     TestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -2002,132 +1999,3 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         mq = DeprecatingMetricsQuery(**metrics_query_dict, interval=3600)
         assert mq.limit is not None
         assert mq.limit.limit == 50
-
-
-class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
-    METRIC_STRINGS = [
-        "d:transactions/measurements.something_custom@millisecond",
-        "d:transactions/measurements.something_else@byte",
-    ]
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-
-    def test_simple(self) -> None:
-        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
-        self.store_transaction_metric(
-            1,
-            metric="measurements.something_custom",
-            internal_metric=something_custom_metric,
-            entity="metrics_distributions",
-            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
-        )
-        result = get_custom_measurements(
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            start=self.day_ago,
-            use_case_id=UseCaseID.TRANSACTIONS,
-        )
-        assert result == [
-            {
-                "name": "measurements.something_custom",
-                "type": "generic_distribution",
-                "operations": [
-                    "avg",
-                    "count",
-                    "histogram",
-                    "max",
-                    "max_timestamp",
-                    "min",
-                    "min_timestamp",
-                    "p50",
-                    "p75",
-                    "p90",
-                    "p95",
-                    "p99",
-                    "sum",
-                ],
-                "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
-                "mri": something_custom_metric,
-            }
-        ]
-
-    def test_metric_outside_query_daterange(self) -> None:
-        something_custom_metric = "d:transactions/measurements.something_custom@millisecond"
-        something_else_metric = "d:transactions/measurements.something_else@byte"
-        self.store_transaction_metric(
-            1,
-            metric="measurements.something_custom",
-            internal_metric=something_custom_metric,
-            entity="metrics_distributions",
-            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
-        )
-        # Shouldn't show up
-        self.store_transaction_metric(
-            1,
-            metric="measurements.something_else",
-            internal_metric=something_else_metric,
-            entity="metrics_distributions",
-            timestamp=self.day_ago - timedelta(days=1, minutes=0),
-        )
-        result = get_custom_measurements(
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            start=self.day_ago,
-            use_case_id=UseCaseID.TRANSACTIONS,
-        )
-
-        assert result == [
-            {
-                "name": "measurements.something_custom",
-                "type": "generic_distribution",
-                "operations": [
-                    "avg",
-                    "count",
-                    "histogram",
-                    "max",
-                    "max_timestamp",
-                    "min",
-                    "min_timestamp",
-                    "p50",
-                    "p75",
-                    "p90",
-                    "p95",
-                    "p99",
-                    "sum",
-                ],
-                "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
-                "mri": something_custom_metric,
-            }
-        ]
-
-    @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
-    def test_broken_custom_metric(self, mocked_parse_mri: mock.MagicMock) -> None:
-        # Store valid metric
-        self.store_transaction_metric(
-            1,
-            metric="measurements.something_custom",
-            internal_metric="d:transactions/measurements.something_custom@millisecond",
-            entity="metrics_distributions",
-            timestamp=self.day_ago + timedelta(hours=1, minutes=0),
-        )
-
-        # mock mri failing to parse the metric
-        mocked_parse_mri.return_value = None
-        result = get_custom_measurements(
-            project_ids=[self.project.id],
-            organization_id=self.organization.id,
-            start=self.day_ago,
-        )
-        assert result == []
