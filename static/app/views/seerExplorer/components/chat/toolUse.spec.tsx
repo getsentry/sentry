@@ -493,10 +493,10 @@ describe('ToolUseBlock', () => {
     );
   });
 
-  it('keeps a multi-project Explore bus link under a telemetry call row', () => {
-    // The call row itself has no destination (search rows decline without the translated query).
-    // The bus link carries project_slugs + query and must still render as residual nav rather than
-    // being suppressed because a call row exists.
+  it('keeps a multi-project Explore bus link under a telemetry call row without a query', () => {
+    // Older/incomplete call rows decline without the translated query. The bus link still carries
+    // project_slugs + query and must render as residual nav rather than being suppressed because a
+    // call row exists.
     const block = createBlock({
       message: {
         role: 'tool_use',
@@ -538,6 +538,61 @@ describe('ToolUseBlock', () => {
 
     expect(screen.getByText('Querying spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /View spans/})).toBeInTheDocument();
+  });
+
+  it('makes a telemetry call row itself the issues search link when params include the query', () => {
+    // Seer stamps the translated query onto the call record after the search returns. The row keeps
+    // seer's title as the label and claims the bus twin so "View issues" is not repeated under it.
+    const title =
+      'Querying issues for unresolved issues related to logs page in the last 7 days';
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title,
+                params: {
+                  dataset: 'issues',
+                  question: 'unresolved issues related to logs page in the last 7 days',
+                  query: 'is:unresolved logs',
+                  stats_period: '7d',
+                },
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'issues',
+                  query: 'is:unresolved logs',
+                  stats_period: '7d',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    const rowLink = screen.getByRole('link', {name: title});
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('/issues/'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+    expect(screen.queryByRole('link', {name: /View issues/})).not.toBeInTheDocument();
   });
 
   it('does not double-render a classic link present in both channels', () => {

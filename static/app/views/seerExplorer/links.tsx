@@ -366,11 +366,14 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'telemetry_live_search',
     resolve: ({kind, params, title}, {projects}) => {
-      // The one name that arrives on both channels, and only one of them can be re-run. The call
-      // record reports a search that already happened and carries no query; the link seer emits
-      // alongside it carries the query (and multi-project `project_slugs`), so that is the one with
-      // somewhere to point.
-      if (kind !== 'link') {
+      // Arrives on both channels. The bus link always carries the translated query. The call row
+      // starts with only `dataset` + `question`; seer stamps the translated params onto the record
+      // after the search returns, so a fresh row can deep-link the same way. Older rows without a
+      // query still decline here and keep the residual bus link underneath.
+      if (kind !== 'link' && kind !== 'lib') {
+        return null;
+      }
+      if (kind === 'lib' && (params.query === undefined || params.query === null)) {
         return null;
       }
 
@@ -379,8 +382,9 @@ export const LINK_RULES: LinkRule[] = [
         return null;
       }
 
-      // Prefer seer's title when present; otherwise name the dataset so the residual nav link is
-      // not a generic "View results" under a row that already says which dataset ran.
+      // Prefer seer's title when present (the call row ships one); otherwise name the dataset so a
+      // residual nav link is not a generic "View results" under a row that already says which
+      // dataset ran.
       const datasetLabel = telemetryDatasetLabel(params.dataset);
       return {
         label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
