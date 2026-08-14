@@ -590,7 +590,7 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  group: Group,
+  group: Pick<Group, 'id' | 'shortId'>,
   options: UseExplorerAutofixOptions = {}
 ) {
   const groupId = group.id;
