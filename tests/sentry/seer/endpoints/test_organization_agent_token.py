@@ -267,6 +267,8 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
     ("ProjectPreprodSnapshotSkipStatusCheckEndpoint", "POST"): 400,
 }
 
+AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
+
 
 def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...]:
     cases: list[tuple[PublicGetEndpoint, MatrixAuthentication]] = []
@@ -702,9 +704,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
     tokens and ViewerContext. An agent response is compared with a real user token minted
     for the same user with exactly the same scopes. This deliberately treats each
     endpoint's current scope behavior as the contract, without asserting that its scope
-    map is correct. Any difference therefore isolates agent-token compatibility or a
-    scope escape rather than a pre-existing endpoint scope problem. A zero-scope token
-    exercises explicit mint-time narrowing against every operation.
+    map is correct. The exception is proof-of-user-presence gates, which agent tokens
+    intentionally cannot satisfy. Any other difference therefore isolates agent-token
+    compatibility or a scope escape rather than a pre-existing endpoint scope problem.
+    A zero-scope token exercises explicit mint-time narrowing against every operation.
 
     Endpoint-specific tests remain responsible for response payload semantics; this
     matrix is the source of truth for authentication and permission outcomes.
@@ -1311,6 +1314,58 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             assert inaccessible_project.id not in organization_ids
         assert cross_org_response.status_code == 403, cross_org_response.content
 
+    def _assert_global_role_agent_resource_breadth(self, role: str) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        unjoined_team = self.create_team(organization=self.org)
+        unjoined_project = self.create_project(
+            organization=self.org,
+            teams=[unjoined_team],
+        )
+
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        other_project = self.create_project(organization=other_org, teams=[other_team])
+
+        global_user = self.create_user()
+        self.create_member(user=global_user, organization=self.org, role=role)
+        self.create_member(user=global_user, organization=other_org, role=role)
+        self.login_as(global_user)
+
+        with self.feature(FLAG):
+            bearer = self._mint_agent_token()
+            client = APIClient()
+            project_response = client.get(
+                f"/api/0/projects/{self.org.slug}/{unjoined_project.slug}/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            team_response = client.get(
+                f"/api/0/teams/{self.org.slug}/{unjoined_team.slug}/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            cross_org_response = client.get(
+                f"/api/0/projects/{other_org.slug}/{other_project.slug}/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+
+        assert project_response.status_code == 200, project_response.content
+        assert int(project_response.data["id"]) == unjoined_project.id
+        assert team_response.status_code == 200, team_response.content
+        assert int(team_response.data["id"]) == unjoined_team.id
+        assert cross_org_response.status_code == 403, cross_org_response.content
+
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
+    def test_manager_agent_inherits_org_wide_resource_access(self) -> None:
+        self._assert_global_role_agent_resource_breadth("manager")
+
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
+    def test_owner_agent_inherits_org_wide_resource_access(self) -> None:
+        self._assert_global_role_agent_resource_breadth("owner")
+
     def _mutation_payload(self, endpoint: PublicMutationEndpoint) -> dict[str, Any]:
         key = (endpoint.endpoint_name, endpoint.method)
         payloads: dict[tuple[str, str], dict[str, Any]] = {
@@ -1886,6 +1941,15 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
         else:
             assert baseline.status_code == outer_status, baseline.content
+
+        if (
+            authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN
+            and (endpoint.endpoint_name, endpoint.method) in AGENT_SUDO_BOUNDARY_MUTATIONS
+        ):
+            assert authorization_oracle.status_code < 400, authorization_oracle.content
+            assert response.status_code == 401, response.content
+            assert response.data["detail"]["code"] == "sudo-required"
+            return
 
         responses_match = response.status_code == authorization_oracle.status_code and (
             authorization_oracle.status_code < 400
