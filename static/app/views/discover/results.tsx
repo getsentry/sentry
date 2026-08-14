@@ -113,6 +113,7 @@ import {
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 type Props = {
   addAlert: AddAlert;
@@ -971,7 +972,10 @@ function TransactionsDatasetDeprecationBanner({
             {
               traceLink: (
                 <Link
-                  to={`/organizations/${organization.slug}/explore/traces/?query=is_transaction:true`}
+                  to={{
+                    pathname: makeTracesPathname({organization, path: '/'}),
+                    query: {query: 'is_transaction:true'},
+                  }}
                 />
               ),
               FAQLink: (
