@@ -21,9 +21,9 @@ export function GroupingComponentChildren({component, showNonContributing}: Prop
         .map((value: any, index: number) => (
           <GroupingComponentListItem
             // value.id is not a unique value
-            key={typeof value === 'object' ? `${value.id}-${index}` : `${value}-${index}`}
+            key={value !== null && typeof value === 'object' ? `${value.id}-${index}` : `${value}-${index}`}
           >
-            {typeof value === 'object' ? (
+            {value !== null && typeof value === 'object' ? (
               <GroupingComponent
                 component={value}
                 showNonContributing={showNonContributing}
