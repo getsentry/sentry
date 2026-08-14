@@ -629,31 +629,31 @@ describe('InboxPage', () => {
     expect(await within(fixSection).findByText('1000+')).toBeInTheDocument();
   });
 
-  it('expands and collapses progress sections', async () => {
+  it('expands non-empty progress sections and collapses empty sections', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
+    const fixProposedIssue = await screen.findByText('Fix proposed issue');
+    const identifiedEmptyMessage = await screen.findByText('No identified issues');
     const fixProposedButton = screen.getByRole('button', {
       name: 'Fix Proposed',
     });
-    const assignedButton = screen.getByRole('button', {name: 'Assigned'});
-    const fixProposedIssue = await screen.findByText('Fix proposed issue');
-    const assignedIssue = screen.getByText('Assigned issue');
+    const identifiedButton = screen.getByRole('button', {name: 'Identified'});
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'true');
     expect(fixProposedIssue).toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'false');
-    expect(assignedIssue).not.toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'false');
+    expect(identifiedEmptyMessage).not.toBeVisible();
 
     await userEvent.click(fixProposedButton);
-    await userEvent.click(assignedButton);
+    await userEvent.click(identifiedButton);
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'false');
     expect(fixProposedIssue).not.toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'true');
-    expect(assignedIssue).toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'true');
+    expect(identifiedEmptyMessage).toBeVisible();
   });
 
   it('filters sections by the selected assignee', async () => {

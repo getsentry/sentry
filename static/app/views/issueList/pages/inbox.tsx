@@ -86,7 +86,6 @@ interface InboxSectionConfig {
     | 'num_assigned'
     | 'num_identified'
     | 'num_fix_applied';
-  defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
   label: string;
@@ -103,7 +102,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
-    defaultExpanded: true,
   },
   {
     analyticsKey: 'num_diagnosed',
@@ -112,7 +110,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    defaultExpanded: true,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -122,7 +119,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -132,7 +128,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -142,7 +137,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_applied is:unresolved',
     emptyMessage: t('No issues with an applied fix'),
     progress: ProgressState.FIX_APPLIED,
-    defaultExpanded: false,
   },
 ];
 
@@ -486,6 +480,7 @@ function InboxSection({
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
+  const hasIssues = groups.length > 0;
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
@@ -508,9 +503,10 @@ function InboxSection({
 
   return (
     <Disclosure
+      key={`${assignmentFilter}:${queryResult.status}:${hasIssues}`}
       as="section"
       aria-label={section.label}
-      defaultExpanded={section.defaultExpanded}
+      defaultExpanded={!queryResult.isSuccess || hasIssues}
       size="sm"
     >
       <StickySectionHeader
