@@ -1,10 +1,9 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.testutils.cases import TestCase
 
-LOGS_PATH = "sentry.seer.autofix.pr_iteration.logs"
 REPO_NAME = "owner/repo"
 OTHER_REPO_NAME = "owner/other"
 RUN_ID = 4242
@@ -60,30 +59,28 @@ class PrIterationLogEmitTest(TestCase):
         assert log.info.call_args.kwargs["extra"] == {"run_id": RUN_ID}
         assert ctx.identity == {"run_id": RUN_ID}
 
-    @patch(f"{LOGS_PATH}.metrics")
-    def test_failed_warns_with_exc_info(self, mock_metrics: Mock) -> None:
+    def test_error_logs_at_error_with_exc_info(self) -> None:
+        # Error, not warning: "show me every broken iteration" should be one
+        # search for errors, not a list of names you have to already know.
         log = Mock()
         ctx = PrIterationLogContext(log, run_state=_run_state())
 
-        ctx.failed("autofix.pr_iteration.check_suite.failed", "scm_init_failed")
+        ctx.error("autofix.pr_iteration.check_suite.failed", error_type="ConnectionError")
 
-        mock_metrics.incr.assert_called_once_with(
-            "autofix.pr_iteration.check_suite.failed", tags={"reason": "scm_init_failed"}
-        )
-        log.warning.assert_called_once_with(
+        log.error.assert_called_once_with(
             "autofix.pr_iteration.check_suite.failed",
-            extra={"run_id": RUN_ID, "reason": "scm_init_failed"},
+            extra={"run_id": RUN_ID, "error_type": "ConnectionError"},
             exc_info=True,
         )
+        log.warning.assert_not_called()
 
-    @patch(f"{LOGS_PATH}.metrics")
-    def test_failed_outside_a_handler_can_drop_exc_info(self, mock_metrics: Mock) -> None:
+    def test_error_outside_a_handler_can_drop_exc_info(self) -> None:
         log = Mock()
         ctx = PrIterationLogContext(log)
 
-        ctx.failed("autofix.pr_iteration.check_suite.failed", "no_run", exc_info=False)
+        ctx.error("autofix.pr_iteration.check_suite.failed", exc_info=False)
 
-        assert log.warning.call_args.kwargs["exc_info"] is False
+        assert log.error.call_args.kwargs["exc_info"] is False
 
 
 class PrIterationIdentityDerivationTest(TestCase):

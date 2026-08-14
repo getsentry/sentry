@@ -50,7 +50,6 @@ import logging
 from typing import Any, TypedDict
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.utils import metrics
 
 
 class PrIterationScmInfo(TypedDict, total=False):
@@ -155,14 +154,15 @@ class PrIterationLogContext:
         """Record that we are doing, or have done, a piece of work."""
         self._logger.info(name, extra={**self._identity, **fields})
 
-    def failed(self, name: str, reason: str, *, exc_info: bool = True, **fields: Any) -> None:
-        """Record an *unexpected* failure. Pass ``exc_info=False`` outside a handler."""
-        metrics.incr(name, tags={"reason": reason})
-        self._logger.warning(
-            name,
-            extra={**self._identity, "reason": reason, **fields},
-            exc_info=exc_info,
-        )
+    def error(self, name: str, *, exc_info: bool = True, **fields: Any) -> None:
+        """Record an *unexpected* failure. Pass ``exc_info=False`` outside a handler.
+
+        Error rather than warning because the level is the search key: finding
+        every broken iteration should be one query for errors under
+        ``autofix.pr_iteration``, not a list of names someone has to know in
+        advance.
+        """
+        self._logger.error(name, extra={**self._identity, **fields}, exc_info=exc_info)
 
 
 def _scm_infos(run_state: SeerRunState) -> list[PrIterationScmInfo]:

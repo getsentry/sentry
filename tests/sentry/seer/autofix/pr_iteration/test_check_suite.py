@@ -455,6 +455,78 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
 
+    @patch(f"{CHECK_PATH}.logger")
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    def test_an_unparseable_payload_logs_what_the_stream_attached(
+        self, mock_capture: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        # Nothing parsed, so the only identifiers available are the ones the SCM
+        # stream put on the envelope before anyone read the body.
+        raw = {"check_suite": {"id": 1}, "repository": {"html_url": "https://github.com/o/r"}}
+        event = check_suite_event(raw, installation_id=987)
+
+        pr_iteration_from_check_suite_listener(event)
+
+        mock_capture.assert_called_once()
+        assert (
+            mock_logger.error.call_args.args[0]
+            == "autofix.pr_iteration.check_suite.unparseable_payload"
+        )
+        assert mock_logger.error.call_args.kwargs["extra"]["installation_id"] == 987
+        assert mock_logger.error.call_args.kwargs["exc_info"] is True
+
+    @patch(f"{CHECK_PATH}.logger")
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_an_unexpected_failure_is_reported_against_the_run_it_broke(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        _mock_enqueue: MagicMock,
+        mock_capture: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert mock_logger.error.call_args.args[0] == "autofix.pr_iteration.check_suite.failed"
+        extra = mock_logger.error.call_args.kwargs["extra"]
+        # The point of catching it here: the failure names the run, which is what
+        # `exec_listener` further up cannot do.
+        assert extra["run_id"] == 67890
+        assert extra["sentry_group_id"] == self.group.id
+        assert extra["error_type"] == "RuntimeError"
+        assert extra["check_suite_id"] == 1
+        mock_capture.assert_called_once()
+
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(TRIGGER_CONSUME_PATH, side_effect=RuntimeError("celery is down"))
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_an_unexpected_failure_is_not_re_raised(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        _mock_enqueue: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_capture: MagicMock,
+    ) -> None:
+        # Re-raising would hand `exec_listener` a second report of the same
+        # failure; one, tied to the run, is what we want.
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        mock_capture.assert_called_once()
+
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
     def _event(

@@ -84,7 +84,20 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return None
     except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
         # Malformed webhook payload — report and drop; do not fail the listener task.
+        # Nothing parsed, so there is no source to describe the suite: fall back to
+        # what the SCM stream attached before anyone touched the body.
         sentry_sdk.capture_exception(e)
+        stream_extra = check_suite_event.subscription_event.get("extra") or {}
+        logger.error(
+            "autofix.pr_iteration.check_suite.unparseable_payload",
+            extra={
+                "installation_id": stream_extra.get("installation_id"),
+                "repository_id": stream_extra.get("repository_id"),
+                "check_suite_id": check_suite_event.check_suite["id"],
+                "check_suite_conclusion": conclusion,
+            },
+            exc_info=True,
+        )
         return None
 
     organization_id = autofix_run.repository.organization_id
@@ -99,35 +112,50 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         group_id=autofix_run.group_id,
     )
 
-    enqueued = try_enqueue_autofix_feedback(
-        log_ctx=log_ctx,
-        run_id=agent_state.run_id,
-        organization_id=organization_id,
-        group_id=autofix_run.group_id,
-        feedback=feedback,
-        referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
-        run_state=agent_state,
-    )
-    if not enqueued:
-        # Feedback is rejected for a stale head or for the iteration hard cap.
-        # In the cap case the run would otherwise just go quiet, so hand the PR
-        # to a human instead (the handler re-checks which case applies).
-        assign_user_for_exhausted_cap(source.event, autofix_run)
+    # Everything below talks to Redis, Seer, and GitHub. Left to escape, the
+    # exception would reach `exec_listener`, which counts it against the SCM
+    # stream rather than against this run -- so the failure would be visible while
+    # the iteration it broke would not. Report it once here, under the run's
+    # identity, and drop the event: re-raising would only duplicate that report
+    # upstream, and the next check suite on this PR re-enters from the top anyway.
+    try:
+        enqueued = try_enqueue_autofix_feedback(
+            log_ctx=log_ctx,
+            run_id=agent_state.run_id,
+            organization_id=organization_id,
+            group_id=autofix_run.group_id,
+            feedback=feedback,
+            referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
+            run_state=agent_state,
+        )
+        if not enqueued:
+            # Feedback is rejected for a stale head or for the iteration hard cap.
+            # In the cap case the run would otherwise just go quiet, so hand the PR
+            # to a human instead (the handler re-checks which case applies).
+            assign_user_for_exhausted_cap(source.event, autofix_run)
+            return None
+
+        # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
+        # a delayed consume rather than dropping the scheduled task entirely). It logs
+        # `autofix.pr_iteration.feedback.trigger` either way.
+        #
+        # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
+        # which calls absolute_uri() at import time (needs options cache).
+        # stream.py is loaded in AppConfig.ready before options init.
+        from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+
+        trigger_consume_pr_iteration_feedback(
+            log_ctx=log_ctx,
+            run_id=agent_state.run_id,
+            organization_id=organization_id,
+            feedback=feedback,
+            run_state=agent_state,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        log_ctx.error(
+            "autofix.pr_iteration.check_suite.failed",
+            error_type=type(e).__name__,
+            **source.log_fields(agent_state),
+        )
         return None
-
-    # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
-    # a delayed consume rather than dropping the scheduled task entirely). It logs
-    # `autofix.pr_iteration.feedback.trigger` either way.
-    #
-    # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
-    # which calls absolute_uri() at import time (needs options cache).
-    # stream.py is loaded in AppConfig.ready before options init.
-    from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
-
-    trigger_consume_pr_iteration_feedback(
-        log_ctx=log_ctx,
-        run_id=agent_state.run_id,
-        organization_id=organization_id,
-        feedback=feedback,
-        run_state=agent_state,
-    )
