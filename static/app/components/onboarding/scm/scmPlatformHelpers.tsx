@@ -6,6 +6,7 @@ import {platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
+import {comparePlatformNames} from 'sentry/utils/platform';
 
 import type {DetectedPlatform} from './useScmPlatformDetection';
 
@@ -33,9 +34,10 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
 // The SCM dropdown is one long list, so raw platforms.tsx insertion order
-// reads as random. Sort by display name so users can scan it.
+// reads as random. Sort by display name (same ordering as the legacy
+// picker's All tab) so users can scan it.
 export const platformOptions = platforms
-  .toSorted((a, b) => a.name.localeCompare(b.name))
+  .toSorted((a, b) => comparePlatformNames(a.name, b.name))
   .map(platform => ({
     value: platform.id,
     label: platform.name,
