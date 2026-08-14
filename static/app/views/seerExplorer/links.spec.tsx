@@ -523,6 +523,37 @@ describe('organization_events', () => {
     );
   });
 
+  it('maps timeseries axes and grouping into an aggregate Explore link', () => {
+    const subject = subjectFromCallRecord({
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/events-timeseries/',
+      title: 'Querying span duration by transaction',
+      resolved_path:
+        '/api/0/organizations/org-slug/events-timeseries/?dataset=spans&query=has%3Aduration&yAxis=p95%28span.duration%29&groupBy=transaction',
+    });
+
+    expect(resolveLink(subject, ctx)).toEqual(
+      expect.objectContaining({
+        id: 'organization_events',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/traces/',
+          query: expect.objectContaining({
+            aggregateField: [
+              JSON.stringify({yAxes: ['p95(span.duration)']}),
+              JSON.stringify({groupBy: 'transaction'}),
+            ],
+            groupBy: ['transaction'],
+            mode: 'aggregate',
+            visualize: [JSON.stringify('p95(span.duration)')],
+            yAxes: [JSON.stringify('p95(span.duration)')],
+          }),
+        }),
+      })
+    );
+  });
+
   it('declines without a dataset rather than guessing a destination', () => {
     expect(
       resolveLink(

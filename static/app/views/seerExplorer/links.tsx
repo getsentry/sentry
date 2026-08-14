@@ -564,14 +564,21 @@ function exploreApiSearchParams(
   }
 
   const field = query.field as string | string[] | undefined;
-  if (field !== undefined) {
-    // Aggregates become y-axes so spans/errors Explore opens in a useful aggregate view.
-    const fields = getStringArray(field);
-    const aggregates = fields.filter(name => name.includes('('));
-    if (aggregates.length > 0) {
-      params.y_axes = aggregates;
-      params.mode = 'aggregates';
-    }
+  const yAxis = query.yAxis as string | string[] | undefined;
+  const axes = [
+    ...getStringArray(field).filter(name => name.includes('(')),
+    ...getStringArray(yAxis),
+  ];
+  if (axes.length > 0) {
+    params.y_axes = axes;
+    params.mode = 'aggregates';
+  }
+
+  const groupBy = query.groupBy as string | string[] | undefined;
+  const groups = getStringArray(groupBy);
+  if (groups.length > 0) {
+    params.group_by = groups;
+    params.mode = 'aggregates';
   }
 
   return params;
