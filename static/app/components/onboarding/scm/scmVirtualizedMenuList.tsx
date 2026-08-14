@@ -10,14 +10,62 @@
  * Usage: <Select components={{MenuList: ScmVirtualizedMenuList}} />
  */
 
-import {isValidElement, type Ref, useEffect, useRef} from 'react';
+import {createElement, isValidElement, type Ref, useEffect, useRef} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 const OPTION_HEIGHT = 36;
+const GROUP_HEADER_HEIGHT = 32;
 const MAX_MENU_HEIGHT = 300;
 const MENU_PADDING = 4;
+
+type GroupElementProps = {
+  Heading: React.ComponentType<any>;
+  children: React.ReactNode;
+  cx: (...args: any[]) => string;
+  getStyles: (...args: any[]) => unknown;
+  headingProps: Record<string, unknown>;
+  label: React.ReactNode;
+  selectProps: unknown;
+  theme: unknown;
+};
+
+type VirtualRow = {
+  node: React.ReactNode;
+  type: 'group' | 'option';
+};
+
+function flattenMenuChildren(children: React.ReactNode[]): VirtualRow[] {
+  return children.flatMap(child => {
+    if (!isValidElement<GroupElementProps>(child) || !child.props.Heading) {
+      return [{node: child, type: 'option' as const}];
+    }
+
+    const {
+      Heading,
+      children: groupChildren,
+      cx,
+      getStyles,
+      headingProps,
+      label,
+      selectProps,
+      theme,
+    } = child.props;
+
+    const heading = createElement(
+      Heading,
+      {cx, getStyles, selectProps, theme, ...headingProps},
+      label
+    );
+    const options = Array.isArray(groupChildren) ? groupChildren : [groupChildren];
+
+    return [
+      {node: heading, type: 'group' as const},
+      ...options.map(node => ({node, type: 'option' as const})),
+    ];
+  });
+}
 
 interface ScmVirtualizedMenuListProps {
   children: React.ReactNode;
@@ -36,7 +84,7 @@ export function ScmVirtualizedMenuList({
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
-  const items: React.ReactNode[] = Array.isArray(children) ? children : [];
+  const rows = Array.isArray(children) ? flattenMenuChildren(children) : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(
@@ -46,9 +94,10 @@ export function ScmVirtualizedMenuList({
   const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
 
   const virtualizer = useVirtualizer({
-    count: items.length,
+    count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => optionHeight,
+    estimateSize: index =>
+      rows[index]?.type === 'group' ? GROUP_HEADER_HEIGHT : optionHeight,
     overscan: 5,
     paddingStart: MENU_PADDING,
     paddingEnd: MENU_PADDING,
@@ -59,8 +108,9 @@ export function ScmVirtualizedMenuList({
   const virtualItems = virtualizer.getVirtualItems();
   // react-select shares focused option identity with each Option child's data.
   // The focused DOM node may be virtualized out, so scroll by its child index.
-  const focusedIndex = items.findIndex(
-    item => isValidElement<{data?: unknown}>(item) && item.props.data === focusedOption
+  const focusedIndex = rows.findIndex(
+    ({node}) =>
+      isValidElement<{data?: unknown}>(node) && node.props.data === focusedOption
   );
 
   useEffect(() => {
@@ -97,7 +147,7 @@ export function ScmVirtualizedMenuList({
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >
-            {items[virtualRow.index]}
+            {rows[virtualRow.index]?.node}
           </div>
         ))}
       </div>

@@ -44,7 +44,10 @@ jest.mock('sentry/data/platforms', () => {
     ...actual,
     platforms: actual.platforms.filter(
       (p: {id: string}) =>
-        p.id === 'javascript' || p.id === 'python' || p.id === 'python-django'
+        p.id === 'javascript' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        p.id === 'capacitor'
     ),
   };
 });
@@ -94,6 +97,16 @@ describe('ScmPlatformFeaturesCore', () => {
     render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
 
     expect(screen.getByText('Select a platform')).toBeInTheDocument();
+  });
+
+  it('groups manual platform options by category', async () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+    expect(screen.getByText('Mobile')).toBeInTheDocument();
+    expect(screen.getByText('Capacitor')).toBeInTheDocument();
   });
 
   it('fires step_viewed analytics in onboarding on mount', () => {

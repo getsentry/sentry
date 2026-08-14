@@ -32,6 +32,7 @@ import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
+  platformOptionGroups,
   platformOptions,
   shouldSuggestFramework,
   toSelectedSdk,
@@ -351,6 +352,17 @@ export function ScmPlatformFeaturesCore({
     ];
   }, [currentPlatformKey]);
 
+  const manualPickerOptionGroups = useMemo(() => {
+    if (manualPickerOptions === platformOptions) {
+      return platformOptionGroups;
+    }
+
+    return [
+      {label: t('Selected'), options: [manualPickerOptions[0]!]},
+      ...platformOptionGroups,
+    ];
+  }, [manualPickerOptions]);
+
   const manualPickerFilteredOptions = useMemo(
     () =>
       manualPickerOptions.filter(option =>
@@ -515,7 +527,7 @@ export function ScmPlatformFeaturesCore({
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={manualPickerOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
@@ -526,7 +538,7 @@ export function ScmPlatformFeaturesCore({
       ) : (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={manualPickerOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}

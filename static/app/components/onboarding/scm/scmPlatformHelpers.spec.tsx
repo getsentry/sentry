@@ -1,24 +1,38 @@
-import {popularPlatformCategories} from 'sentry/data/platformPickerCategories';
+import {categoryList} from 'sentry/data/platformPickerCategories';
 
-import {platformOptions} from './scmPlatformHelpers';
+import {platformOptionGroups, platformOptions} from './scmPlatformHelpers';
 
-describe('platformOptions', () => {
-  const popularOrder = Array.from(popularPlatformCategories);
-  const optionValues = platformOptions.map(option => option.value);
-
-  it('puts curated popular platforms first in Popular-tab order', () => {
-    expect(optionValues.slice(0, popularOrder.length)).toEqual(popularOrder);
+describe('platformOptionGroups', () => {
+  it('uses the platform picker category order', () => {
+    expect(platformOptionGroups.map(group => group.label)).toEqual([
+      ...categoryList
+        .filter(category => category.id !== 'all')
+        .map(category => category.name),
+      'Other',
+    ]);
   });
 
-  it('sorts remaining platforms alphabetically by display name', () => {
-    const remaining = platformOptions.slice(popularOrder.length);
-    const remainingNames = remaining.map(option => option.label);
-    const sortedNames = remainingNames.toSorted((a, b) => a.localeCompare(b));
+  it('keeps curated Popular-tab order and sorts other sections alphabetically', () => {
+    const [popularGroup, ...otherGroups] = platformOptionGroups;
+    const popularCategory = categoryList.find(category => category.id === 'popular');
 
-    expect(remainingNames).toEqual(sortedNames);
+    expect(popularGroup?.options.map(option => option.value)).toEqual(
+      Array.from(popularCategory?.platforms ?? [])
+    );
+
+    for (const group of otherGroups) {
+      const names = group.options.map(option => option.label);
+      expect(names).toEqual(names.toSorted((a, b) => a.localeCompare(b)));
+    }
   });
 
-  it('keeps every platform exactly once', () => {
-    expect(new Set(optionValues).size).toBe(optionValues.length);
+  it('puts every platform in exactly one section', () => {
+    const groupedValues = platformOptionGroups.flatMap(group =>
+      group.options.map(option => option.value)
+    );
+    const optionValues = platformOptions.map(option => option.value);
+
+    expect(groupedValues).toHaveLength(optionValues.length);
+    expect(new Set(groupedValues)).toEqual(new Set(optionValues));
   });
 });
