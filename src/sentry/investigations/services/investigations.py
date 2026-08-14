@@ -37,6 +37,7 @@ from sentry.models.project import Project
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 MAX_INVESTIGATION_TITLE_LENGTH = 255
+DEFAULT_INVESTIGATION_TITLE = "Untitled investigation"
 
 CREATABLE_BLOCK_FIELDS = frozenset({"kind", "title", "content", "prompt", "config", "display"})
 UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
@@ -343,7 +344,7 @@ def _create_template_investigation(
             accessible_project_ids=accessible_project_ids,
         )
         project_ids = [source.project_id]
-        resolved_title = title or "Untitled investigation"
+        resolved_title = title or DEFAULT_INVESTIGATION_TITLE
         normalized_source_ref = {
             "groupId": str(source.group.id),
             "openPeriodId": str(source.open_period.id),
