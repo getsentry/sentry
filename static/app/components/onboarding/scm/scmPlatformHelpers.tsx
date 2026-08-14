@@ -32,12 +32,16 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-export const platformOptions = platforms.map(platform => ({
-  value: platform.id,
-  label: platform.name,
-  textValue: `${platform.name} ${platform.id}`,
-  leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
-}));
+// The SCM dropdown is one long list, so raw platforms.tsx insertion order
+// reads as random. Sort by display name so users can scan it.
+export const platformOptions = platforms
+  .toSorted((a, b) => a.name.localeCompare(b.name))
+  .map(platform => ({
+    value: platform.id,
+    label: platform.name,
+    textValue: `${platform.name} ${platform.id}`,
+    leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
+  }));
 
 export function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
