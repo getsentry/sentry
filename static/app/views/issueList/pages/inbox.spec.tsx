@@ -1241,6 +1241,20 @@ describe('InboxPage', () => {
       unmount();
     });
 
+    it('shows an empty state when every section is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+
+      render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
+    });
+
     it('follows section order even when a later section resolves first', async () => {
       // Diagnosed resolves immediately, Fix Proposed only after a delay. Both
       // have issues, so taking whichever result arrives first would select the

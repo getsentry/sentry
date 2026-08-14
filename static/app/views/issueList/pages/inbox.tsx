@@ -1,14 +1,23 @@
-import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {
+  type ComponentProps,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
+import starryVoidImg from 'sentry-images/spot/starry-void.png';
+
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -26,7 +35,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
+import {IconArrow, IconChevron, IconClock, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -64,6 +73,7 @@ const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
+type SectionResults = Partial<Record<AssignmentFilter, Record<string, string | null>>>;
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned_or_suggested:me',
@@ -222,9 +232,14 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const sectionResults = useRef<SectionResults>({});
+  const [emptyAssignmentFilters, setEmptyAssignmentFilters] = useState(
+    () => new Set<AssignmentFilter>()
+  );
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
   );
+  const isInboxEmpty = emptyAssignmentFilters.has(assignmentFilter);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -250,6 +265,41 @@ function InboxContent() {
       assignment_filter: filter,
     });
     setAssignmentFilter(filter);
+  };
+
+  const handleSectionResult = (
+    filter: AssignmentFilter,
+    sectionKey: string,
+    firstIssueId: string | null
+  ) => {
+    const filterResults = sectionResults.current[filter] ?? {};
+    filterResults[sectionKey] = firstIssueId;
+    sectionResults.current[filter] = filterResults;
+
+    const shouldShowEmptyState = sections.every(
+      section => filterResults[section.key] === null
+    );
+    const shouldHideEmptyState = sections.some(
+      section => typeof filterResults[section.key] === 'string'
+    );
+
+    setEmptyAssignmentFilters(currentFilters => {
+      if (
+        (shouldShowEmptyState && currentFilters.has(filter)) ||
+        (shouldHideEmptyState && !currentFilters.has(filter)) ||
+        (!shouldShowEmptyState && !shouldHideEmptyState)
+      ) {
+        return currentFilters;
+      }
+
+      const nextFilters = new Set(currentFilters);
+      if (shouldShowEmptyState) {
+        nextFilters.add(filter);
+      } else {
+        nextFilters.delete(filter);
+      }
+      return nextFilters;
+    });
   };
 
   return (
@@ -305,6 +355,7 @@ function InboxContent() {
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
                 onInitialResult={handleInitialSectionResult}
+                onResult={handleSectionResult}
               />
             ))}
           </Stack>
@@ -354,15 +405,49 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {!selectedIssueId && isInboxEmpty && (
+            <InboxEmptyState assignmentFilter={assignmentFilter} />
+          )}
         </Stack>
       </Grid>
     </Stack>
   );
 }
 
+function InboxEmptyState({assignmentFilter}: {assignmentFilter: AssignmentFilter}) {
+  const organization = useOrganization();
+
+  return (
+    <EmptyState
+      padding="3xl"
+      title={t('No Issues in your Inbox!')}
+      description={t(
+        'Inbox is a personalized view of issues relevant to you. Once an issue is assigned to you, it will appear here.'
+      )}
+      illustration={<img src={starryVoidImg} alt="" />}
+      action={
+        <LinkButton
+          to={`/organizations/${organization.slug}/issues/`}
+          icon={<IconClock />}
+          analyticsEventKey="issue_inbox.go_to_issue_feed_clicked"
+          analyticsEventName="Issue Inbox: Go to Issue Feed Clicked"
+          analyticsParams={{assignment_filter: assignmentFilter}}
+        >
+          {t('Go to Issue Feed')}
+        </LinkButton>
+      }
+    />
+  );
+}
+
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
+  onResult: (
+    assignmentFilter: AssignmentFilter,
+    sectionKey: string,
+    firstIssueId: string | null
+  ) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -370,6 +455,7 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
+  onResult,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -397,17 +483,22 @@ function InboxSection({
   );
   const {data: members = []} = useMembers({ids: memberIds});
   const membersById = new Map(members.map(member => [member.id, member]));
-  const hasReportedInitialResult = useRef(false);
-  const reportInitialResult = useEffectEvent(() => {
-    onInitialResult(section.key, groups[0]?.id ?? null);
+  const lastReportedAssignmentFilter = useRef<AssignmentFilter | null>(null);
+  const firstIssueId = groups[0]?.id ?? null;
+  const reportResult = useEffectEvent(() => {
+    onResult(assignmentFilter, section.key, firstIssueId);
+
+    if (lastReportedAssignmentFilter.current !== assignmentFilter) {
+      lastReportedAssignmentFilter.current = assignmentFilter;
+      onInitialResult(section.key, firstIssueId);
+    }
   });
 
   useLayoutEffect(() => {
-    if (queryResult.isSuccess && !hasReportedInitialResult.current) {
-      hasReportedInitialResult.current = true;
-      reportInitialResult();
+    if (queryResult.isSuccess) {
+      reportResult();
     }
-  }, [queryResult.isSuccess]);
+  }, [assignmentFilter, firstIssueId, queryResult.isSuccess]);
 
   return (
     <Disclosure
