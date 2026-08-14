@@ -31,19 +31,25 @@ class ProjectsListTest(APITestCase):
     def test_agent_auth_missing_required_context_is_forbidden(self) -> None:
         user = self.create_user()
 
-        for auth in (
-            AuthenticatedToken(
-                kind=agent_token.AGENT_TOKEN_KIND,
-                scopes=["project:read"],
-                user_id=user.id,
+        for missing_context, auth in (
+            (
+                "organization",
+                AuthenticatedToken(
+                    kind=agent_token.AGENT_TOKEN_KIND,
+                    scopes=["project:read"],
+                    user_id=user.id,
+                ),
             ),
-            AuthenticatedToken(
-                kind=agent_token.AGENT_TOKEN_KIND,
-                scopes=["project:read"],
-                organization_id=self.organization.id,
+            (
+                "user",
+                AuthenticatedToken(
+                    kind=agent_token.AGENT_TOKEN_KIND,
+                    scopes=["project:read"],
+                    organization_id=self.organization.id,
+                ),
             ),
         ):
-            with self.subTest(auth=auth):
+            with self.subTest(missing_context=missing_context):
                 request = drf_request_from_request(
                     self.make_request(user=user, auth=auth, method="GET")
                 )
