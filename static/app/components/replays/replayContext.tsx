@@ -513,7 +513,7 @@ export function Provider({
   }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
-    (play: boolean) => {
+    (play: boolean, {seek = true} = {}) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
@@ -521,8 +521,10 @@ export function Provider({
 
       if (play) {
         replayer.play(getCurrentPlayerTime());
-      } else {
+      } else if (seek) {
         replayer.pause(getCurrentPlayerTime());
+      } else {
+        replayer.pause();
       }
       setIsPlaying(play);
 
@@ -545,7 +547,11 @@ export function Provider({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
-        togglePlayPause(false);
+        // Seeking makes rrweb rebuild the snapshot inside the player iframe.
+        // This event also fires while the tab is unloading, when the browser
+        // has already torn that document down and the rebuild throws. Video
+        // replays still need the offset, to seek the <video> element itself.
+        togglePlayPause(false, {seek: isVideoReplay});
       }
     };
 
@@ -554,7 +560,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [togglePlayPause, isPlaying]);
+  }, [togglePlayPause, isPlaying, isVideoReplay]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {
