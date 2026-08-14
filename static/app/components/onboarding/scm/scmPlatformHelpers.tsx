@@ -2,6 +2,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {popularPlatformCategories} from 'sentry/data/platformPickerCategories';
 import {platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -32,12 +33,40 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-export const platformOptions = platforms.map(platform => ({
-  value: platform.id,
-  label: platform.name,
-  textValue: `${platform.name} ${platform.id}`,
-  leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
-}));
+// Keep popular platforms first in the curated Popular-tab order, then fall back
+// to display-name alpha. The SCM dropdown is a long flat list, so file insertion
+// order reads as random without this pass.
+const popularPlatformOrder = Array.from(popularPlatformCategories);
+
+function comparePlatformOptions(
+  a: PlatformIntegration,
+  b: PlatformIntegration
+): number {
+  const aPopularIndex = popularPlatformOrder.indexOf(a.id);
+  const bPopularIndex = popularPlatformOrder.indexOf(b.id);
+  const aIsPopular = aPopularIndex !== -1;
+  const bIsPopular = bPopularIndex !== -1;
+
+  if (aIsPopular && bIsPopular) {
+    return aPopularIndex - bPopularIndex;
+  }
+  if (aIsPopular) {
+    return -1;
+  }
+  if (bIsPopular) {
+    return 1;
+  }
+  return a.name.localeCompare(b.name);
+}
+
+export const platformOptions = platforms
+  .toSorted(comparePlatformOptions)
+  .map(platform => ({
+    value: platform.id,
+    label: platform.name,
+    textValue: `${platform.name} ${platform.id}`,
+    leadingItems: <PlatformIcon platform={platform.id} size={16} alt="" />,
+  }));
 
 export function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
