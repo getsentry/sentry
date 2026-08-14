@@ -122,7 +122,9 @@ function keySpecificity(key: string): number {
 // Wrap a value that would otherwise re-tokenize wrong (spaces, quotes, parens) so the assembled
 // query parses back to the same filter.
 function quoteValue(value: string): string {
-  return /[\s"()]/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+  return /[\s"()]/.test(value)
+    ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    : value;
 }
 
 /**
