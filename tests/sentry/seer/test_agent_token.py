@@ -290,6 +290,23 @@ class AgentTokenAuthAndGateTest(TestCase):
         with pytest.raises(AuthenticationFailed):
             self._auth(token, feature_enabled=False)
 
+    def test_revoked_member_is_rejected_on_reauthentication(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.member.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+        assert self._auth(token) is not None
+
+        OrganizationMember.objects.get(
+            user_id=self.member.id,
+            organization=self.org,
+        ).delete()
+
+        with pytest.raises(AuthenticationFailed):
+            self._auth(token)
+
     def test_signed_but_malformed_claims_are_rejected(self) -> None:
         # Right key and audience but broken claims -> clean auth failure, not a 500.
         null_sub = self._typed_token(

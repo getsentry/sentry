@@ -676,6 +676,8 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if org_context.member is None:
+            fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
             agent_token.FEATURE_FLAG,
             org_context.organization,
