@@ -38,6 +38,9 @@ const TWO_MINUTE_DELAY = 120;
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  preservePreviousData?: boolean;
+  queriesEnabled?: boolean;
+  showEmptyResults?: boolean;
   source?: MetricsSamplesTableSource;
   traceMetric?: TraceMetric;
 }
@@ -47,6 +50,9 @@ export function MetricsSamplesTable({
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
+  preservePreviousData,
+  queriesEnabled,
+  showEmptyResults,
 }: MetricsSamplesTableProps) {
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
   const columns = isEmbedded
@@ -62,13 +68,17 @@ export function MetricsSamplesTable({
   } = useMetricSamplesTable({
     disabled: isEmbedded
       ? !!overrideTableData
-      : !traceMetric?.name || isMetricOptionsEmpty,
+      : queriesEnabled === false || !traceMetric?.name || isMetricOptionsEmpty,
     limit: isEmbedded ? EMBEDDED_RESULT_LIMIT : RESULT_LIMIT,
     traceMetric,
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+    preservePreviousData,
   });
+  const dataForDisplay = showEmptyResults ? [] : data;
+  const errorForDisplay = showEmptyResults ? undefined : error;
+  const isFetchingForDisplay = !showEmptyResults && isFetching;
 
   const metaWithValueUnit = useMemo<EventsMetaType>(() => {
     const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
@@ -87,15 +97,15 @@ export function MetricsSamplesTable({
 
   return (
     <SimpleTableGrid source={source}>
-      {isFetching && <TransparentLoadingMask />}
+      {isFetchingForDisplay && <TransparentLoadingMask />}
       <MetricsSamplesTableHeader columns={columns} source={source} />
       <StyledSimpleTableBody>
-        {!overrideTableData?.length && error ? (
+        {!overrideTableData?.length && errorForDisplay ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </SimpleTable.Empty>
-        ) : overrideTableData?.length || data?.length ? (
-          (overrideTableData ?? data ?? []).map((row, i) => (
+        ) : overrideTableData?.length || dataForDisplay?.length ? (
+          (overrideTableData ?? dataForDisplay ?? []).map((row, i) => (
             <SampleTableRow
               key={i}
               row={row}
@@ -104,7 +114,7 @@ export function MetricsSamplesTable({
               source={source}
             />
           ))
-        ) : isFetching ? (
+        ) : isFetchingForDisplay ? (
           <SimpleTable.Empty style={{minHeight: '140px'}}>
             <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>

@@ -10,6 +10,7 @@ import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {usePreserveMetricQueryResult} from 'sentry/views/explore/metrics/hooks/usePreserveMetricQueryResult';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
@@ -29,6 +30,7 @@ interface UseMetricAggregatesTableOptions {
   enabled: boolean;
   limit: number;
   traceMetric: TraceMetric;
+  preservePreviousData?: boolean;
   queryExtras?: RPCQueryExtras;
   staleTime?: number;
 }
@@ -53,6 +55,7 @@ export function useMetricAggregatesTable({
   traceMetric,
   queryExtras,
   staleTime,
+  preservePreviousData,
 }: UseMetricAggregatesTableOptions) {
   const visualize = useMetricVisualize();
   const canTriggerHighAccuracy = useCallback(
@@ -70,7 +73,7 @@ export function useMetricAggregatesTable({
     },
     [traceMetric, visualize]
   );
-  return useProgressiveQuery<typeof useMetricAggregatesTableImp>({
+  const result = useProgressiveQuery<typeof useMetricAggregatesTableImp>({
     queryHookImplementation: useMetricAggregatesTableImp,
     queryHookArgs: {
       enabled,
@@ -83,6 +86,12 @@ export function useMetricAggregatesTable({
       canTriggerHighAccuracy,
     },
   });
+
+  return usePreserveMetricQueryResult(
+    result,
+    Boolean(preservePreviousData),
+    result.result
+  );
 }
 
 function useMetricAggregatesTableImp({

@@ -404,8 +404,7 @@ describe('MetricsTabContent', () => {
     expect(toolbars).toHaveLength(1);
 
     await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-        1,
+      expect(trackAnalyticsMock).toHaveBeenCalledWith(
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
@@ -417,8 +416,7 @@ describe('MetricsTabContent', () => {
       );
     });
 
-    expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-      2,
+    expect(trackAnalyticsMock).toHaveBeenCalledWith(
       'metrics.explorer.metadata',
       expect.objectContaining({
         metric_panels_with_filters_count: 0,

@@ -30,7 +30,7 @@ export function useValidateMetricsTab({
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes({validate: true});
 
-  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
+  const {data, error, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -54,6 +54,7 @@ export function useValidateMetricsTab({
 
   return {
     data,
+    error,
     isFetching,
     isPlaceholderData,
     isLoading,
