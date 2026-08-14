@@ -282,7 +282,7 @@ const RulesTableWrapper = styled('div')`
 `;
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: min-content minmax(1fr, max-content) auto;
+  grid-template-columns: min-content 1fr auto;
   font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 
