@@ -1151,7 +1151,7 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
 
 def test_translate_meta_results() -> None:
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
         {"name": "team_key_transaction", "type": "UInt8"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1163,10 +1163,10 @@ def test_translate_meta_results() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(transaction.measurements.lcp)": MetricField(
+            "p50(span.duration)": MetricField(
                 op="p50",
-                metric_mri="d:transactions/measurements.lcp@millisecond",
-                alias="p50(transaction.measurements.lcp)",
+                metric_mri="d:spans/duration@millisecond",
+                alias="p50(span.duration)",
             ),
         },
         {
@@ -1174,7 +1174,7 @@ def test_translate_meta_results() -> None:
             "team_key_transaction": MetricGroupByField(
                 field=MetricField(
                     op="team_key_transaction",
-                    metric_mri="d:transactions/duration@millisecond",
+                    metric_mri="c:transactions/count_per_root_project@none",
                     alias="team_key_transaction",
                 )
             ),
@@ -1183,7 +1183,7 @@ def test_translate_meta_results() -> None:
         },
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
+            {"name": "p50(span.duration)", "type": "Float64"},
             {"name": "team_key_transaction", "type": "boolean"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
@@ -1198,8 +1198,8 @@ def test_translate_meta_results() -> None:
 
 def test_translate_meta_results_with_duplicates() -> None:
     meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
+        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1208,16 +1208,16 @@ def test_translate_meta_results_with_duplicates() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(transaction.measurements.lcp)": MetricField(
+            "p50(span.duration)": MetricField(
                 op="p50",
-                metric_mri="d:transactions/measurements.lcp@millisecond",
-                alias="p50(transaction.measurements.lcp)",
+                metric_mri="d:spans/duration@millisecond",
+                alias="p50(span.duration)",
             )
         },
         {"transaction": MetricGroupByField("transaction")},
     ) == sorted(
         [
-            {"name": "p50(transaction.measurements.lcp)", "type": "Float64"},
+            {"name": "p50(span.duration)", "type": "Float64"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
         ],
