@@ -26,6 +26,7 @@ interface MentionComposerProps {
   onSubmit?: (data: NoteType) => Promise<void>;
   onValueChange?: (value: string) => void;
   placeholder?: string;
+  variant?: 'compact' | 'full';
 }
 
 type EditorMode = 'write' | 'preview';
@@ -157,11 +158,14 @@ function Composer({
   onValueChange,
   onSubmit,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
+  variant = 'full',
 }: MentionComposerProps & {
   sources: ReadonlyArray<MentionSource<MentionEntity>>;
 }) {
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
+  const [hasFocusedEditor, setHasFocusedEditor] = useState(false);
   const initialEditorValue: MentionInputValue = {text: initialValue, mentions: []};
+  const isCompact = variant === 'compact';
 
   const submitNote = useCallback(
     async (value: MentionInputValue) => {
@@ -191,7 +195,7 @@ function Composer({
     <form.AppForm form={form}>
       <form.AppField name="value">
         {field =>
-          editorMode === 'write' ? (
+          editorMode === 'write' || isCompact ? (
             <field.Base<HTMLDivElement>>
               {({ref, ...fieldProps}) => (
                 <MentionInput
@@ -204,6 +208,7 @@ function Composer({
                     field.handleChange(nextValue);
                     onValueChange?.(nextValue.text);
                   }}
+                  onFocus={() => setHasFocusedEditor(true)}
                   onKeyDown={event => {
                     if (
                       event.key === 'Enter' &&
@@ -215,7 +220,8 @@ function Composer({
                     }
                   }}
                   value={field.state.value}
-                  minHeight={minHeight}
+                  minHeight={isCompact ? undefined : minHeight}
+                  size={isCompact ? 'sm' : undefined}
                 />
               )}
             </field.Base>
@@ -235,37 +241,57 @@ function Composer({
           )
         }
       </form.AppField>
-      <Flex align="center" justify="between" gap="md" paddingTop="sm">
-        <Flex align="center" gap="md">
-          <SegmentedControl<EditorMode>
-            aria-label={t('Comment editor mode')}
-            size="xs"
-            value={editorMode}
-            onChange={setEditorMode}
-          >
-            <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
-            <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
-          </SegmentedControl>
-          <Flex
-            as="span"
-            align="center"
-            gap="xs"
-            display={{zero: 'none', sm: 'inline-flex'}}
-          >
-            <IconMarkdown size="sm" variant="muted" />
-            <Text as="span" size="sm" variant="muted">
-              {t('Markdown supported')}
-            </Text>
-          </Flex>
-        </Flex>
-        <form.Subscribe selector={state => state.values.value.text.trim() === ''}>
-          {isEmpty => (
-            <form.SubmitButton size="xs" disabled={isEmpty}>
-              {t('Comment')}
-            </form.SubmitButton>
+      {hasFocusedEditor && (
+        <Flex
+          align="center"
+          justify={isCompact ? 'end' : 'between'}
+          gap="md"
+          paddingTop="sm"
+        >
+          {!isCompact && (
+            <EditorControls mode={editorMode} onModeChange={setEditorMode} />
           )}
-        </form.Subscribe>
-      </Flex>
+          <form.Subscribe selector={state => state.values.value.text.trim() === ''}>
+            {isEmpty => (
+              <form.SubmitButton
+                size="xs"
+                disabled={isEmpty}
+                aria-label={isCompact ? t('Submit comment') : undefined}
+              >
+                {t('Comment')}
+              </form.SubmitButton>
+            )}
+          </form.Subscribe>
+        </Flex>
+      )}
     </form.AppForm>
+  );
+}
+
+function EditorControls({
+  mode,
+  onModeChange,
+}: {
+  mode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+}) {
+  return (
+    <Flex align="center" gap="md">
+      <SegmentedControl<EditorMode>
+        aria-label={t('Comment editor mode')}
+        size="xs"
+        value={mode}
+        onChange={onModeChange}
+      >
+        <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
+      </SegmentedControl>
+      <Flex as="span" align="center" gap="xs" display={{zero: 'none', sm: 'inline-flex'}}>
+        <IconMarkdown size="sm" variant="muted" />
+        <Text as="span" size="sm" variant="muted">
+          {t('Markdown supported')}
+        </Text>
+      </Flex>
+    </Flex>
   );
 }

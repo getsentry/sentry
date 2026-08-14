@@ -28,10 +28,14 @@ describe('MentionComposer', () => {
     });
   });
 
-  it('shows editor controls immediately', () => {
+  it('shows editor controls after focusing the editor', async () => {
     render(<MentionComposer />);
 
-    expect(screen.getByRole('radio', {name: 'Write'})).toBeVisible();
+    expect(screen.queryByRole('radio', {name: 'Write'})).not.toBeInTheDocument();
+
+    await userEvent.click(getEditor());
+
+    expect(screen.getByRole('radio', {name: 'Write'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
   });
 

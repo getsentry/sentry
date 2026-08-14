@@ -7,16 +7,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
-import {
-  findCodingAgentResultLink,
-  getRepoPullRequestLink,
-} from 'sentry/components/events/autofix/pullRequests';
+import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
@@ -44,6 +42,7 @@ interface IssuePreviewActionsProps {
 interface AutofixActionProps {
   autofix: ExplorerAutofix;
   group: Group;
+  linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
   disabled?: boolean;
 }
@@ -91,7 +90,7 @@ function StartAutofixAction({
   label,
   onContinueInSeer,
   tooltip,
-}: AutofixActionProps & {
+}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
@@ -204,9 +203,39 @@ function StartAutofixAction({
   );
 }
 
-function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActionProps) {
+function ActionButtons({
+  autofix,
+  disabled,
+  group,
+  linkedPullRequestsData,
+  onContinueInSeer,
+}: AutofixActionProps) {
   const {runState} = autofix;
   const sections = getOrderedAutofixSections(runState);
+  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
+    .filter(
+      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+    )
+    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+
+  if (latestOpenPullRequest) {
+    return (
+      <LinkButton
+        {...getAutofixActionProps({
+          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
+          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+          analyticsParams: {destination: 'pull_request'},
+          group,
+        })}
+        external
+        disabled={disabled}
+        href={latestOpenPullRequest.externalUrl}
+        icon={<IconGithub data-test-id="pull-request-github" />}
+      >
+        {t('View %s#%s', latestOpenPullRequest.repository.name, latestOpenPullRequest.id)}
+      </LinkButton>
+    );
+  }
 
   if (!runState || sections.length === 0) {
     return (
@@ -250,32 +279,9 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
     );
   }
 
-  const pullRequests = Object.values(runState.repo_pr_states ?? {});
-  const completedPullRequestLink = pullRequests.map(getRepoPullRequestLink).find(defined);
-  const failedPullRequest = pullRequests.find(
+  const failedPullRequest = Object.values(runState.repo_pr_states ?? {}).find(
     pullRequest => pullRequest.pr_creation_status === 'error'
   );
-
-  // A pull request was created and completed
-  // Show the view pull request button
-  if (completedPullRequestLink) {
-    return (
-      <LinkButton
-        {...getAutofixActionProps({
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-          analyticsParams: {destination: 'pull_request'},
-          group,
-        })}
-        external
-        disabled={disabled}
-        href={completedPullRequestLink.url}
-        icon={<IconGithub data-test-id="pull-request-github" />}
-      >
-        {completedPullRequestLink.label}
-      </LinkButton>
-    );
-  }
 
   // A pull request was created but failed
   // Show the retry button
@@ -397,26 +403,23 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
           onContinueInSeer={onContinueInSeer}
         />
       );
-    case 'pr_iteration':
-      return (
-        <Button
-          {...getAutofixActionProps({
-            analyticsAction: 'view_autofix',
-            analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
-            analyticsParams: {destination: 'seer', next_step: 'pr_iteration'},
-            group,
-          })}
-          busy={autofix.isPolling}
-          disabled={disabled || autofix.isPolling}
-          icon={<IconSeer />}
-          onClick={onContinueInSeer}
-        >
-          {t('Continue in Seer')}
-        </Button>
-      );
+    // We are not yet supporting PR iteration
+    // Open PRs will display a link to the PR, closed PRs will display "Restart Autofix"
     default:
-      return null;
+      return (
+        <StartAutofixAction
+          action={() => autofix.startStep('root_cause')}
+          analyticsAction="root_cause"
+          analyticsEventKey="issue_inbox.start_fix_clicked"
+          analyticsEventName="Issue Inbox: Start Fix Clicked"
+          autofix={autofix}
+          disabled={disabled}
+          group={group}
+          icon={<IconRefresh />}
+          label={t('Restart Autofix')}
+          onContinueInSeer={onContinueInSeer}
+        />
+      );
   }
 }
 
@@ -426,7 +429,10 @@ export function IssuePreviewActions({
   group,
   onContinueInSeer,
 }: IssuePreviewActionsProps) {
-  if (autofix.isLoading) {
+  const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
+    useLinkedPullRequests({group});
+
+  if (autofix.isLoading || pullRequestsPending) {
     return <Placeholder width="120px" height="32px" />;
   }
 
@@ -435,6 +441,7 @@ export function IssuePreviewActions({
       autofix={autofix}
       disabled={disabled}
       group={group}
+      linkedPullRequestsData={linkedPullRequestsData}
       onContinueInSeer={onContinueInSeer}
     />
   );

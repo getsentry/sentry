@@ -1,6 +1,8 @@
 import type React from 'react';
 import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
+import type {FormSize} from 'sentry/utils/theme';
+
 import type {MentionInputValue} from './model';
 
 interface MentionSourceBase<TSuggestion> {
@@ -45,4 +47,5 @@ export interface MentionInputProps<TSuggestion> extends Omit<
   minHeight?: number;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
+  size?: FormSize;
 }

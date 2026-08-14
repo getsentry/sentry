@@ -1,26 +1,20 @@
 import type {CSSProperties} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DRAG_SEPARATOR_TARGET_SIZE} from '@sentry/scraps/dragHandle';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {TABLE_HEAD_ROW_HEIGHT} from '@sentry/scraps/table';
+import {
+  Table,
+  TABLE_HEAD_ROW_HEIGHT,
+  TableResizer,
+  TableStatusCell,
+} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 
 export const GRID_BODY_ROW_HEIGHT = 42;
 const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
-
-/**
- * Local z-index stacking context
- * https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Positioning/Understanding_z_index/The_stacking_context
- */
-const Z_INDEX_STICKY_HEADER = 2;
-
-// Parent context is GridHeadCell
-const Z_INDEX_GRID_RESIZER = 1;
 
 export function Header(props: FlexProps) {
   return <Flex justify="between" align="center" marginBottom="md" {...props} />;
@@ -67,36 +61,28 @@ export const Body = styled(
 `;
 
 /**
- * Grid is the parent element for the tableResizable component.
- *
- * On newer browsers, it will use CSS Grids to implement its layout.
- *
- * However, it is based on <table>, which has a distinction between header/body
- * HTML elements, which allows CSS selectors to its full potential. This has
- * the added advantage that older browsers will still have a chance of
- * displaying the data correctly (but this is untested).
- *
- * <thead>, <tbody>, <tr> are ignored by CSS Grid.
- * The entire layout is determined by the usage of <th> and <td>.
+ * GridHead is the collection of elements that builds the header section of the
+ * Grid. As the entirety of the add/remove/resize actions are performed on the
+ * header, most of the elements behave different for each stage.
  */
-export const Grid = styled('table')<{
+/**
+ * The shared shell owns column tracks only, so the row tracks, scroll containment
+ * and sizing that these tables want are declared here.
+ */
+export const Grid = styled(Table, {
+  shouldForwardProp: prop => prop !== 'fit' && prop !== 'height' && prop !== 'scrollable',
+})<{
   fit?: 'max-content';
   height?: CSSProperties['height'];
   scrollable?: boolean;
 }>`
-  position: inherit;
-  display: grid;
-
-  box-sizing: border-box;
-  border-collapse: collapse;
-  margin: 0;
-
   ${p =>
     p.scrollable &&
     css`
       overflow-x: auto;
       overflow-y: scroll;
     `}
+
   /* Pin the header to a definite track height in both layouts; a content-based
      header track lets Safari mis-size the <thead> on back/forward navigation.
      Body track: 1fr absorbs slack when a height is given, else auto. */
@@ -126,19 +112,10 @@ export const Grid = styled('table')<{
           }
         `}
 
-  min-width: ${p => p.fit}
+  min-width: ${p => p.fit};
 `;
 
-/**
- * GridHead is the collection of elements that builds the header section of the
- * Grid. As the entirety of the add/remove/resize actions are performed on the
- * header, most of the elements behave different for each stage.
- */
-export const GridHead = styled('thead')<{sticky?: boolean}>`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
-
+export const GridHead = styled(Table.Head)`
   background-color: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.sm};
@@ -150,21 +127,11 @@ export const GridHead = styled('thead')<{sticky?: boolean}>`
 
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
-
-  ${p =>
-    p.sticky
-      ? css`
-          position: sticky;
-          top: 0;
-          z-index: ${Z_INDEX_STICKY_HEADER};
-        `
-      : ''}
 `;
 
-export const GridHeadCell = styled('th')<{isFirst: boolean}>`
-  /* By default, a grid item cannot be smaller than the size of its content.
-     We override this by setting min-width to be 0. */
-  position: relative; /* Used by GridResizer */
+export const GridHeadCell = styled(Table.HeadCell, {
+  shouldForwardProp: prop => prop !== 'isFirst',
+})<{isFirst: boolean}>`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -182,6 +149,11 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+  }
+
+  /* Truncating every div would clip the resize handle's hit area back to the line. */
+  ${TableResizer}, ${TableResizer} div {
+    overflow: visible;
   }
 
   &:last-child {
@@ -218,22 +190,9 @@ export const GridHeadCellStatic = styled('th')`
   }
 `;
 
-/**
- * GridBody are the collection of elements that contains and display the data
- * of the Grid. They are rather simple.
- */
-export const GridBody = styled('tbody')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
-`;
-
-export const GridRow = styled('tr')<{isClickable?: boolean}>`
-  display: grid;
-  position: relative;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
-
+export const GridRow = styled(Table.Row, {
+  shouldForwardProp: prop => prop !== 'isClickable',
+})<{isClickable?: boolean}>`
   &:not(thead > &) {
     background-color: ${p => p.theme.tokens.background.primary};
 
@@ -254,10 +213,7 @@ export const GridRow = styled('tr')<{isClickable?: boolean}>`
     `}
 `;
 
-export const GridBodyCell = styled('td')`
-  /* By default, a grid item cannot be smaller than the size of its content.
-     We override this by setting min-width to be 0. */
-  min-width: 0;
+export const GridBodyCell = styled(Table.Cell)`
   /* Locking in the height makes calculation for resizer to be easier.
      min-height is used to allow a cell to expand and this is used to display
      feedback during empty/error state */
@@ -279,106 +235,16 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
   }
 `;
 
-const GridStatusWrapper = styled(GridBodyCell)`
-  grid-column: 1 / -1;
-  width: 100%;
+const GridBodyCellStatus = styled(TableStatusCell)`
   min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
+  font-size: ${p => p.theme.font.size.md};
 `;
 
-const GridStatusFloat = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
-`;
-
-export function GridBodyCellStatus(props: any) {
+export function GridStatus({children}: {children: React.ReactNode}) {
   return (
-    <GridStatusWrapper>
-      <GridStatusFloat>{props.children}</GridStatusFloat>
-    </GridStatusWrapper>
+    <GridRow>
+      <GridBodyCellStatus>{children}</GridBodyCellStatus>
+    </GridRow>
   );
 }
-
-/**
- * We have a thick GridResizer and we use the ::after pseudo-element to draw
- * a thin 1px border.
- *
- * The right most cell does not have a resizer as resizing from that side does strange things.
- */
-export const GridResizer = styled('div', {
-  shouldForwardProp: prop => prop !== 'cursor' && isPropValid(prop),
-})<{cursor?: CSSProperties['cursor']}>`
-  position: absolute;
-  top: 0px;
-  right: -6px;
-  width: 11px;
-  height: var(--column-resizer-height, ${TABLE_HEAD_ROW_HEIGHT}px);
-
-  padding-left: 5px;
-  padding-right: 5px;
-
-  cursor: ${p => p.cursor ?? 'col-resize'};
-  pointer-events: none;
-  touch-action: none;
-  user-select: none;
-  z-index: ${Z_INDEX_GRID_RESIZER};
-
-  && {
-    overflow: visible;
-  }
-
-  /**
-   * This element allows us to have a thick GridResizer that is easy to hover and
-   * drag, but still draws an appealing thin line for the border
-   */
-  &::after {
-    content: ' ';
-    display: block;
-    width: 100%; /* Equivalent to 1px */
-    height: 100%;
-  }
-
-  &:hover::after {
-    background-color: ${p => p.theme.colors.gray200};
-  }
-
-  /**
-   * Ensure that this rule is after :hover, otherwise it will flicker when
-   * the GridResizer is dragged
-   */
-  &:active::after,
-  &:focus-visible::after,
-  &[data-is-held='true']::after {
-    background-color: ${p => p.theme.tokens.focus.default};
-  }
-
-  /**
-   * This element gives the resize handle a more visible knob to grab
-   */
-  &:hover::before {
-    position: absolute;
-    top: 0;
-    left: 2px;
-    content: ' ';
-    display: block;
-    width: 7px;
-    height: ${TABLE_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    opacity: 0.4;
-  }
-`;
-
-export const GridResizerTarget = styled('div')`
-  position: absolute;
-  top: 0;
-  left: calc(50% - ${DRAG_SEPARATOR_TARGET_SIZE / 2}px);
-  width: ${DRAG_SEPARATOR_TARGET_SIZE}px;
-  height: var(--drag-separator-target-length, ${TABLE_HEAD_ROW_HEIGHT}px);
-  max-height: 100%;
-
-  pointer-events: auto;
-  touch-action: none;
-`;
