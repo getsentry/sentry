@@ -13,8 +13,10 @@ from snuba_sdk.query import Query
 
 from sentry.snuba.metrics.mqb_query_transformer import (
     MQBQueryTransformationException,
+    _derive_mri_to_apply,
     transform_mqb_query_to_metrics_query,
 )
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 
 """
 Notes:
@@ -404,3 +406,10 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
 def test_invalid_mqb_queries(input, error_message) -> None:
     with pytest.raises(MQBQueryTransformationException, match=re.escape(error_message)):
         transform_mqb_query_to_metrics_query(input)
+
+
+def test_team_key_transaction_defaults_to_counter_mri() -> None:
+    assert (
+        _derive_mri_to_apply([1], select=[], orderby=None)
+        == TransactionMRI.COUNT_PER_ROOT_PROJECT.value
+    )
