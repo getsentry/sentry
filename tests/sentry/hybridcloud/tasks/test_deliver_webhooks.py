@@ -1130,6 +1130,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert tags.get("region_sent_to") == "us"
         # Rows predating the provider column still drain through here.
         assert tags.get("provider") == "unknown"
+        assert tags.get("event_type") == "none"
 
     @responses.activate
     @override_cells(cell_config)
@@ -1142,7 +1143,7 @@ class DeliveryTimeMetricsTest(TestCase):
             body="",
         )
         webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
+            mailbox_name="github:123:0:pull_request",
             cell_name="us",
             provider="github",
             request_headers=orjson.dumps(
@@ -1161,6 +1162,8 @@ class DeliveryTimeMetricsTest(TestCase):
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "github"
+        assert tags.get("event_type") == "pull_request"
+        # Both tags emit while consumers migrate off the unbounded one.
         assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
@@ -1174,7 +1177,7 @@ class DeliveryTimeMetricsTest(TestCase):
             body="",
         )
         webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
+            mailbox_name="github:123:0:push",
             cell_name="us",
             provider="github",
             request_headers=orjson.dumps(
@@ -1192,6 +1195,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
+        assert tags.get("event_type") == "push"
         assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
@@ -1220,7 +1224,38 @@ class DeliveryTimeMetricsTest(TestCase):
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "stripe"
+        assert tags.get("event_type") == "none"
         assert "github_event_and_action" not in tags
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_mailbox_without_event_suffix(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        """A delivery with no X-GitHub-Event header mailboxes without the suffix."""
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("provider") == "github"
+        assert tags.get("event_type") == "unknown"
 
 
 @control_silo_test

@@ -20,6 +20,7 @@ from sentry.hybridcloud.models.webhookpayload import (
     DestinationType,
     WebhookPayload,
 )
+from sentry.hybridcloud.webhook_event_types import event_type_from_mailbox
 from sentry.options.rollout import in_rollout_group
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
@@ -770,9 +771,13 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
+    provider = _provider_tag(payload)
     tags = {
         "region_sent_to": payload.cell_name,
-        "provider": _provider_tag(payload),
+        "provider": provider,
+        # Bounded, and the unit delivery queues by — unlike github_event_and_action,
+        # which slices below the mailbox and grows with every action GitHub adds.
+        "event_type": event_type_from_mailbox(provider, payload.mailbox_name),
     } | _get_github_delivery_time_tags(payload)
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
