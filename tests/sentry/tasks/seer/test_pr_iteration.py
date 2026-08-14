@@ -865,10 +865,15 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert drain["sentry_group_id"] == self.group.id
 
     @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_a_run_still_processing_says_so_rather_than_returning_silently(
-        self, mock_fetch: MagicMock, mock_pop: MagicMock, mock_logger: MagicMock
+    def test_a_run_still_processing_says_so_and_what_it_left_behind(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_count: MagicMock,
+        mock_logger: MagicMock,
     ) -> None:
         mock_fetch.return_value = self._state(status="processing")
 
@@ -878,6 +883,9 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert drain["outcome"] == "skipped"
         assert drain["reason"] == "run_processing"
         assert drain["run_status"] == "processing"
+        # The one exit that leaves the queue standing, so the depth is what says
+        # whether work is owed to whoever comes back for it.
+        assert drain["left_queued_count"] == 3
         mock_pop.assert_not_called()
 
     @patch(f"{TASK_PATH}.logger")
@@ -1524,6 +1532,25 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert extra["outcome"] == "triggered"
         assert extra["reason"] == "bypass"
         assert extra["bypass"] is True
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_arriving_item_is_named_apart_from_the_completion_hooks_hand_back(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # Both producers write this line; the completion hook's hand-back says
+        # ``completion_hook``. Without the field, telling them apart means knowing
+        # which reasons belong to which side.
+        trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=self._feedback(),
+            run_state=self._state(),
+        )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["triggered_by"] == "feedback"
+        assert extra["feedback_id"] == "user-ui"
 
 
 class _ReactionScmProtocols:

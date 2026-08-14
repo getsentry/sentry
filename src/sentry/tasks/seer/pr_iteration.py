@@ -71,6 +71,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    count_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -173,6 +174,12 @@ def trigger_consume_pr_iteration_feedback(
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
+        # Which producer scheduled this drain. The other is the completion hook's
+        # hand-back, which has no arriving item to name. Stated outright rather
+        # than left to be inferred from ``reason`` or from ``feedback_id`` being
+        # absent, so counting one against the other is a filter and not a list of
+        # reasons someone has to know in advance.
+        triggered_by="feedback",
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
@@ -308,12 +315,18 @@ def _drain_queued_autofix_feedback(
         return
 
     if state.status == "processing":
+        # The one exit that leaves the queue standing -- everything below pops it
+        # destructively. Nothing reschedules from here: what is left is picked up
+        # by the completion hook's hand-back once the run finishes, or by the next
+        # arrival of feedback. So the depth is the interesting part: it separates
+        # "nothing was waiting" from "work is owed to whoever comes back for it".
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
             reason="run_processing",
             run_status=state.status,
             trigger_id=trigger_id,
+            left_queued_count=count_queued_autofix_feedback(run_id),
         )
         return
 

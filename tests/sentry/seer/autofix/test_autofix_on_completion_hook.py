@@ -154,6 +154,15 @@ def pr_iteration_memory_block(
     )
 
 
+def log_lines(mock_logger: MagicMock, name: str, *, level: str = "info") -> list[dict]:
+    """The ``extra`` of every line emitted under ``name``, in the order emitted."""
+    return [
+        call.kwargs["extra"]
+        for call in getattr(mock_logger, level).call_args_list
+        if call.args and call.args[0] == name
+    ]
+
+
 class TestAutofixOnCompletionHookHelpers(TestCase):
     """Tests for helper methods in AutofixOnCompletionHook."""
 
@@ -413,7 +422,6 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
             verify_content=False,
-            author=None,
         )
 
     @patch(
@@ -474,7 +482,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         }
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_not_called()
-        mock_consume.assert_called_once_with(self.organization, 123)
+        mock_consume.assert_called_once()
+        assert mock_consume.call_args.args[1:] == (self.organization, 123)
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
@@ -540,6 +549,360 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
         assert pushed is True
         mock_push_changes.assert_called_once()
+
+
+HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+
+
+class TestPrIterationCompletionHookLogs(TestCase):
+    """The hook's side of one PR iteration, as it reads in the logs.
+
+    An iteration passes through the hook at least twice: once when the agent
+    finishes and a push is owed, once more when that push has landed. The lines
+    here exist so those two passes can be told apart after the fact.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+
+    def _pr_state(self, commit_sha: str | None, **kwargs) -> dict[str, RepoPRState]:
+        return {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                provider="github",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha=commit_sha,
+                **kwargs,
+            )
+        }
+
+    def _unsynced(self) -> SeerRunState:
+        """The agent has finished, but its changes are not on the PR yet."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="iteration-sha")],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("stale-sha")
+        return state
+
+    def _synced(self) -> SeerRunState:
+        """The push landed: this is the pass that hands back to the queue."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="synced-sha")],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("synced-sha")
+        return state
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_pass_through_the_hook_says_which_pass_it_was(
+        self, mock_fetch, mock_push, mock_logger
+    ):
+        mock_fetch.return_value = self._unsynced()
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        (received,) = log_lines(mock_logger, "autofix.pr_iteration.completion_hook.received")
+        assert received["run_id"] == 123
+        assert received["sentry_organization_id"] == self.organization.id
+        assert received["sentry_group_id"] == self.group.id
+        assert received["scm_infos"] == [
+            {
+                "scm_repo_full_name": "test-repo",
+                "scm_provider": "github",
+                "pr_id": 77,
+                "pr_number": 7,
+                "pr_url": "https://example.com/pull/7",
+            }
+        ]
+        assert received["run_status"] == "completed"
+        assert received["has_changes"] is True
+        assert received["is_synced"] is False
+        assert received["repos_with_diffs"] == ["test-repo"]
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_run_that_is_not_an_iteration_stays_out_of_the_iteration_logs(
+        self, mock_fetch, mock_logger
+    ):
+        """The hook runs for every autofix run; only iterations pay for these lines."""
+        mock_fetch.return_value = run_state(
+            blocks=[root_cause_memory_block()], metadata={"group_id": self.group.id}
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        emitted = [
+            call.args[0]
+            for call in mock_logger.info.call_args_list + mock_logger.error.call_args_list
+            if call.args
+        ]
+        assert not [name for name in emitted if name.startswith("autofix.pr_iteration.")]
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_pass_that_is_still_owed_a_push_says_it_is_waiting(
+        self, mock_broadcast, mock_logger
+    ):
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, 123, self._unsynced(), self.group
+        )
+
+        mock_broadcast.assert_not_called()
+        (waiting,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome")
+        assert waiting["outcome"] == "awaiting_push"
+        assert waiting["reason"] == "repos_not_synced"
+        assert waiting["webhook_emitted"] is False
+        assert waiting["iteration_index"] == 1
+        assert waiting["run_id"] == 123
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_the_pass_where_the_changes_landed_says_they_landed(
+        self, mock_broadcast, mock_logger
+    ):
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, 123, self._synced(), self.group
+        )
+
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"]
+            == SeerActionType.ITERATION_COMPLETED.value
+        )
+        (landed,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome")
+        assert landed["outcome"] == "changes_pushed"
+        assert landed["reason"] == "all_repos_synced"
+        assert landed["webhook_emitted"] is True
+        assert landed["errored_repos"] == []
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_terminally_errored_repo_reads_as_a_failed_push_not_a_finished_one(
+        self, mock_broadcast, mock_logger
+    ):
+        """We stop waiting for a sync a failed PR creation will never deliver."""
+        state = self._unsynced()
+        state.repo_pr_states = self._pr_state("stale-sha")
+        state.repo_pr_states["test-repo"].pr_creation_status = "error"
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        (failed,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome")
+        assert failed["outcome"] == "push_failed"
+        assert failed["reason"] == "pr_creation_errored"
+        # The webhook still goes out -- this is as finished as it is going to get.
+        assert failed["webhook_emitted"] is True
+        assert failed["errored_repos"] == ["test-repo"]
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_an_iteration_without_pr_states_is_reported_rather_than_asserted(
+        self, mock_broadcast, mock_logger
+    ):
+        """Was an assert, which took the rest of the hook -- push included -- with it."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
+        )
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+        (broken,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome", level="error")
+        assert broken["outcome"] == "push_failed"
+        assert broken["reason"] == "no_pull_requests"
+        assert broken["webhook_emitted"] is False
+        assert broken["run_id"] == 123
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_pass_that_pushes_says_so(self, mock_push, mock_logger):
+        state = self._unsynced()
+
+        pushed = AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+        assert pushed is True
+        mock_push.assert_called_once()
+        (push,) = log_lines(mock_logger, "autofix.pr_iteration.push")
+        assert push["outcome"] == "pushed"
+        assert push["reason"] == "ok"
+        assert push["run_id"] == 123
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_the_hand_back_pass_is_named_apart_from_having_nothing_to_push(
+        self, mock_push, mock_logger
+    ):
+        """``already_synced`` is the previous push landing, not the agent idling."""
+        state = self._synced()
+
+        pushed = AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+        assert pushed is False
+        mock_push.assert_not_called()
+        (push,) = log_lines(mock_logger, "autofix.pr_iteration.push")
+        assert push["outcome"] == "not_pushed"
+        assert push["reason"] == "already_synced"
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_iteration_that_changed_nothing_reports_no_changes(self, mock_push, mock_logger):
+        state = run_state(
+            blocks=[
+                MemoryBlock(
+                    id="block-pr-iteration",
+                    message=Message(
+                        role="assistant", content="nothing to do", metadata={"step": "pr_iteration"}
+                    ),
+                    timestamp="2026-02-10T00:00:00Z",
+                )
+            ],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("synced-sha")
+
+        pushed = AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+        assert pushed is False
+        mock_push.assert_not_called()
+        (push,) = log_lines(mock_logger, "autofix.pr_iteration.push")
+        assert push["reason"] == "no_changes"
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_repo_whose_pr_creation_errored_stops_the_push(self, mock_push, mock_logger):
+        """Re-pushing into it would re-fire this hook in a loop."""
+        state = self._unsynced()
+        state.repo_pr_states["test-repo"].pr_creation_status = "error"
+
+        pushed = AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+        assert pushed is False
+        mock_push.assert_not_called()
+        (push,) = log_lines(mock_logger, "autofix.pr_iteration.push")
+        assert push["reason"] == "terminal_push_errors"
+        assert push["errored_repos"] == ["test-repo"]
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
+    def test_a_failed_push_is_an_error_naming_the_run(self, mock_push, mock_logger):
+        state = self._unsynced()
+
+        pushed = AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+        assert pushed is False
+        (failed,) = log_lines(mock_logger, "autofix.pr_iteration.push", level="error")
+        assert failed["outcome"] == "failed"
+        assert failed["reason"] == "exception"
+        assert failed["error_type"] == "ValueError"
+        assert failed["run_id"] == 123
+
+    @patch(
+        f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback",
+    )
+    @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
+    def test_a_failed_push_still_hands_back_to_the_queue(self, mock_push, mock_consume):
+        """Feedback already waiting should not be stranded by a push that broke."""
+        AutofixOnCompletionHook._maybe_continue_pipeline(
+            self.organization, 123, self._unsynced(), self.group
+        )
+
+        mock_consume.assert_called_once()
+        assert mock_consume.call_args.args[1:] == (self.organization, 123)
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_the_hand_back_to_the_queue_names_the_drain_it_scheduled(
+        self, mock_apply, mock_logger
+    ):
+        """The loop back into the drain, readable as any other trigger is."""
+        state = self._synced()
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        (trigger,) = log_lines(mock_logger, "autofix.pr_iteration.feedback.trigger")
+        # The field that separates this drain from one an arriving item scheduled.
+        assert trigger["triggered_by"] == "completion_hook"
+        assert trigger["outcome"] == "triggered"
+        assert trigger["reason"] == "iteration_finished"
+        assert trigger["countdown"] is None
+        assert trigger["run_id"] == 123
+        # No single item to name: the iteration finishing is the reason, and the
+        # whole queue is the subject.
+        assert "feedback_id" not in trigger
+
+        # The id on the line is the one the drain will report back.
+        task_kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert task_kwargs["trigger_id"] == trigger["trigger_id"]
+        assert task_kwargs["run_id"] == 123
+        assert task_kwargs["organization_id"] == self.organization.id
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_the_closing_line_reports_the_shas_that_landed(self, mock_broadcast, mock_logger):
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, 123, self._synced(), self.group
+        )
+
+        (emitted,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome")
+        assert emitted["repo_states"] == [
+            {
+                "scm_repo_full_name": "test-repo",
+                "commit_sha": "synced-sha",
+                "pr_creation_status": "completed",
+                "synced": True,
+            }
+        ]
+
+    @patch(f"{HOOK_PATH}.logger")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_waiting_iteration_names_the_repo_holding_it_up(self, mock_broadcast, mock_logger):
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, 123, self._unsynced(), self.group
+        )
+
+        (held,) = log_lines(mock_logger, "autofix.pr_iteration.iteration_outcome")
+        assert held["repo_states"] == [
+            {
+                "scm_repo_full_name": "test-repo",
+                "commit_sha": "stale-sha",
+                "pr_creation_status": "completed",
+                "synced": False,
+            }
+        ]
 
 
 class TestPipelineConstants(TestCase):

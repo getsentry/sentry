@@ -614,7 +614,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
     @with_feature("organizations:autofix-pr-iteration-manual")
-    @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -644,7 +644,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_try_enqueue.call_args.kwargs["run_id"] == 123
         assert mock_try_enqueue.call_args.kwargs["group_id"] == group.id
         assert mock_try_enqueue.call_args.kwargs["actor_user_id"] == self.user.id
-        mock_consume.apply_async.assert_called_once()
+        mock_consume.assert_called_once()
+        assert mock_consume.call_args.kwargs["run_id"] == 123
+        assert mock_consume.call_args.kwargs["organization_id"] == group.organization.id
 
     @with_feature(
         {
@@ -653,7 +655,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "organizations:autofix-pr-iteration": True,
         }
     )
-    @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     def test_pr_iteration_requires_manual_feature_flag(self, mock_try_enqueue, mock_consume):
         group = self.create_group()

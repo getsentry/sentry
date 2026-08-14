@@ -82,6 +82,16 @@ def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
         return None
 
 
+def count_queued_autofix_feedback(run_id: int) -> int:
+    """How many items are on this run's queue, without reading or removing them.
+
+    For the drain that declines to pop: what it leaves behind is the difference
+    between "nothing was waiting" and "work is still owed to whoever comes back
+    for it", and neither is visible from a line that only says it skipped.
+    """
+    return redis_clusters.get(_REDIS_CLUSTER).llen(_feedback_queue_key(run_id))
+
+
 def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     redis = redis_clusters.get(_REDIS_CLUSTER)
     key = _feedback_queue_key(run_id)
