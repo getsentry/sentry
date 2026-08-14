@@ -12,7 +12,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -31,7 +31,7 @@ import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   disableLoadingTags?: boolean;
   disallowFreeText?: boolean;
   filterKeyMenuWidth?: number;
