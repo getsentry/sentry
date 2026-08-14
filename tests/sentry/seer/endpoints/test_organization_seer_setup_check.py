@@ -30,7 +30,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
                 "orgHasAcknowledged": True,
                 "userHasAcknowledged": True,
             },
-            "isFreeCohort": False,
+            "hasFreeAutofixAccess": False,
             "billing": {
                 "hasAutofixQuota": True,
                 "hasScannerQuota": True,
@@ -41,11 +41,11 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         "sentry.seer.endpoints.organization_seer_setup_check.is_free_cohort_org",
         return_value=True,
     )
-    def test_free_cohort(self, _mock_is_free_cohort: MagicMock) -> None:
+    def test_free_autofix_access(self, _mock_is_free_cohort: MagicMock) -> None:
         response = self.get_response(self.organization.slug)
 
         assert response.status_code == 200
-        assert response.data["isFreeCohort"] is True
+        assert response.data["hasFreeAutofixAccess"] is True
 
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_no_autofix_quota(self, mock_has_budget: MagicMock) -> None:

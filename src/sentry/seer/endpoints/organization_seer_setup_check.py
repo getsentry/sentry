@@ -59,7 +59,7 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
                     "orgHasAcknowledged": True,
                     "userHasAcknowledged": True,
                 },
-                "isFreeCohort": is_free_cohort_org(organization),
+                "hasFreeAutofixAccess": is_free_cohort_org(organization),
                 "billing": {
                     "hasAutofixQuota": has_autofix_quota,
                     "hasScannerQuota": has_seer_scanner_quota,
