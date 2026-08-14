@@ -28,8 +28,8 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
 )
-from sentry.snuba.metrics.naming_layer import TransactionMetricKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer import SpanMetricKey
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = [
@@ -2105,8 +2105,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         for hour in range(0, 5):
             self.store_transaction_metric(
                 value=hour * 100,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2210,8 +2210,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         for hour in range(0, 5):
             self.store_transaction_metric(
                 value=hour * 100,
-                metric=TransactionMetricKey.DIST_ON_DEMAND.value,
-                internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+                metric=SpanMetricKey.DIST_ON_DEMAND.value,
+                internal_metric=SpanMRI.DIST_ON_DEMAND.value,
                 entity="metrics_distributions",
                 tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2265,8 +2265,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash, "failure": "true"},
             timestamp=timestamp,
@@ -2297,8 +2297,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             # 1 per hour failed
             self.store_transaction_metric(
                 value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash, "failure": "true"},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2308,8 +2308,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             for j in range(0, 4):
                 self.store_transaction_metric(
                     value=1,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                     entity="metrics_counters",
                     tags={"query_hash": spec.query_hash},
                     timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2365,8 +2365,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         for hour in range(0, 5):
             self.store_transaction_metric(
                 value=1,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2375,8 +2375,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             for j in range(0, 4):
                 self.store_transaction_metric(
                     value=1,
-                    metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                    internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                    metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                    internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                     entity="metrics_counters",
                     tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
                     timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2432,8 +2432,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         for hour in range(0, 5):
             self.store_transaction_metric(
                 value=hour * 10,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash, "measurement_rating": "matches_hash"},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2441,8 +2441,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             # These should not add to the total
             self.store_transaction_metric(
                 value=hour * 10,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash},
                 timestamp=self.start + datetime.timedelta(hours=hour),
@@ -2513,8 +2513,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash},
             timestamp=timestamp,
@@ -2544,8 +2544,8 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         timestamp = self.start
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash},
             timestamp=timestamp,
@@ -3061,8 +3061,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=200,
-            metric=TransactionMetricKey.DIST_ON_DEMAND.value,
-            internal_metric=TransactionMRI.DIST_ON_DEMAND.value,
+            metric=SpanMetricKey.DIST_ON_DEMAND.value,
+            internal_metric=SpanMRI.DIST_ON_DEMAND.value,
             entity="metrics_distributions",
             tags={"query_hash": spec.query_hash},
             timestamp=self.start,
@@ -3084,10 +3084,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         result = query.run_query("test_query")
 
-        assert result["data"] == [{"d:transactions/on_demand@none": 200.0}]
+        assert result["data"] == [{"d:spans/on_demand@none": 200.0}]
         meta = result["meta"]
         assert len(meta) == 1
-        assert meta[0]["name"] == "d:transactions/on_demand@none"
+        assert meta[0]["name"] == "d:spans/on_demand@none"
 
     def test_run_query_with_on_demand_count_and_environments(self) -> None:
         field = "count(measurements.fp)"
@@ -3108,8 +3108,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             )
             self.store_transaction_metric(
                 value=value,
-                metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-                internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+                metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+                internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
                 entity="metrics_counters",
                 tags={"query_hash": spec.query_hash},
                 timestamp=self.start,
@@ -3147,10 +3147,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
             result = query.run_query("test_query")
 
-            assert result["data"] == [{"c:transactions/on_demand@none": float(value)}]
+            assert result["data"] == [{"c:spans/on_demand@none": float(value)}]
             meta = result["meta"]
             assert len(meta) == 1
-            assert meta[0]["name"] == "c:transactions/on_demand@none"
+            assert meta[0]["name"] == "c:spans/on_demand@none"
 
     def test_run_query_with_on_demand_failure_rate(self) -> None:
         field = "failure_rate()"
@@ -3159,8 +3159,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash, "failure": "true"},
             timestamp=self.start,
@@ -3168,8 +3168,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash},
             timestamp=self.start,
@@ -3192,10 +3192,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
 
         # (1 failure / 2 total) = 0.5
-        assert result["data"] == [{"c:transactions/on_demand@none": 0.5}]
+        assert result["data"] == [{"c:spans/on_demand@none": 0.5}]
         meta = result["meta"]
         assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
+        assert meta[0]["name"] == "c:spans/on_demand@none"
 
     def test_run_query_with_on_demand_apdex(self) -> None:
         field = "apdex(10)"
@@ -3204,8 +3204,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash, "satisfaction": "satisfactory"},
             timestamp=self.start,
@@ -3213,8 +3213,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash, "satisfaction": "tolerable"},
             timestamp=self.start,
@@ -3237,10 +3237,10 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         result = query.run_query("test_query")
 
         # (1 satisfactory + (1 tolerable / 2)) / (2 total) = 0.75
-        assert result["data"] == [{"c:transactions/on_demand@none": 0.75}]
+        assert result["data"] == [{"c:spans/on_demand@none": 0.75}]
         meta = result["meta"]
         assert len(meta) == 1
-        assert meta[0]["name"] == "c:transactions/on_demand@none"
+        assert meta[0]["name"] == "c:spans/on_demand@none"
 
     def test_run_query_with_on_demand_count_and_time_range_required_and_not_supplied(self) -> None:
         params = {
@@ -3309,7 +3309,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                                         indexer.resolve(
                                             UseCaseID.TRANSACTIONS,
                                             1,
-                                            "d:transactions/on_demand@none",
+                                            "d:spans/on_demand@none",
                                         ),
                                     ],
                                 ),
@@ -3317,7 +3317,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                         ),
                         1,
                     ],
-                    "d:transactions/on_demand@none",
+                    "d:spans/on_demand@none",
                 )
             ],
             snql_query.select,
@@ -3363,12 +3363,12 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                                 indexer.resolve(
                                     UseCaseID.TRANSACTIONS,
                                     1,
-                                    "c:transactions/on_demand@none",
+                                    "c:spans/on_demand@none",
                                 ),
                             ],
                         ),
                     ],
-                    "c:transactions/on_demand@none",
+                    "c:spans/on_demand@none",
                 )
             ],
             snql_query.select,
@@ -3445,8 +3445,8 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
 
         self.store_transaction_metric(
             value=1,
-            metric=TransactionMetricKey.COUNT_ON_DEMAND.value,
-            internal_metric=TransactionMRI.COUNT_ON_DEMAND.value,
+            metric=SpanMetricKey.COUNT_ON_DEMAND.value,
+            internal_metric=SpanMRI.COUNT_ON_DEMAND.value,
             entity="metrics_counters",
             tags={"query_hash": spec.query_hash},
             timestamp=self.start,

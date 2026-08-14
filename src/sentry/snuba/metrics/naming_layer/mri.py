@@ -166,10 +166,6 @@ class TransactionMRI(Enum):
     SPAN_SELF_TIME = "d:spans/exclusive_time@millisecond"
     SPAN_SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
-    COUNT_ON_DEMAND = "c:transactions/on_demand@none"
-    DIST_ON_DEMAND = "d:transactions/on_demand@none"
-    SET_ON_DEMAND = "s:transactions/on_demand@none"
-
     # Less granular coarse metrics
     DURATION_LIGHT = "d:transactions/duration_light@millisecond"
 
@@ -205,6 +201,10 @@ class SpanMRI(Enum):
     HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
     HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
     HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
+
+    COUNT_ON_DEMAND = "c:spans/on_demand@none"
+    DIST_ON_DEMAND = "d:spans/on_demand@none"
+    SET_ON_DEMAND = "s:spans/on_demand@none"
 
 
 @dataclass

@@ -1841,7 +1841,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
         assert spec.to_metric_spec(self.project) == {
             "category": "transaction",
-            "mri": "c:transactions/on_demand@none",
+            "mri": "c:spans/on_demand@none",
             "field": None,
             "tags": [
                 {"key": "query_hash", "value": "ac241f56"},

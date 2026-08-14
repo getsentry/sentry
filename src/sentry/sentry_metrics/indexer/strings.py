@@ -235,6 +235,9 @@ SPAN_METRICS_NAMES = {
     "g:spans/total_time@millisecond": PREFIX + 421,
     "c:spans/count_per_root_project@none": PREFIX + 422,
     "c:spans/count_segments_per_root_project@none": PREFIX + 423,
+    "c:spans/on_demand@none": PREFIX + 424,
+    "d:spans/on_demand@none": PREFIX + 425,
+    "s:spans/on_demand@none": PREFIX + 426,
     # Last possible index: 499
 }
 

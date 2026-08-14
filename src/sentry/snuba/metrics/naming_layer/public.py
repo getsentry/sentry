@@ -11,6 +11,7 @@ with the same Enum name but with a value of the MRI so we would add
 __all__ = (
     "SessionMetricKey",
     "TransactionMetricKey",
+    "SpanMetricKey",
     "TransactionTagsKey",
     "TransactionStatusTagValue",
     "TransactionSatisfactionTagValue",
@@ -115,11 +116,6 @@ class TransactionMetricKey(Enum):
     SPAN_SELF_TIME = "span.exclusive_time"
     SPAN_SELF_TIME_LIGHT = "span.exclusive_time_light"
 
-    # TODO: Remove this as soon as the MetricsQuery supports private metrics
-    COUNT_ON_DEMAND = "count.on_demand"
-    DIST_ON_DEMAND = "dist.on_demand"
-    SET_ON_DEMAND = "set.on_demand"
-
 
 class SpanMetricKey(Enum):
     USER = "span.user"
@@ -135,6 +131,10 @@ class SpanMetricKey(Enum):
     HTTP_ERROR_RATE = "span.http_error_rate"
     HTTP_ERROR_COUNT_LIGHT = "span.http_error_count_light"
     HTTP_ERROR_RATE_LIGHT = "span.http_error_rate_light"
+
+    COUNT_ON_DEMAND = "count.on_demand"
+    DIST_ON_DEMAND = "dist.on_demand"
+    SET_ON_DEMAND = "set.on_demand"
 
 
 class SpanTagsKey(Enum):
