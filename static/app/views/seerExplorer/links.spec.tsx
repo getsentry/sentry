@@ -83,6 +83,7 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     kind: 'api',
     method: 'GET',
     path: '/api/0/organizations/{organization_id_or_slug}/events/',
+    params: {},
     title: 'Querying spans for transaction:/issues/',
     query: {
       dataset: 'spans',
@@ -529,6 +530,7 @@ describe('organization_events', () => {
           kind: 'api',
           method: 'GET',
           path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          params: {},
           query: {query: 'transaction:/issues/'},
         },
         ctx
