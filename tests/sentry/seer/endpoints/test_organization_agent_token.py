@@ -2344,11 +2344,6 @@ def _install_user_global_boundary_matrix_tests() -> None:
         test_matrix_cell = pytest.mark.seer_matrix_agent_token(test_matrix_cell)
         test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
         test_matrix_cell = pytest.mark.seer_matrix_user_global_boundary(test_matrix_cell)
-        if endpoint.endpoint_name == "UserRegionsEndpoint":
-            test_matrix_cell = pytest.mark.xfail(
-                reason="UserRegionsEndpoint accepts org:read for user-global region discovery",
-                strict=True,
-            )(test_matrix_cell)
         setattr(OrganizationAgentTokenTest, test_matrix_cell.__name__, test_matrix_cell)
 
 
