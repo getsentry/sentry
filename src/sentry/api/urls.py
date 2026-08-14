@@ -746,7 +746,6 @@ from .endpoints.internal import (
     InternalRpcServiceEndpoint,
     InternalWarningsEndpoint,
 )
-from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_agentic_onboarding import (
     OrganizationAgenticOnboardingRunIndexEndpoint,
@@ -3720,11 +3719,6 @@ INTERNAL_URLS = [
         r"^feature-flags/$",
         InternalFeatureFlagsEndpoint.as_view(),
         name="sentry-api-0-internal-feature-flags",
-    ),
-    re_path(
-        r"^feature-flags/ea-feature-flags$",
-        InternalEAFeaturesEndpoint.as_view(),
-        name="sentry-api-0-internal-ea-features",
     ),
     re_path(
         r"^demo/email-capture/$",
