@@ -78,7 +78,6 @@ const selectedSlackSetup: ScmMessagingSetup = {
   integrationId: 'slack-1',
   channelId: 'C123',
   channelName: '#alerts',
-  actionTarget: '#alerts',
 };
 
 type PipelineCallbacks = {

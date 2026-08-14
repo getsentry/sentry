@@ -8,7 +8,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  providerDetails,
+  RAW_CHANNEL_FIELD,
+  type IntegrationChannel,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type Channel,
   ChannelField,
@@ -36,12 +40,22 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const providerKey = integration.provider.key as ScmMessagingProviderKey;
 
-  const [channel, setChannel] = useState<IntegrationChannel | undefined>(() => {
-    if (existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey) {
-      return {label: existingSetup.channelName, value: existingSetup.channelName};
-    }
-    return;
-  });
+  const {channelSelectedBy} = providerDetails[providerKey];
+
+  // The saved destination we're editing, if any. Drives both the dropdown seed
+  // and the preserve-on-no-op-save logic below.
+  const savedSelection =
+    existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey
+      ? existingSetup
+      : undefined;
+
+  const [channel, setChannel] = useState<IntegrationChannel | undefined>(() =>
+    // Seed by whatever field this provider's options are keyed on. Seeding the
+    // wrong one resolves to no option and handleSave rewrites the identifiers.
+    savedSelection
+      ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
+      : undefined
+  );
 
   const providersToIntegrations = useMemo(
     () => ({[providerKey]: [integration]}),
@@ -78,28 +92,37 @@ export function ScmMessagingChannelPicker({
       return;
     }
 
-    // Look up the real backend channel ID by matching the selected value in
-    // the raw channel list. Manual entries (channel.new) have no raw match.
+    // Match the selected value against whichever field this provider's options
+    // are keyed on. Manual entries (channel.new) are not in the list.
     const rawChannel = channel.new
       ? undefined
-      : channelsData?.results.find((ch: Channel) =>
-          providerKey === 'slack' ? ch.display === channel.value : ch.id === channel.value
+      : channelsData?.results.find(
+          (ch: Channel) => ch[RAW_CHANNEL_FIELD[channelSelectedBy]] === channel.value
         );
 
-    // Slack revalidation and alert-rule actions both use the display name, so
-    // channelId falls back to channel.value for Slack without losing anything.
-    const channelId = rawChannel?.id ?? channel.value;
-    const channelName =
-      providerKey === 'slack' ? channel.value : (rawChannel?.display ?? channel.value);
-    const actionTarget = providerKey === 'slack' ? channelName : channelId;
+    // Prefer the resolved raw channel. If it can't be resolved (empty/errored
+    // /channels/ or a dropped channel) but the selection is unchanged, keep the
+    // stored identifiers — otherwise id-keyed providers (msteams, discord) would
+    // overwrite channelName with the id and break name-based revalidation. A new
+    // value falls through to itself.
+    let stored: {channelId: string; channelName: string};
+
+    if (rawChannel) {
+      stored = {channelId: rawChannel.id, channelName: rawChannel.display};
+    } else if (savedSelection && channel.value === savedSelection[channelSelectedBy]) {
+      stored = {
+        channelId: savedSelection.channelId,
+        channelName: savedSelection.channelName,
+      };
+    } else {
+      stored = {channelId: channel.value, channelName: channel.value};
+    }
 
     onConfigured({
       mode: 'selected',
       providerKey,
       integrationId: integration.id,
-      channelId,
-      channelName,
-      actionTarget,
+      ...stored,
     });
   };
 

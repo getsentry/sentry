@@ -6,6 +6,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 export type StaleDestinationReason = 'channel' | 'inactiveIntegration' | 'integration';
 
@@ -42,20 +43,17 @@ function resolveSavedIntegration(
 }
 
 /**
- * Returns the value to send as the `channel` query param to channel-validate/.
- *
- * Slack and msteams resolve channels by name; Discord resolves by ID.
- * Returns undefined when the required field is absent (e.g. msteams data
- * written before channelName was required).
+ * Returns the value to send as the `channel` query param to channel-validate/,
+ * reading the field this provider validates by from the provider table.
+ * Returns undefined when that field is absent (e.g. legacy msteams data written
+ * before channelName was required).
  */
 function channelValidateParam(messagingSetup: ScmMessagingSetup): string | undefined {
   if (messagingSetup.mode !== 'selected') {
     return undefined;
   }
-  // Discord takes the numeric channel ID; Slack and msteams take the display name.
-  return messagingSetup.providerKey === 'discord'
-    ? messagingSetup.channelId
-    : messagingSetup.channelName || undefined;
+  const {channelValidatedBy} = providerDetails[messagingSetup.providerKey];
+  return messagingSetup[channelValidatedBy] || undefined;
 }
 
 interface UseScmMessagingSetupValidationParams {

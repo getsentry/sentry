@@ -25,15 +25,11 @@ const selectedPlatform = {
   category: 'browser',
 } as const;
 
-// Slack: channelId = real Slack channel ID, actionTarget = display name
-// (Slack alert rules address by name), channelName = display name (also
-// the channel-validate param for Slack).
 const selectedMessagingSetup: ScmMessagingSetup = {
   mode: 'selected',
   providerKey: 'slack',
   integrationId: '15',
   channelId: 'C123',
-  actionTarget: '#alerts',
   channelName: '#alerts',
 };
 
@@ -197,7 +193,6 @@ describe('ScmMessaging', () => {
       providerKey: 'discord',
       integrationId: '15',
       channelId: '1234567890',
-      actionTarget: '1234567890',
       channelName: '#dev-alerts',
     };
     MockApiClient.addMockResponse({
