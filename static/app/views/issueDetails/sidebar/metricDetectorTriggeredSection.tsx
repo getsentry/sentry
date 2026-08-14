@@ -71,8 +71,9 @@ interface MetricDetectorEvidenceData {
    */
   value:
     | number
+    | null
     // XXX: Anomaly detectors will store an object here with other data necessary for processing
-    | {value: number};
+    | {value: number | null};
 }
 
 interface MetricDetectorTriggeredSectionProps {
@@ -135,8 +136,12 @@ function getFormattedEvaluatedValue({
 }: {
   aggregate: string;
   detectionType: MetricDetectorConfig['detectionType'];
-  value: number;
-}): string {
+  value: number | null;
+}): string | null {
+  if (value === null) {
+    return null;
+  }
+
   const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
   return `${value.toLocaleString()}${unitSuffix}`;
 }
@@ -419,6 +424,7 @@ function TriggeredConditionDetails({
         actions={
           <Flex gap="xs">
             <FeedbackButton
+              variant="secondary"
               aria-label={t('Give feedback on metric issues')}
               size="xs"
               feedbackOptions={{
@@ -497,11 +503,15 @@ function TriggeredConditionDetails({
               ),
               subject: t('Condition'),
             },
-            {
-              key: 'value',
-              value: formattedEvaluatedValue,
-              subject: t('Evaluated Value'),
-            },
+            ...(formattedEvaluatedValue
+              ? [
+                  {
+                    key: 'value',
+                    value: formattedEvaluatedValue,
+                    subject: t('Evaluated Value'),
+                  },
+                ]
+              : []),
           ]}
         />
       </FoldSection>

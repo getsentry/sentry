@@ -211,8 +211,6 @@ function countPreviousItemsOfType({
   }
   const currentIndex = itemKeys.indexOf(focusedKey);
 
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
       return count + 1;
@@ -744,7 +742,11 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+          if (
+            defaultToAskSeerOnFreeTextSearch &&
+            value.trim().split(/\s+/).length >= 2 &&
+            !hasFilter
+          ) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);

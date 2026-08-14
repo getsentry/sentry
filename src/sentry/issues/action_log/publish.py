@@ -10,7 +10,6 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Sequence
 
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -82,7 +81,6 @@ def publish_action(
     actor: GroupActionActor = SYSTEM_ACTOR,
     force_async_derived: bool = False,
     idempotency_key: str | None = None,
-    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action.
@@ -96,9 +94,6 @@ def publish_action(
 
     If *idempotency_key* is set, the GroupActionLogEntry is created if and only if there
     does not already exist a GALE with that group id & idempotency key; else it's a no-op.
-
-    If *date_added* is set, it records when the action occurred instead of when the outbox
-    receiver processed it.
 
     Log publishing is managed by an outbox that flushes on commit by
     default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
@@ -116,12 +111,15 @@ def publish_action(
         callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
+    write_to_db = features.has("projects:issue-action-log-write-to-db", project)
+
     metrics.incr(
         "issues.action_log",
         tags={
             "action": action_name,
             "source": source,
             "actor_type": actor.actor_type.name.lower(),
+            "persisted": write_to_db,
         },
     )
     logger.info(
@@ -140,7 +138,7 @@ def publish_action(
         },
     )
 
-    if not features.has("projects:issue-action-log-write-to-db", project):
+    if not write_to_db:
         return
 
     payload: GroupActionLogPayload = {
@@ -156,8 +154,6 @@ def publish_action(
 
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
-    if date_added is not None:
-        payload["date_added"] = date_added.isoformat()
 
     outbox = CellOutbox(
         shard_scope=OutboxScope.GROUP_SCOPE,
@@ -178,7 +174,6 @@ def publish_action_from_context(
     project: Project,
     force_async_derived: bool = False,
     idempotency_key: Optional[str] = None,
-    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -206,7 +201,6 @@ def publish_action_from_context(
         actor=actor,
         force_async_derived=force_async_derived,
         idempotency_key=idempotency_key,
-        date_added=date_added,
     )
 
 

@@ -60,7 +60,12 @@ from sentry.search.eap.trace_metrics.attributes import (
     TRACE_METRICS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
-from sentry.search.eap.types import AttributeSource, AttributeSourceType, SupportedTraceItemType
+from sentry.search.eap.types import (
+    AttributeSource,
+    AttributeSourceType,
+    ColumnType,
+    SupportedTraceItemType,
+)
 
 
 def add_start_end_conditions(
@@ -169,13 +174,14 @@ def translate_search_type_for_internal_column(
 
 def translate_internal_to_public_alias(
     internal_alias: str,
-    search_type: Literal["string", "number", "boolean"],
+    search_type: ColumnType,
     item_type: SupportedTraceItemType,
 ) -> tuple[str | None, str | None, AttributeSource]:
-    mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(search_type, {})
-    public_alias = mapping.get(internal_alias)
-    if public_alias is not None:
-        return public_alias, public_alias, {"source_type": AttributeSourceType.SENTRY}
+    if search_type != "array":
+        mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(search_type, {})
+        public_alias = mapping.get(internal_alias)
+        if public_alias is not None:
+            return public_alias, public_alias, {"source_type": AttributeSourceType.SENTRY}
 
     resolved_column = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(internal_alias)
     if resolved_column is not None:

@@ -80,6 +80,45 @@ describe('useValidateSpansTab', () => {
     );
   });
 
+  it('validates aggregate table fields and sorts', async () => {
+    const validateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: validationBody,
+    });
+
+    renderHookWithProviders(useValidateSpansTab, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'span.op'}),
+              JSON.stringify({yAxes: ['avg(span.duration)']}),
+            ],
+            aggregateSort: '-avg(span.duration)',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(validateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/validate/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.arrayContaining([
+              'span.op',
+              'avg(span.duration)',
+              'span.duration',
+            ]),
+            orderby: expect.arrayContaining(['-avg(span.duration)']),
+          }),
+        })
+      );
+    });
+  });
+
   it('returns validation details from request errors', async () => {
     const invalidValidationBody: EventValidationData = {
       ...validationBody,

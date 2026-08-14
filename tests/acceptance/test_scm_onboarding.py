@@ -12,12 +12,18 @@ from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test
+# start_onboarding() walks through the agentic setup interstitial to reach the
+# browser flow, which only renders with this flag on.
+@with_feature("organizations:onboarding-agentic-setup")
 class ScmOnboardingTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -40,9 +46,15 @@ class ScmOnboardingTest(AcceptanceTestCase):
         return integration
 
     def start_onboarding(self) -> None:
+        """Walk the welcome step through to scm-connect.
+
+        Getting started opens the agentic setup interstitial rather than
+        advancing, so reaching the browser flow takes a second click.
+        """
         self.browser.get(f"/onboarding/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
         self.browser.click('[data-test-id="onboarding-welcome-start"]')
+        self.browser.click('[data-test-id="onboarding-setup-in-browser"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
 
     @contextmanager
@@ -545,7 +557,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
             project = Project.objects.get(organization=self.org)
             assert project.platform == "javascript-react"
             assert project.slug == "javascript-react"
-            assert Rule.objects.filter(project=project).count() == 1
+            assert not Rule.objects.filter(project=project).exists()
+            assert Workflow.objects.filter(
+                organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+            ).exists()
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )

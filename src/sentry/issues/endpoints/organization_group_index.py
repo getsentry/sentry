@@ -57,7 +57,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
+from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -199,10 +199,6 @@ def search_issues(
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
-        if query_kwargs["sort_by"] == "progress" and not features.has(
-            "organizations:issue-stream-progress-sort", organization, actor=request.user
-        ):
-            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")

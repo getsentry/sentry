@@ -258,6 +258,54 @@ class SnapshotToMarkdownTest(TestCase):
     def test_empty_nodes(self) -> None:
         assert snapshot_to_markdown({"version": 1, "nodes": []}) == ""
 
+    def test_empty_nodes_still_renders_location(self) -> None:
+        """Most routes register no nodes but still know where the user is."""
+        result = snapshot_to_markdown(
+            {
+                "version": 1,
+                "nodes": [],
+                "location": {
+                    "url": "https://sentry.io/issues/123/",
+                    "name": "/issues/:groupId/",
+                    "params": {"groupId": "123"},
+                    "query": {"statsPeriod": "14d"},
+                },
+            }
+        )
+        assert "## Current Page" in result
+        assert "- **URL**: https://sentry.io/issues/123/" in result
+        assert "- **Route**: /issues/:groupId/" in result
+        assert '- **Route params**: {"groupId":"123"}' in result
+        assert '- **Query params**: {"statsPeriod":"14d"}' in result
+
+    def test_location_renders_alongside_nodes(self) -> None:
+        result = snapshot_to_markdown(
+            {
+                "version": 1,
+                "nodes": [{"nodeType": "dashboard", "data": {"title": "Health"}, "children": []}],
+                "location": {"url": "https://sentry.io/dashboards/1/"},
+            }
+        )
+        assert "## Current Page" in result
+        assert "https://sentry.io/dashboards/1/" in result
+        assert "# Dashboard" in result
+        assert "not an exact screenshot" in result
+
+    def test_location_partial_and_empty(self) -> None:
+        """Absent, empty, and malformed locations all render nothing."""
+        assert snapshot_to_markdown({"version": 1, "nodes": [], "location": {}}) == ""
+        assert (
+            snapshot_to_markdown({"version": 1, "nodes": [], "location": {"url": "", "params": {}}})
+            == ""
+        )
+        assert snapshot_to_markdown({"version": 1, "nodes": [], "location": "nope"}) == ""
+
+        only_route = snapshot_to_markdown(
+            {"version": 1, "nodes": [], "location": {"name": "/insights/"}}
+        )
+        assert "- **Route**: /insights/" in only_route
+        assert "URL" not in only_route
+
     def test_node_with_no_data(self) -> None:
         snapshot = {
             "version": 1,

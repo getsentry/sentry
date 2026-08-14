@@ -8,7 +8,6 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -26,7 +25,6 @@ from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
-    get_autofix_agent_state,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import (
@@ -44,7 +42,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -52,6 +50,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.utils import runs_for_group
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -184,7 +183,6 @@ def _trigger_autofix_task(
         )
 
         run: SeerRun | None = None
-        triggered_at = timezone.now()
         try:
             run = trigger_autofix_agent(
                 group=group,
@@ -199,7 +197,6 @@ def _trigger_autofix_task(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
-                    datetime=triggered_at,
                 )
         except NoSeerQuotaException:
             pass
@@ -438,8 +435,14 @@ def is_group_eligible_for_automation(group: Group) -> bool:
     if not has_seer_access(group.organization):
         return False
 
-    autofix_state = get_autofix_agent_state(group.organization, group.id)
-    if autofix_state:
+    if (
+        runs_for_group(group.id, "autofix")
+        .filter(
+            run__mirror_status=SeerRunMirrorStatus.LIVE,
+            run__seer_run_state_id__isnull=False,
+        )
+        .exists()
+    ):
         return False
 
     fixability_score = get_and_update_group_fixability_score(group)

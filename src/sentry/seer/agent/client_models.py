@@ -146,6 +146,11 @@ class ToolResult(BaseModel):
     tool_call_id: str
     tool_call_function: str
     content: str | None = None
+    # Standard MCP-style structured payload carried from seer (openspec:
+    # code-mode-effects-registry). Opaque pass-through: frontend-only effects like
+    # `navigation` (RENDERED) ride this to the client. Additive/optional — absent on old
+    # seer responses, ignored by old clients.
+    structuredContent: dict[str, Any] | None = None
 
     class Config:
         extra = "ignore"

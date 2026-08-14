@@ -164,6 +164,7 @@ function parseToFlatTokens(query: string): Token[] {
                 | ParserToken.KEY_EXPLICIT_BOOLEAN_TAG
                 | ParserToken.KEY_EXPLICIT_NUMBER_TAG
                 | ParserToken.KEY_EXPLICIT_STRING_TAG
+                | ParserToken.KEY_EXPLICIT_ARRAY_TAG
                 | ParserToken.KEY_EXPLICIT_FLAG
                 | ParserToken.KEY_EXPLICIT_STRING_FLAG
                 | ParserToken.KEY_EXPLICIT_NUMBER_FLAG
@@ -265,6 +266,7 @@ const KEY_TOKENS = [
   ParserToken.KEY_EXPLICIT_BOOLEAN_TAG,
   ParserToken.KEY_EXPLICIT_NUMBER_TAG,
   ParserToken.KEY_EXPLICIT_STRING_TAG,
+  ParserToken.KEY_EXPLICIT_ARRAY_TAG,
   ParserToken.KEY_EXPLICIT_FLAG,
   ParserToken.KEY_EXPLICIT_NUMBER_FLAG,
   ParserToken.KEY_EXPLICIT_STRING_FLAG,

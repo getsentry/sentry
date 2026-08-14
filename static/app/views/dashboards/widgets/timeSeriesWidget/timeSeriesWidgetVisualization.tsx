@@ -262,8 +262,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       const uniqueSeries = new Set<string>();
 
       deDupedParams = params.filter(param => {
+        // When a chart re-renders while its tooltip is open, ECharts replays the
+        // pre-render data indices against the new data. A shrunk series leaves
+        // the index past the end, so the param has no data tuple to read
+        if (!Array.isArray(param.value)) {
+          return false;
+        }
+
         // Filter null values from tooltip
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (param.value[1] === null) {
           return false;
         }
@@ -277,6 +283,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         uniqueSeries.add(param.seriesName);
         return true;
       });
+
+      // A shrunk series makes every replayed index stale, so nothing survives
+      // the filter. `getFormatter` reads the tooltip timestamp off the first
+      // series, so hand it an empty list and it throws
+      if (deDupedParams.length === 0) {
+        return '';
+      }
     }
 
     return getFormatter({

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 
 from sentry import features, options
 from sentry.models.activity import Activity
@@ -13,7 +14,9 @@ from sentry.seer.models.run import SeerRun
 from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
+    SEER_START_ACTIVITIES,
     SmartAssignmentPayload,
+    is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
@@ -53,7 +56,13 @@ def trigger_smart_assignment(
     """
     organization = group.organization
 
-    if not features.has(FEATURE_FLAG, organization):
+    if not (
+        features.has(FEATURE_FLAG, organization)
+        and (
+            features.has("organizations:seer-added", organization)
+            or features.has("organizations:seat-based-seer-enabled", organization)
+        )
+    ):
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:
@@ -64,11 +73,24 @@ def trigger_smart_assignment(
         )
         return
 
+    if is_unscorable_assignment(activity):
+        # We only want to run Smart Assignment on issues that are manually assigned.
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "automatic_assignment"},
+            sample_rate=1.0,
+        )
+        return
+
     # Policy gate: today we predict at most once per issue, ever. This lives in app
     # code (not a DB constraint) so re-runs are cheap to enable later -- e.g. gate on
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
-    if not _already_predicted(group) and not _dispatch_rate_limited(organization):
+    if (
+        not _already_predicted(group)
+        and _should_sample_for_eval(activity_type)
+        and not _dispatch_rate_limited(organization)
+    ):
         _dispatch(group, activity_type, activity)
 
     record_ground_truth(group, activity_type, activity)
@@ -82,6 +104,20 @@ def _already_predicted(group: Group) -> bool:
     run past this before the first mirror commits, which the daily caps still bound.
     """
     return runs_for_group(group.id, SEER_FEATURE_ID).exists()
+
+
+def _should_sample_for_eval(activity_type: ActivityType) -> bool:
+    if activity_type in SEER_START_ACTIVITIES:
+        return True
+    rate = options.get("seer.smart_assignment.eval_sample_rate")
+    if random.random() >= rate:
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "eval_sampled_out"},
+            sample_rate=1.0,
+        )
+        return False
+    return True
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:

@@ -47,6 +47,7 @@ export function PreprodBuildsDistributionTable({
         <PreprodBuildsRowCells
           build={build}
           showInteraction={!isRowDisabled}
+          showInstallGroups
           showInstallabilityIndicator
           showProjectColumn={showProjectColumn}
         />
