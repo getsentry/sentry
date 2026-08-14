@@ -41,8 +41,14 @@ export function ScmMessaging({
     onMessagingSetupChange,
   });
 
-  const {providers, isPending, isError, refetchIntegrations, retry} =
-    useScmMessagingProviders();
+  const {
+    providers,
+    isPending,
+    isError,
+    isRefetchingIntegrations,
+    refetchIntegrations,
+    retry,
+  } = useScmMessagingProviders();
 
   // Continue creates the project and alert rules, so it must wait for a
   // conclusively revalidated destination — not merely the absence of a
@@ -129,6 +135,7 @@ export function ScmMessaging({
                 messagingSetup={messagingSetup}
                 onMessagingSetupChange={onMessagingSetupChange}
                 onInstallComplete={refetchIntegrations}
+                isRefetchingIntegrations={isRefetchingIntegrations}
               />
             ))}
           </Stack>

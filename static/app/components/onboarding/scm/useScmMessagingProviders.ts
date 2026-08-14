@@ -57,6 +57,7 @@ function toStatus(
 export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
+  isRefetchingIntegrations: boolean;
   providers: ScmMessagingProviderViewModel[];
   refetchIntegrations: () => void;
   retry: () => void;
@@ -133,6 +134,7 @@ export function useScmMessagingProviders(): {
     providers,
     isPending,
     isError,
+    isRefetchingIntegrations: integrationsQuery.isRefetching,
     refetchIntegrations: () => integrationsQuery.refetch(),
     retry: () => {
       integrationsQuery.refetch();

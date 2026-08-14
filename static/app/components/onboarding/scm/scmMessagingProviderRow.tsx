@@ -67,12 +67,12 @@ function deriveVisualState({
   isConfiguring,
   isRemoving,
   hasInstallAccess,
-  awaitingInstall,
+  isRefetchingIntegrations,
 }: {
-  awaitingInstall: boolean;
   hasInstallAccess: boolean;
   installState: ReturnType<typeof useAddIntegration>['state'];
   isConfiguring: boolean;
+  isRefetchingIntegrations: boolean;
   isRemoving: boolean;
   messagingSetup: ScmMessagingSetup;
   viewModel: ScmMessagingProviderViewModel;
@@ -92,13 +92,13 @@ function deriveVisualState({
       return 'install-error';
     }
   }
-  // Hold the spinner only while waiting for the just-installed integration to
-  // surface. Once the view model settles to anything other than `installable`
-  // (connected or permission-limited) that state is terminal, so falling
-  // through avoids spinning forever on an ineligible or vanished integration.
+  // Show the spinner only while the shared integrations query is actively
+  // refetching after install. Once it settles — whether or not the integration
+  // surfaced — isRefetchingIntegrations becomes false and the row falls back to
+  // installable (Connect), so it can never spin forever.
   if (
     installState.status === 'complete' &&
-    awaitingInstall &&
+    isRefetchingIntegrations &&
     viewModel.status === 'installable'
   ) {
     return 'loading';
@@ -149,6 +149,13 @@ export interface ScmMessagingProviderRowProps {
   onMessagingSetupChange: (setup: ScmMessagingSetup) => void;
   viewModel: ScmMessagingProviderViewModel;
   /**
+   * True while the parent's integrations query is actively refetching (e.g.
+   * after a fresh install). Drives the post-install loading spinner; scoped to
+   * this prop so the spinner clears as soon as the refetch settles even if no
+   * integration surfaced, preventing an infinite spin.
+   */
+  isRefetchingIntegrations?: boolean;
+  /**
    * Render prop for the inline channel picker.
    *
    * When the user opens the configuring state this is called with the active
@@ -170,14 +177,12 @@ export function ScmMessagingProviderRow({
   onMessagingSetupChange,
   onInstallComplete,
   renderChannelPicker,
+  isRefetchingIntegrations = false,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
-  // `useAddIntegration` never leaves `complete`, so latch the post-install wait
-  // ourselves and release it once the integration surfaces.
-  const [awaitingInstall, setAwaitingInstall] = useState(false);
 
   const hasInstallAccess = hasEveryAccess(['org:integrations'], {organization});
 
@@ -193,7 +198,7 @@ export function ScmMessagingProviderRow({
     isConfiguring,
     isRemoving,
     hasInstallAccess,
-    awaitingInstall,
+    isRefetchingIntegrations,
   });
 
   // When the integration goes away (e.g. removed externally), close any
@@ -202,14 +207,6 @@ export function ScmMessagingProviderRow({
     if (viewModel.status !== 'connected') {
       setIsConfiguring(false);
       setIsRemoving(false);
-    }
-  }, [viewModel.status]);
-
-  // Release the post-install latch once the integration surfaces (connected or
-  // permission-limited), so a later external removal cannot re-trigger loading.
-  useEffect(() => {
-    if (viewModel.status !== 'installable') {
-      setAwaitingInstall(false);
     }
   }, [viewModel.status]);
 
@@ -222,7 +219,6 @@ export function ScmMessagingProviderRow({
   }, [isConfigured]);
 
   const handleConnect = useCallback(() => {
-    setAwaitingInstall(true);
     startFlow({
       provider: viewModel.provider,
       organization,
