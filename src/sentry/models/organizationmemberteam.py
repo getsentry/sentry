@@ -65,7 +65,7 @@ class OrganizationMemberTeam(Model):
     Identifies relationships between organization members and the teams they are on.
     """
 
-    objects: ClassVar[OrganizationMemberTeamManager] = OrganizationMemberTeamManager()
+    objects: ClassVar[BaseManager[OrganizationMemberTeam]] = OrganizationMemberTeamManager()
 
     __relocation_scope__ = RelocationScope.Organization
 
