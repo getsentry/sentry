@@ -10,7 +10,6 @@ with the same Enum name but with a value of the MRI so we would add
 
 __all__ = (
     "SessionMetricKey",
-    "TransactionMetricKey",
     "SpanMetricKey",
     "TransactionTagsKey",
     "TransactionStatusTagValue",
@@ -64,12 +63,6 @@ class SessionMetricKey(Enum):
     UNHANDLED_RATE = "session.unhandled_rate"
     UNHANDLED_USER_RATE = "session.unhandled_user_rate"
     UNHEALTHY_RATE = "session.unhealthy_rate"
-
-
-class TransactionMetricKey(Enum):
-    """Public names that still map to a live TransactionMRI."""
-
-    COUNT_PER_ROOT_PROJECT = "transaction.count_per_root_project"
 
 
 class SpanMetricKey(Enum):
