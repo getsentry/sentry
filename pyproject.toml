@@ -289,6 +289,7 @@ markers = [
   "seer_matrix_minted_token: matrix cells authenticated with a minted agent token",
   "seer_matrix_private_helper: matrix cells for private endpoints exposed to Code Mode",
   "seer_matrix_resource_boundary: matrix cells asserting minted-token organization and project boundaries",
+  "seer_matrix_user_global_boundary: matrix cells denying org-bound agents access to user-global endpoints",
   "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [

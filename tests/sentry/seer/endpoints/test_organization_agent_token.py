@@ -240,6 +240,64 @@ PRIVATE_HELPER_MUTATION_ENDPOINTS = (
 )
 
 
+USER_GLOBAL_GET_ENDPOINTS = (
+    PublicGetEndpoint(
+        "/api/0/users/me/organizations/",
+        "UserOrganizationsEndpoint",
+        frozenset(),
+        SiloMode.CELL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/organization-integrations/",
+        "UserOrganizationIntegrationsEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/user-identities/",
+        "UserIdentityConfigEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/regions/",
+        "UserRegionsEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/notification-options/",
+        "UserNotificationSettingsOptionsEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/notification-providers/",
+        "UserNotificationSettingsProvidersEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/notifications/email/",
+        "UserNotificationEmailEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/identities/",
+        "UserIdentityEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+    PublicGetEndpoint(
+        "/api/0/users/me/",
+        "UserDetailsEndpoint",
+        frozenset(),
+        SiloMode.CONTROL,
+    ),
+)
+
+
 # Everything not listed here must return 200 for the real session user. SCIM routes
 # intentionally require a SCIM integration credential instead of these authentication
 # modes, but still must reach and reject at that credential boundary.
@@ -331,6 +389,22 @@ class OrganizationAgentTokenTest(APITestCase):
         return self.client.post(
             f"/api/0/organizations/{self.org.slug}/agent/token/", data=data, format="json"
         )
+
+    def _assert_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
+        self.login_as(self.owner)
+        with self.feature(FLAG):
+            bearer = self._mint(sessionId="user-global-boundary").data["token"]
+            assert endpoint.silo_mode is not None
+            with assume_test_silo_mode(endpoint.silo_mode):
+                session_response = self.client.get(endpoint.path_template)
+                agent_response = APIClient().get(
+                    endpoint.path_template,
+                    HTTP_AUTHORIZATION=f"Bearer {bearer}",
+                )
+
+        assert session_response.status_code == 200, session_response.content
+        assert agent_response.status_code == 403, agent_response.content
+        assert "insufficient_scope" not in agent_response.get("WWW-Authenticate", "")
 
     def _grant(self, *, organization=None, session_id="s1", scopes=("org:write",)):
         return self.create_seer_agent_write_grant(
@@ -2252,3 +2326,30 @@ def _install_private_helper_matrix_tests() -> None:
 
 
 _install_private_helper_matrix_tests()
+
+
+def _install_user_global_boundary_matrix_tests() -> None:
+    for index, endpoint in enumerate(USER_GLOBAL_GET_ENDPOINTS):
+
+        def test_matrix_cell(
+            self: OrganizationAgentTokenTest,
+            endpoint: PublicGetEndpoint = endpoint,
+        ) -> None:
+            self._assert_user_global_get_denied(endpoint)
+
+        test_matrix_cell.__name__ = (
+            f"test_user_global_get_{index:03d}_{endpoint.test_id}_agent_token"
+        )
+        test_matrix_cell = pytest.mark.seer_agent_token_matrix(test_matrix_cell)
+        test_matrix_cell = pytest.mark.seer_matrix_agent_token(test_matrix_cell)
+        test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
+        test_matrix_cell = pytest.mark.seer_matrix_user_global_boundary(test_matrix_cell)
+        if endpoint.endpoint_name == "UserRegionsEndpoint":
+            test_matrix_cell = pytest.mark.xfail(
+                reason="UserRegionsEndpoint accepts org:read for user-global region discovery",
+                strict=True,
+            )(test_matrix_cell)
+        setattr(OrganizationAgentTokenTest, test_matrix_cell.__name__, test_matrix_cell)
+
+
+_install_user_global_boundary_matrix_tests()
