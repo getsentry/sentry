@@ -136,6 +136,7 @@ def code_changes_prompt(
         prompt += dedent(
             f"""
             Before you finish, verify your changes with the repository's own tooling:
+            - Set the repository up first. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
             - Run the linter/formatter over the files you changed.
             - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
             - Fix any failures your changes introduced, then re-run until they pass.
