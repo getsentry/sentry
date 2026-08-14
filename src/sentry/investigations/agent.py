@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import html
 from enum import StrEnum
+from functools import partial
 from typing import Any
 
 from django.db import router, transaction
@@ -20,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationBlockKind,
     InvestigationStatus,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     mark_downstream_blocks_stale,
@@ -739,6 +741,15 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             lambda: _maybe_start_title_generation(block.investigation, execution.triggered_by_id),
             using=database,
         )
+        if execution.triggered_by_id is not None:
+            transaction.on_commit(
+                partial(
+                    schedule_eligible_auto_run_blocks,
+                    investigation_id=block.investigation_id,
+                    user_id=execution.triggered_by_id,
+                ),
+                using=database,
+            )
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
