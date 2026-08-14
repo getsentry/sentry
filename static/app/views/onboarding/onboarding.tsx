@@ -301,14 +301,14 @@ export function OnboardingWithoutContext() {
       NEW_ORG_ONBOARDING_WINDOW_MS
   );
 
-  // TODO: remove hardcoded flags before merging
-  const hasScmOnboarding = true;
-  const hasScmMessaging = true;
-  void useExperiment({
+  const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
     reportExposure: isNewOrgOnboarding,
   });
-  void useExperiment({
+
+  // VDY-146 owns treatment exposure and interaction analytics. For now the
+  // host consumes the nested assignment without reporting it.
+  const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
     reportExposure: false,
   });
