@@ -21,6 +21,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
 )
+from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.queue import peek_queued_autofix_feedback
 from sentry.testutils.cases import TestCase
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
@@ -347,6 +349,32 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
         mock_assign.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_paused_run_does_not_enqueue_or_trigger(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert peek_queued_autofix_feedback(67890) == []
+        mock_trigger_consume.assert_not_called()
+        # The rejected enqueue still routes here, and the handler skips a paused run.
+        mock_assign.assert_called_once()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)

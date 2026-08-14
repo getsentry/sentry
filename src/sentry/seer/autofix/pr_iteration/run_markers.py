@@ -1,12 +1,8 @@
-"""Per-repo feature markers stored in ``SeerRun.extras``.
+"""Durable feature markers stored in ``SeerRun.extras``.
 
-Several PR-iteration features (review requests, cap-exhausted handoffs)
-persist a durable "we already pinged a human" marker on the run, keyed by
-feature and repo full name. Each feature serializes its own side effects
-with its own advisory lock, but the features run concurrently with each
-other — and a plain read-modify-write of the whole ``extras`` blob would
-let one feature's write erase another's marker. ``record_run_marker``
-therefore re-reads the row under a row lock and merges only its own key.
+Markers are per-repo (feature plus repo full name) or run-level (feature
+alone). Features write concurrently, so every writer here re-reads the row
+under a row lock and merges only its own key.
 """
 
 from __future__ import annotations
@@ -36,5 +32,29 @@ def record_run_marker(
         markers = dict(extras.get(extra_key) or {})
         markers[repo_name] = marker
         extras[extra_key] = markers
+        locked.update(extras=extras)
+    seer_run.extras = extras
+
+
+def get_run_extra(seer_run: SeerRun, extra_key: str) -> Any | None:
+    return (seer_run.extras or {}).get(extra_key)
+
+
+def record_run_extra(seer_run: SeerRun, extra_key: str, value: Any) -> None:
+    """Atomically set ``extras[extra_key] = value`` on the run."""
+    with transaction.atomic(router.db_for_write(SeerRun)):
+        locked = SeerRun.objects.select_for_update().get(id=seer_run.id)
+        extras = dict(locked.extras or {})
+        extras[extra_key] = value
+        locked.update(extras=extras)
+    seer_run.extras = extras
+
+
+def clear_run_extra(seer_run: SeerRun, extra_key: str) -> None:
+    """Atomically remove ``extras[extra_key]`` from the run."""
+    with transaction.atomic(router.db_for_write(SeerRun)):
+        locked = SeerRun.objects.select_for_update().get(id=seer_run.id)
+        extras = dict(locked.extras or {})
+        extras.pop(extra_key, None)
         locked.update(extras=extras)
     seer_run.extras = extras
