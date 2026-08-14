@@ -33,9 +33,6 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-// The SCM dropdown is one long list, so raw platforms.tsx insertion order
-// reads as random. Sort by display name (same ordering as the legacy
-// picker's All tab) so users can scan it.
 export const platformOptions = platforms
   .toSorted((a, b) => comparePlatformNames(a.name, b.name))
   .map(platform => ({

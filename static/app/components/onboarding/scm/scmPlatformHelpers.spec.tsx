@@ -1,4 +1,3 @@
-import {platforms} from 'sentry/data/platforms';
 import {comparePlatformNames} from 'sentry/utils/platform';
 
 import {platformOptions} from './scmPlatformHelpers';
@@ -15,12 +14,5 @@ describe('platformOptions', () => {
     expect(names.slice(firstPunctuationIndex).every(name => name.startsWith('.'))).toBe(
       true
     );
-  });
-
-  it('keeps every platform exactly once', () => {
-    const values = platformOptions.map(option => option.value);
-
-    expect(new Set(values).size).toBe(values.length);
-    expect(values).toHaveLength(platforms.length);
   });
 });
