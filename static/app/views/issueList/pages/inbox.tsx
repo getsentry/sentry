@@ -436,7 +436,7 @@ function InboxContent() {
   );
 }
 
-// To avoid pop-in we enusre that the badge has the same width (which is enough to contain 99+)
+// To avoid pop-in we ensure that the badge has the same width (which is enough to contain 99+)
 function AssignmentCountBadge({count}: {count: number | undefined}) {
   return (
     <Flex as="span" width={ASSIGNMENT_BADGE_WIDTH} justify="end" align="center">
