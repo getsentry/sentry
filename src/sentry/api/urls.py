@@ -293,6 +293,10 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.investigations.endpoints.organization_breached_metric_investigations import (
+    OrganizationBreachedMetricInvestigationLaunchEndpoint,
+    OrganizationBreachedMetricInvestigationStatusEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
@@ -2400,6 +2404,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/$",
         OrganizationInvestigationsIndexEndpoint.as_view(),
         name="sentry-api-0-organization-investigations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/status/$",
+        OrganizationBreachedMetricInvestigationStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-status",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/launch/$",
+        OrganizationBreachedMetricInvestigationLaunchEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-launch",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",

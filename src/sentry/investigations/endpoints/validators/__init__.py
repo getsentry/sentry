@@ -4,6 +4,8 @@ __all__ = (
     "BlockExecutionStartValidator",
     "BlockOrderValidator",
     "BlockUpdateValidator",
+    "BreachedMetricLaunchValidator",
+    "BreachedMetricStatusValidator",
     "FavoriteUpdateValidator",
     "InvestigationCreateValidator",
     "InvestigationDeleteValidator",
@@ -26,6 +28,7 @@ from .block import (
     VisualizationSuggestionValidator,
     validate_display,
 )
+from .breached_metric import BreachedMetricLaunchValidator, BreachedMetricStatusValidator
 from .investigation import (
     FavoriteUpdateValidator,
     InvestigationCreateValidator,
