@@ -397,46 +397,28 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           item => !claimedLinkKinds.has(item.kind)
         );
         // A telemetry call record has the useful title but not the translated params needed for its
-        // destination. Walk reported searches in order so a later visible row cannot inherit an
-        // earlier skipped search's Explore link. Attach only to rows that will render; leave the
-        // rest residual so unlabeled work still surfaces as "View …".
-        const telemetryLinks: NavItem[] = [];
-        const nonTelemetryResidual: NavItem[] = [];
-        for (const item of residualNavItems) {
-          if (item.kind === 'telemetry_live_search') {
-            telemetryLinks.push(item);
-          } else {
-            nonTelemetryResidual.push(item);
-          }
+        // destination. Neither channel carries a shared identifier, so only combine them when the
+        // result contains one telemetry call and one telemetry link. Multiple entries are ambiguous:
+        // keep their destinations residual rather than risk putting the wrong query on a call row.
+        const telemetryCallRows = callRows.filter(
+          row => !row.url && row.record.name === 'telemetry_live_search'
+        );
+        const telemetryNavItems = residualNavItems.filter(
+          item => item.kind === 'telemetry_live_search'
+        );
+        const telemetryCallId =
+          telemetryCallRows.length === 1 && telemetryNavItems.length === 1
+            ? telemetryCallRows[0]?.record.id
+            : undefined;
+        const telemetryNavItem = telemetryCallId ? telemetryNavItems[0] : undefined;
+        if (telemetryNavItem) {
+          residualNavItems.splice(residualNavItems.indexOf(telemetryNavItem), 1);
         }
-        const visibleCallIds = new Set(callRows.map(row => row.record.id));
-        const telemetryNavItemByCallId = new Map<number, NavItem>();
-        const unpairedTelemetry: NavItem[] = [];
-        let telemetryLinkIndex = 0;
-        for (const record of reportedCalls) {
-          if (record.name !== 'telemetry_live_search') {
-            continue;
-          }
-          const navItem = telemetryLinks[telemetryLinkIndex++];
-          if (!navItem) {
-            break;
-          }
-          if (visibleCallIds.has(record.id)) {
-            telemetryNavItemByCallId.set(record.id, navItem);
-          } else {
-            unpairedTelemetry.push(navItem);
-          }
-        }
-        unpairedTelemetry.push(...telemetryLinks.slice(telemetryLinkIndex));
-        residualNavItems.length = 0;
-        residualNavItems.push(...nonTelemetryResidual, ...unpairedTelemetry);
-        const linkedCallRows = callRows.map(row => {
-          if (row.url) {
-            return row;
-          }
-          const navItem = telemetryNavItemByCallId.get(row.record.id);
-          return navItem ? {...row, url: navItem.url, linkKind: navItem.kind} : row;
-        });
+        const linkedCallRows = callRows.map(row =>
+          telemetryNavItem && row.record.id === telemetryCallId
+            ? {...row, url: telemetryNavItem.url, linkKind: telemetryNavItem.kind}
+            : row
+        );
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');

@@ -588,23 +588,22 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const visibleSearch = screen.getByRole('link', {
-      name: /Querying the visible search/,
-    });
-    expect(visibleSearch).toHaveAttribute(
+    // With no shared identifier between calls and links, multiple telemetry entries cannot be
+    // paired safely. Keep both destinations explicit instead of linking the title to a wrong query.
+    expect(
+      screen.queryByRole('link', {name: /Querying the visible search/})
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Querying the visible search/)).toBeInTheDocument();
+    const exploreLinks = screen.getAllByRole('link', {name: 'View spans'});
+    expect(exploreLinks).toHaveLength(2);
+    expect(exploreLinks[0]).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=first%3Atrue')
+    );
+    expect(exploreLinks[1]).toHaveAttribute(
       'href',
       expect.stringContaining('query=second%3Atrue')
     );
-    expect(visibleSearch).not.toHaveAttribute(
-      'href',
-      expect.stringContaining('query=first%3Atrue')
-    );
-    // The skipped search still surfaces its Explore destination as residual nav.
-    expect(screen.getByRole('link', {name: 'View spans'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('query=first%3Atrue')
-    );
-    expect(screen.getAllByRole('link')).toHaveLength(2);
   });
 
   it('keeps residual Explore links when every telemetry call row is unlabeled', () => {
