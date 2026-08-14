@@ -79,6 +79,28 @@ const booleanTags: TagCollection = {
 };
 
 describe('AggregateColumnEditorModal', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [
+        {attributeType: 'string', key: 'span.op', name: 'span.op'},
+        {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
+        {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+  });
+
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
@@ -401,28 +423,6 @@ describe('AggregateColumnEditorModal', () => {
 
     const organizationWithConditionalAggregates = OrganizationFixture({
       features: ['explore-conditional-aggregates'],
-    });
-
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace-items/attributes/',
-        method: 'GET',
-        body: [
-          {attributeType: 'string', key: 'span.op', name: 'span.op'},
-          {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
-          {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
-        ],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        method: 'POST',
-        body: [],
-      });
     });
 
     function renderModal({

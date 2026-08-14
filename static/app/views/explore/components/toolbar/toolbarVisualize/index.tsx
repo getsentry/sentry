@@ -24,8 +24,6 @@ import {
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
-export {ExpandableFilterSearchBar};
-
 export function ToolbarVisualizeHeader() {
   return (
     <ToolbarHeader>

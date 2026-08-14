@@ -203,15 +203,20 @@ function Chart({
     // Invalid `_if` filters skip the backend request; surface that as a chart error
     // instead of an empty/no-data state.
     const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
-    const resultForChart: SortedTimeSeries = hasValidConditionalFilter
-      ? timeseriesResult
-      : {
-          ...timeseriesResult,
-          error: new Error(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
-          isPending: false,
-          isLoading: false,
-          isFetching: false,
-        };
+    const resultForChart = (
+      hasValidConditionalFilter
+        ? timeseriesResult
+        : {
+            ...timeseriesResult,
+            error: new Error(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
+            isError: true,
+            isPending: false,
+            isLoading: false,
+            isFetching: false,
+            isSuccess: false,
+            status: 'error' as const,
+          }
+    ) as SortedTimeSeries;
 
     return {
       chartType,

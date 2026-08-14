@@ -4,6 +4,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -126,9 +127,7 @@ function useExploreAggregatesTableImp({
       return validSortBys;
     }
     return defaultAggregateSortBys(
-      aggregateFields
-        .filter(aggregateField => !isGroupBy(aggregateField))
-        .map(aggregateField => aggregateField.yAxis)
+      aggregateFields.filter(isVisualize).map(aggregateField => aggregateField.yAxis)
     );
   }, [aggregateFields, aggregateSortBys]);
 
@@ -159,7 +158,7 @@ function useExploreAggregatesTableImp({
     queryExtras,
   });
 
-  return useMemo(() => {
+  return useMemo((): AggregatesTableResult => {
     if (skippedForInvalidConditionalFilter) {
       return {
         eventView,
@@ -167,7 +166,7 @@ function useExploreAggregatesTableImp({
         result: {
           ...result,
           data: [],
-          error: new Error(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
+          error: new QueryError(CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE),
           isError: true,
           isFetched: true,
           isFetching: false,
@@ -175,7 +174,7 @@ function useExploreAggregatesTableImp({
           isPending: false,
           isSuccess: false,
           status: 'error' as const,
-        },
+        } as AggregatesTableResult['result'],
       };
     }
     return {eventView, fields, result};
