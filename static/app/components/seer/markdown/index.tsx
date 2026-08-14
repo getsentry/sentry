@@ -7,11 +7,20 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
+
+function IssueLink({children, shortId}: {children: ReactNode; shortId: string}) {
+  const organization = useOrganization();
+  return (
+    <Link to={`/organizations/${organization.slug}/issues/${shortId}/`}>{children}</Link>
+  );
+}
 
 function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
   const parts = children.split(ISSUE_SHORT_ID_PATTERN);
@@ -26,9 +35,9 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
         }
         if (i % 2 === 1) {
           return (
-            <Link key={i} to={`/issues/${part}/`}>
+            <IssueLink key={i} shortId={part}>
               {part}
-            </Link>
+            </IssueLink>
           );
         }
         return <Fragment key={i}>{part}</Fragment>;
@@ -106,9 +115,9 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
     const parts = children.split(ISSUE_SHORT_ID_PATTERN);
     if (parts.length === 3 && parts[1]) {
       return (
-        <Link to={`/issues/${parts[1]}/`}>
+        <IssueLink shortId={parts[1]}>
           <Default>{children}</Default>
-        </Link>
+        </IssueLink>
       );
     }
     return <Default>{children}</Default>;
