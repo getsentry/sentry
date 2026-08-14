@@ -238,15 +238,14 @@ function useAssignmentCounts() {
 }
 
 function AssignmentTabs({
-  assignmentCounts,
   assignmentFilter,
   setAssignmentFilter,
 }: {
-  assignmentCounts: ReturnType<typeof useAssignmentCounts>;
   assignmentFilter: AssignmentFilter;
   setAssignmentFilter: (filter: AssignmentFilter) => void;
 }) {
   const organization = useOrganization();
+  const assignmentCounts = useAssignmentCounts();
 
   const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
     trackAnalytics('issue_inbox.assignment_filter_changed', {
@@ -373,7 +372,6 @@ function InboxContent() {
               {t('Issues')}
             </Heading>
             <AssignmentTabs
-              assignmentCounts={assignmentCounts}
               assignmentFilter={assignmentFilter}
               setAssignmentFilter={setAssignmentFilter}
             />
