@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type Fuse from 'fuse.js';
+import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import type {
@@ -17,6 +17,7 @@ import {
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
@@ -32,7 +33,7 @@ type FilterKeySearchItem = {
   value?: string;
 };
 
-const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
+const FUZZY_SEARCH_OPTIONS: IFuseOptions<FilterKeySearchItem> = {
   keys: [
     {name: 'key', weight: 10},
     {name: 'value', weight: 7},
@@ -125,7 +126,7 @@ function getFilterSearchValues(
 // This will suggest a maximum of 3 options and will display them
 // at the top only if the score is better than any of the keys.
 function getValueSuggestionsFromSearchResult(
-  results: Array<Fuse.FuseResult<FilterKeySearchItem>>
+  results: Array<FuseResult<FilterKeySearchItem>>
 ) {
   const suggestions = results
     .filter(result => result.item.type === 'value')
@@ -285,7 +286,7 @@ export function useSortedFilterKeyItems({
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(filterValue);
+    const searched = search.search(stripArrayMembershipOperator(filterValue));
 
     const allKeyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)

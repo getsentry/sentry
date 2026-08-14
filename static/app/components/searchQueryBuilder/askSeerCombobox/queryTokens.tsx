@@ -37,7 +37,7 @@ function NewQueryTokens({
   expandedProjectIds,
   crossEvents,
 }: QueryTokensProps) {
-  const tokens = [];
+  const tokens: React.ReactNode[] = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
@@ -162,13 +162,14 @@ function NewQueryTokens({
     );
   }
 
+  const crossEventTokens: React.ReactNode[] = [];
   crossEvents?.forEach((crossEvent, idx) => {
     const filterQuery = getCrossEventFilterQuery(crossEvent);
     const parsedCrossEvent = filterQuery
       ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
       : null;
 
-    tokens.push(
+    crossEventTokens.push(
       <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
         <Flex gap="md" wrap="wrap">
@@ -196,9 +197,18 @@ function NewQueryTokens({
   });
 
   return (
-    <Flex gap="xl" padding="md" wrap="wrap">
-      {tokens}
-    </Flex>
+    <Stack gap="xl" padding="md">
+      {tokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {tokens}
+        </Flex>
+      ) : null}
+      {crossEventTokens.length > 0 ? (
+        <Flex gap="xl" wrap="wrap">
+          {crossEventTokens}
+        </Flex>
+      ) : null}
+    </Stack>
   );
 }
 

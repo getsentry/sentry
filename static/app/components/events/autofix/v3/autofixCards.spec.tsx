@@ -109,6 +109,7 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
 
 const mockAutofix: ReturnType<typeof useExplorerAutofix> = {
   runState: null,
+  autofixFormatted: null,
   isLoading: false,
   isPolling: false,
   startStep: jest.fn(),
@@ -1841,7 +1842,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [makeCodingAgent({provider: 'unknown_provider' as any})],
+            [makeCodingAgent({provider: 'unknown_provider'})],
           ])}
         />
       );

@@ -511,13 +511,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -615,10 +608,6 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Deduplicate Seer Agent Slack event_callback deliveries by event_id (SET NX)
-register("slack.dedupe-seer-webhook-events", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Log Slack webhook retry headers and slow (>3s) responses for debugging
-register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
 register(
     "slack.nudge-frequency",
@@ -1091,6 +1080,7 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register(
     "seer.similarity-killswitch.enabled",
     default=False,
@@ -1300,16 +1290,31 @@ register(
 register(
     "seer.smart_assignment.max_dispatches_per_org_per_day",
     type=Int,
-    default=500,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.smart_assignment.max_dispatches_per_day",
     type=Int,
-    default=1500,
+    default=2000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# The ratio of ASSIGNED / resolution activities that we sample for evaluation.
+register(
+    "seer.smart_assignment.eval_sample_rate",
+    type=Float,
+    default=0.10,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
+# Spread child run_auto_transition_issues_* tasks across this many seconds
+# after each schedule tick, to smooth burst load (DB/signals/queues).
+register(
+    "issues.auto_ongoing_issues.child_task_spread_seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -1326,6 +1331,54 @@ register(
     "issues.backfill_group_action_log.inter_batch_delay_s",
     type=Int,
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.coordinator_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.coordinator_batch_size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.coordinator_inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_batch_size",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s",
+    type=Int,
+    default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1491,13 +1544,6 @@ register(
 # Whether Relay requests sent from internal ip addresses should be allowed even if the
 # credentials can not be verified.
 register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
-# Example value: [{"project_id": 42}, {"project_id": 123}]
-register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Tell Relay to stop extracting metrics from transaction payloads for all projects.
-register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2453,11 +2499,29 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of integrations (bucketed by the provider:integration_id prefix of
+# mailbox_name, so all of an integration's mailboxes switch together) whose
+# drains are dispatched via batch claims instead of the drain-lock lease.
+register(
+    "hybridcloud.webhookpayload.claim_dispatch_rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
     default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Drops GitHub check webhooks that reference no pull request based in their own
+# repo (see ActionFilter.own_repo_pr_actions). Ships off: unlike the other parser
+# drops this one keys off payload shape rather than a header, so it needs a switch
+# that stops the loss immediately if the predicate turns out to be wrong.
+register(
+    "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -2613,6 +2677,14 @@ register(
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Webhook timeout overrides by installation organization ID. Values are seconds.
+# Example: {"123456": {"webhook_timeout_override": 0.5, "hard_timeout_override": 5.0}}
+register(
+    "sentry-apps.override.organization_ids.webhook.timeouts.sec",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Hard timeout for webhook requests to prevent indefinite hangs.
 # Must be strictly less than the shortest task processing_deadline_duration that
@@ -2717,11 +2789,6 @@ register(
 register(
     "on_demand.max_widget_cardinality.on_query_count",
     default=50,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "on_demand.max_widget_cardinality.killswitch",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Overrides modified date and always updates the row. Can be removed if not needed later.
@@ -2896,19 +2963,6 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Use database backed stateful extraction state
-register(
-    "on_demand_metrics.widgets.use_stateful_extraction",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Use to rollout using a cache for should_use_on_demand function, which resolves queries
-register(
-    "on_demand_metrics.cache_should_use_on_demand",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Relocation: whether or not the self-serve API for the feature is enabled. When set on a region
 # silo, this flag controls whether or not that region's API will serve relocation requests to
 # non-superuser clients. When set on the control silo, it can be used to regulate whether or not
@@ -3399,6 +3453,24 @@ register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.all_projects_detectors_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.pull_request_workflow",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.all_projects_detector",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4029,6 +4101,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer to the Kafka eventstream
+register(
+    "tasks.producer.eventstream.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # If False, TaskWorkers will wait for a task's producer futures to complete
 # before marking a task as complete
 register(
@@ -4069,7 +4149,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Issues derived data — process_project_derived_data task
+# Issues derived data — generate_project_derived_data task
 # Number of groups per batch task when fanning out project-wide processing.
 register(
     "issues.derived.project-batch-size",
@@ -4084,18 +4164,33 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
-register(
-    "issues.derived.heal-project-limit",
-    default=3,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Kill switch for heal_stale_derived_data task.
 register(
     "issues.derived.heal-enabled",
     default=True,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of groups per batch task when fanning out heal_stale_derived_data.
+register(
+    "issues.derived.heal-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks a single heal_stale_derived_data invocation
+# may schedule. Overflow waits for the next invocation.
+register(
+    "issues.derived.heal-max-tasks",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of random check batches to schedule when there is no stale derived data to heal.
+register(
+    "issues.derived.check-task-count",
+    default=5,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

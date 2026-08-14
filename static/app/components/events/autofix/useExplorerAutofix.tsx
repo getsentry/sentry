@@ -227,16 +227,28 @@ export interface ExplorerAutofixState {
  */
 export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
+  formatted?: {content: string; format: string};
 }
 
-const POLL_INTERVAL = 1000;
+/**
+ * Poll interval while a run is active, so streaming blocks show up promptly in
+ * the drawer.
+ */
+const ACTIVE_POLL_INTERVAL = 1000;
+
+/**
+ * Poll interval while idle and only watching an already created PR. These are
+ * slow external events (automated CI iteration pushes, review comments), so
+ * polling stays cheap rather than matching the active-run rate.
+ */
+const PR_POLL_INTERVAL = 10000;
 
 function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-      query: {mode: 'explorer'},
+      query: {mode: 'explorer', llmFormat: 'markdown'},
       staleTime: 0,
     }
   );
@@ -318,8 +330,12 @@ export const getPollInterval = ({
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
   const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
 
-  if (shouldPollPR || shouldPollProcessing) {
-    return POLL_INTERVAL;
+  if (shouldPollProcessing) {
+    return ACTIVE_POLL_INTERVAL;
+  }
+
+  if (shouldPollPR) {
+    return PR_POLL_INTERVAL;
   }
 
   return false;
@@ -941,6 +957,10 @@ export function useExplorerAutofix(
      * Current autofix run state, or null if no run exists.
      */
     runState,
+    /**
+     * Formatted markdown for LLM prompts
+     */
+    autofixFormatted: apiData?.formatted?.content ?? null,
     /**
      * Whether we're fetching without an existing run to display.
      * This includes background refetches of a cached null response so callers do not

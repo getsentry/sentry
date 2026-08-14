@@ -23,7 +23,7 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {FieldKey} from 'sentry/utils/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -64,7 +64,10 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         // IS and HAS filters are strings, but treated differently and will break
         // if we preserve the value.
         keyName !== FieldKey.IS &&
-        keyName !== FieldKey.HAS
+        keyName !== FieldKey.HAS &&
+        // Array attributes need the `[*]` membership operator, which only
+        // getInitialFilterText adds — so don't swap the key in place.
+        newFieldDef?.kind !== FieldKind.ARRAY
       ) {
         dispatch({
           type: 'UPDATE_FILTER_KEY',
