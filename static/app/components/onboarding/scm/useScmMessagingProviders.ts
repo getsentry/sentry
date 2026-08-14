@@ -23,10 +23,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * - `connected`          An active, eligible integration is present and ready to
  *                        have a destination configured.
  */
-export type ScmMessagingProviderStatus =
-  | 'installable'
-  | 'permission-limited'
-  | 'connected';
+type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
 export type ScmMessagingProviderViewModel = {
   /** Defined when status is `connected` or `permission-limited`. */
@@ -60,8 +57,10 @@ function toStatus(
 export function useScmMessagingProviders(): {
   isError: boolean;
   isPending: boolean;
+  isRefetchingIntegrations: boolean;
   providers: ScmMessagingProviderViewModel[];
   refetchIntegrations: () => void;
+  retry: () => void;
 } {
   const organization = useOrganization();
 
@@ -94,6 +93,7 @@ export function useScmMessagingProviders(): {
       ) as Partial<Record<ScmMessagingProviderKey, IntegrationProvider>>,
       isPending: results.some(r => r.isPending),
       isError: results.some(r => r.isError),
+      refetch: () => results.forEach(r => r.refetch()),
     }),
   });
 
@@ -134,6 +134,11 @@ export function useScmMessagingProviders(): {
     providers,
     isPending,
     isError,
+    isRefetchingIntegrations: integrationsQuery.isRefetching,
     refetchIntegrations: () => integrationsQuery.refetch(),
+    retry: () => {
+      integrationsQuery.refetch();
+      providerQueries.refetch();
+    },
   };
 }
