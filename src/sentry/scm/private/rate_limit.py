@@ -7,8 +7,11 @@ from redis import RedisError
 
 from sentry.utils import redis
 
-# A window TTL is derived from the reset instant the service-provider reports. Clamp it so a
-# nonsensical or clock-skewed reset cannot pin a counter in place for an unbounded stretch.
+# Window identities and TTLs are derived from the reset instant the service-provider reports. A
+# reset more than this many window-lengths in the future is implausible -- clock skew or a
+# nonsensical header -- and is treated as if the provider had reported nothing, so it can neither
+# pin a counter in place for an unbounded stretch nor derive a counter's identity from the
+# current instant.
 MAX_WINDOW_TTL_MULTIPLIER = 2
 
 
@@ -155,18 +158,22 @@ class DynamicRateLimiter:
         """
         Return the epoch second at which the current rate-limit window ends.
 
-        This doubles as the window's identity. Both branches return the same kind of value -- the
-        instant the window closes -- so a counter started under the fallback continues to make
-        sense once the provider tells us where its window really ends.
+        This doubles as the window's identity, so it must be stable across calls made within the
+        same window -- deriving it from the current instant would hand every request its own
+        counter. A reported reset is used as-is when it is live and plausibly near. A missing,
+        closed, or implausibly distant reset falls back to a locally aligned tumbling window; the
+        first response carrying a usable reset moves the counter onto the provider's window, and
+        the provider's reported usage covers whatever the abandoned local counter had seen.
         """
         window_seconds = self.window_seconds(resource)
 
-        if window is not None and window.reset > current_time:
+        if window is not None:
             max_reset = current_time + (window_seconds * MAX_WINDOW_TTL_MULTIPLIER)
-            return min(window.reset, max_reset)
+            if current_time < window.reset <= max_reset:
+                return window.reset
 
-        # We have not been told when the provider's window ends, so assume a tumbling window of
-        # the configured length. The first response carrying reset metadata replaces this.
+        # We have no live, plausible reset from the provider, so assume a tumbling window of the
+        # configured length.
         elapsed = int(current_time % window_seconds)
         return current_time - elapsed + window_seconds
 
@@ -202,8 +209,9 @@ class DynamicRateLimiter:
 
         # The provider reports usage across every referrer, so it can only be reconciled against
         # the shared pool, and only after the quota reserved referrers have accounted for is
-        # deducted from it.
-        if window is not None and referrer == "shared":
+        # deducted from it. A report whose window has already closed describes usage the provider
+        # has forgiven, so it must not be charged into the window we are in now.
+        if window is not None and window.reset > current_time and referrer == "shared":
             quota_used = max(quota_used, window.used - self._reserved_usage(window_end, resource))
 
         # If no limit could be found we fail open. We'll populate the limit on the other-side of the
