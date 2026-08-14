@@ -23,7 +23,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
     def setUp(self) -> None:
         super().setUp()
         self.snuba_params = SnubaParams(
-            organization=self.organization.id,
+            organization=self.organization,
             projects=[self.project],
             start=before_now(days=1),
             end=self.now,
@@ -33,7 +33,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
     def now(self):
         return before_now()
 
-    @mock.patch("sentry.snuba.metrics_performance.query")
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.metrics_query")
     @mock.patch("sentry.snuba.transactions.query")
     def test_skips_generic_metrics_and_uses_transactions_when_flagged(
         self, mock_transactions_query, mock_metrics_query
@@ -56,7 +56,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
         mock_metrics_query.assert_not_called()
         mock_transactions_query.assert_called_once()
 
-    @mock.patch("sentry.snuba.metrics_performance.query")
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.metrics_query")
     @mock.patch("sentry.snuba.discover.query")
     def test_skips_generic_metrics_and_uses_discover_when_not_flagged(
         self, mock_discover_query, mock_metrics_query
@@ -79,7 +79,7 @@ class MetricsEnhancedPerformanceTest(MetricsEnhancedPerformanceTestCase, SnubaTe
         mock_metrics_query.assert_not_called()
         mock_discover_query.assert_called_once()
 
-    @mock.patch("sentry.snuba.metrics_performance.query")
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.metrics_query")
     def test_still_uses_metrics_for_on_demand(self, mock_metrics_query):
         mock_metrics_query.return_value = {
             "data": [],
