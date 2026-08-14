@@ -51,6 +51,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
+    PrIterationPausedException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
@@ -66,8 +67,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    clear_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -163,6 +166,12 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
+        # A task with a countdown can start after the pause.
+        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+            record_pause_blocked("consume")
+            clear_queued_autofix_feedback(run_id)
+            return
+
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
@@ -267,6 +276,7 @@ def consume_queued_autofix_feedback(
         except (
             PrIterationNoPullRequestException,
             PrIterationNotEnabledException,
+            PrIterationPausedException,
             SeerPermissionError,
         ) as error:
             logger.info(
