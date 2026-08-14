@@ -41,6 +41,10 @@ class Span(Interface):
 
     @classmethod
     def to_python(cls, data):
+        # Individual span entries can be null after normalization.
+        if data is None:
+            return None
+
         for key in SPAN_KEYS:
             data.setdefault(key, None)
 
@@ -58,7 +62,14 @@ class Spans(Interface):
 
     @classmethod
     def to_python(cls, data):
-        spans = [Span.to_python(data[i]) for i, span in enumerate(data)]
+        if data is None:
+            return None
+
+        spans = []
+        for i, _span in enumerate(data):
+            span = Span.to_python(data[i])
+            if span is not None:
+                spans.append(span)
         return super().to_python({"spans": spans})
 
     def __iter__(self):
