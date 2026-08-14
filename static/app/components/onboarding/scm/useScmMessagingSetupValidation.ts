@@ -195,7 +195,7 @@ export function useScmMessagingSetupValidation({
       isIntegrationSettled &&
       integration !== undefined &&
       isChannelSettled &&
-      channelValidateQuery.data?.valid === true,
+      !!channelValidateQuery.data?.valid,
     staleReason,
   };
 }
