@@ -213,7 +213,7 @@ export function DevKitSettings({organization, project}: Props) {
                         variant="primary"
                         onClick={() => {
                           navigate({
-                            pathname: '/issues/',
+                            pathname: `/organizations/${organization.slug}/issues/`,
                             query: {
                               query: 'os.name:PlayStation',
                             },
