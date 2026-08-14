@@ -100,13 +100,22 @@ function withEllipsis(
 }
 
 /**
+ * Lib helpers whose own row is a better destination than the HTTP children underneath.
+ *
+ * Most composite libs are dropped when they fan out: the child API rows say more.
+ * `get_span_details` is the exception — its only HTTP call is the trace endpoint, which can only
+ * link to the trace, while the lib's own args name the span the user asked about.
+ */
+const PREFER_LIB_OVER_CHILDREN = new Set(['get_span_details']);
+
+/**
  * The records worth rendering, in the order they ran.
  *
  * A lib call that fanned out into api calls is dropped: it is a heading for rows that each say
  * more than it does, and keeping it means a parent with no expander sitting above indented
  * children. A lib call with no api children is kept — the Explorer-backed helpers (`code_search`,
  * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
- * leave.
+ * leave. Helpers in `PREFER_LIB_OVER_CHILDREN` keep their own row and suppress children instead.
  */
 export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   const hasChildren = new Set(
@@ -114,5 +123,30 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
       record.parent === null || record.parent === undefined ? [] : [record.parent]
     )
   );
-  return records.filter(record => record.kind !== 'lib' || !hasChildren.has(record.id));
+
+  const hideChildrenOf = new Set(
+    records
+      .filter(
+        record =>
+          record.kind === 'lib' &&
+          record.name &&
+          PREFER_LIB_OVER_CHILDREN.has(record.name) &&
+          hasChildren.has(record.id)
+      )
+      .map(record => record.id)
+  );
+
+  return records.filter(record => {
+    if (
+      record.parent !== null &&
+      record.parent !== undefined &&
+      hideChildrenOf.has(record.parent)
+    ) {
+      return false;
+    }
+    if (record.kind !== 'lib' || !hasChildren.has(record.id)) {
+      return true;
+    }
+    return Boolean(record.name && PREFER_LIB_OVER_CHILDREN.has(record.name));
+  });
 }
