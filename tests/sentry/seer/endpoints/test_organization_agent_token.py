@@ -596,6 +596,10 @@ class OrganizationAgentTokenTest(APITestCase):
             )
         assert write.status_code == 403
 
+    @pytest.mark.seer_agent_token_matrix
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
     def test_agent_token_cannot_create_an_organization(self) -> None:
         self.login_as(self.owner)
 
