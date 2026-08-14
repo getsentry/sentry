@@ -398,8 +398,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         );
         // A telemetry call record has the useful title but not the translated params needed for its
         // destination. Neither channel carries a shared identifier, so only combine them when the
-        // result contains one telemetry call and one telemetry link. Multiple entries are ambiguous:
-        // keep their destinations residual rather than risk putting the wrong query on a call row.
+        // result contains one telemetry call and one telemetry link. Count every reported search,
+        // including unlabeled ones that never become rows — a lone visible title with a hidden
+        // sibling is still ambiguous. Multiple entries stay residual rather than risk the wrong
+        // query on a call row.
+        const reportedTelemetryCallCount = reportedCalls.filter(
+          record => record.name === 'telemetry_live_search'
+        ).length;
         const telemetryCallRows = callRows.filter(
           row => !row.url && row.record.name === 'telemetry_live_search'
         );
@@ -407,7 +412,9 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           item => item.kind === 'telemetry_live_search'
         );
         const telemetryCallId =
-          telemetryCallRows.length === 1 && telemetryNavItems.length === 1
+          reportedTelemetryCallCount === 1 &&
+          telemetryCallRows.length === 1 &&
+          telemetryNavItems.length === 1
             ? telemetryCallRows[0]?.record.id
             : undefined;
         const telemetryNavItem = telemetryCallId ? telemetryNavItems[0] : undefined;

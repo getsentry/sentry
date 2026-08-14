@@ -647,6 +647,60 @@ describe('ToolUseBlock', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
+  it('does not pair a lone Explore link when a hidden telemetry call also exists', () => {
+    // One labeled row and one unlabeled sibling still means two reported searches. A single bus
+    // destination cannot be attached safely to the visible title.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                params: {dataset: 'spans', question: 'hidden search'},
+              },
+              {
+                id: 2,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying the visible search',
+                params: {dataset: 'spans', question: 'visible search'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {dataset: 'spans', query: 'only:one'},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(
+      screen.queryByRole('link', {name: /Querying the visible search/})
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Querying the visible search/)).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=only%3Aone')
+    );
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
   it('does not double-render a classic link present in both channels', () => {
     // A classic tool populates both the positional tool_links (row link) and structuredContent.links
     // during migration; the bus entry that duplicates the row link is deduped, so it renders once.
