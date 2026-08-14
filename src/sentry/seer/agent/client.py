@@ -540,6 +540,7 @@ class SeerAgentClient:
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        referrer: str | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -586,7 +587,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
-            referrer=feature_id,
+            referrer=referrer,
             flush=flush,
         )
 
