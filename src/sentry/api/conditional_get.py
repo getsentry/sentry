@@ -66,9 +66,12 @@ class ConditionalGetResponseMixin(_Base):
         patch_vary_headers(response, ("Cookie", "Authorization"))
 
         matched = _if_none_match_matches(request.META.get("HTTP_IF_NONE_MATCH"), etag)
-        metrics.incr(
-            METRIC_NAME,
-            tags={"result": "hit" if matched else "miss", "endpoint": type(self).__name__},
+        tags = {"result": "hit" if matched else "miss", "endpoint": type(self).__name__}
+        metrics.incr(METRIC_NAME, tags=tags)
+        # Sum this over result:hit for the bytes a 304 saved, and over result:miss
+        # for the bytes still sent.
+        metrics.distribution(
+            f"{METRIC_NAME}.body_bytes", len(response.content), tags=tags, unit="byte"
         )
         if not matched:
             return response

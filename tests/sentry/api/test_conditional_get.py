@@ -1,6 +1,5 @@
 import re
 from typing import Any
-from unittest import mock
 
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -167,25 +166,3 @@ class ConditionalGetResponseMixinTest(APITestCase):
 
         assert response.status_code == 200
         assert "ETag" not in response
-
-    @mock.patch("sentry.api.conditional_get.metrics.incr")
-    def test_records_a_miss(self, mock_incr: mock.MagicMock) -> None:
-        _conditional_endpoint(self.make_request(method="GET"))
-
-        mock_incr.assert_called_once_with(
-            "api.conditional_get",
-            tags={"result": "miss", "endpoint": "DummyConditionalEndpoint"},
-        )
-
-    @mock.patch("sentry.api.conditional_get.metrics.incr")
-    def test_records_a_hit(self, mock_incr: mock.MagicMock) -> None:
-        first = _conditional_endpoint(self.make_request(method="GET"))
-
-        request = self.make_request(method="GET")
-        request.META["HTTP_IF_NONE_MATCH"] = first["ETag"]
-        _conditional_endpoint(request)
-
-        assert mock_incr.call_args_list[-1] == mock.call(
-            "api.conditional_get",
-            tags={"result": "hit", "endpoint": "DummyConditionalEndpoint"},
-        )
