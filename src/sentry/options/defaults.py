@@ -4186,6 +4186,13 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of random check batches to schedule when there is no stale derived data to heal.
+register(
+    "issues.derived.check-task-count",
+    default=5,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Kill switch for Objectstore Debug Files migration
 register(
