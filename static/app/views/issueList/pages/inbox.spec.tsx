@@ -320,10 +320,7 @@ describe('InboxPage', () => {
     const assignedSection = screen.getByRole('region', {name: 'Assigned'});
 
     await userEvent.click(
-      within(assignedSection).getByRole('button', {name: 'Assigned'})
-    );
-    await userEvent.click(
-      within(assignedSection).getByRole('link', {name: /Assigned issue/})
+      await within(assignedSection).findByRole('link', {name: /Assigned issue/})
     );
 
     return screen.getByRole('complementary', {name: 'Issue preview'});
@@ -342,7 +339,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
-    expect(assignedIssue).not.toBeVisible();
+    expect(assignedIssue).toBeVisible();
     expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 

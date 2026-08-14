@@ -1,4 +1,10 @@
-import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {
+  type ComponentProps,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
@@ -373,7 +379,7 @@ function InboxContent() {
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
               <InboxSection
-                key={section.key}
+                key={`${assignmentFilter}:${section.key}`}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
@@ -481,6 +487,7 @@ function InboxSection({
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const hasIssues = groups.length > 0;
+  const [expanded, setExpanded] = useState<boolean>();
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
@@ -503,10 +510,10 @@ function InboxSection({
 
   return (
     <Disclosure
-      key={`${assignmentFilter}:${queryResult.status}:${hasIssues}`}
       as="section"
       aria-label={section.label}
-      defaultExpanded={!queryResult.isSuccess || hasIssues}
+      expanded={expanded ?? (!queryResult.isSuccess || hasIssues)}
+      onExpandedChange={setExpanded}
       size="sm"
     >
       <StickySectionHeader
