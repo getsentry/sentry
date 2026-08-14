@@ -293,6 +293,45 @@ describe('ScmMessagingProviderRow', () => {
         screen.getByText('Installation failed. Please try again.')
       ).toBeInTheDocument();
     });
+
+    it('clears the error when the integration surfaces via a shared refetch', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+      const {callbacks} = mockPipeline();
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onError?.('OAuth failed'));
+
+      expect(screen.getByText('OAuth failed')).toBeInTheDocument();
+
+      // The integrations query is shared: another row's successful install
+      // refetches it and reveals this provider's integration despite the local
+      // error. The row must drop the error instead of offering a Try again that
+      // would reinstall an existing integration.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={connectedSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByText('OAuth failed')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Try again/})).not.toBeInTheDocument();
+    });
   });
 
   describe('cancelled without error', () => {
@@ -320,6 +359,87 @@ describe('ScmMessagingProviderRow', () => {
 
       expect(onInstallComplete).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    });
+
+    it('stops spinning when the installed integration resolves to permission-limited', async () => {
+      const {callbacks} = mockPipeline();
+      const installableMsteams: ScmMessagingProviderViewModel = {
+        providerKey: 'msteams',
+        provider: msteamsProvider,
+        status: 'installable',
+        integration: undefined,
+      };
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableMsteams}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onComplete?.(msteamsIntegration));
+
+      // The refetched view model settles to a tenant (permission-limited) result.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={permissionLimitedMsteams}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByText(/tenant-level connection/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
+    });
+
+    it('shows Connect (not a spinner) if the integration disappears after install', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {results: []},
+      });
+      const {callbacks} = mockPipeline();
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onComplete?.(slackIntegration));
+
+      // Integration surfaces...
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={connectedSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      // ...then is removed externally, returning the row to installable.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Connect/})).toBeInTheDocument();
     });
   });
 

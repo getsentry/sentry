@@ -51,7 +51,7 @@ export function ScmMessagingChannelPicker({
   const {
     channelOptions,
     isChannelLoading,
-    isChannelError,
+    isChannelsError,
     channelsData,
     channelError,
     onChannelChange,
@@ -141,7 +141,7 @@ export function ScmMessagingChannelPicker({
           </ChannelField>
         </Stack>
       </Grid>
-      {isChannelError && (
+      {isChannelsError && (
         <Alert variant="warning">
           {t('Failed to load channels. You can still type a channel name.')}
         </Alert>
@@ -155,7 +155,7 @@ export function ScmMessagingChannelPicker({
         <Button
           size="sm"
           variant="primary"
-          disabled={!channel || !!channelError}
+          disabled={!channel || !!channelError || isChannelLoading}
           onClick={handleSave}
         >
           {t('Add destination')}
