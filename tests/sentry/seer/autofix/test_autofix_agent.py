@@ -1751,3 +1751,17 @@ class TestTriggerPushChanges(TestCase):
         assert payload["pr_description_suffix"] == (
             f"{self._fixes_line()}\nFixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
         )
+
+    @patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True)
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_pr_description_suffix_free_cohort_links_seer_settings(
+        self, mock_post, _mock_free_cohort
+    ):
+        payload = self._push(mock_post)
+
+        settings_url = self.organization.absolute_url("/settings/seer/")
+        assert payload["pr_description_suffix"] == (
+            f"{self._fixes_line()}\n"
+            f"\n<sub>This fix was generated automatically by Seer. "
+            f"[Manage your Seer settings]({settings_url}) to disable this automation.</sub>"
+        )

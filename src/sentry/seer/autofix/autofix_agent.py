@@ -998,6 +998,13 @@ def build_pr_description_suffix(group: Group) -> str | None:
             "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
         )
 
+    if is_free_cohort_org(group.organization):
+        settings_url = group.organization.absolute_url("/settings/seer/")
+        lines.append(
+            f"\n<sub>This fix was generated automatically by Seer. "
+            f"[Manage your Seer settings]({settings_url}) to disable this automation.</sub>"
+        )
+
     if lines:
         return "\n".join(lines)
 
