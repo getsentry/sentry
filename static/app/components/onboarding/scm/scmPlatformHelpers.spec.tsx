@@ -14,10 +14,17 @@ describe('platformOptionGroups', () => {
     );
   });
 
-  it('sorts the remaining section like the legacy picker All tab', () => {
+  it('sorts the Other section alphabetically with punctuation-prefixed names last', () => {
     expect(otherGroup!.label).toBe('Other platforms');
     const names = otherGroup!.options.map(option => option.label);
     expect(names).toEqual(names.toSorted(comparePlatformNames));
+
+    // Names starting with punctuation (the .NET family) sort last, not first.
+    const firstPunctuationIndex = names.findIndex(name => name.startsWith('.'));
+    expect(firstPunctuationIndex).toBeGreaterThan(0);
+    expect(names.slice(firstPunctuationIndex).every(name => name.startsWith('.'))).toBe(
+      true
+    );
   });
 
   it('keeps every platform exactly once across sections', () => {
