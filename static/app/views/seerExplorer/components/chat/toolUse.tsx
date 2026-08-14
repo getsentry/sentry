@@ -608,7 +608,7 @@ function CodeModeCallRow({
 // (see navLinkLabel): showing the raw kind would leak an internal function name like
 // `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
 // is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
-export const NAV_LINK_LABELS: Record<string, string> = {
+const NAV_LINK_LABELS: Record<string, string> = {
   get_issue_details: t('View issue'),
   get_trace_waterfall: t('View trace'),
   get_replay_details: t('View replay'),
