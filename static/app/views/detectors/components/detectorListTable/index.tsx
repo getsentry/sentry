@@ -548,6 +548,7 @@ const GridLineOverlayCell = styled(SimpleTable.RowCell)`
 
 const PositionedGridLineOverlay = styled(GridLineOverlay)`
   pointer-events: none;
+  top: 0;
 
   display: none;
 
