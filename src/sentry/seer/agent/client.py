@@ -547,6 +547,7 @@ class SeerAgentClient:
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        referrer: str | None = None,
         force_ce: bool | None = None,
         force_frontend_code_search: bool | None = None,
     ) -> SeerRun:
@@ -601,7 +602,7 @@ class SeerAgentClient:
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
-            referrer=feature_id,
+            referrer=referrer,
             flush=flush,
         )
 
