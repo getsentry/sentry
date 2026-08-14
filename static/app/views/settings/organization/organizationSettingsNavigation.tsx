@@ -1,3 +1,4 @@
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -6,6 +7,7 @@ import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organizat
 
 function OrganizationSettingsNavigation() {
   const organization = useOrganization();
+  const {hasFreeAutofixAccess} = useOrganizationSeerSetup();
   const useBillingNavConfig =
     getOverride('react-hook:use-billing-navigation-config') ?? (() => null);
   const billingNavConfig = useBillingNavConfig();
@@ -15,6 +17,7 @@ function OrganizationSettingsNavigation() {
       navigationObjects={getUserOrgNavigationConfiguration()}
       access={new Set(organization.access)}
       features={new Set(organization.features)}
+      hasFreeAutofixAccess={hasFreeAutofixAccess}
       organization={organization}
       hookConfigs={billingNavConfig ? [billingNavConfig] : []}
       hooks={[]}

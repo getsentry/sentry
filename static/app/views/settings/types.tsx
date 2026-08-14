@@ -7,6 +7,7 @@ import type {Project} from 'sentry/types/project';
 export type NavigationProps = {
   access?: Set<Scope>;
   features?: Set<string>;
+  hasFreeAutofixAccess?: boolean;
   id?: string;
   isSelfHosted?: boolean;
   organization?: Organization;
