@@ -163,9 +163,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
-        if result is metrics_performance:
-            # Scoped to the events endpoints: alerts resolve `metrics` through
-            # sentry.snuba.utils to identify the sessions dataset.
+        if result is metrics_performance and request.GET.get("useOnDemandMetrics") != "true":
+            # On-demand extraction still reads generic metrics, and relies on an
+            # incompatible query erroring rather than falling back. Scoped to the events
+            # endpoints: alerts resolve `metrics` through sentry.snuba.utils to identify
+            # the sessions dataset.
             result = metrics_enhanced_performance
         sentry_sdk.set_tag("query.dataset", dataset_label)
         sentry_sdk.set_attribute("query.dataset", dataset_label)
