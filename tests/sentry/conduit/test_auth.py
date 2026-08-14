@@ -1,6 +1,7 @@
 import base64
 import time
 from unittest.mock import patch
+from uuid import uuid4
 
 import jwt as pyjwt
 import pytest
@@ -166,6 +167,14 @@ def test_get_conduit_credentials_returns_all_credentials() -> None:
         assert result.url == f"{gateway_url}/events/{org_id}"
 
 
+def test_get_conduit_credentials_requires_gateway_url() -> None:
+    with patch("sentry.conduit.auth.settings") as mock_settings:
+        mock_settings.CONDUIT_GATEWAY_URL = None
+
+        with pytest.raises(ValueError, match="CONDUIT_GATEWAY_URL not configured"):
+            get_conduit_credentials(123)
+
+
 def test_get_conduit_credentials_uses_custom_url() -> None:
     """Should use provided gateway_url instead of settings."""
     gateway_url = "https://custom.conduit.io"
@@ -183,6 +192,20 @@ def test_get_conduit_credentials_uses_custom_url() -> None:
 
         assert str(org_id) in result.url
         assert result.url == f"{gateway_url}/events/{org_id}"
+
+
+def test_get_conduit_credentials_uses_existing_channel() -> None:
+    gateway_url = "https://conduit.example.com"
+    channel_id = str(uuid4())
+    with patch("sentry.conduit.auth.settings") as mock_settings:
+        mock_settings.CONDUIT_GATEWAY_PRIVATE_KEY = RS256_KEY_B64
+        mock_settings.CONDUIT_GATEWAY_JWT_ISSUER = "sentry"
+        mock_settings.CONDUIT_GATEWAY_JWT_AUDIENCE = "conduit"
+        mock_settings.CONDUIT_GATEWAY_URL = gateway_url
+
+        result = get_conduit_credentials(123, channel_id=channel_id)
+
+        assert result.channel_id == channel_id
 
 
 def test_get_conduit_credentials_token_is_valid() -> None:
