@@ -6,6 +6,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 
+import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 
@@ -78,17 +79,20 @@ function mockChannelValidate(valid: boolean, integrationId: string) {
 }
 
 function renderPicker({
-  integrations = [slackIntegration],
+  eligibleIntegrations = [slackIntegration],
   existingSetup,
+  providerKey = 'slack',
 }: {
+  eligibleIntegrations?: OrganizationIntegration[];
   existingSetup?: ScmMessagingSetup;
-  integrations?: OrganizationIntegration[];
+  providerKey?: ScmMessagingProviderKey;
 } = {}) {
   const onConfigured = jest.fn();
 
   render(
     <ScmMessagingChannelPicker
-      integrations={integrations}
+      eligibleIntegrations={eligibleIntegrations}
+      providerKey={providerKey}
       onConfigured={onConfigured}
       existingSetup={existingSetup}
     />,
@@ -131,7 +135,7 @@ describe('ScmMessagingChannelPicker', () => {
   describe('staging a new destination', () => {
     it('stores Slack by display name', async () => {
       mockChannels('10', [slackChannel]);
-      const {onConfigured} = renderPicker({integrations: [slackIntegration]});
+      const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -147,7 +151,10 @@ describe('ScmMessagingChannelPicker', () => {
 
     it('stores Discord by channel ID', async () => {
       mockChannels('20', [discordChannel]);
-      const {onConfigured} = renderPicker({integrations: [discordIntegration]});
+      const {onConfigured} = renderPicker({
+        eligibleIntegrations: [discordIntegration],
+        providerKey: 'discord',
+      });
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general (1234567890)');
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -163,7 +170,7 @@ describe('ScmMessagingChannelPicker', () => {
 
     it('disables Add destination until a channel is chosen', () => {
       mockChannels('10', [slackChannel]);
-      renderPicker({integrations: [slackIntegration]});
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
       expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
     });
@@ -175,7 +182,10 @@ describe('ScmMessagingChannelPicker', () => {
       // Manual entries validate as you type, via the shared hook's
       // `enabled: !!channel?.new` query.
       mockChannelValidate(true, '20');
-      const {onConfigured} = renderPicker({integrations: [discordIntegration]});
+      const {onConfigured} = renderPicker({
+        eligibleIntegrations: [discordIntegration],
+        providerKey: 'discord',
+      });
 
       const channelUrl = 'https://discord.com/channels/111/1234567890';
       // ChannelSelect sets formatCreateLabel to the raw input, so the create
@@ -201,8 +211,9 @@ describe('ScmMessagingChannelPicker', () => {
     it('preserves the Discord channel ID through a no-op edit', async () => {
       mockChannels('20', [discordChannel]);
       const {onConfigured} = renderPicker({
-        integrations: [discordIntegration],
+        eligibleIntegrations: [discordIntegration],
         existingSetup: selectedDiscordSetup,
+        providerKey: 'discord',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -219,7 +230,7 @@ describe('ScmMessagingChannelPicker', () => {
     it('preserves the Slack channel name through a no-op edit', async () => {
       mockChannels('10', [slackChannel]);
       const {onConfigured} = renderPicker({
-        integrations: [slackIntegration],
+        eligibleIntegrations: [slackIntegration],
         existingSetup: selectedSlackSetup,
       });
 
@@ -240,8 +251,9 @@ describe('ScmMessagingChannelPicker', () => {
       // breaks revalidation. An empty /channels/ must not corrupt the saved name.
       mockChannels('30', []);
       const {onConfigured} = renderPicker({
-        integrations: [msteamsIntegration],
+        eligibleIntegrations: [msteamsIntegration],
         existingSetup: selectedMsTeamsSetup,
+        providerKey: 'msteams',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -260,8 +272,9 @@ describe('ScmMessagingChannelPicker', () => {
       // the stored name rather than overwrite it with the id.
       mockChannels('20', []);
       const {onConfigured} = renderPicker({
-        integrations: [discordIntegration],
+        eligibleIntegrations: [discordIntegration],
         existingSetup: selectedDiscordSetup,
+        providerKey: 'discord',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -294,14 +307,14 @@ describe('ScmMessagingChannelPicker', () => {
     it('enables the Workspace select when there are multiple eligible integrations', () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', []);
-      renderPicker({integrations: [slackIntegration, slackIntegration2]});
+      renderPicker({eligibleIntegrations: [slackIntegration, slackIntegration2]});
 
       expect(screen.getByLabelText('workspace')).toBeEnabled();
     });
 
     it('disables the Workspace select when there is only one eligible integration', () => {
       mockChannels('10', [slackChannel]);
-      renderPicker({integrations: [slackIntegration]});
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
       expect(screen.getByLabelText('workspace')).toBeDisabled();
     });
@@ -310,7 +323,7 @@ describe('ScmMessagingChannelPicker', () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', [slackChannel]);
       const {onConfigured} = renderPicker({
-        integrations: [slackIntegration, slackIntegration2],
+        eligibleIntegrations: [slackIntegration, slackIntegration2],
       });
 
       // Switch to the second workspace.
@@ -331,7 +344,7 @@ describe('ScmMessagingChannelPicker', () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', []);
       renderPicker({
-        integrations: [slackIntegration, slackIntegration2],
+        eligibleIntegrations: [slackIntegration, slackIntegration2],
         existingSetup: selectedSlackSetup,
       });
 
@@ -362,7 +375,10 @@ describe('ScmMessagingChannelPicker', () => {
 
       mockChannels('41', []);
       // Only the eligible team integration is passed; the tenant was excluded by the row.
-      renderPicker({integrations: [msteamsTeam]});
+      renderPicker({
+        eligibleIntegrations: [msteamsTeam],
+        providerKey: 'msteams',
+      });
 
       expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
       expect(screen.getByText('team-workspace')).toBeInTheDocument();

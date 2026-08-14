@@ -304,7 +304,8 @@ export function ScmMessagingProviderRow({
               })
             ) : (
               <ScmMessagingChannelPicker
-                integrations={viewModel.eligibleIntegrations}
+                eligibleIntegrations={viewModel.eligibleIntegrations}
+                providerKey={viewModel.providerKey}
                 onCancel={isConfigured ? handleCancelConfiguring : undefined}
                 onConfigured={handleConfigured}
                 existingSetup={isConfigured ? messagingSetup : undefined}

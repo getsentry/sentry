@@ -26,11 +26,11 @@ import type {ScmMessagingSetup} from './scmMessagingSetup';
 export interface ScmMessagingChannelPickerProps {
   /**
    * Eligible integrations for this provider — already filtered to those that
-   * can receive Issue Alert actions. Must be non-empty (the picker is only
-   * rendered for a `connected` provider).
+   * can receive Issue Alert actions.
    */
-  integrations: OrganizationIntegration[];
+  eligibleIntegrations: OrganizationIntegration[];
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
+  providerKey: ScmMessagingProviderKey;
   /** Pre-seeds the channel selector when editing an existing destination. */
   existingSetup?: ScmMessagingSetup;
   /** When provided a Cancel button is shown (e.g. in Edit mode). */
@@ -38,14 +38,13 @@ export interface ScmMessagingChannelPickerProps {
 }
 
 export function ScmMessagingChannelPicker({
-  integrations,
+  eligibleIntegrations,
   onCancel,
   onConfigured,
   existingSetup,
+  providerKey,
 }: ScmMessagingChannelPickerProps) {
-  const firstIntegration = integrations[0];
-  const providerKey = (firstIntegration?.provider.key ??
-    'slack') as ScmMessagingProviderKey;
+  const firstIntegration = eligibleIntegrations[0];
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any. Drives both the dropdown seed
@@ -56,7 +55,8 @@ export function ScmMessagingChannelPicker({
       : undefined;
 
   const defaultIntegration =
-    integrations.find(i => i.id === savedSelection?.integrationId) ?? firstIntegration;
+    eligibleIntegrations.find(i => i.id === savedSelection?.integrationId) ??
+    firstIntegration;
 
   const [selectedIntegration, setSelectedIntegration] = useState<
     OrganizationIntegration | undefined
@@ -71,8 +71,8 @@ export function ScmMessagingChannelPicker({
   );
 
   const providersToIntegrations = useMemo(
-    () => ({[providerKey]: integrations}),
-    [providerKey, integrations]
+    () => ({[providerKey]: eligibleIntegrations}),
+    [providerKey, eligibleIntegrations]
   );
 
   const {
