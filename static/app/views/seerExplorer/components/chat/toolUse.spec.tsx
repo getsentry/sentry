@@ -6,6 +6,7 @@ import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {
   AgentWriteApproval,
   Block,
+  CallRecord,
   PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
@@ -985,6 +986,77 @@ describe('ToolUseBlock', () => {
       // The labeled sibling still renders.
       expect(screen.getByText('View issue')).toBeInTheDocument();
       expect(screen.getAllByRole('link')).toHaveLength(1);
+    });
+  });
+
+  describe('Code Mode call records rendered as ToolCall', () => {
+    function codeModeCallsBlock(calls: CallRecord[]) {
+      return createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {calls},
+          },
+        ],
+      });
+    }
+
+    const issueCall: CallRecord = {
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
+      resolved_path: '/api/0/organizations/test-org/issues/123/',
+      path_params: {issue_id: '123'},
+      status: 200,
+      title: 'Retrieve an issue',
+    };
+
+    it('renders each record as a ToolCall titled by its label', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Retrieve an issue')).toBeInTheDocument();
+    });
+
+    it('surfaces the navigable resource as a real link chip', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      // A record that addresses its own resource links to it; the chip is a real anchor.
+      expect(screen.getByRole('button', {name: /View issue/})).toHaveAttribute(
+        'href',
+        expect.stringContaining('/issues/123/')
+      );
+    });
+
+    it('keeps the request detail collapsed until the row is expanded', async () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      const detail = screen.getByText('GET /api/0/organizations/test-org/issues/123/');
+      expect(detail).not.toBeVisible();
+
+      await userEvent.click(screen.getByRole('button', {name: /Retrieve an issue/}));
+
+      expect(detail).toBeVisible();
+    });
+
+    it('surfaces a failed call through a notification', () => {
+      const block = codeModeCallsBlock([
+        {...issueCall, status: 500, title: 'Retrieve an issue'},
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
     });
   });
 });
