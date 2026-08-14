@@ -397,24 +397,39 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           item => !claimedLinkKinds.has(item.kind)
         );
         // A telemetry call record has the useful title but not the translated params needed for its
-        // destination. Pair every reported search with its bus destination before hidden or
-        // unlabeled records are dropped, so later rows cannot inherit a skipped search's link.
+        // destination. Walk reported searches in order so a later visible row cannot inherit an
+        // earlier skipped search's Explore link. Attach only to rows that will render; leave the
+        // rest residual so unlabeled work still surfaces as "View …".
+        const telemetryLinks: NavItem[] = [];
+        const nonTelemetryResidual: NavItem[] = [];
+        for (const item of residualNavItems) {
+          if (item.kind === 'telemetry_live_search') {
+            telemetryLinks.push(item);
+          } else {
+            nonTelemetryResidual.push(item);
+          }
+        }
+        const visibleCallIds = new Set(callRows.map(row => row.record.id));
         const telemetryNavItemByCallId = new Map<number, NavItem>();
+        const unpairedTelemetry: NavItem[] = [];
+        let telemetryLinkIndex = 0;
         for (const record of reportedCalls) {
           if (record.name !== 'telemetry_live_search') {
             continue;
           }
-          const navItemIndex = residualNavItems.findIndex(
-            item => item.kind === 'telemetry_live_search'
-          );
-          if (navItemIndex === -1) {
+          const navItem = telemetryLinks[telemetryLinkIndex++];
+          if (!navItem) {
             break;
           }
-          const [navItem] = residualNavItems.splice(navItemIndex, 1);
-          if (navItem) {
+          if (visibleCallIds.has(record.id)) {
             telemetryNavItemByCallId.set(record.id, navItem);
+          } else {
+            unpairedTelemetry.push(navItem);
           }
         }
+        unpairedTelemetry.push(...telemetryLinks.slice(telemetryLinkIndex));
+        residualNavItems.length = 0;
+        residualNavItems.push(...nonTelemetryResidual, ...unpairedTelemetry);
         const linkedCallRows = callRows.map(row => {
           if (row.url) {
             return row;
@@ -428,10 +443,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
         // todos, links or markdown would render an empty row with a lone status tick.
+        // Use residual nav items, not the pre-pairing list: consumed destinations no longer render.
         const hasContent =
           Boolean(toolString) ||
           linkedCallRows.length > 0 ||
-          navItems.length > 0 ||
+          residualNavItems.length > 0 ||
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
         if (!hasContent) {

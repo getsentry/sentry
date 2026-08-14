@@ -599,6 +599,52 @@ describe('ToolUseBlock', () => {
       'href',
       expect.stringContaining('query=first%3Atrue')
     );
+    // The skipped search still surfaces its Explore destination as residual nav.
+    expect(screen.getByRole('link', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=first%3Atrue')
+    );
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('keeps residual Explore links when every telemetry call row is unlabeled', () => {
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                params: {dataset: 'spans', question: 'hidden search'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {dataset: 'spans', query: 'hidden:true'},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByRole('link', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=hidden%3Atrue')
+    );
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
