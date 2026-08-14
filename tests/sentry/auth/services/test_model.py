@@ -5,6 +5,7 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.services.auth.serial import serialize_api_key, serialize_api_token
 from sentry.models.apikey import ApiKey
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -14,6 +15,7 @@ class DeclaredScopePermission:
 
 @patch("sentry.auth.scope_declaration.capture_message")
 @patch("sentry.auth.scope_declaration.logger.warning")
+@override_options({"api.permission-scope-audit.enabled": True})
 def test_authenticated_token_reports_undeclared_scope(warning: Mock, capture_message: Mock) -> None:
     token = AuthenticatedToken(kind="api_token", scopes=["org:read"])
 

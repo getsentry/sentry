@@ -926,8 +926,38 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
 @no_silo_test
 class DefaultAccessTest(TestCase):
+    @patch("sentry.auth.scope_declaration.options.get")
+    def test_declared_scope_check_does_not_read_audit_option(self, options_get: Mock) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:read")
+
+        options_get.assert_not_called()
+
+    def test_disabled_scope_audit_reads_option_once_per_endpoint(self) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with (
+            patch("sentry.auth.scope_declaration.options.get", return_value=False) as options_get,
+            patch("sentry.auth.scope_declaration.logger.warning") as warning,
+            bind_endpoint_scope_declaration(
+                endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+            ),
+        ):
+            assert not access.DEFAULT.has_scope("project:read")
+            assert not access.DEFAULT.has_scope("project:write")
+
+        options_get.assert_called_once_with("api.permission-scope-audit.enabled")
+        warning.assert_not_called()
+
     @patch("sentry.auth.scope_declaration.capture_message")
     @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
     def test_reports_project_and_team_scope_checks_without_access(
         self, warning: Mock, capture_message: Mock
     ) -> None:
@@ -949,6 +979,7 @@ class DefaultAccessTest(TestCase):
 
     @patch("sentry.auth.scope_declaration.capture_message")
     @patch("sentry.auth.scope_declaration.logger.warning")
+    @override_options({"api.permission-scope-audit.enabled": True})
     def test_reports_every_scope_in_direct_project_scope_check(
         self, warning: Mock, capture_message: Mock
     ) -> None:

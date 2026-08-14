@@ -11,19 +11,19 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from contextlib import AbstractContextManager
+from contextlib import ExitStack
 from typing import Any
+from unittest.mock import patch
 
 Finding = tuple[str, str, str, tuple[str, ...], tuple[str, ...]]
 
 _findings: Counter[Finding] = Counter()
-_options_override: AbstractContextManager[None] | None = None
+_scope_audit_stack: ExitStack | None = None
 
 
 def pytest_configure() -> None:
-    global _options_override
+    global _scope_audit_stack
 
-    from sentry.auth import scope_declaration
     from sentry.testutils.helpers.options import override_options
 
     def record_warning(message: str, *, extra: dict[str, Any]) -> None:
@@ -43,15 +43,19 @@ def pytest_configure() -> None:
         # endpoint test run deliberately exercises known declaration gaps.
         pass
 
-    scope_declaration.logger.warning = record_warning
-    scope_declaration.capture_message = discard_capture_message
-    _options_override = override_options({"api.permission-scope-audit.enabled": True})
-    _options_override.__enter__()
+    _scope_audit_stack = ExitStack()
+    _scope_audit_stack.enter_context(
+        patch("sentry.auth.scope_declaration.logger.warning", record_warning)
+    )
+    _scope_audit_stack.enter_context(
+        patch("sentry.auth.scope_declaration.capture_message", discard_capture_message)
+    )
+    _scope_audit_stack.enter_context(override_options({"api.permission-scope-audit.enabled": True}))
 
 
 def pytest_unconfigure() -> None:
-    if _options_override is not None:
-        _options_override.__exit__(None, None, None)
+    if _scope_audit_stack is not None:
+        _scope_audit_stack.close()
 
 
 def pytest_sessionfinish() -> None:
