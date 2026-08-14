@@ -208,3 +208,48 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
     def test_open_period(self) -> None:
         ctx = self._make_context()
         assert ctx.open_period == self.open_period
+
+    def test_metric_issue_context_none_value(self) -> None:
+        """Missing metric value should not crash notification context building."""
+        none_evidence = MetricIssueEvidenceData(
+            value=None,  # type: ignore[arg-type]
+            detector_id=self.detector.id,
+            data_packet_source_id=int(self.data_source.source_id),
+            conditions=self.evidence_data.conditions,
+            config={},
+            data_sources=[],
+            alert_id=self.alert_rule.id,
+        )
+        group, _event, group_event = self.create_group_event(
+            occurrence=self.create_issue_occurrence(
+                priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data=asdict(none_evidence),
+            ),
+        )
+        group.priority = PriorityLevel.HIGH.value
+        group.save()
+        self.create_detector_group(detector=self.detector, group=group)
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+
+        GroupOpenPeriod.objects.get_or_create(
+            group=group,
+            project=self.project,
+            date_started=group.first_seen,
+        )
+        event_data = WorkflowEventData(event=group_event, group=group)
+        action = self.create_action(
+            type=Action.Type.DISCORD,
+            integration_id=1234567890,
+            config={"target_identifier": "123"},
+        )
+        invocation = ActionInvocation(
+            action=action,
+            event_data=event_data,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+        ctx = IssueNotificationContext(invocation)
+        metric_issue_context = ctx.metric_issue_context
+        assert metric_issue_context.metric_value is None
