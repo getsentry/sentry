@@ -970,9 +970,7 @@ def trigger_push_changes(
     )
 
 
-# Referrers for runs started by automation (post-process fixability, night
-# shift) rather than a user action. Mirrors the SeerAutomationSource entries
-# in issue_summary.referrer_map.
+# Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
     {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.NIGHT_SHIFT}
 )
@@ -1009,10 +1007,10 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
     # Explorer runs stamp the referrer on SeerRun.referrer; autofix RCA feature
     # runs use that column for the feature id and stamp it in extras instead.
     seer_run = SeerRun.objects.filter(seer_run_state_id=run_id).first()
-    is_automated_run = seer_run is not None and not {
-        seer_run.referrer,
-        seer_run.extras.get("referrer"),
-    }.isdisjoint(AUTOMATED_AUTOFIX_REFERRERS)
+    is_automated_run = seer_run is not None and (
+        seer_run.referrer in AUTOMATED_AUTOFIX_REFERRERS
+        or seer_run.extras.get("referrer") in AUTOMATED_AUTOFIX_REFERRERS
+    )
     if is_automated_run:
         settings_url = group.organization.absolute_url("/settings/seer/")
         no_cost = " at no cost" if is_free_cohort_org(group.organization) else ""
