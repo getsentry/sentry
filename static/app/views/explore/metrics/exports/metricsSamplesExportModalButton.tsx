@@ -1,5 +1,6 @@
 import type {ExportableRow} from 'sentry/components/exports/downloadRows';
 import {ROW_COUNT_VALUE_MAX} from 'sentry/components/exports/generateExportRowCountOptions';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
@@ -11,6 +12,10 @@ import {
   getMetricSamplesFields,
   useMetricSamplesQueryString,
 } from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+import {
+  ingestionDelayedRelativePeriod,
+  TRACE_METRICS_INGESTION_DELAY_SECONDS,
+} from 'sentry/views/explore/metrics/ingestionDelay';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
@@ -30,13 +35,20 @@ export function MetricsSamplesExportModalButton({
   tableData,
   traceMetric,
 }: MetricsSamplesExportModalButtonProps) {
+  const {selection} = usePageFilters();
   const sortBys = useQueryParamsSortBys();
   const query = useMetricSamplesQueryString(traceMetric);
+
+  const statsPeriodRange = ingestionDelayedRelativePeriod(
+    selection.datetime,
+    TRACE_METRICS_INGESTION_DELAY_SECONDS
+  );
 
   const queryInfo = useMetricsQueryInfo({
     field: getMetricSamplesFields(fields),
     query,
     sort: sortBys.map(formatExportSort),
+    statsPeriodRange,
   });
 
   // Counted with the export's own query rather than the metric identity alone, so a
@@ -45,6 +57,7 @@ export function MetricsSamplesExportModalButton({
   // exports to the server that the browser could have served.
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    datetime: statsPeriodRange,
     enabled: Boolean(traceMetric.name),
     query,
   });

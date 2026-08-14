@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {initializeTraceMetricsTest} from 'sentry-fixture/tracemetrics';
 
 import {
@@ -91,12 +91,37 @@ describe('MetricsSamplesExportModalButton', () => {
     renderGlobalModal();
   }
 
+  /** Renders, exports, and resolves with the `query_info` the server export received. */
+  async function submitExport() {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    renderButton();
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalled();
+    });
+
+    return exportRequest.mock.calls[0][1].data.query_info;
+  }
+
   let eventsRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: PageFiltersFixture({
+          datetime: {start: null, end: null, period: '24h', utc: null},
+        }),
+      })
+    );
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -119,50 +144,49 @@ describe('MetricsSamplesExportModalButton', () => {
     );
   });
 
-  it('narrows the server export to the panel metric when exporting more rows than are loaded', async () => {
-    const exportRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/data-export/`,
-      method: 'POST',
-      body: {},
-    });
-
+  it('counts rows over the ingestion-delayed window the table shows', async () => {
     renderButton();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
 
     await waitFor(() => {
-      expect(exportRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/data-export/`,
-        expect.objectContaining({
-          data: expect.objectContaining({
-            query_type: 'Explore',
-            query_info: expect.objectContaining({
-              dataset: 'tracemetrics',
-              query: 'model:gpt-5 metric.name:llm.token_usage metric.type:distribution',
-              sort: ['-timestamp'],
-            }),
-          }),
-        })
-      );
+      expect(eventsRequest).toHaveBeenCalled();
     });
+    const countQueries = eventsRequest.mock.calls.map(([, options]) => options.query);
+
+    expect(countQueries).toEqual(
+      countQueries.map(() =>
+        expect.objectContaining({statsPeriodStart: '24h', statsPeriodEnd: '120s'})
+      )
+    );
+  });
+
+  it('narrows the server export to the panel metric when exporting more rows than are loaded', async () => {
+    const queryInfo = await submitExport();
+
+    expect(queryInfo).toEqual(
+      expect.objectContaining({
+        dataset: 'tracemetrics',
+        query: 'model:gpt-5 metric.name:llm.token_usage metric.type:distribution',
+        sort: ['-timestamp'],
+      })
+    );
+  });
+
+  it('exports the ingestion-delayed window the table shows', async () => {
+    const queryInfo = await submitExport();
+
+    expect(queryInfo).toEqual(
+      expect.objectContaining({
+        statsPeriodStart: '24h',
+        statsPeriodEnd: '120s',
+        statsPeriod: undefined,
+      })
+    );
   });
 
   it('exports the fields the samples table always queries when only some are selected', async () => {
-    const exportRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/data-export/`,
-      method: 'POST',
-      body: {},
-    });
+    const queryInfo = await submitExport();
 
-    renderButton();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
-
-    await waitFor(() => {
-      expect(exportRequest).toHaveBeenCalled();
-    });
-    const exportedFields = exportRequest.mock.calls[0][1].data.query_info.field;
-    expect(exportedFields).toEqual(expect.arrayContaining(fields));
+    expect(queryInfo.field).toEqual(expect.arrayContaining(fields));
   });
 
   it('disables the button when the table has no rows', () => {

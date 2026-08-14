@@ -36,6 +36,7 @@ import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMe
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
+import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
   MetricsGraph,
   getMetricsChartTypeOptions,
@@ -67,7 +68,6 @@ import {
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
-const TWO_MINUTE_DELAY = 120;
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
   [ChartType.LINE]: 'line',
@@ -155,7 +155,7 @@ export function MetricPanel({
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
-    ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 

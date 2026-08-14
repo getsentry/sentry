@@ -6,7 +6,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,6 +19,7 @@ import {
   AlwaysPresentTraceMetricFields,
   NONE_UNIT,
 } from 'sentry/views/explore/metrics/constants';
+import {ingestionDelayedRelativePeriod} from 'sentry/views/explore/metrics/ingestionDelay';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricsFrozenSearch,
@@ -36,8 +36,6 @@ import {
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
-
-const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
   fields: string[];
@@ -145,19 +143,10 @@ function useMetricsQueryKey({
     return datetime;
   }, [selection.datetime, frozenTracePeriod]);
 
-  const delayedRelativePeriod = useMemo(() => {
-    const {end, period} = baseDatetime;
-    const periodMs = period ? intervalToMilliseconds(period) : 0;
-
-    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
-      return {
-        statsPeriodStart: period,
-        statsPeriodEnd: `${ingestionDelaySeconds}s`,
-      };
-    }
-
-    return;
-  }, [baseDatetime, ingestionDelaySeconds]);
+  const delayedRelativePeriod = ingestionDelayedRelativePeriod(
+    baseDatetime,
+    ingestionDelaySeconds
+  );
 
   const pageFilters = {
     ...selection,
