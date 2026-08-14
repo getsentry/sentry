@@ -492,6 +492,9 @@ query_datasets_to_type = {
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
+    # Deprecated sessions dataset still arrives from older clients; map it so
+    # validation can return a clean error instead of KeyError -> 500.
+    Dataset.Sessions: SnubaQuery.Type.CRASH_RATE,
     Dataset.EventsAnalyticsPlatform: SnubaQuery.Type.PERFORMANCE,
 }
 
