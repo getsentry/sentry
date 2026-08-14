@@ -195,16 +195,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t("Manage Seer's automated issue analysis across your projects"),
           id: 'seer-autofix-legacy',
           index: true,
-          show: ({hasFreeAutofixAccess, organization}) =>
-            !!organization && !showNewSeer(organization) && !hasFreeAutofixAccess,
+          show: ({organization}) => !!organization && !showNewSeer(organization),
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/projects/`,
           title: t('Autofix'),
           description: t("Manage Seer's automated issue analysis across your projects"),
           id: 'seer-autofix-new',
-          show: ({hasFreeAutofixAccess, organization}) =>
-            !!organization && (showNewSeer(organization) || !!hasFreeAutofixAccess),
+          show: ({organization}) => !!organization && showNewSeer(organization),
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/repos/`,
