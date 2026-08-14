@@ -158,9 +158,22 @@ def trigger_consume_pr_iteration_feedback(
             countdown=countdown,
         )
 
+    # Three outcomes, not two: a source that defers (incomplete check runs) still
+    # schedules a task, so folding it into ``triggered`` left the line reading as
+    # "consuming now" with only ``countdown`` further down to say otherwise.
+    # ``delayed`` names that case outright; ``countdown`` says how long.
+    if decision.task is None:
+        outcome = "not_triggered"
+    elif countdown:
+        outcome = "delayed"
+    else:
+        # ``ConsumeTask.Now`` reports no countdown, and an explicit ``delay=0``
+        # runs just as immediately -- neither waits, so neither is deferred.
+        outcome = "triggered"
+
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        outcome="not_triggered" if decision.task is None else "triggered",
+        outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
         # Null when nothing was scheduled: the id names a task, not a decision.

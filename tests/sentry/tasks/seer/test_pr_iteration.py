@@ -1392,7 +1392,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.trigger"
         extra = self.log.info.call_args.kwargs["extra"]
-        assert extra["outcome"] == "triggered"
+        assert extra["outcome"] == "delayed"
         assert extra["reason"] == "sweep_incomplete"
         assert extra["countdown"] == 30
         assert extra["delay"] == 30
@@ -1400,6 +1400,84 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         assert extra["run_id"] == 67890
         assert extra["sentry_organization_id"] == self.organization.id
         assert extra["feedback_source"] == "user-ui"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_deferred_consume_reads_as_delayed_rather_than_triggered(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # A source that defers still schedules a task, so ``triggered`` would read
+        # as "consuming now" and leave ``countdown`` as the only correction.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "delayed"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 3600
+        mock_apply.assert_called_once()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_immediate_consume_stays_triggered_with_no_countdown(
+        self, mock_apply: MagicMock
+    ) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "sweep_complete"
+        assert extra["countdown"] is None
+        mock_apply.assert_called_once()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_explicit_zero_delay_is_triggered_not_delayed(self, mock_apply: MagicMock) -> None:
+        # ``delay=0`` overrides a deferring source and runs immediately, so the
+        # outcome follows the countdown the task got rather than what was asked for.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                delay=0,
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 0
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_a_run_at_its_cap_says_why_no_task_was_queued(self, mock_apply: MagicMock) -> None:
