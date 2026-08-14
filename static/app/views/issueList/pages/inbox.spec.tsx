@@ -942,6 +942,7 @@ describe('InboxPage', () => {
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
         expect.anything(),

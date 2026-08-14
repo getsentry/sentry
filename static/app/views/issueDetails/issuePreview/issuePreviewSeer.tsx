@@ -34,7 +34,8 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
     hasAutofix: aiConfig.hasAutofix,
     isLoading:
       aiConfig.hasAutofix &&
-      (aiConfig.isAutofixSetupLoading || (state !== 'configure' && autofix.isLoading)),
+      (aiConfig.isAutofixSetupLoading ||
+        (state !== 'configure' && autofix.isLoading && !autofix.isWaitingForRun)),
     shouldShowSeerActions:
       aiConfig.hasAutofix && (state === 'start' || state === 'summary'),
     state,
