@@ -43,11 +43,6 @@ class SearchAgentTranslateSerializer(serializers.Serializer):
         default="Traces",
         help_text="Search strategy to use.",
     )
-    code_mode = serializers.BooleanField(
-        required=False,
-        default=False,
-        help_text="Request code mode execution for the agent.",
-    )
     options = serializers.DictField(
         required=False,
         allow_null=True,
@@ -71,10 +66,6 @@ def send_translate_agentic_request(
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
-    cross_event: bool = False,
-    project_expansion: bool = False,
-    reflection_step: bool = False,
-    code_mode: bool = False,
 ) -> Any:
     """
     Sends a request to seer to translate a natural language query using the agentic search API.
@@ -86,12 +77,7 @@ def send_translate_agentic_request(
         natural_language_query=natural_language_query,
         strategy=strategy,
     )
-    options: dict[str, Any] = {
-        "cross_event": cross_event,
-        "project_expansion": project_expansion,
-        "reflection_step": reflection_step,
-        "code_mode": code_mode,
-    }
+    options: dict[str, Any] = {}
     if model_name is not None:
         options["model_name"] = model_name
     if metric_context is not None:
@@ -128,7 +114,6 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         validated_data = serializer.validated_data
         natural_language_query = validated_data["natural_language_query"]
         strategy = validated_data.get("strategy", "Traces")
-        code_mode_toggle = validated_data["code_mode"]
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
@@ -167,26 +152,5 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             model_name=model_name,
             metric_context=metric_context,
             viewer_context=viewer_context,
-            cross_event=features.has(
-                "organizations:seer-assisted-query-cross-event-explorer",
-                organization,
-                actor=request.user,
-            ),
-            project_expansion=features.has(
-                "organizations:seer-assisted-query-project-expansion",
-                organization,
-                actor=request.user,
-            ),
-            reflection_step=features.has(
-                "organizations:seer-assisted-query-reflection",
-                organization,
-                actor=request.user,
-            ),
-            code_mode=code_mode_toggle
-            and features.has(
-                "organizations:seer-assisted-query-codemode",
-                organization,
-                actor=request.user,
-            ),
         )
         return Response(data)

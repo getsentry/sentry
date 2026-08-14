@@ -254,6 +254,30 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "Implement the fix" in prompt
 
+    def test_solution_prompt_without_should_run_repo_checks_skips_testing(self) -> None:
+        prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
+
+        assert "Do NOT include testing as part of your plan." in prompt
+
+    def test_solution_prompt_with_should_run_repo_checks_plans_verification(self) -> None:
+        prompt = build_step_prompt(AutofixStep.SOLUTION, self.group, should_run_repo_checks=True)
+
+        assert "Do NOT include testing as part of your plan." not in prompt
+        assert "End your plan with a verification step" in prompt
+
+    def test_code_changes_prompt_without_should_run_repo_checks_omits_checks(self) -> None:
+        prompt = build_step_prompt(AutofixStep.CODE_CHANGES, self.group)
+
+        assert "linter" not in prompt
+
+    def test_code_changes_prompt_with_should_run_repo_checks_includes_checks(self) -> None:
+        prompt = build_step_prompt(
+            AutofixStep.CODE_CHANGES, self.group, should_run_repo_checks=True
+        )
+
+        assert "Run the linter/formatter over the files you changed." in prompt
+        assert "Run the tests covering the code you changed" in prompt
+
     def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
         self.group.save()

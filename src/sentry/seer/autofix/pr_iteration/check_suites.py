@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
@@ -39,7 +39,10 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_GITHUB_PROVIDER = "integrations:github"
+# PR iteration is github.com only; GitHub Enterprise is deliberately excluded.
+# See ``PR_ITERATION_PROVIDER``. Every repo lookup below filters on this, so a GHE
+# repo never resolves to an Autofix run here.
+SEER_GITHUB_PROVIDER = PR_ITERATION_PROVIDER
 
 # SeerRun.extras keys for the green check-suite side effects (undraft +
 # review-request). Owned here so bootstrap can short-circuit on DB markers

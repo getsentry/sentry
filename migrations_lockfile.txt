@@ -19,7 +19,7 @@ hybridcloud: 0034_drop_webhookpayload_priority_index
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0002_add_investigation_blocks
+investigations: 0003_remove_investigation_cell_models
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1152_organizationmemberteam_add_new_id
+sentry: 1153_create_group_action_log_outbox
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
@@ -43,4 +43,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0001_squashed_0055_backfill_2xx_status_assertion
 
-workflow_engine: 0116_detector_nullable_project
+workflow_engine: 0117_backfill_all_project_detectors

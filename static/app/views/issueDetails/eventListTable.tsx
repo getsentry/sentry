@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {TableResizer} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
   GridHead,
   GridHeadCell,
-  GridResizer,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons';
@@ -175,7 +175,7 @@ const StyledGridEditable = styled('div')`
   ${GridHead} {
     min-height: unset;
     font-size: ${p => p.theme.font.size.md};
-    ${GridResizer} {
+    ${TableResizer} {
       height: 36px;
     }
   }

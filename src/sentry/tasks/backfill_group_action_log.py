@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Sequence
 from datetime import datetime
 
 from django.utils import timezone
@@ -35,7 +34,7 @@ _ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
 _ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
 GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
 
-_GROUP_ACTION_LOG_ROLLOUT_FEATURE = "organizations:issue-action-log-seer-rollout"
+_GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 
 @instrumented_task(
@@ -372,18 +371,6 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
         generate_project_derived_data.delay(project_id=project.id)
 
 
-def _get_eligible_organization_ids(organizations: Sequence[Organization]) -> set[int]:
-    rollout = features.batch_has_for_organizations(_GROUP_ACTION_LOG_ROLLOUT_FEATURE, organizations)
-    if rollout is None:
-        raise RuntimeError("Unable to evaluate group action log rollout feature")
-
-    return {
-        organization.id
-        for organization in organizations
-        if rollout.get(f"organization:{organization.id}", False)
-    }
-
-
 @instrumented_task(
     name=(
         "sentry.tasks.backfill_group_action_log."
@@ -426,32 +413,56 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    project_ids = list(
+    try:
+        organization = Organization.objects.get(id=organization_id, status=ObjectStatus.ACTIVE)
+    except Organization.DoesNotExist:
+        logger.info(
+            "backfill_group_action_log.organization_enrollment.organization_not_found",
+            extra={"organization_id": organization_id},
+        )
+        return
+
+    projects = list(
         Project.objects.filter(
             organization_id=organization_id,
-            organization__status=ObjectStatus.ACTIVE,
             status=ObjectStatus.ACTIVE,
             id__gt=last_project_id,
-        )
-        .order_by("id")
-        .values_list("id", flat=True)[:batch_size]
+        ).order_by("id")[:batch_size]
     )
-    if not project_ids:
+    if not projects:
         logger.info(
             "backfill_group_action_log.organization_enrollment.completed",
             extra={"organization_id": organization_id, "last_project_id": last_project_id},
         )
         return
 
+    feature_results = features.batch_has(
+        [_GROUP_ACTION_LOG_WRITE_FEATURE],
+        projects=projects,
+        organization=organization,
+    )
+    if feature_results is None:
+        raise RuntimeError("Unable to evaluate group action log write feature")
+
+    eligible_project_ids = [
+        project.id
+        for project in projects
+        if feature_results.get(f"project:{project.id}", {}).get(
+            _GROUP_ACTION_LOG_WRITE_FEATURE, False
+        )
+    ]
+
     # Track missing rows so we only invalidate caches for newly enrolled projects.
     project_ids_with_option = set(
         ProjectOption.objects.filter(
-            project_id__in=project_ids,
+            project_id__in=eligible_project_ids,
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
         ).values_list("project_id", flat=True)
     )
     project_ids_to_enroll = [
-        project_id for project_id in project_ids if project_id not in project_ids_with_option
+        project_id
+        for project_id in eligible_project_ids
+        if project_id not in project_ids_with_option
     ]
     ProjectOption.objects.bulk_create(
         [
@@ -475,17 +486,18 @@ def enroll_organization_projects_for_group_action_log_backfill(
         "backfill_group_action_log.organization_enrollment.batch_completed",
         extra={
             "organization_id": organization_id,
-            "batch_size": len(project_ids),
-            "first_project_id": project_ids[0],
-            "last_project_id": project_ids[-1],
+            "batch_size": len(projects),
+            "eligible_projects": len(eligible_project_ids),
+            "first_project_id": projects[0].id,
+            "last_project_id": projects[-1].id,
         },
     )
 
-    if len(project_ids) == batch_size:
+    if len(projects) == batch_size:
         enroll_organization_projects_for_group_action_log_backfill.apply_async(
             kwargs={
                 "organization_id": organization_id,
-                "last_project_id": project_ids[-1],
+                "last_project_id": projects[-1].id,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
@@ -504,7 +516,7 @@ def enroll_projects_for_group_action_log_backfill(
     last_organization_id: int = 0,
     **kwargs: object,
 ) -> None:
-    """Dispatch project enrollment for active organizations in the rollout."""
+    """Dispatch project enrollment for active organizations."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_ENROLLMENT_TASK_KEY, activation_id):
@@ -545,10 +557,9 @@ def enroll_projects_for_group_action_log_backfill(
         )
         return
 
-    eligible_organization_ids = _get_eligible_organization_ids(organizations)
-    for organization_id in eligible_organization_ids:
+    for organization in organizations:
         enroll_organization_projects_for_group_action_log_backfill.apply_async(
-            kwargs={"organization_id": organization_id},
+            kwargs={"organization_id": organization.id},
             headers={"sentry-propagate-traces": False},
         )
 
@@ -556,7 +567,6 @@ def enroll_projects_for_group_action_log_backfill(
         "backfill_group_action_log.enrollment.batch_completed",
         extra={
             "batch_size": len(organizations),
-            "eligible_organizations": len(eligible_organization_ids),
             "first_organization_id": organizations[0].id,
             "last_organization_id": organizations[-1].id,
         },
