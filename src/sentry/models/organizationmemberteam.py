@@ -20,6 +20,8 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
+MAX_RESERVED_IDS = 100_000
+
 
 def _reserve_ids(model: type[Model], count: int, using: str) -> list[int]:
     """Claim `count` values from the model's primary key sequence ahead of insert.
@@ -27,6 +29,9 @@ def _reserve_ids(model: type[Model], count: int, using: str) -> list[int]:
     Sequences are per-database, so `using` must be where the rows are written —
     drawing from another hands out ids that are already taken.
     """
+    if not 1 <= count <= MAX_RESERVED_IDS:
+        raise ValueError(f"Cannot reserve {count} ids, expected 1 to {MAX_RESERVED_IDS}.")
+
     with connections[using].cursor() as cursor:
         cursor.execute(
             "SELECT nextval(%s) FROM generate_series(1,%s);",

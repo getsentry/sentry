@@ -1,11 +1,16 @@
 from unittest import mock
 
+import pytest
 from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmemberteam import (
+    MAX_RESERVED_IDS,
+    OrganizationMemberTeam,
+    _reserve_ids,
+)
 from sentry.roles import team_roles
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -141,6 +146,25 @@ class OrganizationMemberTeamShadowIdTest(TestCase):
 
     def test_bulk_create_with_no_objects(self) -> None:
         assert list(OrganizationMemberTeam.objects.bulk_create([])) == []
+
+    def test_reserve_ids_rejects_a_count_below_one(self) -> None:
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        with pytest.raises(ValueError):
+            _reserve_ids(OrganizationMemberTeam, 0, using)
+
+        with pytest.raises(ValueError):
+            _reserve_ids(OrganizationMemberTeam, -1, using)
+
+    # The ids have to stay unspent: the sequence never hands a value back.
+    def test_reserve_ids_rejects_a_count_above_the_ceiling(self) -> None:
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            with pytest.raises(ValueError):
+                _reserve_ids(OrganizationMemberTeam, MAX_RESERVED_IDS + 1, using)
+
+        assert [query for query in queries.captured_queries if "nextval" in query["sql"]] == []
 
     # The router is pointed elsewhere so the caller's database is the only thing that
     # can produce a working sequence.
