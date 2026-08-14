@@ -397,11 +397,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)
         );
-        // Telemetry rows need the bus one-for-one:
-        // - no url yet → borrow the next residual destination onto the row title
-        // - already resolved (stamped query) → still consume the twin so "View issues" is not
-        //   repeated under a row that already navigates there
-        // Order is preserved so N searches pair with N bus links without starving siblings.
+        // Telemetry rows need the bus one-for-one. The bus carries the authoritative translated
+        // destination (query, project_slugs, stats_period); the call row carries the useful title.
+        // Always take the bus url when pairing — a stamped row may already resolve from query alone
+        // and miss project filters the bus still has. Consume the twin either way so "View …" is
+        // not repeated under a row that already navigates there. Order is preserved so N searches
+        // pair with N bus links without starving siblings.
         const linkedCallRows = callRows.map(row => {
           if (row.record.name !== 'telemetry_live_search') {
             return row;
@@ -416,7 +417,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           if (!navItem) {
             return row;
           }
-          return row.url ? row : {...row, url: navItem.url, linkKind: navItem.kind};
+          return {...row, url: navItem.url, linkKind: navItem.kind};
         });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);

@@ -1,7 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {
   AgentWriteApproval,
@@ -613,6 +615,68 @@ describe('ToolUseBlock', () => {
     expect(screen.queryByText('View issues')).not.toBeInTheDocument();
     expect(screen.queryByText('View spans')).not.toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('prefers bus project filters over a stamped row url that lacks them', () => {
+    // A stamped query can resolve the row on its own, but the bus twin may still carry
+    // project_slugs the stamp omitted. Pairing must keep the bus destination, not the weaker url.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying spans for top pageloads',
+                params: {
+                  dataset: 'spans',
+                  question: 'top pageloads',
+                  query: 'transaction.op:pageload',
+                  stats_period: '24h',
+                },
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'spans',
+                  query: 'transaction.op:pageload',
+                  project_slugs: ['javascript', 'python'],
+                  stats_period: '24h',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'javascript'}),
+      ProjectFixture({id: '3', slug: 'python'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    const rowLink = screen.getByRole('link', {name: 'Querying spans for top pageloads'});
+    expect(rowLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=transaction.op%3Apageload')
+    );
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=2'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=3'));
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('makes a telemetry call row itself the issues search link when params include the query', () => {
