@@ -28,6 +28,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -394,13 +395,6 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-            create_preprod_status_check_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": artifact_id_int,
-                    "caller": "artifact_update_endpoint",
-                }
-            )
-
         mobile_app_info = head_artifact.get_mobile_app_info()
         build_version = mobile_app_info.build_version if mobile_app_info else None
         build_number = mobile_app_info.build_number if mobile_app_info else None
@@ -468,6 +462,24 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "error_code": error_code,
                     "error_message": error_message,
                 },
+            )
+
+        # Refresh the status check and PR comment only after size eligibility is
+        # resolved, so workers cannot render stale PENDING metrics.
+        should_update_size_status_check = bool(updated_fields) or not can_run_size
+        if should_update_size_status_check:
+            create_preprod_status_check_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
+            )
+
+        should_update_size_pr_comment = not can_run_size
+        if should_update_size_pr_comment:
+            # If size analysis does not run, no completion task will update
+            # the comment, so update it now.
+            create_preprod_size_pr_comment_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
             )
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
