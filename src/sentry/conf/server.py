@@ -1237,7 +1237,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "heal-stale-derived-data": {
         "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
 }
 

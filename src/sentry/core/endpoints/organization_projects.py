@@ -59,7 +59,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
 from sentry.signals import project_created, team_created
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -89,7 +89,7 @@ DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
+    "metrics": metrics_enhanced_performance,
 }
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."

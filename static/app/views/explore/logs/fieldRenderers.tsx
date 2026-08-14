@@ -17,7 +17,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -78,7 +78,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   >;
   attributes: Record<string, string | number | boolean>;
   caseSensitiveHighlighting: boolean;
-  datetime: PageFilters['datetime'];
+  datetime: PageFilterDatetime;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
