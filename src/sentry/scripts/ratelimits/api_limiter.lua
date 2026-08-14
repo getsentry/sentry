@@ -44,20 +44,18 @@ local current_executions = redis.call("zcard", key)
 local allowed = current_executions < concurrent_limit
 local cleaned_up_requests = current_executions_pre_cleanup - current_executions
 
+-- Handles the case where an unfinished request (timeout, etc) results in a member
+-- being leaked and not cleaned up. The TTL keeps leakage scoped to 1 day.
+local key_ttl_seconds = 86400
+
 if allowed then
   -- if below the limit, add to the set
   redis.call("zadd", key, cur_time, request_uid)
+  redis.call("expire", key, key_ttl_seconds)
   -- a lua script executes atomically and only one element was added to the set
   -- hence we can safely say that the amount of current executions is one higher
   -- than it was before
   current_executions = current_executions + 1
-end
-
--- Handles the case where an unfinished request (timeout, etc) results in a member
--- being leaked and not cleaned up. The TTL keeps leakage scoped to 1 day.
-local key_ttl_seconds = 86400
-if current_executions > 0 then
-  redis.call("expire", key, key_ttl_seconds)
 end
 
 -- NOTE: the cleaned up execution number should be removed once we know the rate limiter

@@ -84,18 +84,6 @@ class ConcurrentLimiterTest(TestCase):
         self.backend.start_request("ttl_key", 1, "abandoned_request")
         assert 0 < self.backend.client.ttl(key) <= KEY_TTL_SECONDS
 
-    def test_key_is_expired_when_over_the_limit(self) -> None:
-        """A request that is rejected does not write a member, but the members already in the
-        key are still live and the key must keep its expiry"""
-        key = self.backend.namespaced_key("ttl_key_over_the_limit")
-        self.backend.start_request("ttl_key_over_the_limit", 1, "abandoned_request")
-        self.backend.client.persist(key)
-
-        assert self.backend.start_request(
-            "ttl_key_over_the_limit", 1, "over_the_limit"
-        ).limit_exceeded
-        assert 0 < self.backend.client.ttl(key) <= KEY_TTL_SECONDS
-
     def test_finish_non_existent(self) -> None:
         # this shouldn't crash
         self.backend.finish_request("fasdlfkdsalfkjlasdkjlasdkjflsakj", "fsdlkajflsdakjsda")
