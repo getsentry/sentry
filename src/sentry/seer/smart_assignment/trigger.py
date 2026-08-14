@@ -189,7 +189,6 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
             title=title,
             flush=False,
             extras=extras,
-            referrer=activity_type.name,
         )
     except SeerApiError:
         logger.exception("smart_assignment.trigger.dispatch_failed", extra={"group_id": group.id})
