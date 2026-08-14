@@ -11,97 +11,15 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
         self.features: dict[str, bool] = {}
         self.login_as(user=self.user)
-        # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
-        self.bad_project = self.create_project()
+        # Extra project so the org has more than one project id to report.
+        self.other_project = self.create_project()
 
-    def test_unparameterized_transactions(self) -> None:
-        # Make current project incompatible
-        self.store_transaction_metric(
-            1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
-        )
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        self.assertCountEqual(
-            response.json()["incompatible_projects"], [self.project.id, self.bad_project.id]
-        )
-        assert response.json()["compatible_projects"] == []
-
-    def test_null_transaction(self) -> None:
-        # Make current project incompatible
-        self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        self.assertCountEqual(
-            response.json()["incompatible_projects"], [self.project.id, self.bad_project.id]
-        )
-        assert response.json()["compatible_projects"] == []
-
-    def test_no_transaction(self) -> None:
-        # Make current project incompatible by having nothing
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        self.assertCountEqual(
-            response.json()["incompatible_projects"], [self.project.id, self.bad_project.id]
-        )
-        assert response.json()["compatible_projects"] == []
-
-    def test_has_transaction(self) -> None:
+    def test_always_reports_projects_as_incompatible(self) -> None:
+        # Stored metrics should not matter; generic metrics queries are disabled.
         self.store_transaction_metric(
             1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
-        )
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.json()["incompatible_projects"] == [self.bad_project.id]
-        assert response.json()["compatible_projects"] == [self.project.id]
-
-    def test_multiple_projects(self) -> None:
-        project2 = self.create_project()
-        project3 = self.create_project()
-        project4 = self.create_project()
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
-        )
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago, project=project4.id
-        )
-        self.store_transaction_metric(
-            1,
-            tags={"transaction": "<< unparameterized >>"},
-            timestamp=self.min_ago,
-            project=project2.id,
-        )
-        self.store_transaction_metric(
-            1,
-            tags={},
-            timestamp=self.min_ago,
-            project=project3.id,
-        )
-        self.store_event(
-            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
-            project_id=self.project.id,
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
@@ -112,55 +30,42 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         assert response.status_code == 200, response.content
         self.assertCountEqual(
             response.json()["incompatible_projects"],
-            [project2.id, project3.id, self.bad_project.id],
+            [self.project.id, self.other_project.id],
         )
-        self.assertCountEqual(
-            response.json()["compatible_projects"], [self.project.id, project4.id]
+        assert response.json()["compatible_projects"] == []
+
+    def test_no_projects(self) -> None:
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org, role="member")
+        url = reverse(
+            "sentry-api-0-organization-metrics-compatibility",
+            kwargs={"organization_id_or_slug": org.slug},
         )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.json()["incompatible_projects"] == []
+        assert response.json()["compatible_projects"] == []
 
 
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
         self.features: dict[str, bool] = {}
         self.login_as(user=self.user)
-        # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
         self.create_project()
 
-    def test_unparameterized_transactions(self) -> None:
-        # Make current project incompatible
+    def test_always_reports_empty_metrics_sums(self) -> None:
+        # Stored metrics should not matter; generic metrics queries are disabled.
+        self.store_transaction_metric(
+            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
+        )
         self.store_transaction_metric(
             1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
         )
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.json()["sum"]["metrics"] == 1
-        assert response.json()["sum"]["metrics_unparam"] == 1
-        assert response.json()["sum"]["metrics_null"] == 0
-
-    def test_null_transaction(self) -> None:
-        # Make current project incompatible
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
 
-        assert response.status_code == 200, response.content
-        assert response.json()["sum"]["metrics"] == 1
-        assert response.json()["sum"]["metrics_unparam"] == 0
-        assert response.json()["sum"]["metrics_null"] == 1
-
-    def test_no_transaction(self) -> None:
-        # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
@@ -171,80 +76,3 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         assert response.json()["sum"]["metrics"] == 0
         assert response.json()["sum"]["metrics_unparam"] == 0
         assert response.json()["sum"]["metrics_null"] == 0
-
-    def test_has_transaction(self) -> None:
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
-        )
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.json()["sum"]["metrics"] == 1
-        assert response.json()["sum"]["metrics_unparam"] == 0
-        assert response.json()["sum"]["metrics_null"] == 0
-
-    def test_multiple_projects(self) -> None:
-        project2 = self.create_project()
-        project3 = self.create_project()
-        # Not setting DS, it shouldn't show up
-        project4 = self.create_project()
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago
-        )
-        self.store_transaction_metric(
-            1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago, project=project4.id
-        )
-        self.store_transaction_metric(
-            1,
-            tags={"transaction": "<< unparameterized >>"},
-            timestamp=self.min_ago,
-            project=project2.id,
-        )
-        self.store_transaction_metric(
-            1,
-            tags={},
-            timestamp=self.min_ago,
-            project=project3.id,
-        )
-        self.store_event(
-            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
-            project_id=self.project.id,
-        )
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.json()["sum"]["metrics"] == 4
-        assert response.json()["sum"]["metrics_unparam"] == 1
-        assert response.json()["sum"]["metrics_null"] == 1
-
-    def test_counts_add_up_correctly(self) -> None:
-        # Make current project incompatible
-        for _ in range(2):
-            self.store_transaction_metric(
-                1, tags={"transaction": "<< unparameterized >>"}, timestamp=self.min_ago
-            )
-
-        for _ in range(3):
-            self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
-
-        for _ in range(1):
-            self.store_transaction_metric(1, tags={"transaction": "/foo"}, timestamp=self.min_ago)
-
-        url = reverse(
-            "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_id_or_slug": self.project.organization.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-        assert response.json()["sum"]["metrics"] == 6
-        assert response.json()["sum"]["metrics_unparam"] == 2
-        assert response.json()["sum"]["metrics_null"] == 3
