@@ -103,6 +103,10 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     def text(self) -> str:
         return self.comment_feedback
 
+    @property
+    def external_id(self) -> int | None:
+        return self.comment.id
+
     def should_consume(self, run_state: SeerRunState) -> Decision:
         comment_id = self.comment.id
         if comment_id is None:
@@ -237,6 +241,11 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     @property
     def is_automated(self) -> bool:
         return self.author_is_bot
+
+    @property
+    def external_id(self) -> int | None:
+        # The review, not a comment: a body has no id of its own.
+        return self.review_id
 
     def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:

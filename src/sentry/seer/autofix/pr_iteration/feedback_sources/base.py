@@ -87,6 +87,17 @@ class FeedbackSourceBase(BaseModel):
         """
         return False
 
+    @property
+    def external_id(self) -> int | None:
+        """The provider's id for this one item, or ``None`` where it issues none.
+
+        The same id the dedupe gates key on, so an item named in a log can be
+        found on the provider it came from. Callers do not read this directly:
+        it is composed into :attr:`Feedback.feedback_id`, which qualifies it with
+        the source type.
+        """
+        return None
+
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """The inputs this source's gates read, for the caller logging a decision.
 

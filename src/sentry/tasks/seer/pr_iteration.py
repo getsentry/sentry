@@ -5,6 +5,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
+from uuid import uuid4
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -35,6 +36,7 @@ from scm.types import (
     ReviewThread,
 )
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import options
 from sentry.cache import default_cache
@@ -137,15 +139,21 @@ def trigger_consume_pr_iteration_feedback(
         decision = feedback.source.should_trigger(run_state)
 
     countdown = None
+    # Minted here rather than taken from the scheduled task: `apply_async` returns
+    # `None`, so the activation id it generates never comes back to the producer.
+    # Passing our own id down is the only direction the link can travel.
+    trigger_id = None
 
     if decision.task is not None:
         # ``delay`` overrides whatever the source asked for, so the line below
         # reports the countdown the task got, not the one it requested.
         countdown = delay if delay is not None else decision.task.countdown()
+        trigger_id = uuid4().hex
         consume_queued_autofix_feedback.apply_async(
             kwargs={
                 "run_id": run_id,
                 "organization_id": organization_id,
+                "trigger_id": trigger_id,
             },
             countdown=countdown,
         )
@@ -155,11 +163,19 @@ def trigger_consume_pr_iteration_feedback(
         outcome="not_triggered" if decision.task is None else "triggered",
         reason=decision.reason,
         countdown=countdown,
+        # Null when nothing was scheduled: the id names a task, not a decision.
+        trigger_id=trigger_id,
         bypass=bypass,
         delay=delay,
         feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
         **feedback.source.log_fields(run_state),
     )
+
+
+def _dropped_feedback(feedback: Feedback, reason: str) -> dict[str, Any]:
+    """Name one dropped item, and why. ``feedback_id`` already carries its type."""
+    return {"id": feedback.feedback_id, "reason": reason}
 
 
 @instrumented_task(
@@ -169,10 +185,16 @@ def trigger_consume_pr_iteration_feedback(
     retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
 )
 def consume_queued_autofix_feedback(
-    run_id: int, organization_id: int, *args: Any, **kwargs: Any
+    run_id: int,
+    organization_id: int,
+    trigger_id: str | None = None,
+    *args: Any,
+    **kwargs: Any,
 ) -> None:
     # Accept unused *args/**kwargs so in-flight activations queued with retired
     # kwargs (e.g. group_id) still deserialize after the signature change.
+    # ``trigger_id`` is likewise optional: activations queued before it existed
+    # arrive without one.
     lock = locks.get(
         f"autofix:feedback:lock:{run_id}",
         duration=60,
@@ -198,98 +220,199 @@ def consume_queued_autofix_feedback(
             )
             return
 
+        # The run state is the first thing here that can anchor a line to the
+        # rest of the iteration, so the shared identity starts at this point. The
+        # two lookups above keep the plain logger: neither has anything to anchor
+        # to beyond the two ids the task was called with, which the task record
+        # already carries.
         group_id = state.metadata.get("group_id") if state.metadata else None
-        group = (
-            Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
-            if group_id
-            else None
+        log_ctx = PrIterationLogContext(
+            logger,
+            run_state=state,
+            organization_id=organization_id,
+            group_id=group_id,
         )
-        if group is None:
-            logger.warning(
-                "autofix.pr_iteration.consume_feedback.group_not_found",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
-
-        if state.status == "processing":
-            return
-
-        queued_items = pop_queued_autofix_feedback(run_id)
-        if not queued_items:
-            return
-
-        consumable_items: list[QueuedAutofixFeedback] = []
-        feedback_items = []
-        # Keyed by (source class, id): issue-comment, review-comment, and review
-        # (body) ids come from separate GitHub namespaces, so dedupe within each
-        # concrete source type.
-        seen_comment_keys: set[tuple[type, int]] = set()
-        # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
-        # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
-        seen_check_suite_keys: set[tuple[int, str] | int] = set()
-        for item in queued_items:
-            if not item.feedback.source.should_consume(state).ok:
-                logger.info(
-                    "autofix.pr_iteration.consume_feedback.stale_feedback",
-                    extra={
-                        "organization_id": organization_id,
-                        "group_id": group_id,
-                        "run_id": run_id,
-                    },
-                )
-
-                continue
-
-            source = item.feedback.source
-            comment_dedupe_id: int | None = None
-            if isinstance(
-                source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
-            ):
-                comment_dedupe_id = source.comment.id
-            elif isinstance(source, GithubPrReviewBodyFeedbackSource):
-                comment_dedupe_id = source.review_id
-
-            if comment_dedupe_id is not None:
-                key = (type(source), comment_dedupe_id)
-                if key in seen_comment_keys:
-                    continue
-                seen_comment_keys.add(key)
-            elif isinstance(source, CheckSuiteFeedbackSource):
-                suite_key = source.check_suite_attempt_key()
-                if suite_key in seen_check_suite_keys:
-                    continue
-                seen_check_suite_keys.add(suite_key)
-
-            consumable_items.append(item)
-            feedback_items.append(item.feedback)
-
-        if not feedback_items:
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.no_consumable_feedback",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
+        task_state = current_task()
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.started",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            # This task's own activation, to cross over into taskbroker's records
+            # from here. ``None`` outside a worker.
+            activation_id=task_state.id if task_state else None,
+        )
 
         try:
-            trigger_autofix_agent(
-                group=group,
-                step=AutofixStep.PR_ITERATION,
-                referrer=_get_feedback_referrer(consumable_items),
+            _drain_queued_autofix_feedback(
+                log_ctx=log_ctx,
                 run_id=run_id,
-                user_context="\n\n".join(item.text for item in feedback_items),
-                feedback=feedback_items,
-                actor_user_id=_get_feedback_actor_user_id(consumable_items),
-                commit_author=commit_author_for_feedback(feedback_items, organization_id),
+                organization_id=organization_id,
+                group_id=group_id,
+                state=state,
+                trigger_id=trigger_id,
             )
-        except (
-            PrIterationNoPullRequestException,
-            PrIterationNotEnabledException,
-            SeerPermissionError,
-        ) as error:
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.skipped",
-                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
+        except Exception as e:
+            # Re-raised, unlike the check-suite listener. There the exception
+            # would have reached `exec_listener` and been counted against the SCM
+            # stream, so it was reported here and dropped instead. A task failure
+            # is already attributed to this task and reported once by the worker,
+            # so this line only adds the run identity that report lacks --
+            # capturing it again here would report the same failure twice.
+            log_ctx.error(
+                "autofix.pr_iteration.consume_feedback.failed",
+                error_type=type(e).__name__,
             )
+            raise
+
+
+def _drain_queued_autofix_feedback(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    group_id: int | None,
+    state: SeerRunState,
+    # Names the trigger that *scheduled* this drain, not the one whose feedback it
+    # drained: the queue is per run, so the first task to arrive takes everything
+    # on it and any later one finds it empty. ``feedback_ids`` on the line below
+    # is what was actually handed over.
+    trigger_id: str | None,
+) -> None:
+    """Pop this run's queued feedback and hand whatever survives to the agent.
+
+    Exits by way of one ``consume_feedback.drain`` line whichever way it goes,
+    with the ``outcome`` / ``reason`` pair the queue and trigger lines use. Items
+    that did not make it ride along on it in ``dropped`` rather than getting a
+    line each, so one drain stays one search result however much was queued.
+    """
+    group = (
+        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        if group_id
+        else None
+    )
+    if group is None:
+        log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
+        return
+
+    if state.status == "processing":
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="run_processing",
+            run_status=state.status,
+            trigger_id=trigger_id,
+        )
+        return
+
+    queued_items = pop_queued_autofix_feedback(run_id)
+    if not queued_items:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="empty_queue",
+            run_status=state.status,
+            trigger_id=trigger_id,
+        )
+        return
+
+    consumable_items: list[QueuedAutofixFeedback] = []
+    feedback_items = []
+    dropped: list[dict[str, Any]] = []
+    # Keyed by (source class, id): issue-comment, review-comment, and review
+    # (body) ids come from separate GitHub namespaces, so dedupe within each
+    # concrete source type.
+    seen_comment_keys: set[tuple[type, int]] = set()
+    # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
+    # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
+    seen_check_suite_keys: set[tuple[int, str] | int] = set()
+    for item in queued_items:
+        source = item.feedback.source
+        consume = source.should_consume(state)
+        if not consume.ok:
+            dropped.append(_dropped_feedback(item.feedback, consume.reason))
+            continue
+
+        comment_dedupe_id: int | None = None
+        if isinstance(source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)):
+            comment_dedupe_id = source.comment.id
+        elif isinstance(source, GithubPrReviewBodyFeedbackSource):
+            comment_dedupe_id = source.review_id
+
+        if comment_dedupe_id is not None:
+            key = (type(source), comment_dedupe_id)
+            if key in seen_comment_keys:
+                dropped.append(_dropped_feedback(item.feedback, "duplicate_comment"))
+                continue
+            seen_comment_keys.add(key)
+        elif isinstance(source, CheckSuiteFeedbackSource):
+            suite_key = source.check_suite_attempt_key()
+            if suite_key in seen_check_suite_keys:
+                dropped.append(_dropped_feedback(item.feedback, "duplicate_check_suite"))
+                continue
+            seen_check_suite_keys.add(suite_key)
+
+        consumable_items.append(item)
+        feedback_items.append(item.feedback)
+
+    if not feedback_items:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="no_consumable_feedback",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            queued_count=len(queued_items),
+            dropped=dropped,
+        )
+        return
+
+    referrer = _get_feedback_referrer(consumable_items)
+    actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    log_ctx.info(
+        "autofix.pr_iteration.consume_feedback.drain",
+        outcome="drained",
+        reason="ok",
+        run_status=state.status,
+        trigger_id=trigger_id,
+        queued_count=len(queued_items),
+        consumable_count=len(feedback_items),
+        dropped=dropped,
+        feedback_ids=[item.feedback.feedback_id for item in consumable_items],
+        referrer=referrer.value,
+        actor_user_id=actor_user_id,
+    )
+
+    # The drain line above is the opening half of the bracket: nothing between it
+    # and this call can fail, so a drain with no line below it means the call
+    # never came back.
+    try:
+        trigger_autofix_agent(
+            group=group,
+            step=AutofixStep.PR_ITERATION,
+            referrer=referrer,
+            run_id=run_id,
+            user_context="\n\n".join(item.text for item in feedback_items),
+            feedback=feedback_items,
+            actor_user_id=actor_user_id,
+            commit_author=commit_author_for_feedback(feedback_items, organization_id),
+        )
+    except (
+        PrIterationNoPullRequestException,
+        PrIterationNotEnabledException,
+        SeerPermissionError,
+    ) as error:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.trigger_agent",
+            outcome="skipped",
+            reason=type(error).__name__,
+            error=str(error),
+        )
+        return
+
+    log_ctx.info(
+        "autofix.pr_iteration.consume_feedback.trigger_agent",
+        outcome="started",
+    )
 
 
 def _github_commenter_has_repo_write_access(

@@ -66,6 +66,7 @@ def try_enqueue_autofix_feedback(
         outcome="queued" if decision.ok else "not_queued",
         reason=decision.reason,
         feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
         referrer=referrer.value,
         actor_user_id=actor_user_id,
         **feedback.source.log_fields(run_state),

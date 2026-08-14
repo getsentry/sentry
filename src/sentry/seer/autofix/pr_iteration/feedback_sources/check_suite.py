@@ -130,6 +130,13 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return True
 
+    @property
+    def external_id(self) -> int | None:
+        # The suite, not the attempt: `check_suite_attempt_key` pairs this with
+        # `updated_at` to tell re-runs apart, which a reader can get from the
+        # `check_suite_updated_at` field alongside it.
+        return self.event.check_suite.id
+
     def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
         return check_suite_head_match(self.event, run_state)
 
