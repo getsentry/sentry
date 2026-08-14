@@ -14,6 +14,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
     REVIEW_REQUESTS_EXTRA,
     confirm_green_check_suite,
+    resolve_check_suite_flag_gate,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -35,6 +36,17 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return None
 
     conclusion = check_suite_event.check_suite["conclusion"]
+
+    if conclusion not in GREEN_CONCLUSIONS and conclusion not in FAILURE_CONCLUSIONS:
+        return None
+
+    # Every check suite of every GitHub installation lands here, and both branches
+    # below go on to query repositories and call Seer per pull request. None of
+    # that is worth paying for when no organization behind the installation runs
+    # PR iteration at all, so those suites are dropped on one integration lookup.
+    if not resolve_check_suite_flag_gate(check_suite_event).flagged_organization_ids:
+        return None
+
     if conclusion in GREEN_CONCLUSIONS:
         # Cheap resolve → read markers once → skip SCM if both done → confirm
         # green → run only the missing side effects. Undraft before
@@ -58,9 +70,6 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
             mark_ready_for_review(ctx)
         if review_request_marker is None:
             request_review_from_context(ctx)
-        return None
-
-    if conclusion not in FAILURE_CONCLUSIONS:
         return None
 
     try:

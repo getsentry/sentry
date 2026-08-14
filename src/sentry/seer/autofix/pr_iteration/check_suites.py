@@ -31,7 +31,11 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    PR_ITERATION_FLAGS,
+    PR_ITERATION_PROVIDER,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
@@ -136,6 +140,75 @@ def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
     return (
         f"{event.repository.html_url}/commit/{event.check_suite.head_sha}/checks"
         f"?check_suite_id={event.check_suite.id}"
+    )
+
+
+@dataclass(frozen=True)
+class CheckSuiteFlagGate:
+    """Which organizations behind a check suite's installation run PR iteration."""
+
+    organization_ids: list[int]
+    """Every organization sharing the installation the suite was delivered for."""
+
+    flagged_organization_ids: list[int]
+    """The subset running some part of PR iteration. Empty means: drop the event."""
+
+
+def resolve_check_suite_flag_gate(check_suite_event: CheckSuiteEvent) -> CheckSuiteFlagGate:
+    """Resolve a check suite's organizations and ask whether any of them runs PR iteration.
+
+    A GitHub App installation can be linked to several Sentry organizations, and
+    the SCM stream delivers every check suite of every installation. Most belong
+    to organizations that run no part of PR iteration, and resolving those costs a
+    repository query and a round trip to Seer per pull request. This answers the
+    cheaper question first: is *anyone* behind this installation interested?
+
+    Deliberately stops at organizations. It reads the installation id straight off
+    ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
+    ``integrations/github/webhook.py``), so it does not even parse the event body,
+    and it leaves the ``Repository`` query to whichever branch of the listener
+    survives. Those branches then resolve from scratch: the repeated integration
+    lookup costs less than threading a half-resolved state through both of them.
+    """
+    organization_ids: list[int] = []
+    flagged_organization_ids: list[int] = []
+
+    with metrics.timer("autofix.pr_iteration.check_suite.flag_gate") as tags:
+        extra = check_suite_event.subscription_event.get("extra") or {}
+        installation_id = extra.get("installation_id")
+
+        if installation_id is None:
+            tags["outcome"] = "missing_installation_id"
+        else:
+            contexts = integration_service.organization_contexts(
+                provider=IntegrationProviderSlug.GITHUB.value,
+                external_id=str(installation_id),
+            )
+            organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
+
+            for organization_id in organization_ids:
+                try:
+                    organization = Organization.objects.get_from_cache(id=organization_id)
+                except Organization.DoesNotExist:
+                    continue
+
+                if any(features.has(flag, organization) for flag in PR_ITERATION_FLAGS):
+                    flagged_organization_ids.append(organization_id)
+
+            tags["outcome"] = "flagged" if flagged_organization_ids else "unflagged"
+
+    # Emitted on every path, so an installation that resolves to nothing is
+    # visible as a zero rather than as a gap.
+    metrics.distribution(
+        "autofix.pr_iteration.check_suite.flag_gate.organizations", len(organization_ids)
+    )
+    metrics.distribution(
+        "autofix.pr_iteration.check_suite.flag_gate.flagged_organizations",
+        len(flagged_organization_ids),
+    )
+    return CheckSuiteFlagGate(
+        organization_ids=organization_ids,
+        flagged_organization_ids=flagged_organization_ids,
     )
 
 

@@ -2,10 +2,26 @@
 
 from sentry.integrations.types import IntegrationProviderSlug
 
+# Automated CI iteration: a check suite fails, Seer is asked to fix it.
+ITERATION_FLAG = "organizations:autofix-pr-iteration"
+
+# Human-triggered iteration: the drawer feedback form, ``@sentry`` PR comments,
+# and PR reviews.
+MANUAL_FLAG = "organizations:autofix-pr-iteration-manual"
+
 # Draft-on-create, CI-green undraft, and review-request. Undraft requires
 # ``MarkPullRequestDraftStateProtocol`` which is GitHub-only today; other SCM
 # providers skip as unsupported until they grow that capability.
 REVIEW_REQUEST_FLAG = "organizations:autofix-pr-iteration-review-request"
+
+# An organization with any one of these runs some part of PR iteration, so an SCM
+# event reaching one of its repos is worth resolving. Used to drop events for
+# installations no such organization is behind, before the expensive work starts.
+#
+# ``organizations:autofix-pr-iteration-cap-assign`` is deliberately absent: it
+# only changes what happens once an iteration has already run, so it can never be
+# the sole reason to keep an event.
+PR_ITERATION_FLAGS = (ITERATION_FLAG, MANUAL_FLAG, REVIEW_REQUEST_FLAG)
 
 # The only SCM provider PR iteration supports.
 #
