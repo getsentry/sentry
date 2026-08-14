@@ -1345,7 +1345,7 @@ GITHUB_RATE_LIMIT_RESOURCE_PATH = "/rate_limit"
 # against one pool tells us nothing about another, and their limits differ by more than two
 # orders of magnitude (`search` is 30/minute, `core` is at least 5000/hour), so they must be
 # tracked separately.
-# https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+# https://docs.github.com/en/rest/rate-limit/rate-limit?apiVersion=2026-03-10#about-rate-limits
 GITHUB_RESOURCE_CORE = "core"
 GITHUB_RESOURCE_SEARCH = "search"
 GITHUB_RESOURCE_CODE_SEARCH = "code_search"
