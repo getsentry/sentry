@@ -1,5 +1,7 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   renderGlobalModal,
@@ -11,7 +13,11 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
-import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import type {
+  InvestigationDetail,
+  InvestigationListItem,
+} from 'sentry/views/investigations/types';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const organization = OrganizationFixture({
@@ -24,7 +30,11 @@ function renderView({
   renderOrganization = organization,
   query = {},
 }: {query?: Record<string, string>; renderOrganization?: Organization} = {}) {
-  return render(<InvestigationsView />, {
+  const queryClient = makeTestQueryClient();
+  const result = render(<InvestigationsView />, {
+    additionalWrapper: ({children}) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
@@ -33,6 +43,8 @@ function renderView({
       },
     },
   });
+
+  return {...result, queryClient};
 }
 
 function InvestigationFixture(
@@ -101,7 +113,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/1/');
+    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/1/');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -169,6 +181,33 @@ describe('Explore Investigations', () => {
     expect(router.location.query).toEqual({cursor: '0:10:0'});
   });
 
+  it('prefetches the investigation when opening it', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      body: {
+        ...InvestigationFixture(),
+        blocks: [],
+        filters: {},
+        parameters: [],
+        projectIds: [],
+        source: {type: 'manual', ref: {}, revision: null},
+        template: null,
+        titleGeneration: {status: null},
+      },
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByRole('link', {name: 'Database latency investigation'})
+    );
+
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
+  });
+
   it('creates an untitled investigation and refreshes the list', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
@@ -180,7 +219,13 @@ describe('Explore Investigations', () => {
       body: InvestigationFixture({title: 'Untitled investigation'}),
     });
 
-    const {router} = renderView();
+    const {queryClient, router} = renderView();
+    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedDetail = InvestigationFixture({id: 'existing'});
+    queryClient.setQueryData(unrelatedOptions.queryKey, {
+      headers: {},
+      json: unrelatedDetail,
+    });
     await screen.findByText('Sorry, no investigations match your filters.');
     MockApiClient.addMockResponse({
       url: listUrl,
@@ -197,6 +242,9 @@ describe('Explore Investigations', () => {
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/explore/investigations/'
+    );
+    expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
+      unrelatedDetail
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Investigation created.');
   });
@@ -249,6 +297,32 @@ describe('Explore Investigations', () => {
     ).toBeInTheDocument();
   });
 
+  it('updates a cached investigation after favoriting it', async () => {
+    const investigation = InvestigationFixture();
+    MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/favorite/',
+      method: 'PUT',
+    });
+
+    const {queryClient} = renderView();
+    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    queryClient.setQueryData(detailOptions.queryKey, {
+      headers: {Link: 'preserved'},
+      json: investigation satisfies InvestigationDetail,
+    });
+    await userEvent.click(
+      await screen.findByLabelText('Favorite Database latency investigation')
+    );
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData(detailOptions.queryKey)).toEqual({
+        headers: {Link: 'preserved'},
+        json: {...investigation, isFavorited: true},
+      })
+    );
+  });
+
   it('duplicates from the overflow menu', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
@@ -260,7 +334,13 @@ describe('Explore Investigations', () => {
       body: InvestigationFixture({id: '2'}),
     });
 
-    renderView();
+    const {queryClient} = renderView();
+    const unrelatedOptions = investigationDetailQueryOptions('org-slug', 'existing');
+    const unrelatedDetail = InvestigationFixture({id: 'existing'});
+    queryClient.setQueryData(unrelatedOptions.queryKey, {
+      headers: {},
+      json: unrelatedDetail,
+    });
     await screen.findByText('Database latency investigation');
     MockApiClient.addMockResponse({
       url: listUrl,
@@ -278,6 +358,9 @@ describe('Explore Investigations', () => {
     expect(
       await screen.findByText('Database latency investigation copy')
     ).toBeInTheDocument();
+    expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
+      unrelatedDetail
+    );
   });
 
   it('copies the investigation link from the overflow menu', async () => {
@@ -299,7 +382,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/1/`
+        `${window.location.origin}/organizations/org-slug/seer/investigation/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
@@ -336,6 +419,32 @@ describe('Explore Investigations', () => {
     );
     await waitFor(() =>
       expect(screen.queryByText('Database latency investigation')).not.toBeInTheDocument()
+    );
+  });
+
+  it('removes the deleted investigation from the detail cache', async () => {
+    const investigation = InvestigationFixture();
+    MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      method: 'DELETE',
+    });
+
+    const {queryClient} = renderView();
+    const detailOptions = investigationDetailQueryOptions('org-slug', '1');
+    queryClient.setQueryData(detailOptions.queryKey, {
+      headers: {},
+      json: investigation satisfies InvestigationDetail,
+    });
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData(detailOptions.queryKey)).toBeUndefined()
     );
   });
 
