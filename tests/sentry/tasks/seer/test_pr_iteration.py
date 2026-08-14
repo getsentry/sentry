@@ -22,6 +22,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
@@ -945,6 +946,15 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.log = MagicMock()
+
+    def _log_ctx(self) -> PrIterationLogContext:
+        return PrIterationLogContext(
+            self.log, run_state=self._state(), organization_id=self.organization.id
+        )
+
     def _feedback(self) -> Feedback:
         return Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
 
@@ -959,6 +969,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_triggers_when_should_trigger_true(self, mock_apply: MagicMock) -> None:
         trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
             run_id=67890,
             organization_id=self.organization.id,
             feedback=self._feedback(),
@@ -979,6 +990,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
         ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
@@ -998,6 +1010,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             ),
         ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
@@ -1018,6 +1031,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
         ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
@@ -1030,6 +1044,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_passes_delay_as_countdown(self, mock_apply: MagicMock) -> None:
         trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
             run_id=67890,
             organization_id=self.organization.id,
             feedback=self._feedback(),
@@ -1039,6 +1054,86 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         _, kwargs = mock_apply.call_args
         assert kwargs["countdown"] == 30
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_logs_the_trigger_with_the_countdown_the_task_actually_got(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # ``delay`` overrides what the source asked for, so the line has to report
+        # the scheduled countdown rather than the requested one.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                delay=30,
+            )
+
+        assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.trigger"
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 30
+        assert extra["delay"] == 30
+        assert extra["bypass"] is False
+        assert extra["run_id"] == 67890
+        assert extra["sentry_organization_id"] == self.organization.id
+        assert extra["feedback_source"] == "user-ui"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_at_its_cap_says_why_no_task_was_queued(self, mock_apply: MagicMock) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "not_triggered"
+        assert extra["reason"] == "hard_cap_reached"
+        assert extra["countdown"] is None
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_bypass_is_recorded_as_the_reason_rather_than_the_gate_it_skipped(
+        self, mock_apply: MagicMock
+    ) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                bypass=True,
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "bypass"
+        assert extra["bypass"] is True
 
 
 class _ReactionScmProtocols:

@@ -63,6 +63,7 @@ from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -401,6 +402,12 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
                 )
 
                 try_enqueue_autofix_feedback(
+                    log_ctx=PrIterationLogContext(
+                        logger,
+                        run_state=run_state,
+                        organization_id=group.organization.id,
+                        group_id=group.id,
+                    ),
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
                     group_id=group.id,

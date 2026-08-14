@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -86,6 +86,19 @@ class FeedbackSourceBase(BaseModel):
         Defaults to human — subclasses opt in.
         """
         return False
+
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """The inputs this source's gates read, for the caller logging a decision.
+
+        Takes ``run_state`` because a gate is a *comparison*: recording only the
+        incoming half leaves a reader unable to re-derive the verdict, so a source
+        that checks itself against the run returns both operands.
+
+        The feedback payload itself is deliberately absent. Sources wrapping a
+        webhook keep the whole raw body (``Config.extra = "allow"``), which is tens
+        of kilobytes and no more identifying than the ids already here.
+        """
+        return {}
 
     # A source that overrides none of these has nothing to check: its feedback is
     # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,

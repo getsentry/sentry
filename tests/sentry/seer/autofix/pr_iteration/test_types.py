@@ -546,6 +546,66 @@ class ConsumeTaskTest(TestCase):
         assert task.countdown() == 0
 
 
+class CheckSuiteLogFieldsTest(TestCase):
+    def _event(self, *, head_sha="abc", repo_name="owner/repo", conclusion="failure") -> dict:
+        return {
+            "check_suite": {
+                "id": 1,
+                "head_sha": head_sha,
+                "conclusion": conclusion,
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            "repository": {
+                "full_name": repo_name,
+                "html_url": "https://github.com/owner/repo",
+            },
+        }
+
+    def test_carries_both_sides_of_the_head_comparison(self) -> None:
+        # Whoever reads the line has to be able to re-derive the verdict, which
+        # takes the run's recorded head as well as the suite's.
+        source = _check_suite_source(self._event())
+        state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        )
+
+        assert source.log_fields(state) == {
+            "scm_repo_full_name": "owner/repo",
+            "check_suite_id": 1,
+            "check_suite_updated_at": "2024-01-01T00:00:00Z",
+            "check_suite_head_sha": "abc",
+            "check_suite_conclusion": "failure",
+            "check_suite_app_name": "CI",
+            "run_pr_commit_sha": "abc",
+        }
+
+    def test_a_stale_suite_shows_the_two_shas_that_disagreed(self) -> None:
+        source = _check_suite_source(self._event())
+        state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
+        )
+
+        fields = source.log_fields(state)
+
+        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert fields["check_suite_head_sha"] == "abc"
+        assert fields["run_pr_commit_sha"] == "newer"
+
+    def test_a_run_that_never_opened_a_pr_here_reports_no_recorded_head(self) -> None:
+        source = _check_suite_source(self._event())
+
+        assert source.log_fields(_run_state())["run_pr_commit_sha"] is None
+
+    def test_omits_the_raw_webhook_body(self) -> None:
+        # ``Config.extra = "allow"`` keeps the whole delivery on the event, which
+        # is tens of kilobytes and no more identifying than the ids already here.
+        source = _check_suite_source(self._event())
+
+        assert "event" not in source.log_fields(_run_state())
+
+
 class CheckSuiteShouldQueueTest(TestCase):
     def _event(self, *, head_sha="abc", repo_name="owner/repo") -> dict:
         return {

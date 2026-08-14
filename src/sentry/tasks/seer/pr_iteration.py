@@ -56,7 +56,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, TriggerDecision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -66,6 +66,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     pop_queued_autofix_feedback,
@@ -120,6 +121,9 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
 
 def trigger_consume_pr_iteration_feedback(
     *,
+    # Shared with the ``try_enqueue_autofix_feedback`` call that precedes this one,
+    # so one arrival of feedback logs both its decisions under one identity.
+    log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
     feedback: Feedback,
@@ -128,20 +132,33 @@ def trigger_consume_pr_iteration_feedback(
     delay: int | None = None,
 ) -> None:
     if bypass:
-        task: ConsumeTask | None = ConsumeTask.Now
+        decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
     else:
-        task = feedback.source.should_trigger(run_state).task
+        decision = feedback.source.should_trigger(run_state)
 
-    if task is None:
-        return
+    countdown = None
 
-    countdown = delay if delay is not None else task.countdown()
-    consume_queued_autofix_feedback.apply_async(
-        kwargs={
-            "run_id": run_id,
-            "organization_id": organization_id,
-        },
+    if decision.task is not None:
+        # ``delay`` overrides whatever the source asked for, so the line below
+        # reports the countdown the task got, not the one it requested.
+        countdown = delay if delay is not None else decision.task.countdown()
+        consume_queued_autofix_feedback.apply_async(
+            kwargs={
+                "run_id": run_id,
+                "organization_id": organization_id,
+            },
+            countdown=countdown,
+        )
+
+    log_ctx.info(
+        "autofix.pr_iteration.feedback.trigger",
+        outcome="not_triggered" if decision.task is None else "triggered",
+        reason=decision.reason,
         countdown=countdown,
+        bypass=bypass,
+        delay=delay,
+        feedback_source=feedback.source.type,
+        **feedback.source.log_fields(run_state),
     )
 
 
@@ -671,7 +688,14 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    log_ctx = PrIterationLogContext(
+        logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
+    )
     try_enqueue_autofix_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         group_id=group_id,
@@ -681,6 +705,7 @@ def trigger_pr_iteration_from_comment(
         actor_user_id=actor_user.id if actor_user else None,
     )
     trigger_consume_pr_iteration_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         feedback=feedback_obj,
@@ -987,8 +1012,15 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    log_ctx = PrIterationLogContext(
+        logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
+    )
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(
+            log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
             group_id=group_id,
@@ -1001,6 +1033,7 @@ def trigger_pr_iteration_from_review(
     # A single consume pass drains everything queued above; trigger once using
     # the first item to decide the countdown (all share the same run).
     trigger_consume_pr_iteration_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         feedback=feedback_items[0],

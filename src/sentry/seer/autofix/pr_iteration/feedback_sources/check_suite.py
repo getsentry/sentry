@@ -133,27 +133,34 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
         return check_suite_head_match(self.event, run_state)
 
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """Which suite this is, and both sides of the head comparison.
+
+        ``run_pr_commit_sha`` is the head Seer last recorded for this repo -- the
+        other operand of every ``matched`` check here. With both shas on the line a
+        ``stale_head`` verdict can be re-derived rather than taken on trust, and a
+        run whose recorded head has fallen behind the PR is visible as such.
+        """
+        repo_name = self.event.repository.full_name
+        pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
+        return {
+            "scm_repo_full_name": repo_name,
+            "check_suite_id": self.event.check_suite.id,
+            "check_suite_updated_at": self.updated_at,
+            "check_suite_head_sha": self.event.check_suite.head_sha,
+            "check_suite_conclusion": self.event.check_suite.conclusion,
+            "check_suite_app_name": self.app_name,
+            "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
+        }
+
     def should_queue(self, run_state: SeerRunState) -> Decision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
-        head_sha, repo_name, matched = self._matches_current_head(run_state)
-        cap_reached = matched and automated_iteration_cap_reached(run_state)
-        logger.info(
-            "autofix.pr_iteration.check_suite.should_queue.evaluated",
-            extra={
-                "run_id": run_state.run_id,
-                "head_sha": head_sha,
-                "repo_name": repo_name,
-                "matched": matched,
-                "hard_cap_reached": cap_reached,
-                "repo_pr_state_count": len(run_state.repo_pr_states),
-            },
-        )
-        if not matched:
+        if not self._matches_current_head(run_state).matched:
             return Decision(ok=False, reason="stale_head")
         # Hard cap also blocks enqueue so failed suites don't pile up in Redis
         # with no check-suite consume path to drain them.
-        if cap_reached:
+        if automated_iteration_cap_reached(run_state):
             return Decision(ok=False, reason="hard_cap_reached")
         return Decision(ok=True, reason="head_matches")
 
@@ -186,10 +193,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
         if automated_iteration_cap_reached(run_state):
-            logger.info(
-                "autofix.pr_iteration.check_suite.should_trigger.hard_cap_reached",
-                extra={"run_id": run_state.run_id},
-            )
             return TriggerDecision(task=None, reason="hard_cap_reached")
 
         # Otherwise queue a consume task for this run: immediately once every check
@@ -197,10 +200,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
         if not head_sha:
-            logger.info(
-                "autofix.pr_iteration.check_suite.should_trigger.missing_head_sha",
-                extra={"run_id": run_state.run_id},
-            )
             return TriggerDecision(task=ConsumeTask.Now, reason="missing_head_sha")
 
         organization_id = self.autofix_run.repository.organization_id

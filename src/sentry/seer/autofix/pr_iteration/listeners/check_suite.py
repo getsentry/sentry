@@ -22,6 +22,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
@@ -86,12 +87,20 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         sentry_sdk.capture_exception(e)
         return None
 
-    repo = autofix_run.repository
-    organization_id = repo.organization_id
+    organization_id = autofix_run.repository.organization_id
     agent_state = autofix_run.run_state
     feedback = Feedback(source=source)
+    # One identity for both decisions below, so the queue line and the trigger
+    # line of a single check suite are found by the same search.
+    log_ctx = PrIterationLogContext(
+        logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=autofix_run.group_id,
+    )
 
     enqueued = try_enqueue_autofix_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         group_id=autofix_run.group_id,
@@ -107,22 +116,16 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return None
 
     # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
-    # a delayed consume rather than dropping the scheduled task entirely).
-    logger.info(
-        "autofix.pr_iteration.check_suite.trigger_consume",
-        extra={
-            "organization_id": organization_id,
-            "repo_id": repo.id,
-            "pr_id": autofix_run.pr_id,
-            "run_id": agent_state.run_id,
-        },
-    )
+    # a delayed consume rather than dropping the scheduled task entirely). It logs
+    # `autofix.pr_iteration.feedback.trigger` either way.
+    #
     # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
     # which calls absolute_uri() at import time (needs options cache).
     # stream.py is loaded in AppConfig.ready before options init.
     from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
     trigger_consume_pr_iteration_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         feedback=feedback,
