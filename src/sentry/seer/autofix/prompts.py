@@ -9,6 +9,12 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 
+_CHECK_COMMAND_SOURCES = (
+    "Take the commands from the repository itself — its README/contributing docs, Makefile,"
+    " package.json scripts, tox/pyproject config, or CI workflow files — rather than guessing."
+)
+
+
 class PromptBuilder(Protocol):
     """Signature shared by all autofix step prompt builders."""
 
@@ -20,7 +26,7 @@ class PromptBuilder(Protocol):
         culprit: str,
         artifact_key: str | None,
         run_state: "SeerRunState | None" = None,
-        enable_bash_tools: bool = False,
+        should_run_repo_checks: bool = False,
     ) -> str: ...
 
 
@@ -31,7 +37,7 @@ def root_cause_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
     return dedent(
         f"""\
@@ -65,8 +71,15 @@ def solution_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
+    testing_guidance = (
+        "End your plan with a verification step that runs the repository's linter over the"
+        " changed files and the tests covering the changed code."
+        f" {_CHECK_COMMAND_SOURCES} Name them in the step."
+        if should_run_repo_checks
+        else "Do NOT include testing as part of your plan."
+    )
     return dedent(
         f"""\
         Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
@@ -78,7 +91,7 @@ def solution_prompt(
         2. Explore the codebase to understand the affected areas
         3. Consider different possible approaches and pick the single most pragmatic one.
 
-        Do NOT include testing as part of your plan.
+        {testing_guidance}
 
         If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
@@ -100,7 +113,7 @@ def code_changes_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
     prompt = dedent(
         f"""\
@@ -119,8 +132,16 @@ def code_changes_prompt(
         """
     )
 
-    if enable_bash_tools:
-        prompt = f"{prompt}Use the bash tool to test and lint the changes you make according to repo standards.\n"
+    if should_run_repo_checks:
+        prompt += dedent(
+            f"""
+            Before you finish, verify your changes with the repository's own tooling:
+            - Run the linter/formatter over the files you changed.
+            - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
+            - Fix any failures your changes introduced, then re-run until they pass.
+
+            {_CHECK_COMMAND_SOURCES} If a check cannot be run, report that instead of claiming it passed."""
+        )
 
     return prompt
 
@@ -132,7 +153,7 @@ def pr_iteration_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
     prompt = dedent(
         f"""\

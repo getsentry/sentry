@@ -748,6 +748,13 @@ from .endpoints.internal import (
 )
 from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
+from .endpoints.organization_agentic_onboarding import (
+    OrganizationAgenticOnboardingRunIndexEndpoint,
+    OrganizationAgenticOnboardingStatusEndpoint,
+)
+from .endpoints.organization_agentic_onboarding_run_details import (
+    OrganizationAgenticOnboardingRunDetailsEndpoint,
+)
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
 from .endpoints.organization_artifactbundle_assemble import (
@@ -2578,6 +2585,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/runs/$",
+        OrganizationAgenticOnboardingRunIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-run-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/runs/(?P<run_id>[a-f0-9]{32})/$",
+        OrganizationAgenticOnboardingRunDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-run-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/status/$",
+        OrganizationAgenticOnboardingStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-agentic-onboarding-status",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/environments/$",

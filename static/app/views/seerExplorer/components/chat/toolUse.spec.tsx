@@ -493,6 +493,53 @@ describe('ToolUseBlock', () => {
     );
   });
 
+  it('keeps a multi-project Explore bus link under a telemetry call row', () => {
+    // The call row itself has no destination (search rows decline without the translated query).
+    // The bus link carries project_slugs + query and must still render as residual nav rather than
+    // being suppressed because a call row exists.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying spans',
+                params: {dataset: 'spans', question: 'top pageloads'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'spans',
+                  query: 'transaction.op:pageload',
+                  project_slugs: ['javascript', 'docs'],
+                  stats_period: '24h',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /View spans/})).toBeInTheDocument();
+  });
+
   it('does not double-render a classic link present in both channels', () => {
     // A classic tool populates both the positional tool_links (row link) and structuredContent.links
     // during migration; the bus entry that duplicates the row link is deduped, so it renders once.
