@@ -23,6 +23,8 @@ type Channel = {
   type: string;
 };
 
+export type {Channel};
+
 type ChannelListResponse = {
   results: Channel[];
 };
@@ -54,7 +56,11 @@ export function useMessagingIntegrationAlertRule(
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const {data: channels, isPending} = useQuery(
+  const {
+    data: channels,
+    isPending,
+    isError: isChannelsError,
+  } = useQuery(
     apiOptions.as<ChannelListResponse>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
       {
@@ -139,6 +145,12 @@ export function useMessagingIntegrationAlertRule(
     integrationOptions,
     channelOptions,
     isChannelLoading: isPending || validateChannel.isFetching,
+    // The channels endpoint returns HTTP 200 with an empty results list when the
+    // upstream provider API fails, so isChannelsError only catches network or auth
+    // failures. An empty channelOptions list may still indicate an unreachable
+    // provider rather than a genuinely empty workspace.
+    isChannelsError,
+    channelsData: channels,
     channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
