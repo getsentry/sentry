@@ -249,6 +249,28 @@ class OrganizationAgentTokenTest(APITestCase):
                 assert response.status_code == 200, response.content
                 assert {int(item["id"]) for item in response.data} == {member_project.id}
 
+    def test_owner_agent_project_listing_is_org_bound(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        unjoined_team = self.create_team(organization=self.org)
+        unjoined_project = self.create_project(organization=self.org, teams=[unjoined_team])
+
+        other_org = self.create_organization(owner=self.owner)
+        other_project = self.create_project(organization=other_org)
+        self.login_as(self.owner)
+
+        with self.feature(FLAG):
+            token = self._mint(sessionId="s1").data["token"]
+            response = APIClient().get(
+                "/api/0/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+
+        assert response.status_code == 200, response.content
+        listed_ids = {int(item["id"]) for item in response.data}
+        assert listed_ids == {unjoined_project.id}
+        assert other_project.id not in listed_ids
+
     def test_end_to_end_read_allowed_write_denied(self) -> None:
         # Mint via session, then use the minted token as a bearer: read passes; an
         # under-scoped write is denied with the RFC 6750 insufficient_scope challenge naming
