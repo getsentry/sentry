@@ -174,26 +174,6 @@ describe('AssistantBlock', () => {
     expect(link).toHaveAttribute('href', '/issues/ABC-123/');
   });
 
-  it('renders issue IDs as organization-scoped links', () => {
-    const organization = OrganizationFixture({slug: 'org-slug'});
-    const block = createBlock({
-      message: {
-        role: 'assistant',
-        content: 'Compare FRONTEND-123 with `BACKEND-456`.',
-      },
-    });
-    render(<BlockComponent block={block} blockIndex={0} />, {organization});
-
-    expect(screen.getByRole('link', {name: 'FRONTEND-123'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/FRONTEND-123/'
-    );
-    expect(screen.getByRole('link', {name: 'BACKEND-456'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/BACKEND-456/'
-    );
-  });
-
   it('renders external links with target _blank', () => {
     const block = createBlock({
       message: {

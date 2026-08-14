@@ -15,14 +15,8 @@ import {SeerEmbedRegistry} from './embeds';
 const ISSUE_SHORT_ID_PATTERN =
   /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
 
-function IssueLink({children, shortId}: {children: ReactNode; shortId: string}) {
-  const organization = useOrganization();
-  return (
-    <Link to={`/organizations/${organization.slug}/issues/${shortId}/`}>{children}</Link>
-  );
-}
-
 function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
+  const organization = useOrganization();
   const parts = children.split(ISSUE_SHORT_ID_PATTERN);
   if (parts.length === 1) {
     return children;
@@ -35,9 +29,9 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
         }
         if (i % 2 === 1) {
           return (
-            <IssueLink key={i} shortId={part}>
+            <Link key={i} to={`/organizations/${organization.slug}/issues/${part}/`}>
               {part}
-            </IssueLink>
+            </Link>
           );
         }
         return <Fragment key={i}>{part}</Fragment>;
@@ -109,15 +103,16 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   },
   InlineCode: function SeerInlineCode({children, Default}) {
     const isInsideLink = useContext(IsInsideLinkContext);
+    const organization = useOrganization();
     if (isInsideLink) {
       return <Default>{children}</Default>;
     }
     const parts = children.split(ISSUE_SHORT_ID_PATTERN);
     if (parts.length === 3 && parts[1]) {
       return (
-        <IssueLink shortId={parts[1]}>
+        <Link to={`/organizations/${organization.slug}/issues/${parts[1]}/`}>
           <Default>{children}</Default>
-        </IssueLink>
+        </Link>
       );
     }
     return <Default>{children}</Default>;
