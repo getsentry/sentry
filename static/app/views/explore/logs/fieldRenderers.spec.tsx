@@ -8,6 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
 import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
@@ -84,16 +85,15 @@ describe('Logs Field Renderers', () => {
 
     it('renders timestamp in 24h format when user preference is set', () => {
       expect(TimestampRenderer).toBeDefined();
-      const user = UserFixture();
-      user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
 
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
 
       render(
         <TimezoneProvider timezone="UTC">
-          <Fragment>{result}</Fragment>
+          <Clock24HoursProvider clock24Hours>
+            <Fragment>{result}</Fragment>
+          </Clock24HoursProvider>
         </TimezoneProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 14:30:45\.123/)).toBeInTheDocument();
@@ -148,17 +148,15 @@ describe('Logs Field Renderers', () => {
 
     it('renders in 24h format with different timezone', () => {
       expect(TimestampRenderer).toBeDefined();
-      const user = UserFixture();
-      user.options.timezone = 'Asia/Tokyo';
-      user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
 
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
 
       render(
         <TimezoneProvider timezone="Asia/Tokyo">
-          <Fragment>{result}</Fragment>
+          <Clock24HoursProvider clock24Hours>
+            <Fragment>{result}</Fragment>
+          </Clock24HoursProvider>
         </TimezoneProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 23:30:45\.123/)).toBeInTheDocument();

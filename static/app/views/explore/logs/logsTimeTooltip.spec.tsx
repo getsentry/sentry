@@ -2,6 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
 import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -140,11 +141,6 @@ describe('TimestampTooltipBody', () => {
   });
 
   it('renders in 24h format when user preference is set', () => {
-    const user = UserFixture();
-    user.options.timezone = 'America/New_York';
-    user.options.clock24Hours = true;
-    ConfigStore.set('user', user);
-
     const pmTimestamp = '2024-01-15T20:45:30.456Z';
     const attributes = {
       [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705351530456789012',
@@ -152,7 +148,9 @@ describe('TimestampTooltipBody', () => {
 
     render(
       <TimezoneProvider timezone="America/New_York">
-        <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
+        <Clock24HoursProvider clock24Hours>
+          <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
+        </Clock24HoursProvider>
       </TimezoneProvider>
     );
 
