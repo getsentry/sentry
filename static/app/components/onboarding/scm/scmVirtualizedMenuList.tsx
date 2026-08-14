@@ -4,6 +4,11 @@
  * causes ~1s lag with 130+ platform options containing PlatformIcon SVGs.
  * Virtualizing limits mounted components to the visible set.
  *
+ * Supports grouped options: react-select renders each group as a single
+ * <Group> element wrapping its Option children, which would virtualize as one
+ * giant row. Groups are flattened here into heading + option rows instead,
+ * with per-row measurement since headings and options differ in height.
+ *
  * Stopgap until a Combobox scraps component replaces this
  * (see #discuss-design-engineering).
  *
@@ -16,8 +21,78 @@ import {mergeRefs} from '@react-aria/utils';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 const OPTION_HEIGHT = 36;
+const GROUP_HEADING_HEIGHT = 24;
 const MAX_MENU_HEIGHT = 300;
 const MENU_PADDING = 4;
+
+/**
+ * The props react-select's renderMenu passes to each Group element. Only
+ * Group elements carry a Heading component, which is how they are told apart
+ * from Option elements.
+ */
+interface GroupElementProps {
+  Heading: React.ComponentType<any>;
+  children: React.ReactNode;
+  cx: unknown;
+  getStyles: unknown;
+  headingProps: Record<string, unknown>;
+  label: React.ReactNode;
+  selectProps: unknown;
+  theme: unknown;
+}
+
+interface MenuRow {
+  isHeading: boolean;
+  key: React.Key;
+  node: React.ReactNode;
+  /** The react-select option data, used to locate the focused row. */
+  data?: unknown;
+}
+
+function toOptionRow(node: React.ReactNode, fallbackKey: number): MenuRow {
+  const element = isValidElement<{data?: unknown}>(node) ? node : null;
+  return {
+    isHeading: false,
+    key: element?.key ?? fallbackKey,
+    node,
+    data: element?.props.data,
+  };
+}
+
+function flattenMenuRows(children: React.ReactNode[]): MenuRow[] {
+  const rows: MenuRow[] = [];
+  for (const child of children) {
+    if (!isValidElement<Partial<GroupElementProps>>(child) || !child.props.Heading) {
+      rows.push(toOptionRow(child, rows.length));
+      continue;
+    }
+    // Render the group's heading the same way react-select's Group does, so
+    // the Select's groupHeading styles still apply.
+    const {Heading, headingProps, label, selectProps, theme, getStyles, cx} = child.props;
+    rows.push({
+      isHeading: true,
+      key: child.key ?? rows.length,
+      node: (
+        <Heading
+          {...headingProps}
+          selectProps={selectProps}
+          theme={theme}
+          getStyles={getStyles}
+          cx={cx}
+        >
+          {label}
+        </Heading>
+      ),
+    });
+    const groupOptions = Array.isArray(child.props.children)
+      ? child.props.children
+      : [child.props.children];
+    for (const option of groupOptions) {
+      rows.push(toOptionRow(option, rows.length));
+    }
+  }
+  return rows;
+}
 
 interface ScmVirtualizedMenuListProps {
   children: React.ReactNode;
@@ -36,7 +111,7 @@ export function ScmVirtualizedMenuList({
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
-  const items: React.ReactNode[] = Array.isArray(children) ? children : [];
+  const rows = Array.isArray(children) ? flattenMenuRows(children) : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(
@@ -46,9 +121,14 @@ export function ScmVirtualizedMenuList({
   const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
 
   const virtualizer = useVirtualizer({
-    count: items.length,
+    count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => optionHeight,
+    // Estimates only; rows are measured on mount below. Headings differ in
+    // height from options, and an empty-label heading collapses to zero.
+    estimateSize: index => (rows[index]?.isHeading ? GROUP_HEADING_HEIGHT : optionHeight),
+    // Keep measurements attached to rows (not indices) when filtering shifts
+    // the list.
+    getItemKey: index => rows[index]?.key ?? index,
     overscan: 5,
     paddingStart: MENU_PADDING,
     paddingEnd: MENU_PADDING,
@@ -58,9 +138,9 @@ export function ScmVirtualizedMenuList({
 
   const virtualItems = virtualizer.getVirtualItems();
   // react-select shares focused option identity with each Option child's data.
-  // The focused DOM node may be virtualized out, so scroll by its child index.
-  const focusedIndex = items.findIndex(
-    item => isValidElement<{data?: unknown}>(item) && item.props.data === focusedOption
+  // The focused DOM node may be virtualized out, so scroll by its row index.
+  const focusedIndex = rows.findIndex(
+    row => !row.isHeading && row.data === focusedOption
   );
 
   useEffect(() => {
@@ -89,6 +169,8 @@ export function ScmVirtualizedMenuList({
         {virtualItems.map(virtualRow => (
           <div
             key={virtualRow.key}
+            ref={virtualizer.measureElement}
+            data-index={virtualRow.index}
             style={{
               position: 'absolute',
               top: 0,
@@ -97,7 +179,7 @@ export function ScmVirtualizedMenuList({
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >
-            {items[virtualRow.index]}
+            {rows[virtualRow.index]?.node}
           </div>
         ))}
       </div>
