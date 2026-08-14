@@ -420,6 +420,11 @@ class DisallowImpersonatedTokenCreation(BasePermission):
         return True
 
 
+class DisallowAgentToken(BasePermission):
+    def has_permission(self, request: Request, view: object) -> bool:
+        return not agent_token.is_agent_auth(request.auth)
+
+
 class SentryIsAuthenticated(IsAuthenticated):
     """
     Used to deny access for demo users in both view and object permission checks.
