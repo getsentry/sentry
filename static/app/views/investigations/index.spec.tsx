@@ -99,10 +99,9 @@ describe('Explore Investigations', () => {
     renderView();
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(await screen.findByText('Database latency investigation')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Database latency investigation'})
-    ).not.toBeInTheDocument();
+      await screen.findByRole('link', {name: 'Database latency investigation'})
+    ).toHaveAttribute('href', '/organizations/org-slug/seer/1/');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();

@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 
@@ -6,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -56,11 +58,21 @@ enum ColumnKey {
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 96},
-  {key: ColumnKey.CREATED, name: t('Created'), width: 140},
+  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 116},
+  {key: ColumnKey.CREATED, name: t('Created'), width: 160},
   {key: ColumnKey.STATUS, name: t('Status'), width: 160},
   {key: ColumnKey.ACTIONS, name: '', width: 40},
 ];
+
+const TableWrapper = styled('div')`
+  table {
+    grid-template-columns: max-content minmax(240px, 1fr) 116px 160px 160px max-content !important;
+  }
+`;
+
+function getInvestigationPath(organizationSlug: string, investigationId: string) {
+  return normalizeUrl(`/organizations/${organizationSlug}/seer/${investigationId}/`);
+}
 
 function FeatureDisabledPage() {
   return (
@@ -168,8 +180,9 @@ function InvestigationsPage() {
             label: t('Copy link'),
             onAction: () =>
               copy(
-                `${window.location.origin}${normalizeUrl(
-                  `/organizations/${organization.slug}/seer/${investigation.id}/`
+                `${window.location.origin}${getInvestigationPath(
+                  organization.slug,
+                  investigation.id
                 )}`,
                 {successMessage: t('Investigation link copied.')}
               ),
@@ -192,16 +205,15 @@ function InvestigationsPage() {
               }),
           },
         ]}
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            size="zero"
-            variant="transparent"
-            icon={<IconEllipsis />}
-            aria-label={t('More options for %s', investigation.title)}
-          />
-        )}
+        triggerProps={{
+          size: 'sm',
+          showChevron: false,
+          variant: 'transparent',
+          icon: <IconEllipsis />,
+          'aria-label': t('More options for %s', investigation.title),
+        }}
         position="bottom-end"
+        usePortal
       />
     );
   }
@@ -212,7 +224,13 @@ function InvestigationsPage() {
   ) => {
     switch (column.key) {
       case ColumnKey.NAME:
-        return <Text ellipsis>{investigation.title}</Text>;
+        return (
+          <Text ellipsis>
+            <Link to={getInvestigationPath(organization.slug, investigation.id)}>
+              {investigation.title}
+            </Link>
+          </Text>
+        );
       case ColumnKey.BLOCKS:
         return investigation.blockCount;
       case ColumnKey.CREATED:
@@ -270,65 +288,68 @@ function InvestigationsPage() {
                     {t('Launch investigation')}
                   </Button>
                 </Grid>
-                <GridEditable
-                  data={investigations}
-                  columnOrder={COLUMNS}
-                  columnSortBy={[]}
-                  grid={{
-                    renderHeadCell: column => column.name,
-                    renderBodyCell,
-                    renderPrependColumns: (isHeader, investigation) => {
-                      if (isHeader) {
+                <TableWrapper>
+                  <GridEditable
+                    data={investigations}
+                    columnOrder={COLUMNS}
+                    columnSortBy={[]}
+                    grid={{
+                      renderHeadCell: column => column.name,
+                      renderBodyCell,
+                      renderPrependColumns: (isHeader, investigation) => {
+                        if (isHeader) {
+                          return [
+                            <IconStar
+                              key="favorite-header"
+                              variant="warning"
+                              isSolid
+                              aria-label={t('Favorite')}
+                            />,
+                          ];
+                        }
+                        if (!investigation) {
+                          return [];
+                        }
+                        const item = investigation;
                         return [
-                          <IconStar
-                            key="favorite-header"
-                            variant="warning"
-                            isSolid
-                            aria-label={t('Favorite')}
+                          <Button
+                            key={item.id}
+                            size="zero"
+                            variant="transparent"
+                            aria-label={
+                              item.isFavorited
+                                ? t('Unfavorite %s', item.title)
+                                : t('Favorite %s', item.title)
+                            }
+                            icon={
+                              <IconStar
+                                size="sm"
+                                variant={item.isFavorited ? 'warning' : 'muted'}
+                                isSolid={item.isFavorited}
+                              />
+                            }
+                            onClick={() =>
+                              favoriteMutation.mutate({
+                                investigation: item,
+                                shouldFavorite: !item.isFavorited,
+                              })
+                            }
                           />,
                         ];
-                      }
-                      if (!investigation) {
-                        return [];
-                      }
-                      const item = investigation;
-                      return [
-                        <Button
-                          key={item.id}
-                          size="zero"
-                          variant="transparent"
-                          aria-label={
-                            item.isFavorited
-                              ? t('Unfavorite %s', item.title)
-                              : t('Favorite %s', item.title)
-                          }
-                          icon={
-                            <IconStar
-                              size="sm"
-                              variant={item.isFavorited ? 'warning' : 'muted'}
-                              isSolid={item.isFavorited}
-                            />
-                          }
-                          onClick={() =>
-                            favoriteMutation.mutate({
-                              investigation: item,
-                              shouldFavorite: !item.isFavorited,
-                            })
-                          }
-                        />,
-                      ];
-                    },
-                    prependColumnWidths: ['max-content'],
-                  }}
-                  isLoading={isPending}
-                  emptyMessage={
-                    <EmptyStateWarning>
-                      <Text as="p">
-                        {t('Sorry, no investigations match your filters.')}
-                      </Text>
-                    </EmptyStateWarning>
-                  }
-                />
+                      },
+                      prependColumnWidths: ['max-content'],
+                    }}
+                    isLoading={isPending}
+                    resizable={false}
+                    emptyMessage={
+                      <EmptyStateWarning>
+                        <Text as="p">
+                          {t('Sorry, no investigations match your filters.')}
+                        </Text>
+                      </EmptyStateWarning>
+                    }
+                  />
+                </TableWrapper>
                 <Container marginBottom="2xl">
                   <Pagination
                     pageLinks={data?.headers.Link}
