@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.models.organization import Organization
 
 
@@ -14,9 +14,4 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        try:
-            self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response({})
-
         return Response({})

@@ -47,5 +47,5 @@ class ProjectStatisticalDetectors(ProjectEndpoint):
 
         return Response(
             status=status.HTTP_400_BAD_REQUEST,
-            data={"details": "Missing transaction or fingerprint"},
+            data={"details": "Missing fingerprint"},
         )

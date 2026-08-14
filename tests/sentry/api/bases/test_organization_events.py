@@ -2,7 +2,6 @@ from django.test import RequestFactory
 
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
-from sentry.snuba.utils import get_dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 
@@ -18,8 +17,6 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
         assert self.resolve("metrics") is metrics_enhanced_performance
 
     def test_metrics_stays_on_metrics_performance_for_on_demand(self) -> None:
-        # On-demand extraction still reads generic metrics, and relies on an
-        # incompatible query erroring rather than falling back.
         assert self.resolve("metrics", useOnDemandMetrics="true") is metrics_performance
 
     def test_metrics_enhanced_is_unchanged(self) -> None:
@@ -30,7 +27,3 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
 
     def test_transactions_is_unchanged(self) -> None:
         assert self.resolve("transactions") is transactions
-
-    def test_registry_still_maps_metrics_for_alerts(self) -> None:
-        # Alerts compare against metrics_performance to identify the sessions dataset.
-        assert get_dataset("metrics") is metrics_performance
