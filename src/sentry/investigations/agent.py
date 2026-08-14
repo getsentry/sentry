@@ -20,6 +20,7 @@ from sentry.investigations.models import (
     InvestigationBlockKind,
     InvestigationStatus,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     mark_downstream_blocks_stale,
@@ -746,10 +747,6 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             using=database,
         )
         if execution.triggered_by_id is not None:
-            from sentry.investigations.services.auto_run import (
-                schedule_eligible_auto_run_blocks,
-            )
-
             transaction.on_commit(
                 partial(
                     schedule_eligible_auto_run_blocks,
