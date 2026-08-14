@@ -132,9 +132,8 @@ export function ScmMessagingChannelPicker({
     if (rawChannel) {
       stored = {channelId: rawChannel.id, channelName: rawChannel.display};
     } else if (
-      savedSelection &&
-      selectedIntegration.id === savedSelection.integrationId &&
-      channel.value === savedSelection[channelSelectedBy]
+      selectedIntegration.id === savedSelection?.integrationId &&
+      channel.value === savedSelection?.[channelSelectedBy]
     ) {
       stored = {
         channelId: savedSelection.channelId,

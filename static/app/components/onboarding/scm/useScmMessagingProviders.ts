@@ -27,17 +27,15 @@ type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connec
 
 export type ScmMessagingProviderViewModel = {
   /**
-   * All active integrations for this provider. Includes ineligible ones
-   * (e.g. MS Teams tenant installations) so the permission-limited state can
-   * display the workspace name.
-   */
-  activeIntegrations: OrganizationIntegration[];
-  /**
-   * The eligible subset of `activeIntegrations` — non-empty iff
-   * `status === 'connected'`. Callers operating in the connected state
-   * can safely access index 0 without a non-null assertion.
+   * Active integrations that can receive Issue Alert actions.
+   * Non-empty iff `status === 'connected'`.
    */
   eligibleIntegrations: OrganizationIntegration[];
+  /**
+   * The ineligible active integration shown in the `permission-limited` state
+   * so the row can display its workspace name. `undefined` for other statuses.
+   */
+  permissionLimitedIntegration: OrganizationIntegration | undefined;
   provider: IntegrationProvider;
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
@@ -115,7 +113,7 @@ export function useScmMessagingProviders(): {
         i => i.provider.key === providerKey && isIntegrationActive(i)
       );
       const eligible = active.filter(isEligibleForIssueAlerts);
-      const status: ScmMessagingProviderStatus = eligible.length
+      const status = eligible.length
         ? 'connected'
         : active.length
           ? 'permission-limited'
@@ -126,8 +124,9 @@ export function useScmMessagingProviders(): {
           providerKey,
           provider,
           status,
-          activeIntegrations: active,
           eligibleIntegrations: eligible,
+          permissionLimitedIntegration:
+            status === 'permission-limited' ? active[0] : undefined,
         },
       ];
     });

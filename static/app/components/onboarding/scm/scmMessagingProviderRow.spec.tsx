@@ -55,24 +55,24 @@ const installableSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'installable',
-  activeIntegrations: [],
   eligibleIntegrations: [],
+  permissionLimitedIntegration: undefined,
 };
 
 const connectedSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'connected',
-  activeIntegrations: [slackIntegration],
   eligibleIntegrations: [slackIntegration],
+  permissionLimitedIntegration: undefined,
 };
 
 const permissionLimitedMsteams: ScmMessagingProviderViewModel = {
   providerKey: 'msteams',
   provider: msteamsProvider,
   status: 'permission-limited',
-  activeIntegrations: [msteamsIntegration],
   eligibleIntegrations: [],
+  permissionLimitedIntegration: msteamsIntegration,
 };
 
 const selectedSlackSetup: ScmMessagingSetup = {
@@ -354,20 +354,6 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('passes only eligible integrations to the picker when a provider has mixed installations', () => {
-      const msteamsTenantIntegration = OrganizationIntegrationsFixture({
-        id: 'msteams-tenant',
-        name: 'Tenant Workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'tenant'},
-      });
       const msteamsTeamIntegration = OrganizationIntegrationsFixture({
         id: 'msteams-team',
         name: 'Team Workspace',
@@ -387,8 +373,8 @@ describe('ScmMessagingProviderRow', () => {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'connected',
-        activeIntegrations: [msteamsTenantIntegration, msteamsTeamIntegration],
         eligibleIntegrations: [msteamsTeamIntegration],
+        permissionLimitedIntegration: undefined,
       };
 
       const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
@@ -402,20 +388,6 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('does not treat a setup referencing an ineligible integration as configured', () => {
-      const msteamsTenantIntegration = OrganizationIntegrationsFixture({
-        id: 'msteams-tenant',
-        name: 'Tenant Workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'tenant'},
-      });
       const msteamsTeamIntegration = OrganizationIntegrationsFixture({
         id: 'msteams-team',
         name: 'Team Workspace',
@@ -435,8 +407,8 @@ describe('ScmMessagingProviderRow', () => {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'connected',
-        activeIntegrations: [msteamsTenantIntegration, msteamsTeamIntegration],
         eligibleIntegrations: [msteamsTeamIntegration],
+        permissionLimitedIntegration: undefined,
       };
 
       // A destination previously saved against the tenant (ineligible) integration.

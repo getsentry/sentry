@@ -354,7 +354,7 @@ function RowSubtitle({
   if (visualState === 'permission-limited') {
     return (
       <Stack gap="2xs">
-        <Text size="sm">{viewModel.activeIntegrations[0]?.name}</Text>
+        <Text size="sm">{viewModel.permissionLimitedIntegration?.name}</Text>
         <Text variant="muted" size="sm">
           {t(
             'This Microsoft Teams workspace uses a tenant-level connection and cannot receive issue alerts directly. Reinstall with a team-level connection to enable destinations.'
