@@ -25,7 +25,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
-    LEGACY_GET_FACTOR,
     SET_FACTOR,
     make_project_volume,
     patch_configuration,
@@ -41,6 +40,8 @@ CACHED_PROJECT_RATES = f"{SCHEDULER}.get_cached_rebalanced_project_sample_rates"
 COMPARE_PROJECTS = f"{SCHEDULER}.compare_rebalanced_projects_with_cache"
 RECALIBRATION_VOLUME = f"{SCHEDULER}.get_recalibration_organization_volume"
 CACHED_FACTOR = f"{SCHEDULER}.get_cached_recalibration_factor"
+PREVIOUS_EAP_FACTOR = f"{SCHEDULER}.get_cached_per_org_recalibration_factor"
+LEGACY_VOLUME = f"{SCHEDULER}.get_organization_volume"
 COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibration_factor_with_cache"
 
 
@@ -353,7 +354,8 @@ class RunCalculationsPerOrgTest(TestCase):
                     TRANSACTION_VOLUMES: transaction_volumes,
                     TRANSACTION_BALANCING: {},
                     RECALIBRATION_VOLUME: recalibration_volume,
-                    LEGACY_GET_FACTOR: 1.0,
+                    CACHED_FACTOR: 1.0,
+                    LEGACY_VOLUME: None,
                     SET_FACTOR: DEFAULT,
                 }
             ) as mocks,
@@ -409,6 +411,7 @@ class RunCalculationsPerOrgTest(TestCase):
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         recalibration_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        legacy_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=50)
         project_volumes = [make_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
@@ -431,7 +434,9 @@ class RunCalculationsPerOrgTest(TestCase):
                 TRANSACTION_VOLUMES: transaction_volumes,
                 TRANSACTION_BALANCING: {},
                 RECALIBRATION_VOLUME: recalibration_volume,
-                LEGACY_GET_FACTOR: 1.0,
+                CACHED_FACTOR: 1.0,
+                PREVIOUS_EAP_FACTOR: 1.0,
+                LEGACY_VOLUME: legacy_volume,
                 SET_FACTOR: DEFAULT,
                 COMPARE_FACTOR: DEFAULT,
             }
@@ -461,7 +466,12 @@ class RunCalculationsPerOrgTest(TestCase):
         assert project_config.organization_recalibration_factor == 4.0
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
         mocks[COMPARE_FACTOR].assert_called_once_with(
-            project_config, recalibration_volume, 4.0, 1.0
+            project_config,
+            recalibration_volume,
+            4.0,
+            1.0,
+            previous_eap_factor=1.0,
+            legacy_volume=legacy_volume,
         )
 
     @override_options(
@@ -496,7 +506,9 @@ class RunCalculationsPerOrgTest(TestCase):
                 TRANSACTION_VOLUMES: transaction_volumes,
                 TRANSACTION_BALANCING: {},
                 RECALIBRATION_VOLUME: None,
-                LEGACY_GET_FACTOR: 1.0,
+                CACHED_FACTOR: 1.0,
+                PREVIOUS_EAP_FACTOR: 1.0,
+                LEGACY_VOLUME: None,
                 SET_FACTOR: DEFAULT,
                 COMPARE_FACTOR: DEFAULT,
             }
@@ -509,7 +521,14 @@ class RunCalculationsPerOrgTest(TestCase):
         assert project_config.organization_recalibration_factor is None
         mocks[SET_FACTOR].assert_not_called()
         # The comparison still runs, so the legacy factor is reported next to no EAP factor.
-        mocks[COMPARE_FACTOR].assert_called_once_with(project_config, None, None, 1.0)
+        mocks[COMPARE_FACTOR].assert_called_once_with(
+            project_config,
+            None,
+            None,
+            1.0,
+            previous_eap_factor=1.0,
+            legacy_volume=None,
+        )
 
     @override_options(
         {

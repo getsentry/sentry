@@ -6,6 +6,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -24,6 +25,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
 
   const query = useQueryParamsQuery();
   const aggregateFields = useQueryParamsAggregateFields();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const [tab] = useTab();
@@ -39,7 +41,9 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
         ? getColumnFieldsForValidation({aggregateFields, fields})
         : undefined,
       orderBy: shouldValidateColumns
-        ? sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field))
+        ? [...sortBys, ...aggregateSortBys].map(sortBy =>
+            sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
+          )
         : undefined,
       query,
       projectIds: selection.projects,

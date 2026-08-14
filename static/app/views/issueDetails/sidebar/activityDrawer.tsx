@@ -137,6 +137,9 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
             filterComments={filter === 'comments'}
             minHeight={72}
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
+            enableMentionComposer={organization.features.includes(
+              'issue-activity-mention-input'
+            )}
           />
         )}
       </EventDrawerBody>

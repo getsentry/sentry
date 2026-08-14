@@ -55,7 +55,13 @@ def _apply_prediction(
     """If the feature flag is enabled and we predicted an acutal org user,
     create a (suggested) GroupOwner for them. Then promote the suggestion to an
     assignment iff the project auto-assigns to owners."""
-    if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
+    if not (
+        features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization)
+        and (
+            features.has("organizations:seer-added", group.organization)
+            or features.has("organizations:seat-based-seer-enabled", group.organization)
+        )
+    ):
         return
 
     if top_user_id is None:

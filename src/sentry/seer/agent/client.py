@@ -49,6 +49,7 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     SeerApiError,
@@ -388,6 +389,8 @@ class SeerAgentClient:
         prompt_metadata: dict[str, str] | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -435,6 +438,8 @@ class SeerAgentClient:
             insert_index=None,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             user_org_context=user_org_context,
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
@@ -535,6 +540,8 @@ class SeerAgentClient:
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        force_ce: bool | None = None,
+        force_frontend_code_search: bool | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -551,6 +558,9 @@ class SeerAgentClient:
 
         flush=False: leave the row for the async outbox runner to drain and
         retry. Use for background callers (e.g. night shift).
+
+        force_ce if set forces context engine on/off, force_frontend_code_search
+        likewise for frontend source code search.
         """
         user_id = (
             self.user.id
@@ -577,7 +587,10 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(),
+                agent_run_options=self._build_agent_run_options(
+                    force_ce=force_ce,
+                    force_frontend_code_search=force_frontend_code_search,
+                ),
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,
@@ -606,8 +619,18 @@ class SeerAgentClient:
             "organizations:seer-explorer-embeds", self.organization, actor=self.user
         )
 
-    def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
-        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
+    def _build_agent_run_options(
+        self,
+        *,
+        override_ce_enable: bool = True,
+        force_ce: bool | None = None,
+        force_frontend_code_search: bool | None = None,
+    ) -> dict[str, Any]:
+        """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run.
+
+        force_ce if set forces context engine on/off, force_frontend_code_search
+        likewise for frontend source code search.
+        """
         opts: dict[str, Any] = {}
 
         if _has_context_engine(self.organization, self.user):
@@ -621,6 +644,9 @@ class SeerAgentClient:
         ):
             opts["is_context_engine_enabled"] = override_ce_enable
 
+        if force_ce is not None:
+            opts["is_context_engine_enabled"] = force_ce
+
         if features.has(
             "organizations:seer-agent-source-code-search",
             self.organization,
@@ -628,12 +654,8 @@ class SeerAgentClient:
         ):
             opts["enable_frontend_code_search"] = True
 
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["use_agent_sandbox"] = True
+        if force_frontend_code_search is not None:
+            opts["enable_frontend_code_search"] = force_frontend_code_search
 
         if features.has(
             "organizations:seer-explorer-thinking-summary",
@@ -669,6 +691,8 @@ class SeerAgentClient:
         insert_index: int | None = None,
         on_page_context: str | None = None,
         page_name: str | None = None,
+        page_location: dict[str, Any] | None = None,
+        sent_at: list[str] | None = None,
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
@@ -718,6 +742,8 @@ class SeerAgentClient:
             insert_index=insert_index,
             on_page_context=on_page_context,
             page_name=page_name,
+            page_location=page_location,
+            sent_at=sent_at,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
@@ -766,13 +792,6 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["enable_frontend_code_search"] = True
-
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["use_agent_sandbox"] = True
 
         if features.has(
             "organizations:seer-explorer-thinking-summary",
@@ -955,6 +974,7 @@ class SeerAgentClient:
         verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
+        author: SeerCommitAuthor | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -967,6 +987,7 @@ class SeerAgentClient:
             repo_name: Specific repo to push, or None for all repos with changes
             poll_interval: Seconds between polls
             poll_timeout: Maximum seconds to wait
+            author: Git commit author; None lets Seer pick one
 
         Returns:
             SeerRunState: Final state with PR info
@@ -995,6 +1016,8 @@ class SeerAgentClient:
             payload["repo_name"] = repo_name
         if pr_description_suffix:
             payload["pr_description_suffix"] = pr_description_suffix
+        if author:
+            payload["author"] = author
         if self.on_completion_hook:
             payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
         update_body = AgentUpdateRequest(

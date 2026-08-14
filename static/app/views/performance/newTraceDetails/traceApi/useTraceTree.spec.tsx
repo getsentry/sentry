@@ -37,7 +37,6 @@ describe('useTraceTree', () => {
       () =>
         useTraceTree({
           trace: getMockedTraceResults('error'),
-          traceSlug: 'test-trace',
           replay: null,
         }),
       {additionalWrapper: contextWrapper()}
@@ -53,7 +52,6 @@ describe('useTraceTree', () => {
       () =>
         useTraceTree({
           trace: getMockedTraceResults('pending'),
-          traceSlug: 'test-trace',
           replay: null,
         }),
       {additionalWrapper: contextWrapper()}
@@ -72,7 +70,6 @@ describe('useTraceTree', () => {
             transactions: [],
             orphan_errors: [],
           }),
-          traceSlug: 'test-trace',
           replay: null,
         }),
       {additionalWrapper: contextWrapper()}
@@ -123,7 +120,6 @@ describe('useTraceTree', () => {
       () =>
         useTraceTree({
           trace: getMockedTraceResults('success', mockedTrace),
-          traceSlug: 'test-trace',
           replay: null,
         }),
       {additionalWrapper: contextWrapper()}

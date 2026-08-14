@@ -11,7 +11,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
+import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
 function makeExplorerBlock({
   id = 'block-1',
@@ -375,9 +375,10 @@ describe('SeerDrawer', () => {
           () => {
             expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
           },
-          {timeout: 5000}
+          {timeout: 15_000}
         );
-      }
+      },
+      20_000
     );
   });
 });

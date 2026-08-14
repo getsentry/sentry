@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition import DataConditionEvaluation
@@ -31,4 +31,13 @@ class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvalu
     - triggered: bool - whether the group's conditions passed
     """
 
-    pass
+    @property
+    def artifact_fields(self) -> dict[str, Any]:
+        logic_type = self.data["logic_type"]
+        return {
+            "logic_type": getattr(logic_type, "value", logic_type),
+            "result": self.result,
+            "condition_evaluations": [
+                evaluation.to_artifact() for evaluation in self.data["condition_evaluations"]
+            ],
+        }

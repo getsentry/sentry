@@ -31,7 +31,7 @@ from sentry.models.repository import Repository
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
-    from sentry.models.repository import RepoResolution
+    from sentry.models.repository import RepoLookup, RepoResolution
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -106,16 +106,17 @@ _KNOWN_SCM_PROVIDERS = frozenset(
 class ResolvedPullRequest(NamedTuple):
     """Result of resolving an externally-reported PR to its canonical ``PullRequest``.
 
-    ``pull_request`` is None when the reported ``(repo_name, provider)`` doesn't map to
-    exactly one active ``Repository``; ``repo_resolution`` says why, and
-    ``provider_unmappable`` flags a *present* provider string we don't map (an empty or
-    ``"unknown"`` provider is treated as absent, not unmappable). Callers decide how (and
-    whether) to log these under their own namespace.
+    ``pull_request`` is None when the reported identity doesn't map to exactly one active
+    ``Repository``; ``repo_resolution`` says why, ``resolved_by`` names the identity that
+    worked (None if nothing did), and ``provider_unmappable`` flags a *present* provider
+    string we don't map (an empty or ``"unknown"`` provider is treated as absent, not
+    unmappable). Callers decide how (and whether) to log these under their own namespace.
     """
 
     pull_request: PullRequest | None
     repo_resolution: RepoResolution
     provider_unmappable: bool
+    resolved_by: RepoLookup | None = None
 
 
 class ParsedPullRequestUrl(NamedTuple):
@@ -211,30 +212,54 @@ class PullRequestManager(BaseManager["PullRequest"]):
         repo_name: str,
         provider: str | None,
         key: int | str,
+        repo_external_id: str | None = None,
     ) -> ResolvedPullRequest:
-        """Resolve an externally-reported ``(repo_name, provider, key)`` to its canonical PR.
+        """Resolve an externally-reported repo reference and PR ``key`` to its canonical PR.
 
-        Resolves the org-scoped active ``Repository`` (via ``RepositoryManager.resolve_active``),
-        then find-or-creates the ``PullRequest`` keyed on ``key`` (the PR number). The
-        find-or-create may run before the SCM ``opened`` webhook arrives, so the row can be
-        a shell (no title/body) the webhook fills in later — we never overwrite it here.
+        Resolves the org-scoped active ``Repository``, then find-or-creates the
+        ``PullRequest`` keyed on ``key`` (the PR number). The find-or-create may run before
+        the SCM ``opened`` webhook arrives, so the row can be a shell (no title/body) the
+        webhook fills in later — we never overwrite it here.
+
+        ``repo_external_id`` resolves exactly; pass it whenever the reporter has it.
+        ``repo_name`` is the weaker fallback — ambiguous across duplicate rows, and for
+        GitLab never equal to the stored name at all.
 
         Returns a ``ResolvedPullRequest``; ``pull_request`` is None when the repo can't be
-        uniquely resolved. Does not log or swallow errors — callers own observability and
-        error handling. Shared by every path that learns of a PR by repo name + provider
-        rather than through an SCM installation (e.g. Seer-created and delegated-agent
-        attribution).
+        uniquely resolved, and ``repo_resolution`` then describes the last identity tried.
+        Does not log or swallow errors — callers own observability and error handling.
+        Shared by every path that learns of a PR from a reporting source rather than
+        through an SCM installation (e.g. Seer-created and delegated-agent attribution).
         """
         normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
         )
 
-        repository, resolution = Repository.objects.resolve_active(
-            organization_id=organization_id,
-            name=repo_name,
-            normalized_provider=normalized_provider,
-        )
+        repository: Repository | None = None
+        resolution: RepoResolution = "not_found"
+        resolved_by: RepoLookup | None = None
+
+        if repo_external_id:
+            repository, resolution = Repository.objects.resolve_active_by_external_id(
+                organization_id=organization_id,
+                external_id=repo_external_id,
+                normalized_provider=normalized_provider,
+            )
+            if repository is not None:
+                resolved_by = "external_id"
+
+        # Fall back so a reporter without an external id — or with a stale one, e.g. a
+        # repo re-added under a new id — is no worse off than before.
+        if repository is None:
+            repository, resolution = Repository.objects.resolve_active(
+                organization_id=organization_id,
+                name=repo_name,
+                normalized_provider=normalized_provider,
+            )
+            if repository is not None:
+                resolved_by = "name"
+
         if repository is None:
             return ResolvedPullRequest(None, resolution, provider_unmappable)
 
@@ -245,7 +270,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
             repository_id=repository.id,
             key=str(key),
         )
-        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
+        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable, resolved_by)
 
     def for_provider_pr(
         self, *, external_id: str, integration_id: int, key: int | str

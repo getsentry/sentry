@@ -225,7 +225,7 @@ describe('SpansTabContent', () => {
 
     await userEvent.click(screen.getByRole('tab', {name: /Attribute Breakdowns/}));
     expect(attributeBreakdownsMock).not.toHaveBeenCalled();
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-indicator')).not.toHaveLength(0);
     expect(screen.queryByText('No matching attributes found')).not.toBeInTheDocument();
   });
 

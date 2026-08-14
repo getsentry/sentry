@@ -31,6 +31,16 @@ def test_apply_defaults_for_item_type() -> None:
     assert query["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
 
 
+def test_apply_defaults_for_data_source() -> None:
+    query: dict[str, str] = {"data_source": "spans", "query": 'transaction:["/api/foo/"]'}
+    apply_eap_default_stats_period(query)
+    assert query["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
+
+    query = {"data_source": "discover"}
+    apply_eap_default_stats_period(query)
+    assert "statsPeriod" not in query
+
+
 def test_apply_defaults_for_eap_path_without_dataset() -> None:
     query: dict[str, str] = {"project": "1"}
     apply_eap_default_stats_period(query, path="/api/0/organizations/org/trace-items/stats/")

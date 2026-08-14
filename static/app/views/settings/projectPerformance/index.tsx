@@ -31,14 +31,6 @@ import {getGeneralSettingsQueryOptions} from './useGeneralSettingsMutationOption
 import {useProjectPerformanceReset} from './useProjectPerformanceReset';
 import {getThresholdQueryOptions} from './useThresholdSettingsMutationOptions';
 
-export {
-  allowedCountValues,
-  allowedDurationValues,
-  allowedPercentageValues,
-  allowedSizeValues,
-  projectDetectorSettingsId,
-} from './detectors/detectorFieldGroups';
-export {DetectorConfigCustomer} from './detectors/detectorSettings';
 export {retentionPrioritiesLabels} from './samplingPriorities/retentionPrioritySettings';
 
 export function ProjectPerformance() {

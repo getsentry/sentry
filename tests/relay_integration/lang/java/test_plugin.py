@@ -28,6 +28,13 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 org.slf4j.helpers.Util$ClassContext -> org.a.b.g$b:
     65:65:void <init>() -> <init>
 """
+PROGUARD_BARE_CAST_UUID = "ce501fd8-36ed-4a47-93bf-801010cd4e5d"
+PROGUARD_BARE_CAST_SOURCE = b"""\
+com.example.CastSource -> a0o$b:
+    1:1:void sourceMethod():1:1 -> a
+com.example.CastTarget -> chf:
+    1:1:void targetMethod():1:1 -> a
+"""
 PROGUARD_INLINE_UUID = "d748e578-b3d1-5be5-b0e5-a42e8c9bf8e0"
 PROGUARD_INLINE_SOURCE = b"""\
 # compiler: R8
@@ -540,6 +547,24 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         # Ensure the value got deobfuscated via classes mapping
         assert "org.slf4j.helpers.Util$ClassContextSecurityManager" in exc.value
         assert "org.a.b.g$a" not in exc.value
+
+    @requires_symbolicator
+    def test_value_only_bare_cast_class_names_are_deobfuscated(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_BARE_CAST_UUID, PROGUARD_BARE_CAST_SOURCE)
+
+        event_data = {
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_BARE_CAST_UUID}]},
+            "exception": {"values": [{"value": "a0o$b cannot be cast to chf"}]},
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        assert exc.value == "com.example.CastSource cannot be cast to com.example.CastTarget"
+        assert exc.raw_value == "a0o$b cannot be cast to chf"
 
     @requires_symbolicator
     def test_value_only_multiple_exceptions_are_all_deobfuscated(self) -> None:

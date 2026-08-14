@@ -665,18 +665,18 @@ export class FormModel {
           // find the first entry with an error
           const firstError = Object.entries(resp.responseJSON).find(
             ([_, v]) => Array.isArray(v) && v.length
-          )?.[1] as string | boolean | undefined;
+          )?.[1];
 
           // Show resp msg from API endpoint if possible
           if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
             // Just take first resp for now
-            this.setError(id, resp.responseJSON[id][0]);
+            this.setError(id, this.normalizeError(resp.responseJSON[id][0]));
           } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-            addErrorMessage(nonFieldErrors[0], {duration: 10000});
+            addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
             // Reset saving state
             this.setError(id, '');
-          } else if (firstError) {
-            this.setError(id, firstError);
+          } else if (Array.isArray(firstError) && firstError.length) {
+            this.setError(id, this.normalizeError(firstError[0]));
           } else {
             this.setError(id, defaultErrorMsg);
           }
@@ -758,6 +758,27 @@ export class FormModel {
   }
 
   /**
+   * Normalizes an API error value to a string. Some endpoints return structured
+   * error objects like `{code, message, extra}` instead of plain strings. Passing
+   * such an object as a React child would crash the renderer, so we extract the
+   * `.message` property when present.
+   */
+  normalizeError(error: unknown): string {
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error !== null && typeof error === 'object' && 'message' in error) {
+      return typeof error.message === 'string'
+        ? error.message
+        : t('Unknown error while saving');
+    }
+    if (typeof error === 'number' || typeof error === 'boolean') {
+      return String(error);
+    }
+    return t('Unknown error while saving');
+  }
+
+  /**
    * Set "error" state for field
    */
   setError(id: string, error: boolean | string) {
@@ -813,11 +834,11 @@ export class FormModel {
         Array.isArray(nonFieldErrors) &&
         nonFieldErrors.length
       ) {
-        addErrorMessage(nonFieldErrors[0], {duration: 10000});
+        addErrorMessage(this.normalizeError(nonFieldErrors[0]), {duration: 10000});
         errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
-        this.setError(id, resp[id][0]);
+        this.setError(id, this.normalizeError(resp[id][0]));
         errorDisplayed = true;
       }
     });

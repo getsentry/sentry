@@ -324,17 +324,21 @@ export const CheckWrap = styled('div')<{
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;
-          ${p.isSelected &&
-          css`
-            background: ${p.theme.tokens.background.accent.vibrant};
-            border-color: ${p.theme.tokens.border.accent};
-          `}
+          ${
+            p.isSelected &&
+            css`
+              background: ${p.theme.tokens.background.accent.vibrant};
+              border-color: ${p.theme.tokens.border.accent};
+            `
+          }
         `
       : css`
-          ${p.isSelected &&
-          css`
-            color: ${p.theme.tokens.content.accent};
-          `}
+          ${
+            p.isSelected &&
+            css`
+              color: ${p.theme.tokens.content.accent};
+            `
+          }
         `}
 `;
 
