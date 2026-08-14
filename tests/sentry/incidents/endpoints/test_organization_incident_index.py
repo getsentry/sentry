@@ -4,6 +4,7 @@ from functools import cached_property
 from sentry.constants import ObjectStatus
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -190,3 +191,51 @@ class WorkflowEngineIncidentListTest(APITestCase):
         # The alert rule filter should no longer find this detector
         resp = self.get_success_response(self.organization.slug, alertRule=str(alert_rule.id))
         assert len(resp.data) == 0
+
+    def test_filter_by_unix_start_and_end(self) -> None:
+        """Clients may send unix timestamps for start/end (e.g. Discover-style ranges)."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        migrate_metric_data_conditions(trigger)
+        migrate_resolve_threshold_data_condition(alert_rule)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            group.priority = PriorityLevel.HIGH.value
+            group.save()
+            DetectorGroup.objects.create(detector=detector, group=group)
+            open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
+
+        start_ts = int((open_period.date_started - timedelta(hours=1)).timestamp())
+        end_ts = int((open_period.date_started + timedelta(hours=1)).timestamp())
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            start=str(start_ts),
+            end=str(end_ts),
+        )
+        assert len(resp.data) == 1
+
+        # Outside the window should return nothing
+        past_end = int((open_period.date_started - timedelta(days=2)).timestamp())
+        past_start = int((open_period.date_started - timedelta(days=3)).timestamp())
+        resp_empty = self.get_success_response(
+            self.organization.slug,
+            start=str(past_start),
+            end=str(past_end),
+        )
+        assert len(resp_empty.data) == 0
+
+    def test_invalid_start_returns_400(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug,
+            start="not-a-date",
+            status_code=400,
+        )
+
