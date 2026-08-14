@@ -19,6 +19,7 @@ export function ExplorerAutofixFixture(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
     ...params,
   };
