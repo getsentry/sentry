@@ -369,11 +369,12 @@ export const LINK_RULES: LinkRule[] = [
       // Arrives on both channels. The bus link always carries the translated query. The call row
       // starts with only `dataset` + `question`; seer stamps the translated params onto the record
       // after the search returns, so a fresh row can deep-link the same way. Older rows without a
-      // query still decline here and keep the residual bus link underneath.
+      // string query still decline here and keep the residual bus link underneath. Params are
+      // untyped wire JSON, so require an actual string — a truthy object would serialize as junk.
       if (kind !== 'link' && kind !== 'lib') {
         return null;
       }
-      if (kind === 'lib' && (params.query === undefined || params.query === null)) {
+      if (kind === 'lib' && typeof params.query !== 'string') {
         return null;
       }
 
@@ -524,9 +525,12 @@ function searchUrl(
   params: Record<string, any>,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, sort, stats_period, start, end} = params;
+  // Params are untyped wire JSON. Only string queries belong in the URL; anything else would
+  // serialize as junk (e.g. query=%5Bobject%20Object%5D).
+  const query = typeof params.query === 'string' ? params.query : '';
 
-  const queryParams: Record<string, any> = {query: query || '', project: null};
+  const queryParams: Record<string, any> = {query, project: null};
   if (stats_period) {
     queryParams.statsPeriod = stats_period;
   }

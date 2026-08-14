@@ -397,6 +397,21 @@ describe('search links', () => {
     expect(resolveLink(subject, ctx)).toBeNull();
   });
 
+  // Params are untyped wire JSON. A truthy non-string must not become query=%5Bobject%20Object%5D.
+  it('does not link a search row whose stamped query is not a string', () => {
+    const subject = subjectFromCallRecord({
+      id: 1,
+      kind: 'lib',
+      name: 'telemetry_live_search',
+      params: {
+        dataset: 'issues',
+        question: 'unresolved issues',
+        query: {raw: 'is:unresolved'},
+      },
+    });
+    expect(resolveLink(subject, ctx)).toBeNull();
+  });
+
   it('links a search row once seer stamped the translated query onto it', () => {
     const result = resolveLink(
       subjectFromCallRecord({
