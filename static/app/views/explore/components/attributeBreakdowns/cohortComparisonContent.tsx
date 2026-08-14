@@ -65,7 +65,7 @@ export function CohortComparison({
   const showValidatedResults = enabled || preservePreviousData;
   const data = showValidatedResults ? queryResult.data : undefined;
   const error = showValidatedResults ? queryResult.error : null;
-  const isLoading = showValidatedResults ? queryResult.isLoading : false;
+  const isPending = showValidatedResults ? queryResult.isPending : false;
 
   const {
     filteredRankedAttributes,
@@ -117,7 +117,7 @@ export function CohortComparison({
           />
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
-        {isLoading ? (
+        {isPending ? (
           <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />

@@ -73,7 +73,7 @@ export function AttributeDistribution({
 
   const {
     data: cohortCountResponse,
-    isLoading: isCohortCountLoading,
+    isPending: isCohortCountPending,
     error: cohortCountError,
     refetch: refetchCohortCount,
   } = useQuery({
@@ -112,8 +112,8 @@ export function AttributeDistribution({
   const attributeBreakdownsPageLinks = showValidatedResults
     ? attributeBreakdownsResult.pageLinks
     : null;
-  const isAttributeBreakdownsLoading = showValidatedResults
-    ? attributeBreakdownsResult.isLoading
+  const isAttributeBreakdownsPending = showValidatedResults
+    ? attributeBreakdownsResult.isPending
     : false;
   const attributeBreakdownsError = showValidatedResults
     ? attributeBreakdownsResult.error
@@ -123,13 +123,13 @@ export function AttributeDistribution({
   // This ensures that the population percentages are calculated correctly,
   // for none absolute date ranges.
   useEffect(() => {
-    if (enabled && !isAttributeBreakdownsLoading && attributeBreakdownsData) {
+    if (enabled && !isAttributeBreakdownsPending && attributeBreakdownsData) {
       refetchCohortCount();
     }
   }, [
     attributeBreakdownsData,
     enabled,
-    isAttributeBreakdownsLoading,
+    isAttributeBreakdownsPending,
     refetchCohortCount,
   ]);
 
@@ -179,8 +179,8 @@ export function AttributeDistribution({
           />
           <AttributeBreakdownsComponent.FeedbackButton />
         </AttributeBreakdownsComponent.ControlsContainer>
-        {isAttributeBreakdownsLoading ||
-        (showValidatedResults && isCohortCountLoading) ? (
+        {isAttributeBreakdownsPending ||
+        (showValidatedResults && isCohortCountPending) ? (
           <LoadingIndicator />
         ) : error ? (
           <AttributeBreakdownsComponent.ErrorState error={error} />

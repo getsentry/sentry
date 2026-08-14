@@ -60,7 +60,7 @@ export function useAttributeBreakdowns({
 
   const {
     data: response,
-    isLoading,
+    isPending,
     error,
   } = useQuery({
     ...apiOptions.as<AttributeBreakdowns>()(
@@ -80,7 +80,7 @@ export function useAttributeBreakdowns({
     data:
       response?.json?.data[0]?.attributeDistributions?.data ??
       response?.json?.data[0]?.attribute_distributions?.data,
-    isLoading,
+    isPending,
     error,
     pageLinks: response?.headers.Link ?? null,
   };
