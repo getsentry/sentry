@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -59,12 +60,12 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="filter" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-        <Stack gap="xs" overflow="hidden">
+        <Stack align="start" gap="xs">
           {parsedQuery
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
               <FormattedQueryWrapper key={text}>
-                <ProvidedFormattedQuery query={text} />
+                <ProvidedFormattedQuery filterRenderer="chip" query={text} />
               </FormattedQueryWrapper>
             ))}
         </Stack>
@@ -76,7 +77,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           {visualizations.map((visualization, vIdx) =>
             visualization.yAxes.map(yAxis => (
               <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
@@ -93,7 +94,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="interval">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           <ExploreGroupBys>{interval}</ExploreGroupBys>
         </Stack>
       </Stack>
@@ -104,7 +105,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           {groupBys.map((groupBy, idx) => (
             <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
           ))}
@@ -118,7 +119,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <Flex as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Flex as="span" wrap="wrap" gap="xs">
           <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
         </Flex>
       </Stack>
@@ -127,7 +128,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
         </Stack>
       </Stack>
@@ -142,7 +143,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="projects">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           {shownSlugs.map(slug => (
             <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
           ))}
@@ -161,7 +162,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" align="start" gap="xs">
           <ExploreGroupBys>
             {formattedSort + (descending ? ' Desc' : ' Asc')}
           </ExploreGroupBys>
@@ -178,7 +179,7 @@ function NewQueryTokens({
       : null;
 
     crossEventTokens.push(
-      <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
+      <Stack key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
         <Flex gap="md" wrap="wrap">
           <Stack gap="xs" minWidth="0" maxWidth="100%">
@@ -189,12 +190,12 @@ function NewQueryTokens({
           </Stack>
           <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-            <Stack gap="xs">
+            <Stack align="start" gap="xs">
               {parsedCrossEvent
                 ?.filter(({text}) => text.trim() !== '')
                 .map(({text}) => (
                   <FormattedQueryWrapper key={text}>
-                    <ProvidedFormattedQuery query={text} />
+                    <ProvidedFormattedQuery filterRenderer="chip" query={text} />
                   </FormattedQueryWrapper>
                 ))}
             </Stack>
@@ -232,20 +233,11 @@ function ExploreParamTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-const ExploreVisualizes = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  min-height: 24px;
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  display: inline-flex;
-  align-items: center;
-`;
+function ExploreValueChip({children}: {children: string}) {
+  return <Chip size="sm" value={children} />;
+}
+
+const ExploreVisualizes = ExploreValueChip;
 
 const ExploreGroupBys = ExploreVisualizes;
 
