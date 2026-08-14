@@ -371,7 +371,9 @@ export const LINK_RULES: LinkRule[] = [
       kind === 'api' &&
       method === 'GET' &&
       !!path &&
-      /\/organizations\/\{organization_id_or_slug\}\/events(?:-timeseries)?\/?$/.test(path),
+      /\/organizations\/\{organization_id_or_slug\}\/events(?:-timeseries)?\/?$/.test(
+        path
+      ),
     resolve: ({query, title}, {projects}) => {
       const params = exploreApiSearchParams(query);
       if (!params) {
@@ -604,7 +606,8 @@ function searchUrl(
   params: Record<string, any>,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} =
+    params;
 
   const queryParams: Record<string, any> = {query: query || '', project: null};
   if (stats_period) {
