@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
-from rest_framework.exceptions import AuthenticationFailed, ParseError
+from rest_framework.exceptions import AuthenticationFailed, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -52,7 +52,7 @@ class ProjectIndexEndpoint(Endpoint):
 
         if is_agent_auth(request.auth):
             if request.auth.organization_id is None or request.auth.user_id is None:
-                queryset = queryset.none()
+                raise PermissionDenied
             else:
                 org_context = organization_service.get_organization_by_id(
                     id=request.auth.organization_id,

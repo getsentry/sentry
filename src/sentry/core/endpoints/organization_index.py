@@ -452,6 +452,9 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
+        if is_agent_auth(request.auth):
+            raise PermissionDenied
+
         if SiloMode.get_current_mode() == SiloMode.CELL:
             metrics.incr("api.organization_index.post.rejected")
             base_url = options.get("system.url-prefix")

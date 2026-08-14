@@ -928,7 +928,7 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    if request.auth is not None and is_agent_auth(request.auth):
+    if is_agent_auth(request.auth):
         if rpc_user_org_context is None:
             return DEFAULT
         return from_agent_auth(request.auth, rpc_user_org_context)
@@ -1032,7 +1032,7 @@ def from_user_and_rpc_user_org_context(
 def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
-    if request.auth is not None and is_agent_auth(request.auth):
+    if is_agent_auth(request.auth):
         if organization is None:
             return DEFAULT
         return from_auth(request.auth, organization)
