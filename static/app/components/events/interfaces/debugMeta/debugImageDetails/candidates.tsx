@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
@@ -311,6 +312,8 @@ export class Candidates extends Component<Props, State> {
     const haveCandidatesAtLeastOneAction =
       haveCandidatesOkOrDeletedDebugFile || hasReprocessWarning;
 
+    const {emptyMessage, emptyAction} = this.getEmptyMessage();
+
     return (
       <Wrapper>
         <Header>
@@ -353,7 +356,12 @@ export class Candidates extends Component<Props, State> {
         >
           {isLoading && <SimpleTable.Loading />}
           {!isLoading && !filteredCandidatesByFilter.length && (
-            <SimpleTable.Empty>{this.getEmptyMessage().emptyMessage}</SimpleTable.Empty>
+            <SimpleTable.Empty>
+              <Stack align="center" gap="xl">
+                {emptyMessage}
+                {emptyAction}
+              </Stack>
+            </SimpleTable.Empty>
           )}
           {!isLoading &&
             filteredCandidatesByFilter.map((candidate, index) => (

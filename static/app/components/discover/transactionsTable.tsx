@@ -241,8 +241,11 @@ export function TransactionsTable(props: Props) {
       hasData={hasResults}
       isLoading={isLoading}
     >
-      <StyledSimpleTable data-test-id="transactions-table" columns={columns}>
-        <SimpleTable.HeaderRow>{renderHeader()}</SimpleTable.HeaderRow>
+      <StyledSimpleTable
+        data-test-id="transactions-table"
+        columns={columns}
+        header={<SimpleTable.HeaderRow>{renderHeader()}</SimpleTable.HeaderRow>}
+      >
         {isLoading && <SimpleTable.Empty>{loader}</SimpleTable.Empty>}
         {!isLoading && !hasResults && (
           <SimpleTable.Empty>

@@ -47,8 +47,9 @@ export function ReleaseComparisonChartRow({
     <ChartTableRow
       isActive={type === activeChart}
       isLoading={showPlaceholders}
-      role={role}
+      rowRole={role}
       expanded={expanded}
+      onClick={() => onChartChange(type)}
     >
       <DescriptionCell>
         <Tooltip disabled={!tooltip} title={tooltip} showUnderline>
@@ -99,7 +100,11 @@ export function ReleaseComparisonChartRow({
         <ExpanderCell>
           {role === 'parent' && (
             <ToggleButton
-              onClick={() => onExpanderToggle(type)}
+              onClick={event => {
+                // The row selects its chart on click, which the expander is not
+                event.stopPropagation();
+                onExpanderToggle(type);
+              }}
               variant="transparent"
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
@@ -166,12 +171,15 @@ const TitleWrapper = styled('label')`
 
 const ChartTableRow = styled(SimpleTable.Row, {
   shouldForwardProp: prop =>
-    prop !== 'expanded' && prop !== 'isActive' && prop !== 'isLoading',
+    prop !== 'expanded' &&
+    prop !== 'isActive' &&
+    prop !== 'isLoading' &&
+    prop !== 'rowRole',
 })<{
   expanded: boolean;
   isActive: boolean;
   isLoading: boolean;
-  role: ReleaseComparisonRow['role'];
+  rowRole: ReleaseComparisonRow['role'];
 }>`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
@@ -197,7 +205,7 @@ const ChartTableRow = styled(SimpleTable.Row, {
   }
 
   ${p =>
-    (p.role === 'default' || (p.role === 'parent' && !p.expanded)) &&
+    (p.rowRole === 'default' || (p.rowRole === 'parent' && !p.expanded)) &&
     css`
       &:not(:last-child) {
         ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
@@ -207,7 +215,7 @@ const ChartTableRow = styled(SimpleTable.Row, {
     `}
 
   ${p =>
-    p.role === 'children' &&
+    p.rowRole === 'children' &&
     css`
       ${DescriptionCell} {
         padding-left: 44px;
@@ -226,7 +234,7 @@ const ChartTableRow = styled(SimpleTable.Row, {
     `}
 
   ${p =>
-    p.role === 'children' &&
+    p.rowRole === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
         padding-bottom: ${p.theme.space.sm};

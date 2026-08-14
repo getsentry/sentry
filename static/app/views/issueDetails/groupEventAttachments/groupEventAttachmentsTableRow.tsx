@@ -44,7 +44,7 @@ export function GroupEventAttachmentsTableRow({
 
   return (
     <Fragment>
-      <SimpleTable.Row>
+      <SimpleTable.Row className={sharedClassName}>
         <FlexCenter className={sharedClassName}>
           <div>
             <AttachmentName>{attachment.name}</AttachmentName>
