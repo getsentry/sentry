@@ -185,20 +185,31 @@ class OrganizationAgentTokenTest(APITestCase):
         assert write.status_code == 403
 
     def test_agent_token_cannot_create_an_organization(self) -> None:
-        self._grant(session_id="s1", scopes=["org:write"])
         self.login_as(self.owner)
 
         with self.feature(FLAG):
-            token = self._mint(sessionId="s1").data["token"]
+            readonly_token = self._mint(sessionId="s1").data["token"]
             with assume_test_silo_mode(SiloMode.CONTROL):
-                response = APIClient().post(
+                readonly_response = APIClient().post(
                     "/api/0/organizations/",
                     data={"name": "Outside Token Organization"},
                     format="json",
-                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                    HTTP_AUTHORIZATION=f"Bearer {readonly_token}",
                 )
 
-        assert response.status_code == 403
+            self._grant(session_id="s1", scopes=["org:write"])
+            approved_token = self._mint(sessionId="s1").data["token"]
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                approved_response = APIClient().post(
+                    "/api/0/organizations/",
+                    data={"name": "Outside Token Organization"},
+                    format="json",
+                    HTTP_AUTHORIZATION=f"Bearer {approved_token}",
+                )
+
+        for response in (readonly_response, approved_response):
+            assert response.status_code == 403
+            assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
 
     def test_organization_owner_listing_remains_token_org_bound(self) -> None:
         other_org = self.create_organization(owner=self.owner)

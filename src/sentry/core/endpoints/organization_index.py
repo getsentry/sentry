@@ -9,6 +9,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features, options, roles
 from sentry import ratelimits as ratelimiter
@@ -59,6 +60,13 @@ from sentry.utils import metrics
 from sentry.utils.pagination_factory import PaginatorLike
 
 logger = logging.getLogger(__name__)
+
+
+class OrganizationIndexPermission(OrganizationPermission):
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "POST" and is_agent_auth(request.auth):
+            return False
+        return super().has_permission(request, view)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -123,7 +131,7 @@ class OrganizationIndexEndpoint(Endpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (OrganizationPermission,)
+    permission_classes = (OrganizationIndexPermission,)
 
     @extend_schema(
         operation_id="listOrganizations",
@@ -452,9 +460,6 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
-        if is_agent_auth(request.auth):
-            raise PermissionDenied
-
         if SiloMode.get_current_mode() == SiloMode.CELL:
             metrics.incr("api.organization_index.post.rejected")
             base_url = options.get("system.url-prefix")
