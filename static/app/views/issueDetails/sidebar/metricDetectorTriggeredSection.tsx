@@ -503,7 +503,7 @@ function TriggeredConditionDetails({
               ),
               subject: t('Condition'),
             },
-            ...(defined(formattedEvaluatedValue)
+            ...(formattedEvaluatedValue
               ? [
                   {
                     key: 'value',
