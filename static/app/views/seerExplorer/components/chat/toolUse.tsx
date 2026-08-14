@@ -425,10 +425,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
         // todos, links or markdown would render an empty row with a lone status tick.
+        // Use residual nav items, not the pre-pairing list: consumed destinations no longer render.
         const hasContent =
           Boolean(toolString) ||
           linkedCallRows.length > 0 ||
-          navItems.length > 0 ||
+          residualNavItems.length > 0 ||
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
         if (!hasContent) {
