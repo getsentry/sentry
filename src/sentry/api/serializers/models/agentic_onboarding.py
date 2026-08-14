@@ -23,8 +23,8 @@ class AgenticOnboardingRunResponse(TypedDict):
     expiresAt: str
     continueUpdates: bool
     runStatus: RunStatus
-    projectSlug: str | None
-    issueId: str | None
+    projectSlugs: list[str]
+    issueIds: list[str]
     stages: list[AgenticOnboardingStageResponse]
 
 
@@ -47,8 +47,8 @@ class AgenticOnboardingRunSerializer(Serializer[AgenticOnboardingRunResponse]):
             expiresAt=obj.expires_at.isoformat(),
             continueUpdates=obj.run_status is RunStatus.ACTIVE,
             runStatus=obj.run_status,
-            projectSlug=obj.project_slug,
-            issueId=obj.issue_id,
+            projectSlugs=list(obj.project_slugs),
+            issueIds=list(obj.issue_ids),
             stages=[
                 AgenticOnboardingStageResponse(
                     stage=state.stage,
