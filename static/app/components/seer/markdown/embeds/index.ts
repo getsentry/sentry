@@ -1,6 +1,7 @@
 import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
 import {Alert} from './components/alert';
 import {Autofix} from './components/autofix';
+import {AutofixRef} from './components/autofixRef';
 import {Chart} from './components/chart';
 import {Dashboard} from './components/dashboard';
 import {Docs} from './components/docs';
@@ -26,6 +27,7 @@ const embeds = [
   AgentWriteApprovalEmbed,
   Alert,
   Autofix,
+  AutofixRef,
   Chart,
   Dashboard,
   Docs,
