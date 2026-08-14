@@ -241,7 +241,7 @@ export function TransactionsTable(props: Props) {
       hasData={hasResults}
       isLoading={isLoading}
     >
-      <StyledSimpleTable
+      <SimpleTable
         data-test-id="transactions-table"
         columns={columns}
         header={<SimpleTable.HeaderRow>{renderHeader()}</SimpleTable.HeaderRow>}
@@ -255,7 +255,7 @@ export function TransactionsTable(props: Props) {
           </SimpleTable.Empty>
         )}
         {renderResults()}
-      </StyledSimpleTable>
+      </SimpleTable>
     </VisuallyCompleteWithData>
   );
 }
@@ -286,11 +286,4 @@ const StyledIconQuestion = styled(QuestionTooltip)`
   position: relative;
   top: 1px;
   left: 4px;
-`;
-
-const StyledSimpleTable = styled(SimpleTable)`
-  [role='cell'],
-  [role='columnheader'] {
-    padding: 0;
-  }
 `;

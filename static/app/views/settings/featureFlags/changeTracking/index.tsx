@@ -5,7 +5,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -43,13 +42,6 @@ type FetchSecretParameters = {
 type RemoveSecretQueryVariables = {
   id: number;
 };
-
-const SECRET_COLUMNS: TableColumnConfig[] = [
-  {key: 'provider', width: 'auto'},
-  {key: 'created', width: 'auto'},
-  {key: 'createdBy', width: 'auto'},
-  {key: 'actions', width: 'auto'},
-];
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
   [
@@ -183,7 +175,6 @@ function OrganizationFeatureFlagsChangeTracking() {
       </TextBlock>
       <ResponsiveSimpleTable
         data-test-id="secrets-table"
-        columns={SECRET_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
@@ -230,6 +221,8 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 }
 
 const ResponsiveSimpleTable = styled(SimpleTable)`
+  grid-template-columns: auto auto auto auto;
+
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 

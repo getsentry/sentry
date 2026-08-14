@@ -110,14 +110,13 @@ export function AutofixRepositoriesItem({
 
   return (
     <Fragment>
-      <SimpleTable.Row>
+      <SimpleTable.Row style={isExpanded ? {borderBottom: 'none'} : undefined}>
         <SimpleTable.RowCell
           align="center"
           gap="sm"
           height="100%"
           position="relative"
           padding="0"
-          style={isExpanded ? {borderBottom: 'none'} : {}}
         >
           <RowButton
             icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
@@ -132,19 +131,14 @@ export function AutofixRepositoriesItem({
           </RowButton>
         </SimpleTable.RowCell>
 
-        <SimpleTable.RowCell
-          gap="lg"
-          align="center"
-          justify="end"
-          style={isExpanded ? {borderBottom: 'none'} : {}}
-        >
+        <SimpleTable.RowCell gap="lg" align="center" justify="end">
           <Flex align="center" gap="sm">
             <RepoProviderIcon provider={repository.provider} size="sm" />
             <Text size="sm">{providerDisplayName}</Text>
           </Flex>
         </SimpleTable.RowCell>
 
-        <SimpleTable.RowCell style={isExpanded ? {borderBottom: 'none'} : {}}>
+        <SimpleTable.RowCell>
           <Confirm
             disabled={!canWrite}
             onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
