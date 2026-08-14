@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -62,30 +61,31 @@ function deriveVisualState({
   messagingSetup: ScmMessagingSetup;
   viewModel: ScmMessagingProviderViewModel;
 }): RowVisualState {
-  const forThisProvider =
-    installState.status !== 'idle' && installState.providerKey === viewModel.providerKey;
-
-  if (forThisProvider) {
-    if (installState.status === 'installing') {
-      return 'installing';
-    }
+  // `installState` is local to this row's `useAddIntegration`, so it always
+  // refers to this provider's flow.
+  if (installState.status === 'installing') {
+    return 'installing';
+  }
+  // Only surface an install error while still uninstalled; a shared-query
+  // refetch may reveal the integration after a local error.
+  if (viewModel.status === 'installable') {
     if (installState.status === 'error') {
       return 'install-error';
     }
     if (installState.status === 'cancelled' && installState.lastError) {
       return 'install-error';
     }
-    // Hold the spinner only while waiting for the just-installed integration to
-    // surface. Once the view model settles to anything other than `installable`
-    // (connected or permission-limited) that state is terminal, so falling
-    // through avoids spinning forever on an ineligible or vanished integration.
-    if (
-      installState.status === 'complete' &&
-      awaitingInstall &&
-      viewModel.status === 'installable'
-    ) {
-      return 'loading';
-    }
+  }
+  // Hold the spinner only while waiting for the just-installed integration to
+  // surface. Once the view model settles to anything other than `installable`
+  // (connected or permission-limited) that state is terminal, so falling
+  // through avoids spinning forever on an ineligible or vanished integration.
+  if (
+    installState.status === 'complete' &&
+    awaitingInstall &&
+    viewModel.status === 'installable'
+  ) {
+    return 'loading';
   }
 
   if (viewModel.status === 'installable') {
@@ -114,6 +114,18 @@ function deriveVisualState({
     return 'configured';
   }
   return 'connected';
+}
+
+function getInstallErrorMessage(
+  installState: ReturnType<typeof useAddIntegration>['state']
+): string | undefined {
+  if (installState.status === 'error') {
+    return installState.error;
+  }
+  if (installState.status === 'cancelled') {
+    return installState.lastError;
+  }
+  return undefined;
 }
 
 export interface ScmMessagingProviderRowProps {
@@ -226,12 +238,14 @@ export function ScmMessagingProviderRow({
     [onMessagingSetupChange]
   );
 
-  const errorMessage =
-    installState.status === 'error'
-      ? installState.error
-      : installState.status === 'cancelled' && installState.lastError
-        ? installState.lastError
-        : undefined;
+  const errorMessage = getInstallErrorMessage(installState);
+
+  const showRowContent =
+    visualState !== 'loading' &&
+    visualState !== 'installing' &&
+    visualState !== 'install-error';
+
+  const showChannelPicker = visualState === 'configuring' && viewModel.integration;
 
   return (
     <ScmSelectableContainer isSelected={isConfigured}>
@@ -255,49 +269,47 @@ export function ScmMessagingProviderRow({
           </Stack>
         )}
 
-        {visualState !== 'loading' &&
-          visualState !== 'installing' &&
-          visualState !== 'install-error' && (
-            <Flex padding="lg" gap="md" align="start" justify="between">
-              <Flex gap="md" align="start" style={{flex: 1, minWidth: 0}}>
-                <IconWrapper>
-                  <PluginIcon pluginId={viewModel.providerKey} size={24} />
-                </IconWrapper>
-                <Stack gap="xs">
-                  <Text bold size="sm">
-                    {viewModel.provider.name}
-                  </Text>
-                  <RowSubtitle
-                    visualState={visualState}
-                    viewModel={viewModel}
-                    messagingSetup={messagingSetup}
-                  />
-                </Stack>
-              </Flex>
-
-              <Flex gap="sm" align="center" style={{flexShrink: 0}}>
-                <RowActions
+        {showRowContent && (
+          <Flex padding="lg" gap="md" align="start" justify="between">
+            <Flex gap="md" align="start" style={{flex: 1, minWidth: 0}}>
+              <Container flexShrink={0} paddingTop="2xs">
+                <PluginIcon pluginId={viewModel.providerKey} size={24} />
+              </Container>
+              <Stack gap="xs">
+                <Text bold size="sm">
+                  {viewModel.provider.name}
+                </Text>
+                <RowSubtitle
                   visualState={visualState}
                   viewModel={viewModel}
-                  onConnect={handleConnect}
-                  onAddDestination={handleAddDestination}
-                  onEditDestination={handleEditDestination}
-                  onStartRemoving={handleStartRemoving}
-                  onCancelRemoving={handleCancelRemoving}
-                  onConfirmRemove={handleConfirmRemove}
+                  messagingSetup={messagingSetup}
                 />
-              </Flex>
+              </Stack>
             </Flex>
-          )}
 
-        {visualState === 'configuring' && viewModel.integration && (
-          <ChannelPickerSlot>
+            <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+              <RowActions
+                visualState={visualState}
+                viewModel={viewModel}
+                onConnect={handleConnect}
+                onAddDestination={handleAddDestination}
+                onEditDestination={handleEditDestination}
+                onStartRemoving={handleStartRemoving}
+                onCancelRemoving={handleCancelRemoving}
+                onConfirmRemove={handleConfirmRemove}
+              />
+            </Flex>
+          </Flex>
+        )}
+
+        {showChannelPicker && (
+          <Container borderTop="primary" padding="lg">
             {renderChannelPicker?.({
-              integration: viewModel.integration,
+              integration: showChannelPicker,
               onCancel: handleCancelConfiguring,
               onConfigured: handleConfigured,
             })}
-          </ChannelPickerSlot>
+          </Container>
         )}
       </Stack>
     </ScmSelectableContainer>
@@ -443,13 +455,3 @@ function RowActions({
 
   return null;
 }
-
-const IconWrapper = styled('div')`
-  flex-shrink: 0;
-  margin-top: 2px;
-`;
-
-const ChannelPickerSlot = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${p => p.theme.space.lg};
-`;

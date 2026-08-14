@@ -242,6 +242,41 @@ describe('ScmMessagingProviderRow', () => {
         screen.getByText('Installation failed. Please try again.')
       ).toBeInTheDocument();
     });
+
+    it('clears the error when the integration surfaces via a shared refetch', async () => {
+      const {callbacks} = mockPipeline();
+
+      const {rerender} = render(
+        <ScmMessagingProviderRow
+          viewModel={installableSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      act(() => callbacks.onError?.('OAuth failed'));
+
+      expect(screen.getByText('OAuth failed')).toBeInTheDocument();
+
+      // The integrations query is shared: another row's successful install
+      // refetches it and reveals this provider's integration despite the local
+      // error. The row must drop the error instead of offering a Try again that
+      // would reinstall an existing integration.
+      rerender(
+        <ScmMessagingProviderRow
+          viewModel={connectedSlack}
+          messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
+          onInstallComplete={jest.fn()}
+          onMessagingSetupChange={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByText('OAuth failed')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Try again/})).not.toBeInTheDocument();
+    });
   });
 
   describe('cancelled without error', () => {
