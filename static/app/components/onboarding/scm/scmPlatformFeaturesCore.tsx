@@ -410,12 +410,15 @@ export function ScmPlatformFeaturesCore({
   // Indent section headings past the options' reserved checkmark column (1em
   // at the item font size, i.e. form.md.fontSize) plus the leading-items gap,
   // so heading text aligns with the platform icons instead of hanging left of
-  // them. Shared by both manual-picker Select variants below.
+  // them. Must override the padding shorthand, not paddingLeft: base already
+  // holds a paddingLeft key from react-select's defaults, so an overridden
+  // paddingLeft keeps that key's early position and the later padding
+  // shorthand resets it. Shared by both manual-picker Select variants below.
   const manualPickerStyles: StylesConfig = {
     container: base => ({...base, width: '100%'}),
     groupHeading: base => ({
       ...base,
-      paddingLeft: `calc(${theme.space.lg} + ${theme.space.md} + ${theme.form.md.fontSize})`,
+      padding: `${theme.space.xs} ${theme.space.lg} ${theme.space.xs} calc(${theme.space.lg} + ${theme.space.md} + ${theme.form.md.fontSize})`,
     }),
   };
 
