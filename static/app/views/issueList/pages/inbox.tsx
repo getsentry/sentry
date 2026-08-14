@@ -1,7 +1,7 @@
 import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -63,6 +63,7 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
+const ASSIGNMENT_BADGE_WIDTH = '27px';
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
@@ -70,6 +71,8 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
+const ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
 interface InboxSectionContext {
   assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
@@ -204,6 +207,95 @@ function useSelectFirstLoadedIssue({
   };
 }
 
+// Fetch counts for the assignment filter tabs (my/my teams/all)
+function useAssignmentCounts() {
+  const organization = useOrganization();
+  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const allQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.all}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+
+  const {data} = useQuery({
+    ...apiOptions.as<Record<string, number>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        staleTime: 180_000,
+      }
+    ),
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    me: data[meQuery] ?? 0,
+    my_teams: data[myTeamsQuery] ?? 0,
+    all: data[allQuery] ?? 0,
+  };
+}
+
+function AssignmentTabs({
+  assignmentFilter,
+  setAssignmentFilter,
+}: {
+  assignmentFilter: AssignmentFilter;
+  setAssignmentFilter: (filter: AssignmentFilter) => void;
+}) {
+  const organization = useOrganization();
+  const assignmentCounts = useAssignmentCounts();
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
+
+  useRouteAnalyticsParams(
+    assignmentCounts
+      ? {
+          assignment_filter: assignmentFilter,
+          count_me: assignmentCounts.me,
+          count_my_teams: assignmentCounts.my_teams,
+          count_all: assignmentCounts.all,
+        }
+      : {
+          assignment_filter: assignmentFilter,
+        }
+  );
+
+  return (
+    <SegmentedControl
+      aria-label={t('Issue assignee')}
+      size="xs"
+      value={assignmentFilter}
+      onChange={handleAssignmentFilterChange}
+    >
+      <SegmentedControl.Item key="me" textValue={t('Me')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('Me')}
+          <AssignmentCountBadge count={assignmentCounts?.me} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('My Teams')}
+          <AssignmentCountBadge count={assignmentCounts?.my_teams} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="all" textValue={t('All')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('All')}
+          <AssignmentCountBadge count={assignmentCounts?.all} />
+        </Flex>
+      </SegmentedControl.Item>
+    </SegmentedControl>
+  );
+}
+
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
@@ -244,14 +336,6 @@ function InboxContent() {
     sections,
   });
 
-  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
-    trackAnalytics('issue_inbox.assignment_filter_changed', {
-      organization,
-      assignment_filter: filter,
-    });
-    setAssignmentFilter(filter);
-  };
-
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
@@ -284,18 +368,10 @@ function InboxContent() {
             <Heading as="h2" size="md">
               {t('Issues')}
             </Heading>
-            <SegmentedControl
-              aria-label={t('Issue assignee')}
-              size="xs"
-              value={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
-            >
-              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="my_teams">
-                {t('My Teams')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
-            </SegmentedControl>
+            <AssignmentTabs
+              assignmentFilter={assignmentFilter}
+              setAssignmentFilter={setAssignmentFilter}
+            />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
@@ -357,6 +433,21 @@ function InboxContent() {
         </Stack>
       </Grid>
     </Stack>
+  );
+}
+
+// To avoid pop-in we enusre that the badge has the same width (which is enough to contain 99+)
+function AssignmentCountBadge({count}: {count: number | undefined}) {
+  return (
+    <Flex as="span" width={ASSIGNMENT_BADGE_WIDTH} justify="end" align="center">
+      {count === undefined ? (
+        <Placeholder width={ASSIGNMENT_BADGE_WIDTH} height="16px" />
+      ) : (
+        <AssignmentBadge variant="muted">
+          <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
+        </AssignmentBadge>
+      )}
+    </Flex>
   );
 }
 
@@ -758,4 +849,11 @@ const IssueCardLink = styled(Link)`
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
   }
+`;
+
+const AssignmentBadge = styled(Badge)`
+  min-width: ${ASSIGNMENT_BADGE_WIDTH};
+  height: 16px;
+  font-size: ${p => p.theme.font.size.xs};
+  justify-content: center;
 `;
