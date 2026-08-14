@@ -58,7 +58,6 @@ export function ScmMessagingChannelPicker({
     eligibleIntegrations.find(i => i.id === savedSelection?.integrationId) ??
     firstIntegration;
 
-  // undefined means "no explicit user selection yet — use the default".
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>(
     undefined
   );
