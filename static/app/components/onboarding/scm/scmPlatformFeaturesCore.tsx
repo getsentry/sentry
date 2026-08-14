@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {motion} from 'framer-motion';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
-import {Select} from '@sentry/scraps/select';
+import {Select, type StylesConfig} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
@@ -88,6 +89,7 @@ export function ScmPlatformFeaturesCore({
   selectedRepository,
 }: ScmPlatformFeaturesCoreProps) {
   const isOnboarding = analyticsFlow === 'onboarding';
+  const theme = useTheme();
   const {openModal} = useModal();
   const organization = useOrganization();
 
@@ -405,6 +407,18 @@ export function ScmPlatformFeaturesCore({
     debounceManualPickerSearch();
   }
 
+  // Indent section headings past the options' reserved checkmark column (1em
+  // at the item font size, i.e. form.md.fontSize) plus the leading-items gap,
+  // so heading text aligns with the platform icons instead of hanging left of
+  // them. Shared by both manual-picker Select variants below.
+  const manualPickerStyles: StylesConfig = {
+    container: base => ({...base, width: '100%'}),
+    groupHeading: base => ({
+      ...base,
+      paddingLeft: `calc(${theme.space.lg} + ${theme.space.md} + ${theme.form.md.fontSize})`,
+    }),
+  };
+
   // When the active platform is a manual (non-detected) pick, show the manual
   // picker so the selection stays visible (see showDetectedPlatforms below).
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
@@ -517,7 +531,7 @@ export function ScmPlatformFeaturesCore({
           onInputChange={handleManualPickerSearch}
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={{container: base => ({...base, width: '100%'})}}
+          styles={manualPickerStyles}
         />
       ) : (
         <Select<(typeof platformOptions)[number]>
@@ -529,7 +543,7 @@ export function ScmPlatformFeaturesCore({
           clearable
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={{container: base => ({...base, width: '100%'})}}
+          styles={manualPickerStyles}
         />
       )}
     </MotionStack>
