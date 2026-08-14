@@ -104,9 +104,10 @@ describe('Explore Investigations', () => {
       screen.queryByRole('link', {name: 'Database latency investigation'})
     ).not.toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
     expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
-    expect(screen.queryByText('Status')).not.toBeInTheDocument();
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -186,7 +187,7 @@ describe('Explore Investigations', () => {
       url: listUrl,
       body: [InvestigationFixture({title: 'Untitled investigation'})],
     });
-    await userEvent.click(screen.getByRole('button', {name: 'New Investigation'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Launch investigation'}));
 
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
@@ -280,12 +281,39 @@ describe('Explore Investigations', () => {
     ).toBeInTheDocument();
   });
 
-  it('archives only after confirmation and sends the current version', async () => {
+  it('copies the investigation link from the overflow menu', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {writeText},
+      writable: true,
+    });
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
     });
-    const archiveRequest = MockApiClient.addMockResponse({
+
+    renderView();
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Copy link'}));
+
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/organizations/org-slug/seer/1/`
+      )
+    );
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      'Investigation link copied.'
+    );
+  });
+
+  it('deletes only after confirmation and sends the current version', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/1/',
       method: 'DELETE',
     });
@@ -296,13 +324,13 @@ describe('Explore Investigations', () => {
     await userEvent.click(
       await screen.findByLabelText('More options for Database latency investigation')
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Archive'}));
-    expect(archiveRequest).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    expect(deleteRequest).not.toHaveBeenCalled();
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>
-      expect(archiveRequest).toHaveBeenCalledWith(
+      expect(deleteRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/investigations/1/',
         expect.objectContaining({data: {investigationVersion: 3}})
       )
@@ -313,7 +341,13 @@ describe('Explore Investigations', () => {
   });
 
   it.each([
-    ['create', 'New Investigation', listUrl, 'POST', 'Unable to create investigation.'],
+    [
+      'create',
+      'Launch investigation',
+      listUrl,
+      'POST',
+      'Unable to create investigation.',
+    ],
     [
       'favorite',
       'Favorite Database latency investigation',
@@ -358,7 +392,7 @@ describe('Explore Investigations', () => {
     );
   });
 
-  it('reports an archive failure', async () => {
+  it('reports a delete failure', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
@@ -373,13 +407,13 @@ describe('Explore Investigations', () => {
     await userEvent.click(
       await screen.findByLabelText('More options for Database latency investigation')
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Archive'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>
       expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to archive investigation.'
+        'Unable to delete investigation.'
       )
     );
   });

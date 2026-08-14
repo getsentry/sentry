@@ -53,7 +53,7 @@ export function duplicateInvestigation(
   });
 }
 
-export function archiveInvestigation(
+export function deleteInvestigation(
   organizationSlug: string,
   investigation: InvestigationListItem
 ) {

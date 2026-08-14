@@ -31,12 +31,14 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  archiveInvestigation,
   createInvestigation,
+  deleteInvestigation,
   duplicateInvestigation,
   investigationListQueryOptions,
   setInvestigationFavorite,
@@ -48,14 +50,16 @@ enum ColumnKey {
   NAME = 'title',
   BLOCKS = 'blockCount',
   CREATED = 'dateCreated',
+  STATUS = 'status',
   ACTIONS = 'actions',
 }
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 100},
-  {key: ColumnKey.CREATED, name: t('Created'), width: 160},
-  {key: ColumnKey.ACTIONS, name: '', width: 56},
+  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 96},
+  {key: ColumnKey.CREATED, name: t('Created'), width: 140},
+  {key: ColumnKey.STATUS, name: t('Status'), width: 160},
+  {key: ColumnKey.ACTIONS, name: '', width: 40},
 ];
 
 function FeatureDisabledPage() {
@@ -86,6 +90,7 @@ function InvestigationsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const {copy} = useCopyToClipboard();
   const query = decodeScalar(location.query.query);
   const cursor = decodeScalar(location.query.cursor);
 
@@ -133,14 +138,14 @@ function InvestigationsPage() {
     onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
   });
 
-  const archiveMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (investigation: InvestigationListItem) =>
-      archiveInvestigation(organization.slug, investigation),
+      deleteInvestigation(organization.slug, investigation),
     onSuccess: () => {
-      addSuccessMessage(t('Investigation archived.'));
+      addSuccessMessage(t('Investigation deleted.'));
       invalidateList();
     },
-    onError: () => addErrorMessage(t('Unable to archive investigation.')),
+    onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
 
   function handleSearch(nextQuery: string) {
@@ -159,27 +164,38 @@ function InvestigationsPage() {
       <DropdownMenu
         items={[
           {
+            key: 'copy-link',
+            label: t('Copy link'),
+            onAction: () =>
+              copy(
+                `${window.location.origin}${normalizeUrl(
+                  `/organizations/${organization.slug}/seer/${investigation.id}/`
+                )}`,
+                {successMessage: t('Investigation link copied.')}
+              ),
+          },
+          {
             key: 'duplicate',
             label: t('Duplicate'),
             onAction: () => duplicateMutation.mutate(investigation),
           },
           {
-            key: 'archive',
-            label: t('Archive'),
+            key: 'delete',
+            label: t('Delete'),
             priority: 'danger',
             onAction: () =>
               openConfirmModal({
-                message: t('Are you sure you want to archive this investigation?'),
+                message: t('Are you sure you want to delete this investigation?'),
                 priority: 'danger',
-                confirmText: t('Archive'),
-                onConfirm: () => archiveMutation.mutate(investigation),
+                confirmText: t('Delete'),
+                onConfirm: () => deleteMutation.mutate(investigation),
               }),
           },
         ]}
         trigger={triggerProps => (
           <Button
             {...triggerProps}
-            size="sm"
+            size="zero"
             variant="transparent"
             icon={<IconEllipsis />}
             aria-label={t('More options for %s', investigation.title)}
@@ -201,6 +217,8 @@ function InvestigationsPage() {
         return investigation.blockCount;
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
+      case ColumnKey.STATUS:
+        return investigation.status === 'active' ? t('Active') : null;
       case ColumnKey.ACTIONS:
         return renderActions(investigation);
       default:
@@ -249,7 +267,7 @@ function InvestigationsPage() {
                     onClick={() => createMutation.mutate()}
                     busy={createMutation.isPending}
                   >
-                    {t('New Investigation')}
+                    {t('Launch investigation')}
                   </Button>
                 </Grid>
                 <GridEditable
