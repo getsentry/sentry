@@ -38,10 +38,7 @@ export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 // order reads as random without this pass.
 const popularPlatformOrder = Array.from(popularPlatformCategories);
 
-function comparePlatformOptions(
-  a: PlatformIntegration,
-  b: PlatformIntegration
-): number {
+function comparePlatformOptions(a: PlatformIntegration, b: PlatformIntegration): number {
   const aPopularIndex = popularPlatformOrder.indexOf(a.id);
   const bPopularIndex = popularPlatformOrder.indexOf(b.id);
   const aIsPopular = aPopularIndex !== -1;
