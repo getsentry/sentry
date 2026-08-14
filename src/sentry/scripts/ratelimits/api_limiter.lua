@@ -53,6 +53,13 @@ if allowed then
   current_executions = current_executions + 1
 end
 
+-- Handles the case where an unfinished request (timeout, etc) results in a member
+-- being leaked and not cleaned up. The TTL keeps leakage scoped to 1 day.
+local key_ttl_seconds = 86400
+if current_executions > 0 then
+  redis.call("expire", key, key_ttl_seconds)
+end
+
 -- NOTE: the cleaned up execution number should be removed once we know the rate limiter
 -- is working correctly
 return { current_executions, allowed, cleaned_up_requests}
