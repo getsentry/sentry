@@ -1,0 +1,386 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import * as indicators from 'sentry/actionCreators/indicator';
+import type {Organization} from 'sentry/types/organization';
+import InvestigationsView from 'sentry/views/investigations';
+import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+
+const organization = OrganizationFixture({
+  features: ['investigations'],
+  openMembership: true,
+});
+const listUrl = '/organizations/org-slug/investigations/';
+
+function renderView({
+  renderOrganization = organization,
+  query = {},
+}: {query?: Record<string, string>; renderOrganization?: Organization} = {}) {
+  return render(<InvestigationsView />, {
+    organization: renderOrganization,
+    initialRouterConfig: {
+      location: {
+        pathname: '/organizations/org-slug/explore/investigations/',
+        query,
+      },
+    },
+  });
+}
+
+function InvestigationFixture(
+  overrides: Partial<InvestigationListItem> = {}
+): InvestigationListItem {
+  return {
+    id: '1',
+    title: 'Database latency investigation',
+    status: 'active',
+    sourceType: 'manual',
+    createdBy: '1',
+    dateCreated: '2026-08-13T20:00:00Z',
+    dateUpdated: '2026-08-13T21:00:00Z',
+    version: 3,
+    blockCount: 4,
+    isFavorited: false,
+    ...overrides,
+  };
+}
+
+describe('Explore Investigations', () => {
+  beforeEach(() => {
+    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
+    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+  });
+
+  it('shows the standard feature-disabled state without the feature', () => {
+    renderView({
+      renderOrganization: OrganizationFixture({features: []}),
+    });
+
+    expect(
+      screen.getByText('This feature is not enabled on your Sentry installation.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Search Investigations')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the feature-disabled state for a closed-membership organization', () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    renderView({
+      renderOrganization: OrganizationFixture({
+        features: ['investigations'],
+        openMembership: false,
+      }),
+    });
+
+    expect(
+      screen.getByText(
+        'Investigations are only available to organizations with open membership.'
+      )
+    ).toBeInTheDocument();
+    expect(listRequest).not.toHaveBeenCalled();
+  });
+
+  it('renders loading and populated table states without unsupported controls', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+
+    renderView();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(await screen.findByText('Database latency investigation')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Database latency investigation'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.queryByText('All Projects')).not.toBeInTheDocument();
+    expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
+  });
+
+  it('renders the dashboard-style empty state', async () => {
+    MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    renderView();
+
+    expect(
+      await screen.findByText('Sorry, no investigations match your filters.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders the route error state', async () => {
+    MockApiClient.addMockResponse({url: listUrl, statusCode: 500});
+
+    renderView();
+
+    expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
+  });
+
+  it('syncs search to the URL and clears the cursor', async () => {
+    MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    const {router} = renderView({query: {cursor: '123:0:0'}});
+    await userEvent.type(screen.getByPlaceholderText('Search Investigations'), 'latency');
+    await userEvent.keyboard('{Enter}');
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/investigations/'
+    );
+    expect(router.location.query).toEqual({query: 'latency'});
+  });
+
+  it('fetches the active list using URL search and cursor values', async () => {
+    const listRequest = MockApiClient.addMockResponse({url: listUrl, body: []});
+
+    renderView({query: {query: 'latency', cursor: '123:0:0'}});
+    await screen.findByText('Sorry, no investigations match your filters.');
+
+    expect(listRequest).toHaveBeenCalledWith(
+      listUrl,
+      expect.objectContaining({
+        query: {status: 'active', query: 'latency', cursor: '123:0:0'},
+      })
+    );
+  });
+
+  it('uses the collection Link header for pagination', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+      headers: {
+        Link: getPaginationPageLink({numRows: 20, pageSize: 10, offset: 0}),
+      },
+    });
+
+    const {router} = renderView();
+    await userEvent.click(await screen.findByLabelText('Next'));
+
+    expect(router.location.query).toEqual({cursor: '0:10:0'});
+  });
+
+  it('creates an untitled investigation and refreshes the list', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [],
+    });
+    const createRequest = MockApiClient.addMockResponse({
+      url: listUrl,
+      method: 'POST',
+      body: InvestigationFixture({title: 'Untitled investigation'}),
+    });
+
+    const {router} = renderView();
+    await screen.findByText('Sorry, no investigations match your filters.');
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture({title: 'Untitled investigation'})],
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'New Investigation'}));
+
+    await waitFor(() =>
+      expect(createRequest).toHaveBeenCalledWith(
+        listUrl,
+        expect.objectContaining({data: {title: 'Untitled investigation'}})
+      )
+    );
+    expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/investigations/'
+    );
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Investigation created.');
+  });
+
+  it('toggles an investigation favorite and refreshes the list', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    const favoriteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/favorite/',
+      method: 'PUT',
+    });
+
+    renderView();
+    await screen.findByLabelText('Favorite Database latency investigation');
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture({isFavorited: true})],
+    });
+    await userEvent.click(
+      screen.getByLabelText('Favorite Database latency investigation')
+    );
+
+    await waitFor(() =>
+      expect(favoriteRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/investigations/1/favorite/',
+        expect.objectContaining({data: {shouldFavorite: true}})
+      )
+    );
+    expect(
+      await screen.findByLabelText('Unfavorite Database latency investigation')
+    ).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture({isFavorited: false})],
+    });
+    await userEvent.click(
+      screen.getByLabelText('Unfavorite Database latency investigation')
+    );
+    await waitFor(() =>
+      expect(favoriteRequest).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/investigations/1/favorite/',
+        expect.objectContaining({data: {shouldFavorite: false}})
+      )
+    );
+    expect(
+      await screen.findByLabelText('Favorite Database latency investigation')
+    ).toBeInTheDocument();
+  });
+
+  it('duplicates from the overflow menu', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    const duplicateRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/duplicate/',
+      method: 'POST',
+      body: InvestigationFixture({id: '2'}),
+    });
+
+    renderView();
+    await screen.findByText('Database latency investigation');
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture(),
+        InvestigationFixture({id: '2', title: 'Database latency investigation copy'}),
+      ],
+    });
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
+
+    await waitFor(() => expect(duplicateRequest).toHaveBeenCalled());
+    expect(
+      await screen.findByText('Database latency investigation copy')
+    ).toBeInTheDocument();
+  });
+
+  it('archives only after confirmation and sends the current version', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    const archiveRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      method: 'DELETE',
+    });
+
+    renderView();
+    await screen.findByText('Database latency investigation');
+    MockApiClient.addMockResponse({url: listUrl, body: []});
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Archive'}));
+    expect(archiveRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(archiveRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/investigations/1/',
+        expect.objectContaining({data: {investigationVersion: 3}})
+      )
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Database latency investigation')).not.toBeInTheDocument()
+    );
+  });
+
+  it.each([
+    ['create', 'New Investigation', listUrl, 'POST', 'Unable to create investigation.'],
+    [
+      'favorite',
+      'Favorite Database latency investigation',
+      '/organizations/org-slug/investigations/1/favorite/',
+      'PUT',
+      'Unable to update investigation favorite.',
+    ],
+  ])('reports a %s failure', async (_name, buttonName, url, method, message) => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    MockApiClient.addMockResponse({url, method, statusCode: 500});
+
+    renderView();
+    await userEvent.click(await screen.findByRole('button', {name: buttonName}));
+
+    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalledWith(message));
+  });
+
+  it('reports a duplicate failure', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/duplicate/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
+
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to duplicate investigation.'
+      )
+    );
+  });
+
+  it('reports an archive failure', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [InvestigationFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      method: 'DELETE',
+      statusCode: 500,
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Archive'}));
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to archive investigation.'
+      )
+    );
+  });
+});

@@ -122,6 +122,17 @@ describe('buildRoutes()', () => {
   });
 
   describe('explore route catch-all', () => {
+    it('matches Investigations before the catch-all', () => {
+      const matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/organizations/test-org/explore/investigations/'
+      );
+
+      expect(matchedPaths).toContain('investigations/');
+      expect(matchedPaths).not.toContain(':catchAll/');
+      expect(matchedPaths).not.toContain('*');
+    });
+
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
