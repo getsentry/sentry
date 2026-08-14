@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
@@ -925,6 +926,48 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
 @no_silo_test
 class DefaultAccessTest(TestCase):
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    def test_reports_project_and_team_scope_checks_without_access(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_scope("org:read")
+            assert not access.DEFAULT.has_team_scope(Mock(), "team:write")
+            assert not access.DEFAULT.has_project_scope(Mock(), "project:write")
+
+        assert [call.kwargs["extra"]["scope"] for call in warning.call_args_list] == [
+            "team:write",
+            "project:write",
+        ]
+        assert capture_message.call_count == 2
+
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.auth.scope_declaration.logger.warning")
+    def test_reports_every_scope_in_direct_project_scope_check(
+        self, warning: Mock, capture_message: Mock
+    ) -> None:
+        class Permission:
+            scope_map = {"GET": ("org:read",)}
+
+        with bind_endpoint_scope_declaration(
+            endpoint="test.Endpoint", method="GET", permission_classes=(Permission,)
+        ):
+            assert not access.DEFAULT.has_any_project_scope(
+                Mock(), ["project:read", "project:write"]
+            )
+
+        assert [call.kwargs["extra"]["scope"] for call in warning.call_args_list] == [
+            "project:read",
+            "project:write",
+        ]
+        assert capture_message.call_count == 2
+
     def test_no_access(self) -> None:
         result = access.DEFAULT
         assert result.sso_is_valid
