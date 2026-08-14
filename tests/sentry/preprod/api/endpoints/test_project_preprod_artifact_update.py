@@ -612,7 +612,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         mock_status_check_task.delay.side_effect = record_metrics_state
         mock_pr_comment_task.delay.side_effect = record_metrics_state
 
-        data = {}
+        data: dict[str, Any] = {}
         response = self._make_request(data)
 
         assert response.status_code == 200
