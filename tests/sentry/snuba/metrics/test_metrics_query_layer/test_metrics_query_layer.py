@@ -29,12 +29,12 @@ from sentry.snuba.metrics_layer.query import (
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
-pytestmark = pytest.mark.sentry_metrics
-
-pytest.skip(
-    "Generic metrics sets, gauges, and distributions are no longer queryable",
-    allow_module_level=True,
-)
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)

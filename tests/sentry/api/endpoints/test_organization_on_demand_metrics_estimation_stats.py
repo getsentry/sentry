@@ -26,12 +26,12 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 SECOND = timedelta(seconds=1)
 MINUTE = timedelta(minutes=1)
 
-pytestmark = pytest.mark.sentry_metrics
-
-pytest.skip(
-    "Generic metrics sets, gauges, and distributions are no longer queryable",
-    allow_module_level=True,
-)
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(MOCK_DATETIME)

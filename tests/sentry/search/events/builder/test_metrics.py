@@ -32,12 +32,12 @@ from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
-pytestmark = pytest.mark.sentry_metrics
-
-pytest.skip(
-    "Generic metrics sets, gauges, and distributions are no longer queryable",
-    allow_module_level=True,
-)
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 def _metric_percentile_definition(

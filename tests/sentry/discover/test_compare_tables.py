@@ -17,12 +17,12 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, BaseSpansTestCase, TestCase
 from sentry.utils.samples import load_data
 
-pytestmark = pytest.mark.sentry_metrics
-
-pytest.skip(
-    "Generic metrics sets, gauges, and distributions are no longer queryable",
-    allow_module_level=True,
-)
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCase):

@@ -44,12 +44,13 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
-
-pytest.skip(
-    "Generic metrics sets, gauges, and distributions are no longer queryable",
-    allow_module_level=True,
-)
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    requires_snuba,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @pytest.mark.snuba_ci
