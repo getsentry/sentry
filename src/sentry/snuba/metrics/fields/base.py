@@ -195,26 +195,28 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
         return _PREFIX_TO_METRIC_ENTITY[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
+
+    try:
+        entity_prefix, namespace = metric_mri.split(":", 1)
+    except ValueError:
+        return None
+
+    # Sessions still own s/d. Every other leftover generic set/gauge/distribution
+    # must fail closed instead of falling through to generic_metrics_counters.
+    if entity_prefix in ("s", "g", "d") and not namespace.startswith("sessions"):
+        raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
+
     try:
         TransactionMRI(metric_mri)
-        entity_prefix = metric_mri.split(":")[0]
+        return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
+    except (ValueError, KeyError):
+        pass
+
+    if namespace.startswith("custom"):
         try:
             return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
         except KeyError:
             raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
-    except (ValueError, IndexError):
-        pass
-    try:
-        entity_prefix, namespace = metric_mri.split(":")
-        if namespace.startswith("custom"):
-            try:
-                return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-            except KeyError:
-                raise InvalidParams(
-                    f"Generic metrics type '{entity_prefix}' is no longer supported"
-                )
-    except (ValueError, IndexError):
-        pass
 
     return None
 

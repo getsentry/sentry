@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from snuba_sdk import Column, Direction, Function, OrderBy
 
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value, resolve_weak
@@ -655,6 +656,8 @@ class DerivedMetricAliasTestCase(TestCase):
         ("d:sessions/duration@second", "metrics_distributions"),
         ("d:sessions/unknown_metric@second", None),
         ("e:sessions/all@none", None),  # derived metric
+        ("c:transactions/count_per_root_project@none", "generic_metrics_counters"),
+        ("c:custom/foo@none", "generic_metrics_counters"),
         ("", None),
         ("foo", None),
         ("foo:foo:foo", None),
@@ -662,3 +665,22 @@ class DerivedMetricAliasTestCase(TestCase):
 )
 def test_known_entity_of_metric_mri(metric_mri: str, expected_entity: str | None) -> None:
     assert _get_known_entity_of_metric_mri(metric_mri) == expected_entity
+
+
+@pytest.mark.parametrize(
+    "metric_mri",
+    [
+        "d:transactions/duration@millisecond",
+        "s:transactions/user@none",
+        "g:transactions/foo@none",
+        "d:spans/duration@millisecond",
+        "s:spans/user@none",
+        "g:spans/messaging.message.receive.latency@millisecond",
+        "d:custom/foo@none",
+        "s:custom/users@none",
+        "g:custom/gauge@none",
+    ],
+)
+def test_known_entity_rejects_leftover_generic_sgd(metric_mri: str) -> None:
+    with pytest.raises(InvalidParams, match="no longer supported"):
+        _get_known_entity_of_metric_mri(metric_mri)
