@@ -5,6 +5,7 @@ import {Chip} from '@sentry/scraps/chip';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useFormattedDateTime} from 'sentry/components/dateTime';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
@@ -127,14 +128,57 @@ function ChipFilter({token}: {token: TokenResult<Token.FILTER>}) {
     filterToken: token,
     fieldDefinition,
   });
+  const property = getChipFilterProperty(token, operatorLabel);
+  const operator =
+    token.filter === FilterType.HAS ? undefined : operatorLabel || undefined;
+
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    return (
+      <DateChipFilter
+        ariaLabel={token.text}
+        token={token.value}
+        property={property}
+        operator={operator}
+      />
+    );
+  }
 
   return (
     <Chip
       size="sm"
-      property={getChipFilterProperty(token, operatorLabel)}
-      operator={token.filter === FilterType.HAS ? undefined : operatorLabel || undefined}
+      property={property}
+      operator={operator}
       value={getChipFilterValue(token, fieldDefinition)}
       aria-label={token.text}
+    />
+  );
+}
+
+function DateChipFilter({
+  token,
+  property,
+  operator,
+  ariaLabel,
+}: {
+  ariaLabel: string;
+  property: string;
+  token: TokenResult<Token.VALUE_ISO_8601_DATE>;
+  operator?: string;
+}) {
+  const isUtc = token.tz?.toLowerCase() === 'z' || !token.tz;
+  const value = useFormattedDateTime({
+    date: token.value,
+    dateOnly: !token.time,
+    utc: isUtc,
+  });
+
+  return (
+    <Chip
+      size="sm"
+      property={property}
+      operator={operator}
+      value={value}
+      aria-label={ariaLabel}
     />
   );
 }

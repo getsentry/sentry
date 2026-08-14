@@ -57,6 +57,18 @@ describe('FormattedQuery', () => {
     expect(screen.getByText('Firefox or Chrome')).toBeInTheDocument();
   });
 
+  it('renders absolute dates in chips using standard date formatting', () => {
+    render(
+      <FormattedQuery
+        {...defaultProps}
+        filterRenderer="chip"
+        query="lastSeen:>2024-01-01"
+      />
+    );
+
+    expect(screen.getByText('Jan 1, 2024')).toBeInTheDocument();
+  });
+
   it('renders negated filters with multiple values using and', () => {
     render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
 
