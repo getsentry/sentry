@@ -27,6 +27,8 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when the Conduit onboarding migration lands
+  'static/app/utils/useConduitStream.tsx',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   // https://github.com/getsentry/sentry/pull/121178
