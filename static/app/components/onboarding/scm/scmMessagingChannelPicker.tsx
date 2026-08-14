@@ -48,7 +48,7 @@ export function ScmMessagingChannelPicker({
   const {
     channelOptions,
     isChannelLoading,
-    isChannelError,
+    isChannelsError,
     channelsData,
     channelError,
     onChannelChange,
@@ -118,7 +118,7 @@ export function ScmMessagingChannelPicker({
           />
         )}
       </ChannelField>
-      {isChannelError && (
+      {isChannelsError && (
         <Alert variant="warning">
           {t('Failed to load channels. You can still type a channel name.')}
         </Alert>
