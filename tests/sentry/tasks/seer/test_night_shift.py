@@ -1058,6 +1058,11 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         shards = list(SeerNightShiftRunShard.objects.filter(run=run).order_by("id"))
         assert len(shards) == 2
         assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
+        assert set(
+            SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).values_list(
+                "referrer", flat=True
+            )
+        ) == {"night_shift"}
 
         shard_sizes = []
         dispatched_group_ids: list[int] = []

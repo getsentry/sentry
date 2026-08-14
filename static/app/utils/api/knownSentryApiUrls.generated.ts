@@ -43,7 +43,6 @@ export type KnownSentryApiUrls =
   | '/internal/demo/email-capture/'
   | '/internal/environment/'
   | '/internal/feature-flags/'
-  | '/internal/feature-flags/ea-feature-flags'
   | '/internal/frontend-version/'
   | '/internal/health/'
   | '/internal/integration-proxy/'

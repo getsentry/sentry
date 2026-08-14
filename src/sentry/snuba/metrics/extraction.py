@@ -87,7 +87,7 @@ class OnDemandMetricSpecVersioning:
 
 
 # Name component of MRIs used for custom alert metrics.
-CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
+CUSTOM_ALERT_METRIC_NAME = "spans/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
 # Comparison operators used by Relay.
