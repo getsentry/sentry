@@ -365,8 +365,10 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Bus destinations already claimed by a call row (same rule id). A Code Mode execute often
         // emits both a call record and a coarser bus link for the same entity; without this, the
         // residual nav path would repeat "View issue" under a row that already navigates there.
-        // Destinations only the bus carries (translated Explore queries, multi-project searches)
-        // stay residual.
+        //
+        // `telemetry_live_search` is the exception: many searches in one execute share that kind, so
+        // claiming it wholesale would starve later rows of their bus twins. Those are paired one
+        // bus link at a time below instead.
         const claimedLinkKinds = new Set<string>();
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => {
@@ -374,7 +376,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
               organization,
               projects,
             });
-            if (link) {
+            if (link && link.id !== 'telemetry_live_search') {
               claimedLinkKinds.add(link.id);
             }
             return {
@@ -395,13 +397,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)
         );
-        // A telemetry call record has the useful title but may not yet carry the translated params
-        // needed for its destination (older seer, or before the search returns). Put the matching
-        // bus destination on that row instead of rendering a second "View …" row below it. Consume
-        // matches in order so repeated searches pair correctly. Rows that already resolved (seer
-        // stamped the query onto the record) keep their own url and skip pairing.
+        // Telemetry rows need the bus one-for-one:
+        // - no url yet → borrow the next residual destination onto the row title
+        // - already resolved (stamped query) → still consume the twin so "View issues" is not
+        //   repeated under a row that already navigates there
+        // Order is preserved so N searches pair with N bus links without starving siblings.
         const linkedCallRows = callRows.map(row => {
-          if (row.url || row.record.name !== 'telemetry_live_search') {
+          if (row.record.name !== 'telemetry_live_search') {
             return row;
           }
           const navItemIndex = residualNavItems.findIndex(
@@ -411,7 +413,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             return row;
           }
           const [navItem] = residualNavItems.splice(navItemIndex, 1);
-          return navItem ? {...row, url: navItem.url, linkKind: navItem.kind} : row;
+          if (!navItem) {
+            return row;
+          }
+          return row.url
+            ? row
+            : {...row, url: navItem.url, linkKind: navItem.kind};
         });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);

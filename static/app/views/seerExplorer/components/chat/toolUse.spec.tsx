@@ -543,6 +543,78 @@ describe('ToolUseBlock', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
+  it('pairs each telemetry search row with its own bus destination in a multi-search execute', () => {
+    // One stamped row must not claim the kind and leave the unstamped sibling without a destination
+    // (or hide both residual View … links). Each row consumes one bus twin in order.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying issues for open bugs',
+                params: {
+                  dataset: 'issues',
+                  question: 'open bugs',
+                  query: 'is:unresolved',
+                  stats_period: '7d',
+                },
+              },
+              {
+                id: 2,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying spans for slow db',
+                params: {dataset: 'spans', question: 'slow db'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'issues',
+                  query: 'is:unresolved',
+                  stats_period: '7d',
+                },
+              },
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'spans',
+                  query: 'span.op:db',
+                  stats_period: '24h',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(
+      screen.getByRole('link', {name: 'Querying issues for open bugs'})
+    ).toHaveAttribute('href', expect.stringContaining('/issues/'));
+    expect(
+      screen.getByRole('link', {name: 'Querying spans for slow db'})
+    ).toHaveAttribute('href', expect.stringContaining('query=span.op%3Adb'));
+    expect(screen.queryByText('View issues')).not.toBeInTheDocument();
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
   it('makes a telemetry call row itself the issues search link when params include the query', () => {
     // Seer stamps the translated query onto the call record after the search returns. The row keeps
     // seer's title as the label and claims the bus twin so "View issues" is not repeated under it.
