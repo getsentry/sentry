@@ -48,6 +48,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -314,9 +315,11 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
   );
+  const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -430,6 +433,9 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {!selectedIssueId && isInboxEmpty && (
+            <InboxEmptyState assignmentFilter={assignmentFilter} />
+          )}
         </Stack>
       </Grid>
     </Stack>
