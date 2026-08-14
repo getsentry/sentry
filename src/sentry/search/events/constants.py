@@ -485,6 +485,7 @@ METRIC_PERCENTILES = {
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
 
+
 # The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
 # for now
 MAX_PARAMETERS_IN_ARRAY = 120_000
