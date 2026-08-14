@@ -21,7 +21,12 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {
+  DateString,
+  PageFilters,
+  PageFilterDatetime,
+  PinnedPageFilter,
+} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -88,11 +93,8 @@ function getProjectIdFromProject(project: MinimalProject) {
  * Merges two date time objects, where the `base` object takes precedence, and
  * the `fallback` values are used when the base values are null or undefined.
  */
-function mergeDatetime(
-  base: PageFilters['datetime'],
-  fallback?: Partial<PageFilters['datetime']>
-) {
-  const datetime: PageFilters['datetime'] = {
+function mergeDatetime(base: PageFilterDatetime, fallback?: Partial<PageFilterDatetime>) {
+  const datetime: PageFilterDatetime = {
     start: base.start ?? fallback?.start ?? null,
     end: base.end ?? fallback?.end ?? null,
     period: base.period ?? fallback?.period ?? null,
