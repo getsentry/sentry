@@ -23,7 +23,7 @@ class OrganizationMeasurementsMetaEmptyEndpoint(MetricsEnhancedPerformanceTestCa
         self.url = reverse(
             self.endpoint, kwargs={"organization_id_or_slug": self.project.organization.slug}
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def test_returns_no_measurements(self) -> None:
         self.store_transaction_metric(
