@@ -4,6 +4,7 @@ import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
@@ -56,6 +57,7 @@ class TestEnsureDefaultDetectors(TestCase):
                 project = self.create_project()
                 ensure_default_detectors(project)
 
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_ensure_default_organization_detectors_creates_all_projects(self) -> None:
         ensure_default_organization_detectors(self.organization)
 
@@ -115,3 +117,7 @@ class TestEnsureDefaultAllProjectsDetector(TestCase):
             mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
             with pytest.raises(UnableToAcquireLockApiError):
                 ensure_default_all_projects_detector(self.organization.id)
+
+    def test_returns_none_when_option_disabled(self) -> None:
+        result = ensure_default_organization_detectors(self.organization)
+        assert result == {}

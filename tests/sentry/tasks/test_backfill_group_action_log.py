@@ -604,53 +604,63 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
             )
         )
 
-    def _feature_results(self, enabled: dict[str, set[int]]) -> Any:
-        def side_effect(feature_name: str, organizations: list[Any]) -> dict[str, bool]:
-            enabled_organizations = enabled.get(feature_name, set())
+    def _project_feature_results(self, enabled_project_ids: set[int]) -> Any:
+        def build_batch_results(
+            feature_names: list[str], *, projects: list[Any], organization: Any
+        ) -> dict[str, dict[str, bool]]:
+            feature_name = feature_names[0]
             return {
-                f"organization:{organization.id}": organization.id in enabled_organizations
-                for organization in organizations
+                f"project:{project.id}": {feature_name: project.id in enabled_project_ids}
+                for project in projects
             }
 
         return patch(
-            "sentry.tasks.backfill_group_action_log.features.batch_has_for_organizations",
-            side_effect=side_effect,
+            "sentry.tasks.backfill_group_action_log.features.batch_has",
+            side_effect=build_batch_results,
         )
 
-    def test_dispatches_enrollment_for_organizations_in_rollout(self) -> None:
-        rollout_org = self.create_organization()
-        excluded_org = self.create_organization()
-        enabled = {
-            "organizations:issue-action-log-seer-rollout": {rollout_org.id},
-        }
+    def test_dispatches_enrollment_for_active_organizations(self) -> None:
+        first_organization = self.create_organization()
+        second_organization = self.create_organization()
+        inactive_organization = self.create_organization(status=1)
 
-        with (
-            self._feature_results(enabled),
-            patch.object(
-                enroll_organization_projects_for_group_action_log_backfill, "apply_async"
-            ) as mock_apply,
-        ):
+        with patch.object(
+            enroll_organization_projects_for_group_action_log_backfill, "apply_async"
+        ) as mock_apply:
             enroll_projects_for_group_action_log_backfill()
 
         dispatched_organization_ids = {
             call.kwargs["kwargs"]["organization_id"] for call in mock_apply.call_args_list
         }
-        assert dispatched_organization_ids == {rollout_org.id}
-        assert excluded_org.id not in dispatched_organization_ids
+        assert dispatched_organization_ids == {first_organization.id, second_organization.id}
+        assert inactive_organization.id not in dispatched_organization_ids
 
     def test_enrolls_active_projects_without_overwriting_existing_option(self) -> None:
         organization = self.create_organization()
         pending_project = self.create_project(organization=organization)
+        ineligible_project = self.create_project(organization=organization)
         completed_project = self.create_project(organization=organization)
         inactive_project = self.create_project(organization=organization)
         completed_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         inactive_project.update(status=1)
         assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
-        enroll_organization_projects_for_group_action_log_backfill(organization.id)
+        with self._project_feature_results(
+            {pending_project.id, completed_project.id}
+        ) as mock_batch_has:
+            enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
+        mock_batch_has.assert_called_once_with(
+            ["projects:issue-action-log-write-to-db"],
+            projects=[pending_project, ineligible_project, completed_project],
+            organization=organization,
+        )
         assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
         assert completed_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert not ProjectOption.objects.filter(
+            project=ineligible_project,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).exists()
         assert not ProjectOption.objects.filter(
             project=inactive_project,
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
@@ -664,7 +674,6 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
             override_options(
                 {"issues.backfill_group_action_log.enrollment_organization_batch_size": 2}
             ),
-            self._feature_results({}),
             patch.object(
                 enroll_projects_for_group_action_log_backfill, "apply_async"
             ) as mock_apply,
@@ -684,6 +693,7 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
             patch.object(
                 enroll_organization_projects_for_group_action_log_backfill, "apply_async"
             ) as mock_apply,
+            self._project_feature_results(set()),
         ):
             enroll_organization_projects_for_group_action_log_backfill(organization.id)
 

@@ -22,7 +22,7 @@ import type {FormatterOptions} from 'sentry/components/charts/components/tooltip
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
@@ -192,7 +192,7 @@ export function Chart({
 
   if (throughput && throughput.length > 1) {
     transformedThroughput = [
-      LineSeries({
+      lineSeries({
         name: 'Throughput',
         data: throughput.map(({interval, count}) => [interval, count]),
         yAxisIndex: 1,
@@ -416,7 +416,7 @@ export function Chart({
           onHighlight={onHighlight}
           series={[
             ...series.map(({seriesName, data: seriesData, ...options}) =>
-              LineSeries({
+              lineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),
@@ -434,7 +434,7 @@ export function Chart({
               })
             ),
             ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
-              LineSeries({
+              lineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),
@@ -444,7 +444,7 @@ export function Chart({
               })
             ),
             ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
-              LineSeries({
+              lineSeries({
                 ...options,
                 name: seriesName,
                 data: seriesData?.map(({value, name}) => [name, value]),

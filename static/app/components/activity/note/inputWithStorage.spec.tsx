@@ -56,6 +56,28 @@ describe('NoteInputWithStorage', () => {
     );
   });
 
+  it('loads and saves drafts with the mention composer', async () => {
+    jest
+      .mocked(localStorageWrapper.getItem)
+      .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
+
+    render(<NoteInputWithStorage {...defaultProps} enableMentionComposer />);
+
+    const editor = screen.getByRole('combobox', {name: 'Add a comment'});
+    expect(editor).toHaveTextContent('saved item');
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
+    await userEvent.click(editor);
+    await userEvent.keyboard('{End} updated');
+
+    await waitFor(() =>
+      expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
+        'storage',
+        JSON.stringify({item1: 'saved item updated'})
+      )
+    );
+  });
+
   it('removes draft item after submitting', async () => {
     jest
       .mocked(localStorageWrapper.getItem)

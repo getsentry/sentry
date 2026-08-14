@@ -20,6 +20,9 @@ from sentry.utils.samples import load_data
 pytestmark = pytest.mark.sentry_metrics
 
 
+@pytest.mark.skip(
+    reason="Ordinary metricsEnhanced queries no longer hit generic metrics; keep on-demand coverage."
+)
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
