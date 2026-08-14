@@ -1775,9 +1775,7 @@ class TestTriggerPushChanges(TestCase):
         self.create_seer_run(
             organization=self.organization,
             seer_run_state_id=123,
-            # RCA feature runs stamp the feature id here and the referrer in extras.
-            referrer="autofix",
-            extras={"referrer": AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value},
+            referrer=AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value,
         )
 
         payload = self._push(mock_post)
