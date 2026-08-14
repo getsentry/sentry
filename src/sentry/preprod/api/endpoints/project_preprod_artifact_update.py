@@ -464,18 +464,23 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 },
             )
 
-        # Queue status check and PR comment updates only after size eligibility
-        # has finalized the metrics row they read.
-        if updated_fields:
-            task_kwargs = {
-                "preprod_artifact_id": artifact_id_int,
-                "caller": "artifact_update_endpoint",
-            }
-            create_preprod_status_check_task.apply_async(kwargs=task_kwargs)
-            if not can_run_size:
-                # If size analysis does not run, no completion task will update
-                # the comment, so refresh it now.
-                create_preprod_size_pr_comment_task.apply_async(kwargs=task_kwargs)
+        # Refresh the status check and PR comment only after size eligibility is
+        # resolved, so workers cannot render stale PENDING metrics.
+        should_update_size_status_check = bool(updated_fields) or not can_run_size
+        if should_update_size_status_check:
+            create_preprod_status_check_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
+            )
+
+        should_update_size_pr_comment = not can_run_size
+        if should_update_size_pr_comment:
+            # If size analysis does not run, no completion task will update
+            # the comment, so update it now.
+            create_preprod_size_pr_comment_task.delay(
+                preprod_artifact_id=artifact_id_int,
+                caller="artifact_update_endpoint",
+            )
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
         if can_run_distro:

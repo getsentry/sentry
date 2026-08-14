@@ -609,10 +609,10 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             )
             observed_states.append((metrics.state, metrics.error_code))
 
-        mock_status_check_task.apply_async.side_effect = record_metrics_state
-        mock_pr_comment_task.apply_async.side_effect = record_metrics_state
+        mock_status_check_task.delay.side_effect = record_metrics_state
+        mock_pr_comment_task.delay.side_effect = record_metrics_state
 
-        data = {"artifact_type": 1}
+        data = {}
         response = self._make_request(data)
 
         assert response.status_code == 200
@@ -620,8 +620,13 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "requestedFeatures" in resp_data
         assert "size_analysis" not in resp_data["requestedFeatures"]
         assert "build_distribution" in resp_data["requestedFeatures"]
-        mock_status_check_task.apply_async.assert_called_once()
-        mock_pr_comment_task.apply_async.assert_called_once()
+        assert resp_data["updatedFields"] == []
+        task_kwargs = {
+            "preprod_artifact_id": self.preprod_artifact.id,
+            "caller": "artifact_update_endpoint",
+        }
+        mock_status_check_task.delay.assert_called_once_with(**task_kwargs)
+        mock_pr_comment_task.delay.assert_called_once_with(**task_kwargs)
         assert observed_states == [
             (
                 PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
