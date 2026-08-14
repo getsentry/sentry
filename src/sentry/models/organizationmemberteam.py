@@ -21,9 +21,12 @@ from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
-def _reserve_ids(model: type[Model], count: int) -> list[int]:
-    """Claim `count` values from the model's primary key sequence ahead of insert."""
-    using = router.db_for_write(model)
+def _reserve_ids(model: type[Model], count: int, using: str) -> list[int]:
+    """Claim `count` values from the model's primary key sequence ahead of insert.
+
+    Sequences are per-database, so `using` must be where the rows are written —
+    drawing from another hands out ids that are already taken.
+    """
     with connections[using].cursor() as cursor:
         cursor.execute(
             "SELECT nextval(%s) FROM generate_series(1,%s);",
@@ -43,12 +46,18 @@ class OrganizationMemberTeamQuerySet(BaseQuerySet["OrganizationMemberTeam"]):
     def bulk_create(
         self, objs: Iterable[OrganizationMemberTeam], *args: Any, **kwds: Any
     ) -> list[OrganizationMemberTeam]:
-        rows = list(objs)
+        rows = list[OrganizationMemberTeam](objs)
         if not rows:
             return super().bulk_create(rows, *args, **kwds)
 
+        # `self.db` would give the read database here.
+        using = self._db  # type: ignore[attr-defined]
+        if using is None:
+            using = router.db_for_write(self.model, **self._hints)  # type: ignore[attr-defined]
+
         # Claim the pks up front so `new_id` can be written in the same INSERT.
-        for row, row_id in zip(rows, _reserve_ids(self.model, len(rows))):
+        rows_with_ids = zip(rows, _reserve_ids(self.model, len(rows), using))
+        for row, row_id in rows_with_ids:
             row.id = row_id
             row.new_id = row_id
         return super().bulk_create(rows, *args, **kwds)
@@ -91,7 +100,10 @@ class OrganizationMemberTeam(Model):
     def save(self, **kwds: Any) -> None:
         if self.id is None:
             # Claim the pk up front so `new_id` can be written in the same INSERT.
-            self.id = _reserve_ids(type(self), 1)[0]
+            using = kwds.get("using")
+            if using is None:
+                using = router.db_for_write(type(self), instance=self)
+            self.id = _reserve_ids(type(self), 1, using)[0]
             self.new_id = self.id
             # A freshly claimed pk cannot already exist, so skip the UPDATE probe
             # Django would otherwise run before inserting.

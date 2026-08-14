@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 
@@ -139,6 +141,20 @@ class OrganizationMemberTeamShadowIdTest(TestCase):
 
     def test_bulk_create_with_no_objects(self) -> None:
         assert list(OrganizationMemberTeam.objects.bulk_create([])) == []
+
+    # The router is pointed elsewhere so the caller's database is the only thing that
+    # can produce a working sequence.
+    def test_bulk_create_reserves_ids_on_the_target_database(self) -> None:
+        member = self.new_member()
+        using = router.db_for_write(OrganizationMemberTeam)
+
+        with mock.patch.object(router, "db_for_write", return_value="secondary"):
+            with CaptureQueriesContext(connections[using]) as queries:
+                OrganizationMemberTeam.objects.using(using).bulk_create(
+                    [OrganizationMemberTeam(organizationmember=member, team=self.team)]
+                )
+
+        assert [query for query in queries.captured_queries if "nextval" in query["sql"]]
 
     # The m2m accessor inserts through-rows via `QuerySet.bulk_create`, bypassing
     # anything defined on the manager.
