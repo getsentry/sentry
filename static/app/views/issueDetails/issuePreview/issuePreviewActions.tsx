@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {Fragment, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -7,16 +7,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
-import {
-  findCodingAgentResultLink,
-  getRepoPullRequestLink,
-} from 'sentry/components/events/autofix/pullRequests';
+import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   IconAdd,
@@ -44,6 +42,7 @@ interface IssuePreviewActionsProps {
 interface AutofixActionProps {
   autofix: ExplorerAutofix;
   group: Group;
+  linkedPullRequestsData: ReturnType<typeof useLinkedPullRequests>['data'];
   onContinueInSeer: () => void;
   disabled?: boolean;
 }
@@ -78,6 +77,7 @@ function getAutofixActionProps({
 }
 
 function StartAutofixAction({
+  variant = 'primary',
   action,
   analyticsAction,
   analyticsEventKey,
@@ -91,7 +91,7 @@ function StartAutofixAction({
   label,
   onContinueInSeer,
   tooltip,
-}: AutofixActionProps & {
+}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
   action: () => unknown | Promise<unknown>;
   analyticsAction: string;
   analyticsEventKey: string;
@@ -101,6 +101,7 @@ function StartAutofixAction({
   codingAgentStep?: 'root_cause' | 'solution';
   icon?: ReactNode;
   tooltip?: string | null;
+  variant?: 'primary' | 'secondary';
 }) {
   const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
@@ -161,6 +162,7 @@ function StartAutofixAction({
       disabled={disabled || busy}
       onClick={handleClick}
       tooltipProps={tooltip ? {title: tooltip} : undefined}
+      variant={variant}
     >
       {label}
     </Button>
@@ -179,7 +181,7 @@ function StartAutofixAction({
         trigger={(triggerProps, isOpen) => (
           <Button
             {...triggerProps}
-            variant="primary"
+            variant={variant}
             size="sm"
             icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             aria-label={t('More code fix options')}
@@ -204,7 +206,19 @@ function StartAutofixAction({
   );
 }
 
-function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActionProps) {
+function NextAutofixStepButton({
+  autofix,
+  disabled,
+  group,
+  onContinueInSeer,
+  variant = 'primary',
+}: Omit<AutofixActionProps, 'linkedPullRequestsData'> & {
+  autofix: ExplorerAutofix;
+  group: Group;
+  onContinueInSeer: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary';
+}) {
   const {runState} = autofix;
   const sections = getOrderedAutofixSections(runState);
 
@@ -220,6 +234,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
         group={group}
         label={t('Find Root Cause')}
         onContinueInSeer={onContinueInSeer}
+        variant={variant}
       />
     );
   }
@@ -242,6 +257,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
         disabled={disabled || autofix.isPolling}
         icon={<IconSeer />}
         onClick={onContinueInSeer}
+        variant={variant}
       >
         {runState.pending_user_input?.input_type === 'file_change_approval'
           ? t('Review Changes')
@@ -250,32 +266,9 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
     );
   }
 
-  const pullRequests = Object.values(runState.repo_pr_states ?? {});
-  const completedPullRequestLink = pullRequests.map(getRepoPullRequestLink).find(defined);
-  const failedPullRequest = pullRequests.find(
+  const failedPullRequest = Object.values(runState.repo_pr_states ?? {}).find(
     pullRequest => pullRequest.pr_creation_status === 'error'
   );
-
-  // A pull request was created and completed
-  // Show the view pull request button
-  if (completedPullRequestLink) {
-    return (
-      <LinkButton
-        {...getAutofixActionProps({
-          analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-          analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
-          analyticsParams: {destination: 'pull_request'},
-          group,
-        })}
-        external
-        disabled={disabled}
-        href={completedPullRequestLink.url}
-        icon={<IconGithub data-test-id="pull-request-github" />}
-      >
-        {completedPullRequestLink.label}
-      </LinkButton>
-    );
-  }
 
   // A pull request was created but failed
   // Show the retry button
@@ -294,6 +287,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
         label={t('Retry PR in %s', failedPullRequest.repo_name)}
         onContinueInSeer={onContinueInSeer}
         tooltip={failedPullRequest.pr_creation_error}
+        variant={variant}
       />
     );
   }
@@ -321,6 +315,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
         disabled={disabled}
         href={resultLink.url}
         icon={<IconOpen />}
+        variant={variant}
       >
         {resultLink.label}
       </LinkButton>
@@ -343,6 +338,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
         disabled={disabled}
         href={codingAgent.agent_url}
         icon={<IconOpen />}
+        variant={variant}
       >
         {t('Open in %s', getCodingAgentName(codingAgent.provider))}
       </LinkButton>
@@ -350,7 +346,6 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
   }
 
   const nextStep = getAutofixNextStep({sections});
-
   switch (nextStep?.action) {
     case 'create_pr':
       return (
@@ -365,6 +360,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
           group={group}
           label={t('Create PR')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
     case 'code_changes':
@@ -380,6 +376,7 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
           codingAgentStep="solution"
           label={t('Write a Code Fix')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
     case 'solution':
@@ -395,29 +392,83 @@ function ActionButtons({autofix, disabled, group, onContinueInSeer}: AutofixActi
           codingAgentStep="root_cause"
           label={t('Make a Plan')}
           onContinueInSeer={onContinueInSeer}
+          variant={variant}
         />
       );
-    case 'pr_iteration':
+    // We are not yet supporting PR iteration
+    // Open PRs will display a link to the PR, closed PRs will display "Restart Autofix"
+    default:
       return (
-        <Button
+        <StartAutofixAction
+          action={() => autofix.startStep('root_cause')}
+          analyticsAction="root_cause"
+          analyticsEventKey="issue_inbox.start_fix_clicked"
+          analyticsEventName="Issue Inbox: Start Fix Clicked"
+          autofix={autofix}
+          disabled={disabled}
+          group={group}
+          icon={<IconRefresh />}
+          label={t('Restart Autofix')}
+          onContinueInSeer={onContinueInSeer}
+          variant={variant}
+        />
+      );
+  }
+}
+
+function ActionButtons({
+  autofix,
+  disabled,
+  group,
+  linkedPullRequestsData,
+  onContinueInSeer,
+}: AutofixActionProps) {
+  const latestOpenPullRequest = linkedPullRequestsData?.pullRequests
+    .filter(
+      pullRequest => pullRequest.status === 'open' || pullRequest.status === 'draft'
+    )
+    .toSorted((a, b) => Date.parse(b.dateCreated) - Date.parse(a.dateCreated))[0];
+
+  if (latestOpenPullRequest) {
+    return (
+      <Fragment>
+        <LinkButton
           {...getAutofixActionProps({
-            analyticsAction: 'view_autofix',
             analyticsEventKey: 'issue_inbox.seer_cta_clicked',
-            analyticsEventName: 'Issue Inbox: Continue in Seer Clicked',
-            analyticsParams: {destination: 'seer', next_step: 'pr_iteration'},
+            analyticsEventName: 'Issue Inbox: Seer CTA Clicked',
+            analyticsParams: {destination: 'pull_request'},
             group,
           })}
-          busy={autofix.isPolling}
-          disabled={disabled || autofix.isPolling}
-          icon={<IconSeer />}
-          onClick={onContinueInSeer}
+          external
+          disabled={disabled}
+          href={latestOpenPullRequest.externalUrl}
+          icon={<IconGithub data-test-id="pull-request-github" />}
         >
-          {t('Continue in Seer')}
-        </Button>
-      );
-    default:
-      return null;
+          {t(
+            'View %s#%s',
+            latestOpenPullRequest.repository.name,
+            latestOpenPullRequest.id
+          )}
+        </LinkButton>
+        <NextAutofixStepButton
+          autofix={autofix}
+          disabled={disabled}
+          group={group}
+          onContinueInSeer={onContinueInSeer}
+          variant="secondary"
+        />
+      </Fragment>
+    );
   }
+
+  return (
+    <NextAutofixStepButton
+      autofix={autofix}
+      disabled={disabled}
+      group={group}
+      onContinueInSeer={onContinueInSeer}
+    />
+  );
 }
 
 export function IssuePreviewActions({
@@ -426,16 +477,22 @@ export function IssuePreviewActions({
   group,
   onContinueInSeer,
 }: IssuePreviewActionsProps) {
-  if (autofix.isLoading) {
+  const {data: linkedPullRequestsData, isPending: pullRequestsPending} =
+    useLinkedPullRequests({group});
+
+  if (autofix.isLoading || pullRequestsPending) {
     return <Placeholder width="120px" height="32px" />;
   }
 
   return (
-    <ActionButtons
-      autofix={autofix}
-      disabled={disabled}
-      group={group}
-      onContinueInSeer={onContinueInSeer}
-    />
+    <Flex gap="sm">
+      <ActionButtons
+        autofix={autofix}
+        disabled={disabled}
+        group={group}
+        linkedPullRequestsData={linkedPullRequestsData}
+        onContinueInSeer={onContinueInSeer}
+      />{' '}
+    </Flex>
   );
 }

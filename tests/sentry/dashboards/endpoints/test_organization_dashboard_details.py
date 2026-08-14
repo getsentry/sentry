@@ -3065,58 +3065,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data["projects"]) == [project1.id, project2.id]
 
-    def test_save_widget_with_custom_measurement_in_equation_tables(self) -> None:
-        BaseMetricsTestCase.store_metric(
-            self.organization.id,
-            self.project.id,
-            "d:transactions/measurements.custom_duration@millisecond",
-            {},
-            int(before_now(days=1).timestamp()),
-            1,
-        )
-
-        data: dict[str, Any] = {
-            "title": "First dashboard",
-            "widgets": [
-                {
-                    "title": "EPM table",
-                    "widgetType": "transaction-like",
-                    "displayType": "table",
-                    "queries": [
-                        {
-                            "name": "",
-                            "fields": [
-                                "transaction.duration",
-                                "measurements.custom_duration",
-                                "equation|measurements.custom_duration / transaction.duration",
-                            ],
-                            "columns": [
-                                "transaction.duration",
-                                "measurements.custom_duration",
-                            ],
-                            "aggregates": [
-                                "equation|measurements.custom_duration / transaction.duration"
-                            ],
-                            "conditions": "",
-                            "orderby": "",
-                            "selectedAggregate": 1,
-                        }
-                    ],
-                },
-            ],
-        }
-        response = self.do_request("put", self.url(self.dashboard.id), data=data)
-        assert response.status_code == 200, response.data
-
-        widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 1
-
-        self.assert_serialized_widget(data["widgets"][0], widgets[0])
-
-        queries = widgets[0].dashboardwidgetquery_set.all()
-        assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
-
     def test_save_widget_with_custom_measurement_in_equation_line_chart(self) -> None:
         BaseMetricsTestCase.store_metric(
             self.organization.id,

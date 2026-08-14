@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {useTimezone} from '@sentry/scraps/timezoneContext';
 
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -39,5 +39,5 @@ export function useRelativeDateTime({
     end: afterDateTime,
     utc: timezone.includes('UTC'),
     period: null,
-  } satisfies PageFilters['datetime'];
+  } satisfies PageFilterDatetime;
 }
