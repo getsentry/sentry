@@ -1147,17 +1147,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         has_changes, is_synced = state.has_code_changes()
 
         if not has_changes:
-            log_ctx.info(
-                "autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes"
-            )
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
             return False
 
         if is_synced:
             # Distinct from having nothing to push: the previous pass's push
             # landed, which is what makes this the hand-back pass.
-            log_ctx.info(
-                "autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced"
-            )
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced")
             return False
 
         errored_repos = cls._iteration_terminal_errored_repos(state)

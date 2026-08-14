@@ -649,9 +649,7 @@ class TestPrIterationCompletionHookLogs(TestCase):
 
     @patch(f"{HOOK_PATH}.logger")
     @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
-    def test_a_pass_that_is_still_owed_a_push_says_it_is_waiting(
-        self, mock_broadcast, mock_logger
-    ):
+    def test_a_pass_that_is_still_owed_a_push_says_it_is_waiting(self, mock_broadcast, mock_logger):
         AutofixOnCompletionHook._send_step_webhook(
             self.organization, 123, self._unsynced(), self.group
         )
@@ -666,9 +664,7 @@ class TestPrIterationCompletionHookLogs(TestCase):
 
     @patch(f"{HOOK_PATH}.logger")
     @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
-    def test_the_pass_where_the_changes_landed_says_they_landed(
-        self, mock_broadcast, mock_logger
-    ):
+    def test_the_pass_where_the_changes_landed_says_they_landed(self, mock_broadcast, mock_logger):
         AutofixOnCompletionHook._send_step_webhook(
             self.organization, 123, self._synced(), self.group
         )
@@ -845,9 +841,7 @@ class TestPrIterationCompletionHookLogs(TestCase):
 
     @patch(f"{HOOK_PATH}.logger")
     @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
-    def test_the_hand_back_to_the_queue_names_the_drain_it_scheduled(
-        self, mock_apply, mock_logger
-    ):
+    def test_the_hand_back_to_the_queue_names_the_drain_it_scheduled(self, mock_apply, mock_logger):
         """The loop back into the drain, readable as any other trigger is."""
         state = self._synced()
 
