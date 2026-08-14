@@ -129,8 +129,11 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
     ) -> Response:
         execution = self._execution(block, execution_id)
         if not execution.seer_run or not execution.seer_run.seer_run_state_id:
+            mark_block_execution_cancelled(execution)
             return Response(status=status.HTTP_204_NO_CONTENT)
         mark_block_execution_stopping(execution)
-        interrupt_run(organization, execution.seer_run.seer_run_state_id)
-        mark_block_execution_cancelled(execution)
+        try:
+            interrupt_run(organization, execution.seer_run.seer_run_state_id)
+        finally:
+            mark_block_execution_cancelled(execution)
         return Response(status=status.HTTP_202_ACCEPTED)

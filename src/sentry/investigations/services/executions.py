@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from sentry.investigations.contracts import validate_query_result
 from sentry.investigations.models import (
+    TERMINAL_BLOCK_EXECUTION_STATUSES,
     InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
@@ -406,18 +407,29 @@ def mark_block_execution_dispatched(
     return updated == 1
 
 
-def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> None:
-    execution.update(status=InvestigationBlockExecutionStatus.RUNNING)
+def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
+    updated = InvestigationBlockExecution.objects.filter(
+        id=execution.id, status=InvestigationBlockExecutionStatus.AWAITING_INPUT
+    ).update(status=InvestigationBlockExecutionStatus.RUNNING)
+    return updated == 1
 
 
-def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> None:
-    execution.update(status=InvestigationBlockExecutionStatus.STOPPING)
-
-
-def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> None:
-    execution.update(
-        status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now()
+def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> bool:
+    updated = (
+        InvestigationBlockExecution.objects.filter(id=execution.id)
+        .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
+        .update(status=InvestigationBlockExecutionStatus.STOPPING)
     )
+    return updated == 1
+
+
+def mark_block_execution_cancelled(execution: InvestigationBlockExecution) -> bool:
+    updated = (
+        InvestigationBlockExecution.objects.filter(id=execution.id)
+        .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
+        .update(status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now())
+    )
+    return updated == 1
 
 
 def mark_block_execution_dispatch_failed(execution: InvestigationBlockExecution) -> bool:

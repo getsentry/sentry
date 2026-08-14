@@ -8,6 +8,11 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
 )
+from sentry.investigations.services import (
+    mark_block_execution_cancelled,
+    mark_block_execution_resumed,
+    mark_block_execution_stopping,
+)
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -96,6 +101,59 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert "inputId" in response.data
+
+    @patch(
+        "sentry.investigations.endpoints.organization_investigation_block_execution_details."
+        "interrupt_run"
+    )
+    def test_stop_reaches_a_terminal_status_even_when_the_interrupt_fails(
+        self, interrupt_run: MagicMock
+    ) -> None:
+        # A stopping execution counts as in flight, so it would block the block for good.
+        interrupt_run.side_effect = RuntimeError("Unable to stop the agent run")
+        execution = self.awaiting_input_execution()
+
+        response = self.client.delete(self.execution_url(execution))
+
+        # The caller still sees the upstream failure, but the row is not left in flight.
+        assert response.status_code == 500
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.completed_at is not None
+
+    def test_stop_closes_a_pending_execution_that_never_reached_seer(self) -> None:
+        execution = self.create_investigation_block_execution(
+            block=self.block,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.PENDING,
+            block_version=self.block.version,
+            input_snapshot={"projectIds": [self.project.id]},
+        )
+
+        response = self.client.delete(self.execution_url(execution))
+
+        assert response.status_code == 204
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+
+    def test_resume_does_not_revive_a_finished_execution(self) -> None:
+        execution = self.awaiting_input_execution()
+        execution.update(status=InvestigationBlockExecutionStatus.COMPLETED)
+
+        assert not mark_block_execution_resumed(execution)
+
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+
+    def test_stop_does_not_overwrite_a_concurrent_completion(self) -> None:
+        execution = self.awaiting_input_execution()
+        execution.update(status=InvestigationBlockExecutionStatus.COMPLETED)
+
+        assert not mark_block_execution_stopping(execution)
+        assert not mark_block_execution_cancelled(execution)
+
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
 
     def test_investigations_feature_is_required_for_run_state_and_title(self) -> None:
         execution = self.create_investigation_block_execution(
