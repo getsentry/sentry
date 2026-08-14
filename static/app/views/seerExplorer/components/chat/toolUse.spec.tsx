@@ -493,10 +493,9 @@ describe('ToolUseBlock', () => {
     );
   });
 
-  it('keeps a multi-project Explore bus link under a telemetry call row', () => {
-    // The call row itself has no destination (search rows decline without the translated query).
-    // The bus link carries project_slugs + query and must still render as residual nav rather than
-    // being suppressed because a call row exists.
+  it('links a telemetry call row with its multi-project Explore bus destination', () => {
+    // The call row supplies the useful title while the bus link supplies the translated query and
+    // projects. Pair them into one link instead of showing a separate "View spans" row.
     const block = createBlock({
       message: {
         role: 'tool_use',
@@ -536,8 +535,12 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(screen.getByText('Querying spans')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View spans/})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Querying spans/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=transaction.op%3Apageload')
+    );
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
   it('does not double-render a classic link present in both channels', () => {

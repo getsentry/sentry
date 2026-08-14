@@ -395,6 +395,22 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)
         );
+        // A telemetry call record has the useful title but not the translated params needed for its
+        // destination. Put the matching bus destination on that row instead of rendering a second
+        // "View …" row below it. Consume matches in order so repeated searches pair correctly.
+        const linkedCallRows = callRows.map(row => {
+          if (row.url || row.record.name !== 'telemetry_live_search') {
+            return row;
+          }
+          const navItemIndex = residualNavItems.findIndex(
+            item => item.kind === 'telemetry_live_search'
+          );
+          if (navItemIndex === -1) {
+            return row;
+          }
+          const [navItem] = residualNavItems.splice(navItemIndex, 1);
+          return navItem ? {...row, url: navItem.url, linkKind: navItem.kind} : row;
+        });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
@@ -403,7 +419,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // todos, links or markdown would render an empty row with a lone status tick.
         const hasContent =
           Boolean(toolString) ||
-          callRows.length > 0 ||
+          linkedCallRows.length > 0 ||
           navItems.length > 0 ||
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
@@ -414,8 +430,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
         // Both sources normalize to the same row shape. A classic tool contributes one row for
         // itself; a Code Mode call contributes one per api call it made.
-        const rows: React.ReactNode[] = callRows.length
-          ? callRows.map(({record, label, url, linkKind}) => (
+        const rows: React.ReactNode[] = linkedCallRows.length
+          ? linkedCallRows.map(({record, label, url, linkKind}) => (
               <CallRow
                 key={`${key}-${record.id}`}
                 row={{
@@ -452,9 +468,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.
         //
-        // Residual bus links only — same-kind destinations already on a call row were filtered out
-        // above. This is what keeps multi-project Explore links visible under a telemetry call row
-        // (the row itself has no path params / no destination; only the bus carries the query).
+        // Residual bus links only — destinations already claimed by or paired with a call row were
+        // filtered out above. Any links that do not describe a visible call still render here.
         if (residualNavItems.length > 0) {
           rows.push(
             <NavLinks
