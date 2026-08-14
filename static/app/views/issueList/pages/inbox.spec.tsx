@@ -145,6 +145,10 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -568,15 +572,34 @@ describe('InboxPage', () => {
     // Identified should be visible on the default "Me" tab
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^My Teams/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^All/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the total issue count for each assignee tab', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 10,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 49,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    expect(await screen.findByRole('radio', {name: 'Me 10'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'My Teams 49'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'All 99+'})).toBeInTheDocument();
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -671,9 +694,9 @@ describe('InboxPage', () => {
       initialRouterConfig,
     });
 
-    const meFilter = screen.getByRole('radio', {name: 'Me'});
-    const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
-    const allFilter = screen.getByRole('radio', {name: 'All'});
+    const meFilter = screen.getByRole('radio', {name: /^Me/});
+    const myTeamsFilter = screen.getByRole('radio', {name: /^My Teams/});
+    const allFilter = screen.getByRole('radio', {name: /^All/});
     expect(meFilter).toBeChecked();
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();

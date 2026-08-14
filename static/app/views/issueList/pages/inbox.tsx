@@ -1,23 +1,14 @@
-import {
-  type ComponentProps,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import starryVoidImg from 'sentry-images/spot/starry-void.png';
-
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -35,7 +26,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron, IconClock, IconPullRequest} from 'sentry/icons';
+import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -57,6 +48,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -72,14 +64,16 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
+const ASSIGNMENT_BADGE_WIDTH = '27px';
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-type SectionResults = Partial<Record<AssignmentFilter, Record<string, string | null>>>;
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned_or_suggested:me',
   my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
+const ASSIGNMENT_COUNT_QUERY =
+  'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
 interface InboxSectionContext {
   assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
@@ -214,6 +208,96 @@ function useSelectFirstLoadedIssue({
   };
 }
 
+// Fetch counts for the assignment filter tabs (my/my teams/all)
+function useAssignmentCounts() {
+  const organization = useOrganization();
+  const meQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.me}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const allQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.all}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+
+  const {data} = useQuery({
+    ...apiOptions.as<Record<string, number>>()(
+      '/organizations/$organizationIdOrSlug/issues-count/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {query: [meQuery, myTeamsQuery, allQuery]},
+        staleTime: 180_000,
+      }
+    ),
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    me: data[meQuery] ?? 0,
+    my_teams: data[myTeamsQuery] ?? 0,
+    all: data[allQuery] ?? 0,
+  };
+}
+
+function AssignmentTabs({
+  assignmentCounts,
+  assignmentFilter,
+  setAssignmentFilter,
+}: {
+  assignmentCounts: ReturnType<typeof useAssignmentCounts>;
+  assignmentFilter: AssignmentFilter;
+  setAssignmentFilter: (filter: AssignmentFilter) => void;
+}) {
+  const organization = useOrganization();
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
+
+  useRouteAnalyticsParams(
+    assignmentCounts
+      ? {
+          assignment_filter: assignmentFilter,
+          count_me: assignmentCounts.me,
+          count_my_teams: assignmentCounts.my_teams,
+          count_all: assignmentCounts.all,
+        }
+      : {
+          assignment_filter: assignmentFilter,
+        }
+  );
+
+  return (
+    <SegmentedControl
+      aria-label={t('Issue assignee')}
+      size="xs"
+      value={assignmentFilter}
+      onChange={handleAssignmentFilterChange}
+    >
+      <SegmentedControl.Item key="me" textValue={t('Me')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('Me')}
+          <AssignmentCountBadge count={assignmentCounts?.me} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="my_teams" textValue={t('My Teams')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('My Teams')}
+          <AssignmentCountBadge count={assignmentCounts?.my_teams} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="all" textValue={t('All')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('All')}
+          <AssignmentCountBadge count={assignmentCounts?.all} />
+        </Flex>
+      </SegmentedControl.Item>
+    </SegmentedControl>
+  );
+}
+
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
@@ -232,14 +316,11 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
-  const sectionResults = useRef<SectionResults>({});
-  const [emptyAssignmentFilters, setEmptyAssignmentFilters] = useState(
-    () => new Set<AssignmentFilter>()
-  );
+  const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
   );
-  const isInboxEmpty = emptyAssignmentFilters.has(assignmentFilter);
+  const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -258,49 +339,6 @@ function InboxContent() {
     resetKey: assignmentFilter,
     sections,
   });
-
-  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
-    trackAnalytics('issue_inbox.assignment_filter_changed', {
-      organization,
-      assignment_filter: filter,
-    });
-    setAssignmentFilter(filter);
-  };
-
-  const handleSectionResult = (
-    filter: AssignmentFilter,
-    sectionKey: string,
-    firstIssueId: string | null
-  ) => {
-    const filterResults = sectionResults.current[filter] ?? {};
-    filterResults[sectionKey] = firstIssueId;
-    sectionResults.current[filter] = filterResults;
-
-    const shouldShowEmptyState = sections.every(
-      section => filterResults[section.key] === null
-    );
-    const shouldHideEmptyState = sections.some(
-      section => typeof filterResults[section.key] === 'string'
-    );
-
-    setEmptyAssignmentFilters(currentFilters => {
-      if (
-        (shouldShowEmptyState && currentFilters.has(filter)) ||
-        (shouldHideEmptyState && !currentFilters.has(filter)) ||
-        (!shouldShowEmptyState && !shouldHideEmptyState)
-      ) {
-        return currentFilters;
-      }
-
-      const nextFilters = new Set(currentFilters);
-      if (shouldShowEmptyState) {
-        nextFilters.add(filter);
-      } else {
-        nextFilters.delete(filter);
-      }
-      return nextFilters;
-    });
-  };
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -334,18 +372,11 @@ function InboxContent() {
             <Heading as="h2" size="md">
               {t('Issues')}
             </Heading>
-            <SegmentedControl
-              aria-label={t('Issue assignee')}
-              size="xs"
-              value={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
-            >
-              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="my_teams">
-                {t('My Teams')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
-            </SegmentedControl>
+            <AssignmentTabs
+              assignmentCounts={assignmentCounts}
+              assignmentFilter={assignmentFilter}
+              setAssignmentFilter={setAssignmentFilter}
+            />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
@@ -355,7 +386,6 @@ function InboxContent() {
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
                 onInitialResult={handleInitialSectionResult}
-                onResult={handleSectionResult}
               />
             ))}
           </Stack>
@@ -414,40 +444,24 @@ function InboxContent() {
   );
 }
 
-function InboxEmptyState({assignmentFilter}: {assignmentFilter: AssignmentFilter}) {
-  const organization = useOrganization();
-
+// To avoid pop-in we ensure that the badge has the same width (which is enough to contain 99+)
+function AssignmentCountBadge({count}: {count: number | undefined}) {
   return (
-    <EmptyState
-      padding="3xl"
-      title={t('No Issues in your Inbox!')}
-      description={t(
-        'Inbox is a personalized view of issues relevant to you. Once an issue is assigned to you, it will appear here.'
+    <Flex as="span" width={ASSIGNMENT_BADGE_WIDTH} justify="end" align="center">
+      {count === undefined ? (
+        <Placeholder width={ASSIGNMENT_BADGE_WIDTH} height="16px" />
+      ) : (
+        <AssignmentBadge variant="muted">
+          <QueryCount count={count} max={99} hideIfEmpty={false} hideParens />
+        </AssignmentBadge>
       )}
-      illustration={<img src={starryVoidImg} alt="" />}
-      action={
-        <LinkButton
-          to={`/organizations/${organization.slug}/issues/`}
-          icon={<IconClock />}
-          analyticsEventKey="issue_inbox.go_to_issue_feed_clicked"
-          analyticsEventName="Issue Inbox: Go to Issue Feed Clicked"
-          analyticsParams={{assignment_filter: assignmentFilter}}
-        >
-          {t('Go to Issue Feed')}
-        </LinkButton>
-      }
-    />
+    </Flex>
   );
 }
 
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
-  onResult: (
-    assignmentFilter: AssignmentFilter,
-    sectionKey: string,
-    firstIssueId: string | null
-  ) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -455,7 +469,6 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
-  onResult,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -483,22 +496,17 @@ function InboxSection({
   );
   const {data: members = []} = useMembers({ids: memberIds});
   const membersById = new Map(members.map(member => [member.id, member]));
-  const lastReportedAssignmentFilter = useRef<AssignmentFilter | null>(null);
-  const firstIssueId = groups[0]?.id ?? null;
-  const reportResult = useEffectEvent(() => {
-    onResult(assignmentFilter, section.key, firstIssueId);
-
-    if (lastReportedAssignmentFilter.current !== assignmentFilter) {
-      lastReportedAssignmentFilter.current = assignmentFilter;
-      onInitialResult(section.key, firstIssueId);
-    }
+  const hasReportedInitialResult = useRef(false);
+  const reportInitialResult = useEffectEvent(() => {
+    onInitialResult(section.key, groups[0]?.id ?? null);
   });
 
   useLayoutEffect(() => {
-    if (queryResult.isSuccess) {
-      reportResult();
+    if (queryResult.isSuccess && !hasReportedInitialResult.current) {
+      hasReportedInitialResult.current = true;
+      reportInitialResult();
     }
-  }, [assignmentFilter, firstIssueId, queryResult.isSuccess]);
+  }, [queryResult.isSuccess]);
 
   return (
     <Disclosure
@@ -849,4 +857,11 @@ const IssueCardLink = styled(Link)`
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
     color: ${p => p.theme.tokens.content.primary};
   }
+`;
+
+const AssignmentBadge = styled(Badge)`
+  min-width: ${ASSIGNMENT_BADGE_WIDTH};
+  height: 16px;
+  font-size: ${p => p.theme.font.size.xs};
+  justify-content: center;
 `;
