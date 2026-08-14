@@ -105,6 +105,10 @@ class TriggerSmartAssignmentTest(TestCase):
         assert len(mirrors) == 1
         # The dispatch trigger (raw ActivityType name) is seeded on the extras for scoring.
         assert mirrors[0].extras["trigger"] == ActivityType.SEER_RCA_STARTED.name
+        assert (
+            mock_client_cls.return_value.start_feature_run.call_args.kwargs["referrer"]
+            == ActivityType.SEER_RCA_STARTED.name
+        )
         # A Seer AI-step start carries no ground truth.
         assert "actual_assignee_user_id" not in mirrors[0].extras
 
