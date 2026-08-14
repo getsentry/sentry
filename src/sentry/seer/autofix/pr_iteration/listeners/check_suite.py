@@ -17,6 +17,10 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_flag_gate,
     resolve_green_check_suite,
 )
+from sentry.seer.autofix.pr_iteration.constants import (
+    FAILING_CHECK_SUITE_FLAGS,
+    GREEN_CHECK_SUITE_FLAGS,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -37,18 +41,29 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return None
 
     conclusion = check_suite_event.check_suite["conclusion"]
+    is_green = conclusion in GREEN_CONCLUSIONS
 
-    if conclusion not in GREEN_CONCLUSIONS and conclusion not in FAILURE_CONCLUSIONS:
+    if not is_green and conclusion not in FAILURE_CONCLUSIONS:
         return None
 
     # Every check suite of every GitHub installation lands here, and both branches
     # below go on to query repositories and call Seer per pull request. None of
-    # that is worth paying for when no organization behind the installation runs
-    # PR iteration at all, so those suites are dropped on one integration lookup.
-    if not resolve_check_suite_flag_gate(check_suite_event).flagged_organization_ids:
+    # that is worth paying for when no organization behind the installation holds
+    # a flag *this conclusion* feeds, so those suites are dropped on one
+    # integration lookup: a green suite behind an installation nobody
+    # review-requests for never reaches the SCM confirm, and a failing one behind
+    # an installation nobody iterates for never costs the Seer round trip that
+    # resolves its run. Entitlement stays downstream, where the organization is
+    # actually known: this sees only the installation, not which organization the
+    # suite's repository and Autofix run turn out to belong to, so
+    # ``resolve_green_check_suite`` re-checks the review-request flag per repo and
+    # ``assign_user_for_exhausted_cap`` owns the cap-assign flag outright -- the
+    # latter gates a side effect of iteration, so it is never asked about here.
+    gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
+    if not resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids:
         return None
 
-    if conclusion in GREEN_CONCLUSIONS:
+    if is_green:
         # Cheap resolve → read markers once → skip SCM if both done → confirm
         # green → run only the missing side effects. Undraft before
         # review-request: GitHub may CODEOWNERS-request after undraft; see TODO

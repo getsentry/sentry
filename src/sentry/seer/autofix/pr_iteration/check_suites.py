@@ -31,11 +31,7 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import (
-    PR_ITERATION_FLAGS,
-    PR_ITERATION_PROVIDER,
-    REVIEW_REQUEST_FLAG,
-)
+from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
@@ -145,23 +141,47 @@ def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
 
 @dataclass(frozen=True)
 class CheckSuiteFlagGate:
-    """Which organizations behind a check suite's installation run PR iteration."""
+    """Which organizations behind a check suite's installation hold which flags."""
 
     organization_ids: list[int]
     """Every organization sharing the installation the suite was delivered for."""
 
-    flagged_organization_ids: list[int]
-    """The subset running some part of PR iteration. Empty means: drop the event."""
+    organization_ids_by_flag: dict[str, list[int]]
+    """Per flag asked about, the organizations that have it. Only the flags passed
+    to ``resolve_check_suite_flag_gate`` appear, each in installation order."""
+
+    @property
+    def flagged_organization_ids(self) -> list[int]:
+        """Organizations holding at least one flag asked about, in installation
+        order. Empty means: nothing on this branch can act, so drop the event."""
+        flagged = {
+            organization_id
+            for ids in self.organization_ids_by_flag.values()
+            for organization_id in ids
+        }
+        return [
+            organization_id
+            for organization_id in self.organization_ids
+            if organization_id in flagged
+        ]
 
 
-def resolve_check_suite_flag_gate(check_suite_event: CheckSuiteEvent) -> CheckSuiteFlagGate:
-    """Resolve a check suite's organizations and ask whether any of them runs PR iteration.
+def resolve_check_suite_flag_gate(
+    check_suite_event: CheckSuiteEvent, flags: Sequence[str]
+) -> CheckSuiteFlagGate:
+    """Resolve a check suite's organizations and ask which of them hold ``flags``.
 
     A GitHub App installation can be linked to several Sentry organizations, and
     the SCM stream delivers every check suite of every installation. Most belong
     to organizations that run no part of PR iteration, and resolving those costs a
     repository query and a round trip to Seer per pull request. This answers the
     cheaper question first: is *anyone* behind this installation interested?
+
+    ``flags`` is what the caller's branch can actually act on -- see
+    ``GREEN_CHECK_SUITE_FLAGS`` and ``FAILING_CHECK_SUITE_FLAGS``. Asking per
+    branch rather than for PR iteration at large is what lets a green suite be
+    dropped for an installation that only iterates on CI failures, and vice
+    versa; only the flags asked about are evaluated.
 
     Deliberately stops at organizations. It reads the installation id straight off
     ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
@@ -171,7 +191,7 @@ def resolve_check_suite_flag_gate(check_suite_event: CheckSuiteEvent) -> CheckSu
     lookup costs less than threading a half-resolved state through both of them.
     """
     organization_ids: list[int] = []
-    flagged_organization_ids: list[int] = []
+    organization_ids_by_flag: dict[str, list[int]] = {flag: [] for flag in flags}
 
     with metrics.timer("autofix.pr_iteration.check_suite.flag_gate") as tags:
         extra = check_suite_event.subscription_event.get("extra") or {}
@@ -192,11 +212,16 @@ def resolve_check_suite_flag_gate(check_suite_event: CheckSuiteEvent) -> CheckSu
                 except Organization.DoesNotExist:
                     continue
 
-                if any(features.has(flag, organization) for flag in PR_ITERATION_FLAGS):
-                    flagged_organization_ids.append(organization_id)
+                for flag in flags:
+                    if features.has(flag, organization):
+                        organization_ids_by_flag[flag].append(organization_id)
 
-            tags["outcome"] = "flagged" if flagged_organization_ids else "unflagged"
+            tags["outcome"] = "flagged" if any(organization_ids_by_flag.values()) else "unflagged"
 
+    gate = CheckSuiteFlagGate(
+        organization_ids=organization_ids,
+        organization_ids_by_flag=organization_ids_by_flag,
+    )
     # Emitted on every path, so an installation that resolves to nothing is
     # visible as a zero rather than as a gap.
     metrics.distribution(
@@ -204,12 +229,9 @@ def resolve_check_suite_flag_gate(check_suite_event: CheckSuiteEvent) -> CheckSu
     )
     metrics.distribution(
         "autofix.pr_iteration.check_suite.flag_gate.flagged_organizations",
-        len(flagged_organization_ids),
+        len(gate.flagged_organization_ids),
     )
-    return CheckSuiteFlagGate(
-        organization_ids=organization_ids,
-        flagged_organization_ids=flagged_organization_ids,
-    )
+    return gate
 
 
 def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repository]:

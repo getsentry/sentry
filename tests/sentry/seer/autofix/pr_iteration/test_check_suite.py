@@ -13,6 +13,9 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_flag_gate,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
+    CAP_ASSIGN_FLAG,
+    FAILING_CHECK_SUITE_FLAGS,
+    GREEN_CHECK_SUITE_FLAGS,
     ITERATION_FLAG,
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
@@ -91,7 +94,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             f"{CHECK_PATH}.resolve_check_suite_flag_gate",
             return_value=CheckSuiteFlagGate(
                 organization_ids=[self.organization.id],
-                flagged_organization_ids=[self.organization.id],
+                organization_ids_by_flag={ITERATION_FLAG: [self.organization.id]},
             ),
         )
         self.mock_flag_gate = gate_patcher.start()
@@ -149,9 +152,9 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         self, mock_get_state: MagicMock, mock_resolve_green: MagicMock
     ) -> None:
         # An installation can resolve to organizations and still be dropped: what
-        # matters is whether any of them runs PR iteration.
+        # matters is whether any of them holds a flag this conclusion feeds.
         self.mock_flag_gate.return_value = CheckSuiteFlagGate(
-            organization_ids=[self.organization.id], flagged_organization_ids=[]
+            organization_ids=[self.organization.id], organization_ids_by_flag={}
         )
 
         pr_iteration_from_check_suite_listener(self._event(self._raw()))
@@ -159,6 +162,11 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_get_state.assert_not_called()
         mock_resolve_green.assert_not_called()
+
+        assert [call.args[1] for call in self.mock_flag_gate.call_args_list] == [
+            FAILING_CHECK_SUITE_FLAGS,
+            GREEN_CHECK_SUITE_FLAGS,
+        ]
 
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
@@ -920,7 +928,7 @@ class CheckSuiteHardCapTest(TestCase):
 
 class CheckSuiteFlagGateTest(TestCase):
     """The listener's front door: which organizations are behind an installation,
-    and does any of them run PR iteration."""
+    and which of them hold the flags the asking branch can act on."""
 
     INSTALLATION_ID = 4242
 
@@ -932,10 +940,15 @@ class CheckSuiteFlagGateTest(TestCase):
             ],
         )
 
+    def _gate(self, flags=FAILING_CHECK_SUITE_FLAGS, raw: dict | None = None) -> CheckSuiteFlagGate:
+        return resolve_check_suite_flag_gate(
+            check_suite_event(raw, installation_id=self.INSTALLATION_ID), flags
+        )
+
     def test_no_installation_id_resolves_nothing(self) -> None:
         # ``extra`` is populated by the GitHub webhook endpoint; without it there
         # is no installation to look up, and no body parse to fall back on.
-        gate = resolve_check_suite_flag_gate(check_suite_event())
+        gate = resolve_check_suite_flag_gate(check_suite_event(), FAILING_CHECK_SUITE_FLAGS)
 
         assert gate.organization_ids == []
         assert gate.flagged_organization_ids == []
@@ -944,47 +957,76 @@ class CheckSuiteFlagGateTest(TestCase):
     def test_organization_without_flags_is_not_admitted(self, mock_contexts: MagicMock) -> None:
         mock_contexts.return_value = self._contexts(self.organization.id)
 
-        gate = resolve_check_suite_flag_gate(
-            check_suite_event(installation_id=self.INSTALLATION_ID)
-        )
+        gate = self._gate()
+
+        assert gate.organization_ids == [self.organization.id]
+        assert gate.flagged_organization_ids == []
+        assert gate.organization_ids_by_flag == {flag: [] for flag in FAILING_CHECK_SUITE_FLAGS}
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_automated_iteration_flag_admits_a_failing_suite(
+        self, mock_contexts: MagicMock
+    ) -> None:
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
+        with self.feature({ITERATION_FLAG: True}):
+            gate = self._gate()
+
+        assert gate.flagged_organization_ids == [self.organization.id]
+        assert gate.organization_ids_by_flag[ITERATION_FLAG] == [self.organization.id]
+        assert gate.organization_ids_by_flag[MANUAL_FLAG] == []
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_manual_flag_admits_a_failing_suite(self, mock_contexts: MagicMock) -> None:
+        # The manual flag drives comment and review triggers rather than CI, but
+        # ``trigger_autofix_agent`` admits the PR_ITERATION step under it too, so a
+        # failing suite still has iteration to reach.
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
+        with self.feature({MANUAL_FLAG: True}):
+            gate = self._gate()
+
+        assert gate.flagged_organization_ids == [self.organization.id]
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_cap_assign_flag_alone_does_not_admit(self, mock_contexts: MagicMock) -> None:
+        # The cap-exhausted handoff only reacts to iteration that already ran, so
+        # it is never the sole reason to resolve a suite -- an organization holding
+        # it without an iteration flag has nothing to hand over.
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
+        with self.feature({CAP_ASSIGN_FLAG: True}):
+            gate = self._gate()
 
         assert gate.organization_ids == [self.organization.id]
         assert gate.flagged_organization_ids == []
 
     @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
-    def test_automated_iteration_flag_admits(self, mock_contexts: MagicMock) -> None:
-        mock_contexts.return_value = self._contexts(self.organization.id)
-
-        with self.feature({ITERATION_FLAG: True}):
-            gate = resolve_check_suite_flag_gate(
-                check_suite_event(installation_id=self.INSTALLATION_ID)
-            )
-
-        assert gate.flagged_organization_ids == [self.organization.id]
-
-    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
-    def test_manual_flag_admits(self, mock_contexts: MagicMock) -> None:
-        # The manual flag drives comment and review triggers rather than CI, but a
-        # check suite still has to survive the gate to reach the green branch.
-        mock_contexts.return_value = self._contexts(self.organization.id)
-
-        with self.feature({MANUAL_FLAG: True}):
-            gate = resolve_check_suite_flag_gate(
-                check_suite_event(installation_id=self.INSTALLATION_ID)
-            )
-
-        assert gate.flagged_organization_ids == [self.organization.id]
-
-    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
-    def test_review_request_flag_admits(self, mock_contexts: MagicMock) -> None:
+    def test_review_request_flag_admits_a_green_suite(self, mock_contexts: MagicMock) -> None:
         mock_contexts.return_value = self._contexts(self.organization.id)
 
         with self.feature({REVIEW_REQUEST_FLAG: True}):
-            gate = resolve_check_suite_flag_gate(
-                check_suite_event(installation_id=self.INSTALLATION_ID)
-            )
+            gate = self._gate(GREEN_CHECK_SUITE_FLAGS)
 
         assert gate.flagged_organization_ids == [self.organization.id]
+        assert gate.organization_ids_by_flag == {REVIEW_REQUEST_FLAG: [self.organization.id]}
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_branches_do_not_admit_each_other(self, mock_contexts: MagicMock) -> None:
+        # The point of asking per conclusion: an organization that only iterates on
+        # CI failures has nothing to do with a green suite, and one that only
+        # review-requests has nothing to do with a failing one.
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
+        with self.feature({ITERATION_FLAG: True, MANUAL_FLAG: True}):
+            green = self._gate(GREEN_CHECK_SUITE_FLAGS)
+        with self.feature({REVIEW_REQUEST_FLAG: True}):
+            failing = self._gate(FAILING_CHECK_SUITE_FLAGS)
+
+        assert green.organization_ids == [self.organization.id]
+        assert green.flagged_organization_ids == []
+        assert failing.organization_ids == [self.organization.id]
+        assert failing.flagged_organization_ids == []
 
     @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
     def test_admits_only_the_flagged_half_of_a_shared_installation(
@@ -996,20 +1038,30 @@ class CheckSuiteFlagGateTest(TestCase):
         mock_contexts.return_value = self._contexts(self.organization.id, other_organization.id)
 
         with self.feature({ITERATION_FLAG: [other_organization.slug]}):
-            gate = resolve_check_suite_flag_gate(
-                check_suite_event(installation_id=self.INSTALLATION_ID)
-            )
+            gate = self._gate()
 
         assert gate.organization_ids == [self.organization.id, other_organization.id]
         assert gate.flagged_organization_ids == [other_organization.id]
+        assert gate.organization_ids_by_flag[ITERATION_FLAG] == [other_organization.id]
+
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_flagged_organizations_are_deduped_across_flags(self, mock_contexts: MagicMock) -> None:
+        # One organization holding two of the branch's flags is one reason to keep
+        # the event, not two.
+        mock_contexts.return_value = self._contexts(self.organization.id)
+
+        with self.feature({ITERATION_FLAG: True, MANUAL_FLAG: True}):
+            gate = self._gate()
+
+        assert gate.flagged_organization_ids == [self.organization.id]
+        assert gate.organization_ids_by_flag[ITERATION_FLAG] == [self.organization.id]
+        assert gate.organization_ids_by_flag[MANUAL_FLAG] == [self.organization.id]
 
     @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
     def test_installation_with_no_organizations(self, mock_contexts: MagicMock) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
 
-        gate = resolve_check_suite_flag_gate(
-            check_suite_event(installation_id=self.INSTALLATION_ID)
-        )
+        gate = self._gate()
 
         assert gate.organization_ids == []
         assert gate.flagged_organization_ids == []
@@ -1021,9 +1073,7 @@ class CheckSuiteFlagGateTest(TestCase):
         mock_contexts.return_value = self._contexts(self.organization.id + 10_000)
 
         with self.feature({ITERATION_FLAG: True}):
-            gate = resolve_check_suite_flag_gate(
-                check_suite_event(installation_id=self.INSTALLATION_ID)
-            )
+            gate = self._gate()
 
         assert gate.organization_ids == [self.organization.id + 10_000]
         assert gate.flagged_organization_ids == []
@@ -1033,9 +1083,8 @@ class CheckSuiteFlagGateTest(TestCase):
         # The installation id comes off ``extra``, so a body the green/failure
         # branches would reject still gets a verdict here.
         mock_contexts.return_value = self._contexts(self.organization.id)
-        event = check_suite_event({"nonsense": True}, installation_id=self.INSTALLATION_ID)
 
         with self.feature({ITERATION_FLAG: True}):
-            gate = resolve_check_suite_flag_gate(event)
+            gate = self._gate(raw={"nonsense": True})
 
         assert gate.flagged_organization_ids == [self.organization.id]

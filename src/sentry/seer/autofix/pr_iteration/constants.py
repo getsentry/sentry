@@ -14,14 +14,27 @@ MANUAL_FLAG = "organizations:autofix-pr-iteration-manual"
 # providers skip as unsupported until they grow that capability.
 REVIEW_REQUEST_FLAG = "organizations:autofix-pr-iteration-review-request"
 
-# An organization with any one of these runs some part of PR iteration, so an SCM
-# event reaching one of its repos is worth resolving. Used to drop events for
-# installations no such organization is behind, before the expensive work starts.
+# Hand the PR to a human once automated iteration has spent its hard cap. Only
+# reachable after iteration has already run, so it never starts iteration.
+CAP_ASSIGN_FLAG = "organizations:autofix-pr-iteration-cap-assign"
+
+# What a check suite is worth resolving *for*, split by conclusion: an
+# organization with none of the flags its conclusion feeds has no side effect
+# left on that branch, so the event is dropped before any repository query, Seer
+# round trip, or SCM call. Each flag is still re-checked per organization where
+# it is acted on -- these say which work is possible, not which run is entitled.
 #
-# ``organizations:autofix-pr-iteration-cap-assign`` is deliberately absent: it
-# only changes what happens once an iteration has already run, so it can never be
-# the sole reason to keep an event.
-PR_ITERATION_FLAGS = (ITERATION_FLAG, MANUAL_FLAG, REVIEW_REQUEST_FLAG)
+# Green: undraft + review-request, both under one flag.
+GREEN_CHECK_SUITE_FLAGS = (REVIEW_REQUEST_FLAG,)
+
+# Failing: automated iteration, which ``trigger_autofix_agent`` admits the
+# PR_ITERATION step under either flag for.
+#
+# ``CAP_ASSIGN_FLAG`` is deliberately absent: it only changes what happens once
+# iteration has already run, so it can never be the sole reason to keep an event.
+# An organization holding it without an iteration flag has its handoff dropped
+# here, which is the intent -- there is nothing left for a human to take over.
+FAILING_CHECK_SUITE_FLAGS = (ITERATION_FLAG, MANUAL_FLAG)
 
 # The only SCM provider PR iteration supports.
 #
