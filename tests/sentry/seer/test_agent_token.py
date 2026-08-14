@@ -374,6 +374,19 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert not permission.has_permission(request, APIView())
         assert not permission.has_object_permission(request, APIView(), self.org)
 
+    def test_agent_access_rejects_context_for_different_user(self) -> None:
+        request = self._agent_request(self.member, ["org:admin"], method="DELETE")
+        owner_context = organization_service.get_organization_by_id(
+            id=self.org.id,
+            user_id=self.owner.id,
+            include_projects=False,
+            include_teams=False,
+        )
+        assert owner_context is not None
+
+        assert not OrganizationPermission().has_object_permission(request, APIView(), owner_context)
+        assert request.access is DEFAULT
+
     def test_shared_request_access_factory_dispatches_by_agent_credential(self) -> None:
         request = self._agent_request(self.owner, ["org:read"], method="GET")
         org_context = organization_service.get_organization_by_id(

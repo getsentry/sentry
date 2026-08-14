@@ -1264,6 +1264,8 @@ def from_agent_auth(
     # delegating user is also a member of the requested org.
     if auth.organization_id != rpc_user_org_context.organization.id:
         return DEFAULT
+    if auth.user_id != rpc_user_org_context.user_id:
+        return DEFAULT
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token
     # scopes uncapped when member is None.

@@ -185,21 +185,11 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
-
-        # An agent token is a non-user actor acting on behalf of a member. Resolve the org
-        # context for that member (not the anonymous request user) so access derives from
-        # their real membership -- scopes and project/team access.
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
-        if agent_auth is not None:
-            user_id = agent_auth.user_id
 
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
-            if agent_auth is not None and org_context.user_id != user_id:
-                org_context = organization_service.get_organization_by_id(
-                    id=org_context.organization.id, user_id=user_id
-                )
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization), user_id=user_id
