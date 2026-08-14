@@ -37,7 +37,7 @@ def try_enqueue_autofix_feedback(
     run_state: SeerRunState,
     actor_user_id: int | None = None,
 ) -> bool:
-    if not feedback.source.should_queue(run_state):
+    if not feedback.source.should_queue(run_state).ok:
         logger.info(
             "autofix.feedback_queue.skipped_stale_feedback",
             extra={

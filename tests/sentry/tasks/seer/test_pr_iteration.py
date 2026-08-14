@@ -12,7 +12,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, TriggerDecision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
@@ -973,7 +973,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_skips_when_no_consume_task(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=None):
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
             trigger_consume_pr_iteration_feedback(
                 run_id=67890,
                 organization_id=self.organization.id,
@@ -989,7 +993,9 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         with patch.object(
             type(feedback.source),
             "should_trigger",
-            return_value=ConsumeTask.Later(timedelta(hours=1)),
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
         ):
             trigger_consume_pr_iteration_feedback(
                 run_id=67890,
@@ -1006,7 +1012,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=None):
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
             trigger_consume_pr_iteration_feedback(
                 run_id=67890,
                 organization_id=self.organization.id,

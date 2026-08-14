@@ -130,7 +130,7 @@ def trigger_consume_pr_iteration_feedback(
     if bypass:
         task: ConsumeTask | None = ConsumeTask.Now
     else:
-        task = feedback.source.should_trigger(run_state)
+        task = feedback.source.should_trigger(run_state).task
 
     if task is None:
         return
@@ -211,7 +211,7 @@ def consume_queued_autofix_feedback(
         # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
         seen_check_suite_keys: set[tuple[int, str] | int] = set()
         for item in queued_items:
-            if not item.feedback.source.should_consume(state):
+            if not item.feedback.source.should_consume(state).ok:
                 logger.info(
                     "autofix.pr_iteration.consume_feedback.stale_feedback",
                     extra={
@@ -1016,7 +1016,7 @@ def trigger_pr_iteration_from_review(
         source = feedback_obj.source
         if not isinstance(source, GithubPrReviewCommentFeedbackSource):
             continue
-        if source.comment.id is None or not source.should_consume(agent_state):
+        if source.comment.id is None or not source.should_consume(agent_state).ok:
             continue
         _add_comment_reaction(
             scm,

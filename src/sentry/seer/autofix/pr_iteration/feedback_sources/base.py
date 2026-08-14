@@ -35,6 +35,33 @@ ConsumeTask.Now = _ConsumeNow()
 ConsumeTask.Later = _ConsumeLater
 
 
+@dataclass(frozen=True)
+class Decision:
+    """A yes/no gate on one feedback item, and the input that settled it.
+
+    ``reason`` names what the gate actually read -- ``stale_head``,
+    ``already_processed`` -- on the allow path as much as the deny path, so a
+    caller logging the decision records why it went either way rather than only
+    that it did. Values are drawn from a small fixed vocabulary per method so they
+    are safe to use as a metric tag.
+    """
+
+    ok: bool
+    reason: str
+
+
+@dataclass(frozen=True)
+class TriggerDecision:
+    """When to run the consume task for a feedback item, and what settled it.
+
+    ``task`` of ``None`` means not at all: the run has hit a limit, not that it is
+    being deferred.
+    """
+
+    task: ConsumeTask | None
+    reason: str
+
+
 class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"
@@ -60,11 +87,14 @@ class FeedbackSourceBase(BaseModel):
         """
         return False
 
-    def should_queue(self, run_state: SeerRunState) -> bool:
-        return True
+    # A source that overrides none of these has nothing to check: its feedback is
+    # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,
+    # which is worth distinguishing in a log from a gate that ran and passed.
+    def should_queue(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
-        return True
+    def should_consume(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
 
-    def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        return ConsumeTask.Now
+    def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
+        return TriggerDecision(task=ConsumeTask.Now, reason="no_gate")

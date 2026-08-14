@@ -18,7 +18,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     REVIEW_REQUEST_FLAG,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
+    ConsumeTask,
+    Decision,
+    TriggerDecision,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
@@ -730,12 +734,16 @@ class CheckSuiteHardCapTest(TestCase):
     def test_none_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=None, reason="hard_cap_reached"
+        )
 
     def test_should_queue_false_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
-        assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
+        assert self._source().should_queue(self._run_state_on_head(blocks=blocks)) == Decision(
+            ok=False, reason="hard_cap_reached"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -744,7 +752,9 @@ class CheckSuiteHardCapTest(TestCase):
         mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -763,13 +773,17 @@ class CheckSuiteHardCapTest(TestCase):
             )
         )
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
     def test_only_last_n_iterations_considered(self) -> None:
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
         blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, self.CAP + 1)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=None, reason="hard_cap_reached"
+        )
 
     def test_none_when_mixed_automated_streak_reaches_cap(self) -> None:
         # Check suites and bot reviews share one streak: a mix of the two that
@@ -778,7 +792,9 @@ class CheckSuiteHardCapTest(TestCase):
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_iteration_block(self.CAP - 1, _review_comment_feedback(author_is_bot=True)))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=None, reason="hard_cap_reached"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -796,7 +812,9 @@ class CheckSuiteHardCapTest(TestCase):
             for i in range(2, self.CAP + 1)
         ]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=ConsumeTask.Now, reason="sweep_complete"
+        )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -806,7 +824,9 @@ class CheckSuiteHardCapTest(TestCase):
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
         with self.options({"autofix.pr-iteration.max-iterations": 0}):
-            assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+            assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+                task=ConsumeTask.Now, reason="sweep_complete"
+            )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -821,7 +841,9 @@ class CheckSuiteHardCapTest(TestCase):
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(_empty_feedback_iteration_block(self.CAP - 1))
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
+            task=None, reason="hard_cap_reached"
+        )
 
 
 class CheckSuiteFlagGateTest(TestCase):
