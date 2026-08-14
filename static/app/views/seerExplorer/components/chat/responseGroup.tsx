@@ -26,14 +26,14 @@ import {CODE_MODE_TOOLS, ToolCallList} from './toolUse';
  * a terminating `assistant` block with the answer), so grouping them here is what lets a whole
  * response collapse into a single `ThinkingBlock` instead of one row per step.
  */
-export interface ResponseSegment {
+interface ResponseSegment {
   blocks: Block[];
   /** Indices into the original flat block array, for stable keys and ref bookkeeping. */
   indices: number[];
   kind: 'response';
 }
 
-export interface UserSegment {
+interface UserSegment {
   block: Block;
   index: number;
   kind: 'user';
