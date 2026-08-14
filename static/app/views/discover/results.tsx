@@ -697,9 +697,7 @@ export class Results extends Component<Props, State> {
               <Tips tips={tips} />
               {hasDatasetSelectorFeature && showQueryIncompatibleWithDataset ? (
                 <QueryIncompatibleWithDatasetBanner
-                  onClick={() =>
-                    this.setState({showQueryIncompatibleWithDataset: false})
-                  }
+                  onClick={() => this.setState({showQueryIncompatibleWithDataset: false})}
                 />
               ) : null}
               <TransactionsDatasetDeprecationBanner
