@@ -23,7 +23,7 @@ export function useIssuePreviewSeer(group: Group, project: Project) {
       (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked)
     ) {
       state = 'configure';
-    } else if (!autofix.runState) {
+    } else if (!autofix.runState && !autofix.isWaitingForRun) {
       state = 'start';
     }
   }

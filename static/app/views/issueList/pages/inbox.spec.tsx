@@ -967,6 +967,30 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows root cause generation after starting Autofix for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 42},
+      asyncDelay: 100,
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+    await userEvent.click(
+      await within(preview).findByRole('button', {name: 'Find Root Cause'})
+    );
+
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
+    expect(within(preview).queryByText('Have Seer...')).not.toBeInTheDocument();
+  });
+
   it('waits for Seer setup before showing assigned issue actions', async () => {
     const autofixSetupDelay = Promise.withResolvers<void>();
     mockAssignedPreview(
