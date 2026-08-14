@@ -72,7 +72,6 @@ def trigger_autofix_rca_feature(
         title=f"Autofix RCA — {payload.short_id}",
         flush=flush,
         extras=extras,
-        referrer=referrer.value,
     )
 
     quotas.backend.record_seer_run(

@@ -1461,7 +1461,6 @@ class TestStartFeatureRun(TestCase):
             flush=False,
             title="Agentic triage (2 candidates)",
             extras={"foo": "bar"},
-            referrer="night_shift",
         )
 
         agent_run = SeerAgentRun.objects.get(run=run)

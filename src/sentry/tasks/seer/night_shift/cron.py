@@ -842,7 +842,6 @@ def _dispatch_pending_shards(
                     title=shard_plan.title,
                     flush=False,
                     on_run_created=_link_shard,
-                    referrer="night_shift",
                 )
             except Exception:
                 logger.exception(
