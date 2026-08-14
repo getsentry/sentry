@@ -1,7 +1,8 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   callRecordDetail,
+  callRecordInputQuery,
   callRecordLabel,
   callRecordStatus,
 } from 'sentry/views/seerExplorer/callRecords';
@@ -98,14 +99,16 @@ describe('call record rendering', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByRole('link', {name: /Retrieve an Issue/})).toHaveAttribute(
+    // The navigable resource is a trailing result chip (a LinkButton: role button + href), labeled
+    // by its kind rather than by the tool's own title.
+    expect(screen.getByRole('button', {name: /View issue/})).toHaveAttribute(
       'href',
       expect.stringContaining('/issues/139458447/')
     );
   });
 
-  describe('a row that both expands and navigates', () => {
-    /** An api call with a destination *and* a request to show — both affordances on one row. */
+  describe('a row that navigates', () => {
+    /** An api call with a destination to link to. */
     function linkable(): CallRecord {
       return apiRecord({
         path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
@@ -115,24 +118,37 @@ describe('call record rendering', () => {
       });
     }
 
-    it('keeps the link out of the disclosure button', () => {
+    it('surfaces the resource as a linked result chip, not a disclosure toggle', () => {
       render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
 
-      // An anchor inside a button is invalid HTML, and it leaves expand and navigate sharing one
-      // click target and one tab stop.
-      const link = screen.getByRole('link', {name: /Retrieve an Issue/});
-      const expander = screen.getByRole('button', {name: /Retrieve an Issue/});
-      expect(expander).not.toContainElement(link);
+      // A tool call is not a disclosure: the title is plain text, not an expand toggle, so nothing
+      // shares a click target with the link.
+      expect(
+        screen.queryByRole('button', {name: /Retrieve an Issue/})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /View issue/})).toHaveAttribute(
+        'href',
+        expect.stringContaining('/issues/139458447/')
+      );
     });
 
-    it('still expands to the request it made', async () => {
-      render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
+    it('decomposes the request query string into readonly input chips', () => {
+      const block = codeModeBlock([
+        apiRecord({
+          resolved_path:
+            '/api/0/organizations/sentry/events/?dataset=spans&project=ml-service&query=ai_conversation.id%3A28193042',
+        }),
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} />);
 
-      await userEvent.click(screen.getByRole('button', {name: /Retrieve an Issue/}));
-
-      expect(
-        screen.getByText('GET /api/0/organizations/acme/issues/139458447/')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Input:')).toBeInTheDocument();
+      expect(screen.getByText('dataset')).toBeInTheDocument();
+      expect(screen.getByText('spans')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('ml-service')).toBeInTheDocument();
+      // The Sentry search string is expanded into its own filter chips rather than shown raw.
+      expect(screen.getByText('ai_conversation.id')).toBeInTheDocument();
+      expect(screen.getByText('28193042')).toBeInTheDocument();
     });
   });
 
@@ -424,6 +440,78 @@ describe('callRecordDetail', () => {
         params: {org: 'acme', issue_id: '54'},
       })
     ).toBeNull();
+  });
+});
+
+describe('callRecordInputQuery', () => {
+  it('has no input for a request with no query string', () => {
+    expect(
+      callRecordInputQuery(apiRecord({resolved_path: '/api/0/issues/54/'}))
+    ).toBeNull();
+  });
+
+  it('turns each meaningful query param into a key:value term', () => {
+    expect(
+      callRecordInputQuery(
+        apiRecord({
+          resolved_path:
+            '/api/0/organizations/sentry/events/?dataset=spans&project=ml-service',
+        })
+      )
+    ).toBe('dataset:spans project:ml-service');
+  });
+
+  it('folds a Sentry query param in as its own filters', () => {
+    expect(
+      callRecordInputQuery(
+        apiRecord({
+          resolved_path:
+            '/api/0/organizations/sentry/events/?query=span.description%3ADSL',
+        })
+      )
+    ).toBe('span.description:DSL');
+  });
+
+  it('quotes a query value that would re-tokenize wrong', () => {
+    expect(
+      callRecordInputQuery(apiRecord({resolved_path: '/api/0/x/?transaction=GET /foo'}))
+    ).toBe('transaction:"GET /foo"');
+  });
+
+  it('drops scope and formatting params so filters are not buried in noise', () => {
+    expect(
+      callRecordInputQuery(
+        apiRecord({
+          resolved_path:
+            '/api/0/x/?dataset=spans&field=id&field=title&per_page=100&referrer=api&sort=-timestamp',
+        })
+      )
+    ).toBe('dataset:spans');
+  });
+
+  it('sorts a flat query least → most specific (scope, attribute, id)', () => {
+    expect(
+      callRecordInputQuery(
+        apiRecord({
+          resolved_path:
+            '/api/0/organizations/sentry/events/?dataset=spans&project=ml-service&query=ai_conversation.id%3A28193042%20span.description%3ADSL',
+        })
+      )
+    ).toBe(
+      'dataset:spans project:ml-service span.description:DSL ai_conversation.id:28193042'
+    );
+  });
+
+  it('preserves order when the query uses boolean/paren grouping', () => {
+    // Grouping makes order meaningful, so it must not be reordered by specificity.
+    expect(
+      callRecordInputQuery(
+        apiRecord({
+          resolved_path:
+            '/api/0/x/?query=(ai_conversation.id%3A28193042%20OR%20dataset%3Aspans)',
+        })
+      )
+    ).toBe('(ai_conversation.id:28193042 OR dataset:spans)');
   });
 });
 

@@ -16,6 +16,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {IconLink} from 'sentry/icons';
@@ -26,6 +27,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {
   callRecordDetail,
   callRecordFailure,
+  callRecordInputQuery,
   callRecordLabel,
   callRecordStatus,
   visibleCallRecords,
@@ -58,7 +60,7 @@ const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
 // Code Mode's tool names cover every action it can take, so "Used sentry_api_execute tool" names
 // nothing. These rows are built from the calls the execute reported instead; the tool's own label
 // is never rendered, and a call that produced nothing to show renders no row at all.
-const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
+export const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
 
 // Identity for deduping a bus link against the positional row link. Params are sorted so the key
 // does not depend on object key order — today both channels derive params from the same object, but
@@ -254,7 +256,7 @@ interface ToolCallListProps {
   getPageReferrer?: () => string;
 }
 
-function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
+export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   const {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -480,9 +482,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           rows.push(<TodoList key={`${key}-todos`} todos={todos} />);
         }
         return rows.map((row, rowIdx) => (
-          <MessageRow key={`${key}-row-${rowIdx}`} from="assistant" density="compact">
-            {row}
-          </MessageRow>
+          <NestedRow key={`${key}-row-${rowIdx}`}>{row}</NestedRow>
         ));
       })}
     </Fragment>
@@ -559,9 +559,10 @@ function CallRow({
  * markdown surface stay identical.
  *
  * The record's label becomes the title, its outcome the leading glyph, its navigable resource a
- * trailing link chip (a real anchor, so middle/cmd-click still work), and any transport failure a
- * notification line. The request it ran — and its bounded response body — hangs off the detail slot
- * below the title.
+ * trailing link chip (a real anchor, so middle/cmd-click still work). On failure the HTTP status
+ * code trails the title and the error prints under `Output:`. The request it ran is decomposed into
+ * query chips under `Input:` (rendered by the shared `FormattedQuery`), and its bounded response
+ * body (when there is one) sits inline below.
  */
 function CodeModeCallRow({
   record,
@@ -578,13 +579,28 @@ function CodeModeCallRow({
   url: LocationDescriptor | null;
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
-  const detail = callRecordDetail(record);
+  const status = callRecordStatus(record, settled);
+  const inputQuery = callRecordInputQuery(record);
+  const body = callRecordDetail(record)?.body;
   const failure = callRecordFailure(record);
+  const isFailure = status === 'failure';
 
   return (
     <ToolCall
       title={label}
-      status={callRecordStatus(record, settled)}
+      status={status}
+      // The trailing danger chip reads the HTTP status code (e.g. `502`); a transport failure with
+      // no status falls back to the component's default `Failed`.
+      failureLabel={record.status ? String(record.status) : undefined}
+      input={inputQuery ? <ProvidedFormattedQuery query={inputQuery} /> : undefined}
+      // The error prints under `Output:`, mirroring the request under `Input:`.
+      output={
+        isFailure && failure ? (
+          <Text size="sm" variant="danger" monospace>
+            {failure}
+          </Text>
+        ) : undefined
+      }
       reference={
         url
           ? {
@@ -595,33 +611,31 @@ function CodeModeCallRow({
             }
           : undefined
       }
-      notifications={failure ? [failure] : undefined}
     >
-      {detail ? <RequestDetail detail={detail} /> : null}
+      {body ? <CodeBlock language="json">{body}</CodeBlock> : null}
     </ToolCall>
   );
 }
 
-/**
- * What the call actually ran, and what came back.
- *
- * Lives inside the `ToolCall`'s own collapsible panel, so it does not wrap itself in another
- * disclosure: the request line summarizes the call and the bounded response body (when there is
- * one) sits beneath it.
- */
-function RequestDetail({
-  detail,
-}: {
-  detail: NonNullable<ReturnType<typeof callRecordDetail>>;
-}) {
-  return (
-    <Stack gap="xs" minWidth={0}>
-      <Text size="xs" variant="muted" monospace>
-        {detail.request}
-      </Text>
-      {detail.body ? <CodeBlock language="json">{detail.body}</CodeBlock> : null}
-    </Stack>
-  );
+// One entry per link kind buildToolLinkUrl can resolve. A kind absent here is not rendered at all
+// (see navLinkLabel): showing the raw kind would leak an internal function name like
+// `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
+// is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
+const NAV_LINK_LABELS: Record<string, string> = {
+  get_issue_details: t('View issue'),
+  get_trace_waterfall: t('View trace'),
+  get_replay_details: t('View replay'),
+  get_profile_flamegraph: t('View profile'),
+  get_event_details: t('View event'),
+  get_log_attributes: t('View logs'),
+  get_metric_attributes: t('View metrics'),
+  // Dataset-dependent (issues / errors / spans / logs), so the label stays neutral.
+  telemetry_live_search: t('View results'),
+};
+
+/** The visible label for a bus link, or undefined when the kind is not renderable. */
+function navLinkLabel(kind: string): string | undefined {
+  return NAV_LINK_LABELS[kind];
 }
 
 /**
@@ -746,4 +760,16 @@ const ToolCallPlainRow = styled('span')`
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
+`;
+
+// One nested row inside the response's ThinkingBlock. Unlike a full message turn it carries no
+// inline gutter of its own — the ThinkingBlock's panel already provides it, so a second one here
+// would push tool calls in and let their chips overrun the panel edge instead of wrapping. Only
+// vertical rhythm is kept, and `min-width: 0` lets the row shrink so its chips wrap.
+const NestedRow = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  padding-block: ${p => p.theme.space.sm};
 `;
