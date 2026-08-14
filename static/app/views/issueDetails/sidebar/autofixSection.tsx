@@ -115,10 +115,7 @@ export const AutofixQuotaContent = registerLLMContext(
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea() || 'seer';
-  const setupAnalyticsEventKey =
-    analyticsArea === 'issue_inbox'
-      ? 'issue_inbox.seer_setup_clicked'
-      : 'issue_details.seer_setup_clicked';
+  const setupAnalyticsEventKey = `${analyticsArea}.seer_setup_clicked`;
   const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
