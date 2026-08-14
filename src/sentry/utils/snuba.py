@@ -1919,7 +1919,7 @@ JSON_TYPE_MAP = {
 
 def is_datetime_type(snuba_type: str | None) -> bool:
     """True for product datetime and ClickHouse DateTime timezone variants."""
-    return bool(snuba_type) and (
+    return snuba_type is not None and (
         snuba_type == "datetime" or snuba_type == "DateTime" or snuba_type.startswith("DateTime(")
     )
 
