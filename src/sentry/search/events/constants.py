@@ -484,12 +484,7 @@ METRIC_PERCENTILES = {
 }
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
-METRIC_FUNCTION_LIST_BY_TYPE = {
-    "generic_counter": [
-        "sum",
-        "count",
-    ],
-}
+
 
 # The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
 # for now

@@ -39,7 +39,6 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
@@ -56,8 +55,6 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
-TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -102,56 +99,11 @@ def run_detection() -> None:
     now = django_timezone.now()
 
     projects = all_projects_with_flags()
-    projects = dispatch_performance_projects(projects, now)
     projects = dispatch_profiling_projects(projects, now)
 
     # make sure to consume the generator
     for _ in projects:
         pass
-
-
-def dispatch_performance_projects(
-    all_projects: Generator[tuple[int, int]],
-    timestamp: datetime,
-) -> Generator[tuple[int, int]]:
-    projects = []
-    count = 0
-
-    for project_id, flags in all_projects:
-        if flags & Project.flags.has_transactions:
-            projects.append(project_id)
-            count += 1
-
-        if len(projects) >= PROJECTS_PER_BATCH:
-            detect_transaction_trends.apply_async(
-                args=[
-                    [],
-                    projects,
-                    timestamp.isoformat(),
-                ],
-                countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
-            )
-            projects = []
-
-        yield project_id, flags
-
-    # make sure to dispatch a task to handle the remaining projects
-    if projects:
-        detect_transaction_trends.apply_async(
-            args=[
-                [],
-                projects,
-                timestamp.isoformat(),
-            ],
-            countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
-        )
-
-    metrics.incr(
-        "statistical_detectors.projects.total",
-        amount=count,
-        tags={"source": "transaction"},
-        sample_rate=1.0,
-    )
 
 
 def dispatch_profiling_projects(
@@ -188,52 +140,6 @@ def dispatch_profiling_projects(
         tags={"source": "profile"},
         sample_rate=1.0,
     )
-
-
-class EndpointRegressionDetector(RegressionDetector):
-    source = "transaction"
-    kind = "endpoint"
-    regression_type = RegressionType.ENDPOINT
-    min_change = 200  # 200ms in ms
-    buffer_period = timedelta(days=1)
-    resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.75
-
-    @classmethod
-    def min_throughput_threshold(cls) -> int:
-        return options.get("statistical_detectors.throughput.threshold.transactions")
-
-    @classmethod
-    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
-        return MovingAverageRelativeChangeDetector(
-            source=cls.source,
-            kind=cls.kind,
-            min_data_points=18,
-            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
-            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.15,
-        )
-
-    @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
-        return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
-
-    @classmethod
-    def query_payloads(
-        cls,
-        projects: list[Project],
-        start: datetime,
-    ) -> Iterable[DetectorPayload]:
-        return query_transactions(projects, start)
-
-    @classmethod
-    def query_timeseries(
-        cls,
-        objects: list[tuple[Project, int | str]],
-        start: datetime,
-        function: str,
-    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
-        return query_transactions_timeseries(objects, start, function)
 
 
 class FunctionRegressionDetector(RegressionDetector):
@@ -280,107 +186,6 @@ class FunctionRegressionDetector(RegressionDetector):
         function: str,
     ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
         return query_functions_timeseries(objects, start, function)
-
-
-@instrumented_task(
-    name="sentry.tasks.statistical_detectors.detect_transaction_trends",
-    namespace=performance_tasks,
-    processing_deadline_duration=30,
-)
-def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
-) -> None:
-    if not options.get("statistical_detectors.enable"):
-        return
-
-    start_time = datetime.fromisoformat(start)
-
-    EndpointRegressionDetector.configure_tags()
-
-    projects = get_detector_enabled_projects(
-        project_ids,
-        project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
-    )
-
-    trends = EndpointRegressionDetector.detect_trends(projects, start_time)
-    trends = EndpointRegressionDetector.get_regression_groups(trends)
-    trends = EndpointRegressionDetector.redirect_resolutions(trends, start_time)
-    trends = EndpointRegressionDetector.redirect_escalations(trends, start_time)
-    trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
-
-    delay = 12  # hours
-    delayed_start = start_time + timedelta(hours=delay)
-
-    for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
-        detect_transaction_change_points.apply_async(
-            args=[
-                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start.isoformat(),
-            ],
-            # delay the check by delay hours because we want to make sure there
-            # will be enough data after the potential change point to be confident
-            # that a change has occurred
-            countdown=delay * 60 * 60,
-        )
-
-
-@instrumented_task(
-    name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
-    namespace=performance_tasks,
-)
-def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
-) -> None:
-    start_time = datetime.fromisoformat(start)
-
-    _detect_transaction_change_points(transactions, start_time, *args, **kwargs)
-
-
-def _detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
-) -> None:
-    if not options.get("statistical_detectors.enable"):
-        return
-
-    EndpointRegressionDetector.configure_tags()
-
-    projects_by_id = {
-        project.id: project
-        for project in get_detector_enabled_projects(
-            [project_id for project_id, _ in transactions],
-        )
-    }
-
-    transaction_pairs: list[tuple[Project, int | str]] = [
-        (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
-    ]
-
-    viewer_context = None
-    if transaction_pairs:
-        project = transaction_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
-
-    regressions = EndpointRegressionDetector.detect_regressions(
-        transaction_pairs,
-        start,
-        "p95(transaction.duration)",
-        TIMESERIES_PER_BATCH,
-        viewer_context=viewer_context,
-    )
-    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
-
-    breakpoint_count = 0
-
-    for regression in regressions:
-        breakpoint_count += 1
-        send_regression_to_platform(regression)
-
-    metrics.incr(
-        "statistical_detectors.breakpoint.emitted",
-        amount=breakpoint_count,
-        tags={"source": "transaction", "kind": "endpoint"},
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -677,25 +482,6 @@ def fetch_continuous_examples(raw_examples):
             }
 
     return examples
-
-
-def query_transactions(
-    projects: list[Project],
-    start: datetime,
-    transactions_per_project: int = TRANSACTIONS_PER_PROJECT,
-) -> list[DetectorPayload]:
-    # Transaction duration lived on generic metrics distributions, which are no longer queryable.
-    return []
-
-
-def query_transactions_timeseries(
-    transactions: list[tuple[Project, int | str]],
-    start: datetime,
-    agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult]]:
-    # Transaction duration lived on generic metrics distributions, which are no longer queryable.
-    return
-    yield
 
 
 def query_functions(projects: list[Project], start: datetime) -> list[DetectorPayload]:

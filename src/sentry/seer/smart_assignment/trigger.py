@@ -56,7 +56,13 @@ def trigger_smart_assignment(
     """
     organization = group.organization
 
-    if not features.has(FEATURE_FLAG, organization):
+    if not (
+        features.has(FEATURE_FLAG, organization)
+        and (
+            features.has("organizations:seer-added", organization)
+            or features.has("organizations:seat-based-seer-enabled", organization)
+        )
+    ):
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:

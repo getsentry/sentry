@@ -4,6 +4,7 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -144,6 +145,10 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -200,10 +205,18 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
+    autofixSetup = AutofixSetupFixture({
+      billing: {hasAutofixQuota: false},
+      integration: {ok: false, reason: null},
+      seerReposLinked: false,
+    }),
+    autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
+    autofixSetup?: ReturnType<typeof AutofixSetupFixture>;
+    autofixSetupDelay?: Promise<unknown>;
     group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
@@ -226,11 +239,8 @@ describe('InboxPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
-      body: {
-        integration: {ok: false, reason: null},
-        billing: {hasAutofixQuota: false},
-        seerReposLinked: false,
-      },
+      body: autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -283,6 +293,40 @@ describe('InboxPage', () => {
     await userEvent.click(issueLink);
 
     return preview;
+  }
+
+  function mockAssignedPreview(
+    autofixSetup: ReturnType<typeof AutofixSetupFixture>,
+    autofixSetupDelay?: Promise<unknown>
+  ) {
+    mockSuccessfulSections();
+    mockIssuePreview({
+      group: assignedGroup,
+      autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+  }
+
+  async function openAssignedPreview() {
+    const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+
+    await userEvent.click(
+      within(assignedSection).getByRole('button', {name: 'Assigned'})
+    );
+    await userEvent.click(
+      within(assignedSection).getByRole('link', {name: /Assigned issue/})
+    );
+
+    return screen.getByRole('complementary', {name: 'Issue preview'});
   }
 
   it('loads and renders the three progress sections with filtered issue metadata', async () => {
@@ -528,15 +572,34 @@ describe('InboxPage', () => {
     // Identified should be visible on the default "Me" tab
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^My Teams/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^All/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the total issue count for each assignee tab', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 10,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 49,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    expect(await screen.findByRole('radio', {name: 'Me 10'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'My Teams 49'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'All 99+'})).toBeInTheDocument();
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -631,9 +694,9 @@ describe('InboxPage', () => {
       initialRouterConfig,
     });
 
-    const meFilter = screen.getByRole('radio', {name: 'Me'});
-    const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
-    const allFilter = screen.getByRole('radio', {name: 'All'});
+    const meFilter = screen.getByRole('radio', {name: /^Me/});
+    const myTeamsFilter = screen.getByRole('radio', {name: /^My Teams/});
+    const allFilter = screen.getByRole('radio', {name: /^All/});
     expect(meFilter).toBeChecked();
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
@@ -889,6 +952,75 @@ describe('InboxPage', () => {
         })
       )
     );
+  });
+
+  it('shows the Seer empty state for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      within(preview).getByRole('button', {name: 'Find Root Cause'})
+    ).toBeInTheDocument();
+  });
+
+  it('waits for Seer setup before showing assigned issue actions', async () => {
+    const autofixSetupDelay = Promise.withResolvers<void>();
+    mockAssignedPreview(
+      AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+      autofixSetupDelay.promise
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Resolve'})
+    ).not.toBeInTheDocument();
+
+    autofixSetupDelay.resolve();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows project setup for an assigned issue with paid Seer', async () => {
+    mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByText('Finish Configuring Seer')
+    ).toBeInTheDocument();
+    expect(
+      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
+    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
+    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+  });
+
+  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+    mockAssignedPreview(
+      AutofixSetupFixture({
+        billing: {hasAutofixQuota: false},
+      })
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
   });
 
   it('starts making a plan in Autofix when the root cause is complete', async () => {

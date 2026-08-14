@@ -384,10 +384,10 @@ describe('search links', () => {
     ).toBeNull();
   });
 
-  // Same name on both channels, and only the link carries the query. The row records that a search
-  // ran and carries nothing to re-run it with, so the rule declines rather than manufacturing a
-  // destination out of the name alone.
-  it('does not link a search row, only the link seer emitted alongside it', () => {
+  // A search row starts with only dataset + question. Without the translated query the rule
+  // declines rather than manufacturing a destination out of the name alone; residual bus links
+  // still cover older runs.
+  it('does not link a search row that has no translated query yet', () => {
     const subject = subjectFromCallRecord({
       id: 1,
       kind: 'lib',
@@ -395,6 +395,39 @@ describe('search links', () => {
       params: {dataset: 'spans', question: 'top pageloads'},
     });
     expect(resolveLink(subject, ctx)).toBeNull();
+  });
+
+  it('links a search row once seer stamped the translated query onto it', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'lib',
+        name: 'telemetry_live_search',
+        title:
+          'Querying issues for unresolved issues related to logs page in the last 7 days',
+        params: {
+          dataset: 'issues',
+          question: 'unresolved issues related to logs page in the last 7 days',
+          query: 'is:unresolved logs',
+          stats_period: '7d',
+        },
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'telemetry_live_search',
+      label:
+        'Querying issues for unresolved issues related to logs page in the last 7 days',
+      url: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {
+          query: 'is:unresolved logs',
+          project: null,
+          statsPeriod: '7d',
+        },
+      },
+    });
   });
 
   it('builds one Explore link with every project_slug selected', () => {

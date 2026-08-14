@@ -113,6 +113,7 @@ import {
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 type Props = {
   addAlert: AddAlert;
@@ -768,7 +769,11 @@ export class Results extends Component<Props, State> {
                     {tct(
                       'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
                       {
-                        exploreLink: <Link to="/explore/saved-queries/" />,
+                        exploreLink: (
+                          <Link
+                            to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                          />
+                        ),
                       }
                     )}
                   </Alert>
@@ -965,7 +970,14 @@ function TransactionsDatasetDeprecationBanner({
           {tctCode(
             'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
             {
-              traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+              traceLink: (
+                <Link
+                  to={{
+                    pathname: makeTracesPathname({organization, path: '/'}),
+                    query: {query: 'is_transaction:true'},
+                  }}
+                />
+              ),
               FAQLink: (
                 <ExternalLink href="https://www.sentry.help/en/articles/13964151-faq-transactions-spans-migration" />
               ),

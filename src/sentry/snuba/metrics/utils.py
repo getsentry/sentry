@@ -43,7 +43,6 @@ __all__ = (
     "get_num_intervals",
     "to_intervals",
     "OP_REGEX",
-    "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
     "NON_RESOLVABLE_TAG_VALUES",
 )
@@ -347,9 +346,6 @@ UNIT_TO_TYPE: dict[str, MetricOperationType] = {
 }
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
-
-# Custom measurements used generic distributions, which are no longer queryable.
-CUSTOM_MEASUREMENT_DATASETS: frozenset[MetricType] = frozenset()
 
 
 def combine_dictionary_of_list_values[K, V](
