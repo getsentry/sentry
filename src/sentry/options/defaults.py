@@ -752,7 +752,14 @@ register(
 )
 
 # PagerDuty Integration
-register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# FLAG_PRIORITIZE_DISK so self-hosted config.yml (pagerduty.app-id) is used
+# by options.get() instead of an empty DB default. Without this, the install
+# URL is emitted as app_id= and PagerDuty returns "App not found".
+register(
+    "pagerduty.app-id",
+    default="",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
