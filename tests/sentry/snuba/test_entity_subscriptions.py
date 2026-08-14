@@ -258,6 +258,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     # This test has been kept in order to validate whether the old queries through metrics are supported, in the future
     # this should be removed.
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_get_entity_subscription_for_performance_metrics_dataset(self) -> None:
         aggregate = "percentile(transaction.duration,.95)"
         entity_subscription = get_entity_subscription(

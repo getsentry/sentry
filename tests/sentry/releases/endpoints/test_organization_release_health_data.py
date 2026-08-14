@@ -465,6 +465,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             prj_id = grp["by"]["project"]
             assert grp == expected_output[prj_id]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_pagination_limit_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when sending a per_page
@@ -501,6 +502,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             == "Failed to parse conditions: Release Health Queries don't support wildcards"
         )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_pagination_offset_without_orderby(self) -> None:
         """
         Test that ensures a successful response is returned even when requesting an offset
@@ -2203,6 +2205,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"] == {"transaction.failure_rate": 0.25}
         assert group["series"] == {"transaction.failure_rate": [0.25]}
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_failure_rate_without_transactions(self) -> None:
         """
         Ensures the absence of transactions isn't an issue to calculate the rate.

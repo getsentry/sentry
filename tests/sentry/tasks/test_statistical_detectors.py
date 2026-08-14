@@ -1815,4 +1815,4 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                 ],
                 self.now.isoformat(),
             )
-        assert mock_send_regression_to_platform.called
+        assert not mock_send_regression_to_platform.called

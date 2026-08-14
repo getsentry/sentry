@@ -1332,6 +1332,9 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot group by metrics expression count(transaction.duration)"),
             id="invalid grouping by metric expression - performance",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1343,6 +1346,9 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             UseCaseID.TRANSACTIONS,
             "Cannot group by metric transaction.failure_rate",
             id="invalid grouping by derived metric - release_health",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1375,6 +1381,9 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             UseCaseID.TRANSACTIONS,
             "",
             id="valid grouping by metrics expression",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
     ],
 )
@@ -1427,6 +1436,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot filter by metrics expression count(transaction.duration)"),
             id="invalid filtering by metric expression - performance",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1440,6 +1452,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             UseCaseID.TRANSACTIONS,
             "Cannot filter by metric transaction.failure_rate",
             id="invalid filtering by derived metric - release_health",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
         pytest.param(
             [
@@ -1474,6 +1489,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             UseCaseID.TRANSACTIONS,
             "",
             id="valid filtering by metrics expression",
+            marks=pytest.mark.skip(
+                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+            ),
         ),
     ],
 )
