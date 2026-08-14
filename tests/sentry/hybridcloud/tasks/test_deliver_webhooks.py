@@ -1145,6 +1145,10 @@ class DeliveryTimeMetricsTest(TestCase):
         assert tags.get("region_sent_to") == "us"
         # Rows predating the provider column still drain through here.
         assert tags.get("provider") == "unknown"
+        # A drain with no dispatch arguments still emits the attribution keys; a
+        # tag missing from some series breaks grouping rather than showing a gap.
+        assert tags.get("dispatcher") == "unknown"
+        assert tags.get("mode") == "unknown"
 
     @responses.activate
     @override_cells(cell_config)
@@ -1730,6 +1734,13 @@ class DeliveryDispatchTagTest(TestCase):
             if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
         ]
 
+    def delivery_time_tags(self, mock_metrics: MagicMock) -> list[dict[str, str]]:
+        return [
+            c[1].get("tags", {})
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
@@ -1762,6 +1773,69 @@ class DeliveryDispatchTagTest(TestCase):
             },
             {"dispatcher": "scheduler", "mode": "claim", "outcome": "claim_exhausted"},
         ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_carries_dispatch_attribution(self, mock_metrics: MagicMock) -> None:
+        # Latency is the quantity the claim regime is meant to move, so it needs
+        # the same attribution as the counter to be comparable between cohorts.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox(
+            webhook.id,
+            claimed_count=1,
+            dispatcher=Dispatcher.SCHEDULER,
+            mode=DispatchMode.CLAIM,
+        )
+
+        assert self.delivery_time_tags(mock_metrics) == [
+            {
+                "dispatcher": "scheduler",
+                "mode": "claim",
+                "region_sent_to": "us",
+                "provider": "github",
+            }
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_parallel_delivery_time_carries_dispatch_attribution(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # The parallel path records latency from its own callsite, so it can lose
+        # attribution independently of the sequential one.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        records = create_payloads(2, "github:123", provider="github")
+
+        drain_mailbox_parallel(
+            records[0].id,
+            claimed_count=2,
+            dispatcher=Dispatcher.PUSH,
+            mode=DispatchMode.CLAIM,
+        )
+
+        expected = {
+            "dispatcher": "push",
+            "mode": "claim",
+            "region_sent_to": "us",
+            "provider": "github",
+        }
+        assert self.delivery_time_tags(mock_metrics) == [expected, expected]
 
     @responses.activate
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")

@@ -839,10 +839,19 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
     return {"github_event_and_action": f"{event_type}.{action}"}
 
 
-def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
-    """Record delivery time metrics for a successfully delivered webhook payload."""
+def _record_delivery_time_metrics(
+    payload: WebhookPayload, *, dispatch_tags: Mapping[str, str]
+) -> None:
+    """Record delivery time metrics for a successfully delivered webhook payload.
+
+    Measured from `date_added`, so this is queue wait plus retry backoff plus the
+    request itself — the span dispatch is meant to shorten. It carries the same
+    attribution as the outcome counter so latency can be compared per dispatcher
+    and per regime rather than only in aggregate.
+    """
     duration = timezone.now() - payload.date_added
     tags = {
+        **dispatch_tags,
         "region_sent_to": payload.cell_name,
         "provider": _provider_tag(payload),
     } | _get_github_delivery_time_tags(payload)
@@ -909,7 +918,7 @@ def _handle_parallel_delivery_result(
         return (request_failed, not isinstance(err, DeliveryFailed))
     date_added = payload_record.date_added
     payload_record.delete()
-    _record_delivery_time_metrics(payload_record)
+    _record_delivery_time_metrics(payload_record, dispatch_tags=dispatch_tags)
     metrics.incr(
         "hybridcloud.deliver_webhooks.delivery",
         tags={**dispatch_tags, "outcome": "ok", "provider": _provider_tag(payload_record)},
@@ -1144,7 +1153,7 @@ def deliver_message(payload: WebhookPayload, *, dispatch_tags: Mapping[str, str]
         return False
     date_added = payload.date_added
     payload.delete()
-    _record_delivery_time_metrics(payload)
+    _record_delivery_time_metrics(payload, dispatch_tags=dispatch_tags)
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr(
