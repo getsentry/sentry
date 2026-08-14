@@ -2,6 +2,8 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsFields,
@@ -24,6 +26,8 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const aggregateFields = useQueryParamsAggregateFields();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
+  const [tab] = useTab();
+  const shouldValidateColumns = tab === Tab.SPAN || tab === Mode.AGGREGATE;
 
   const {data, error, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
@@ -31,8 +35,12 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
       selection,
       traceItemType: TraceItemDataset.SPANS,
       environments: selection.environments,
-      field: getColumnFieldsForValidation({aggregateFields, fields}),
-      orderBy: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+      field: shouldValidateColumns
+        ? getColumnFieldsForValidation({aggregateFields, fields})
+        : undefined,
+      orderBy: shouldValidateColumns
+        ? sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field))
+        : undefined,
       query,
       projectIds: selection.projects,
     }),
