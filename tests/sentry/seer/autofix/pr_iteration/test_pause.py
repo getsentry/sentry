@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -113,6 +115,23 @@ class PausePrIterationTest(TestCase):
         assert pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
         assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
         assert self._is_paused() is False
+
+    def test_returns_false_when_run_deleted_before_write(self) -> None:
+        def delete_run(*args: object, **kwargs: object) -> None:
+            self.seer_run.delete()
+
+        with patch("sentry.seer.autofix.pr_iteration.pause.get_run_extra", side_effect=delete_run):
+            assert pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
+
+    def test_resume_returns_false_when_run_deleted_before_write(self) -> None:
+        def delete_run(*args: object, **kwargs: object) -> None:
+            self.seer_run.delete()
+
+        with patch(
+            "sentry.seer.autofix.pr_iteration.pause.clear_queued_autofix_feedback",
+            side_effect=delete_run,
+        ):
+            assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
 
     def test_returns_false_for_another_organization(self) -> None:
         other_org = self.create_organization()

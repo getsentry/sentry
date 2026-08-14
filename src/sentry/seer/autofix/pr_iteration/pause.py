@@ -49,13 +49,17 @@ def pause_pr_iteration(
     if seer_run is None:
         return False
 
-    if get_run_extra(seer_run, PAUSED_EXTRA) is None:
-        # Marker first, because it stops every later enqueue.
-        record_run_extra(
-            seer_run,
-            PAUSED_EXTRA,
-            {"paused_at": timezone.now().isoformat(), "actor_user_id": actor_user_id},
-        )
+    try:
+        if get_run_extra(seer_run, PAUSED_EXTRA) is None:
+            # Marker first, because it stops every later enqueue.
+            record_run_extra(
+                seer_run,
+                PAUSED_EXTRA,
+                {"paused_at": timezone.now().isoformat(), "actor_user_id": actor_user_id},
+            )
+    except SeerRun.DoesNotExist:
+        # The run was deleted between the lookup and the marker write.
+        return False
     clear_queued_autofix_feedback(run_id)
 
     logger.info(
@@ -76,7 +80,11 @@ def resume_pr_iteration(*, run_id: int, organization_id: int) -> bool:
 
     # Queue first, to remove an item that an enqueue added during the pause.
     clear_queued_autofix_feedback(run_id)
-    clear_run_extra(seer_run, PAUSED_EXTRA)
+    try:
+        clear_run_extra(seer_run, PAUSED_EXTRA)
+    except SeerRun.DoesNotExist:
+        # The run was deleted between the lookup and the marker write.
+        return False
 
     logger.info(
         "autofix.pr_iteration.resumed",
