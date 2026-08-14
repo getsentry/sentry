@@ -380,22 +380,22 @@ def test_inferred_bypass_clears_stale_event_note() -> None:
 
 
 @pytest.mark.parametrize(
-    ("later_stage", "owning_stage", "project_slug", "issue_id"),
+    ("later_stage", "owning_stage", "project_slugs", "issue_ids"),
     [
-        (Stage.INSTRUMENT_APP, Stage.CREATE_PROJECT, "example-project", None),
+        (Stage.INSTRUMENT_APP, Stage.CREATE_PROJECT, ("example-project",), ()),
         (
             Stage.PREPARE_PRODUCTION,
             Stage.RECEIVE_VERIFICATION_ERROR,
-            None,
-            "12345",
+            (),
+            ("12345",),
         ),
     ],
 )
 def test_bypassed_stage_accepts_late_metadata(
     later_stage: Stage,
     owning_stage: Stage,
-    project_slug: str | None,
-    issue_id: str | None,
+    project_slugs: tuple[str, ...],
+    issue_ids: tuple[str, ...],
 ) -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     advanced = apply_update(
@@ -409,16 +409,16 @@ def test_bypassed_stage_accepts_late_metadata(
         ProgressUpdate(
             stage=owning_stage,
             status=StageStatus.COMPLETED,
-            project_slug=project_slug,
-            issue_id=issue_id,
+            project_slugs=project_slugs,
+            issue_ids=issue_ids,
         ),
         now + timedelta(seconds=1),
     )
 
     assert enriched.stages[list(Stage).index(owning_stage)].status is StageStatus.BYPASSED
     assert enriched.sequence == advanced.sequence + 1
-    assert enriched.project_slug == project_slug
-    assert enriched.issue_id == issue_id
+    assert enriched.project_slugs == project_slugs
+    assert enriched.issue_ids == issue_ids
 
 
 @pytest.mark.parametrize(
@@ -467,13 +467,13 @@ def test_expired_run_rejects_update() -> None:
         )
 
 
-def test_issue_id_is_scoped_to_verification_receipt() -> None:
-    with pytest.raises(ValueError, match="Issue ID"):
+def test_issue_ids_are_scoped_to_verification_receipt() -> None:
+    with pytest.raises(ValueError, match="Issue IDs"):
         validate_update(
             ProgressUpdate(
                 stage=Stage.CREATE_PROJECT,
                 status=StageStatus.COMPLETED,
-                issue_id="123",
+                issue_ids=("123",),
             )
         )
 
@@ -481,18 +481,18 @@ def test_issue_id_is_scoped_to_verification_receipt() -> None:
         ProgressUpdate(
             stage=Stage.RECEIVE_VERIFICATION_ERROR,
             status=StageStatus.COMPLETED,
-            issue_id="123",
+            issue_ids=("123",),
         )
     )
 
 
-def test_project_slug_is_scoped_to_project_creation() -> None:
-    with pytest.raises(ValueError, match="Project slug"):
+def test_project_slugs_are_scoped_to_project_creation() -> None:
+    with pytest.raises(ValueError, match="Project slugs"):
         validate_update(
             ProgressUpdate(
                 stage=Stage.INSTRUMENT_APP,
                 status=StageStatus.COMPLETED,
-                project_slug="project-slug",
+                project_slugs=("project-one", "project-two"),
             )
         )
 
@@ -500,9 +500,34 @@ def test_project_slug_is_scoped_to_project_creation() -> None:
         ProgressUpdate(
             stage=Stage.CREATE_PROJECT,
             status=StageStatus.COMPLETED,
-            project_slug="project-slug",
+            project_slugs=("project-one", "project-two"),
         )
     )
+
+
+def test_metadata_accumulates_unique_values() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    first = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CREATE_PROJECT,
+            status=StageStatus.ACTIVE,
+            project_slugs=("frontend", "backend"),
+        ),
+        now,
+    )
+
+    updated = apply_update(
+        first,
+        ProgressUpdate(
+            stage=Stage.CREATE_PROJECT,
+            status=StageStatus.COMPLETED,
+            project_slugs=("backend", "worker"),
+        ),
+        now + timedelta(seconds=1),
+    )
+
+    assert updated.project_slugs == ("frontend", "backend", "worker")
 
 
 @pytest.mark.parametrize("field", ["created_at", "updated_at", "expires_at"])

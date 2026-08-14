@@ -205,16 +205,38 @@ export const LINK_RULES: LinkRule[] = [
       }
 
       const query: Record<string, string> = {};
-      if (span_id) {
-        query.node = `span-${span_id}`;
+      // A concrete span deep-links into the waterfall rather than opening a separate page.
+      const spanId = asUrlSegment(span_id);
+      if (spanId) {
+        query.node = `span-${spanId}`;
       }
       if (timestamp) {
         query.timestamp = String(timestamp);
       }
 
       return {
-        label: title ?? t('View trace'),
+        label: title ?? (spanId ? t('View span') : t('View trace')),
         url: {pathname: `/explore/traces/trace/${traceId}/`, query},
+      };
+    },
+  },
+  // Lib helper: no route of its own, only scalar args. Kept as its own rule so a span lookup does
+  // not depend on the less-specific trace child underneath it.
+  {
+    id: 'get_span_details',
+    resolve: ({params, title}) => {
+      const traceId = asUrlSegment(params.trace_id);
+      const spanId = asUrlSegment(params.span_id);
+      if (!traceId || !spanId) {
+        return null;
+      }
+
+      return {
+        label: title ?? t('View span'),
+        url: {
+          pathname: `/explore/traces/trace/${traceId}/`,
+          query: {node: `span-${spanId}`},
+        },
       };
     },
   },
@@ -346,13 +368,24 @@ export const LINK_RULES: LinkRule[] = [
     resolve: ({kind, params, title}, {projects}) => {
       // The one name that arrives on both channels, and only one of them can be re-run. The call
       // record reports a search that already happened and carries no query; the link seer emits
-      // alongside it carries the query, so that is the one with somewhere to point.
+      // alongside it carries the query (and multi-project `project_slugs`), so that is the one with
+      // somewhere to point.
       if (kind !== 'link') {
         return null;
       }
 
       const url = searchUrl(params, projects);
-      return url ? {label: title ?? t('View results'), url} : null;
+      if (!url) {
+        return null;
+      }
+
+      // Prefer seer's title when present; otherwise name the dataset so the residual nav link is
+      // not a generic "View results" under a row that already says which dataset ran.
+      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      return {
+        label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
+        url,
+      };
     },
   },
 ];
@@ -399,9 +432,10 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
 
   return {
     kind: record.kind === 'lib' ? 'lib' : 'api',
-    // Only path params. A lib call's own arguments are not route params, and reading them here
-    // would let a rule keyed on a route build a link for a row that never made that request.
-    params: record.path_params ?? {},
+    // API rows use path params. Lib rows use their scalar args — name-matched rules (e.g.
+    // `get_span_details`) are the only ones that see them, since route `match` predicates key on
+    // `path`, which a lib call does not have.
+    params: record.kind === 'lib' ? (record.params ?? {}) : (record.path_params ?? {}),
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
@@ -455,6 +489,25 @@ function getStringArray(value: unknown): string[] {
     return value.filter((item): item is string => typeof item === 'string');
   }
   return typeof value === 'string' ? [value] : [];
+}
+
+/** Dataset noun for residual telemetry links, or undefined when unknown. */
+function telemetryDatasetLabel(dataset: unknown): string | undefined {
+  switch (dataset) {
+    case 'spans':
+      return 'spans';
+    case 'errors':
+      return 'errors';
+    case 'logs':
+      return 'logs';
+    case 'metrics':
+    case 'tracemetrics':
+      return 'metrics';
+    case 'issues':
+      return 'issues';
+    default:
+      return undefined;
+  }
 }
 
 /**

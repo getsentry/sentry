@@ -62,8 +62,8 @@ class AgenticOnboardingStatusRequest(TypedDict):
     status: StageStatusValue
     run_status: NotRequired[Literal["completed", "failed"]]
     event_note: NotRequired[str]
-    project_slug: NotRequired[str]
-    issue_id: NotRequired[str]
+    project_slugs: NotRequired[list[str]]
+    issue_ids: NotRequired[list[str]]
 
 
 class AgenticOnboardingStatusData(TypedDict):
@@ -100,16 +100,20 @@ class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboa
     event_note = serializers.CharField(
         required=False, allow_blank=False, max_length=MAX_EVENT_NOTE_LENGTH
     )
-    project_slug = serializers.SlugField(required=False)
-    issue_id = serializers.CharField(required=False)
+    project_slugs = serializers.ListField(
+        child=serializers.SlugField(), required=False, allow_empty=False, max_length=100
+    )
+    issue_ids = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=False, max_length=100
+    )
 
     def validate(self, attrs: AgenticOnboardingStatusRequest) -> AgenticOnboardingStatusData:
         update = ProgressUpdate(
             stage=Stage(attrs["stage"]),
             status=StageStatus(attrs["status"]),
             event_note=attrs.get("event_note"),
-            project_slug=attrs.get("project_slug"),
-            issue_id=attrs.get("issue_id"),
+            project_slugs=tuple(attrs.get("project_slugs", [])),
+            issue_ids=tuple(attrs.get("issue_ids", [])),
             run_status=(RunStatus(attrs["run_status"]) if "run_status" in attrs else None),
         )
         try:
