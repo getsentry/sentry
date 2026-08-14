@@ -1,10 +1,13 @@
 from typing import Any
+from unittest import mock
 
 from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
@@ -200,6 +203,68 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
         assert response.data["field"] == [
             {"error": None, "name": "my.custom.tag", "valid": True, "attrType": "string"},
             {"error": "Unknown attribute", "name": "my.fake.tag", "valid": False, "attrType": None},
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_tag_beyond_the_attribute_name_limit(self) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_spans(
+            [
+                self.create_span(
+                    {"tags": tags},
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["zz.custom.tag"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": "zz.custom.tag", "valid": True, "attrType": "string"}
+        ]
+
+    @mock.patch(
+        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_unknown_tag_beyond_the_attribute_name_limit(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["zz.fake.tag"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["field"] == [
+            {"error": "Unknown attribute", "name": "zz.fake.tag", "valid": False, "attrType": None}
         ]
 
     def test_private_attribute(self) -> None:

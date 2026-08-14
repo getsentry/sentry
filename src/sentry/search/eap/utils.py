@@ -6,7 +6,13 @@ from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
-from sentry.search.eap.constants import SENTRY_INTERNAL_PREFIXES
+from sentry.search.eap.constants import (
+    BOOLEAN,
+    SENTRY_INTERNAL_PREFIXES,
+    STRING,
+    TYPE_MAP,
+    SearchType,
+)
 from sentry.search.eap.occurrences.attributes import (
     OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
@@ -160,6 +166,16 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_DEFINITIONS,
     SupportedTraceItemType.OCCURRENCES: OCCURRENCE_DEFINITIONS,
 }
+
+
+def serialize_search_type(search_type: SearchType) -> str:
+    proto_type = TYPE_MAP.get(search_type)
+    if proto_type == STRING:
+        return "string"
+    if proto_type == BOOLEAN:
+        return "boolean"
+    # DOUBLE, INT, or anything else numeric
+    return "number"
 
 
 def translate_search_type_for_internal_column(

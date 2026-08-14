@@ -1,3 +1,4 @@
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
@@ -9,6 +10,8 @@ from sentry.explore.models import (
 )
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationTraceItemAttributeContextEndpointTest(
@@ -272,6 +275,26 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
+
+    @mock.patch(
+        "sentry.search.eap.attribute_existence.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_accepts_attribute_beyond_the_attribute_name_limit(self) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz_custom_attr"] = "value"
+        self.store_attribute(**tags)
+
+        response = self.do_request(
+            "zz_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
 
     def test_ignores_time_range_filter(self) -> None:
         # The attribute was last seen well outside the narrow requested window.
