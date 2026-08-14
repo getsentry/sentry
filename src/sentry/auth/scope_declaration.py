@@ -9,6 +9,8 @@ from typing import Any
 
 from sentry_sdk import capture_message, new_scope
 
+from sentry import options
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,6 +21,7 @@ class EndpointScopeDeclaration:
     permission_classes: tuple[str, ...]
     declared_scopes: frozenset[str]
     reported_scopes: set[str] = field(default_factory=set)
+    audit_enabled: bool | None = None
 
 
 _endpoint_scope_declaration: ContextVar[EndpointScopeDeclaration | None] = ContextVar(
@@ -70,6 +73,10 @@ def check_scope_declaration(scope: str) -> None:
     if declaration is None or scope in declaration.declared_scopes:
         return
     if scope in declaration.reported_scopes:
+        return
+    if declaration.audit_enabled is None:
+        declaration.audit_enabled = options.get("api.permission-scope-audit.enabled")
+    if not declaration.audit_enabled:
         return
 
     declaration.reported_scopes.add(scope)

@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -120,9 +120,6 @@ def _with_endpoint_scope_declaration(
 ) -> Callable[..., Response]:
     @functools.wraps(func)
     def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
-        if not options.get("api.permission-scope-audit.enabled"):
-            return func(self, request, *args, **kwargs)
-
         endpoint = f"{type(self).__module__}.{type(self).__qualname__}"
         with bind_endpoint_scope_declaration(
             endpoint=endpoint,
