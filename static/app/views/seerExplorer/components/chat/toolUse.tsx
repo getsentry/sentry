@@ -416,9 +416,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           if (!navItem) {
             return row;
           }
-          return row.url
-            ? row
-            : {...row, url: navItem.url, linkKind: navItem.kind};
+          return row.url ? row : {...row, url: navItem.url, linkKind: navItem.kind};
         });
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
