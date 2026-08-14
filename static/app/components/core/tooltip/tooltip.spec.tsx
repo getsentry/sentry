@@ -1,7 +1,12 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+
+const theme = ThemeFixture();
 
 describe('Tooltip', () => {
   let originalResizeObserver: typeof window.ResizeObserver;
@@ -204,35 +209,32 @@ describe('Tooltip', () => {
   });
 
   describe('content padding', () => {
-    // This suite stubs `getComputedStyle` so that it cannot see emotion rules
-    // (tests/js/setup.ts), which rules out asserting padding directly — and
-    // makes a negative style assertion pass vacuously. Emotion derives the
-    // class name from a hash of the serialized styles, so comparing classes
-    // between two renders is a real assertion about the CSS they produce.
-    async function paddingClassName(padding?: TooltipProps['padding']) {
-      const {unmount} = render(
+    // `getComputedStyle` is stubbed in tests/js/setup.ts and cannot see emotion
+    // rules, so read the generated CSS rather than using toHaveStyle, which
+    // would pass vacuously against an empty declaration.
+    async function contentRules(padding?: TooltipProps['padding']) {
+      render(
         <Tooltip title="test" padding={padding}>
           <button>My Button</button>
         </Tooltip>
       );
       await userEvent.hover(screen.getByText('My Button'));
-      const className = screen.getByText('test').closest('[data-tooltip]')?.className;
-      unmount();
+      const content = screen.getByText('test');
+      expect(content).toHaveAttribute('data-tooltip');
 
-      return className;
+      return getEmotionRules(content).join('');
     }
 
     it('pads the content by default', async () => {
-      const byDefault = await paddingClassName();
-
-      // Every tooltip that has not opted out depends on this default, so it is
-      // the regression guard for the existing call sites.
-      expect(byDefault).toBeTruthy();
-      expect(byDefault).toBe(await paddingClassName('md lg'));
+      // Every tooltip that has not opted out depends on this, so it is the
+      // regression guard for the existing call sites.
+      expect(await contentRules()).toContain(
+        `padding: ${theme.space.md} ${theme.space.lg};`
+      );
     });
 
     it('drops the content padding when opted out', async () => {
-      expect(await paddingClassName('0')).not.toBe(await paddingClassName());
+      expect(await contentRules('0')).toContain(`padding: ${theme.space['0']};`);
     });
   });
 
@@ -299,6 +301,20 @@ describe('Tooltip', () => {
 
       expect(firstRow).toBeInTheDocument();
       expect(firstRow?.parentElement).toBe(secondRow?.parentElement);
+    });
+
+    it('stays described by its trigger', async () => {
+      // Sections are the tooltip's content, so they must not disturb the
+      // trigger/overlay association screen readers rely on.
+      render(
+        <Tooltip padding="0" title={<Tooltip.Header>Last Seen</Tooltip.Header>}>
+          <button>My Button</button>
+        </Tooltip>
+      );
+
+      await userEvent.hover(screen.getByText('My Button'));
+
+      expect(screen.getByText('My Button')).toHaveAttribute('aria-describedby');
     });
 
     it('renders a row as a layout-less wrapper so its cells join that grid', async () => {
