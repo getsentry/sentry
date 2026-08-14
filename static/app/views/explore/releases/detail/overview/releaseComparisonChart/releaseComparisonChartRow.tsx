@@ -49,7 +49,13 @@ export function ReleaseComparisonChartRow({
       isLoading={showPlaceholders}
       rowRole={role}
       expanded={expanded}
-      onClick={() => onChartChange(type)}
+      onClick={event => {
+        // Nested controls own their own click, the way they did when the row was a label
+        if ((event.target as HTMLElement).closest('a, button, input, label')) {
+          return;
+        }
+        onChartChange(type);
+      }}
     >
       <DescriptionCell>
         <Tooltip disabled={!tooltip} title={tooltip} showUnderline>
@@ -100,11 +106,7 @@ export function ReleaseComparisonChartRow({
         <ExpanderCell>
           {role === 'parent' && (
             <ToggleButton
-              onClick={event => {
-                // The row selects its chart on click, which the expander is not
-                event.stopPropagation();
-                onExpanderToggle(type);
-              }}
+              onClick={() => onExpanderToggle(type)}
               variant="transparent"
               size="zero"
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}

@@ -887,7 +887,11 @@ function SentryAppEditForm({
     }
 
     if (tokens.length < 1 && newTokens.length < 1) {
-      return <SimpleTable.Empty>{t('No tokens created yet.')}</SimpleTable.Empty>;
+      return (
+        <SimpleTable.Empty>
+          {t("You haven't created any authentication tokens yet.")}
+        </SimpleTable.Empty>
+      );
     }
 
     return tokens.map(token => (
@@ -1077,13 +1081,7 @@ function SentryAppEditForm({
             </SimpleTable.HeaderRow>
           }
         >
-          {tokens.length === 0 && newTokens.length === 0 ? (
-            <SimpleTable.Empty>
-              {t("You haven't created any authentication tokens yet.")}
-            </SimpleTable.Empty>
-          ) : (
-            renderTokens()
-          )}
+          {renderTokens()}
         </SimpleTable>
       )}
 
