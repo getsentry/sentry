@@ -1,4 +1,5 @@
 import {useSyncExternalStore} from 'react';
+import * as Sentry from '@sentry/react';
 
 const supportsNotifications = 'Notification' in window;
 const supportsPermissions = 'permissions' in navigator;
@@ -10,7 +11,11 @@ let queryPromise: Promise<void> | undefined;
 
 function emitChange() {
   for (const listener of listeners) {
-    listener();
+    try {
+      listener();
+    } catch (error) {
+      Sentry.captureException(error);
+    }
   }
 }
 
