@@ -151,7 +151,7 @@ class OnboardingProgressService:
 
         return self._atomic_update(run_id, mutate)
 
-    def cancel(self, *, run_id: str, user_id: int, organization_id: int) -> OnboardingRun:
+    def cancel(self, *, run_id: str, user_id: int, organization_id: int) -> UpdatedRun:
         def mutate(run: OnboardingRun) -> OnboardingRun:
             if run.user_id != user_id or run.organization_id != organization_id:
                 raise RunNotFound
@@ -167,8 +167,7 @@ class OnboardingProgressService:
                 sequence=run.sequence + 1,
             )
 
-        result = self._atomic_update(run_id, mutate)
-        return result.run
+        return self._atomic_update(run_id, mutate)
 
     def _claim_client_run(self, index_key: str) -> ClientRunClaim:
         """Return the active indexed run or atomically claim the client id for a new run."""

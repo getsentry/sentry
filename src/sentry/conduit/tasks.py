@@ -2,6 +2,7 @@ import datetime
 import logging
 import time
 from functools import partial
+from typing import Any
 from uuid import uuid4
 
 import requests
@@ -27,6 +28,54 @@ NUM_DELTAS = 100
 SEND_INTERVAL_SECONDS = 0.15
 JWT_EXPIRATION_SECONDS = 300  # 5 minutes
 TASK_PROCESSING_DEADLINE_SECONDS = 60 * 3  # 3 minutes
+
+
+@instrumented_task(
+    name="sentry.conduit.tasks.publish_onboarding_progress",
+    namespace=conduit_tasks,
+    processing_deadline_duration=TASK_PROCESSING_DEADLINE_SECONDS,
+    silo_mode=SiloMode.CELL,
+)
+def publish_onboarding_progress(
+    org_id: int, channel_id: str, sequence: int, payload_data: dict[str, Any]
+) -> None:
+    """Publish an agentic onboarding snapshot without blocking its API request."""
+    try:
+        token = generate_jwt(subject="agentic-onboarding")
+    except ValueError as error:
+        sentry_sdk.capture_exception(error, level="warning")
+        return
+
+    try:
+        if sequence == 1:
+            # START establishes the Conduit stream lifecycle. The client forwards
+            # application payloads from DELTA messages, so keep START empty and
+            # publish the first onboarding snapshot separately below.
+            start_request = PublishRequest(
+                channel_id=channel_id,
+                message_id=str(uuid4()),
+                sequence=0,
+                client_timestamp=get_timestamp(),
+                phase=Phase.PHASE_START,
+            )
+            publish_data(org_id, start_request, token)
+
+        payload = Struct()
+        payload.update(payload_data)
+        snapshot_request = PublishRequest(
+            channel_id=channel_id,
+            message_id=str(uuid4()),
+            sequence=sequence,
+            client_timestamp=get_timestamp(),
+            phase=Phase.PHASE_DELTA,
+            payload=payload,
+        )
+        publish_data(org_id, snapshot_request, token)
+    except RequestException:
+        logger.exception(
+            "conduit.publish_onboarding_progress.failed",
+            extra={"organization_id": org_id},
+        )
 
 
 @instrumented_task(

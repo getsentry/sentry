@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.conduit.auth import ConduitCredentials
 from sentry.onboarding.agentic_progress.model import ProgressUpdate, RunStatus, Stage, StageStatus
 from sentry.onboarding.agentic_progress.service import OnboardingProgressService
 from sentry.testutils.cases import APITestCase
@@ -27,7 +28,18 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         service_path = (
             "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service"
         )
-        with patch(service_path, return_value=self.service):
+        conduit = ConduitCredentials(
+            token="conduit-token",
+            channel_id="00000000-0000-0000-0000-000000000001",
+            url="https://conduit.example.com/events/1",
+        )
+        with (
+            patch(service_path, return_value=self.service),
+            patch(
+                "sentry.conduit.api.get_conduit_credentials",
+                return_value=conduit,
+            ),
+        ):
             response = self.client.post(
                 index_path,
                 {"clientRunId": str(uuid4()), "onboardingCode": "a1B2c3D4e5"},
@@ -36,12 +48,22 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["onboardingCode"] == "a1B2c3D4e5"
         assert response.data["sequence"] == 0
+        assert "conduit" not in response.data
+        assert response["X-Conduit-Token"] == "conduit-token"
+        assert response["X-Conduit-Channel-Id"] == conduit.channel_id
+        assert response["X-Conduit-Url"] == conduit.url
 
         status_path = reverse(
             "sentry-api-0-organization-agentic-onboarding-status",
             args=[self.organization.slug],
         )
-        with patch(service_path, return_value=self.service):
+        with (
+            patch(service_path, return_value=self.service),
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "publish_onboarding_progress.delay"
+            ) as publish,
+        ):
             response = self.client.post(
                 status_path,
                 {
@@ -58,6 +80,29 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.data["stages"][0]["status"] == "bypassed"
         assert response.data["stages"][1]["status"] == "bypassed"
         assert response.data["stages"][2]["status"] == "completed"
+        publish.assert_called_once()
+
+        with (
+            patch(service_path, return_value=self.service),
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "publish_onboarding_progress.delay"
+            ) as publish,
+        ):
+            duplicate = self.client.post(
+                status_path,
+                {
+                    "schemaVersion": 1,
+                    "runToken": "a1B2c3D4e5",
+                    "stage": "create_project",
+                    "status": "completed",
+                    "eventNote": "Project already existed.",
+                },
+            )
+
+        assert duplicate.status_code == 200
+        assert duplicate.data["sequence"] == 1
+        publish.assert_not_called()
 
     def test_status_rejects_unknown_run(self) -> None:
         path = reverse(
@@ -105,6 +150,32 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
 
         assert response.status_code == 404
         assert response.data == {"detail": "Onboarding run not found"}
+
+    def test_registration_works_without_conduit_configuration(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        with (
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "get_onboarding_progress_service",
+                return_value=self.service,
+            ),
+            patch(
+                "sentry.conduit.api.get_conduit_credentials",
+                side_effect=ValueError("Conduit is unavailable"),
+            ),
+        ):
+            response = self.client.post(
+                path,
+                {"clientRunId": str(uuid4()), "onboardingCode": "a1B2c3D4e5"},
+            )
+
+        assert response.status_code == 201
+        assert "X-Conduit-Token" not in response
+        assert "X-Conduit-Channel-Id" not in response
+        assert "X-Conduit-Url" not in response
 
     def test_registration_rejects_code_reserved_by_another_run(self) -> None:
         self.service.create_or_resume(

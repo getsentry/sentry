@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.agentic_onboarding import AgenticOnboardingRunSerializer
+from sentry.conduit.auth import ConduitCredentials
 from sentry.onboarding.agentic_progress.model import ProgressUpdate, RunStatus, Stage, StageStatus
 from sentry.onboarding.agentic_progress.service import OnboardingProgressService
 from sentry.testutils.cases import APITestCase
@@ -32,7 +33,22 @@ class OrganizationAgenticOnboardingRunDetailsEndpointTest(APITestCase):
             "sentry.api.endpoints.organization_agentic_onboarding_run_details."
             "get_onboarding_progress_service"
         )
-        with patch(service_path, return_value=self.service):
+        conduit = ConduitCredentials(
+            token="conduit-token",
+            channel_id=run.channel_id,
+            url="https://conduit.example.com/events/1",
+        )
+        with (
+            patch(service_path, return_value=self.service),
+            patch(
+                "sentry.conduit.api.get_conduit_credentials",
+                return_value=conduit,
+            ),
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "publish_onboarding_progress.delay"
+            ) as publish,
+        ):
             expected_fetched = serialize(
                 run,
                 self.user,
@@ -40,6 +56,7 @@ class OrganizationAgenticOnboardingRunDetailsEndpointTest(APITestCase):
             )
             fetched = self.client.get(path)
             cancelled = self.client.delete(path)
+            replayed = self.client.delete(path)
 
         cancelled_run = self.service.get(
             run_id=run.run_id,
@@ -55,8 +72,19 @@ class OrganizationAgenticOnboardingRunDetailsEndpointTest(APITestCase):
 
         assert fetched.status_code == 200
         assert fetched.data == expected_fetched
+        assert fetched["X-Conduit-Token"] == conduit.token
+        assert fetched["X-Conduit-Channel-Id"] == conduit.channel_id
+        assert fetched["X-Conduit-Url"] == conduit.url
         assert cancelled.status_code == 200
         assert cancelled.data == expected_cancelled
+        assert replayed.status_code == 200
+        assert replayed.data == expected_cancelled
+        publish.assert_called_once_with(
+            self.organization.id,
+            cancelled_run.channel_id,
+            cancelled_run.sequence,
+            dict(expected_cancelled),
+        )
 
     def test_get_unknown_run(self) -> None:
         path = reverse(
