@@ -25,8 +25,7 @@ import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
-  formatFilterValue,
-  getFilterValueType,
+  getFilterValueDisplayParts,
   isAggregateFilterToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
@@ -41,7 +40,6 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface SearchQueryTokenProps {
@@ -208,68 +206,45 @@ function TruncatedFilterDisplayValue({
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
-  const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
-  if (token.filter === FilterType.HAS) {
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
+
+    return <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />;
+  }
+
+  const display = getFilterValueDisplayParts({
+    token,
+    fieldDefinition: getFieldDefinition(getKeyName(token.key)),
+    maxItems: size === 'small' ? 1 : 3,
+  });
+
+  if (!display.joiner || (display.values.length === 1 && !display.overflowCount)) {
     return (
       <TruncatedFilterDisplayValue
-        value={prettifyTagKey(token.value.text)}
+        value={display.values[0] ?? ''}
         fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
       />
     );
   }
 
-  switch (token.value.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST: {
-      const items = token.value.items;
-      const multiValueJoiner = token.negated ? 'and' : 'or';
-
-      if (items.length === 1 && items[0]!.value) {
-        return (
+  return (
+    <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
+      {display.values.map((value, index) => (
+        <Fragment key={index}>
           <TruncatedFilterDisplayValue
-            value={formatFilterValue({token: items[0]!.value, valueType})}
-            fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+            value={value}
+            fallbackMaxLength={FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH}
+            multi
           />
-        );
-      }
-
-      const maxItems = size === 'small' ? 1 : 3;
-
-      return (
-        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
-          {items.slice(0, maxItems).map((item, index) => (
-            <Fragment key={index}>
-              <TruncatedFilterDisplayValue
-                value={formatFilterValue({token: item.value!, valueType})}
-                fallbackMaxLength={FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH}
-                multi
-              />
-              {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
-              ) : null}
-            </Fragment>
-          ))}
-          {items.length > maxItems && <span>+{items.length - maxItems}</span>}
-        </Flex>
-      );
-    }
-    case Token.VALUE_ISO_8601_DATE: {
-      const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
-
-      return (
-        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
-      );
-    }
-    default: {
-      return (
-        <TruncatedFilterDisplayValue
-          value={formatFilterValue({token: token.value, valueType})}
-          fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
-        />
-      );
-    }
-  }
+          {index < display.values.length - 1 ? (
+            <FilterValueJoiner> {display.joiner} </FilterValueJoiner>
+          ) : null}
+        </Fragment>
+      ))}
+      {display.overflowCount > 0 && <span>+{display.overflowCount}</span>}
+    </Flex>
+  );
 }
 
 function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {

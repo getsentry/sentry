@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
@@ -242,6 +242,52 @@ export function getFilterValueType(
   }
 
   return fieldDefinition?.valueType ?? FieldValueType.STRING;
+}
+
+export function getFilterValueDisplayParts({
+  token,
+  fieldDefinition,
+  maxItems,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  maxItems: number;
+  token: TokenResult<Token.FILTER>;
+}): {
+  overflowCount: number;
+  values: string[];
+  joiner?: 'and' | 'or';
+} {
+  if (token.filter === FilterType.HAS) {
+    return {
+      values: [prettifyTagKey(token.value.text)],
+      overflowCount: 0,
+    };
+  }
+
+  const valueType = getFilterValueType(token, fieldDefinition);
+
+  switch (token.value.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST: {
+      const values = token.value.items.slice(0, maxItems).map(item =>
+        formatFilterValue({
+          token: item.value!,
+          valueType,
+        })
+      );
+
+      return {
+        values,
+        overflowCount: token.value.items.length - values.length,
+        joiner: token.negated ? 'and' : 'or',
+      };
+    }
+    default:
+      return {
+        values: [formatFilterValue({token: token.value, valueType})],
+        overflowCount: 0,
+      };
+  }
 }
 
 export function getArgsToken(token: AggregateFilter) {

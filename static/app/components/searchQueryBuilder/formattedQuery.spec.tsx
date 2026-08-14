@@ -43,6 +43,20 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders filters as string-based chips', () => {
+    render(
+      <FormattedQuery
+        {...defaultProps}
+        filterRenderer="chip"
+        query="browser.name:[Firefox,Chrome]"
+      />
+    );
+
+    expect(screen.getByText('browser.name')).toBeInTheDocument();
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('Firefox or Chrome')).toBeInTheDocument();
+  });
+
   it('renders negated filters with multiple values using and', () => {
     render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
 
