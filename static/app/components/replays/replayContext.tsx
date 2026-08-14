@@ -547,10 +547,6 @@ export function Provider({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
-        // Seeking makes rrweb rebuild the snapshot inside the player iframe.
-        // This event also fires while the tab is unloading, when the browser
-        // has already torn that document down and the rebuild throws. Video
-        // replays still need the offset, to seek the <video> element itself.
         togglePlayPause(false, {seek: isVideoReplay});
       }
     };
