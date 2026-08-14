@@ -1257,6 +1257,24 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
     @pytest.mark.seer_matrix_resource_boundary
     @pytest.mark.seer_matrix_agent_token
     @pytest.mark.seer_matrix_minted_token
+    def test_revoked_member_invalidates_minted_token(self) -> None:
+        with self.feature(FLAG):
+            bearer = self._mint_agent_token()
+            self.member.delete()
+
+            for silo_mode in (SiloMode.CELL, SiloMode.CONTROL):
+                with self.subTest(silo_mode=silo_mode.value):
+                    with assume_test_silo_mode(silo_mode):
+                        response = APIClient().get(
+                            "/api/0/organizations/",
+                            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+                        )
+
+                    assert response.status_code == 401, response.content
+
+    @pytest.mark.seer_matrix_resource_boundary
+    @pytest.mark.seer_matrix_agent_token
+    @pytest.mark.seer_matrix_minted_token
     def test_agent_project_indexes_retain_org_and_member_project_bounds(self) -> None:
         """List endpoints must intersect compatibility identity with credential authority."""
         self.org.flags.allow_joinleave = False
