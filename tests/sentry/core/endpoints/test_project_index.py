@@ -1,11 +1,13 @@
+import pytest
 import responses
 from django.db import router
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import ObjectStatus
+from sentry.core.endpoints.project_index import ProjectIndexEndpoint
 from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
@@ -19,6 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -41,11 +44,12 @@ class ProjectsListTest(APITestCase):
             ),
         ):
             with self.subTest(auth=auth):
-                client = APIClient()
-                client.force_authenticate(user=user, token=auth)
-                response = client.get(reverse(self.endpoint))
+                request = drf_request_from_request(
+                    self.make_request(user=user, auth=auth, method="GET")
+                )
 
-                assert response.status_code == status.HTTP_403_FORBIDDEN
+                with pytest.raises(PermissionDenied):
+                    ProjectIndexEndpoint().get(request)
 
     def test_member_constraints(self) -> None:
         user = self.create_user(is_superuser=True)
