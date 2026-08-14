@@ -25,6 +25,9 @@ from sentry.api.endpoints.organization_monitoring_provider_details import (
 from sentry.api.endpoints.organization_monitoring_provider_index import (
     OrganizationMonitoringProviderIndexEndpoint,
 )
+from sentry.api.endpoints.organization_monitoring_provider_verify_connection import (
+    OrganizationMonitoringProviderVerifyConnectionEndpoint,
+)
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -2014,6 +2017,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/$",
         OrganizationMonitoringProviderIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitoring-providers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/gcp/verify-connection/$",
+        OrganizationMonitoringProviderVerifyConnectionEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-gcp-verify-connection",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/(?P<provider_key>[^/]+)/$",
