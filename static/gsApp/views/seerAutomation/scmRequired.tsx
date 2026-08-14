@@ -10,6 +10,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text, Heading} from '@sentry/scraps/text';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -25,6 +26,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
+  const {hasFreeAutofixAccess, isLoading: isSetupLoading} = useOrganizationSeerSetup();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
@@ -53,6 +55,14 @@ export default function SeerAutomationSCMRequired() {
         })
       ) ?? [],
   });
+
+  if (isSetupLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (hasFreeAutofixAccess) {
+    return <Outlet />;
+  }
 
   if (!showNewSeer(organization) && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;

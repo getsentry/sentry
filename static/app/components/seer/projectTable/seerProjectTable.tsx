@@ -23,6 +23,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -69,6 +70,7 @@ export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const organization = useOrganization();
+  const {hasFreeAutofixAccess} = useOrganizationSeerSetup();
   const canWrite = useCanWriteSettings();
 
   // Query Values
@@ -104,7 +106,7 @@ export function SeerProjectTable() {
 
   // Main fetch call
   const mutableSearch = MutableSearch.fromQueryObject({
-    reposCount: '>0',
+    reposCount: hasFreeAutofixAccess ? undefined : '>0',
     agent: agentFilter === 'all' ? undefined : agentFilter,
     name: searchTerm,
   });
