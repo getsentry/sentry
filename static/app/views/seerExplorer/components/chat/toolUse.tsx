@@ -368,7 +368,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Destinations only the bus carries (translated Explore queries, multi-project searches)
         // stay residual.
         const claimedLinkKinds = new Set<string>();
-        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
+        const reportedCalls = finishedCalls.length ? finishedCalls : live;
+        const callRows = visibleCallRecords(reportedCalls)
           .map(record => {
             const link = resolveLink(subjectFromCallRecord(record), {
               organization,
@@ -396,19 +397,29 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           item => !claimedLinkKinds.has(item.kind)
         );
         // A telemetry call record has the useful title but not the translated params needed for its
-        // destination. Put the matching bus destination on that row instead of rendering a second
-        // "View …" row below it. Consume matches in order so repeated searches pair correctly.
-        const linkedCallRows = callRows.map(row => {
-          if (row.url || row.record.name !== 'telemetry_live_search') {
-            return row;
+        // destination. Pair every reported search with its bus destination before hidden or
+        // unlabeled records are dropped, so later rows cannot inherit a skipped search's link.
+        const telemetryNavItemByCallId = new Map<number, NavItem>();
+        for (const record of reportedCalls) {
+          if (record.name !== 'telemetry_live_search') {
+            continue;
           }
           const navItemIndex = residualNavItems.findIndex(
             item => item.kind === 'telemetry_live_search'
           );
           if (navItemIndex === -1) {
-            return row;
+            break;
           }
           const [navItem] = residualNavItems.splice(navItemIndex, 1);
+          if (navItem) {
+            telemetryNavItemByCallId.set(record.id, navItem);
+          }
+        }
+        const linkedCallRows = callRows.map(row => {
+          if (row.url) {
+            return row;
+          }
+          const navItem = telemetryNavItemByCallId.get(row.record.id);
           return navItem ? {...row, url: navItem.url, linkKind: navItem.kind} : row;
         });
 

@@ -543,6 +543,65 @@ describe('ToolUseBlock', () => {
     expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
+  it('keeps telemetry destinations aligned when an earlier call row is hidden', () => {
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                params: {dataset: 'spans', question: 'hidden search'},
+              },
+              {
+                id: 2,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying the visible search',
+                params: {dataset: 'spans', question: 'visible search'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {dataset: 'spans', query: 'first:true'},
+              },
+              {
+                kind: 'telemetry_live_search',
+                params: {dataset: 'spans', query: 'second:true'},
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    const visibleSearch = screen.getByRole('link', {
+      name: /Querying the visible search/,
+    });
+    expect(visibleSearch).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=second%3Atrue')
+    );
+    expect(visibleSearch).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('query=first%3Atrue')
+    );
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
   it('does not double-render a classic link present in both channels', () => {
     // A classic tool populates both the positional tool_links (row link) and structuredContent.links
     // during migration; the bus entry that duplicates the row link is deduped, so it renders once.
