@@ -50,6 +50,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "stage": "create_project",
                     "status": "completed",
                     "eventNote": "Project already existed.",
+                    "projectSlugs": ["frontend", "backend"],
                 },
             )
 
@@ -58,6 +59,8 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.data["stages"][0]["status"] == "bypassed"
         assert response.data["stages"][1]["status"] == "bypassed"
         assert response.data["stages"][2]["status"] == "completed"
+        assert response.data["projectSlugs"] == ["frontend", "backend"]
+        assert response.data["issueIds"] == []
 
     def test_status_rejects_unknown_run(self) -> None:
         path = reverse(
