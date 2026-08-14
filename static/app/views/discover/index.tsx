@@ -9,13 +9,13 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 function DiscoverContainer() {
   const organization = useOrganization();
@@ -38,7 +38,7 @@ function DiscoverContainer() {
       (location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
         location.query.dataset === Dataset.TRANSACTIONS)
     ) {
-      return <Redirect to={normalizeUrl('/explore/traces/')} />;
+      return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
     }
     return <Redirect to={redirectPath} />;
   }
@@ -62,7 +62,7 @@ function DiscoverContainer() {
       return <Redirect to={targetPath + location.search} />;
     }
     // transactions dataset redirects to traces url as we don't support transactions anymore
-    return <Redirect to={normalizeUrl('/explore/traces/')} />;
+    return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
   }
 
   // Backwards compatibility: if the org doesn't (or no longer) has the

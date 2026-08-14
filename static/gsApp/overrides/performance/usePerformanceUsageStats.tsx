@@ -1,5 +1,5 @@
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -22,7 +22,7 @@ export function usePerformanceUsageStats({
   dateRange,
   projectIds,
 }: {
-  dateRange: PageFilters['datetime'];
+  dateRange: PageFilterDatetime;
   organization: Organization;
   projectIds: PageFilters['projects'];
 }) {

@@ -290,6 +290,10 @@ describe('Sentry Application Details', () => {
         expect(
           screen.getByRole('button', {name: 'Copy a starter prompt'})
         ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
 
         expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
         expect(screen.getByRole('checkbox', {name: 'issue'})).toBePartiallyChecked();

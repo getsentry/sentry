@@ -15,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
@@ -42,6 +43,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   return (
     <div>
@@ -161,7 +163,7 @@ export function EmptyState({
                   variant="primary"
                   onClick={() => {
                     navigate({
-                      pathname: '/issues/',
+                      pathname: `/organizations/${organization.slug}/issues/`,
                       query: {
                         query: 'os.name:PlayStation',
                       },

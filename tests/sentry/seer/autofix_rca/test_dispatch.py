@@ -42,7 +42,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
         # Feature run dispatched with the RCA payload.
         run_kwargs = client.start_feature_run.call_args.kwargs
-        assert run_kwargs["feature_id"] == "autofix_rca"
+        assert run_kwargs["feature_id"] == "autofix"
         assert run_kwargs["flush"] is True
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id

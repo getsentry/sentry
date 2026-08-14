@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -16,7 +16,7 @@ interface UseGetTraceItemAttributeKeysProps extends Omit<
   UseTraceItemAttributeBaseProps,
   'type'
 > {
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   projectIds?: Array<string | number>;
   query?: string;
 }

@@ -18,7 +18,7 @@ class RedisBackendTestCase(TestCase):
 
     @cached_property
     def notification(self) -> Notification:
-        rule = self.event.project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=self.project)
         return Notification(self.event, (rule.id,), str(uuid.uuid4()))
 
     def test_basic(self) -> None:

@@ -9,8 +9,7 @@ from django.db.models import Count, Min
 from django.utils import timezone
 
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
-from sentry.integrations.github.webhook_types import CELL_PROCESSED_GITHUB_EVENTS
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.hybridcloud.webhook_event_types import event_type_from_mailbox
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
@@ -38,32 +37,6 @@ the one that could turn this monitor into a second incident. Bounding it means a
 pathological table loses the per-provider breakdown rather than pinning a control
 replica; the far cheaper `backlog.*` signals still report.
 """
-
-_EVENT_TYPED_MAILBOX_PROVIDERS = frozenset(
-    {IntegrationProviderSlug.GITHUB.value, IntegrationProviderSlug.GITHUB_ENTERPRISE.value}
-)
-"""Providers whose parser appends the event type to the mailbox name."""
-
-NO_EVENT_TYPE = "none"
-"""The provider doesn't mailbox by event type — not a parse failure."""
-
-UNKNOWN_EVENT_TYPE = "unknown"
-"""The provider does, but this mailbox carries no event type to read."""
-
-
-def _event_type_from_mailbox(provider: str, mailbox_name: str) -> str:
-    """
-    Recover the event type a mailbox holds, for the providers that encode one.
-
-    A delivery with no `X-GitHub-Event` header mailboxes without the suffix, leaving a
-    bucket number where this reads, so only known event names are trusted. Gated on the
-    provider column rather than the mailbox prefix, so legacy rows predating that column
-    report `none` even when they are GitHub mailboxes.
-    """
-    if provider not in _EVENT_TYPED_MAILBOX_PROVIDERS:
-        return NO_EVENT_TYPE
-    suffix = mailbox_name.rpartition(":")[2]
-    return suffix if suffix in CELL_PROCESSED_GITHUB_EVENTS else UNKNOWN_EVENT_TYPE
 
 
 @contextmanager
@@ -196,7 +169,7 @@ def record_mailbox_depth_metrics() -> None:
         # The column is nullable, and rows predating it still drain through here.
         provider = row["provider"] or "unknown"
         depth, row_oldest = row["depth"], row["oldest"]
-        event_type = _event_type_from_mailbox(provider, row["mailbox_name"])
+        event_type = event_type_from_mailbox(provider, row["mailbox_name"])
         pending[(provider, event_type)] += depth
         mailbox_count[provider] += 1
         max_depth[provider] = max(max_depth[provider], depth)

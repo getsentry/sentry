@@ -1,0 +1,79 @@
+---
+title: DragHandle
+description: A focusable separator that a parent drives to resize an adjacent area, with pointer, double click, and keyboard affordances.
+category: layout
+source: '@sentry/scraps/dragHandle'
+status: stable
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/dragHandle/dragHandle.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+---
+
+import {DragHandleDemo} from './__stories__/dragHandleDemos';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/dragHandle/dragHandle');
+
+## When to use
+
+`DragHandle` is the divider primitive shared by the components that let a user resize part of a layout.
+Reach for it when you are building such a component and need the divider itself: `SplitPanel` uses it between its two panes, and `Table` uses it as the column resize handle.
+
+Prefer `SplitPanel` when you need two resizable panes, and `Table` when you need resizable columns.
+Use `DragHandle` directly only when neither fits.
+
+## Anatomy
+
+`DragHandle` owns the interaction, and the parent owns the size.
+A pointer drag and the arrow keys both arrive as `onMove` with a delta in pixels along the handle's axis, which the parent applies and clamps however it likes.
+
+Pass the current `value` with its `min` and `max` so the handle can announce its position and point the cursor the only way it can still travel.
+
+<Storybook.Demo>
+  <DragHandleDemo />
+</Storybook.Demo>
+
+```jsx
+<DragHandle
+  isSizedFirst
+  max={maxSize}
+  min={minSize}
+  orientation="horizontal"
+  value={size}
+  onDoubleClick={() => setSize(defaultSize)}
+  onMove={delta => setSize(current => clamp(current + delta))}
+/>
+```
+
+Use `onMoveStart` and `onMoveEnd` when a drag needs to bracket its work, such as recording the size it started from so the change can be reported once at the end.
+
+An `orientation` of `horizontal` lays the panes out in a row and draws a vertical divider between them.
+Set `isSizedFirst` to `false` when the pane being sized sits after the divider, so the cursor and keys still match the direction the divider can move.
+
+## Variants
+
+The default `solid` variant draws the divider line at all times.
+Use the `ghost` variant to draw it only while the handle is hovered, focused, or held, for surfaces that already have their own separators, such as the column edges of a table.
+
+<Storybook.Demo>
+  <DragHandleDemo variant="ghost" />
+</Storybook.Demo>
+
+```jsx
+<DragHandle variant="ghost" {...props} />
+```
+
+## Accessibility
+
+The handle is a `separator` with `tabIndex={0}`, and reports `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` from the `value`, `min`, and `max` props.
+
+A focusable separator is a widget, so it must be named: pass either `aria-label` or `aria-labelledby`. Name what the handle resizes, such as `Resize panels`, rather than the handle itself; without a name it is announced as a bare number with no subject.
+
+Prefer `aria-labelledby` when the handle sits inside an element that takes its own name from its content, such as a table header cell. An `aria-label` there would also become part of that cell's name, so the column would announce as `duration Resize duration column`.
+
+The arrow keys along the handle's axis move it by 10px, or by 50px while shift is held.
+Pass `onKeyDown` to handle keys the handle does not claim, such as `Home` and `End`.
+
+Give `max` a real number wherever you can. ARIA defaults a focusable separator's `aria-valuemax` to 100, so an infinite `max` is omitted from the DOM and assistive technology then announces the value clamped to that default.
