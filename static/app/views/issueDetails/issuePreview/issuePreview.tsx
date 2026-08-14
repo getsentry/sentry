@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -78,7 +79,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   useMarkPreviewedGroupSeen(group);
 
   return (
-    <Fragment>
+    <AnalyticsArea name="issue_inbox" overrideParent>
       <Container padding="xs 2xl" borderBottom="muted">
         <Flex align="center" justify="between" flex="1" gap="md">
           {group && project ? (
@@ -123,7 +124,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
           </GroupDataContextProvider>
         )}
       </Container>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 

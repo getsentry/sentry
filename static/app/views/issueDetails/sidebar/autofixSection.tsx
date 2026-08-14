@@ -5,6 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   type AutofixSection,
   getAutofixArtifactFromSection,
@@ -113,6 +114,7 @@ export const AutofixQuotaContent = registerLLMContext(
 
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea() || 'seer';
   const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
@@ -219,8 +221,12 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={`${analyticsArea}.setup_clicked`}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'organization'}}
               >
                 {t('Set Up Seer')}
@@ -229,8 +235,12 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
-                analyticsEventKey="issue_details.seer_setup_clicked"
-                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsEventKey={`${analyticsArea}.setup_clicked`}
+                analyticsEventName={
+                  analyticsArea === 'issue_inbox'
+                    ? 'Issue Inbox: Seer Setup Clicked'
+                    : 'Seer: Setup Clicked'
+                }
                 analyticsParams={{group_id: group.id, setup_type: 'project'}}
               >
                 {t('Set Up Seer for This Project')}
