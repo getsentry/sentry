@@ -342,21 +342,9 @@ describe('ScmMessagingChannelPicker', () => {
       });
     });
 
-    it('does not offer ineligible MS Teams tenant workspaces', () => {
-      const msteamsTenant = OrganizationIntegrationsFixture({
-        id: '40',
-        name: 'tenant-workspace',
-        provider: {
-          key: 'msteams',
-          slug: 'msteams',
-          name: 'Microsoft Teams',
-          canAdd: true,
-          canDisable: false,
-          features: [],
-          aspects: {},
-        },
-        configData: {installationType: 'tenant'},
-      });
+    it('only shows the integrations it receives — eligibility is enforced upstream', () => {
+      // The row (via the view model) is responsible for filtering to eligibleIntegrations
+      // before passing them to the picker. The picker renders whatever it receives.
       const msteamsTeam = OrganizationIntegrationsFixture({
         id: '41',
         name: 'team-workspace',
@@ -373,11 +361,10 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       mockChannels('41', []);
-      renderPicker({integrations: [msteamsTenant, msteamsTeam]});
+      // Only the eligible team integration is passed; the tenant was excluded by the row.
+      renderPicker({integrations: [msteamsTeam]});
 
-      // Only the team installation is offered; tenant is filtered out.
-      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 eligible
-      // The workspace select value shows the team workspace, not the tenant.
+      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
       expect(screen.getByText('team-workspace')).toBeInTheDocument();
     });
   });

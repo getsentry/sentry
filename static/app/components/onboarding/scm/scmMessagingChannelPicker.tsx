@@ -22,10 +22,13 @@ import {
 
 import type {ScmMessagingProviderKey} from './messagingProviders';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
-import {isEligibleForIssueAlerts} from './useScmMessagingProviders';
 
 export interface ScmMessagingChannelPickerProps {
-  /** All active integrations for this provider; eligible subset is selectable. */
+  /**
+   * Eligible integrations for this provider — already filtered to those that
+   * can receive Issue Alert actions. Must be non-empty (the picker is only
+   * rendered for a `connected` provider).
+   */
   integrations: OrganizationIntegration[];
   onConfigured: (setup: ScmMessagingSetup & {mode: 'selected'}) => void;
   /** Pre-seeds the channel selector when editing an existing destination. */
@@ -40,14 +43,9 @@ export function ScmMessagingChannelPicker({
   onConfigured,
   existingSetup,
 }: ScmMessagingChannelPickerProps) {
-  // Only eligible integrations are offered; the picker only renders for a
-  // 'connected' provider, so this is always non-empty.
-  const eligibleIntegrations = useMemo(
-    () => integrations.filter(isEligibleForIssueAlerts),
-    [integrations]
-  );
-
-  const providerKey = eligibleIntegrations[0]!.provider.key as ScmMessagingProviderKey;
+  const firstIntegration = integrations[0];
+  const providerKey = (firstIntegration?.provider.key ??
+    'slack') as ScmMessagingProviderKey;
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any. Drives both the dropdown seed
@@ -58,23 +56,23 @@ export function ScmMessagingChannelPicker({
       : undefined;
 
   const defaultIntegration =
-    eligibleIntegrations.find(i => i.id === savedSelection?.integrationId) ??
-    eligibleIntegrations[0]!;
+    integrations.find(i => i.id === savedSelection?.integrationId) ?? firstIntegration;
 
-  const [selectedIntegration, setSelectedIntegration] =
-    useState<OrganizationIntegration>(defaultIntegration);
+  const [selectedIntegration, setSelectedIntegration] = useState<
+    OrganizationIntegration | undefined
+  >(defaultIntegration);
 
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(() =>
     // Only seed the channel when the default workspace is the saved one. Switching
     // workspaces starts blank.
-    savedSelection && defaultIntegration.id === savedSelection.integrationId
+    savedSelection && defaultIntegration?.id === savedSelection.integrationId
       ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
       : undefined
   );
 
   const providersToIntegrations = useMemo(
-    () => ({[providerKey]: eligibleIntegrations}),
-    [providerKey, eligibleIntegrations]
+    () => ({[providerKey]: integrations}),
+    [providerKey, integrations]
   );
 
   const {
@@ -106,6 +104,10 @@ export function ScmMessagingChannelPicker({
     querySuccess: true,
     shouldRenderSetupButton: false,
   });
+
+  if (!firstIntegration || !selectedIntegration) {
+    return null;
+  }
 
   const handleSave = () => {
     if (!channel) {

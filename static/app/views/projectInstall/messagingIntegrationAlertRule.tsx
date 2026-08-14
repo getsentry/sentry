@@ -2,10 +2,11 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -156,7 +157,7 @@ export function useMessagingIntegrationAlertRule(
     channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
-    onProviderChange: (option: any) => {
+    onProviderChange: (option: SelectValue<string>) => {
       setProvider(option.value);
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
@@ -169,7 +170,7 @@ export function useMessagingIntegrationAlertRule(
         });
       }
     },
-    onIntegrationChange: (option: any) => {
+    onIntegrationChange: (option: SelectValue<OrganizationIntegration>) => {
       setIntegration(option.value);
       setChannel(undefined);
       clearChannelValidation();

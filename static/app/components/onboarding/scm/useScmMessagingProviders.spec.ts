@@ -69,8 +69,10 @@ describe('useScmMessagingProviders', () => {
 
     const slack = result.current.providers.find(p => p.providerKey === 'slack');
     expect(slack?.status).toBe('connected');
-    expect(slack?.integrations).toHaveLength(1);
-    expect(slack?.integrations[0]?.id).toBe('10');
+    expect(slack?.eligibleIntegrations).toHaveLength(1);
+    expect(slack?.eligibleIntegrations[0]?.id).toBe('10');
+    expect(slack?.activeIntegrations).toHaveLength(1);
+    expect(slack?.activeIntegrations[0]?.id).toBe('10');
 
     result.current.providers
       .filter(p => p.providerKey !== 'slack')
@@ -114,9 +116,11 @@ describe('useScmMessagingProviders', () => {
 
     const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
     expect(msteams?.status).toBe('permission-limited');
-    // The integration is still exposed so the row can show the workspace name.
-    expect(msteams?.integrations).toHaveLength(1);
-    expect(msteams?.integrations[0]?.id).toBe('12');
+    // The tenant is in activeIntegrations so the row can show the workspace name.
+    expect(msteams?.activeIntegrations).toHaveLength(1);
+    expect(msteams?.activeIntegrations[0]?.id).toBe('12');
+    // Tenant is ineligible, so eligibleIntegrations is empty.
+    expect(msteams?.eligibleIntegrations).toHaveLength(0);
   });
 
   it('marks a team-type msteams integration as connected', async () => {
@@ -180,8 +184,10 @@ describe('useScmMessagingProviders', () => {
 
     const slack = result.current.providers.find(p => p.providerKey === 'slack');
     expect(slack?.status).toBe('connected');
-    expect(slack?.integrations).toHaveLength(2);
-    expect(slack?.integrations.map(i => i.id)).toEqual(['20', '21']);
+    // Both workspaces are eligible (Slack has no tenant restriction).
+    expect(slack?.eligibleIntegrations).toHaveLength(2);
+    expect(slack?.eligibleIntegrations.map(i => i.id)).toEqual(['20', '21']);
+    expect(slack?.activeIntegrations).toHaveLength(2);
   });
 
   it('is connected when msteams has both a tenant and a team installation', async () => {
@@ -211,8 +217,11 @@ describe('useScmMessagingProviders', () => {
 
     const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
     expect(msteams?.status).toBe('connected');
-    expect(msteams?.integrations).toHaveLength(2);
-    expect(msteams?.integrations.map(i => i.id)).toEqual(['30', '31']);
+    // Both installations are active, but only the team is eligible.
+    expect(msteams?.activeIntegrations).toHaveLength(2);
+    expect(msteams?.activeIntegrations.map(i => i.id)).toEqual(['30', '31']);
+    expect(msteams?.eligibleIntegrations).toHaveLength(1);
+    expect(msteams?.eligibleIntegrations[0]?.id).toBe('31');
   });
 
   it('preserves provider order matching SCM_MESSAGING_PROVIDER_KEYS', async () => {

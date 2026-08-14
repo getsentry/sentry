@@ -107,7 +107,7 @@ function deriveVisualState({
   const isConfigured =
     messagingSetup.mode === 'selected' &&
     messagingSetup.providerKey === viewModel.providerKey &&
-    viewModel.integrations.some(i => i.id === messagingSetup.integrationId);
+    viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
 
   if (isConfigured && isConfiguring) {
     return 'configuring'; // Edit mode
@@ -130,9 +130,9 @@ export interface ScmMessagingProviderRowProps {
   /**
    * Render prop for the inline channel picker.
    *
-   * When the user opens the configuring state this is called with the active
-   * integration and two callbacks: `onConfigured` (save the chosen destination
-   * to session state) and `onCancel` (close without saving).
+   * Called with the eligible (non-empty) integrations for this provider and two
+   * callbacks: `onConfigured` (save the chosen destination to session state) and
+   * `onCancel` (close without saving). Only invoked when `status === 'connected'`.
    *
    * Omitting this prop leaves the configuring state with an empty body.
    */
@@ -160,7 +160,7 @@ export function ScmMessagingProviderRow({
   const isConfigured =
     messagingSetup.mode === 'selected' &&
     messagingSetup.providerKey === viewModel.providerKey &&
-    viewModel.integrations.some(i => i.id === messagingSetup.integrationId);
+    viewModel.eligibleIntegrations.some(i => i.id === messagingSetup.integrationId);
 
   const visualState = deriveVisualState({
     viewModel,
@@ -298,13 +298,13 @@ export function ScmMessagingProviderRow({
           <ChannelPickerSlot>
             {renderChannelPicker ? (
               renderChannelPicker({
-                integrations: viewModel.integrations,
+                integrations: viewModel.eligibleIntegrations,
                 onCancel: isConfigured ? handleCancelConfiguring : undefined,
                 onConfigured: handleConfigured,
               })
             ) : (
               <ScmMessagingChannelPicker
-                integrations={viewModel.integrations}
+                integrations={viewModel.eligibleIntegrations}
                 onCancel={isConfigured ? handleCancelConfiguring : undefined}
                 onConfigured={handleConfigured}
                 existingSetup={isConfigured ? messagingSetup : undefined}
@@ -354,7 +354,7 @@ function RowSubtitle({
   if (visualState === 'permission-limited') {
     return (
       <Stack gap="2xs">
-        <Text size="sm">{viewModel.integrations[0]?.name}</Text>
+        <Text size="sm">{viewModel.activeIntegrations[0]?.name}</Text>
         <Text variant="muted" size="sm">
           {t(
             'This Microsoft Teams workspace uses a tenant-level connection and cannot receive issue alerts directly. Reinstall with a team-level connection to enable destinations.'
@@ -368,7 +368,11 @@ function RowSubtitle({
     return (
       <Flex gap="xs" align="center">
         <Text size="sm">
-          {viewModel.integrations.find(i => i.id === messagingSetup.integrationId)?.name}
+          {
+            viewModel.eligibleIntegrations.find(
+              i => i.id === messagingSetup.integrationId
+            )?.name
+          }
         </Text>
         <Text variant="muted" size="sm" aria-hidden>
           /

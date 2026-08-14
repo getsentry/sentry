@@ -26,9 +26,18 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
 export type ScmMessagingProviderViewModel = {
-  // All active integrations for this provider (may include ineligible ones,
-  //  e.g. tenant-type MS Teams). The picker offers the eligible subset.
-  integrations: OrganizationIntegration[];
+  /**
+   * All active integrations for this provider. Includes ineligible ones
+   * (e.g. MS Teams tenant installations) so the permission-limited state can
+   * display the workspace name.
+   */
+  activeIntegrations: OrganizationIntegration[];
+  /**
+   * The eligible subset of `activeIntegrations` — non-empty iff
+   * `status === 'connected'`. Callers operating in the connected state
+   * can safely access index 0 without a non-null assertion.
+   */
+  eligibleIntegrations: OrganizationIntegration[];
   provider: IntegrationProvider;
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
@@ -39,7 +48,7 @@ export type ScmMessagingProviderViewModel = {
  * MS Teams "tenant" installations route notifications differently and
  * cannot be used as an issue-alert destination.
  */
-export function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
+function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
   if (integration.provider.key !== 'msteams') {
     return true;
   }
@@ -105,7 +114,8 @@ export function useScmMessagingProviders(): {
       const active = integrations.filter(
         i => i.provider.key === providerKey && isIntegrationActive(i)
       );
-      const status: ScmMessagingProviderStatus = active.some(isEligibleForIssueAlerts)
+      const eligible = active.filter(isEligibleForIssueAlerts);
+      const status: ScmMessagingProviderStatus = eligible.length
         ? 'connected'
         : active.length
           ? 'permission-limited'
@@ -116,7 +126,8 @@ export function useScmMessagingProviders(): {
           providerKey,
           provider,
           status,
-          integrations: active,
+          activeIntegrations: active,
+          eligibleIntegrations: eligible,
         },
       ];
     });
