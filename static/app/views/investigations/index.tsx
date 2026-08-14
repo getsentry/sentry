@@ -1,7 +1,6 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Query} from 'history';
+import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -32,18 +31,15 @@ import {IconAdd, IconStar} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  createInvestigation,
-  deleteInvestigation,
-  duplicateInvestigation,
   investigationListQueryOptions,
-  setInvestigationFavorite,
+  useCreateInvestigationMutation,
+  useDeleteInvestigationMutation,
+  useDuplicateInvestigationMutation,
+  useSetInvestigationFavoriteMutation,
 } from 'sentry/views/investigations/api';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
@@ -99,75 +95,46 @@ function ClosedMembershipPage() {
 
 function InvestigationsPage() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const [{query, cursor}, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
   const listOptions = investigationListQueryOptions({
     organizationSlug: organization.slug,
-    query,
-    cursor,
+    query: query ?? undefined,
+    cursor: cursor ?? undefined,
   });
   const {data, isPending, isError, error} = useQuery({
     ...listOptions,
     select: selectJsonWithHeaders,
   });
 
-  const invalidateList = useCallback(
-    () => queryClient.invalidateQueries({queryKey: listOptions.queryKey}),
-    [listOptions.queryKey, queryClient]
-  );
-
-  const createMutation = useMutation({
-    mutationFn: () => createInvestigation(organization.slug),
-    onSuccess: () => {
-      addSuccessMessage(t('Investigation created.'));
-      invalidateList();
-    },
+  const createMutation = useCreateInvestigationMutation(organization.slug, {
+    onSuccess: () => addSuccessMessage(t('Investigation created.')),
     onError: () => addErrorMessage(t('Unable to create investigation.')),
   });
 
-  const favoriteMutation = useMutation({
-    mutationFn: ({investigation, shouldFavorite}: FavoriteVariables) =>
-      setInvestigationFavorite(organization.slug, investigation.id, shouldFavorite),
-    onSuccess: () => {
-      addSuccessMessage(t('Investigation favorite updated.'));
-      invalidateList();
-    },
+  const favoriteMutation = useSetInvestigationFavoriteMutation(organization.slug, {
+    onSuccess: () => addSuccessMessage(t('Investigation favorite updated.')),
     onError: () => addErrorMessage(t('Unable to update investigation favorite.')),
   });
 
-  const duplicateMutation = useMutation({
-    mutationFn: (investigation: InvestigationListItem) =>
-      duplicateInvestigation(organization.slug, investigation.id),
-    onSuccess: () => {
-      addSuccessMessage(t('Investigation duplicated.'));
-      invalidateList();
-    },
+  const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
+    onSuccess: () => addSuccessMessage(t('Investigation duplicated.')),
     onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (investigation: InvestigationListItem) =>
-      deleteInvestigation(organization.slug, investigation),
-    onSuccess: () => {
-      addSuccessMessage(t('Investigation deleted.'));
-      invalidateList();
-    },
+  const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
+    onSuccess: () => addSuccessMessage(t('Investigation deleted.')),
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
 
   function handleSearch(nextQuery: string) {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: nextQuery || undefined,
-        cursor: undefined,
-      },
+    setQueryParams({
+      query: nextQuery || null,
+      cursor: null,
     });
   }
 
@@ -265,7 +232,7 @@ function InvestigationsPage() {
                 >
                   <SearchBar
                     defaultQuery=""
-                    query={query}
+                    query={query ?? ''}
                     placeholder={t('Search Investigations')}
                     onSearch={handleSearch}
                   />
@@ -310,28 +277,27 @@ function InvestigationsPage() {
                         if (!investigation) {
                           return [];
                         }
-                        const item = investigation;
                         return [
                           <Button
-                            key={item.id}
+                            key={investigation.id}
                             size="zero"
                             variant="transparent"
                             aria-label={
-                              item.isFavorited
-                                ? t('Unfavorite %s', item.title)
-                                : t('Favorite %s', item.title)
+                              investigation.isFavorited
+                                ? t('Unfavorite %s', investigation.title)
+                                : t('Favorite %s', investigation.title)
                             }
                             icon={
                               <IconStar
                                 size="sm"
-                                variant={item.isFavorited ? 'warning' : 'muted'}
-                                isSolid={item.isFavorited}
+                                variant={investigation.isFavorited ? 'warning' : 'muted'}
+                                isSolid={investigation.isFavorited}
                               />
                             }
                             onClick={() =>
                               favoriteMutation.mutate({
-                                investigation: item,
-                                shouldFavorite: !item.isFavorited,
+                                investigation,
+                                shouldFavorite: !investigation.isFavorited,
                               })
                             }
                           />,
@@ -353,16 +319,12 @@ function InvestigationsPage() {
                 <Container marginBottom="2xl">
                   <Pagination
                     pageLinks={data?.headers.Link}
-                    onCursor={(nextCursor, path, nextQuery, direction) => {
+                    onCursor={(nextCursor, _path, _nextQuery, direction) => {
                       const offset = Number(nextCursor?.split?.(':')?.[1] ?? 0);
-                      const paginationQuery: Query & {cursor?: string} = {
-                        ...nextQuery,
-                        cursor: nextCursor,
-                      };
-                      if (direction === -1 && offset <= 0) {
-                        delete paginationQuery.cursor;
-                      }
-                      navigate({pathname: path, query: paginationQuery});
+                      setQueryParams({
+                        cursor:
+                          direction === -1 && offset <= 0 ? null : (nextCursor ?? null),
+                      });
                     }}
                   />
                 </Container>
@@ -374,11 +336,6 @@ function InvestigationsPage() {
     </SentryDocumentTitle>
   );
 }
-
-type FavoriteVariables = {
-  investigation: InvestigationListItem;
-  shouldFavorite: boolean;
-};
 
 export default function InvestigationsView() {
   const organization = useOrganization();
