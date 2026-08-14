@@ -73,6 +73,7 @@ def trigger_autofix_rca_feature(
         flush=flush,
         extras=extras,
         force_ce=False,
+        force_frontend_code_search=False,
     )
 
     quotas.backend.record_seer_run(
