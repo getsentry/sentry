@@ -516,6 +516,134 @@ class InvestigationAgentTest(TestCase):
             "The telemetry call requested a project outside this investigation."
         )
 
+    def test_empty_project_slugs_cannot_widen_the_scope(self) -> None:
+        # An empty list reaches the telemetry tools as "no scope supplied", which
+        # makes them query every project in the organization.
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="no-project",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args=json.dumps(
+                                    {
+                                        "code": (
+                                            "sentry.telemetry_live_search("
+                                            "'errors', 'errors', project_slugs=[])"
+                                        )
+                                    }
+                                ),
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state, allowed_project_slugs={self.project.slug})
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == (
+            "Telemetry calls must use a non-empty literal project_slugs list."
+        )
+
+    def test_non_object_tool_call_args_are_rejected_without_crashing(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="bad-args",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(id="call", function="sentry_api_execute", args="null")
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state, allowed_project_slugs={self.project.slug})
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == "The Code Mode call had invalid arguments."
+
+    def test_query_links_drop_nested_and_oversized_params(self) -> None:
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="query",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args=json.dumps(
+                                    {
+                                        "code": (
+                                            "sentry.telemetry_live_search("
+                                            "'count errors', 'errors', "
+                                            f"project_slugs=['{self.project.slug}'])"
+                                        )
+                                    }
+                                ),
+                            )
+                        ],
+                    ),
+                    tool_results=[
+                        ToolResult(
+                            tool_call_id="call",
+                            tool_call_function="sentry_api_execute",
+                            structuredContent={
+                                "links": [
+                                    {
+                                        "kind": "telemetry",
+                                        "smuggled": "top-level",
+                                        "params": {
+                                            "dataset": "errors",
+                                            "query": "x" * 3000,
+                                            "project_slugs": [self.project.slug],
+                                            "nested": {"secret": "value"},
+                                        },
+                                    }
+                                ]
+                            },
+                        )
+                    ],
+                ),
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"A chart is not useful."}'
+                        ),
+                    ),
+                ),
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        link = self.execution.result["queryLinks"][0]
+        assert set(link) == {"kind", "params"}
+        assert set(link["params"]) == {"dataset", "query", "project_slugs"}
+        assert len(link["params"]["query"]) == 2000
+
     def test_title_uses_the_final_assistant_message(self) -> None:
         self.investigation.title = "Untitled investigation"
         self.investigation.title_generation_status = "running"

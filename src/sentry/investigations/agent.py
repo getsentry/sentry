@@ -34,6 +34,7 @@ from sentry.utils import json
 
 MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
+MAX_QUERY_LINK_PARAM_CHARS = 2000
 IMPORT_NOT_ALLOWED_ERROR = "This import is not allowed in an investigation query."
 PRIVATE_TRANSCRIPT_KEYS = {
     "authorization",
@@ -171,6 +172,8 @@ def _block_policy_error(
         try:
             args = json.loads(call.args)
         except (TypeError, ValueError):
+            args = None
+        if not isinstance(args, dict):
             return "The Code Mode call had invalid arguments."
         policy_error = _code_policy_error(
             str(args.get("code", "")),
@@ -300,8 +303,8 @@ def _code_policy_error(
             ):
                 continue
             project_slugs = _telemetry_project_slugs(node)
-            if project_slugs is None:
-                return "Telemetry calls must use a literal project_slugs list."
+            if not project_slugs:
+                return "Telemetry calls must use a non-empty literal project_slugs list."
             if not set(project_slugs).issubset(allowed_project_slugs):
                 return "The telemetry call requested a project outside this investigation."
     return None
@@ -430,6 +433,24 @@ def _project_slugs_from_code(code: str) -> set[str]:
     return slugs
 
 
+def _sanitized_query_link(link: dict[str, Any]) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+    for key, value in (link.get("params") or {}).items():
+        if isinstance(value, str):
+            params[str(key)] = value[:MAX_QUERY_LINK_PARAM_CHARS]
+        elif isinstance(value, bool | int | float) or value is None:
+            params[str(key)] = value
+        elif isinstance(value, list | tuple) and all(
+            item is None or isinstance(item, str | bool | int | float) for item in value
+        ):
+            params[str(key)] = [
+                item[:MAX_QUERY_LINK_PARAM_CHARS] if isinstance(item, str) else item
+                for item in value
+            ]
+    kind = link.get("kind")
+    return {"kind": kind if isinstance(kind, str) else "telemetry", "params": params}
+
+
 def _successful_links_and_projects(
     state: SeerRunState, organization: Organization
 ) -> tuple[list[dict[str, Any]], list[Project]]:
@@ -461,10 +482,11 @@ def _successful_links_and_projects(
                 slugs.update(str(slug) for slug in project_slugs)
             if "dataset" in params or "query" in params:
                 has_successful_telemetry = True
-                key = json.dumps(link, sort_keys=True)
+                sanitized = _sanitized_query_link(link)
+                key = json.dumps(sanitized, sort_keys=True)
                 if key not in seen_links:
                     seen_links.add(key)
-                    links.append(link)
+                    links.append(sanitized)
                 organization_wide = organization_wide or not project_slugs
         if has_successful_telemetry:
             for call in block.message.tool_calls or []:
@@ -473,6 +495,8 @@ def _successful_links_and_projects(
                 try:
                     args = json.loads(call.args)
                 except (TypeError, ValueError):
+                    args = None
+                if not isinstance(args, dict):
                     continue
                 slugs.update(_project_slugs_from_code(str(args.get("code", ""))))
     projects = list(
