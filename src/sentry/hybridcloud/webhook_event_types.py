@@ -26,9 +26,11 @@ def event_type_from_mailbox(provider: str, mailbox_name: str) -> str:
     Recover the event type a mailbox holds, for the providers that encode one.
 
     A delivery with no `X-GitHub-Event` header mailboxes without the suffix, leaving a
-    bucket number where this reads, so only known event names are trusted. Gated on the
-    provider column rather than the mailbox prefix, so legacy rows predating that column
-    report `none` even when they are GitHub mailboxes.
+    bucket number where this reads, so only known event names are trusted.
+
+    Takes the provider the caller already resolved for its own `provider` tag rather
+    than re-deriving it from the mailbox prefix, so the two tags cannot disagree about
+    which provider a series belongs to.
     """
     if provider not in _EVENT_TYPED_MAILBOX_PROVIDERS:
         return NO_EVENT_TYPE
