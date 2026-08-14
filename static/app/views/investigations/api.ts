@@ -6,7 +6,10 @@ import {
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import type {
+  InvestigationDetail,
+  InvestigationListItem,
+} from 'sentry/views/investigations/types';
 
 type ListOptions = {
   organizationSlug: string;
@@ -25,6 +28,22 @@ export function investigationListQueryOptions({
       path: {organizationIdOrSlug: organizationSlug},
       query: {status: 'active', cursor, query},
       staleTime: 0,
+    }
+  );
+}
+
+export function investigationDetailQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationDetail>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+      },
+      staleTime: 30_000,
     }
   );
 }
