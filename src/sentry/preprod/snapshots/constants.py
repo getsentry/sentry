@@ -2,5 +2,4 @@ from __future__ import annotations
 
 MISSING_BASE_GRACE_PERIOD_SECONDS = 600
 RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS = 60
-SNAPSHOT_ARCHIVE_MANIFEST_FEATURE = "organizations:preprod-snapshot-archive-manifest"
 SNAPSHOT_ARCHIVE_MANIFEST_FILENAME = "manifest.json"
