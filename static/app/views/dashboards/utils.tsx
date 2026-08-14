@@ -16,7 +16,7 @@ import {
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -120,7 +120,7 @@ export function getThresholdUnitSelectOptions(
 
 export function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>,
+  datetimeObj: Partial<PageFilterDatetime>,
   widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {

@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
 from sentry.investigations.models import (
+    TERMINAL_BLOCK_EXECUTION_STATUSES,
     Investigation,
     InvestigationBlock,
     InvestigationBlockExecution,
@@ -59,7 +60,6 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
-
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
@@ -570,6 +570,11 @@ def _result_from_final_message(state: SeerRunState, *, block_kind: str) -> dict[
 
 
 def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRunState) -> None:
+    # The branches below each guard their own writes against a terminal status, except the
+    # off-policy one, which acts on the Seer state alone. Without this a late off-policy run
+    # would overwrite a cancelled execution with a failure the user did not cause.
+    if execution.status in TERMINAL_BLOCK_EXECUTION_STATUSES:
+        return
     blocks, transcript_truncated, off_policy = sanitize_state(
         state,
         allow_query_tools=execution.block.kind == InvestigationBlockKind.QUERY,
@@ -616,13 +621,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
     if status:
         updated = (
             InvestigationBlockExecution.objects.filter(id=execution.id)
-            .exclude(
-                status__in=[
-                    InvestigationBlockExecutionStatus.COMPLETED,
-                    InvestigationBlockExecutionStatus.FAILED,
-                    InvestigationBlockExecutionStatus.CANCELLED,
-                ]
-            )
+            .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
             .update(status=status, transcript=blocks, transcript_truncated=transcript_truncated)
         )
         if updated:
@@ -638,11 +637,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             .select_related("block__investigation")
             .get(id=execution.id)
         )
-        if execution.status in {
-            InvestigationBlockExecutionStatus.COMPLETED,
-            InvestigationBlockExecutionStatus.FAILED,
-            InvestigationBlockExecutionStatus.CANCELLED,
-        }:
+        if execution.status in TERMINAL_BLOCK_EXECUTION_STATUSES:
             return
         execution.transcript = blocks
         execution.transcript_truncated = transcript_truncated

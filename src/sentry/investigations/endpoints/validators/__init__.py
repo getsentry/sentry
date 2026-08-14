@@ -1,6 +1,7 @@
 __all__ = (
     "BlockCreateValidator",
     "BlockDeleteValidator",
+    "BlockExecutionResumeValidator",
     "BlockExecutionStartValidator",
     "BlockOrderValidator",
     "BlockUpdateValidator",
@@ -22,6 +23,7 @@ from .base import StrictCamelSnakeValidator
 from .block import (
     BlockCreateValidator,
     BlockDeleteValidator,
+    BlockExecutionResumeValidator,
     BlockExecutionStartValidator,
     BlockOrderValidator,
     BlockUpdateValidator,
