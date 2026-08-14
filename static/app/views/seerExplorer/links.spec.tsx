@@ -47,6 +47,11 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
     params: {trace_id: 'trace1'},
   },
+  get_span_details: {
+    kind: 'lib',
+    name: 'get_span_details',
+    params: {trace_id: 'trace1', span_id: 'span1'},
+  },
   get_replay_details: {
     kind: 'api',
     method: 'GET',
@@ -387,8 +392,61 @@ describe('search links', () => {
       id: 1,
       kind: 'lib',
       name: 'telemetry_live_search',
+      params: {dataset: 'spans', question: 'top pageloads'},
     });
     expect(resolveLink(subject, ctx)).toBeNull();
+  });
+
+  it('builds one Explore link with every project_slug selected', () => {
+    const result = resolveLink(
+      subjectFromToolLink({
+        kind: 'telemetry_live_search',
+        params: {
+          dataset: 'spans',
+          query: 'transaction.op:pageload',
+          project_slugs: ['javascript', 'python'],
+          stats_period: '24h',
+        },
+      }),
+      ctx
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'telemetry_live_search',
+        label: 'View spans',
+        url: expect.objectContaining({
+          pathname: '/organizations/org-slug/traces/',
+          query: expect.objectContaining({
+            query: 'transaction.op:pageload',
+            project: ['2', '3'],
+            statsPeriod: '24h',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('links a span lib call into the trace waterfall node', () => {
+    const result = resolveLink(
+      subjectFromCallRecord({
+        id: 1,
+        kind: 'lib',
+        name: 'get_span_details',
+        params: {trace_id: 'trace1', span_id: 'span1'},
+        title: 'Retrieving span span1 in trace trace1',
+      }),
+      ctx
+    );
+
+    expect(result).toEqual({
+      id: 'get_span_details',
+      label: 'Retrieving span span1 in trace trace1',
+      url: {
+        pathname: '/organizations/org-slug/explore/traces/trace/trace1/',
+        query: {node: 'span-span1'},
+      },
+    });
   });
 });
 
@@ -410,8 +468,9 @@ describe('subjectFromCallRecord', () => {
     );
   });
 
-  it('does not pass a lib call’s own arguments off as route params', () => {
-    // Otherwise a lib call carrying `issue_id` would link through a route rule it never requested.
+  it('keeps lib scalar args for name-matched rules, not for route matchers', () => {
+    // Route match predicates key on `path`, which lib calls lack — so passing scalar args is safe
+    // for name-matched helpers like get_span_details, and cannot fire a path-matched issue rule.
     expect(
       subjectFromCallRecord({
         id: 1,
@@ -419,6 +478,24 @@ describe('subjectFromCallRecord', () => {
         name: 'code_search',
         params: {issue_id: '54'},
       })
-    ).toEqual(expect.objectContaining({kind: 'lib', name: 'code_search', params: {}}));
+    ).toEqual(
+      expect.objectContaining({
+        kind: 'lib',
+        name: 'code_search',
+        params: {issue_id: '54'},
+        path: undefined,
+      })
+    );
+    expect(
+      resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'lib',
+          name: 'code_search',
+          params: {issue_id: '54'},
+        }),
+        ctx
+      )
+    ).toBeNull();
   });
 });

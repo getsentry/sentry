@@ -61,7 +61,7 @@ import {
 } from './components/tooltip';
 import {XAxis} from './components/xAxis';
 import {YAxis} from './components/yAxis';
-import {LineSeries} from './series/lineSeries';
+import {lineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -452,7 +452,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        LineSeries({
+        lineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {

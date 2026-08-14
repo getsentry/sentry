@@ -2,10 +2,8 @@ import {createContext} from 'react';
 
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
-export interface CustomMeasurementsContextValue {
-  customMeasurements: CustomMeasurementCollection;
-}
+const emptyCustomMeasurements: CustomMeasurementCollection = {};
 
-export const CustomMeasurementsContext = createContext<
-  CustomMeasurementsContextValue | undefined
->(undefined);
+export const CustomMeasurementsContext = createContext({
+  customMeasurements: emptyCustomMeasurements,
+});

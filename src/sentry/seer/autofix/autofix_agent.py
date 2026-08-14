@@ -175,7 +175,7 @@ def build_step_prompt(
     group: Group,
     user_context: str | None = None,
     run_state: SeerRunState | None = None,
-    enable_bash_tools: bool = False,
+    should_run_repo_checks: bool = False,
 ) -> str:
     """
     Build the prompt for a step using issue details.
@@ -184,7 +184,7 @@ def build_step_prompt(
         step: The autofix step to build prompt for
         group: The Sentry group (issue) being analyzed
         run_state: The current run state, used to surface PR links for iteration
-        enable_bash_tools: Whether bash tools are available to the run
+        should_run_repo_checks: Whether to steer the run to verify changes with the repo's own checks
 
     Returns:
         Formatted prompt string
@@ -196,7 +196,7 @@ def build_step_prompt(
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
         run_state=run_state,
-        enable_bash_tools=enable_bash_tools,
+        should_run_repo_checks=should_run_repo_checks,
     )
 
     parts = [prompt]
@@ -611,7 +611,9 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        enable_bash_tools=client.enable_bash_tools,
+        should_run_repo_checks=features.has(
+            "organizations:autofix-should-run-repo-checks", group.organization
+        ),
     )
     prompt_metadata = {
         "step": step.value,
