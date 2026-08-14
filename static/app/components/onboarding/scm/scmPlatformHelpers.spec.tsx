@@ -1,18 +1,28 @@
+import {popularPlatformCategories} from 'sentry/data/platformPickerCategories';
+import {platforms} from 'sentry/data/platforms';
 import {comparePlatformNames} from 'sentry/utils/platform';
 
-import {platformOptions} from './scmPlatformHelpers';
+import {platformOptionGroups, platformOptions} from './scmPlatformHelpers';
 
-describe('platformOptions', () => {
-  it('sorts platforms alphabetically with punctuation-prefixed names last', () => {
-    const names = platformOptions.map(option => option.label);
+describe('platformOptionGroups', () => {
+  const [popularGroup, otherGroup] = platformOptionGroups;
 
-    expect(names).toEqual(names.toSorted(comparePlatformNames));
-
-    // Names starting with punctuation (the .NET family) sort last, not first.
-    const firstPunctuationIndex = names.findIndex(name => name.startsWith('.'));
-    expect(firstPunctuationIndex).toBeGreaterThan(0);
-    expect(names.slice(firstPunctuationIndex).every(name => name.startsWith('.'))).toBe(
-      true
+  it('leads with the curated popular section in Popular-tab order', () => {
+    expect(popularGroup!.label).toBe('Popular');
+    expect(popularGroup!.options.map(option => option.value)).toEqual(
+      Array.from(popularPlatformCategories)
     );
+  });
+
+  it('sorts the remaining section like the legacy picker All tab', () => {
+    expect(otherGroup!.label).toBe('Other platforms');
+    const names = otherGroup!.options.map(option => option.label);
+    expect(names).toEqual(names.toSorted(comparePlatformNames));
+  });
+
+  it('keeps every platform exactly once across sections', () => {
+    const values = platformOptions.map(option => option.value);
+    expect(new Set(values).size).toBe(values.length);
+    expect(values).toHaveLength(platforms.length);
   });
 });
