@@ -1335,6 +1335,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         with self.feature(FLAG):
             bearer = self._mint_agent_token()
             client = APIClient()
+            global_projects_response = client.get(
+                "/api/0/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
+            organization_projects_response = client.get(
+                f"/api/0/organizations/{self.org.slug}/projects/",
+                HTTP_AUTHORIZATION=f"Bearer {bearer}",
+            )
             project_response = client.get(
                 f"/api/0/projects/{self.org.slug}/{unjoined_project.slug}/",
                 HTTP_AUTHORIZATION=f"Bearer {bearer}",
@@ -1348,6 +1356,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 HTTP_AUTHORIZATION=f"Bearer {bearer}",
             )
 
+        expected_project_ids = {self.project.id, unjoined_project.id}
+        assert self._listed_ids(global_projects_response) == expected_project_ids
+        assert self._listed_ids(organization_projects_response) == expected_project_ids
+        assert other_project.id not in self._listed_ids(global_projects_response)
         assert project_response.status_code == 200, project_response.content
         assert int(project_response.data["id"]) == unjoined_project.id
         assert team_response.status_code == 200, team_response.content
