@@ -355,6 +355,47 @@ describe('ScmMessagingChannelPicker', () => {
       });
     });
 
+    it('falls back to the first survivor and clears the channel when the selected workspace is removed', async () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', [slackChannel]);
+
+      const onConfigured = jest.fn();
+      const {rerender} = render(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration, slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+        />,
+        {organization}
+      );
+
+      // Switch to the second workspace and pick a channel.
+      await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+
+      // The second workspace disappears (e.g. after a refetch).
+      rerender(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+        />
+      );
+
+      // Workspace falls back to the first survivor and channel is cleared.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+      });
+
+      // Save writes the surviving integration id.
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '10'})
+      );
+    });
+
     it('only shows the integrations it receives — eligibility is enforced upstream', () => {
       // The row (via the view model) is responsible for filtering to eligibleIntegrations
       // before passing them to the picker. The picker renders whatever it receives.

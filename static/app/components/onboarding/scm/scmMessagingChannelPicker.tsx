@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -58,9 +58,15 @@ export function ScmMessagingChannelPicker({
     eligibleIntegrations.find(i => i.id === savedSelection?.integrationId) ??
     firstIntegration;
 
-  const [selectedIntegration, setSelectedIntegration] = useState<
-    OrganizationIntegration | undefined
-  >(defaultIntegration);
+  // undefined means "no explicit user selection yet — use the default".
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>(
+    undefined
+  );
+
+  const selectedIntegration =
+    eligibleIntegrations.find(
+      i => i.id === (selectedIntegrationId ?? defaultIntegration?.id)
+    ) ?? firstIntegration;
 
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(() =>
     // Only seed the channel when the default workspace is the saved one. Switching
@@ -69,6 +75,19 @@ export function ScmMessagingChannelPicker({
       ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
       : undefined
   );
+
+  // If the previously selected workspace is removed from the list (e.g. after a
+  // refetch), clear the explicit selection so the default derivation takes over,
+  // and reset the channel to avoid a stale channel from the vanished workspace.
+  useEffect(() => {
+    if (
+      selectedIntegrationId &&
+      !eligibleIntegrations.some(i => i.id === selectedIntegrationId)
+    ) {
+      setSelectedIntegrationId(undefined);
+      setChannel(undefined);
+    }
+  }, [eligibleIntegrations, selectedIntegrationId]);
 
   const providersToIntegrations = useMemo(
     () => ({[providerKey]: eligibleIntegrations}),
@@ -93,7 +112,7 @@ export function ScmMessagingChannelPicker({
     setChannel,
     setIntegration: i => {
       if (i) {
-        setSelectedIntegration(i);
+        setSelectedIntegrationId(i.id);
       }
     },
     setProvider: () => {},
@@ -105,7 +124,7 @@ export function ScmMessagingChannelPicker({
     shouldRenderSetupButton: false,
   });
 
-  if (!firstIntegration || !selectedIntegration) {
+  if (!selectedIntegration) {
     return null;
   }
 

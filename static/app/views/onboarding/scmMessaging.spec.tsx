@@ -428,4 +428,37 @@ describe('ScmMessaging', () => {
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'skipped'});
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
+
+  it('clears an ineligible destination with an explanation', async () => {
+    // A tenant-type MS Teams integration is active but cannot receive issue alerts.
+    const msteamsSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'msteams',
+      integrationId: '15',
+      channelId: '19:abc@thread.tacv2',
+      channelName: 'General',
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({
+        id: '15',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'tenant'},
+      }),
+    });
+    const onMessagingSetupChange = jest.fn();
+
+    renderMessaging(onMessagingSetupChange, msteamsSetup);
+
+    expect(
+      await screen.findByText(
+        'The saved workspace can no longer receive issue alerts. Choose a destination again.'
+      )
+    ).toBeInTheDocument();
+    expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
+    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+  });
 });

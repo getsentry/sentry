@@ -5,7 +5,10 @@ import {
   SCM_MESSAGING_PROVIDER_KEYS,
   type ScmMessagingProviderKey,
 } from 'sentry/components/onboarding/scm/messagingProviders';
-import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {
+  isEligibleForIssueAlerts,
+  isIntegrationActive,
+} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -40,18 +43,6 @@ export type ScmMessagingProviderViewModel = {
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
 };
-
-/**
- * Returns true when the integration can receive Issue Alert actions.
- * MS Teams "tenant" installations route notifications differently and
- * cannot be used as an issue-alert destination.
- */
-function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
-  if (integration.provider.key !== 'msteams') {
-    return true;
-  }
-  return integration.configData?.installationType !== 'tenant';
-}
 
 export function useScmMessagingProviders(): {
   isError: boolean;
