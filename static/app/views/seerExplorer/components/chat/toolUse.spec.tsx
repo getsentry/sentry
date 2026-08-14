@@ -1,7 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {
   AgentWriteApproval,
@@ -493,10 +495,9 @@ describe('ToolUseBlock', () => {
     );
   });
 
-  it('keeps a multi-project Explore bus link under a telemetry call row', () => {
-    // The call row itself has no destination (search rows decline without the translated query).
-    // The bus link carries project_slugs + query and must still render as residual nav rather than
-    // being suppressed because a call row exists.
+  it('links a telemetry call row with its multi-project Explore bus destination', () => {
+    // The call row supplies the useful title while the bus link supplies the translated query and
+    // projects. Pair them into one link instead of showing a separate "View spans" row.
     const block = createBlock({
       message: {
         role: 'tool_use',
@@ -536,8 +537,201 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(screen.getByText('Querying spans')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /View spans/})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Querying spans/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=transaction.op%3Apageload')
+    );
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('pairs each telemetry search row with its own bus destination in a multi-search execute', () => {
+    // One stamped row must not claim the kind and leave the unstamped sibling without a destination
+    // (or hide both residual View … links). Each row consumes one bus twin in order.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying issues for open bugs',
+                params: {
+                  dataset: 'issues',
+                  question: 'open bugs',
+                  query: 'is:unresolved',
+                  stats_period: '7d',
+                },
+              },
+              {
+                id: 2,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying spans for slow db',
+                params: {dataset: 'spans', question: 'slow db'},
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'issues',
+                  query: 'is:unresolved',
+                  stats_period: '7d',
+                },
+              },
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'spans',
+                  query: 'span.op:db',
+                  stats_period: '24h',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(
+      screen.getByRole('link', {name: 'Querying issues for open bugs'})
+    ).toHaveAttribute('href', expect.stringContaining('/issues/'));
+    expect(
+      screen.getByRole('link', {name: 'Querying spans for slow db'})
+    ).toHaveAttribute('href', expect.stringContaining('query=span.op%3Adb'));
+    expect(screen.queryByText('View issues')).not.toBeInTheDocument();
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('prefers bus project filters over a stamped row url that lacks them', () => {
+    // A stamped query can resolve the row on its own, but the bus twin may still carry
+    // project_slugs the stamp omitted. Pairing must keep the bus destination, not the weaker url.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title: 'Querying spans for top pageloads',
+                params: {
+                  dataset: 'spans',
+                  question: 'top pageloads',
+                  query: 'transaction.op:pageload',
+                  stats_period: '24h',
+                },
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'spans',
+                  query: 'transaction.op:pageload',
+                  project_slugs: ['javascript', 'python'],
+                  stats_period: '24h',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'javascript'}),
+      ProjectFixture({id: '3', slug: 'python'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    const rowLink = screen.getByRole('link', {name: 'Querying spans for top pageloads'});
+    expect(rowLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=transaction.op%3Apageload')
+    );
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=2'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=3'));
+    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('makes a telemetry call row itself the issues search link when params include the query', () => {
+    // Seer stamps the translated query onto the call record after the search returns. The row keeps
+    // seer's title as the label and claims the bus twin so "View issues" is not repeated under it.
+    const title =
+      'Querying issues for unresolved issues related to logs page in the last 7 days';
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            calls: [
+              {
+                id: 1,
+                kind: 'lib',
+                name: 'telemetry_live_search',
+                title,
+                params: {
+                  dataset: 'issues',
+                  question: 'unresolved issues related to logs page in the last 7 days',
+                  query: 'is:unresolved logs',
+                  stats_period: '7d',
+                },
+              },
+            ],
+            links: [
+              {
+                kind: 'telemetry_live_search',
+                params: {
+                  dataset: 'issues',
+                  query: 'is:unresolved logs',
+                  stats_period: '7d',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    const rowLink = screen.getByRole('link', {name: title});
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('/issues/'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
+    expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+    expect(screen.queryByRole('link', {name: /View issues/})).not.toBeInTheDocument();
   });
 
   it('does not double-render a classic link present in both channels', () => {
