@@ -951,7 +951,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-class GroupAutofixConditionalGetTest(APITestCase, SnubaTestCase):
+class GroupAutofixConditionalGetTest(APITestCase):
     def _get_url(self, group_id: int) -> str:
         return f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/autofix/"
 
