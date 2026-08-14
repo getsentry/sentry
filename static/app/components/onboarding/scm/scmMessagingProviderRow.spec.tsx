@@ -55,21 +55,21 @@ const installableSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'installable',
-  integration: undefined,
+  integrations: [],
 };
 
 const connectedSlack: ScmMessagingProviderViewModel = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'connected',
-  integration: slackIntegration,
+  integrations: [slackIntegration],
 };
 
 const permissionLimitedMsteams: ScmMessagingProviderViewModel = {
   providerKey: 'msteams',
   provider: msteamsProvider,
   status: 'permission-limited',
-  integration: msteamsIntegration,
+  integrations: [msteamsIntegration],
 };
 
 const selectedSlackSetup: ScmMessagingSetup = {
@@ -343,7 +343,7 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
       expect(renderChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
-          integration: slackIntegration,
+          integrations: [slackIntegration],
           onCancel: undefined,
           onConfigured: expect.any(Function),
         })

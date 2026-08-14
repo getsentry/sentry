@@ -69,7 +69,8 @@ describe('useScmMessagingProviders', () => {
 
     const slack = result.current.providers.find(p => p.providerKey === 'slack');
     expect(slack?.status).toBe('connected');
-    expect(slack?.integration?.id).toBe('10');
+    expect(slack?.integrations).toHaveLength(1);
+    expect(slack?.integrations[0]?.id).toBe('10');
 
     result.current.providers
       .filter(p => p.providerKey !== 'slack')
@@ -114,7 +115,8 @@ describe('useScmMessagingProviders', () => {
     const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
     expect(msteams?.status).toBe('permission-limited');
     // The integration is still exposed so the row can show the workspace name.
-    expect(msteams?.integration?.id).toBe('12');
+    expect(msteams?.integrations).toHaveLength(1);
+    expect(msteams?.integrations[0]?.id).toBe('12');
   });
 
   it('marks a team-type msteams integration as connected', async () => {
@@ -151,6 +153,66 @@ describe('useScmMessagingProviders', () => {
 
     expect(result.current.isError).toBe(true);
     expect(result.current.providers).toHaveLength(0);
+  });
+
+  it('exposes all active integrations when a provider has multiple workspaces', async () => {
+    mockProviders();
+    mockIntegrations([
+      OrganizationIntegrationsFixture({
+        id: '20',
+        name: 'workspace-a',
+        provider: {key: 'slack'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+      }),
+      OrganizationIntegrationsFixture({
+        id: '21',
+        name: 'workspace-b',
+        provider: {key: 'slack'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+      }),
+    ]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    const slack = result.current.providers.find(p => p.providerKey === 'slack');
+    expect(slack?.status).toBe('connected');
+    expect(slack?.integrations).toHaveLength(2);
+    expect(slack?.integrations.map(i => i.id)).toEqual(['20', '21']);
+  });
+
+  it('is connected when msteams has both a tenant and a team installation', async () => {
+    mockProviders();
+    mockIntegrations([
+      OrganizationIntegrationsFixture({
+        id: '30',
+        name: 'tenant',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'tenant'},
+      }),
+      OrganizationIntegrationsFixture({
+        id: '31',
+        name: 'team',
+        provider: {key: 'msteams'} as any,
+        status: 'active',
+        organizationIntegrationStatus: 'active',
+        configData: {installationType: 'team'},
+      }),
+    ]);
+
+    const {result} = renderProviders();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    const msteams = result.current.providers.find(p => p.providerKey === 'msteams');
+    expect(msteams?.status).toBe('connected');
+    expect(msteams?.integrations).toHaveLength(2);
+    expect(msteams?.integrations.map(i => i.id)).toEqual(['30', '31']);
   });
 
   it('preserves provider order matching SCM_MESSAGING_PROVIDER_KEYS', async () => {

@@ -26,8 +26,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type ScmMessagingProviderStatus = 'installable' | 'permission-limited' | 'connected';
 
 export type ScmMessagingProviderViewModel = {
-  /** Defined when status is `connected` or `permission-limited`. */
-  integration: OrganizationIntegration | undefined;
+  // All active integrations for this provider (may include ineligible ones,
+  //  e.g. tenant-type MS Teams). The picker offers the eligible subset.
+  integrations: OrganizationIntegration[];
   provider: IntegrationProvider;
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
@@ -38,20 +39,11 @@ export type ScmMessagingProviderViewModel = {
  * MS Teams "tenant" installations route notifications differently and
  * cannot be used as an issue-alert destination.
  */
-function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
+export function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
   if (integration.provider.key !== 'msteams') {
     return true;
   }
   return integration.configData?.installationType !== 'tenant';
-}
-
-function toStatus(
-  integration: OrganizationIntegration | undefined
-): ScmMessagingProviderStatus {
-  if (!integration) {
-    return 'installable';
-  }
-  return isEligibleForIssueAlerts(integration) ? 'connected' : 'permission-limited';
 }
 
 export function useScmMessagingProviders(): {
@@ -110,18 +102,21 @@ export function useScmMessagingProviders(): {
         return [];
       }
 
-      // Find the first active integration for this provider. Inactive
-      // integrations are treated the same as no integration.
-      const integration = integrations.find(
+      const active = integrations.filter(
         i => i.provider.key === providerKey && isIntegrationActive(i)
       );
+      const status: ScmMessagingProviderStatus = active.some(isEligibleForIssueAlerts)
+        ? 'connected'
+        : active.length
+          ? 'permission-limited'
+          : 'installable';
 
       return [
         {
           providerKey,
           provider,
-          status: toStatus(integration),
-          integration,
+          status,
+          integrations: active,
         },
       ];
     });
