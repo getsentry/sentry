@@ -190,3 +190,11 @@ class WorkflowEngineIncidentListTest(APITestCase):
         # The alert rule filter should no longer find this detector
         resp = self.get_success_response(self.organization.slug, alertRule=str(alert_rule.id))
         assert len(resp.data) == 0
+
+    def test_invalid_start_returns_400(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        resp = self.get_error_response(
+            self.organization.slug, start="1748736000", status_code=400
+        )
+        assert "start must be a valid date" in str(resp.data)

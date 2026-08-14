@@ -1,10 +1,12 @@
 from collections.abc import Sequence
 from typing import Any
 
+from dateutil.parser import ParserError
 from dateutil.parser import parse as parse_date
 from django.db.models import BigIntegerField, Exists, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 from rest_framework import status
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -196,12 +198,18 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         # Date range filters
         if query_start_s is not None:
             # Exclude incidents closed before the window
-            query_start = ensure_aware(parse_date(query_start_s))
+            try:
+                query_start = ensure_aware(parse_date(query_start_s))
+            except (ParserError, TypeError, ValueError, OverflowError) as err:
+                raise ParseError(detail=f"start must be a valid date: {err}")
             open_periods = open_periods.exclude(date_ended__lt=query_start)
 
         if query_end_s is not None:
             # Exclude incidents started after the window
-            query_end = ensure_aware(parse_date(query_end_s))
+            try:
+                query_end = ensure_aware(parse_date(query_end_s))
+            except (ParserError, TypeError, ValueError, OverflowError) as err:
+                raise ParseError(detail=f"end must be a valid date: {err}")
             open_periods = open_periods.exclude(date_started__gt=query_end)
 
         # Status filter
