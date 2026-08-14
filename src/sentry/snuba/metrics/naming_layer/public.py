@@ -67,54 +67,9 @@ class SessionMetricKey(Enum):
 
 
 class TransactionMetricKey(Enum):
-    """
-    These are the public facing names of the API and only the transaction fields listed here are
-    queryable in the API.
-    """
+    """Public names that still map to a live TransactionMRI."""
 
-    USER = "transaction.user"
-    DURATION = "transaction.duration"
-    MEASUREMENTS_FCP = "transaction.measurements.fcp"
-    MEASUREMENTS_LCP = "transaction.measurements.lcp"
-    MEASUREMENTS_APP_START_COLD = "transaction.measurements.app_start_cold"
-    MEASUREMENTS_APP_START_WARM = "transaction.measurements.app_start_warm"
-    MEASUREMENTS_CLS = "transaction.measurements.cls"
-    MEASUREMENTS_FID = "transaction.measurements.fid"
-    MEASUREMENTS_FP = "transaction.measurements.fp"
-    MEASUREMENTS_FRAMES_FROZEN = "transaction.measurements.frames_frozen"
-    MEASUREMENTS_FRAMES_FROZEN_RATE = "transaction.measurements.frames_frozen_rate"
-    MEASUREMENTS_FRAMES_SLOW = "transaction.measurements.frames_slow"
-    MEASUREMENTS_FRAMES_SLOW_RATE = "transaction.measurements.frames_slow_rate"
-    MEASUREMENTS_FRAMES_TOTAL = "transaction.measurements.frames_total"
-    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = "transaction.measurements.time_to_initial_display"
-    MEASUREMENTS_TIME_TO_FULL_DISPLAY = "transaction.measurements.time_to_full_display"
-    MEASUREMENTS_STALL_COUNT = "transaction.measurements.stall_count"
-    MEASUREMENTS_STALL_LONGEST_TIME = "transaction.measurements.stall_longest_time"
-    MEASUREMENTS_STALL_PERCENTAGE = "transaction.measurements.stall_percentage"
-    MEASUREMENTS_STALL_TOTAL_TIME = "transaction.measurements.stall_total_time"
-    MEASUREMENTS_TTFB = "transaction.measurements.ttfb"
-    MEASUREMENTS_TTFB_REQUEST_TIME = "transaction.measurements.ttfb.requesttime"
-    BREAKDOWNS_HTTP = "transaction.breakdowns.ops.http"
-    BREAKDOWNS_DB = "transaction.breakdowns.ops.db"
-    BREAKDOWNS_BROWSER = "transaction.breakdowns.ops.browser"
-    BREAKDOWNS_RESOURCE = "transaction.breakdowns.ops.resource"
-    FAILURE_RATE = "transaction.failure_rate"
-    APDEX = "transaction.apdex"
-    MISERABLE_USER = "transaction.miserable_user"
-    USER_MISERY = "transaction.user_misery"
-    FAILURE_COUNT = "transaction.failure_count"
-    TEAM_KEY_TRANSACTION = "transactions.team_key_transaction"
-    HTTP_ERROR_RATE = "transaction.http_error_rate"
-
-    # Less granular coarse metrics
-    DURATION_LIGHT = "d:transactions/duration_light@millisecond"
-
-    # Span metrics.
-    # NOTE: These might be moved to their own namespace soon.
-    SPAN_USER = "span.user"
-    SPAN_DURATION = "span.duration"
-    SPAN_SELF_TIME = "span.exclusive_time"
-    SPAN_SELF_TIME_LIGHT = "span.exclusive_time_light"
+    COUNT_PER_ROOT_PROJECT = "transaction.count_per_root_project"
 
 
 class SpanMetricKey(Enum):

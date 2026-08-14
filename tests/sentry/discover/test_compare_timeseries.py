@@ -10,7 +10,6 @@ from sentry.discover.compare_timeseries import (
 )
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects, AlertRuleThresholdType
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import BaseMetricsLayerTestCase, BaseSpansTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -138,7 +137,7 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
         )
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction.status": "unknown"},
             project_id=project.id,
             org_id=project.organization.id,

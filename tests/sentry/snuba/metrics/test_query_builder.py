@@ -67,7 +67,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.snuba.metrics.utils import MetricEntity
@@ -1165,7 +1165,7 @@ def test_translate_meta_results() -> None:
         {
             "p50(transaction.measurements.lcp)": MetricField(
                 op="p50",
-                metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                metric_mri="d:transactions/measurements.lcp@millisecond",
                 alias="p50(transaction.measurements.lcp)",
             ),
         },
@@ -1174,7 +1174,7 @@ def test_translate_meta_results() -> None:
             "team_key_transaction": MetricGroupByField(
                 field=MetricField(
                     op="team_key_transaction",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="team_key_transaction",
                 )
             ),
@@ -1210,7 +1210,7 @@ def test_translate_meta_results_with_duplicates() -> None:
         {
             "p50(transaction.measurements.lcp)": MetricField(
                 op="p50",
-                metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                metric_mri="d:transactions/measurements.lcp@millisecond",
                 alias="p50(transaction.measurements.lcp)",
             )
         },
@@ -1228,10 +1228,10 @@ def test_translate_meta_results_with_duplicates() -> None:
 @mock.patch(
     "sentry.snuba.metrics.query_builder.get_metric_object_from_metric_field",
     return_value=SingularEntityDerivedMetric(
-        metric_mri=TransactionMRI.FAILURE_RATE.value,
+        metric_mri="e:transactions/failure_rate@ratio",
         metrics=[
-            TransactionMRI.FAILURE_COUNT.value,
-            TransactionMRI.ALL.value,
+            "e:transactions/failure_count@none",
+            "e:transactions/all@none",
         ],
         unit="transactions",
         snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
@@ -1251,7 +1251,7 @@ def test_translate_meta_result_type_singular_entity_derived_metric(_: mock.Magic
         {
             "transaction.failure_rate": MetricField(
                 op=None,
-                metric_mri=TransactionMRI.FAILURE_RATE.value,
+                metric_mri="e:transactions/failure_rate@ratio",
                 alias="transaction.failure_rate",
             )
         },
@@ -1324,10 +1324,10 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
         ),
         pytest.param(
             [
-                MetricField("count", TransactionMRI.DURATION.value),
+                MetricField("count", "d:transactions/duration@millisecond"),
             ],
             [
-                MetricGroupByField(MetricField("count", TransactionMRI.DURATION.value)),
+                MetricGroupByField(MetricField("count", "d:transactions/duration@millisecond")),
             ],
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot group by metrics expression count(transaction.duration)"),
@@ -1338,10 +1338,10 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
         ),
         pytest.param(
             [
-                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+                MetricField(None, "e:transactions/failure_rate@ratio"),
             ],
             [
-                MetricGroupByField(MetricField(None, TransactionMRI.FAILURE_RATE.value)),
+                MetricGroupByField(MetricField(None, "e:transactions/failure_rate@ratio")),
             ],
             UseCaseID.TRANSACTIONS,
             "Cannot group by metric transaction.failure_rate",
@@ -1365,7 +1365,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
             [
                 MetricField(
                     "team_key_transaction",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                     params={"team_key_condition_rhs": [(1, "foo")]},
                 ),
             ],
@@ -1373,7 +1373,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
                 MetricGroupByField(
                     MetricField(
                         "team_key_transaction",
-                        TransactionMRI.DURATION.value,
+                        "d:transactions/duration@millisecond",
                         params={"team_key_condition_rhs": [(1, "foo")]},
                     )
                 ),
@@ -1428,10 +1428,12 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
         pytest.param(
             [
-                MetricField("count", TransactionMRI.DURATION.value),
+                MetricField("count", "d:transactions/duration@millisecond"),
             ],
             [
-                MetricConditionField(MetricField("count", TransactionMRI.DURATION.value), Op.LT, 2),
+                MetricConditionField(
+                    MetricField("count", "d:transactions/duration@millisecond"), Op.LT, 2
+                ),
             ],
             UseCaseID.TRANSACTIONS,
             re.escape("Cannot filter by metrics expression count(transaction.duration)"),
@@ -1442,11 +1444,11 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
         pytest.param(
             [
-                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+                MetricField(None, "e:transactions/failure_rate@ratio"),
             ],
             [
                 MetricConditionField(
-                    MetricField(None, TransactionMRI.FAILURE_RATE.value), Op.EQ, 0.5
+                    MetricField(None, "e:transactions/failure_rate@ratio"), Op.EQ, 0.5
                 ),
             ],
             UseCaseID.TRANSACTIONS,
@@ -1471,7 +1473,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             [
                 MetricField(
                     "team_key_transaction",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                     params={"team_key_condition_rhs": [(1, "foo")]},
                 ),
             ],
@@ -1479,7 +1481,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
                 MetricConditionField(
                     MetricField(
                         "team_key_transaction",
-                        TransactionMRI.DURATION.value,
+                        "d:transactions/duration@millisecond",
                         params={"team_key_condition_rhs": [(1, "foo")]},
                     ),
                     Op.EQ,

@@ -2088,8 +2088,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         project,
         total,
-        metric="transaction.duration",
-        mri=TransactionMRI.DURATION.value,
+        metric="transaction.count_per_root_project",
+        mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
         attempts=2,
     ):
         attempt = 0

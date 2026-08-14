@@ -102,7 +102,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             ),
@@ -152,7 +152,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             )
@@ -161,7 +161,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             Timeseries(
                 metric=Metric(
                     public_name=None,
-                    mri=TransactionMRI.USER.value,
+                    mri="s:transactions/user@none",
                 ),
                 aggregate="uniq",
             )
@@ -198,7 +198,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5, 0.99],
@@ -239,7 +239,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5],
@@ -278,7 +278,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5],
@@ -320,7 +320,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -355,7 +355,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -420,7 +420,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -452,7 +452,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             ),
@@ -678,7 +678,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 [
                     Timeseries(
                         metric=Metric(
-                            mri=TransactionMRI.DURATION.value,
+                            mri="d:transactions/duration@millisecond",
                         ),
                         aggregate="count",
                         filters=[
@@ -695,7 +695,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     ),
                     Timeseries(
                         metric=Metric(
-                            mri=TransactionMRI.DURATION.value,
+                            mri="d:transactions/duration@millisecond",
                         ),
                         aggregate="count",
                     ),
@@ -727,7 +727,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="p95",
             ),
@@ -767,7 +767,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5, 0.99],
@@ -864,7 +864,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
     @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_formulas_with_scalar_formulas(self) -> None:
         query = MetricsQuery(
-            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            query=f"sum({'d:transactions/duration@millisecond'}) + (24 * 3600)",
             start=self.hour_ago,
             end=self.now,
             rollup=Rollup(interval=60, granularity=60),
@@ -892,7 +892,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="sum",
                 filters=[

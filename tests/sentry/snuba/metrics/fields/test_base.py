@@ -42,7 +42,6 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import (
     SessionMRI,
     SpanMRI,
-    TransactionMRI,
     get_public_name_from_mri,
 )
 from sentry.testutils.cases import TestCase
@@ -65,9 +64,9 @@ def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         SessionMRI.RAW_USER.value: EntityKey.MetricsSets,
         SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
-        TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
-        TransactionMRI.USER.value: EntityKey.MetricsSets,
-        TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
+        "d:transactions/duration@millisecond": EntityKey.MetricsDistributions,
+        "s:transactions/user@none": EntityKey.MetricsSets,
+        "d:transactions/measurements.lcp@millisecond": EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME.value: EntityKey.MetricsDistributions,
         SpanMRI.SELF_TIME_LIGHT.value: EntityKey.MetricsDistributions,
         SpanMRI.RESPONSE_CONTENT_LENGTH.value: EntityKey.MetricsDistributions,

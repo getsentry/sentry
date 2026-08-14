@@ -19,8 +19,6 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
 )
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.snuba.utils import PUBLIC_DATASET_LABELS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1452,8 +1450,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.wait_for_metric_count(
             self.project,
             1,
-            metric=TransactionMetricKey.MEASUREMENTS_CLS.value,
-            mri=TransactionMRI.MEASUREMENTS_CLS.value,
+            metric="transaction.measurements.cls",
+            mri="d:transactions/measurements.cls@none",
         )
         response = self.do_request(query)
         assert response.status_code == 200, response.content
