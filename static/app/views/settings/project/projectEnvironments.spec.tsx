@@ -117,10 +117,10 @@ describe('ProjectEnvironments', () => {
     const searchInput = await screen.findByRole('textbox', {
       name: 'Search environments',
     });
-    await userEvent.type(searchInput, 'prod');
+    await userEvent.type(searchInput, 'pdct');
 
     await waitFor(() => {
-      expect(router.location.query.query).toBe('prod');
+      expect(router.location.query.query).toBe('pdct');
       expect(screen.queryByText('staging')).not.toBeInTheDocument();
     });
     expect(screen.getByText('production')).toBeInTheDocument();

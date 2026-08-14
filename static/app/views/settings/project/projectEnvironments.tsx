@@ -26,6 +26,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDisplayName} from 'sentry/utils/environment';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {fzf} from 'sentry/utils/search/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -212,8 +213,8 @@ export default function ProjectEnvironments() {
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const visibleEnvironments = useMemo(() => {
     const matches = deferredSearchQuery
-      ? (environments ?? []).filter(environment =>
-          environment.name.toLowerCase().includes(deferredSearchQuery)
+      ? (environments ?? []).filter(
+          environment => fzf(environment.name, deferredSearchQuery, false).end !== -1
         )
       : (environments ?? []);
 
