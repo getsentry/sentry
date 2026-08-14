@@ -414,12 +414,15 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
+// Filters row starts wrapping siblings at this width.
+const FILTERS_ROW_FLEX_BASIS_PX = 480;
+
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
-  flex: 1 1 480px;
+  flex: 1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px;
   min-width: 0;
 
   & button[aria-haspopup] {
