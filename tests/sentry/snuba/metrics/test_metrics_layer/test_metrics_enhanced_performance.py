@@ -39,6 +39,7 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.snuba.meta import normalize_clickhouse_meta
 
 pytestmark = [
     pytest.mark.sentry_metrics,
@@ -75,9 +76,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseID.TRANSACTIONS,
         )
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "bucketed_time", "type": "DateTime"},
                 {"name": "transaction.apdex", "type": "Float64"},
                 {"name": "transaction.failure_count", "type": "UInt64"},
                 {"name": "transaction.failure_rate", "type": "Float64"},
@@ -145,7 +146,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             assert group["by"] == {"transaction_group": expected_transaction}
             assert group["totals"] == {"apdex": expected_apdex}
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "apdex", "type": "Float64"},
                 {"name": "transaction_group", "type": "string"},
@@ -203,7 +204,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             assert group["by"] == {"transaction_group": expected_transaction}
             assert group["totals"] == {"apdex": expected_apdex}
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "apdex", "type": "Float64"},
                 {"name": "transaction_group", "type": "string"},
@@ -279,7 +280,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "count_fcp": 0,
             }
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "count_fcp", "type": "UInt64"},
                 {"name": "count_lcp", "type": "UInt64"},
@@ -357,7 +358,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "count_lcp": expected_count,
                 "count_lcp_2": expected_count,
             }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "count_lcp", "type": "UInt64"},
                 {"name": "count_lcp_2", "type": "UInt64"},
@@ -406,7 +407,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert groups[0]["totals"] == {
             expected_alias: expected_count,
         }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": expected_alias, "type": "UInt64"},
             ],
@@ -478,7 +479,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             assert groups[index]["by"]["project_id"] == expected_project
             assert groups[index]["totals"]["count(transaction.duration)"] == expected_count
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "count(transaction.duration)", "type": "UInt64"},
                 {"name": "project_id", "type": "UInt64"},
@@ -592,7 +593,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert groups[0]["totals"] == {
             expected_alias: expected_value,
         }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": expected_alias, "type": "Float64"},
             ],
@@ -639,7 +640,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert groups[0]["totals"] == {
             expected_alias: expected_count,
         }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": expected_alias, "type": "UInt64"},
             ],
@@ -701,7 +702,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert groups[0]["totals"] == {
             expected_alias: expected_count,
         }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": expected_alias, "type": "UInt64"},
             ],
@@ -768,7 +769,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert groups[0]["totals"] == {
             expected_alias: expected_count,
         }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": expected_alias, "type": "UInt64"},
             ],
@@ -838,7 +839,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             "count_transaction_name_has_value": 3,
         }
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "count_transaction_name_is_unparameterized", "type": "UInt64"},
                 {"name": "count_transaction_name_is_null", "type": "UInt64"},
@@ -935,7 +936,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         group = data["groups"][0]
         assert group["by"] == {}
         assert group["totals"] == {"failure_rate_alias": 0.25}
-        assert data["meta"] == [{"name": "failure_rate_alias", "type": "Float64"}]
+        assert normalize_clickhouse_meta(data["meta"]) == [
+            {"name": "failure_rate_alias", "type": "Float64"}
+        ]
 
     def test_groupby_aliasing_with_multiple_groups_and_orderby(self) -> None:
         for tag, value, numbers in (
@@ -1024,9 +1027,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "p50_lcp": [expected_lcp_count],
                 "p50_fcp": [expected_fcp_count],
             }
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "bucketed_time", "type": "DateTime"},
                 {"name": "p50_fcp", "type": "Float64"},
                 {"name": "p50_lcp", "type": "Float64"},
                 {"name": "project", "type": "UInt64"},
@@ -1243,6 +1246,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseID.TRANSACTIONS,
         )
+        data["meta"] = normalize_clickhouse_meta(data["meta"])
+
         assert data == {
             "start": datetime(
                 day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
@@ -1275,7 +1280,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 }
             ],
             "meta": [
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "bucketed_time", "type": "DateTime"},
                 {"name": "count(transaction.duration)", "type": "UInt64"},
                 {"name": "rate(transaction.duration)", "type": "Float64"},
             ],
@@ -1475,7 +1480,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert group_totals["count_web_vitals_measurements_cls_good"] == 1
         assert group_totals["count_web_vitals_measurements_fid_meh"] == 1
 
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "count_web_vitals_measurements_cls_good", "type": "UInt64"},
                 {"name": "count_web_vitals_measurements_fcp_meh", "type": "UInt64"},
@@ -1582,7 +1587,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"team_key_transactions": 0, "p95": 0.5},
             },
         ]
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "p95", "type": "Float64"},
                 {"name": "team_key_transactions", "type": "boolean"},
@@ -1639,7 +1644,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"duration_count": 2},
             },
         ]
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "duration_count", "type": "UInt64"},
             ],
@@ -1698,7 +1703,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"duration_count": 2},
             },
         ]
-        assert data["meta"] == sorted(
+        assert normalize_clickhouse_meta(data["meta"]) == sorted(
             [
                 {"name": "duration_count", "type": "UInt64"},
                 {"name": "transaction_name", "type": "string"},
@@ -1792,7 +1797,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                         "totals": {"duration_count": expected_count},
                     },
                 ]
-                assert data["meta"] == sorted(
+                assert normalize_clickhouse_meta(data["meta"]) == sorted(
                     [
                         {"name": "duration_count", "type": "UInt64"},
                     ],

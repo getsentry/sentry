@@ -1931,9 +1931,8 @@ def get_json_type(snuba_type):
     if snuba_type.startswith("Array("):
         return "array"
 
-    # timestamp is DateTime, whereas toStartOf{Hour,Day} are
-    # DateTime('UTC') or DateTime('Universal')
-    if snuba_type.startswith("DateTime("):
+    # Bare DateTime plus DateTime('UTC') / DateTime('Universal') are all dates.
+    if snuba_type == "DateTime" or snuba_type.startswith("DateTime("):
         return "date"
 
     return JSON_TYPE_MAP.get(snuba_type, "string")
