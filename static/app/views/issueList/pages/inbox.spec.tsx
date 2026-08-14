@@ -973,11 +973,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({autofix: null}),
     });
-    MockApiClient.addMockResponse({
+    const startAutofixRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
       method: 'POST',
       body: {run_id: 42},
-      asyncDelay: 100,
     });
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
@@ -988,7 +987,12 @@ describe('InboxPage', () => {
     );
 
     expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
-    expect(within(preview).queryByText('Have Seer...')).not.toBeInTheDocument();
+    await waitFor(() => expect(startAutofixRequest).toHaveBeenCalledTimes(1));
+
+    // Immediately sets "find root cause" button to busy state.
+    const startButton = within(preview).getByRole('button', {name: 'Find Root Cause'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
   });
 
   it('waits for Seer setup before showing assigned issue actions', async () => {
