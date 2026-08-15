@@ -3,8 +3,11 @@ from unittest.mock import MagicMock
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
     SUPPORTED_ACTIVITIES,
@@ -127,6 +130,7 @@ class SeerActivityHandlerTest(TestCase):
                 activity_id=activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
+                group_action_log_entry_id=None,
             )
 
     @mock.patch(
@@ -169,6 +173,7 @@ class SeerActivityHandlerTest(TestCase):
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=detector.id,
+            group_action_log_entry_id=None,
         )
 
     @mock.patch(
@@ -188,6 +193,44 @@ class SeerActivityHandlerTest(TestCase):
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=issue_stream_detector.id,
+            group_action_log_entry_id=None,
+        )
+
+    @with_feature("projects:issue-action-log-activity")
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_dispatches_group_action_log_entry(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        # With the feature on, the matching GroupActionLogEntry (keyed by the activity)
+        # is looked up and threaded through to the task.
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            idempotency_key=activity_action_idempotency_key(self.activity),
+        )
+        seer_activity_handler(self.group, self.activity, None)
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+            group_action_log_entry_id=entry.id,
+        )
+
+        # An activity with no matching GroupActionLogEntry threads None.
+        mock_process_workflow_activity.reset_mock()
+        other_activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SEER_RCA_COMPLETED.value,
+        )
+        other_activity.save()
+        seer_activity_handler(self.group, other_activity, None)
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=other_activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+            group_action_log_entry_id=None,
         )
 
 
@@ -228,6 +271,7 @@ class GenericActivityHandlerTest(TestCase):
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
+            group_action_log_entry_id=None,
         )
 
     @mock.patch(
@@ -258,6 +302,7 @@ class GenericActivityHandlerTest(TestCase):
                 activity_id=activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
+                group_action_log_entry_id=None,
             )
 
     @mock.patch(
@@ -273,6 +318,7 @@ class GenericActivityHandlerTest(TestCase):
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
+            group_action_log_entry_id=None,
         )
 
     @mock.patch(

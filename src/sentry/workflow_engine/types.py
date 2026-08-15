@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
     from sentry.issues.status_change_message import StatusChangeMessage
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
@@ -103,6 +104,9 @@ class WorkflowEventData:
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+    # The GroupActionLogEntry corresponding to the activity, set only when the
+    # `projects:issue-action-log-activity` feature is enabled for the project.
+    group_action_log_entry: GroupActionLogEntry | None = None
 
     # The cache field is used to deduplicate repeated work within the context
     # of a single event. This field violates the "frozen" requirement of the
