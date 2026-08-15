@@ -1,5 +1,4 @@
 from sentry.seer.autofix.pr_iteration.run_markers import (
-    clear_run_extra,
     get_run_extra,
     get_run_marker,
     record_run_extra,
@@ -92,14 +91,6 @@ class RunExtrasTest(TestCase):
         assert get_run_extra(self.seer_run, "pr_iteration_paused") == {"paused_at": "now"}
         assert get_run_extra(self.seer_run, "other") is None
 
-    def test_clears_extra(self) -> None:
-        record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
-
-        clear_run_extra(self.seer_run, "pr_iteration_paused")
-
-        self.seer_run.refresh_from_db()
-        assert get_run_extra(self.seer_run, "pr_iteration_paused") is None
-
     def test_run_level_and_per_repo_writes_coexist(self) -> None:
         stale = SeerRun.objects.get(id=self.seer_run.id)
         record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
@@ -108,19 +99,6 @@ class RunExtrasTest(TestCase):
 
         self.seer_run.refresh_from_db()
         assert get_run_extra(self.seer_run, "pr_iteration_paused") == {"paused_at": "now"}
-        assert get_run_marker(self.seer_run, "review_requests", REPO_NAME) == {
-            "reviewers": ["octocat"]
-        }
-
-    def test_per_repo_write_survives_run_level_clear(self) -> None:
-        record_run_marker(self.seer_run, "review_requests", REPO_NAME, {"reviewers": ["octocat"]})
-        stale = SeerRun.objects.get(id=self.seer_run.id)
-        record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
-
-        clear_run_extra(stale, "pr_iteration_paused")
-
-        self.seer_run.refresh_from_db()
-        assert get_run_extra(self.seer_run, "pr_iteration_paused") is None
         assert get_run_marker(self.seer_run, "review_requests", REPO_NAME) == {
             "reviewers": ["octocat"]
         }
