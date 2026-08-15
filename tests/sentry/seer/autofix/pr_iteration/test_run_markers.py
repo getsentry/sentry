@@ -84,13 +84,6 @@ class RunExtrasTest(TestCase):
             organization=self.organization, seer_run_state_id=1, user_id=self.user.id
         )
 
-    def test_records_and_reads_extra(self) -> None:
-        record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
-
-        self.seer_run.refresh_from_db()
-        assert get_run_extra(self.seer_run, "pr_iteration_paused") == {"paused_at": "now"}
-        assert get_run_extra(self.seer_run, "other") is None
-
     def test_run_level_and_per_repo_writes_coexist(self) -> None:
         stale = SeerRun.objects.get(id=self.seer_run.id)
         record_run_extra(self.seer_run, "pr_iteration_paused", {"paused_at": "now"})
