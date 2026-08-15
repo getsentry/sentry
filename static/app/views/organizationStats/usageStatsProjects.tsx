@@ -286,11 +286,11 @@ export function UsageStatsProjects({
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
-          stats[projectId!]!.total += group.totals['sum(quantity)']!;
+          stats[projectId!]!.total += group.totals?.['sum(quantity)'] ?? 0;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
+          stats[projectId!]!.accepted_stored += group.totals?.['sum(quantity)'] ?? 0;
           return;
         }
 
@@ -299,7 +299,7 @@ export function UsageStatsProjects({
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += group.totals?.['sum(quantity)'] ?? 0;
         }
 
         if (
@@ -307,7 +307,7 @@ export function UsageStatsProjects({
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
+          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals?.['sum(quantity)'] ?? 0;
         }
       });
 
