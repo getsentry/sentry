@@ -25,9 +25,13 @@ def test_is_subscribed_matches_exact_event() -> None:
     assert not is_subscribed(["issue.ignored"], "issue.resolved")
     assert not is_subscribed(["error.created"], "issue.resolved")
     assert not is_subscribed([], "issue.resolved")
-    # Legacy installs that stored the pre-rename name still match issue.ignored.
+    # Legacy installs that stored the pre-rename name still match issue.ignored,
+    # and the legacy name matches when it is the one dispatched.
     assert is_subscribed(["issue.archived"], "issue.ignored")
+    assert is_subscribed(["issue.ignored"], "issue.archived")
+    assert is_subscribed(["issue.archived"], "issue.archived")
     assert not is_subscribed(["issue.archived"], "issue.resolved")
+    assert not is_subscribed(["issue.resolved"], "issue.archived")
     # Events whose resource has no subscribable events never match.
     assert not is_subscribed(["metric_alert.open"], "metric_alert.critical")
 

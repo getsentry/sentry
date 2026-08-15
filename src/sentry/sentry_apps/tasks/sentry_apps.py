@@ -796,7 +796,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             installation.organization_id, installation.id
         )
         if not servicehook:
-            lifecycle.add_extra("events", installation.sentry_app.events)
             lifecycle.add_extras(
                 {
                     "installation_uuid": installation.uuid,
@@ -808,19 +807,16 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 }
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
-        if event not in servicehook.events:
+        if not is_subscribed(installation.sentry_app.events, event):
             lifecycle.add_extras(
                 {
-                    "events": servicehook.events,
                     "event": event,
                     "installation_id": installation.id,
-                    "sentry_app_id": installation.sentry_app.id,
-                    "sentry_app_events": installation.sentry_app.events,
+                    "sentry_app": installation.sentry_app.id,
+                    "events": installation.sentry_app.events,
                 }
             )
-            raise SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
-            )
+            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.EVENT_NOT_SUBSCRIBED)
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
