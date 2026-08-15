@@ -64,9 +64,9 @@ _PIPELINE: tuple[str, ...] = (
 
 _MAX_RUNS_PER_MILESTONE = 100
 
-_DEFAULT_SORT = "seer"
+# The three issue-based sort params, mapped to their search-backend names.
+# Any other value (seer default, empty, unknown) keeps the default order.
 _ISSUE_SORT_TO_SEARCH = {"issue": "date", "events": "freq", "users": "user"}
-_VALID_SORTS = frozenset({_DEFAULT_SORT, *_ISSUE_SORT_TO_SEARCH})
 
 
 @dataclass
@@ -254,9 +254,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         include_issue_stats = "issueStats" in expand
         environments = self.get_environments(request, organization)
 
-        sort = request.GET.get("sort") or _DEFAULT_SORT
-        if sort not in _VALID_SORTS:
-            sort = _DEFAULT_SORT
+        sort = request.GET.get("sort")
 
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
         if sort in _ISSUE_SORT_TO_SEARCH:
@@ -378,7 +376,6 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         if not candidate_ids:
             return latest_run_per_group
 
-        # Paginators silently cap at 100; raise it so Snuba sorts the whole candidate set.
         results = search.backend.query(
             projects=projects,
             environments=list(environments) or None,

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from unittest import mock
 
+from sentry import search
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.status_check import (
@@ -192,6 +193,24 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
 
         assert self._root_cause_short_ids(resp) == [high.qualified_short_id]
+
+    def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
+        # Without the max_limit override the paginator silently caps at 100 and
+        # candidates beyond it would sort last; assert the endpoint raises it.
+        low = self._group_with_events("low", events=1)
+        high = self._group_with_events("high", events=2)
+        self._run_for_group(low, "low")
+        self._run_for_group(high, "high")
+
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+            wraps=search.backend.query,
+        ) as mock_query:
+            self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["limit"] == 2
+        assert mock_query.call_args.kwargs["paginator_options"] == {"max_limit": 2}
 
     def _solution_state(self, rc, sol):
         from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
