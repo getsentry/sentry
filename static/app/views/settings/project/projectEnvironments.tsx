@@ -4,10 +4,10 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -251,7 +251,13 @@ export default function ProjectEnvironments() {
   };
   const handleSort = (field: 'events' | 'name') => {
     const nextDirection =
-      sort === field ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
+      sort === field
+        ? direction === 'asc'
+          ? 'desc'
+          : 'asc'
+        : field === 'events'
+          ? 'desc'
+          : 'asc';
     setQueryParams(
       {direction: nextDirection, page: null, sort: field},
       {history: 'push'}
@@ -303,17 +309,17 @@ export default function ProjectEnvironments() {
           >
             {isHidden ? t('Hidden') : t('Active Environments')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell
-            sort={sort === 'events' ? direction : undefined}
-            handleSortClick={() => handleSort('events')}
+          <Tooltip
+            title={t('Count of all error events from the last 30 days')}
+            skipWrapper
           >
-            <InfoText
-              title={t('Count of all error events from the last 30 days')}
-              variant="muted"
+            <SimpleTable.HeaderCell
+              sort={sort === 'events' ? direction : undefined}
+              handleSortClick={() => handleSort('events')}
             >
               {t('Recent Error Events')}
-            </InfoText>
-          </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderCell>
+          </Tooltip>
           <SimpleTable.HeaderCell aria-label={t('Actions')} />
         </SimpleTable.Header>
         {isPending ? (
