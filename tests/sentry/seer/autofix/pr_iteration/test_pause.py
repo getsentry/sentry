@@ -8,13 +8,11 @@ from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     is_pr_iteration_paused,
     pause_pr_iteration,
-    resume_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.run_markers import record_run_extra
 from sentry.testutils.cases import TestCase
 
 RUN_ID = 67890
@@ -90,30 +88,10 @@ class PausePrIterationTest(TestCase):
         assert self._marker() == first_marker
         assert peek_queued_autofix_feedback(RUN_ID) == []
 
-    def test_resume_clears_marker(self) -> None:
-        pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id)
-
-        assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is True
-        assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is True
-
-        assert self._marker() is None
-        assert self._is_paused() is False
-        assert self._enqueue() is True
-
-    def test_resume_empties_queue(self) -> None:
-        assert self._enqueue() is True
-        # Stands in for an enqueue that arrived after the pause.
-        record_run_extra(self.seer_run, PAUSED_EXTRA, {"paused_at": "2024-01-01T00:00:00+00:00"})
-
-        assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is True
-
-        assert peek_queued_autofix_feedback(RUN_ID) == []
-
     def test_returns_false_without_seer_run_row(self) -> None:
         self.seer_run.delete()
 
         assert pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
-        assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
         assert self._is_paused() is False
 
     def test_returns_false_when_run_deleted_before_write(self) -> None:
@@ -123,21 +101,10 @@ class PausePrIterationTest(TestCase):
         with patch("sentry.seer.autofix.pr_iteration.pause.get_run_extra", side_effect=delete_run):
             assert pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
 
-    def test_resume_returns_false_when_run_deleted_before_write(self) -> None:
-        def delete_run(*args: object, **kwargs: object) -> None:
-            self.seer_run.delete()
-
-        with patch(
-            "sentry.seer.autofix.pr_iteration.pause.clear_queued_autofix_feedback",
-            side_effect=delete_run,
-        ):
-            assert resume_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
-
     def test_returns_false_for_another_organization(self) -> None:
         other_org = self.create_organization()
 
         assert pause_pr_iteration(run_id=RUN_ID, organization_id=other_org.id) is False
-        assert resume_pr_iteration(run_id=RUN_ID, organization_id=other_org.id) is False
 
     def test_pause_leaves_other_run_alone(self) -> None:
         other_run = self.create_seer_run(

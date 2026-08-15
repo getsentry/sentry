@@ -48,13 +48,3 @@ def record_run_extra(seer_run: SeerRun, extra_key: str, value: Any) -> None:
         extras[extra_key] = value
         locked.update(extras=extras)
     seer_run.extras = extras
-
-
-def clear_run_extra(seer_run: SeerRun, extra_key: str) -> None:
-    """Atomically remove ``extras[extra_key]`` from the run."""
-    with transaction.atomic(router.db_for_write(SeerRun)):
-        locked = SeerRun.objects.select_for_update().get(id=seer_run.id)
-        extras = dict(locked.extras or {})
-        extras.pop(extra_key, None)
-        locked.update(extras=extras)
-    seer_run.extras = extras
