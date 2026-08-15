@@ -23,6 +23,7 @@ from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignmen
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
@@ -304,7 +305,7 @@ def update_groups_with_search_fn(
         group_list = get_group_list(organization_id, projects, group_ids)
     else:
         try:
-            # It can raise ValidationError
+            # It can raise ValidationError or InvalidSearchQuery
             cursor_result, _ = search_fn(
                 {
                     "limit": BULK_MUTATION_LIMIT,
@@ -316,6 +317,8 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
+        except InvalidSearchQuery as e:
+            return Response({"detail": str(e)}, status=400)
 
         group_list = list(cursor_result)
 
