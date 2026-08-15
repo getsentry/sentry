@@ -10,19 +10,16 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
     InvestigationProject,
-    InvestigationSourceType,
-    InvestigationStatus,
 )
 from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
-    _resolve_breached_metric_source,
-    archive_investigation,
     create_block,
     create_manual_investigation,
     create_template_investigation,
     delete_block,
     lock_investigation,
+    resolve_investigation_source,
     update_investigation,
 )
 from sentry.testutils.cases import TestCase
@@ -32,33 +29,33 @@ TEMPLATE_KWARGS = {
     "user_id": 1,
     "template_key": "breached_metric",
     "template_version": 1,
-    "source_ref": {},
+    "source": {},
     "supplied_parameters": {},
     "accessible_project_ids": set(),
 }
 
 
 def test_template_creation_retries_revision_uniqueness_collisions() -> None:
-    created = mock.sentinel.investigation
+    created = (mock.sentinel.investigation, True)
     with mock.patch(
         "sentry.investigations.services.investigations._create_template_investigation",
         side_effect=[IntegrityError(), created],
     ) as create:
         result = create_template_investigation(**TEMPLATE_KWARGS)
 
-    assert result is created
+    assert result == created
     assert create.call_count == 2
 
 
 def test_template_creation_succeeds_without_a_collision() -> None:
-    created = mock.sentinel.investigation
+    created = (mock.sentinel.investigation, True)
     with mock.patch(
         "sentry.investigations.services.investigations._create_template_investigation",
         return_value=created,
     ) as create:
         result = create_template_investigation(**TEMPLATE_KWARGS)
 
-    assert result is created
+    assert result == created
     assert create.call_count == 1
 
 
@@ -166,60 +163,28 @@ class DeleteBlockStalenessTest(TestCase):
 class BreachedMetricSourceRefTest(TestCase):
     def test_out_of_range_ids_are_treated_as_a_missing_source(self) -> None:
         with pytest.raises(InvestigationSourceNotFound):
-            _resolve_breached_metric_source(
+            resolve_investigation_source(
                 organization=self.organization,
-                source_ref={"groupId": str(I64_MAX + 1), "openPeriodId": "1"},
+                source={
+                    "type": "metric_open_period",
+                    "ref": {"groupId": str(I64_MAX + 1), "openPeriodId": "1"},
+                },
                 accessible_project_ids={self.project.id},
             )
 
     def test_non_positive_ids_are_treated_as_a_missing_source(self) -> None:
         with pytest.raises(InvestigationSourceNotFound):
-            _resolve_breached_metric_source(
+            resolve_investigation_source(
                 organization=self.organization,
-                source_ref={"groupId": "0", "openPeriodId": "1"},
+                source={
+                    "type": "metric_open_period",
+                    "ref": {"groupId": "0", "openPeriodId": "1"},
+                },
                 accessible_project_ids={self.project.id},
             )
 
 
 class ConcurrentModificationTest(TestCase):
-    def lineage_pair(self) -> tuple[Investigation, Investigation]:
-        first = create_manual_investigation(
-            organization=self.organization,
-            user_id=self.user.id,
-            title="First",
-            project_ids=[],
-            filters={},
-        )
-        second = create_manual_investigation(
-            organization=self.organization,
-            user_id=self.user.id,
-            title="Second",
-            project_ids=[],
-            filters={},
-        )
-        for revision, investigation in enumerate((first, second), start=1):
-            Investigation.objects.filter(id=investigation.id).update(
-                source_type=InvestigationSourceType.BREACHED_METRIC,
-                source_key="lineage",
-                source_revision=revision,
-            )
-            investigation.refresh_from_db()
-        return first, second
-
-    def test_cascade_archive_bumps_sibling_versions(self) -> None:
-        """
-        Siblings are archived by a bulk update, so without a version bump a
-        client holding a stale reference would still pass the optimistic lock.
-        """
-        first, second = self.lineage_pair()
-        before = second.version
-
-        archive_investigation(investigation=first, expected_version=first.version)
-
-        second.refresh_from_db()
-        assert second.status == InvestigationStatus.ARCHIVED
-        assert second.version == before + 1
-
     def test_locking_a_deleted_investigation_is_a_missing_source(self) -> None:
         """A concurrent delete should not surface as an unhandled 500."""
         investigation = create_manual_investigation(

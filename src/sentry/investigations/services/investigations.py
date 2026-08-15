@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict, deque
 from collections.abc import Iterable
 from collections.abc import Set as AbstractSet
@@ -7,7 +8,7 @@ from copy import deepcopy
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import F, Max
+from django.db.models import Max
 from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
@@ -36,6 +37,7 @@ from sentry.investigations.services.parameters import (
 from sentry.investigations.templates import InvestigationTemplateSpec, get_investigation_template
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.utils import json
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 MAX_INVESTIGATION_TITLE_LENGTH = 255
@@ -149,7 +151,6 @@ def create_manual_investigation(
             organization=organization,
             created_by_id=user_id,
             title=title,
-            source_type=InvestigationSourceType.MANUAL,
             filters=filters,
         )
         _create_project_links(investigation, project_ids)
@@ -175,8 +176,6 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
             title=_copy_title(source.title),
             template_key=source.template_key,
             template_version=source.template_version,
-            source_type=InvestigationSourceType.MANUAL,
-            source_ref={},
             filters=deepcopy(source.filters),
         )
         _create_project_links(
@@ -248,15 +247,13 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
     return duplicate
 
 
-def _resolve_breached_metric_source(
-    *,
-    organization: Organization,
-    source_ref: dict[str, Any],
-    accessible_project_ids: AbstractSet[int],
-) -> BreachedMetricSource:
-    if set(source_ref) != {"groupId", "openPeriodId"}:
+def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
+    if set(source) != {"type", "ref"} or source.get("type") != "metric_open_period":
+        raise InvestigationValidationError({"source": "Unsupported investigation source."})
+    source_ref = source.get("ref")
+    if not isinstance(source_ref, dict) or set(source_ref) != {"groupId", "openPeriodId"}:
         raise InvestigationValidationError(
-            {"sourceRef": ("Must contain exactly groupId and openPeriodId for breached_metric.")}
+            {"source": "metric_open_period requires groupId and openPeriodId."}
         )
     group_id = source_ref["groupId"]
     open_period_id = source_ref["openPeriodId"]
@@ -266,22 +263,51 @@ def _resolve_breached_metric_source(
         or isinstance(open_period_id, bool)
         or not isinstance(open_period_id, int | str)
     ):
-        raise InvestigationValidationError({"sourceRef": "groupId and openPeriodId must be IDs."})
+        raise InvestigationValidationError({"source": "groupId and openPeriodId must be IDs."})
     try:
-        normalized_group_id = int(group_id)
-        normalized_open_period_id = int(open_period_id)
+        normalized_ref = int(group_id), int(open_period_id)
     except (TypeError, ValueError):
         raise InvestigationSourceNotFound
-    if not 0 < normalized_group_id <= I64_MAX or not 0 < normalized_open_period_id <= I64_MAX:
+    if any(not 0 < value <= I64_MAX for value in normalized_ref):
         raise InvestigationSourceNotFound
-    source = resolve_breached_metric_sources(
+    return normalized_ref
+
+
+def resolve_investigation_sources(
+    *,
+    organization: Organization,
+    sources: list[dict[str, Any]],
+    accessible_project_ids: AbstractSet[int],
+) -> list[BreachedMetricSource | None]:
+    refs = [_metric_open_period_ref(source) for source in sources]
+    resolved = resolve_breached_metric_sources(
         organization=organization,
-        group_ids=[normalized_group_id],
+        source_refs=refs,
         accessible_project_ids=accessible_project_ids,
-    ).get(normalized_group_id)
-    if source is None or source.open_period.id != normalized_open_period_id:
+    )
+    return [resolved.get(source_ref) for source_ref in refs]
+
+
+def resolve_investigation_source(
+    *,
+    organization: Organization,
+    source: dict[str, Any],
+    accessible_project_ids: AbstractSet[int],
+) -> BreachedMetricSource:
+    resolved = resolve_investigation_sources(
+        organization=organization,
+        sources=[source],
+        accessible_project_ids=accessible_project_ids,
+    )[0]
+    if resolved is None:
         raise InvestigationSourceNotFound
-    return source
+    return resolved
+
+
+def investigation_lineage_key(template_key: str, source: dict[str, Any]) -> str:
+    identity = {"templateKey": template_key, "type": source["type"], "ref": source["ref"]}
+    encoded = json.dumps(identity, sort_keys=True).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def create_template_investigation(
@@ -290,11 +316,11 @@ def create_template_investigation(
     user_id: int,
     template_key: str,
     template_version: int,
-    source_ref: dict[str, Any],
+    source: dict[str, Any],
     supplied_parameters: dict[str, Any],
     accessible_project_ids: AbstractSet[int],
     title: str | None = None,
-) -> Investigation:
+) -> tuple[Investigation, bool]:
     for attempt in range(3):
         try:
             return _create_template_investigation(
@@ -302,7 +328,7 @@ def create_template_investigation(
                 user_id=user_id,
                 template_key=template_key,
                 template_version=template_version,
-                source_ref=source_ref,
+                source=source,
                 supplied_parameters=supplied_parameters,
                 accessible_project_ids=accessible_project_ids,
                 title=title,
@@ -319,11 +345,11 @@ def _create_template_investigation(
     user_id: int,
     template_key: str,
     template_version: int,
-    source_ref: dict[str, Any],
+    source: dict[str, Any],
     supplied_parameters: dict[str, Any],
     accessible_project_ids: AbstractSet[int],
     title: str | None = None,
-) -> Investigation:
+) -> tuple[Investigation, bool]:
     template = get_investigation_template(template_key, template_version)
     if template is None:
         raise InvestigationValidationError(
@@ -339,44 +365,34 @@ def _create_template_investigation(
     except ParameterValidationError as error:
         raise InvestigationValidationError({"parameters": str(error)})
 
-    if template.source_type == InvestigationSourceType.BREACHED_METRIC:
-        source = _resolve_breached_metric_source(
+    if template.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD:
+        resolved_source = resolve_investigation_source(
             organization=organization,
-            source_ref=source_ref,
+            source=source,
             accessible_project_ids=accessible_project_ids,
         )
-        project_ids = [source.project_id]
+        project_ids = [resolved_source.project_id]
         resolved_title = title or DEFAULT_INVESTIGATION_TITLE
-        normalized_source_ref = {
-            "groupId": str(source.group.id),
-            "openPeriodId": str(source.open_period.id),
-        }
-        source_key = source.source_key
-        filters = {"breachedMetric": source.snapshot}
+        normalized_source = resolved_source.source
+        lineage_key = investigation_lineage_key(template.key, normalized_source)
     else:
         raise InvestigationValidationError({"templateKey": "Unsupported template source."})
 
     with transaction.atomic(using=router.db_for_write(Investigation)):
-        # Allocate revisions under an organization lock. The lineage/revision
-        # uniqueness constraint remains the final guard for other writers.
-        Organization.objects.select_for_update().get(id=organization.id)
         active = (
-            Investigation.objects.select_for_update()
-            .filter(
+            Investigation.objects.filter(
                 organization=organization,
-                source_type=template.source_type,
-                source_key=source_key,
+                lineage_key=lineage_key,
                 status=InvestigationStatus.ACTIVE,
             )
             .order_by("-source_revision", "-id")
             .first()
         )
         if active is not None:
-            return active
+            return active, False
         latest_revision = Investigation.objects.filter(
             organization=organization,
-            source_type=template.source_type,
-            source_key=source_key,
+            lineage_key=lineage_key,
         ).aggregate(latest=Max("source_revision"))["latest"]
         investigation = Investigation.objects.create(
             organization=organization,
@@ -384,11 +400,9 @@ def _create_template_investigation(
             title=resolved_title,
             template_key=template.key,
             template_version=template.version,
-            source_type=template.source_type,
-            source_ref=normalized_source_ref,
-            source_key=source_key,
+            source=normalized_source,
+            lineage_key=lineage_key,
             source_revision=(latest_revision or 0) + 1,
-            filters=filters,
         )
         _create_project_links(investigation, project_ids)
 
@@ -423,7 +437,11 @@ def _create_template_investigation(
                 generated_content=block_spec.generated_content,
                 config={
                     **deepcopy(block_spec.config),
-                    **({"datasetHint": source.dataset} if block_spec.kind == "query" else {}),
+                    **(
+                        {"datasetHint": resolved_source.dataset}
+                        if block_spec.kind == "query"
+                        else {}
+                    ),
                 },
                 display=deepcopy(block_spec.display),
             )
@@ -448,7 +466,7 @@ def _create_template_investigation(
             ]
         )
 
-    return investigation
+    return investigation, True
 
 
 def lock_investigation(investigation: Investigation, expected_version: int) -> Investigation:
@@ -479,7 +497,7 @@ def update_investigation(
         restoring_source_investigation = (
             locked.status == InvestigationStatus.ARCHIVED
             and fields.get("status") == InvestigationStatus.ACTIVE
-            and locked.source_key is not None
+            and locked.lineage_key is not None
         )
         if restoring_source_investigation:
             raise InvestigationConflictError(
@@ -519,14 +537,6 @@ def archive_investigation(*, investigation: Investigation, expected_version: int
             )
         locked.status = InvestigationStatus.ARCHIVED
         bump_investigation_version(locked)
-        if locked.source_key is not None:
-            Investigation.objects.filter(
-                organization=locked.organization,
-                source_type=locked.source_type,
-                source_key=locked.source_key,
-            ).exclude(id=locked.id).update(
-                status=InvestigationStatus.ARCHIVED, version=F("version") + 1
-            )
     return locked
 
 

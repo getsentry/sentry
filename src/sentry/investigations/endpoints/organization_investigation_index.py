@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import router, transaction
 from django.db.models import Exists, OuterRef, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -23,13 +24,13 @@ from sentry.investigations.endpoints.serializers import (
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.models import (
     Investigation,
-    InvestigationSourceType,
     InvestigationStatus,
 )
 from sentry.investigations.services import (
     create_manual_investigation,
     create_template_investigation,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.models.organization import Organization
 
 
@@ -48,14 +49,13 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         # lineage, so only the newest revision is listed.
         newer_lineage_revision = Investigation.objects.filter(
             organization_id=OuterRef("organization_id"),
-            source_type=OuterRef("source_type"),
-            source_key=OuterRef("source_key"),
+            lineage_key=OuterRef("lineage_key"),
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
         investigations = Investigation.objects.filter(
             organization=organization, status=requested_status
-        ).filter(Q(source_type=InvestigationSourceType.MANUAL) | ~Exists(newer_lineage_revision))
+        ).filter(Q(lineage_key__isnull=True) | ~Exists(newer_lineage_revision))
         query = request.GET.get("query")
         if query:
             investigations = investigations.filter(title__icontains=query)
@@ -78,17 +78,25 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         project_ids = request.access.accessible_project_ids
         try:
             if "template_key" in values:
-                investigation = create_template_investigation(
-                    organization=organization,
-                    user_id=user_id(request),
-                    template_key=values["template_key"],
-                    template_version=values["template_version"],
-                    source_ref=values["source_ref"],
-                    supplied_parameters=values.get("parameters", {}),
-                    accessible_project_ids=project_ids,
-                    title=values.get("title"),
-                )
+                with transaction.atomic(using=router.db_for_write(Investigation)):
+                    investigation, created = create_template_investigation(
+                        organization=organization,
+                        user_id=user_id(request),
+                        template_key=values["template_key"],
+                        template_version=values["template_version"],
+                        source=values["source"],
+                        supplied_parameters=values.get("parameters", {}),
+                        accessible_project_ids=project_ids,
+                        title=values.get("title"),
+                    )
+                    if created:
+                        schedule_eligible_auto_run_blocks(
+                            investigation_id=investigation.id,
+                            user_id=user_id(request),
+                        )
+                        investigation.refresh_from_db()
             else:
+                created = True
                 requested_project_ids = values.get("project_ids", [])
                 if not set(requested_project_ids).issubset(project_ids):
                     return Response(
@@ -113,5 +121,5 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                 request.user,
                 InvestigationDetailsSerializer(accessible_project_ids=project_ids),
             ),
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

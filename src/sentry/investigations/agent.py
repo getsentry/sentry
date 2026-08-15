@@ -778,7 +778,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
         "Do not use tools. Return only the title text. Do not call any function to write or save "
         "it.\n<source_context>\n"
-        f"{json.dumps(investigation.source_ref)}\n</source_context>\n"
+        f"{json.dumps(investigation.source)}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 

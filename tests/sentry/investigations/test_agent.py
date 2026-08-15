@@ -701,12 +701,16 @@ class InvestigationAgentTest(TestCase):
         self, mock_client: MagicMock
     ) -> None:
         self.investigation.title = "Untitled investigation"
-        self.investigation.source_ref = {
-            "groupTitle": "Checkout errors breached 100 events",
-            "project": {"slug": "checkout-api"},
-            "monitor": {"name": "Checkout errors", "direction": "above"},
+        self.investigation.source = {
+            "type": "metric_open_period",
+            "ref": {},
+            "snapshot": {
+                "groupTitle": "Checkout errors breached 100 events",
+                "project": {"slug": "checkout-api"},
+                "monitor": {"name": "Checkout errors", "direction": "above"},
+            },
         }
-        self.investigation.save(update_fields=["title", "source_ref"])
+        self.investigation.save(update_fields=["title", "source"])
 
         _maybe_start_title_generation(self.investigation, None)
 
