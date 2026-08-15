@@ -330,7 +330,7 @@ export default function ProjectEnvironments() {
           </SimpleTable.Empty>
         ) : visibleEnvironments.length ? (
           <Fragment>
-            {!isHidden && !deferredSearchQuery && (
+            {currentPage === 1 && !isHidden && !deferredSearchQuery && (
               <EnvironmentRow name={t('All Environments')} eventCount={eventCountAll} />
             )}
             {paginatedEnvironments.map(env => (
