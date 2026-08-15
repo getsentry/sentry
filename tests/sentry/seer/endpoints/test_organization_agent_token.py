@@ -627,11 +627,38 @@ class OrganizationAgentTokenTest(APITestCase):
             assert response.status_code == 403
             assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
 
-    def test_agent_token_cannot_use_user_account_or_relocation_workflows(self) -> None:
+    def _assert_agent_token_cannot_use_user_account_or_relocation_workflows(
+        self, authentication: MatrixAuthentication
+    ) -> None:
+        assert authentication in {
+            MatrixAuthentication.AGENT_TOKEN,
+            MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+            MatrixAuthentication.APPROVED_AGENT_TOKEN,
+        }
         self.login_as(self.owner)
 
         with self.feature(FLAG):
-            token = self._mint(sessionId="s1").data["token"]
+            session_id = f"disallowed-workflows-{authentication.value}"
+            mint_payload: dict[str, Any] = {"sessionId": session_id}
+            if authentication is MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN:
+                mint_payload["requestedScopes"] = []
+            elif authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN:
+                approval = self.client.post(
+                    f"/api/0/organizations/{self.org.slug}/agent/approve/",
+                    data={"sessionId": session_id, "scopes": ["org:write"]},
+                    format="json",
+                )
+                assert approval.status_code == 200, approval.content
+
+            token = self._mint(**mint_payload).data["token"]
+            scopes = set(agent_token.decode_agent_token(token)["scopes"])
+            if authentication is MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN:
+                assert not scopes
+            elif authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN:
+                assert "org:write" in scopes
+            else:
+                assert "org:write" not in scopes
+
             client = APIClient()
             responses = {
                 "list relocations": client.get(
@@ -2330,6 +2357,32 @@ def _install_private_helper_matrix_tests() -> None:
 
 
 _install_private_helper_matrix_tests()
+
+
+def _install_disallowed_agent_token_boundary_matrix_tests() -> None:
+    for authentication in (
+        MatrixAuthentication.AGENT_TOKEN,
+        MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
+        MatrixAuthentication.APPROVED_AGENT_TOKEN,
+    ):
+
+        def test_matrix_cell(
+            self: OrganizationAgentTokenTest,
+            authentication: MatrixAuthentication = authentication,
+        ) -> None:
+            self._assert_agent_token_cannot_use_user_account_or_relocation_workflows(authentication)
+
+        test_matrix_cell.__name__ = f"test_disallowed_agent_token_workflows_{authentication.value}"
+        test_matrix_cell = pytest.mark.seer_agent_token_matrix(test_matrix_cell)
+        test_matrix_cell = pytest.mark.seer_matrix_resource_boundary(test_matrix_cell)
+        test_matrix_cell = getattr(pytest.mark, f"seer_matrix_{authentication.value}")(
+            test_matrix_cell
+        )
+        test_matrix_cell = pytest.mark.seer_matrix_minted_token(test_matrix_cell)
+        setattr(OrganizationAgentTokenTest, test_matrix_cell.__name__, test_matrix_cell)
+
+
+_install_disallowed_agent_token_boundary_matrix_tests()
 
 
 def _install_user_global_boundary_matrix_tests() -> None:
