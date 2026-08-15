@@ -1333,7 +1333,7 @@ function SaveQueryButton({
           setQueryName('');
           navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
         }
-      );
+      ).catch(() => {});
     },
     [api, navigate, organization, eventView, yAxis, queryName]
   );
@@ -1346,7 +1346,7 @@ function SaveQueryButton({
       setSavedQuery(sq);
       setQueryName('');
       navigate(view.getResultsViewShortUrlTarget(organization));
-    });
+    }).catch(() => {});
   };
 
   return (

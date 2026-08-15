@@ -50,7 +50,7 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
 
         navigate(normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization)));
       }
-    );
+    ).catch(() => {});
   }
 
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
