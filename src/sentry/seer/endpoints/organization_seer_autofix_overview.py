@@ -108,7 +108,9 @@ def _serialize_pull_request(
     }
 
 
-def _pull_requests_by_seer_run_id(seer_run_ids: list[int]) -> dict[int, list[PullRequestPayload]]:
+def _pull_requests_by_seer_run_id(
+    seer_run_ids: list[int], *, include_scm_info: bool
+) -> dict[int, list[PullRequestPayload]]:
     by_run: dict[int, list[PullRequestPayload]] = defaultdict(list)
     links = list(
         SeerRunPullRequest.objects.filter(seer_run_id__in=seer_run_ids)
@@ -148,11 +150,11 @@ def _pull_requests_by_seer_run_id(seer_run_ids: list[int]) -> dict[int, list[Pul
     status_by_pr_id: dict[int, PullRequestStatus | None] = {
         pr.id: get_stored_pull_request_status(pr) for pr in pull_requests
     }
-    # TODO: this hits the provider (GitHub GraphQL) on every page load. If latency
-    # bites, gate it behind an `expand=checksAndReview` param like the issues endpoint.
-    checks_and_review_by_pr_id = get_checks_and_review(
-        pull_requests, repos_by_id, status_by_pr_id, include_files=True
-    )
+    checks_and_review_by_pr_id: dict[int, PullRequestStatusResult] = {}
+    if include_scm_info:
+        checks_and_review_by_pr_id = get_checks_and_review(
+            pull_requests, repos_by_id, status_by_pr_id, include_files=True
+        )
 
     for link in links:
         pr = link.pull_request
@@ -238,6 +240,9 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET)
+        expand = request.GET.getlist("expand")
+        include_scm_info = "scmInfo" in expand
+        include_issue_stats = "issueStats" in expand
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
 
         # Classify into milestones and cap before the expensive serialize, so the
@@ -258,6 +263,9 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         )
 
         environments = self.get_environments(request, organization)
+        collapse = ["lifetime", "filtered", "unhandled"]
+        if not include_issue_stats:
+            collapse.append("stats")
         serialized_by_id = {
             sg["id"]: sg
             for sg in serialize(
@@ -268,7 +276,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                     start=start,
                     end=end,
                     expand=["owners"],
-                    collapse=["lifetime", "filtered", "unhandled"],
+                    collapse=collapse,
                     organization_id=organization.id,
                     project_ids=project_ids,
                 ),
@@ -277,7 +285,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         }
 
         pull_requests_by_seer_run_id = _pull_requests_by_seer_run_id(
-            [run.seer_run.id for _, run in capped]
+            [run.seer_run.id for _, run in capped], include_scm_info=include_scm_info
         )
 
         runs_by_milestone: dict[str, list[RunPayload]] = {milestone: [] for milestone in _PIPELINE}
