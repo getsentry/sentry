@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.serializers.models.pullrequest import (
@@ -23,8 +26,10 @@ from sentry.integrations.source_code_management.pull_request_status_batch import
     get_checks_and_review,
 )
 from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
@@ -58,6 +63,10 @@ _PIPELINE: tuple[str, ...] = (
 )
 
 _MAX_RUNS_PER_MILESTONE = 100
+
+# The three issue-based sort params, mapped to their search-backend names.
+# Any other value (seer default, empty, unknown) keeps the default order.
+_ISSUE_SORT_TO_SEARCH = {"issue": "date", "events": "freq", "users": "user"}
 
 
 @dataclass
@@ -243,7 +252,20 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand")
         include_scm_info = "scmInfo" in expand
         include_issue_stats = "issueStats" in expand
+        environments = self.get_environments(request, organization)
+
+        sort = request.GET.get("sort")
+
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
+        if sort in _ISSUE_SORT_TO_SEARCH:
+            latest_run_per_group = self._reorder_by_issue_sort(
+                latest_run_per_group,
+                _ISSUE_SORT_TO_SEARCH[sort],
+                projects,
+                environments,
+                start,
+                end,
+            )
 
         # Classify into milestones and cap before the expensive serialize, so the
         # Snuba/Postgres work is bounded by the cap rather than the org's history.
@@ -262,7 +284,6 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             .in_bulk()
         )
 
-        environments = self.get_environments(request, organization)
         collapse = ["lifetime", "filtered", "unhandled"]
         if not include_issue_stats:
             collapse.append("stats")
@@ -341,3 +362,34 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             if run.group_id not in latest_per_group:
                 latest_per_group[run.group_id] = run
         return latest_per_group
+
+    def _reorder_by_issue_sort(
+        self,
+        latest_run_per_group: dict[int, _RunMilestones],
+        sort_by: str,
+        projects: Sequence[Project],
+        environments: Sequence[Environment],
+        start: datetime,
+        end: datetime,
+    ) -> dict[int, _RunMilestones]:
+        candidate_ids = list(latest_run_per_group)
+        if not candidate_ids:
+            return latest_run_per_group
+
+        results = search.backend.query(
+            projects=projects,
+            environments=list(environments) or None,
+            sort_by=sort_by,
+            limit=len(candidate_ids),
+            paginator_options={"max_limit": len(candidate_ids)},
+            search_filters=[SearchFilter(SearchKey("issue.id"), "IN", SearchValue(candidate_ids))],
+            date_from=start,
+            date_to=end,
+            referrer="seer.autofix-overview",
+        )
+
+        ordered_ids = [group.id for group in results.results]
+        seen = set(ordered_ids)
+        # Candidates with no in-window events are absent from Snuba; keep them, sorted last.
+        ordered_ids.extend(gid for gid in latest_run_per_group if gid not in seen)
+        return {gid: latest_run_per_group[gid] for gid in ordered_ids}
