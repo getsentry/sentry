@@ -95,8 +95,13 @@ class PausePrIterationTest(TestCase):
         def delete_run(*args: object, **kwargs: object) -> None:
             self.seer_run.delete()
 
+        assert self._enqueue() is True
+
         with patch("sentry.seer.autofix.pr_iteration.pause.get_run_extra", side_effect=delete_run):
             assert pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id) is False
+
+        # The queue survives a failed marker write, so the marker is written first.
+        assert len(peek_queued_autofix_feedback(RUN_ID)) == 1
 
     def test_returns_false_for_another_organization(self) -> None:
         other_org = self.create_organization()
