@@ -646,3 +646,65 @@ class PrioritizeModelsByFamilyTest(TestCase):
         models = ["gpt-5.3-codex-high", "gpt-4.1", "gpt-3.5-turbo"]
         result = _prioritize_models_by_family(models, "gpt-4")
         assert result == ["gpt-5.3-codex-high", "gpt-4.1", "gpt-3.5-turbo"]
+
+
+class BranchResolutionErrorTest(TestCase):
+    """Tests for _is_branch_resolution_error helper function."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.api_key = "test_api_key"
+        self.webhook_secret = "test_webhook_secret"
+        self.cursor_client = CursorAgentClient(
+            api_key=self.api_key, webhook_secret=self.webhook_secret
+        )
+        self.webhook_url = "https://example.com/webhook"
+
+        self.repo_definition = SeerRepoDefinition(
+            integration_id="111",
+            provider="github",
+            owner="getsentry",
+            name="sentry",
+            external_id="123456",
+            branch_name=None,  # Empty branch name to trigger the error
+        )
+
+        self.launch_request = CodingAgentLaunchRequest(
+            prompt="Fix this bug",
+            repository=self.repo_definition,
+            branch_name="fix-bug-123",
+            auto_create_pr=True,
+        )
+
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_branch_resolution_error_raises_immediately(self, mock_post: Mock) -> None:
+        """A 400 error about branch resolution should raise immediately without retry."""
+        branch_error = ApiError("Bad Request", code=400)
+        branch_error.json = {"error": "Failed to determine repository default branch"}
+        mock_post.side_effect = branch_error
+
+        with pytest.raises(ApiError, match="Bad Request"):
+            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
+
+        # Only the initial attempt, no model retries
+        assert mock_post.call_count == 1
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
+    def test_launch_branch_resolution_error_doesnt_retry_with_models(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Branch resolution error should raise immediately without attempting model retry."""
+        branch_error = ApiError("Bad Request", code=400)
+        branch_error.json = {
+            "error": "Failed to determine repository default branch for getsentry/sentry"
+        }
+        mock_post.side_effect = branch_error
+        mock_get.return_value = Mock(json={"models": ["claude-4-opus", "gpt-4"]})
+
+        with pytest.raises(ApiError, match="Bad Request"):
+            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
+
+        # Should not try to fetch models since this is a branch error
+        mock_get.assert_not_called()
+        assert mock_post.call_count == 1

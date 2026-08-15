@@ -13,6 +13,7 @@ import sentry_sdk
 from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -20,7 +21,9 @@ from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.seer.autofix.coding_agent import (
     sanitize_branch_name,
     store_coding_agent_states_to_seer,
@@ -68,6 +71,122 @@ def _resolve_client(
     raise ValidationError("Either integration_id or provider must be provided")
 
 
+def _resolve_default_branch(
+    organization: Organization, repo: SeerRepoDefinition
+) -> SeerRepoDefinition:
+    """
+    Resolve the default branch for a repository if branch_name is empty.
+
+    Args:
+        organization: The organization
+        repo: The SeerRepoDefinition with repository metadata
+
+    Returns:
+        The SeerRepoDefinition with resolved branch_name (may be unchanged if already set or on error)
+    """
+    # If branch_name is already set and non-empty, return as-is
+    if repo.branch_name:
+        return repo
+
+    # Only attempt resolution for GitHub repos with integration_id
+    if repo.provider not in ("github", "github_enterprise") or not repo.integration_id:
+        logger.warning(
+            "coding_agent.resolve_default_branch.skip",
+            extra={
+                "organization_id": organization.id,
+                "repo_name": f"{repo.owner}/{repo.name}",
+                "provider": repo.provider,
+                "has_integration_id": bool(repo.integration_id),
+            },
+        )
+        return repo
+
+    try:
+        integration_id = int(repo.integration_id)
+        org_integration = integration_service.get_organization_integration(
+            organization_id=organization.id, integration_id=integration_id
+        )
+
+        if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
+            logger.warning(
+                "coding_agent.resolve_default_branch.integration_not_found",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration_id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                },
+            )
+            return repo
+
+        integration = integration_service.get_integration(
+            organization_integration_id=org_integration.id, status=ObjectStatus.ACTIVE
+        )
+
+        if not integration:
+            logger.warning(
+                "coding_agent.resolve_default_branch.integration_inactive",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration_id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                },
+            )
+            return repo
+
+        installation = integration.get_installation(organization.id)
+
+        if not isinstance(installation, RepositoryIntegration):
+            logger.warning(
+                "coding_agent.resolve_default_branch.not_repository_integration",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration_id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                },
+            )
+            return repo
+
+        # Create a minimal Repository object to use the get_repository_default_branch method
+        repository = Repository(
+            organization_id=organization.id,
+            name=f"{repo.owner}/{repo.name}",
+            integration_id=integration_id,
+        )
+
+        default_branch = installation.get_repository_default_branch(repository)
+
+        if default_branch:
+            logger.info(
+                "coding_agent.resolve_default_branch.success",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                    "default_branch": default_branch,
+                },
+            )
+            # Create a new SeerRepoDefinition with the resolved branch
+            return repo.model_copy(update={"branch_name": default_branch})
+        else:
+            logger.warning(
+                "coding_agent.resolve_default_branch.not_found",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                },
+            )
+
+    except Exception:
+        logger.exception(
+            "coding_agent.resolve_default_branch.error",
+            extra={
+                "organization_id": organization.id,
+                "repo_name": f"{repo.owner}/{repo.name}",
+            },
+        )
+
+    return repo
+
+
 def launch_coding_agents(
     organization: Organization,
     integration_id: int | None,
@@ -113,11 +232,13 @@ def launch_coding_agents(
     states_to_store: list[CodingAgentState] = []
 
     for repo in repos:
-        repo_name = f"{repo.owner}/{repo.name}"
+        # Resolve the default branch if branch_name is empty
+        resolved_repo = _resolve_default_branch(organization, repo)
+        repo_name = f"{resolved_repo.owner}/{resolved_repo.name}"
 
         launch_request = CodingAgentLaunchRequest(
             prompt=prompt,
-            repository=repo,
+            repository=resolved_repo,
             branch_name=sanitize_branch_name(branch_name_base),
             auto_create_pr=auto_create_pr,
             issue_short_id=issue_short_id,
@@ -174,6 +295,14 @@ def launch_coding_agents(
                 ):
                     failure_type = "cursor_github_access"
                     error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
+                elif (
+                    isinstance(installation, CursorAgentIntegration)
+                    and e.code == 400
+                    and e.text
+                    and "Failed to determine repository default branch" in e.text
+                ):
+                    failure_type = "cursor_default_branch_error"
+                    error_message = "Failed to determine the default branch for this repository. The repository configuration may be incomplete."
 
             failure: dict = {
                 "repo_name": repo_name,
