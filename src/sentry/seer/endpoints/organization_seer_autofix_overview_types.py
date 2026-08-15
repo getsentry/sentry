@@ -27,7 +27,7 @@ class IssueProjectPayload(TypedDict):
 
 
 class IssuePayload(TypedDict):
-    count: int | None
+    count: str | None
     userCount: int | None
     lastSeen: str | None
     level: str | None

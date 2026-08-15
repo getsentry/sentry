@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from unittest import mock
 
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
@@ -164,11 +165,33 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         assert issue["project"]["id"] == str(group.project_id)
         assert issue["project"]["slug"] == group.project.slug
         assert issue["priority"] == "high"
-        assert "count" in issue
-        assert "userCount" in issue
-        assert "lastSeen" in issue
         assert issue["assignedTo"] is None
         assert issue["owners"] == []
+
+    def test_issue_stats_absent_issues_no_snuba_query(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        with mock.patch(
+            "sentry.api.serializers.models.group."
+            "GroupSerializerSnuba._execute_error_seen_stats_query",
+            return_value={"data": []},
+        ) as execute:
+            resp = self.get_success_response(self.organization.slug)
+        assert execute.call_count == 0
+        issue = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]["issue"]
+        assert issue["count"] is None
+        assert issue["userCount"] is None
+        assert issue["lastSeen"] is None
+
+    def test_issue_stats_expand_requests_snuba_stats(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.StreamGroupSerializerSnuba",
+            wraps=StreamGroupSerializerSnuba,
+        ) as serializer:
+            self.get_success_response(self.organization.slug, qs_params={"expand": "issueStats"})
+        assert "stats" not in serializer.call_args.kwargs["collapse"]
 
     def _pull_request_for_run(self, group, run, *, key="123", **updates):
         repo = self.create_repo(
@@ -193,17 +216,27 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         mock_get_integration.return_value = integration
         return client
 
-    def _pull_requests(self):
-        resp = self.get_success_response(self.organization.slug)
+    def _pull_requests(self, *, expand=None):
+        kwargs = {"qs_params": {"expand": expand}} if expand is not None else {}
+        resp = self.get_success_response(self.organization.slug, **kwargs)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         return run_data["pullRequests"]
 
-    def test_run_includes_pull_requests(self):
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
         run = self._run_for_group(group, "boom")
         self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
+            ),
+        )
         resp = self.get_success_response(self.organization.slug)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        # Default (no expand=scmInfo) must not call the SCM provider.
+        assert client.requested_keys == []
         assert run_data["pullRequests"] == [
             {
                 "number": 123,
@@ -244,7 +277,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["files"] == [
             {
@@ -274,7 +307,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
@@ -289,7 +322,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         )
         client = self._set_provider_client(mock_get_integration, PullRequestStatusClientFake())
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["status"] == "merged"
         assert pull_requests[0]["checksStatus"] is None
@@ -305,7 +338,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             mock_get_integration, PullRequestStatusClientFake(error=RuntimeError("nope"))
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["number"] == 123
         assert pull_requests[0]["status"] == "open"
@@ -360,7 +393,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert client.requested_keys == ["123"]
         assert [pr["number"] for pr in pull_requests] == [123]
@@ -390,7 +423,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         # A disconnected repo is skipped: no provider call, no url, null enrichment.
         assert client.requested_keys == []
@@ -426,3 +459,23 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         resp = self.get_success_response(self.organization.slug)
 
         assert len(resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]) == 2
+
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_both_expands_enrich_pull_request_and_request_stats(self, mock_get_integration):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
+            ),
+        )
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.StreamGroupSerializerSnuba",
+            wraps=StreamGroupSerializerSnuba,
+        ) as serializer:
+            pull_requests = self._pull_requests(expand=["scmInfo", "issueStats"])
+        assert client.requested_keys == ["123"]
+        assert pull_requests[0]["checksStatus"] == "success"
+        assert "stats" not in serializer.call_args.kwargs["collapse"]
