@@ -61,7 +61,6 @@ export const metricConfig: IssueCategoryConfigMapping = {
     },
     discover: {enabled: false},
     regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
   },

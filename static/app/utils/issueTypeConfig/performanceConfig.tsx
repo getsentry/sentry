@@ -241,7 +241,6 @@ export const performanceConfig: IssueCategoryConfigMapping = {
     },
     discover: {enabled: false},
     regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
     // We show the regression summary instead
