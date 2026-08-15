@@ -3,10 +3,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CompactNoteInput} from 'sentry/components/activity/note/compact';
-import {NoteInput} from 'sentry/components/activity/note/input';
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
-import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {t, tct} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
@@ -15,20 +12,15 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
-type InputProps = React.ComponentProps<typeof NoteInput>;
-
 type Props = {
   group: Group;
   itemKey: string;
   storageKey: string;
-  enableMentionComposer?: boolean;
+  minHeight?: number;
   onCommentCreated?: (activity: GroupActivity[]) => void;
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-  onLoad?: (data: string) => string;
-  onSave?: (data: string) => string;
-  text?: string;
+  placeholder?: string;
   variant?: 'compact' | 'full';
-} & Omit<InputProps, 'onCreate' | 'onUpdate'>;
+};
 
 function fetchFromStorage(storageKey: string) {
   const storage = localStorageWrapper.getItem(storageKey);
@@ -62,26 +54,16 @@ function saveToStorage(storageKey: string, obj: Record<string, any>) {
 function NoteInputWithStorage({
   itemKey,
   storageKey,
-  onChange,
-  onLoad,
-  onSave,
-  text,
   variant,
   group,
   onCommentCreated,
-  onCommentEdited,
-  noteId,
-  enableMentionComposer,
-  ...props
+  minHeight,
+  placeholder,
 }: Props) {
   const organization = useOrganization();
   const mutators = useMutateActivity({organization, group});
 
   const value = useMemo(() => {
-    if (text) {
-      return text;
-    }
-
     const storageObj = fetchFromStorage(storageKey);
 
     if (!storageObj) {
@@ -91,12 +73,8 @@ function NoteInputWithStorage({
     if (!Object.hasOwn(storageObj, itemKey)) {
       return '';
     }
-    if (!onLoad) {
-      return storageObj[itemKey];
-    }
-
-    return onLoad(storageObj[itemKey]);
-  }, [itemKey, onLoad, storageKey, text]);
+    return storageObj[itemKey];
+  }, [itemKey, storageKey]);
 
   const save = useMemo(
     () =>
@@ -105,25 +83,12 @@ function NoteInputWithStorage({
 
         const newObject = {
           ...currentObj,
-          [itemKey]: onSave?.(newValue) ?? newValue,
+          [itemKey]: newValue,
         };
 
         saveToStorage(storageKey, newObject);
       }, 150),
-    [itemKey, onSave, storageKey]
-  );
-
-  const handleChange = useCallback(
-    (e: MentionChangeEvent, options: {updating?: boolean} = {}) => {
-      onChange?.(e, options);
-
-      if (options.updating) {
-        return;
-      }
-
-      save(e.target.value);
-    },
-    [onChange, save]
+    [itemKey, storageKey]
   );
 
   const handleCreate = useCallback(
@@ -154,61 +119,14 @@ function NoteInputWithStorage({
     [save, itemKey, storageKey, mutators, group.activity, organization, onCommentCreated]
   );
 
-  const handleUpdate = useCallback(
-    async (data: NoteType) => {
-      if (!noteId) {
-        return;
-      }
-      const result = await mutators.handleUpdate(data, noteId, {
-        onSuccess: () => {
-          addSuccessMessage(t('Comment updated'));
-        },
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-      });
-
-      trackAnalytics('issue_details.comment_updated', {organization});
-      onCommentEdited?.(group.activity.map(a => (a.id === result.id ? result : a)));
-    },
-    [mutators, noteId, group.activity, organization, onCommentEdited]
-  );
-
-  if (enableMentionComposer) {
-    return (
-      <MentionComposer
-        initialValue={value}
-        minHeight={props.minHeight}
-        placeholder={props.placeholder}
-        onSubmit={handleCreate}
-        onValueChange={save}
-        variant={variant}
-      />
-    );
-  }
-
-  if (variant === 'compact') {
-    return (
-      <CompactNoteInput
-        text={value}
-        onCreate={handleCreate}
-        onUpdate={handleUpdate}
-        onChange={handleChange}
-        placeholder={props.placeholder}
-        noteId={noteId}
-        onCancel={props.onCancel}
-      />
-    );
-  }
-
   return (
-    <NoteInput
-      {...props}
-      text={value}
-      noteId={noteId}
-      onCreate={handleCreate}
-      onUpdate={handleUpdate}
-      onChange={handleChange}
+    <MentionComposer
+      initialValue={value}
+      minHeight={minHeight}
+      placeholder={placeholder}
+      onSubmit={handleCreate}
+      onValueChange={save}
+      variant={variant}
     />
   );
 }

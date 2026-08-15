@@ -8,22 +8,21 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-async function changeReactMentionsInput(value: string) {
-  const textbox = screen.getByRole('textbox');
-
-  await userEvent.clear(textbox);
-  await userEvent.type(textbox, value);
+function getEditor() {
+  const editor = screen.getByRole('combobox', {name: 'Add a comment'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
 }
 
 describe('NoteInputWithStorage', () => {
-  let membersRequest: jest.Mock;
-
   beforeEach(() => {
-    membersRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
     });
     jest.clearAllMocks();
+    jest.mocked(localStorageWrapper.getItem).mockReturnValue(null);
   });
 
   const defaultProps = {
@@ -32,7 +31,7 @@ describe('NoteInputWithStorage', () => {
     group: GroupFixture(),
   };
 
-  it('loads draft item from local storage when mounting', async () => {
+  it('loads and saves a draft', async () => {
     jest
       .mocked(localStorageWrapper.getItem)
       .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
@@ -40,33 +39,8 @@ describe('NoteInputWithStorage', () => {
     render(<NoteInputWithStorage {...defaultProps} />);
 
     expect(localStorageWrapper.getItem).toHaveBeenCalledWith('storage');
-    expect(screen.getByRole('textbox')).toHaveValue('saved item');
-    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
-  });
-
-  it('saves draft when input changes', async () => {
-    render(<NoteInputWithStorage {...defaultProps} />);
-
-    await userEvent.clear(screen.getByRole('textbox'));
-    await changeReactMentionsInput('WIP COMMENT');
-
-    expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
-      'storage',
-      JSON.stringify({item1: 'WIP COMMENT'})
-    );
-  });
-
-  it('loads and saves drafts with the mention composer', async () => {
-    jest
-      .mocked(localStorageWrapper.getItem)
-      .mockImplementation(() => JSON.stringify({item1: 'saved item'}));
-
-    render(<NoteInputWithStorage {...defaultProps} enableMentionComposer />);
-
-    const editor = screen.getByRole('combobox', {name: 'Add a comment'});
+    const editor = getEditor();
     expect(editor).toHaveTextContent('saved item');
-    // user-event does not yet recognize contenteditable="plaintext-only".
-    editor.setAttribute('contenteditable', 'true');
     await userEvent.click(editor);
     await userEvent.keyboard('{End} updated');
 
@@ -98,8 +72,7 @@ describe('NoteInputWithStorage', () => {
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    await changeReactMentionsInput('new comment');
-    await userEvent.type(screen.getByRole('textbox'), '{Control>}{enter}{/Control}');
+    await userEvent.type(getEditor(), 'new comment{Control>}{enter}{/Control}');
 
     await waitFor(() => {
       expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
