@@ -211,6 +211,43 @@ class OrganizationAgentTokenTest(APITestCase):
             assert response.status_code == 403
             assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
 
+    def test_agent_token_cannot_use_user_account_or_relocation_workflows(self) -> None:
+        self.login_as(self.owner)
+
+        with self.feature(FLAG):
+            token = self._mint(sessionId="s1").data["token"]
+            client = APIClient()
+            responses = {
+                "list relocations": client.get(
+                    "/api/0/relocations/",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                ),
+                "start relocation": client.post(
+                    "/api/0/relocations/",
+                    data={},
+                    format="json",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                ),
+                "retry relocation": client.post(
+                    "/api/0/relocations/00000000-0000-0000-0000-000000000000/retry/",
+                    data={},
+                    format="json",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                ),
+            }
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                responses["generate user merge code"] = client.post(
+                    "/api/0/auth-v2/user-merge-verification-codes/",
+                    data={},
+                    format="json",
+                    HTTP_AUTHORIZATION=f"Bearer {token}",
+                )
+
+        for endpoint, response in responses.items():
+            with self.subTest(endpoint=endpoint):
+                assert response.status_code == 403, response.content
+                assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
+
     def test_organization_owner_listing_remains_token_org_bound(self) -> None:
         other_org = self.create_organization(owner=self.owner)
         self.login_as(self.owner)
