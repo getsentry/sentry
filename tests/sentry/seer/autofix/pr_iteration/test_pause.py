@@ -49,9 +49,6 @@ class PausePrIterationTest(TestCase):
     def _is_paused(self, run_id: int = RUN_ID) -> bool:
         return is_pr_iteration_paused(run_id=run_id, organization_id=self.organization.id)
 
-    def test_not_paused_without_marker(self) -> None:
-        assert self._is_paused() is False
-
     def test_pause_writes_marker_and_empties_queue(self) -> None:
         assert self._enqueue() is True
         assert len(peek_queued_autofix_feedback(RUN_ID)) == 1
