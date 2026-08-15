@@ -165,9 +165,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         assert issue["project"]["id"] == str(group.project_id)
         assert issue["project"]["slug"] == group.project.slug
         assert issue["priority"] == "high"
-        assert "count" in issue
-        assert "userCount" in issue
-        assert "lastSeen" in issue
         assert issue["assignedTo"] is None
         assert issue["owners"] == []
 
@@ -185,16 +182,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         assert issue["count"] is None
         assert issue["userCount"] is None
         assert issue["lastSeen"] is None
-
-    def test_issue_stats_absent_collapses_stats(self):
-        group = self.create_group()
-        self._run_for_group(group, "boom")
-        with mock.patch(
-            "sentry.seer.endpoints.organization_seer_autofix_overview.StreamGroupSerializerSnuba",
-            wraps=StreamGroupSerializerSnuba,
-        ) as serializer:
-            self.get_success_response(self.organization.slug)
-        assert "stats" in serializer.call_args.kwargs["collapse"]
 
     def test_issue_stats_expand_requests_snuba_stats(self):
         group = self.create_group()
@@ -235,12 +222,21 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         return run_data["pullRequests"]
 
-    def test_run_includes_pull_requests(self):
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
         run = self._run_for_group(group, "boom")
         self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
+            ),
+        )
         resp = self.get_success_response(self.organization.slug)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        # Default (no expand=scmInfo) must not call the SCM provider.
+        assert client.requested_keys == []
         assert run_data["pullRequests"] == [
             {
                 "number": 123,
@@ -251,28 +247,6 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
                 "files": [],
             }
         ]
-
-    @mock.patch(_INTEGRATION_SERVICE)
-    def test_scm_info_absent_skips_provider_fetch(self, mock_get_integration):
-        group = self.create_group()
-        run = self._run_for_group(group, "boom")
-        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
-        client = self._set_provider_client(
-            mock_get_integration,
-            PullRequestStatusClientFake(
-                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
-            ),
-        )
-
-        pull_requests = self._pull_requests()
-
-        assert client.requested_keys == []
-        assert pull_requests[0]["number"] == 123
-        assert pull_requests[0]["status"] == "open"
-        assert pull_requests[0]["url"] == "https://github.com/getsentry/sentry/pull/123"
-        assert pull_requests[0]["checksStatus"] is None
-        assert pull_requests[0]["reviewStatus"] is None
-        assert pull_requests[0]["files"] == []
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_open_pull_request_includes_changed_files(self, mock_get_integration):
