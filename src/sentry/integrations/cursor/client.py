@@ -48,6 +48,28 @@ def _extract_failed_model_from_error(error: ApiError) -> str | None:
     return match.group(1) if match else None
 
 
+_DEFAULT_BRANCH_ERROR = "Failed to determine repository default branch"
+
+
+def _is_default_branch_determination_error(error: ApiError) -> bool:
+    """Detect Cursor 400 when it cannot resolve the repository default branch.
+
+    This is non-retryable: switching models will not help, and we should avoid
+    a wasted /v0/models round-trip before surfacing the error.
+    """
+    if error.code != 400:
+        return False
+    try:
+        error_json = error.json
+        if error_json is not None:
+            message = error_json.get("error", "")
+            if isinstance(message, str) and _DEFAULT_BRANCH_ERROR in message:
+                return True
+    except (AttributeError, TypeError):
+        pass
+    return bool(error.text and _DEFAULT_BRANCH_ERROR in error.text)
+
+
 def _get_model_family(model_name: str) -> str:
     """Extract the alphabetic family prefix from a model name.
 
@@ -201,6 +223,10 @@ class CursorAgentClient(CodingAgentClient):
         except NON_RETRYABLE_ERRORS:
             raise
         except ApiError as e:
+            # Default-branch resolution failures are non-retryable; raise before
+            # fetching models so we don't waste a round-trip.
+            if _is_default_branch_determination_error(e):
+                raise
             initial_error = e
             logger.warning(
                 "coding_agent.cursor.launch_failed_will_retry",
