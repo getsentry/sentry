@@ -515,6 +515,67 @@ def test_retries() -> None:
     assert connection_mock.request.call_count == 1
 
 
+def test_retries_transient_status_once_until_success() -> None:
+    connection_mock = mock.Mock()
+    snuba_pool = FakeConnectionPool(
+        connection=connection_mock,
+        host="www.test.com",
+        port=80,
+        retries=False,
+        timeout=30,
+        maxsize=10,
+    )
+    connection_mock.getresponse.side_effect = [
+        HTTPResponse(status=503, body=b"no healthy upstream", headers={}),
+        HTTPResponse(status=200, body=b"ok", headers={}),
+    ]
+    retry = RetrySkipTimeout(
+        total=5,
+        status=1,
+        status_forcelist={502, 503},
+        allowed_methods={"POST"},
+        backoff_factor=0,
+        raise_on_status=False,
+    )
+
+    response = snuba_pool.urlopen("POST", "/rpc/EndpointTraceItemTable/v1", retries=retry)
+
+    assert response.status == 200
+    assert connection_mock.request.call_count == 2
+    assert response.retries is not None
+    assert [item.status for item in response.retries.history] == [503]
+
+
+def test_exhausted_status_retry_returns_final_response() -> None:
+    connection_mock = mock.Mock()
+    snuba_pool = FakeConnectionPool(
+        connection=connection_mock,
+        host="www.test.com",
+        port=80,
+        retries=False,
+        timeout=30,
+        maxsize=10,
+    )
+    connection_mock.getresponse.side_effect = [
+        HTTPResponse(status=503, body=b"no healthy upstream", headers={}) for _ in range(2)
+    ]
+    retry = RetrySkipTimeout(
+        total=5,
+        status=1,
+        status_forcelist={502, 503},
+        allowed_methods={"POST"},
+        backoff_factor=0,
+        raise_on_status=False,
+    )
+
+    response = snuba_pool.urlopen("POST", "/rpc/EndpointTraceItemTable/v1", retries=retry)
+
+    assert response.status == 503
+    assert connection_mock.request.call_count == 2
+    assert response.retries is not None
+    assert [item.status for item in response.retries.history] == [503]
+
+
 class SnubaQueryRateLimitTest(TestCase):
     def setUp(self) -> None:
         mock_request = Request(
