@@ -1209,10 +1209,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         if self.search_type == "string":
             return self.string_autocomplete_function()
 
-        # Array attributes autocomplete their individual element values. The tag
-        # form resolves to the generic array type, so ask Snuba for the string
-        # elements (e.g. "title") rather than whole arrays. Explicit array tag
-        # syntax resolves regardless of the flag, so gate the behavior here.
+        # Autocomplete values for array attributes (string-typed arrays)
         if self.search_type == "array" and self.supports_arrays:
             array_key = AttributeKey(
                 name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING

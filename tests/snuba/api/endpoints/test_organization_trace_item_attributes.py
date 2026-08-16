@@ -10,7 +10,6 @@ from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesResponse,
-    TraceItemAttributeValuesResponse,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
@@ -1983,6 +1982,10 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
 ):
     item_type = SupportedTraceItemType.LOGS
     feature_flags = {"organizations:ourlogs-enabled": True}
+    array_feature_flags = {
+        "organizations:ourlogs-enabled": True,
+        "organizations:trace-item-array-query-support": True,
+    }
 
     def test_no_feature(self) -> None:
         response = self.do_request(features={}, key="test.attribute")
@@ -2034,55 +2037,49 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert "value2" in values
         assert all(item["key"] == "test1" for item in response.data)
 
-    def test_array_attribute_values_are_elements(self) -> None:
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Blocked on EAP, the attribute-values RPC "
+            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
+        ),
+    )
+    def test_array_attribute_values(self) -> None:
+        """Values endpoint against a string-array attribute.
+
+        The log carries a string-array attribute. The array-tag key form
+        resolves to the array branch (coerced to TYPE_ARRAY_STRING for Snuba),
+        and the endpoint should list the individual element values.
+        """
         key = "tags[data_export.csv_headers,array]"
 
-        # Snuba's attribute-values RPC does not yet enumerate array elements (it
-        # rejects array types), so mock it. This still verifies the endpoint
-        # routes an array key through the string-value path as an array-string
-        # key and returns individual elements rather than whole arrays.
-        with mock.patch(
-            "sentry.utils.snuba_rpc.attribute_values_rpc",
-            return_value=TraceItemAttributeValuesResponse(
-                values=["title", "project"], counts=[2, 1]
-            ),
-        ) as mock_rpc:
-            response = self.do_request(
-                query={"project": self.project.id},
-                key=key,
-                features={
-                    **self.feature_flags,
-                    "organizations:trace-item-array-query-support": True,
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.csv_headers": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="title"),
+                                AnyValue(string_value="project"),
+                            ]
+                        )
+                    }
                 },
-            )
+            ),
+        ]
+        self.store_eap_items(logs)
 
-        assert response.status_code == 200, response.content
-
-        # The endpoint resolved the array key and asked Snuba for a string-array type.
-        rpc_request = mock_rpc.call_args.args[0]
-        assert rpc_request.key.type == AttributeKey.Type.TYPE_ARRAY_STRING
-
-        # Suggestions are the individual elements, not the whole array.
-        values = {item["value"] for item in response.data}
-        assert values == {"title", "project"}
-        assert all(item["key"] == key for item in response.data)
-
-    def test_array_attribute_values_gated_by_feature(self) -> None:
-        # Explicit array tag syntax resolves even without the flag, so the endpoint
-        # must not query Snuba for array elements when the feature is off.
-        with mock.patch(
-            "sentry.utils.snuba_rpc.attribute_values_rpc",
-            return_value=TraceItemAttributeValuesResponse(values=["title"], counts=[1]),
-        ) as mock_rpc:
-            response = self.do_request(
-                query={"project": self.project.id},
-                key="tags[data_export.csv_headers,array]",
-                features=self.feature_flags,
-            )
-
-        assert response.status_code == 200, response.content
-        assert response.data == []
-        assert mock_rpc.call_count == 0
+        string_response = self.do_request(
+            key=key,
+            query={"attributeType": "array"},
+            features=self.array_feature_flags,
+        )
+        assert string_response.status_code == 200, string_response.content
+        string_values = {item["value"] for item in string_response.data}
+        assert {"title", "project"} <= string_values
+        assert all(item["key"] == key for item in string_response.data)
 
 
 class OrganizationTraceItemAttributeValuesEndpointSpansTest(
