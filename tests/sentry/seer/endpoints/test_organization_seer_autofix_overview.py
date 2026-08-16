@@ -341,7 +341,9 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
     def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
         run = self._run_for_group(group, "boom")
-        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        pull_request = self._pull_request_for_run(
+            group, run, state=PullRequestLifecycleState.OPEN, draft=False
+        )
         client = self._set_provider_client(
             mock_get_integration,
             PullRequestStatusClientFake(
@@ -354,6 +356,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert client.requested_keys == []
         assert run_data["pullRequests"] == [
             {
+                "id": str(pull_request.id),
                 "number": 123,
                 "url": "https://github.com/getsentry/sentry/pull/123",
                 "status": "open",

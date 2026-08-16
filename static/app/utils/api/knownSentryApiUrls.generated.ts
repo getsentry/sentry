@@ -319,6 +319,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/projects/'
   | '/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/detectors/'
   | '/organizations/$organizationIdOrSlug/prompts-activity/'
+  | '/organizations/$organizationIdOrSlug/pull-requests/$pullRequestId/files/'
   | '/organizations/$organizationIdOrSlug/recent-searches/'
   | '/organizations/$organizationIdOrSlug/related-issues/'
   | '/organizations/$organizationIdOrSlug/relay_usage/'
