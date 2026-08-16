@@ -94,12 +94,14 @@ class _RunMilestones:
 
 
 def _serialize_pull_request(
+    pull_request_id: str,
     number: int,
     url: str | None,
     status: PullRequestStatus | None,
     checks_and_review: PullRequestStatusResult,
 ) -> PullRequestPayload:
     return {
+        "id": pull_request_id,
         "number": number,
         "url": url,
         "status": status,
@@ -173,6 +175,7 @@ def _pull_requests_by_seer_run_id(
             continue
         by_run[link.seer_run_id].append(
             _serialize_pull_request(
+                pull_request_id=str(pr.id),
                 number=number,
                 url=_external_url(pr),
                 status=status_by_pr_id[pr.id],
