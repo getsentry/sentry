@@ -12,6 +12,7 @@ class PullRequestFilePayload(TypedDict):
 
 
 class PullRequestPayload(TypedDict):
+    id: str
     number: int
     url: str | None
     status: str | None
