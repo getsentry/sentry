@@ -470,8 +470,8 @@ class IssueEventSerializerTest(TestCase):
                             "type": "Error",
                             "stacktrace": {
                                 "frames": [
-                                    {"function": "foo", "data": {"resolved_with": "scraping"}},
-                                    {"function": "bar", "data": {"symbolicated": True}},
+                                    {"function": "foo"},
+                                    {"function": "bar"},
                                     {"function": "baz"},
                                 ]
                             },
@@ -482,6 +482,12 @@ class IssueEventSerializerTest(TestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+
+        # resolved_with is written into frame data by symbolication, after
+        # normalization; inject it the same way.
+        frames = event.data["exception"]["values"][0]["stacktrace"]["frames"]
+        frames[0].setdefault("data", {})["resolved_with"] = "scraping"
+        frames[1].setdefault("data", {})["symbolicated"] = True
 
         result = serialize(event, None, IssueEventSerializer())
         assert result["resolvedWith"] == ["scraping"]
