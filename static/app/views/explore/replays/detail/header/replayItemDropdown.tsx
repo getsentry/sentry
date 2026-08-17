@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useExportReplayVideo} from 'sentry/utils/replays/export/useExportReplayVideo';
 import {useDeleteReplay} from 'sentry/utils/replays/hooks/useDeleteReplay';
 import {useShareReplayAtTimestamp} from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
@@ -43,7 +44,31 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
   const canDelete = replayId && projectSlug;
   const onDeleteReplay = useDeleteReplay({replayId, projectSlug});
 
+  const {
+    isSupported: canExportVideo,
+    status: videoExportStatus,
+    exportVideo,
+  } = useExportReplayVideo();
+
   const dropdownItems: MenuItemProps[] = [
+    {
+      key: 'download-video',
+      label: (
+        <Flex align="center" gap="md">
+          <IconDownload />
+          {videoExportStatus === 'idle'
+            ? t('Download Video')
+            : videoExportStatus === 'requesting-permission'
+              ? t('Waiting for screen-share permission…')
+              : videoExportStatus === 'recording'
+                ? t('Recording…')
+                : t('Finishing video…')}
+          <FeatureBadge type="beta" />
+        </Flex>
+      ),
+      onAction: exportVideo,
+      disabled: !canDownload || !canExportVideo || videoExportStatus !== 'idle',
+    },
     {
       key: 'download-rrweb',
       label: (
