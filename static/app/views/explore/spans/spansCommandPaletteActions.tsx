@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {Text} from '@sentry/scraps/text';
+
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,
@@ -37,7 +39,7 @@ function capitalizeLabel(label: string): string {
   return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }
 
-function FilterActions({label}: {label: string}) {
+function FilterActions({summary}: {summary: string}) {
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const addSearchFilter = useAddSearchFilter();
@@ -120,8 +122,15 @@ function FilterActions({label}: {label: string}) {
 
   return (
     <CMDKAction
-      display={{label}}
-      keywords={['search', 'filter', 'narrow', 'where', 'show']}
+      display={{
+        label: t('Filter by'),
+        trailingItem: (
+          <Text size="sm" variant={summary ? 'accent' : 'muted'} ellipsis>
+            {summary || t('None')}
+          </Text>
+        ),
+      }}
+      keywords={['search', 'filter', 'narrow', 'where', 'show', summary]}
     >
       {sortedStringAttributes.length > 0 && (
         <CMDKAction
@@ -178,24 +187,45 @@ function QueryClauseActions() {
   return (
     <CMDKChainedActionScope>
       <CMDKAction
-        display={{label: t('Visualize: %s', visualizeSummary || t('None'))}}
-        keywords={['chart', 'graph', 'aggregate', 'measure']}
+        display={{
+          label: t('Visualize'),
+          trailingItem: (
+            <Text size="sm" variant={visualizeSummary ? 'accent' : 'muted'} ellipsis>
+              {visualizeSummary || t('None')}
+            </Text>
+          ),
+        }}
+        keywords={['chart', 'graph', 'aggregate', 'measure', visualizeSummary]}
       >
         <CMDKAction display={{label: t('Configure visualization')}} onAction={() => {}} />
       </CMDKAction>
       <CMDKAction
-        display={{label: t('Group By: %s', groupBySummary || t('None'))}}
-        keywords={['group', 'facet', 'breakdown']}
+        display={{
+          label: t('Group by'),
+          trailingItem: (
+            <Text size="sm" variant={groupBySummary ? 'accent' : 'muted'} ellipsis>
+              {groupBySummary || t('None')}
+            </Text>
+          ),
+        }}
+        keywords={['group', 'facet', 'breakdown', groupBySummary]}
       >
         <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
       </CMDKAction>
       <CMDKAction
-        display={{label: t('Sort By: %s', sortBySummary || t('None'))}}
-        keywords={['sort', 'order', 'ascending', 'descending']}
+        display={{
+          label: t('Sort by'),
+          trailingItem: (
+            <Text size="sm" variant={sortBySummary ? 'accent' : 'muted'} ellipsis>
+              {sortBySummary || t('None')}
+            </Text>
+          ),
+        }}
+        keywords={['sort', 'order', 'ascending', 'descending', sortBySummary]}
       >
         <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
       </CMDKAction>
-      <FilterActions label={t('Filter By: %s', query || t('None'))} />
+      <FilterActions summary={query} />
     </CMDKChainedActionScope>
   );
 }
