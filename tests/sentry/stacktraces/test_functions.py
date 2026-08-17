@@ -88,6 +88,53 @@ from sentry.stacktraces.functions import (
             "NativeButtons_DoSomeWorkHere_m7486FA1E8A228E806BA045D26ABECC87DFD436B4",
             "NativeButtons_DoSomeWorkHere",
         ],
+        [
+            "List_1_CopyTo_m5180D7A430072A21034A0692CDD1D565ADEE2ABB_gshared",
+            "List_1_CopyTo_gshared",
+        ],
+        [
+            "List_1_CopyTo_m5180D7A430072A21034A0692CDD1D565ADEE2ABB_fshared",
+            "List_1_CopyTo_fshared",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_inline",
+            "LinkedList_1_get_First_inline",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_gshared_inline",
+            "LinkedList_1_get_First_gshared_inline",
+        ],
+        [
+            "LinkedList_1_get_First_mFE6CE39F3C815C988217E69C202C990619E7EB87_fshared_inline",
+            "LinkedList_1_get_First_fshared_inline",
+        ],
+        [
+            "AnimationClipPlayable_Equals_mC5263BEA86C02CEDF93C5B14EAA168883E1DB5F4_AdjustorThunk",
+            "AnimationClipPlayable_Equals_AdjustorThunk",
+        ],
+        [
+            "GetRayIntersectionAllCallback_Invoke_m917AA4108EBDC724AFEF39BFD06A586B7461F497_Multicast",
+            "GetRayIntersectionAllCallback_Invoke_Multicast",
+        ],
+        [
+            "GetRayIntersectionAllCallback_Invoke_m917AA4108EBDC724AFEF39BFD06A586B7461F497_OpenStatic",
+            "GetRayIntersectionAllCallback_Invoke_OpenStatic",
+        ],
+        [
+            "unitytls_x509list_get_ref_t_Invoke_mE7C675B7847FFEF96C25AE757D34CE920AA16EC2_OpenInstance",
+            "unitytls_x509list_get_ref_t_Invoke_OpenInstance",
+        ],
+        [
+            "LocalCertificateSelectionCallback_Invoke_mED43EE6E88B8C653C7D68966F86751B70907591C_OpenGenericVirtual",
+            "LocalCertificateSelectionCallback_Invoke_OpenGenericVirtual",
+        ],
+        # Unknown trailer: not an IL2CPP method symbol, so the hash stays put.
+        # `_RuntimeMethod_var` is a real IL2CPP suffix, but it names a variable
+        # rather than a function and never shows up in a stack trace.
+        [
+            "Scope_Apply_m68049D2D67C5881750236D8E55E464E7A96A2DD7_RuntimeMethod_var",
+            "Scope_Apply_m68049D2D67C5881750236D8E55E464E7A96A2DD7_RuntimeMethod_var",
+        ],
         ["@objc ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         ["ViewController.causeCrash(Any) -> ()", "ViewController.causeCrash"],
         [

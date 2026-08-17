@@ -14,7 +14,15 @@ from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
-_il2cpp_method_hash = re.compile(r"_m[0-9a-f]{40}$", re.IGNORECASE)
+# The hash may be trailed by descriptor suffixes for generic sharing, inlined
+# variants, value type adjustor thunks and delegate invoke thunks. Those describe
+# the generated body rather than the build, so they are matched but kept.
+_il2cpp_method_hash = re.compile(
+    r"_m[0-9a-f]{40}"
+    r"(?=(?:_(?:gshared|fshared|inline|AdjustorThunk|Multicast"
+    r"|Open(?:Static|Instance|Virtual|Interface|GenericVirtual|GenericInterface)))*$)",
+    re.IGNORECASE,
+)
 _gnu_version = re.compile(r"@@?GLIBC_([0-9.]+)$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
 _rust_blanket_re = re.compile(r"^([A-Z] as )")
