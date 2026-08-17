@@ -1,6 +1,5 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-import beautify from 'js-beautify';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
@@ -39,6 +38,10 @@ export function OnboardingCodeSnippet({
   ...props
 }: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
+  const [beautifiedJavaScript, setBeautifiedJavaScript] = useState<{
+    input: string;
+    output: string;
+  }>();
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
     setAuthTokenNodes(replaceTokensWithSpan(element));
@@ -48,6 +51,38 @@ export function OnboardingCodeSnippet({
     () => children.includes(PACKAGE_LOADING_PLACEHOLDER),
     [children]
   );
+
+  useEffect(() => {
+    if (language !== 'javascript') {
+      return;
+    }
+
+    let cancelled = false;
+
+    import('js-beautify')
+      .then(({default: beautify}) => {
+        if (!cancelled) {
+          setBeautifiedJavaScript({
+            input: children,
+            output: beautify.js(children, {
+              indent_size: 2,
+              e4x: true,
+              brace_style: 'preserve-inline',
+            }),
+          });
+        }
+      })
+      .catch(() => null);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [children, language]);
+
+  const displayedCode =
+    language === 'javascript' && beautifiedJavaScript?.input === children
+      ? beautifiedJavaScript.output
+      : children.trim();
 
   return (
     <Fragment>
@@ -59,14 +94,7 @@ export function OnboardingCodeSnippet({
         {...props}
         onAfterHighlight={handleAfterHighlight}
       >
-        {/* Trim whitespace from code snippets and beautify javascript code */}
-        {language === 'javascript'
-          ? beautify.js(children, {
-              indent_size: 2,
-              e4x: true,
-              brace_style: 'preserve-inline',
-            })
-          : children.trim()}
+        {displayedCode}
       </CodeBlock>
       {authTokenNodes.map(node => createPortal(<AuthTokenGenerator />, node))}
     </Fragment>
