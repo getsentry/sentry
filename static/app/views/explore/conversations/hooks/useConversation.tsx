@@ -348,12 +348,13 @@ export function useConversation(
   );
 
   const currentNumberPages = data?.pages.length ?? 0;
+  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
 
   useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+    if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
+  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -396,7 +397,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || hasNextPage,
+    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
     error: isError,
     title,
   };
