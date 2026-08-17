@@ -60,9 +60,11 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
             ? t('Download Video')
             : videoExportStatus === 'requesting-permission'
               ? t('Waiting for screen-share permission…')
-              : videoExportStatus === 'recording'
-                ? t('Recording…')
-                : t('Finishing video…')}
+              : videoExportStatus === 'loading-encoder'
+                ? t('Loading video encoder…')
+                : videoExportStatus === 'recording'
+                  ? t('Recording…')
+                  : t('Finishing video…')}
           <FeatureBadge type="beta" />
         </Flex>
       ),

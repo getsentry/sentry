@@ -37,14 +37,15 @@ let ffmpeg: FFmpeg | null = null;
 let canvas: OffscreenCanvas | null = null;
 let canvasCtx: OffscreenCanvasRenderingContext2D | null = null;
 let handle: FileSystemFileHandle | null = null;
+let filename = 'replay.mp4';
 let fps = 30;
 let frameCount = 0;
 // Serializes frame writes so `frameNNNNNN.png` files land in capture order
 // even though `self.onmessage` handlers can interleave while awaiting I/O.
 let writeChain = Promise.resolve();
 
-function postOutbound(message: EncoderOutboundMessage) {
-  self.postMessage(message);
+function postOutbound(message: EncoderOutboundMessage, transfer: Transferable[] = []) {
+  self.postMessage(message, transfer);
 }
 
 function frameFilename(index: number) {
@@ -55,9 +56,11 @@ async function handleInit(
   width: number,
   height: number,
   frameRate: number,
-  fileHandle: FileSystemFileHandle
+  fileHandle: FileSystemFileHandle | null,
+  downloadFilename: string
 ) {
   handle = fileHandle;
+  filename = downloadFilename;
   fps = frameRate;
   canvas = new OffscreenCanvas(width, height);
   canvasCtx = canvas.getContext('2d');
@@ -73,6 +76,12 @@ async function handleInit(
       'application/wasm'
     ),
   });
+
+  // Loading ffmpeg-core (~30MB fetched from a CDN, then wasm-compiled) takes
+  // real time. The caller must wait for this before it starts sending frames
+  // — otherwise writeFile()/exec() below run against an FFmpeg instance
+  // that hasn't finished loading yet and throw.
+  postOutbound({type: 'ready'});
 }
 
 function handleFrame(frame: VideoFrame) {
@@ -110,7 +119,7 @@ async function handleStop() {
   await writeChain;
 
   try {
-    if (!ffmpeg || !handle) {
+    if (!ffmpeg) {
       throw new Error('Video export was stopped before it started');
     }
 
@@ -139,11 +148,17 @@ async function handleStop() {
     const bytes = new Uint8Array(raw.length);
     bytes.set(raw);
 
-    const writable = await handle.createWritable();
-    await writable.write(bytes);
-    await writable.close();
-
-    postOutbound({type: 'done'});
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      postOutbound({type: 'done'});
+    } else {
+      // No FileSystemFileHandle (e.g. Brave, which disables the File System
+      // Access API outright) — hand the finished video back to the main
+      // thread to trigger a normal browser download instead.
+      postOutbound({type: 'download', bytes, filename}, [bytes.buffer]);
+    }
   } catch (error) {
     postOutbound({
       type: 'error',
@@ -165,7 +180,13 @@ self.onmessage = async (event: MessageEvent<EncoderInboundMessage>) => {
   try {
     switch (message.type) {
       case 'init':
-        await handleInit(message.width, message.height, message.fps, message.handle);
+        await handleInit(
+          message.width,
+          message.height,
+          message.fps,
+          message.handle,
+          message.filename
+        );
         break;
       case 'frame':
         handleFrame(message.frame);
