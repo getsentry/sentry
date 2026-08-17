@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import cast
 
+from pydantic import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -55,6 +57,8 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SolutionArtifactExtras,
 )
+
+logger = logging.getLogger(__name__)
 
 # The autofix pipeline in order. A run is grouped under its furthest-reached
 # milestone; the frontend owns section labels, ordering, and layout.
@@ -217,9 +221,13 @@ def _serialize_issue(group: Group, serialized_group: dict) -> IssuePayload:
 
 def _serialize_code_changes(artifact: CodeChangesArtifactExtras) -> list[CodeChangeFilePayload]:
     files: list[CodeChangeFilePayload] = []
-    for patches in artifact["diffs_by_repo"].values():
+    for patches in artifact.get("diffs_by_repo", {}).values():
         for raw in patches:
-            file_patch = AgentFilePatch.parse_obj(raw)
+            try:
+                file_patch = AgentFilePatch.parse_obj(raw)
+            except ValidationError:
+                logger.warning("seer.autofix_overview.invalid_code_change", exc_info=True)
+                continue
             files.append(
                 {
                     "repoName": file_patch.repo_name,
@@ -247,10 +255,9 @@ def _serialize_run(
         {"oneLineSummary": solution_artifact.get("one_line_summary")} if solution_artifact else None
     )
 
-    code_changes_artifact = run.code_changes_artifact
-    code_changes: list[CodeChangeFilePayload] = (
-        _serialize_code_changes(code_changes_artifact) if code_changes_artifact else []
-    )
+    code_changes: list[CodeChangeFilePayload] = []
+    if run.furthest_milestone == SeerRunMilestoneType.CODE_CHANGES and run.code_changes_artifact:
+        code_changes = _serialize_code_changes(run.code_changes_artifact)
 
     return {
         "groupId": str(group.id),

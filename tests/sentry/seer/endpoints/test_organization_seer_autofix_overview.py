@@ -344,6 +344,19 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert len(runs) == 1
         assert runs[0]["codeChanges"] == []
 
+    def test_code_changes_excluded_once_a_pull_request_exists(self):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        state = self._code_changes_state("rc text")
+        state.blocks[0].pr_commit_shas = {"getsentry/sentry": "abc123"}
+        reconcile_milestones(run, state)
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
+        assert runs[0]["codeChanges"] == []
+
     def test_only_latest_run_per_group_is_shown(self):
         group = self.create_group()
         self._run_for_group(group, "old run")
