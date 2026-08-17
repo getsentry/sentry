@@ -6,6 +6,7 @@ import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/bread
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import {EventContextTimeline} from 'sentry/components/events/eventContextTimeline/eventContextTimeline';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
@@ -310,6 +311,9 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
+      <ErrorBoundary mini message={t('There was a problem loading the event timeline.')}>
+        <EventContextTimeline event={event} />
+      </ErrorBoundary>
       <BreadcrumbsDataSection event={event} group={group} project={project} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>

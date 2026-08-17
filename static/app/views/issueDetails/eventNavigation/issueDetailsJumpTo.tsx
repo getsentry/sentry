@@ -21,6 +21,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.EXCEPTION]: t('Stack Trace'),
   [SectionKey.THREADS]: t('Stack Trace'),
   [SectionKey.REPLAY]: t('Replay'),
+  [SectionKey.EVENT_CONTEXT_TIMELINE]: t('Event Context Timeline'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
   [SectionKey.LOGS]: t('Logs'),
