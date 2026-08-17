@@ -56,7 +56,7 @@ export function ChangedFilesSection({
       </Flex>
       <Container border="primary" radius="md" overflow="hidden" background="secondary">
         {groups.map((group, groupIndex) => (
-          <Fragment key={groupIndex}>
+          <Fragment key={JSON.stringify([group.repoName])}>
             <Flex
               gap="md"
               align="center"
@@ -79,8 +79,8 @@ export function ChangedFilesSection({
                 </Text>
               )}
             </Flex>
-            {group.files.map((file, index) => {
-              const key = `${groupIndex}:${index}:${file.path}`;
+            {group.files.map(file => {
+              const key = JSON.stringify([group.repoName, file.path]);
               const isExpanded = expandedKeys.has(key);
               return (
                 <ChangedFileRow

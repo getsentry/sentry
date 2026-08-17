@@ -85,6 +85,26 @@ describe('CodeChanges', () => {
     expect(screen.getByText('src/c.py')).toBeInTheDocument();
   });
 
+  it('preserves expanded files when repositories and files reorder', async () => {
+    const sentryFile = fileFixture({path: 'src/a.py'}, 'getsentry/sentry');
+    const otherSentryFile = fileFixture({path: 'src/b.py'}, 'getsentry/sentry');
+    const getsentryFile = fileFixture({path: 'src/c.py'}, 'getsentry/getsentry');
+    const {rerender} = render(
+      <CodeChanges codeChanges={[sentryFile, otherSentryFile, getsentryFile]} />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /src\/a\.py/}));
+    expect(await screen.findByText('new')).toBeInTheDocument();
+
+    rerender(<CodeChanges codeChanges={[getsentryFile, otherSentryFile, sentryFile]} />);
+
+    expect(screen.getByRole('button', {name: /src\/a\.py/})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByText('new')).toBeInTheDocument();
+  });
+
   it('renders the deleted-file view for a deleted file', async () => {
     render(
       <CodeChanges
