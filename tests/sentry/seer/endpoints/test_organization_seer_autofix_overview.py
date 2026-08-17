@@ -420,13 +420,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             self.get_success_response(self.organization.slug, qs_params={"expand": "issueStats"})
         assert "stats" not in serializer.call_args.kwargs["collapse"]
 
-    def _pull_request_for_run(self, group, run, *, key="123", **updates):
+    def _pull_request_for_run(
+        self, group, run, *, key="123", name="getsentry/sentry", integration_id=123, **updates
+    ):
         repo = self.create_repo(
             project=group.project,
-            name="getsentry/sentry",
+            name=name,
             provider="integrations:github",
-            integration_id=123,
-            url="https://github.com/getsentry/sentry",
+            integration_id=integration_id,
+            url=f"https://github.com/{name}",
         )
         pull_request = self.create_pull_request(
             repository_id=repo.id, organization_id=self.organization.id, key=key
@@ -434,6 +436,14 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         pull_request.update(**updates)
         self.create_seer_run_pull_request(run=run, pull_request=pull_request)
         return pull_request
+
+    def _run_with_pull_request_milestone(self, group):
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        state = self._code_changes_state("rc text")
+        state.blocks[0].pr_commit_shas = {"getsentry/sentry": "abc123"}
+        reconcile_milestones(run, state)
+        return run
 
     def _set_provider_client(self, mock_get_integration, client):
         installation = mock.Mock()
@@ -668,6 +678,69 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         assert run_data["pullRequests"] == []
+
+    def test_closed_pull_request_is_excluded_from_the_list(self):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        resp = self.get_success_response(self.organization.slug)
+        run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        assert run_data["pullRequests"] == []
+
+    def test_run_with_only_closed_pull_request_is_hidden(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        resp = self.get_success_response(self.organization.slug)
+        assert resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST] == []
+
+    def test_run_with_open_and_closed_pull_requests_shows_only_open(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        open_pr = self._pull_request_for_run(
+            group,
+            run,
+            key="456",
+            name="getsentry/other",
+            integration_id=456,
+            state=PullRequestLifecycleState.OPEN,
+            draft=False,
+        )
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
+        assert [pr["id"] for pr in runs[0]["pullRequests"]] == [str(open_pr.id)]
+
+    @mock.patch(
+        "sentry.seer.endpoints.organization_seer_autofix_overview._MAX_RUNS_PER_MILESTONE", 1
+    )
+    def test_closed_pull_request_run_is_dropped_before_the_cap(self):
+        open_group = self.create_group()
+        open_run = self._run_with_pull_request_milestone(open_group)
+        open_run.update(last_triggered_at=before_now(minutes=5))
+        open_pr = self._pull_request_for_run(
+            open_group, open_run, state=PullRequestLifecycleState.OPEN, draft=False
+        )
+
+        closed_group = self.create_group()
+        closed_run = self._run_with_pull_request_milestone(closed_group)
+        closed_run.update(last_triggered_at=before_now(minutes=1))
+        self._pull_request_for_run(
+            closed_group,
+            closed_run,
+            key="456",
+            name="getsentry/other",
+            integration_id=456,
+            state=PullRequestLifecycleState.CLOSED,
+        )
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        # Cap is 1 and the closed-PR run is newest; dropping it before the cap
+        # keeps the older open-PR run instead of yielding an empty section.
+        assert len(runs) == 1
+        assert [pr["id"] for pr in runs[0]["pullRequests"]] == [str(open_pr.id)]
 
     def test_runs_outside_stats_period_are_excluded(self):
         recent = self.create_group()
