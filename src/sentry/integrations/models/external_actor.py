@@ -41,6 +41,7 @@ class ExternalActor(Model):
             (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
             (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
             (ExternalProviders.PERFORCE, IntegrationProviderSlug.PERFORCE.value),
+            (ExternalProviders.CURSOR_ORIGIN, IntegrationProviderSlug.CURSOR_ORIGIN.value),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
