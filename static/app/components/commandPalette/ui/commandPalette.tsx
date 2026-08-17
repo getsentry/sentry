@@ -35,6 +35,7 @@ import {
 } from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   IconArrow,
@@ -271,7 +272,7 @@ export function CommandPalette({
 
   const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
-    children: actions.map(action => {
+    children: actions.map((action, index) => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
 
       if (action.listItemType === 'section') {
@@ -283,7 +284,11 @@ export function CommandPalette({
             {...{
               leadingItems: null,
               label: (
-                <Text size="sm" bold variant="primary">
+                <Stack
+                  borderTop={index > 0 ? 'primary' : undefined}
+                  paddingTop={index > 0 ? 'md' : undefined}
+                  width="100%"
+                >
                   <Flex align="center" gap="md" width="100%" minWidth={0}>
                     <IconDefaultsProvider size="sm">
                       {action.display.icon}
@@ -292,7 +297,7 @@ export function CommandPalette({
                       {action.display.label}
                     </Text>
                   </Flex>
-                </Text>
+                </Stack>
               ),
               details: action.display.details ? (
                 <Container style={{paddingLeft: '22px'}}>
@@ -586,8 +591,8 @@ export function CommandPalette({
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
   const content = (
-    <Fragment>
-      <Stack align="start" gap="md">
+    <Stack gap="md">
+      <Container padding="xl xl 0">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
             return (
@@ -639,7 +644,7 @@ export function CommandPalette({
                     state.action?.value.prompt ??
                     (state.action?.value.label
                       ? t('Search inside %s...', state.action.value.label)
-                      : t('Search for commands...'))
+                      : t('Search for commands'))
                   }
                   {...inputCollectionProps}
                 />
@@ -675,7 +680,7 @@ export function CommandPalette({
             );
           }}
         </Flex>
-      </Stack>
+      </Container>
 
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery || isLoading ? null : (
@@ -685,7 +690,7 @@ export function CommandPalette({
         <ResultsList
           direction="column"
           width="100%"
-          paddingTop="xs"
+          padding="0 xl"
           maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
           overflow="auto"
         >
@@ -715,7 +720,7 @@ export function CommandPalette({
         </ResultsList>
       )}
       <CommandPaletteHints />
-    </Fragment>
+    </Stack>
   );
 
   return <Body>{content}</Body>;
@@ -1211,9 +1216,8 @@ function makeMenuItemFromAction(
 
 function CommandPaletteHints() {
   return (
-    <Stack padding="0 2xs">
-      <Stack.Separator border="muted" />
-      <Flex align="center" justify="between" padding="xs 0 2xs 0">
+    <Stack borderTop="muted" padding="md xl">
+      <Flex align="center" justify="between">
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
@@ -1230,18 +1234,12 @@ function CommandPaletteHints() {
               {t('Select')}
             </Text>
           </Flex>
-          <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="shift+enter" />
-            <Text size="xs" variant="muted">
-              {t('New tab')}
-            </Text>
-          </Flex>
         </Flex>
         <Flex align="center" gap="xs">
+          <Hotkey variant="debossed" value={VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} />
           <Text size="xs" variant="muted">
-            {t('Toggle Command Palette')}
+            {t('More Actions')}
           </Text>
-          <Hotkey variant="debossed" value="mod+k" />
         </Flex>
       </Flex>
     </Stack>
@@ -1293,11 +1291,6 @@ const ResultsList = styled(Flex)`
     margin: 0;
   }
 
-  ${InnerWrap} {
-    padding-top: ${p => p.theme.space.sm};
-    padding-bottom: ${p => p.theme.space.sm};
-  }
-
   li[data-focused] > ${InnerWrap} {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
@@ -1306,7 +1299,7 @@ const ResultsList = styled(Flex)`
 export const modalCss = (theme: Theme) => {
   return css`
     [role='document'] {
-      padding: ${theme.space.xs};
+      padding: 0;
 
       background-color: ${theme.tokens.background.primary};
       border-radius: ${theme.radius.xl};

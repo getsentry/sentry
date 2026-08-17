@@ -1,6 +1,11 @@
 import {t} from 'sentry/locale';
 
 export const OPEN_COMMAND_PALETTE_SHORTCUTS = ['mod+k', 'mod+shift+p'] as const;
+export const VIEW_KEYBOARD_SHORTCUTS_SHORTCUT = 'control+shift+enter';
+export const VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS = [
+  VIEW_KEYBOARD_SHORTCUTS_SHORTCUT,
+  'mod+shift+k',
+] as const;
 export const TOGGLE_NAVIGATION_SHORTCUT = 'mod+b';
 export const TOGGLE_SEER_SHORTCUTS = [
   'mod+/',
@@ -28,6 +33,10 @@ export function getKeyboardShortcutGroups(): KeyboardShortcutGroup[] {
         {
           label: t('Open command palette'),
           keybindings: OPEN_COMMAND_PALETTE_SHORTCUTS,
+        },
+        {
+          label: t('View keyboard shortcuts'),
+          keybindings: VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS,
         },
         {
           label: t('Toggle navigation'),

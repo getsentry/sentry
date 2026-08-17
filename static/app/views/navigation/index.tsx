@@ -10,6 +10,7 @@ import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/c
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {TOGGLE_NAVIGATION_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
+import {KeyboardShortcutsHotkeys} from 'sentry/components/keyboardShortcuts/useKeyboardShortcutsDrawer';
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -71,6 +72,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   return (
     <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
+      <KeyboardShortcutsHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (

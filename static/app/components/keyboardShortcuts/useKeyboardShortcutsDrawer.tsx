@@ -1,13 +1,16 @@
 import {useCallback} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
+import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useModal} from '@sentry/scraps/modal';
 
+import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {t} from 'sentry/locale';
 
 import {KeyboardShortcutsDrawer} from './keyboardShortcutsDrawer';
 
 export function useKeyboardShortcutsDrawer() {
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const {closeDrawer, openDrawer, isDrawerOpen} = useDrawer();
 
   const openKeyboardShortcutsDrawer = useCallback(() => {
     if (isDrawerOpen) {
@@ -22,5 +25,37 @@ export function useKeyboardShortcutsDrawer() {
     });
   }, [isDrawerOpen, openDrawer]);
 
-  return {openKeyboardShortcutsDrawer};
+  const toggleKeyboardShortcutsDrawer = useCallback(() => {
+    if (isDrawerOpen) {
+      closeDrawer();
+      return;
+    }
+
+    openKeyboardShortcutsDrawer();
+  }, [closeDrawer, isDrawerOpen, openKeyboardShortcutsDrawer]);
+
+  return {openKeyboardShortcutsDrawer, toggleKeyboardShortcutsDrawer};
+}
+
+export function KeyboardShortcutsHotkeys() {
+  const {closeModal, visible} = useModal();
+  const {toggleKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
+
+  useHotkeys(
+    [
+      {
+        match: [...VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS],
+        includeInputs: true,
+        callback: () => {
+          if (visible) {
+            closeModal();
+          }
+          toggleKeyboardShortcutsDrawer();
+        },
+      },
+    ],
+    {capture: true}
+  );
+
+  return null;
 }

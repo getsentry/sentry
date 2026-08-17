@@ -1,8 +1,27 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {KeyboardShortcutsDrawer} from './keyboardShortcutsDrawer';
+import {KeyboardShortcutsHotkeys} from './useKeyboardShortcutsDrawer';
 
 describe('KeyboardShortcutsDrawer', () => {
+  it('toggles from the global shortcut', async () => {
+    render(<KeyboardShortcutsHotkeys />);
+
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    expect(
+      await screen.findByRole('heading', {name: 'Keyboard Shortcuts'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('heading', {name: 'Keyboard Shortcuts'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('shows grouped shortcuts', () => {
     render(<KeyboardShortcutsDrawer />);
 
