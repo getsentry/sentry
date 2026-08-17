@@ -593,7 +593,7 @@ export function CommandPalette({
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
   const content = (
-    <Stack height="450px" maxHeight="80vh">
+    <Stack height="440px" maxHeight="80vh">
       <Stack gap="md" padding="xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
