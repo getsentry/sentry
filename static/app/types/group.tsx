@@ -152,9 +152,7 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
   ),
-  [IssueCategory.GEN_AI]: t(
-    'Wasteful or costly use of generative-AI providers, such as poor prompt-cache utilization.'
-  ),
+  [IssueCategory.GEN_AI]: t('Wasteful or costly use of generative-AI providers.'),
 };
 
 export enum IssueType {
