@@ -10,7 +10,7 @@ import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkCh
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconFilter, IconGraph, IconGroup, IconSort, IconSpan} from 'sentry/icons';
+import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -120,7 +120,7 @@ function FilterActions({label}: {label: string}) {
 
   return (
     <CMDKAction
-      display={{label, icon: <IconFilter />}}
+      display={{label}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
       {sortedStringAttributes.length > 0 && (
@@ -178,28 +178,19 @@ function QueryClauseActions() {
   return (
     <CMDKChainedActionScope>
       <CMDKAction
-        display={{
-          label: t('Visualize: %s', visualizeSummary || t('None')),
-          icon: <IconGraph />,
-        }}
+        display={{label: t('Visualize: %s', visualizeSummary || t('None'))}}
         keywords={['chart', 'graph', 'aggregate', 'measure']}
       >
         <CMDKAction display={{label: t('Configure visualization')}} onAction={() => {}} />
       </CMDKAction>
       <CMDKAction
-        display={{
-          label: t('Group By: %s', groupBySummary || t('None')),
-          icon: <IconGroup />,
-        }}
+        display={{label: t('Group By: %s', groupBySummary || t('None'))}}
         keywords={['group', 'facet', 'breakdown']}
       >
         <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
       </CMDKAction>
       <CMDKAction
-        display={{
-          label: t('Sort By: %s', sortBySummary || t('None')),
-          icon: <IconSort />,
-        }}
+        display={{label: t('Sort By: %s', sortBySummary || t('None'))}}
         keywords={['sort', 'order', 'ascending', 'descending']}
       >
         <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
