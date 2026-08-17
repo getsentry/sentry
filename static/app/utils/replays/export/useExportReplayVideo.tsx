@@ -1,15 +1,26 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {FFmpeg} from '@ffmpeg/ffmpeg';
+import {toBlobURL} from '@ffmpeg/util';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import type {EncoderOutboundMessage} from 'sentry/utils/replays/export/replayVideoEncoderMessages';
 import {canExportReplayAsVideo} from 'sentry/utils/replays/export/replayVideoExportSupport';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const CAPTURE_FPS = 30;
+const FRAME_FILENAME_DIGITS = 6;
+
+// `@ffmpeg/core`'s ~30MB of wasm+glue is loaded from a CDN at runtime rather
+// than bundled, per the library's own recommended usage (bundling
+// ffmpeg-core.js through webpack/rspack's normal JS pipeline breaks its
+// internal wasm-loading paths). That means this feature requires outbound
+// access to unpkg.com; a strict CSP or an air-gapped/self-hosted deployment
+// without internet access will cause `load()` to fail.
+const FFMPEG_CORE_VERSION = '0.12.10'; // Keep in sync with the installed @ffmpeg/core version.
+const FFMPEG_CORE_BASE_URL = `https://unpkg.com/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm`;
 
 type ExportStatus =
   | 'idle'
@@ -23,55 +34,29 @@ interface ExportState {
   status: ExportStatus;
 }
 
-/**
- * Picks where to save the export, if the browser supports it.
- *
- * Returns null (rather than throwing) both when `showSaveFilePicker` doesn't
- * exist at all, and when it exists but doesn't actually work — some
- * Chromium-based browsers (Brave, notably) disable the File System Access
- * API outright, and calling it there throws rather than being absent. Either
- * way the caller falls back to a normal browser download instead of failing
- * the whole export. A real user cancellation (they saw the picker and hit
- * Cancel) is the one case that should still abort the export, so that's
- * re-thrown for the caller's own cancellation handling.
- */
-async function pickSaveHandle(
-  suggestedName: string
-): Promise<FileSystemFileHandle | null> {
-  if (typeof window.showSaveFilePicker !== 'function') {
-    return null;
-  }
-  try {
-    return await window.showSaveFilePicker({
-      suggestedName,
-      types: [{description: 'MP4 video', accept: {'video/mp4': ['.mp4']}}],
-    });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw error;
-    }
-    return null;
-  }
+function frameFilename(index: number) {
+  return `frame${String(index).padStart(FRAME_FILENAME_DIGITS, '0')}.png`;
 }
 
 /**
  * Captures the live replay player (a real iframe + DOM, not a canvas) and
- * exports it as an MP4.
+ * downloads it as an MP4. Runs entirely on the main thread for now — the
+ * only backgrounding is whatever `@ffmpeg/ffmpeg` does internally (it spins
+ * up its own worker to run the actual wasm encode/mux).
  *
  * Pipeline:
  * 1. `getDisplayMedia({preferCurrentTab: true})` captures this tab.
  * 2. Chrome's Region Capture API (`CropTarget` + `track.cropTo`) crops that
  *    capture down to just the player's mount element, at its rendered
  *    proportions, so the output isn't the whole Sentry UI.
- * 3. `MediaStreamTrackProcessor` turns the cropped track into a stream of
- *    raw `VideoFrame`s, which are transferred (not copied) into a worker.
- * 4. The worker rasterizes each frame to PNG and writes it into ffmpeg.wasm's
- *    virtual filesystem. Once capture finishes, a single `ffmpeg -i
- *    frame%06d.png ... out.mp4` pass muxes the whole video.
- * 5. If `showSaveFilePicker` is available, the result is written to the
- *    `FileSystemWritableFileStream` it returned. Otherwise (e.g. Brave,
- *    which disables that API) the finished video is sent back to the main
- *    thread and downloaded the normal way.
+ * 3. `MediaStreamTrackProcessor` turns the cropped track into raw
+ *    `VideoFrame`s, each rasterized to PNG via `OffscreenCanvas` and written
+ *    into ffmpeg.wasm's virtual filesystem.
+ * 4. Once capture finishes, a single `ffmpeg -i frame%06d.png ... out.mp4`
+ *    pass muxes the whole video, and the result is downloaded as a normal
+ *    browser download (a plain Blob + `<a download>`, not
+ *    `showSaveFilePicker` — that API doesn't exist in every Chromium-based
+ *    browser; Brave disables it outright with no way to enable it).
  */
 export function useExportReplayVideo() {
   const {rootEl, dimensions, isFinished, setCurrentTime, togglePlayPause} =
@@ -80,10 +65,15 @@ export function useExportReplayVideo() {
 
   const [state, setState] = useState<ExportState>({status: 'idle', progressPct: 0});
 
-  const workerRef = useRef<Worker | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const readerRef = useRef<ReadableStreamDefaultReader<VideoFrame> | null>(null);
+  const ffmpegRef = useRef<FFmpeg | null>(null);
   const cancelledRef = useRef(false);
+  const isFinishedRef = useRef(isFinished);
+
+  useEffect(() => {
+    isFinishedRef.current = isFinished;
+  }, [isFinished]);
 
   const cleanup = useCallback(() => {
     cancelledRef.current = true;
@@ -91,8 +81,8 @@ export function useExportReplayVideo() {
     readerRef.current = null;
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
-    workerRef.current?.terminate();
-    workerRef.current = null;
+    ffmpegRef.current?.terminate();
+    ffmpegRef.current = null;
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
@@ -108,13 +98,10 @@ export function useExportReplayVideo() {
     }
 
     cancelledRef.current = false;
-    setState({status: 'requesting-permission', progressPct: 0});
-
     const filename = `${replay?.getReplay().id ?? 'replay'}.mp4`;
 
     try {
-      const handle = await pickSaveHandle(filename);
-
+      setState({status: 'requesting-permission', progressPct: 0});
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         preferCurrentTab: true,
         video: true,
@@ -134,94 +121,33 @@ export function useExportReplayVideo() {
       const width = settings.width ?? dimensions.width;
       const height = settings.height ?? dimensions.height;
 
-      const worker = new Worker(
-        new URL('sentry/utils/replays/export/replayVideoEncoder.worker', import.meta.url),
-        {type: 'module'}
-      );
-      workerRef.current = worker;
-
-      let isReady = false;
-      let rejectReady: (error: Error) => void = () => {};
-      const ready = new Promise<void>((resolve, reject) => {
-        rejectReady = reject;
-        worker.onmessage = (event: MessageEvent<EncoderOutboundMessage>) => {
-          const message = event.data;
-          if (message.type === 'ready') {
-            isReady = true;
-            resolve();
-          } else if (message.type === 'capturing') {
-            const totalFrames = ((replay?.getDurationMs() ?? 0) / 1000) * CAPTURE_FPS;
-            setState(prev => ({
-              ...prev,
-              progressPct: totalFrames
-                ? Math.min(1, message.framesWritten / totalFrames)
-                : prev.progressPct,
-            }));
-          } else if (message.type === 'encoding') {
-            setState(prev => ({...prev, progressPct: message.ratio}));
-          } else if (message.type === 'download') {
-            const blob = new Blob([message.bytes], {type: 'video/mp4'});
-            const url = URL.createObjectURL(blob);
-            downloadFromHref(message.filename, url);
-            URL.revokeObjectURL(url);
-            cleanup();
-            setState({status: 'idle', progressPct: 0});
-          } else if (message.type === 'error') {
-            // eslint-disable-next-line no-console
-            console.error('[replay-video-export]', message.message);
-            Sentry.captureMessage('Replay video export failed', {extra: {message}});
-            if (isReady) {
-              // `ready` already resolved, so nothing is awaiting its
-              // rejection below — report and clean up right here instead.
-              addErrorMessage(t('Could not export replay as video. Please try again.'));
-              cleanup();
-              setState({status: 'idle', progressPct: 0});
-            } else {
-              // Rejecting routes this through the `await ready` below, whose
-              // surrounding try/catch handles the toast + cleanup once.
-              reject(new Error(message.message));
-            }
-          } else if (message.type === 'done') {
-            cleanup();
-            setState({status: 'idle', progressPct: 0});
-          }
-        };
-      });
-
-      worker.onerror = (event: ErrorEvent) => {
-        // Fires if the worker script itself fails to load or throws outside
-        // the try/catch in its onmessage handler (e.g. blocked by CSP,
-        // network failure fetching the chunk, syntax error).
-        // eslint-disable-next-line no-console
-        console.error(
-          '[replay-video-export] worker failed to load',
-          event.message,
-          event
-        );
-        Sentry.captureException(event.error ?? new Error(event.message));
-        if (isReady) {
-          addErrorMessage(t('Could not export replay as video. Please try again.'));
-          cleanup();
-          setState({status: 'idle', progressPct: 0});
-        } else {
-          // Routes through the `await ready` below via its try/catch,
-          // instead of leaving that await hanging forever.
-          rejectReady(event.error ?? new Error(event.message));
-        }
-      };
-      worker.postMessage({
-        type: 'init',
-        handle,
-        width,
-        height,
-        fps: CAPTURE_FPS,
-        filename,
-      });
-
       setState({status: 'loading-encoder', progressPct: 0});
-      await ready;
+      const ffmpeg = new FFmpeg();
+      ffmpegRef.current = ffmpeg;
+      ffmpeg.on('progress', ({progress}) => {
+        setState(prev => ({
+          ...prev,
+          progressPct: Math.max(0, Math.min(1, progress)),
+        }));
+      });
+      await ffmpeg.load({
+        coreURL: await toBlobURL(
+          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
+          'text/javascript'
+        ),
+        wasmURL: await toBlobURL(
+          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
+          'application/wasm'
+        ),
+      });
       if (cancelledRef.current) {
         return;
+      }
+
+      const canvas = new OffscreenCanvas(width, height);
+      const canvasCtx = canvas.getContext('2d');
+      if (!canvasCtx) {
+        throw new Error('Could not create a canvas context to capture frames');
       }
 
       const processor = new MediaStreamTrackProcessor({track});
@@ -233,48 +159,80 @@ export function useExportReplayVideo() {
       togglePlayPause(true);
       setState({status: 'recording', progressPct: 0});
 
-      const pump = async () => {
-        while (!cancelledRef.current) {
-          const {value: frame, done} = await reader.read();
-          if (done || !frame) {
-            break;
-          }
-          worker.postMessage({type: 'frame', frame}, [frame]);
+      let frameCount = 0;
+      const totalFrames = ((replay?.getDurationMs() ?? 0) / 1000) * CAPTURE_FPS;
+      while (!cancelledRef.current && !isFinishedRef.current) {
+        const {value: frame, done} = await reader.read();
+        if (done || !frame) {
+          break;
         }
-      };
-      pump().catch(error => {
-        // eslint-disable-next-line no-console
-        console.error('[replay-video-export]', error);
-        Sentry.captureException(error);
-      });
+        try {
+          canvasCtx.drawImage(frame, 0, 0, width, height);
+          const blob = await canvas.convertToBlob({type: 'image/png'});
+          const data = new Uint8Array(await blob.arrayBuffer());
+          await ffmpeg.writeFile(frameFilename(frameCount), data);
+          frameCount += 1;
+          const framesWritten = frameCount;
+          setState(prev => ({
+            ...prev,
+            progressPct: totalFrames
+              ? Math.min(1, framesWritten / totalFrames)
+              : prev.progressPct,
+          }));
+        } finally {
+          frame.close();
+        }
+      }
+      readerRef.current = null;
+      streamRef.current?.getTracks().forEach(mediaTrack => mediaTrack.stop());
+      streamRef.current = null;
+
+      if (cancelledRef.current) {
+        return;
+      }
+
+      setState({status: 'finalizing', progressPct: 0});
+      await ffmpeg.exec([
+        '-framerate',
+        String(CAPTURE_FPS),
+        '-start_number',
+        '0',
+        '-i',
+        `frame%0${FRAME_FILENAME_DIGITS}d.png`,
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-movflags',
+        '+faststart',
+        'out.mp4',
+      ]);
+
+      const data = await ffmpeg.readFile('out.mp4');
+      const raw = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+      const bytes = new Uint8Array(raw.length);
+      bytes.set(raw);
+
+      const blob = new Blob([bytes], {type: 'video/mp4'});
+      const url = URL.createObjectURL(blob);
+      downloadFromHref(filename, url);
+      URL.revokeObjectURL(url);
     } catch (error) {
       const isUserCancellation =
         error instanceof DOMException &&
-        // AbortError: the save-file picker was cancelled.
-        // NotAllowedError: the tab-share (getDisplayMedia) prompt was
-        // denied or dismissed.
-        (error.name === 'AbortError' || error.name === 'NotAllowedError');
+        // The tab-share (getDisplayMedia) prompt was denied or dismissed.
+        error.name === 'NotAllowedError';
       if (!isUserCancellation) {
         // eslint-disable-next-line no-console
         console.error('[replay-video-export]', error);
         Sentry.captureException(error);
         addErrorMessage(t('Could not export replay as video. Please try again.'));
       }
+    } finally {
       cleanup();
       setState({status: 'idle', progressPct: 0});
     }
   }, [rootEl, dimensions, replay, setCurrentTime, togglePlayPause, cleanup]);
-
-  // Once the replay finishes playing, stop capturing and let the worker
-  // finalize + close (or hand back) the file.
-  useEffect(() => {
-    if (state.status === 'recording' && isFinished) {
-      setState(prev => ({...prev, status: 'finalizing'}));
-      readerRef.current?.cancel().catch(() => {});
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      workerRef.current?.postMessage({type: 'stop'});
-    }
-  }, [state.status, isFinished]);
 
   const cancelExport = useCallback(() => {
     cleanup();

@@ -27,16 +27,3 @@ declare class MediaStreamTrackProcessor {
   constructor(init: MediaStreamTrackProcessorInit);
   readonly readable: ReadableStream<VideoFrame>;
 }
-
-interface SaveFilePickerOptions {
-  excludeAcceptAllOption?: boolean;
-  suggestedName?: string;
-  types?: Array<{
-    accept: Record<string, string[]>;
-    description?: string;
-  }>;
-}
-
-interface Window {
-  showSaveFilePicker?(options?: SaveFilePickerOptions): Promise<FileSystemFileHandle>;
-}
