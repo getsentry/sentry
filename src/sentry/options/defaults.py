@@ -3964,6 +3964,22 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for LLM prompt-cache usage issue detection
+register(
+    "issue-detection.llm-cache-detection.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allow list for projects with LLM prompt-cache usage issue detection enabled
+register(
+    "issue-detection.llm-cache-detection.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",

@@ -691,6 +691,9 @@ class Referrer(StrEnum):
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
     ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
+    ISSUES_LLM_CACHE_DETECTION_CALL_SITES = "issues.llm_cache_detection.call_sites"
+    ISSUES_LLM_CACHE_DETECTION_CACHE_PRESENCE = "issues.llm_cache_detection.cache_presence"
+    ISSUES_LLM_CACHE_DETECTION_TRACE_SAMPLES = "issues.llm_cache_detection.trace_samples"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
