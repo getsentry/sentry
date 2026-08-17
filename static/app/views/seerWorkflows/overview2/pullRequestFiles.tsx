@@ -91,7 +91,6 @@ export function PullRequestFiles({
   pullRequest: OverviewPullRequest;
 }) {
   const files = pullRequest.files;
-  // Keyed by row index, not path: a rename/copy can repeat a path across rows.
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
 
   const {data, isPending, isError} = useQuery({

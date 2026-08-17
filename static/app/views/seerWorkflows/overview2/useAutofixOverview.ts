@@ -56,8 +56,9 @@ export function useAutofixOverview({
   return {
     data,
     isPending: !data,
-    // Only a bootstrap failure with nothing to show is a real error.
-    isError: baseQuery.isError && !data,
+    // Error only once both fail with nothing to show; base alone may still be
+    // recovered by an in-flight enriched call.
+    isError: baseQuery.isError && enrichedQuery.isError && !data,
     // Cold-load shimmer only: base is painted but no enriched payload yet.
     enrichmentPending: Boolean(data) && !enrichedQuery.data && !enrichedQuery.isError,
     // A later refetch keeps the list up; the caller shows a spinner meanwhile.

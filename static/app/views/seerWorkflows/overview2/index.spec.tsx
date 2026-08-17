@@ -14,8 +14,13 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview2 from 'sentry/views/seerWorkflows/overview2';
-import type {OverviewRunIssue} from 'sentry/views/seerWorkflows/overview2/types';
+import type {
+  AutofixOverviewResponse,
+  OverviewPullRequest,
+  OverviewRunIssue,
+} from 'sentry/views/seerWorkflows/overview2/types';
 
 describe('AutofixOverview2', () => {
   const organization = OrganizationFixture({
@@ -43,8 +48,15 @@ describe('AutofixOverview2', () => {
     };
   }
 
-  function pullRequestFixture({number, status}: {number: number; status: string | null}) {
+  function pullRequestFixture({
+    number,
+    status,
+  }: {
+    number: number;
+    status: PullRequestStatus | null;
+  }): OverviewPullRequest {
     return {
+      id: String(number),
       number,
       url: `https://github.com/getsentry/sentry/pull/${number}`,
       status,
@@ -89,9 +101,9 @@ describe('AutofixOverview2', () => {
     enrichedStatusCode,
     baseStatusCode,
   }: {
-    base: Record<string, unknown[]>;
+    base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
-    enriched?: Record<string, unknown[]>;
+    enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
     enrichedAsyncDelay?: number | Promise<void>;
     enrichedStatusCode?: number;
   }) {
@@ -417,7 +429,8 @@ describe('AutofixOverview2', () => {
   it('renders the changed files of an open pull request', async () => {
     // Without `expand=scmInfo` the endpoint still returns the pull request, but
     // its SCM-sourced fields come back empty.
-    const unenrichedPullRequest = {
+    const unenrichedPullRequest: OverviewPullRequest = {
+      id: '42',
       number: 42,
       url: 'https://github.com/getsentry/sentry/pull/42',
       status: 'open',
@@ -474,7 +487,8 @@ describe('AutofixOverview2', () => {
   });
 
   it('renders the newest actionable pull request, not the oldest link', async () => {
-    const closedPullRequest = {
+    const closedPullRequest: OverviewPullRequest = {
+      id: '1',
       number: 1,
       url: 'https://github.com/getsentry/sentry/pull/1',
       status: 'closed',
@@ -484,7 +498,8 @@ describe('AutofixOverview2', () => {
     };
     // The endpoint enriches open/draft links only, so the actionable PR is the
     // one carrying badges and files.
-    const openPullRequest = {
+    const openPullRequest: OverviewPullRequest = {
+      id: '2',
       number: 2,
       url: 'https://github.com/getsentry/sentry/pull/2',
       status: 'open',
@@ -575,6 +590,7 @@ describe('AutofixOverview2', () => {
             ...rootCauseRun,
             pullRequests: [
               {
+                id: '42',
                 number: 42,
                 url: 'https://github.com/getsentry/sentry/pull/42',
                 status: 'open',
@@ -641,6 +657,7 @@ describe('AutofixOverview2', () => {
             ...rootCauseRun,
             pullRequests: [
               {
+                id: '42',
                 number: 42,
                 url: 'https://github.com/getsentry/sentry/pull/42',
                 status: 'open',
@@ -823,8 +840,11 @@ describe('AutofixOverview2', () => {
 
     renderPage();
 
+    // Error waits for the enriched request (retry: 1) to also fail.
     expect(
-      await screen.findByText('There was an error loading data.')
+      await screen.findByText('There was an error loading data.', undefined, {
+        timeout: 5000,
+      })
     ).toBeInTheDocument();
   });
 });
