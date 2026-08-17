@@ -149,6 +149,7 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
+  repoName?: string | null;
 }
 
 export interface PullRequestFileDiff {
