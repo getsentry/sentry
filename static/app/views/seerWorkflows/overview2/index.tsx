@@ -134,13 +134,7 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
       ) : isPending ? (
         <LoadingIndicator />
       ) : populatedSections.length === 0 ? (
-        <EmptyState
-          padding="3xl"
-          title={t('You don’t have any Autofix runs...yet.')}
-          description={t(
-            'Seer hasn’t performed Autofix on any of your issues yet. Check back in tomorrow!'
-          )}
-        />
+        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
       ) : (
         <Stack gap="lg">
           {populatedSections.map(({key, runs}) => {

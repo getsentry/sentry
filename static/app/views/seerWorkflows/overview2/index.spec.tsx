@@ -213,11 +213,6 @@ describe('AutofixOverview2', () => {
     expect(
       await screen.findByText('You don’t have any Autofix runs...yet.')
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Seer hasn’t performed Autofix on any of your issues yet. Check back in tomorrow!'
-      )
-    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '14D'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
