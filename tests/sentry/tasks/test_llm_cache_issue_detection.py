@@ -19,6 +19,7 @@ from sentry.tasks.llm_cache_issue_detection import (
 from sentry.testutils.cases import TestCase
 
 INGEST_FEATURE = LLMCacheUsageGroupType.build_ingest_feature_name()
+DETECTION_FEATURE = "organizations:llm-cache-detection"
 
 SAMPLE_TRACE_IDS = ["a" * 32, "b" * 32]
 
@@ -98,52 +99,27 @@ GEMINI_ZERO_STATS = CallSiteStats(
 
 @patch("sentry.tasks.llm_cache_issue_detection.detect_llm_cache_issues_for_project.delay")
 class RunLLMCacheIssueDetectionTest(TestCase):
-    def detection_options(
-        self, *, enabled: bool, allowlist: list[int]
-    ) -> AbstractContextManager[Any]:
-        return self.options(
-            {
-                "issue-detection.llm-cache-detection.enabled": enabled,
-                "issue-detection.llm-cache-detection.projects-allowlist": allowlist,
-            }
-        )
-
     def test_dispatches_sub_tasks_when_enabled(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
 
-        with (
-            self.detection_options(enabled=True, allowlist=[project.id]),
-            self.feature(INGEST_FEATURE),
-        ):
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
             run_llm_cache_issue_detection()
 
         assert mock_delay.called
         assert mock_delay.call_args[0][0] == project.id
 
-    def test_skips_when_disabled(self, mock_delay: MagicMock) -> None:
-        project = self.create_project()
+    def test_skips_when_detection_feature_disabled(self, mock_delay: MagicMock) -> None:
+        self.create_project()
 
-        with (
-            self.detection_options(enabled=False, allowlist=[project.id]),
-            self.feature(INGEST_FEATURE),
-        ):
-            run_llm_cache_issue_detection()
-
-        assert not mock_delay.called
-
-    def test_skips_when_not_allowlisted(self, mock_delay: MagicMock) -> None:
-        with (
-            self.detection_options(enabled=True, allowlist=[]),
-            self.feature(INGEST_FEATURE),
-        ):
+        with self.feature({DETECTION_FEATURE: False, INGEST_FEATURE: True}):
             run_llm_cache_issue_detection()
 
         assert not mock_delay.called
 
     def test_skips_without_ingest_feature(self, mock_delay: MagicMock) -> None:
-        project = self.create_project()
+        self.create_project()
 
-        with self.detection_options(enabled=True, allowlist=[project.id]):
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: False}):
             run_llm_cache_issue_detection()
 
         assert not mock_delay.called
@@ -154,8 +130,8 @@ class RunLLMCacheIssueDetectionTest(TestCase):
 @patch("sentry.tasks.llm_cache_issue_detection.count_spans_with_cache_attributes")
 @patch("sentry.tasks.llm_cache_issue_detection.fetch_call_site_stats")
 class DetectLLMCacheIssuesForProjectTest(TestCase):
-    def enabled_options(self) -> AbstractContextManager[Any]:
-        return self.options({"issue-detection.llm-cache-detection.enabled": True})
+    def enabled_features(self) -> AbstractContextManager[Any]:
+        return self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True})
 
     def test_produces_occurrences_for_flagged_groups(
         self,
@@ -173,7 +149,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         # Both flagged groups have recorded cache activity: no gap probe needed.
@@ -260,7 +236,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [NOT_CACHING_STATS, ANCHOR_STATS]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
             detect_llm_cache_issues_for_project(project.id)
 
@@ -280,7 +256,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_count_cache_attrs.return_value = 0
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_count_cache_attrs.call_count == 1
@@ -298,7 +274,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_count_cache_attrs.return_value = 5
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_produce.call_count == 1
@@ -315,7 +291,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [GEMINI_ZERO_STATS]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert not mock_count_cache_attrs.called
@@ -339,7 +315,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             project=project, group=group, hash=hash_fingerprint([fingerprint])[0]
         )
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert not mock_produce.called
@@ -359,7 +335,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [NOT_CACHING_STATS]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_produce.call_count == 1
@@ -379,7 +355,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_produce.call_count == FINDINGS_PER_PROJECT_LIMIT
@@ -414,7 +390,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
                 hash=hash_fingerprint([create_fingerprint(CacheOutcome.NOT_CACHING, stats)])[0],
             )
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_produce.call_count == FINDINGS_PER_PROJECT_LIMIT
@@ -439,14 +415,14 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ]
         mock_count_cache_attrs.return_value = 0
 
-        with self.enabled_options(), self.feature(INGEST_FEATURE):
+        with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_count_cache_attrs.call_count == MAX_PRESENCE_PROBES_PER_PROJECT
         assert not mock_fetch_traces.called
         assert not mock_produce.called
 
-    def test_skips_when_option_disabled(
+    def test_skips_when_detection_feature_disabled(
         self,
         mock_fetch_stats: MagicMock,
         mock_count_cache_attrs: MagicMock,
@@ -455,10 +431,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
 
-        with (
-            self.options({"issue-detection.llm-cache-detection.enabled": False}),
-            self.feature(INGEST_FEATURE),
-        ):
+        with self.feature({DETECTION_FEATURE: False, INGEST_FEATURE: True}):
             detect_llm_cache_issues_for_project(project.id)
 
         assert not mock_fetch_stats.called
@@ -472,7 +445,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
 
-        with self.enabled_options():
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: False}):
             detect_llm_cache_issues_for_project(project.id)
 
         assert not mock_fetch_stats.called

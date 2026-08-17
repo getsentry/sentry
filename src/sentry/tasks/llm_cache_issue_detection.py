@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
+from collections.abc import Generator
 
-from sentry import options
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.llm_cache_detection.detection import (
@@ -25,12 +26,16 @@ from sentry.llm_cache_detection.query import (
     fetch_call_site_stats,
     fetch_sample_trace_ids,
 )
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.llm_cache_issue_detection")
+
+LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
 
 # Matches the group type's default creation quota (5/hour/project): anything
 # beyond it would be rate-limit-dropped by the occurrence consumer anyway.
@@ -39,44 +44,47 @@ FINDINGS_PER_PROJECT_LIMIT = 5
 MAX_PRESENCE_PROBES_PER_PROJECT = 20
 
 
+def _all_active_project_ids_by_org() -> Generator[tuple[int, int]]:
+    yield from RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "organization_id"),
+        result_value_getter=lambda item: item[0],
+    )
+
+
 @instrumented_task(
     name="sentry.tasks.llm_cache_issue_detection.run_llm_cache_issue_detection",
     namespace=issues_tasks,
     processing_deadline_duration=120,
 )
 def run_llm_cache_issue_detection() -> None:
-    """Fan out per-project detection tasks for allowlisted projects."""
-    if not options.get("issue-detection.llm-cache-detection.enabled"):
-        return
+    """Fan out per-project detection tasks for orgs with the feature enabled."""
+    project_ids_by_org: dict[int, list[int]] = defaultdict(list)
+    for project_id, organization_id in _all_active_project_ids_by_org():
+        project_ids_by_org[organization_id].append(project_id)
 
-    project_ids = options.get("issue-detection.llm-cache-detection.projects-allowlist")
-    if not project_ids:
-        return
-
-    projects = Project.objects.filter(
-        id__in=project_ids, status=ObjectStatus.ACTIVE
-    ).select_related("organization")
-
-    projects_checked_count = 0
     projects_dispatched_count = 0
-    for project in projects:
-        projects_checked_count += 1
-        if not LLMCacheUsageGroupType.allow_ingest(project.organization):
+    for organization_id, project_ids in project_ids_by_org.items():
+        try:
+            organization = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            continue
+
+        if not (
+            features.has(LLM_CACHE_DETECTION_FEATURE, organization)
+            and LLMCacheUsageGroupType.allow_ingest(organization)
+        ):
             metrics.incr(
                 "llm_cache_issue_detection.projects.skipped",
-                tags={"reason": "ingest_feature_disabled"},
+                amount=len(project_ids),
+                tags={"reason": "feature_disabled"},
                 sample_rate=1.0,
             )
             continue
 
-        detect_llm_cache_issues_for_project.delay(project.id)
-        projects_dispatched_count += 1
+        for project_id in project_ids:
+            detect_llm_cache_issues_for_project.delay(project_id)
+            projects_dispatched_count += 1
 
-    metrics.incr(
-        "llm_cache_issue_detection.projects.checked",
-        amount=projects_checked_count,
-        sample_rate=1.0,
-    )
     metrics.incr(
         "llm_cache_issue_detection.projects.dispatched",
         amount=projects_dispatched_count,
@@ -91,25 +99,19 @@ def run_llm_cache_issue_detection() -> None:
 )
 def detect_llm_cache_issues_for_project(project_id: int) -> None:
     """Classify a project's gen-AI call sites and produce occurrences for flagged ones."""
-    if not options.get("issue-detection.llm-cache-detection.enabled"):
-        metrics.incr(
-            "llm_cache_issue_detection.projects.skipped",
-            tags={"reason": "disabled"},
-            sample_rate=1.0,
-        )
-        return
-
     try:
         project = Project.objects.select_related("organization").get(id=project_id)
     except Project.DoesNotExist:
-        # A deleted project can linger on the allowlist; nothing to detect.
         logger.warning("Project does not exist", extra={"project_id": project_id})
         return
 
-    if not LLMCacheUsageGroupType.allow_ingest(project.organization):
+    if not (
+        features.has(LLM_CACHE_DETECTION_FEATURE, project.organization)
+        and LLMCacheUsageGroupType.allow_ingest(project.organization)
+    ):
         metrics.incr(
             "llm_cache_issue_detection.projects.skipped",
-            tags={"reason": "ingest_feature_disabled"},
+            tags={"reason": "feature_disabled"},
             sample_rate=1.0,
         )
         return
