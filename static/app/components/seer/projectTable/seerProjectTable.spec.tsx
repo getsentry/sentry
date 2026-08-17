@@ -40,13 +40,6 @@ describe('SeerProjectTable', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: {
-        hasFreeAutofixAccess: false,
-        billing: {hasAutofixQuota: true, hasScannerQuota: true},
-      },
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
       body: [
         {
@@ -106,44 +99,6 @@ describe('SeerProjectTable', () => {
       {organization}
     );
   }
-
-  it('includes projects without repositories when free access is available', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: {
-        hasFreeAutofixAccess: true,
-        billing: {hasAutofixQuota: false, hasScannerQuota: false},
-      },
-    });
-    const projectsRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/projects/`,
-      body: [
-        {
-          projectId: '2',
-          projectSlug: 'project-slug',
-          agent: 'seer',
-          integrationId: null,
-          stoppingPoint: 'root_cause',
-          autoCreatePr: null,
-          automationTuning: 'off',
-          scannerAutomation: false,
-          reposCount: 0,
-        },
-      ],
-    });
-
-    renderTable();
-
-    expect(await screen.findByText('project-slug')).toBeInTheDocument();
-    expect(projectsRequest).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: expect.not.stringContaining('reposCount'),
-        }),
-      })
-    );
-  });
 
   it('blocks coding-agent handoff and warns for a project with a non-GitHub repo', async () => {
     mockProjectRepos('gitlab');

@@ -58,13 +58,14 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
-  if (isSetupLoading) {
-    return <LoadingIndicator />;
-  }
-
   const isAutofixRoute = location.pathname.includes('/seer/projects/');
-  if (hasFreeAutofixAccess && isAutofixRoute) {
-    return <Outlet />;
+  if (isAutofixRoute) {
+    if (isSetupLoading) {
+      return <LoadingIndicator />;
+    }
+    if (hasFreeAutofixAccess) {
+      return <Outlet />;
+    }
   }
 
   if (!showNewSeer(organization) && !hasCodeReviewBeta) {
