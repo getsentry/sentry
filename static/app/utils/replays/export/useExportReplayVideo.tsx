@@ -145,11 +145,17 @@ export function useExportReplayVideo() {
   }, []);
 
   const exportVideo = useCallback(async () => {
+    const t0 = performance.now();
+    const elapsed = () => `t+${Math.round(performance.now() - t0)}ms`;
+    logDebug(`export requested (${elapsed()})`);
+
     if (!canExportReplayAsVideo()) {
+      logDebug(`aborting: canExportReplayAsVideo() is false (${elapsed()})`);
       addErrorMessage(t('Video export is not supported in this browser.'));
       return;
     }
     if (!rootEl) {
+      logDebug(`aborting: replay player root element not ready yet (${elapsed()})`);
       addErrorMessage(t('Replay player is not ready yet.'));
       return;
     }
@@ -162,27 +168,42 @@ export function useExportReplayVideo() {
     // start of the replay — the playback positions we actually need a frame
     // for. Mouse movement, scrolling, etc. are deliberately not included;
     // they don't necessarily change what's visually on screen.
+    const changeTimestampsStartedAt = performance.now();
     const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
+    const rrwebFrames = replay?.getRRWebFrames() ?? [];
     const changeTimestamps = Array.from(
       new Set(
-        (replay?.getRRWebFrames() ?? [])
+        rrwebFrames
           .filter(isRRWebChangeFrame)
           .map(frame => Math.max(0, frame.timestamp - startTimestampMs))
       )
     ).sort((a, b) => a - b);
     logDebug(
-      `${changeTimestamps.length} DOM-change timestamps identified for a ${replayDurationMs}ms replay`
+      `${changeTimestamps.length} DOM-change timestamps found among` +
+        ` ${rrwebFrames.length} rrweb events for a ${replayDurationMs}ms replay` +
+        ` (computed in ${Math.round(performance.now() - changeTimestampsStartedAt)}ms,` +
+        ` ${elapsed()})`
     );
 
     try {
       setState({status: 'requesting-permission', progressPct: 0});
       showProgressToast(t('Waiting for screen-share permission…'));
+      logDebug(
+        `requesting getDisplayMedia — waiting on the browser's share-tab` +
+          ` prompt, this pauses here until you respond to it (${elapsed()})`
+      );
+      const displayMediaStartedAt = performance.now();
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         preferCurrentTab: true,
         video: true,
         audio: false,
       });
       streamRef.current = displayStream;
+      logDebug(
+        `getDisplayMedia resolved after` +
+          ` ${Math.round(performance.now() - displayMediaStartedAt)}ms` +
+          ` waiting on the permission prompt (${elapsed()})`
+      );
 
       const [track] = displayStream.getVideoTracks();
       if (!track) {
@@ -191,13 +212,20 @@ export function useExportReplayVideo() {
 
       const cropTarget = await CropTarget.fromElement(rootEl);
       await track.cropTo?.(cropTarget);
+      logDebug(`cropped capture to the player element (${elapsed()})`);
 
       const settings = track.getSettings();
       const width = settings.width ?? dimensions.width;
       const height = settings.height ?? dimensions.height;
+      logDebug(`capture resolution is ${width}x${height} (${elapsed()})`);
 
       setState({status: 'loading-encoder', progressPct: 0});
       showProgressToast(t('Loading video encoder…'));
+      logDebug(
+        `loading ffmpeg-core (${FFMPEG_CORE_WASM_URL}) — this fetches and` +
+          ` wasm-compiles a ~30MB file, expect this to take a few seconds` +
+          ` the first time (${elapsed()})`
+      );
       const encoderLoadStartedAt = performance.now();
       const ffmpeg = new FFmpeg();
       ffmpegRef.current = ffmpeg;
@@ -212,7 +240,8 @@ export function useExportReplayVideo() {
         wasmURL: FFMPEG_CORE_WASM_URL,
       });
       logDebug(
-        `encoder loaded in ${Math.round(performance.now() - encoderLoadStartedAt)}ms`
+        `encoder loaded in ${Math.round(performance.now() - encoderLoadStartedAt)}ms` +
+          ` (${elapsed()})`
       );
       if (cancelledRef.current) {
         return;
@@ -233,6 +262,11 @@ export function useExportReplayVideo() {
       togglePlayPause(true);
       setState({status: 'recording', progressPct: 0});
       showProgressToast(t('Recording replay…'));
+      logDebug(
+        `starting capture loop — this plays the whole replay in real time` +
+          ` while capturing, so it takes roughly as long as the replay` +
+          ` itself (${replayDurationMs}ms) (${elapsed()})`
+      );
 
       let frameCount = 0;
       let changeIndex = 0;
@@ -270,6 +304,7 @@ export function useExportReplayVideo() {
         }
 
         try {
+          const frameProcessStartedAt = performance.now();
           canvasCtx.drawImage(frame, 0, 0, width, height);
           const blob = await canvas.convertToBlob({type: 'image/png'});
           const data = new Uint8Array(await blob.arrayBuffer());
@@ -278,8 +313,10 @@ export function useExportReplayVideo() {
           lastCapturedAtMs = nowMs;
           frameCount += 1;
           logDebug(
-            `captured frame ${frameCount} at replay t=${Math.round(nowMs)}ms` +
-              ` (seen ${framesSeen}, skipped ${framesSkipped})`
+            `captured frame ${frameCount} at replay t=${Math.round(nowMs)}ms,` +
+              ` took ${Math.round(performance.now() - frameProcessStartedAt)}ms to` +
+              ` encode+write (seen ${framesSeen}, skipped ${framesSkipped},` +
+              ` ${elapsed()})`
           );
           const pct = replayDurationMs ? Math.min(1, nowMs / replayDurationMs) : null;
           if (pct !== null) {
@@ -295,7 +332,8 @@ export function useExportReplayVideo() {
       streamRef.current = null;
       logDebug(
         `capture finished in ${Math.round((performance.now() - recordingStartedAt) / 1000)}s:` +
-          ` ${frameCount} frames written, ${framesSkipped} skipped (of ${framesSeen} seen)`
+          ` ${frameCount} frames written, ${framesSkipped} skipped (of ${framesSeen} seen)` +
+          ` (${elapsed()})`
       );
 
       if (cancelledRef.current) {
@@ -307,6 +345,7 @@ export function useExportReplayVideo() {
 
       setState({status: 'finalizing', progressPct: 0});
       showProgressToast(t('Finishing video…'));
+      logDebug(`starting ffmpeg mux of ${frameCount} frames (${elapsed()})`);
       const finalizeStartedAt = performance.now();
 
       // Frames were captured at irregular intervals (only when something
@@ -350,27 +389,32 @@ export function useExportReplayVideo() {
         'out.mp4',
       ]);
       logDebug(
-        `ffmpeg mux finished in ${Math.round(performance.now() - finalizeStartedAt)}ms`
+        `ffmpeg mux finished in ${Math.round(performance.now() - finalizeStartedAt)}ms` +
+          ` (${elapsed()})`
       );
 
       const data = await ffmpeg.readFile('out.mp4');
       const raw = typeof data === 'string' ? new TextEncoder().encode(data) : data;
       const bytes = new Uint8Array(raw.length);
       bytes.set(raw);
+      logDebug(`out.mp4 is ${bytes.length} bytes, triggering download (${elapsed()})`);
 
       const blob = new Blob([bytes], {type: 'video/mp4'});
       const url = URL.createObjectURL(blob);
       downloadFromHref(filename, url);
       URL.revokeObjectURL(url);
       addSuccessMessage(t('Downloaded %s', filename));
+      logDebug(`done (${elapsed()})`);
     } catch (error) {
       const isUserCancellation =
         error instanceof DOMException &&
         // The tab-share (getDisplayMedia) prompt was denied or dismissed.
         error.name === 'NotAllowedError';
       if (isUserCancellation) {
+        logDebug(`cancelled: screen-share permission denied (${elapsed()})`);
         clearIndicators();
       } else {
+        logDebug(`failed (${elapsed()})`, error);
         // eslint-disable-next-line no-console
         console.error('[replay-video-export]', error);
         Sentry.captureException(error);
