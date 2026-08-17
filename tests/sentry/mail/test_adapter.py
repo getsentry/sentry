@@ -1374,7 +1374,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=project.id,
         )
 
-        rule = project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=project)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1430,7 +1430,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             )
         )
 
-        rule = project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=project)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
@@ -1458,7 +1458,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = self.project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=self.project)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))
         self.adapter.notify_digest(
@@ -1485,7 +1485,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=self.project)
 
         digest = build_digest(
             self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))

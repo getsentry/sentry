@@ -498,9 +498,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             if group_categories - {GroupCategory.ERROR.value}
             else set()
         )
-        merge_generic_categories = features.has(
-            "organizations:issue-search-merged-generic-query", organization, actor=actor
-        )
         category_filter_groups: list[tuple[list[int], Sequence[SearchFilter]]] = []
         for group_category in sorted(group_categories):
             try:
@@ -512,7 +509,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             except UnsupportedSearchQuery:
                 continue
 
-            if merge_generic_categories and group_category != GroupCategory.ERROR.value:
+            if group_category != GroupCategory.ERROR.value:
                 for grouped_categories, grouped_search_filters in category_filter_groups:
                     if (
                         GroupCategory.ERROR.value not in grouped_categories

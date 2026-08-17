@@ -1,11 +1,14 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -17,11 +20,12 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
+  Integration,
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -38,27 +42,50 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
-import {IntegrationItem} from './integrationItem';
+import {IntegrationIcon} from './integrationIcon';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
 
-const makeIntegrationQuery = (
-  organization: Organization,
-  integrationId: string
-): ApiQueryKey => {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
-      path: {organizationIdOrSlug: organization.slug, integrationId},
-    }),
-  ];
-};
+function organizationIntegrationApiOptions({
+  organizationSlug,
+  integrationId,
+}: {
+  integrationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<OrganizationIntegration>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, integrationId},
+      staleTime: 0,
+    }
+  );
+}
+
+function organizationIntegrationsApiOptions({
+  organizationSlug,
+  providerKey,
+}: {
+  organizationSlug: string;
+  providerKey: string;
+}) {
+  return apiOptions.as<Integration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      query: {provider_key: providerKey, includeConfig: 0},
+      staleTime: 0,
+    }
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -120,11 +147,37 @@ function ConfigureIntegration() {
     data: integration,
     isPending: isLoadingIntegration,
     isError: isErrorIntegration,
+    isPlaceholderData,
     refetch: refetchIntegration,
-  } = useApiQuery<OrganizationIntegration>(
-    makeIntegrationQuery(organization, integrationId),
-    {staleTime: 0}
-  );
+  } = useQuery({
+    ...organizationIntegrationApiOptions({
+      organizationSlug: organization.slug,
+      integrationId,
+    }),
+    placeholderData: () => {
+      const listData = queryClient.getQueryData(
+        organizationIntegrationsApiOptions({
+          organizationSlug: organization.slug,
+          providerKey,
+        }).queryKey
+      );
+      const cachedIntegration = listData?.json.find(item => item.id === integrationId);
+
+      // The summary only supplies the breadcrumb while the full configuration loads.
+      return cachedIntegration
+        ? {
+            json: {
+              ...cachedIntegration,
+              configData: null,
+              configOrganization: [],
+              organizationId: organization.id,
+              externalId: cachedIntegration.externalId ?? '',
+            },
+            headers: {},
+          }
+        : undefined;
+    },
+  });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
@@ -162,12 +215,17 @@ function ConfigureIntegration() {
     }
   }, [navigate, organization, providerKey]);
 
-  if (isLoadingConfig || isLoadingIntegration) {
-    return <LoadingIndicator />;
-  }
-
   if (isErrorConfig || isErrorIntegration) {
     return <LoadingError />;
+  }
+
+  if (isLoadingConfig || isLoadingIntegration || isPlaceholderData) {
+    return (
+      <Fragment>
+        {integration && <IntegrationNavigationHeader integration={integration} />}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   if (!provider || !integration) {
@@ -248,9 +306,12 @@ function ConfigureIntegration() {
     });
     refetchConfig();
 
-    queryClient.removeQueries({
-      queryKey: makeIntegrationQuery(organization, integrationId),
-    });
+    queryClient.removeQueries(
+      organizationIntegrationApiOptions({
+        organizationSlug: organization.slug,
+        integrationId,
+      })
+    );
     refetchIntegration();
   };
 
@@ -313,9 +374,12 @@ function ConfigureIntegration() {
         // it's important that we keep the mutation pending while the refetch is happening by returning it.
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
         // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        return queryClient.invalidateQueries({
-          queryKey: makeIntegrationQuery(organization, integrationId),
-        });
+        return queryClient.invalidateQueries(
+          organizationIntegrationApiOptions({
+            organizationSlug: organization.slug,
+            integrationId,
+          })
+        );
       },
     });
 
@@ -418,17 +482,65 @@ function ConfigureIntegration() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={integration ? integration.provider.name : 'Configure Integration'}
-      />
-      <SettingsPageHeader
-        title={<IntegrationItem integration={integration} compact />}
-        action={getAction()}
-      />
+      <IntegrationNavigationHeader integration={integration} action={getAction()} />
       {renderMainContent()}
-      <BreadcrumbTitle title={t('Configure %s', integration.provider.name)} />
     </Fragment>
   );
+}
+
+function IntegrationNavigationHeader({
+  integration,
+  action,
+}: {
+  integration: Integration;
+  action?: React.ReactNode;
+}) {
+  const externalUrl = getIntegrationExternalUrl(integration);
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={integration.provider.name} />
+      <SettingsPageHeader
+        title={
+          <Flex align="center" gap="sm">
+            <Text as="span">{t('Configurations')}</Text>
+            <Divider />
+            <IntegrationIcon size={18} integration={integration} />
+            {externalUrl ? (
+              <Text>
+                {textProps => (
+                  <ExternalLink {...textProps} href={externalUrl}>
+                    {integration.name}
+                  </ExternalLink>
+                )}
+              </Text>
+            ) : (
+              <Text>{integration.name}</Text>
+            )}
+          </Flex>
+        }
+        action={action}
+      />
+      <BreadcrumbTitle title={integration.provider.name} />
+    </Fragment>
+  );
+}
+
+function getIntegrationExternalUrl(integration: Integration): string | null {
+  const {domainName} = integration;
+  if (!domainName) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(domainName)) {
+    return domainName;
+  }
+
+  if (integration.provider.key === 'pagerduty') {
+    return null;
+  }
+
+  return `https://${domainName}`;
 }
 
 function PagerdutyAddServicesButton({

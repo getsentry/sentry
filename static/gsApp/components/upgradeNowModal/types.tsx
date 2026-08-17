@@ -43,7 +43,9 @@ import type {DATA_CATEGORY_INFO} from 'sentry/constants';
  * @see getsentry/billing/plans/ for plan definitions
  */
 export type Reservations = {
-  [K in keyof typeof DATA_CATEGORY_INFO as (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
-    ? `reserved${Capitalize<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
-    : never]: number | undefined;
+  [
+    K in keyof typeof DATA_CATEGORY_INFO as (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+      ? `reserved${Capitalize<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
+      : never
+  ]: number | undefined;
 };

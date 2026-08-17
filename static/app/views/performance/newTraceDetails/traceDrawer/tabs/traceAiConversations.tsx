@@ -25,7 +25,10 @@ import {
 } from 'sentry/views/explore/conversations/components/messagesPanel';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {
+  EXPLORE_AGENTS_SUB_PATH,
+  CONVERSATIONS_DETAIL_SUB_PATH,
+} from 'sentry/views/explore/conversations/settings';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
@@ -102,7 +105,7 @@ export function TraceAiConversations({
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/?${qs.stringify(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${linkConversationId}/?${qs.stringify(
           {
             referrer: 'trace-view',
             ...(selectedSpanId && activeConversationId ? {spanId: selectedSpanId} : {}),

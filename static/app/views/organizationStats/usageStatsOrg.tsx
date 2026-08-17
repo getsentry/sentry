@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -295,7 +295,7 @@ function ScoreCards({
 }
 
 function ChartContainer({children}: {children: React.ReactNode}) {
-  return <ChartWrapper data-test-id="usage-stats-chart">{children}</ChartWrapper>;
+  return <Container column="1 / -1">{children}</Container>;
 }
 
 export interface UsageStatsOrganizationProps {
@@ -642,26 +642,17 @@ export function UsageStatsOrganization({
   );
 }
 
-const PageGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(5, 1fr);
-  }
-`;
+function PageGrid({children}: {children: React.ReactNode}) {
+  return (
+    <Grid columns={{zero: '1fr', sm: 'repeat(2, 1fr)', '4xl': 'repeat(5, 1fr)'}} gap="xl">
+      {children}
+    </Grid>
+  );
+}
 
 const StyledScoreCard = styled(ScoreCard)`
   grid-column: auto / span 1;
   margin: 0;
-`;
-
-const ChartWrapper = styled('div')`
-  grid-column: 1 / -1;
 `;
 
 const Footer = styled('div')`
@@ -701,13 +692,9 @@ const StyledSettingsButton = styled(LinkButton)`
   top: 2px;
 `;
 
-const StyledTextWrapper = styled('div')`
-  min-height: 22px;
-`;
-
 function SpansStored({organization, acceptedStored}: SpansStoredProps) {
   return (
-    <StyledTextWrapper>
+    <Container minHeight="22px">
       {t('%s stored', acceptedStored)}{' '}
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
@@ -720,7 +707,7 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
             to={`/settings/${organization.slug}/dynamic-sampling/`}
           />
         )}
-    </StyledTextWrapper>
+    </Container>
   );
 }
 

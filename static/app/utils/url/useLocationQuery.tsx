@@ -43,7 +43,9 @@ export function useLocationQuery<
   InferredRequestShape extends Record<string, Scalar | Scalar[] | Decoder>,
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   InferredResponseShape extends {
-    readonly [Property in keyof InferredRequestShape]: InferredRequestShape[Property] extends Decoder
+    readonly [
+      Property in keyof InferredRequestShape
+    ]: InferredRequestShape[Property] extends Decoder
       ? ReturnType<InferredRequestShape[Property]>
       : InferredRequestShape[Property];
   },

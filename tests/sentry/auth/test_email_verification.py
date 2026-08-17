@@ -96,7 +96,9 @@ class IsEmailVerifiedByTrustedProviderTest(TestCase):
     def test_trusted_check(self) -> None:
         cases = [
             ("google", {"email_verified": True}, True),
-            ("github", {"email_verified": True}, False),
+            ("github", {"email_verified": True}, True),
+            ("github", {"email_verified": False}, False),
+            ("github", {}, False),
             ("google", {"email_verified": False}, False),
             ("google", {}, False),
             ("saml2", {"email_verified": True}, False),

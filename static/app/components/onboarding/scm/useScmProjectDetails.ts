@@ -1,9 +1,9 @@
 import {useCallback, useRef, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
+import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
@@ -12,7 +12,6 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -415,15 +414,11 @@ export function useScmProjectDetails({
       const {project, ruleIds, notificationRule} = creation;
 
       if (selectedRepository?.id) {
-        try {
-          await fetchMutation({
-            url: `/projects/${organization.slug}/${project.slug}/repo/`,
-            method: 'POST',
-            data: {repositoryId: selectedRepository.id},
-          });
-        } catch (error) {
-          Sentry.captureException(error);
-        }
+        await linkProjectToRepository({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          repositoryId: selectedRepository.id,
+        });
       }
 
       trackAnalytics('project_creation_page.created', {

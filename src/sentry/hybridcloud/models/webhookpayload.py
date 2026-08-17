@@ -112,7 +112,7 @@ class WebhookPayload(Model):
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
-        metrics.incr("hybridcloud.deliver_webhooks.saved")
+        metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,

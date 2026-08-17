@@ -33,15 +33,16 @@ type ScmProvidersData = {
 export function useScmProviders(): ScmProvidersData {
   const organization = useOrganization();
 
-  const providersQuery = useQuery(
-    apiOptions.as<{providers: IntegrationProvider[]}>()(
+  const providersQuery = useQuery({
+    ...apiOptions.as<{providers: IntegrationProvider[]}>()(
       '/organizations/$organizationIdOrSlug/config/integrations/',
       {
         path: {organizationIdOrSlug: organization.slug},
         staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const scmProviders = useMemo(
     () =>
@@ -57,13 +58,17 @@ export function useScmProviders(): ScmProvidersData {
   // Use integrationType=source_code_management to filter server-side to
   // GitHub, GitLab, Bitbucket, Azure DevOps. Still need client-side active
   // status check since the endpoint also returns disabled/pending deletion.
-  const integrationsQuery = useQuery(
-    apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {integrationType: 'source_code_management'},
-      staleTime: 0,
-    })
-  );
+  const integrationsQuery = useQuery({
+    ...apiOptions.as<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {integrationType: 'source_code_management'},
+        staleTime: 0,
+      }
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const activeIntegrations = useMemo(
     () =>
@@ -85,7 +90,9 @@ export function useScmProviders(): ScmProvidersData {
     activeIntegrations,
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
-    isError: providersQuery.isError || integrationsQuery.isError,
+    // Loading errors only: a failed focus refetch keeps cached data, and
+    // consumers treat this flag as fatal (full error screen).
+    isError: providersQuery.isLoadingError || integrationsQuery.isLoadingError,
     refetch: () => {
       providersQuery.refetch();
       integrationsQuery.refetch();

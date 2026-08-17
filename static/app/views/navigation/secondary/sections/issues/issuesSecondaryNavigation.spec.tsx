@@ -48,6 +48,7 @@ describe('IssuesSecondaryNavigation', () => {
     const [[, options]] = request.mock.calls;
     expect(options.query.query).toHaveLength(1);
     const [query] = options.query.query;
+    expect(options.query).not.toHaveProperty('project');
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');

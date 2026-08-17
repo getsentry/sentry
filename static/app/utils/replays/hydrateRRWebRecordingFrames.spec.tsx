@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {recordingEndFrame} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';

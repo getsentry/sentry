@@ -215,7 +215,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         objects from URI params, we're applying the same logic for a param in
         the request body.
         """
-        if not request.data:
+        if request.method != "POST":
             return (args, kwargs)
 
         context = self._get_org_context(request)
