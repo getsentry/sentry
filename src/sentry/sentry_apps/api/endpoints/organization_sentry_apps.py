@@ -1,4 +1,5 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,11 +35,26 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         summary="Retrieve the custom integrations created by an organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="status",
+                location="query",
+                required=False,
+                type=str,
+                enum=[
+                    SentryAppStatus.UNPUBLISHED_STR,
+                    SentryAppStatus.PUBLISHED_STR,
+                    SentryAppStatus.INTERNAL_STR,
+                    SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
+                    SentryAppStatus.DELETION_IN_PROGRESS_STR,
+                ],
+                description="Filter integrations by their status.",
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationSentryAppDetailsResponse", list[SentryAppSerializerResponse]
             ),
+            400: OpenApiResponse(description="Bad Request"),
         },
         examples=SentryAppExamples.GET_ORGANIZATIONS_SENTRY_APPS,
     )
@@ -55,7 +71,19 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
 
         status = request.GET.get("status")
         if status is not None:
-            queryset = queryset.filter(status=SentryAppStatus.as_int(status))
+            try:
+                queryset = queryset.filter(status=SentryAppStatus.as_int(status))
+            except ValueError:
+                valid = ", ".join(
+                    [
+                        SentryAppStatus.UNPUBLISHED_STR,
+                        SentryAppStatus.PUBLISHED_STR,
+                        SentryAppStatus.INTERNAL_STR,
+                        SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
+                        SentryAppStatus.DELETION_IN_PROGRESS_STR,
+                    ]
+                )
+                raise ParseError(f"Invalid status {status!r}. Must be one of: {valid}")
 
         return self.paginate(
             request=request,
