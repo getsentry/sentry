@@ -78,6 +78,11 @@ describe('ScmVirtualizedMenuList', () => {
       'Angular',
     ]);
     expect(container).toHaveTextContent('PopularReactVueOther platformsAngular');
+
+    // The section boundary divider renders before every heading except the
+    // first, so getByTestId doubles as the only-one-divider assertion.
+    const divider = screen.getByTestId('menu-group-divider');
+    expect(divider.nextElementSibling).toHaveTextContent('Other platforms');
   });
 
   it('scrolls to the focused option by its flattened row index', () => {
