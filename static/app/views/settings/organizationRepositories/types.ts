@@ -1,14 +1,15 @@
+import type {FuseResultMatch} from 'fuse.js/basic';
+
 import type {ButtonProps} from '@sentry/scraps/button';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {OrganizationIntegration, Repository} from 'sentry/types/integrations';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 /**
  * Fuse match results keyed by `repository.id`, used to highlight the matched
  * portions of repository names in the table.
  */
-export type ScmRepoMatches = Record<string, readonly Fuse.FuseResultMatch[]>;
+export type ScmRepoMatches = Record<string, readonly FuseResultMatch[]>;
 
 export interface ScmInstallation {
   /**

@@ -34,7 +34,6 @@ import type {
   RecordingFrame,
   ReplayFrame,
   serializedNodeWithId,
-  SlowClickFrame,
   SpanFrame,
   VideoEvent,
   WebVitalFrame,
@@ -49,6 +48,7 @@ import {
   isDeadRageClick,
   isMetaFrame,
   isPaintFrame,
+  isSlowClickFrame,
   isTouchEndFrame,
   isTouchMoveFrame,
   isTouchStartFrame,
@@ -706,7 +706,7 @@ export class ReplayReader {
             frame =>
               !(
                 (frame.category === 'ui.slowClickDetected' &&
-                  !isDeadClick(frame as SlowClickFrame)) ||
+                  !(isSlowClickFrame(frame) && isDeadClick(frame))) ||
                 frame.category === 'ui.multiClick'
               )
           )
@@ -780,9 +780,7 @@ export class ReplayReader {
           ['navigation', 'ui.click', 'ui.tap', 'ui.swipe', 'ui.scroll'].includes(
             frame.category
           ) ||
-          (frame.category === 'ui.slowClickDetected' &&
-            (isDeadClick(frame as SlowClickFrame) ||
-              isDeadRageClick(frame as SlowClickFrame)))
+          (isSlowClickFrame(frame) && (isDeadClick(frame) || isDeadRageClick(frame)))
       )
     );
     const spans = this._sortedSpanFrames.filter(frame =>

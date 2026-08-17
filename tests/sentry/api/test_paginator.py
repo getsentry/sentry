@@ -156,6 +156,26 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
+    def test_count_hits(self) -> None:
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result(count_hits=True, max_hits=1)
+
+        assert result.hits == 1
+        assert result.max_hits == 1
+
+    def test_does_not_set_max_hits_without_counting_hits(self) -> None:
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+
+        result = paginator.get_result()
+
+        assert result.hits is None
+        assert result.max_hits is None
+
     def test_order_by_multiple(self) -> None:
         res1 = self.create_user("foo@example.com")
         self.create_user("bar@example.com")

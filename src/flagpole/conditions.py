@@ -163,7 +163,7 @@ class ConditionBase:
             return False
         if not isinstance(condition_property, str):
             return False
-        return any(_glob_star_match(pattern, condition_property) for pattern in self.value)
+        return any(glob_star_match(pattern, condition_property) for pattern in self.value)
 
 
 InOperatorValueTypes = list[int] | list[float] | list[str]
@@ -235,7 +235,7 @@ class NotEqualsCondition(ConditionBase):
         )
 
 
-def _glob_star_match(pattern: str, value: str) -> bool:
+def glob_star_match(pattern: str, value: str) -> bool:
     """
     Match value against a star-only glob pattern (case-insensitive).
 
@@ -275,6 +275,11 @@ def _glob_star_match(pattern: str, value: str) -> bool:
             return False
         start = idx + len(part)
     return True
+
+
+def _glob_star_match(pattern: str, value: str) -> bool:
+    # keep this until getsentry use is refactored
+    return glob_star_match(pattern=pattern, value=value)
 
 
 MatchesOperatorValueTypes = list[str]

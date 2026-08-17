@@ -308,7 +308,6 @@ def devserver(
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
                 kafka_consumers.add("ingest-generic-metrics")
-                kafka_consumers.add("billing-metrics-consumer")
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")

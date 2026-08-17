@@ -108,7 +108,7 @@ class Investigation(DefaultFieldsModel):
     source_revision = BoundedPositiveIntegerField(null=True)
 
     # Saved defaults, equivalent to a dashboard's filters. Access is still checked
-    # against the viewer when a cell is evaluated or an output is returned.
+    # against the viewer when a block is evaluated or an output is returned.
     filters: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
         default=dict, db_default={}
     )

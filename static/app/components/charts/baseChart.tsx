@@ -32,7 +32,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -53,7 +53,7 @@ import type {
 import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
-import {Legend} from './components/legend';
+import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
@@ -61,7 +61,7 @@ import {
 } from './components/tooltip';
 import {XAxis} from './components/xAxis';
 import {YAxis} from './components/yAxis';
-import {LineSeries} from './series/lineSeries';
+import {lineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -436,7 +436,7 @@ export function BaseChart({
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
                   ? undefined
-                  : MarkLine({
+                  : markLine({
                       silent: true,
                       lineStyle: {
                         type: 'solid',
@@ -452,7 +452,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        LineSeries({
+        lineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -574,7 +574,7 @@ export function BaseChart({
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
-      legend: legend ? Legend({theme, ...legend}) : undefined,
+      legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,

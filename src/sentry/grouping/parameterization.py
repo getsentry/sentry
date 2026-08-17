@@ -3,10 +3,10 @@ import logging
 import re
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Sequence
-from ipaddress import ip_address, ip_interface, ip_network
 from typing import Any, Callable
 
 from sentry.utils import metrics
+from sentry.utils.http import is_valid_ip
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -63,25 +63,6 @@ class ParameterizationRegex:
         Returns the regex pattern inside of a named matching group.
         """
         return rf"(?P<{self.name}>{raw_pattern})"
-
-
-def is_valid_ip(maybe_ip_str: str) -> bool:
-    # Validate the string by attempting to pass it to the three built-in factory functions for
-    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
-    # all three raise an error, it's not.
-    for fn, kwargs in (
-        (ip_address, {}),
-        (ip_interface, {}),
-        (ip_network, {"strict": False}),  # `strict: False` allows host bits
-    ):
-        try:
-            fn(maybe_ip_str, **kwargs)
-        except ValueError:
-            pass
-        else:
-            return True
-
-    return False
 
 
 # fmt: off

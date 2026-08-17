@@ -15,12 +15,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
+from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import StaffPermissionMixin
@@ -59,7 +59,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
 from sentry.signals import project_created, team_created
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -89,11 +89,10 @@ DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
+    "metrics": metrics_enhanced_performance,
 }
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
-MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
 DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
 
 
@@ -336,8 +335,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        if not features.has("organizations:team-roles", organization):
-            raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
         if organization.flags.disable_member_project_creation and not request.access.has_scope(
             "org:write"
         ):

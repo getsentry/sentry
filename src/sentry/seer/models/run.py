@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -142,9 +142,15 @@ class SolutionArtifactExtras(TypedDict):
     one_line_summary: str
 
 
+class CodeChangesArtifactExtras(TypedDict):
+    # Each patch is AgentFilePatch.dict() verbatim; read back with AgentFilePatch.parse_obj.
+    diffs_by_repo: dict[str, list[dict[str, Any]]]
+
+
 class SeerRunMilestoneExtras(TypedDict, total=False):
     root_cause_artifact: RootCauseArtifactExtras
     solution_artifact: SolutionArtifactExtras
+    code_changes_artifact: CodeChangesArtifactExtras
 
 
 @cell_silo_model
@@ -183,6 +189,10 @@ class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # Deep link to the agent's session on the provider's own site (e.g. Cursor).
     # Not every provider supplies one.
     agent_url: str | None
+    # `Repository.external_id` of the repo the agent was launched against. Known only at
+    # launch -- the agent reports its PR back under a repo *name*, which resolves the row
+    # ambiguously at best, and for GitLab never at all.
+    repo_external_id: str | None
 
 
 @cell_silo_model
