@@ -444,7 +444,7 @@ function QueryClauseActions() {
 
   const groupBySummary = groupBys.filter(Boolean).join(', ');
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
-  const sortBySummary = sortBys.map(sort => `${sort.field} ${sort.kind}`).join(', ');
+  const sortBySummary = sortBys.map(sort => `${sort.field}, ${sort.kind}`).join(', ');
   const updateVisualize = (index: number, nextVisualize: Visualize) => {
     setVisualizes(
       visualizes.map((visualize, visualizeIndex) =>
