@@ -111,6 +111,8 @@ export enum IssueCategory {
   PREPROD = 'preprod',
 
   CONFIGURATION = 'configuration',
+
+  GEN_AI = 'gen_ai',
 }
 
 /**
@@ -149,6 +151,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
   [IssueCategory.CONFIGURATION]: t(
     'Issues detected from SDK/tooling configuration problems.'
+  ),
+  [IssueCategory.GEN_AI]: t(
+    'Wasteful or costly use of generative-AI providers, such as poor prompt-cache utilization.'
   ),
 };
 
@@ -214,6 +219,9 @@ export enum IssueType {
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
   LOW_VALUE_SPAN_CONFIGURATION = 'low_value_span_configuration',
+
+  // Gen AI
+  LLM_CACHE_USAGE = 'llm_cache_usage',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -227,6 +235,7 @@ const HIDDEN_ISSUE_TYPES: IssueType[] = [
   IssueType.AI_DETECTED_SECURITY,
   IssueType.AI_DETECTED_CODE_HEALTH,
   IssueType.AI_DETECTED_GENERAL,
+  IssueType.LLM_CACHE_USAGE,
 ];
 
 export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
@@ -300,6 +309,9 @@ export enum IssueTitle {
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
   LOW_VALUE_SPAN_CONFIGURATION = 'AI Detected Low-Value Span',
+
+  // Gen AI
+  LLM_CACHE_USAGE = 'LLM Cache Usage',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -353,6 +365,8 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
   low_value_span_configuration: IssueTitle.LOW_VALUE_SPAN_CONFIGURATION,
+
+  llm_cache_usage: IssueTitle.LLM_CACHE_USAGE,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -397,6 +411,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
+  14001: IssueType.LLM_CACHE_USAGE,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);

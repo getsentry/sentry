@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/issueTypeConfig/errorConfig';
 import {feedbackConfig} from 'sentry/utils/issueTypeConfig/feedbackConfig';
 import {frontendConfig} from 'sentry/utils/issueTypeConfig/frontendConfig';
+import {genAiConfig} from 'sentry/utils/issueTypeConfig/genAiConfig';
 import {httpClientConfig} from 'sentry/utils/issueTypeConfig/httpClientConfig';
 import {metricConfig} from 'sentry/utils/issueTypeConfig/metricConfig';
 import {metricIssueConfig} from 'sentry/utils/issueTypeConfig/metricIssueConfig';
@@ -114,6 +115,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.AI_DETECTED]: aiDetectedConfig,
   [IssueCategory.PREPROD]: preprodConfig,
   [IssueCategory.CONFIGURATION]: configurationIssuesConfig,
+  [IssueCategory.GEN_AI]: genAiConfig,
 };
 
 /**
@@ -137,6 +139,12 @@ function shouldShowCustomErrorResourceConfig(
 }
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
+  // Shared issues and the trace drawer have no group to read the category from.
+  // Without this they fall through to the performance config, which disables the
+  // evidence section that Gen AI occurrences rely on.
+  if (eventOccurrenceType >= 14000 && eventOccurrenceType < 15000) {
+    return IssueCategory.GEN_AI;
+  }
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
   }
