@@ -774,6 +774,12 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
 };
 
 /**
+ * Remark type Relay writes for values handled by an `encrypt` data scrubbing rule.
+ * See `RemarkType::Encrypted` in relay-protocol.
+ */
+export const ENCRYPTED_REMARK_TYPE = 'e';
+
+/**
  * Metadata about trace item attributes.
  *
  * This can be used to extract additional information about attributes
@@ -814,6 +820,19 @@ export class TraceItemMetaInfo {
   hasRemarks(attribute: string): boolean {
     const attributeMeta = this.getAttributeMeta(attribute);
     return (attributeMeta?.rem?.length ?? 0) > 0;
+  }
+
+  /**
+   * Whether the value was replaced by an `encrypt` data scrubbing rule.
+   *
+   * Unlike every other redaction method, `encrypt` does not destroy the value: Relay seals the
+   * original against the organization's public key and attaches the ciphertext to the item, so
+   * whoever holds the private key can still read it back.
+   */
+  isEncrypted(attribute: string): boolean {
+    return this.getRemarks(attribute).some(
+      remark => remark.type === ENCRYPTED_REMARK_TYPE
+    );
   }
 
   static getTooltipText(

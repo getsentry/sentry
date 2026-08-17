@@ -608,6 +608,7 @@ function EAPSpanNodeDetailsContent({
           location={location}
           organization={organization}
           project={project}
+          traceItemMeta={traceItemData.meta}
         />
 
         {isTransaction && (contexts || extra) ? (

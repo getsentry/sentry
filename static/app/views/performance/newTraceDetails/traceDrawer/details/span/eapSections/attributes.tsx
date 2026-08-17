@@ -27,7 +27,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {AssertionFailureTree} from 'sentry/views/detectors/components/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  ENCRYPTED_PII_ATTRIBUTE,
+  getEncryptedPii,
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {
+  TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -46,7 +53,14 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
-const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
+// `_encrypted_pii` is the sealed payload behind the "Copy encrypted value" action, not something
+// worth a row of its own: it is an opaque base64 blob that no one can read in the UI.
+const HIDDEN_ATTRIBUTES = [
+  'is_segment',
+  'project_id',
+  'received',
+  ENCRYPTED_PII_ATTRIBUTE,
+];
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
 
 const jsonRenderer = (props: CustomRenderersProps) => {
@@ -68,6 +82,7 @@ interface AttributesProps {
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
+  traceItemMeta?: TraceItemDetailsMeta;
 }
 
 export function AttributesSection(props: AttributesProps) {
@@ -96,6 +111,7 @@ export function AttributesContent({
   location,
   organization,
   project,
+  traceItemMeta,
 }: AttributesProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
@@ -251,6 +267,8 @@ export function AttributesContent({
               location,
               organization,
               projectIds: findSpanAttributeValue(attributes, 'project_id'),
+              traceItemMeta,
+              encryptedPii: getEncryptedPii(attributes),
             })}
           />
         </div>

@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   getAttributeFilterSearch,
   getSearchInExploreTarget,
@@ -152,6 +153,79 @@ describe('getTraceAttributesTreeActions', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       'span.description:"GET /api/users"'
     );
+  });
+
+  const encryptedContent: AttributesTreeContent = {
+    subtree: {},
+    value: '[Encrypted]',
+    originalAttribute: {
+      attribute_key: 'email',
+      attribute_value: '[Encrypted]',
+      original_attribute_key: 'user.email',
+      type: 'str',
+    },
+  };
+
+  it('copies the sealed payload for an attribute marked encrypted by meta', () => {
+    const actions = getTraceAttributesTreeActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+      encryptedPii: 'c2VhbGVkLXBheWxvYWQ=',
+      traceItemMeta: {
+        'user.email': {meta: {value: {'': {len: 0, rem: [['project:0', 'e', 0, 11]]}}}},
+      },
+    })(encryptedContent);
+
+    const encryptedAction = actions.find(action => action.key === 'copy-encrypted-value');
+    expect(encryptedAction?.label).toBe('Copy encrypted value');
+
+    encryptedAction?.onAction?.();
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('c2VhbGVkLXBheWxvYWQ=');
+  });
+
+  it('falls back to the placeholder when the item carries no scrubbing meta', () => {
+    const actions = getTraceAttributesTreeActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+      encryptedPii: 'c2VhbGVkLXBheWxvYWQ=',
+    })(encryptedContent);
+
+    expect(actions.some(action => action.key === 'copy-encrypted-value')).toBe(true);
+  });
+
+  it('omits the action when the attribute was scrubbed rather than encrypted', () => {
+    const actions = getTraceAttributesTreeActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+      encryptedPii: 'c2VhbGVkLXBheWxvYWQ=',
+      traceItemMeta: {
+        'user.email': {meta: {value: {'': {len: 0, rem: [['project:0', 's', 0, 10]]}}}},
+      },
+    })({
+      subtree: {},
+      value: '[Filtered]',
+      originalAttribute: {
+        attribute_key: 'email',
+        attribute_value: '[Filtered]',
+        original_attribute_key: 'user.email',
+        type: 'str',
+      },
+    });
+
+    expect(actions.some(action => action.key === 'copy-encrypted-value')).toBe(false);
+  });
+
+  it('omits the action when the item has no sealed payload', () => {
+    const actions = getTraceAttributesTreeActions({
+      location: LocationFixture(),
+      organization: OrganizationFixture({features: []}),
+      traceItemMeta: {
+        'user.email': {meta: {value: {'': {len: 0, rem: [['project:0', 'e', 0, 11]]}}}},
+      },
+    })(encryptedContent);
+
+    expect(actions.some(action => action.key === 'copy-encrypted-value')).toBe(false);
   });
 });
 

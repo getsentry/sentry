@@ -146,6 +146,7 @@ function UptimeSpanNodeDetailsContent({
           location={location}
           organization={organization}
           project={project}
+          traceItemMeta={traceItemData.meta}
         />
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
