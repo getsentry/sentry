@@ -205,7 +205,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 # Exclude incidents started after the window
                 query_end = ensure_aware(parse_date(query_end_s))
                 open_periods = open_periods.exclude(date_started__gt=query_end)
-        except (ParserError, ValueError):
+        except (ParserError, ValueError, OverflowError):
             return Response(
                 {"detail": "Invalid date format for 'start' or 'end' parameter."},
                 status=status.HTTP_400_BAD_REQUEST,
