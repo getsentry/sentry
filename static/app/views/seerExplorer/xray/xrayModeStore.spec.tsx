@@ -1,11 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {
-  isXRayModeEnabled,
-  setXRayModeEnabled,
-  toggleXRayMode,
-  useXRayModeEnabled,
-} from './xrayModeStore';
+import {setXRayModeEnabled, toggleXRayMode, useXRayModeEnabled} from './xrayModeStore';
 
 describe('xrayModeStore', () => {
   afterEach(() => {
@@ -14,16 +9,19 @@ describe('xrayModeStore', () => {
   });
 
   it('defaults to disabled', () => {
-    expect(isXRayModeEnabled()).toBe(false);
+    const {result} = renderHook(() => useXRayModeEnabled());
+    expect(result.current).toBe(false);
   });
 
   it('toggles and persists to localStorage', () => {
-    toggleXRayMode();
-    expect(isXRayModeEnabled()).toBe(true);
+    const {result} = renderHook(() => useXRayModeEnabled());
+
+    act(() => toggleXRayMode());
+    expect(result.current).toBe(true);
     expect(window.localStorage.getItem('seer-xray-mode-enabled')).toBe('1');
 
-    toggleXRayMode();
-    expect(isXRayModeEnabled()).toBe(false);
+    act(() => toggleXRayMode());
+    expect(result.current).toBe(false);
     expect(window.localStorage.getItem('seer-xray-mode-enabled')).toBe('0');
   });
 

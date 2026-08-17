@@ -32,10 +32,6 @@ function getSnapshot() {
   return enabled;
 }
 
-export function isXRayModeEnabled(): boolean {
-  return enabled;
-}
-
 export function setXRayModeEnabled(next: boolean): void {
   if (next === enabled) {
     return;
