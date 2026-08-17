@@ -35,7 +35,7 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 export const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-export const toPlatformOption = (platform: PlatformIntegration) => ({
+const toPlatformOption = (platform: PlatformIntegration) => ({
   value: platform.id,
   label: platform.name,
   textValue: `${platform.name} ${platform.id}`,

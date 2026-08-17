@@ -35,7 +35,6 @@ import {
   platformOptionGroups,
   platformOptions,
   shouldSuggestFramework,
-  toPlatformOption,
   toSelectedSdk,
 } from './scmPlatformHelpers';
 import {ScmSearchControl} from './scmSearchControl';
@@ -323,33 +322,15 @@ export function ScmPlatformFeaturesCore({
     }
   };
 
-  // Ensure the selected platform is always present in the dropdown options
-  // so the Select can resolve and display it. When the framework suggestion
-  // modal picks a key not in the static list, prepend it in an unlabeled
-  // section (the Select's groupHeading style hides empty headings).
-  const manualPickerOptionGroups = useMemo(() => {
-    const key = currentPlatformKey;
-    if (!key || platformOptions.some(o => o.value === key)) {
-      return platformOptionGroups;
-    }
-    const info = getPlatformInfo(key);
-    if (!info) {
-      return platformOptionGroups;
-    }
-    return [{label: '', options: [toPlatformOption(info)]}, ...platformOptionGroups];
-  }, [currentPlatformKey]);
-
   const manualPickerFilteredOptions = useMemo(
     () =>
-      manualPickerOptionGroups
-        .flatMap(group => group.options)
-        .filter(option =>
-          matchesPlatformOption(
-            {label: option.label, value: option.value, data: option},
-            manualPickerFilter
-          )
-        ),
-    [manualPickerFilter, manualPickerOptionGroups]
+      platformOptions.filter(option =>
+        matchesPlatformOption(
+          {label: option.label, value: option.value, data: option},
+          manualPickerFilter
+        )
+      ),
+    [manualPickerFilter]
   );
 
   const latestSearchValuesRef = useRef({
@@ -524,7 +505,7 @@ export function ScmPlatformFeaturesCore({
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptionGroups}
+          options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
@@ -535,7 +516,7 @@ export function ScmPlatformFeaturesCore({
       ) : (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptionGroups}
+          options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
