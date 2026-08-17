@@ -2,13 +2,11 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
+import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
 
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {useUser} from 'sentry/utils/useUser';
-
-import {useTimezone} from './timezoneProvider';
 
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
@@ -112,7 +110,7 @@ export function TimeSince({
   liveUpdateInterval = 'minute',
   ...props
 }: Props) {
-  const user = useUser();
+  const clockDisplay = useClockDisplay();
   const tz = useTimezone();
 
   // Counter to trigger periodic re-computation of relative time
@@ -138,14 +136,13 @@ export function TimeSince({
   }, [liveUpdateInterval]);
 
   const dateObj = getDateObj(date);
-  const options = user ? user.options : null;
 
   // Use short months when showing seconds, because "September" causes the
   // tooltip to overflow.
   const tooltipFormat = tooltipShowSeconds
     ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
-  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
+  const format = clockDisplay === '24' ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
   const tooltip = moment.tz(dateObj, tz).format(format);
 

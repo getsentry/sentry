@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DateTimeProvider, useTimezone} from '@sentry/scraps/datetime';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';
@@ -158,7 +158,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }, []);
 
   return (
-    <TimezoneProvider timezone={timezoneOverride}>
+    <DateTimeProvider value={{timezone: timezoneOverride, clockDisplay: '12'}}>
       <DetailLayout>
         <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
@@ -328,7 +328,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>
-    </TimezoneProvider>
+    </DateTimeProvider>
   );
 }
 

@@ -38,7 +38,7 @@ def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
     def test_get_event_from_groups_in_digest(self) -> None:
         project = self.create_project(fire_project_created=True)
-        rule = project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=project)
 
         events = [
             self.store_event(

@@ -356,9 +356,9 @@ class JiraIntegration(IssueSyncIntegration):
         )
         for project in configured_projects:
             try:
-                project_statuses = client.get_project_statuses(project.external_id).get(
-                    "values", []
-                )
+                project_statuses = client.get_project_statuses(
+                    project.external_id, paginate=True
+                ).get("values", [])
             except ApiError:
                 continue
             statuses = [(c["id"], c["name"]) for c in project_statuses]
