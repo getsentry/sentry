@@ -15,6 +15,7 @@ class InstanceHostnameTest(TestCase):
                 "github.example.com",
             ),
             ("gitlab", {"instance": "gitlab.example.com"}, "gitlab.example.com"),
+            ("gitea", {"instance": "gitea.example.com"}, "gitea.example.com"),
         ]
         for provider, metadata, expected in cases:
             with self.subTest(provider=provider):
@@ -42,6 +43,8 @@ class InstanceHostnameTest(TestCase):
             ("github_enterprise", {"domain_name": ""}),
             ("gitlab", {}),
             ("gitlab", {"instance": ""}),
+            ("gitea", {}),
+            ("gitea", {"instance": ""}),
         ]
         for i, (provider, metadata) in enumerate(cases):
             with self.subTest(provider=provider, metadata=metadata):

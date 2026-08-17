@@ -26,6 +26,16 @@ def instance_hostname(integration: Integration | RpcIntegration) -> str:
                     f"Missing instance for gitlab integration {integration.id}"
                 )
             return instance
+        case IntegrationProviderSlug.GITEA.value:
+            # Gitea's ROOT_URL is free-form and may include a sub-path
+            # (https://host/gitea/), so the hostname is stored separately from
+            # the base_url rather than derived from it here.
+            instance = integration.metadata.get("instance")
+            if not instance:
+                raise InstanceHostnameError(
+                    f"Missing instance for gitea integration {integration.id}"
+                )
+            return instance
         case _:
             raise NotImplementedError(
                 f"Instance hostname not implemented for provider: {integration.provider}"

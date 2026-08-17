@@ -9,6 +9,7 @@ import cursor from 'sentry-logos/logo-cursor.svg';
 import datadog from 'sentry-logos/logo-datadog.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
+import gitea from 'sentry-logos/logo-gitea.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
@@ -60,6 +61,7 @@ const PLUGIN_ICONS = {
   github_copilot: github,
   github_enterprise: githubEnterprise,
   gcp: google,
+  gitea,
   gitlab,
   heroku,
   jira,

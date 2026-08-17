@@ -138,6 +138,7 @@ class ActionSource(StrEnum):
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
+    GITEA = "gitea"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
     AZURE_DEVOPS = "vsts"

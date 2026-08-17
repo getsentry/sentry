@@ -55,10 +55,14 @@ logger = logging.getLogger(__name__)
 # Perforce syncs at depot granularity: get_repositories() enumerates depots
 # (p4 depots) and derives a stable external_id from the depot path, matching
 # what the manual-add path stores.
+# Gitea syncs the installing user's repositories - owned and collaborated,
+# organizations included - because the instance has no group or app
+# installation to scope to the way the others do.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
     "gitlab",
+    "gitea",
     "bitbucket",
     "bitbucket_server",
     "vsts",

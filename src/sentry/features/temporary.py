@@ -140,6 +140,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:github-enterprise-github-com-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # API-driven integration setup pipeline (per-provider rollout)
     # ...
+    # Gates the Gitea integration while it is under development
+    manager.add("organizations:integrations-gitea", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

@@ -1,6 +1,7 @@
 from .bitbucket import BitbucketRequestParser
 from .bitbucket_server import BitbucketServerRequestParser
 from .discord import DiscordRequestParser
+from .gitea import GiteaRequestParser
 from .github import GithubRequestParser
 from .github_enterprise import GithubEnterpriseRequestParser
 from .gitlab import GitlabRequestParser
@@ -18,6 +19,7 @@ __all__ = (
     "BitbucketServerRequestParser",
     "DiscordRequestParser",
     "GoogleRequestParser",
+    "GiteaRequestParser",
     "GithubEnterpriseRequestParser",
     "GithubRequestParser",
     "GitlabRequestParser",
