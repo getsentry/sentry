@@ -2,11 +2,21 @@ import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+
+jest.unmock('@tanstack/react-pacer');
 
 const organization = OrganizationFixture({
   features: ['investigations'],
@@ -99,6 +109,11 @@ function renderView(
 }
 
 describe('Investigation detail', () => {
+  beforeEach(() => {
+    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
+    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+  });
+
   it('loads and renders the complete investigation response', async () => {
     const request = MockApiClient.addMockResponse({
       url: detailUrl,
@@ -109,9 +124,39 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
-    expect(screen.getByText(/"id": "investigation-1"/)).toBeInTheDocument();
-    expect(screen.getByText(/"blocks":/)).toBeInTheDocument();
+    const debugPanel = screen.getByRole('button', {name: 'Investigation JSON'});
+    expect(screen.getByText(/"id": "investigation-1"/)).not.toBeVisible();
+
+    await userEvent.click(debugPanel);
+
+    expect(screen.getByText(/"id": "investigation-1"/)).toBeVisible();
+    expect(screen.getByText(/"blocks":/)).toBeVisible();
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders block output instead of block content', async () => {
+    const investigation = InvestigationDetailFixture();
+    const firstBlock = investigation.blocks[0];
+    if (!firstBlock) {
+      throw new Error('Expected an investigation block fixture.');
+    }
+    investigation.blocks[0] = {
+      ...firstBlock,
+      content: 'Prompt-side content that should not render',
+      generatedContent: 'Generated content that should not render',
+      output: {schemaVersion: 1, markdown: 'Actual persisted block output'},
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('Actual persisted block output')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Prompt-side content that should not render')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Generated content that should not render')
+    ).not.toBeInTheDocument();
   });
 
   it('reuses an investigation prefetched before the detail page mounts', async () => {
@@ -128,6 +173,110 @@ describe('Investigation detail', () => {
 
     expect(screen.getByText('Investigate database latency')).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('optimistically renames and debounces persistence', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    const renameRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'PUT',
+      body: InvestigationDetailFixture({
+        title: 'Regional latency investigation',
+        version: 2,
+      }),
+    });
+
+    renderView();
+    const titleInput = await screen.findByLabelText('Investigation title');
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, 'Regional latency investigation');
+
+    expect(titleInput).toHaveValue('Regional latency investigation');
+    expect(renameRequest).not.toHaveBeenCalled();
+
+    await waitFor(
+      () =>
+        expect(renameRequest).toHaveBeenCalledWith(
+          detailUrl,
+          expect.objectContaining({
+            data: {
+              title: 'Regional latency investigation',
+              investigationVersion: 1,
+            },
+          })
+        ),
+      {timeout: 1500}
+    );
+  });
+
+  it('duplicates and opens the duplicate from the title menu', async () => {
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}duplicate/`,
+      method: 'POST',
+      body: InvestigationDetailFixture({id: 'investigation-2'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/',
+      body: InvestigationDetailFixture({id: 'investigation-2'}),
+    });
+
+    const {router} = renderView();
+    await userEvent.click(await screen.findByLabelText('Investigation actions'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
+
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/investigation/investigation-2/'
+      )
+    );
+  });
+
+  it('copies the link from the title menu', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {writeText},
+      writable: true,
+    });
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+
+    renderView();
+    await userEvent.click(await screen.findByLabelText('Investigation actions'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Copy link'}));
+
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        `${window.location.origin}/organizations/org-slug/seer/investigation/investigation-1/`
+      )
+    );
+  });
+
+  it('deletes after confirmation and returns to the list', async () => {
+    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'DELETE',
+    });
+
+    const {router} = renderView();
+    await userEvent.click(await screen.findByLabelText('Investigation actions'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    expect(deleteRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith(
+        detailUrl,
+        expect.objectContaining({data: {investigationVersion: 1}})
+      )
+    );
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/investigations/'
+    );
   });
 
   it('renders the initial load error', async () => {

@@ -137,6 +137,55 @@ export function useLaunchInvestigationMutation(
   );
 }
 
+export function useRenameInvestigationMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationDetail, string>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    scope: {id: `rename-investigation-${investigationId}`},
+    mutationFn: title => {
+      const current = queryClient.getQueryData(detailOptions.queryKey)?.json;
+      if (!current) {
+        throw new Error('Investigation detail is not cached.');
+      }
+
+      return fetchMutation<InvestigationDetail>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/`,
+        method: 'PUT',
+        data: {title, investigationVersion: current.version},
+      });
+    },
+    onSuccess: async (updated, savedTitle, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          headers: current.headers,
+          json: {
+            ...updated,
+            // Keep a newer optimistic title while this save was in flight.
+            title: current.json.title === savedTitle ? updated.title : current.json.title,
+          },
+        };
+      });
+      await queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
+      });
+      await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
+    },
+  });
+}
+
 export function useSetInvestigationFavoriteMutation(
   organizationSlug: string,
   options?: MutationOptions<void, FavoriteVariables>
