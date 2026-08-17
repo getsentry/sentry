@@ -1,10 +1,7 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -12,9 +9,9 @@ import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PullRequestFileChangeType} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {TagVariant} from 'sentry/utils/theme';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
+import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
 import {parseFilePatch} from './filePatch';
 import {
   type OverviewPullRequest,
@@ -24,10 +21,7 @@ import {
   QUERY_STALE_TIME,
 } from './types';
 
-const FILE_CHANGE_TAG: Record<
-  PullRequestFileChangeType,
-  {label: string; variant: TagVariant}
-> = {
+const FILE_CHANGE_TAG: Record<PullRequestFileChangeType, FileChangeTag> = {
   ADDED: {label: t('Added'), variant: 'success'},
   CHANGED: {label: t('Changed'), variant: 'muted'},
   COPIED: {label: t('Copied'), variant: 'muted'},
@@ -135,69 +129,30 @@ export function PullRequestFiles({
       </Text>
       <Container border="primary" radius="md" overflow="hidden" background="secondary">
         {files.map((file, index) => {
-          const changeTag = file.changeType ? FILE_CHANGE_TAG[file.changeType] : null;
           const diff = diffByPath.get(file.path);
           const isExpanded = expandedRows.has(index);
           return (
-            <FileRow key={`${index}-${file.path}`}>
-              <Disclosure
-                size="sm"
-                expanded={isExpanded}
-                onExpandedChange={next => toggle(index, next)}
-              >
-                <Disclosure.Title
-                  trailingItems={
-                    changeTag ? (
-                      <Tag variant={changeTag.variant}>{changeTag.label}</Tag>
-                    ) : undefined
-                  }
-                >
-                  <Grid
-                    columns="minmax(60px, auto) minmax(0, 1fr)"
-                    gap="xl"
-                    align="center"
-                    width="100%"
-                  >
-                    <Flex gap="md" align="center">
-                      <Text size="sm" monospace variant="success">
-                        +{file.additions}
-                      </Text>
-                      <Text size="sm" monospace variant="danger">
-                        -{file.deletions}
-                      </Text>
-                    </Flex>
-                    <FilePath size="sm" monospace ellipsis title={file.path}>
-                      {file.path}
-                    </FilePath>
-                  </Grid>
-                </Disclosure.Title>
-                <Disclosure.Content>
-                  {isExpanded ? (
-                    <FileDiff
-                      file={file}
-                      diff={diff}
-                      isPending={isPending}
-                      isError={isError}
-                    />
-                  ) : null}
-                </Disclosure.Content>
-              </Disclosure>
-            </FileRow>
+            <ChangedFileRow
+              key={`${index}-${file.path}`}
+              additions={file.additions}
+              deletions={file.deletions}
+              path={file.path}
+              changeTag={file.changeType ? FILE_CHANGE_TAG[file.changeType] : null}
+              expanded={isExpanded}
+              onExpandedChange={next => toggle(index, next)}
+            >
+              {isExpanded ? (
+                <FileDiff
+                  file={file}
+                  diff={diff}
+                  isPending={isPending}
+                  isError={isError}
+                />
+              ) : null}
+            </ChangedFileRow>
           );
         })}
       </Container>
     </Stack>
   );
 }
-
-const FileRow = styled('div')`
-  & + & {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-// Truncates the head of the path so the file name stays visible.
-const FilePath = styled(Text)`
-  direction: rtl;
-  text-align: left;
-`;

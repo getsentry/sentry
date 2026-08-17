@@ -1,3 +1,4 @@
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Actor} from 'sentry/types/core';
 import type {Level} from 'sentry/types/event';
 import type {
@@ -74,6 +75,11 @@ export interface PullRequestFilesResponse {
   files: PullRequestFileDiff[];
 }
 
+export interface OverviewCodeChangeFile {
+  patch: FilePatch;
+  repoName: string;
+}
+
 // Issue-side facts the endpoint serializes off the Group; mirrors the fields the
 // reused priority/assignee widgets and the vitals row consume.
 export interface OverviewRunIssue {
@@ -101,6 +107,7 @@ export interface OverviewRun {
   seerRunId: string;
   shortId: string;
   title: string;
+  codeChanges?: OverviewCodeChangeFile[];
 }
 
 export interface AutofixOverviewResponse {

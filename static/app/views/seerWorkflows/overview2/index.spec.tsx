@@ -11,6 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -808,6 +809,69 @@ describe('AutofixOverview2', () => {
 
     expect(await screen.findByText('This file will be deleted.')).toBeInTheDocument();
     expect(screen.queryByText('No diff available.')).not.toBeInTheDocument();
+  });
+
+  it('renders generated code changes for the Create PR step', async () => {
+    const codeChangesRun = {
+      ...rootCauseRun,
+      codeChanges: [
+        {
+          repoName: 'getsentry/sentry',
+          patch: {
+            path: 'src/sentry/foo.py',
+            source_file: 'src/sentry/foo.py',
+            target_file: 'src/sentry/foo.py',
+            type: DiffFileType.MODIFIED,
+            added: 1,
+            removed: 1,
+            hunks: [
+              {
+                source_start: 1,
+                source_length: 1,
+                target_start: 1,
+                target_length: 1,
+                section_header: '',
+                lines: [
+                  {
+                    line_type: DiffLineType.REMOVED,
+                    value: 'old',
+                    source_line_no: 1,
+                    target_line_no: null,
+                    diff_line_no: 1,
+                  },
+                  {
+                    line_type: DiffLineType.ADDED,
+                    value: 'new',
+                    source_line_no: null,
+                    target_line_no: 1,
+                    diff_line_no: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+    mockOverview({base: {autofix_code_changes: [codeChangesRun]}});
+
+    renderPage();
+
+    expect(await screen.findByText('1 file changed')).toBeInTheDocument();
+    // The generated diff comes back inline, so expanding needs no extra request.
+    await userEvent.click(
+      await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
+    );
+    expect(await screen.findByText('new')).toBeInTheDocument();
+  });
+
+  it('renders a Create PR step run whose code changes are absent', async () => {
+    mockOverview({base: {autofix_code_changes: [rootCauseRun]}});
+
+    renderPage();
+
+    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    expect(screen.queryByText('1 file changed')).not.toBeInTheDocument();
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {
