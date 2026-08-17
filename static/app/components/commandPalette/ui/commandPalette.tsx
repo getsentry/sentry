@@ -591,13 +591,9 @@ export function CommandPalette({
   // while the input is empty (e.g. a brief loading state after clearing) should
   // be invisible rather than drawing attention with a flash.
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
-  const paletteHeight =
-    treeState.collection.size === 0 && !isEmptyPromptQuery && !isLoading
-      ? 550
-      : Math.min(610, Math.max(160, 150 + actions.length * 40));
 
   const content = (
-    <Stack height={`${paletteHeight}px`} maxHeight="80vh">
+    <Stack height="500px" maxHeight="80vh">
       <Stack gap="md" padding="xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
