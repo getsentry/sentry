@@ -88,16 +88,50 @@ const ACTION_META: Record<Exclude<AutofixStateKey, 'merged'>, ActionMeta> = {
 
 function Overview2Action({
   sectionKey,
+  pullRequests,
   reviewPullRequest,
   issueUrl,
   enrichmentPending,
 }: {
   enrichmentPending: boolean;
   issueUrl: string;
+  pullRequests: OverviewPullRequest[];
   reviewPullRequest: OverviewPullRequest | undefined;
   sectionKey: AutofixStateKey;
 }) {
   if (sectionKey === 'merged') {
+    if (pullRequests.length > 0) {
+      return (
+        <Stack gap="xs" align="end">
+          {pullRequests.map(pullRequest => {
+            const label = t('Merged #%s', pullRequest.number);
+            return (
+              <Tooltip
+                key={pullRequest.id}
+                title={t('The pull request for this fix was merged.')}
+                skipWrapper
+              >
+                {pullRequest.url ? (
+                  <LinkButton
+                    size="sm"
+                    variant="secondary"
+                    icon={<IconMerge />}
+                    href={pullRequest.url}
+                    external
+                  >
+                    {label}
+                  </LinkButton>
+                ) : (
+                  <Tag variant="muted" icon={<IconMerge />}>
+                    {label}
+                  </Tag>
+                )}
+              </Tooltip>
+            );
+          })}
+        </Stack>
+      );
+    }
     return (
       <Tooltip title={t('The pull request for this fix was merged.')}>
         <Tag variant="success" icon={<IconMerge />}>
@@ -385,6 +419,7 @@ export function Overview2Card({
           <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
             <Overview2Action
               sectionKey={sectionKey}
+              pullRequests={run.pullRequests}
               reviewPullRequest={reviewPullRequest}
               issueUrl={issueUrl}
               enrichmentPending={enrichmentPending}
