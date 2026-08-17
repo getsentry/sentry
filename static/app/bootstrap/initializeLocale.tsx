@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
+import {UWU_LANGUAGE_CODE} from 'sentry/utils/uwu';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {
@@ -14,8 +15,9 @@ function convertToDjangoLocaleFormat(language: string) {
 async function getTranslations(language: string) {
   language = convertToDjangoLocaleFormat(language);
 
-  // No need to load the english locale
-  if (language === 'en') {
+  // The uwu locale is applied as a transform over the english catalog, so there
+  // is no catalog on disk to fetch for it.
+  if (language === 'en' || language === UWU_LANGUAGE_CODE) {
     return DEFAULT_LOCALE_DATA;
   }
 
@@ -66,7 +68,7 @@ export async function initializeLocale(config: Config) {
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 
   try {
-    if (languageCode === 'en') {
+    if (languageCode === 'en' || languageCode === UWU_LANGUAGE_CODE) {
       const translations = await getTranslations(languageCode);
       setLocale(translations);
     } else {

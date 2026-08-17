@@ -6,6 +6,7 @@ import {sprintf} from 'sprintf-js';
 
 import {toArray} from 'sentry/utils/array/toArray';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {UWU_ENABLED, uwuify} from 'sentry/utils/uwu';
 
 const markerStyles = {
   background: '#ff801790',
@@ -322,7 +323,8 @@ function format(formatString: string, args: FormatArg[]): React.ReactNode {
  * [0]: https://github.com/alexei/sprintf.js
  */
 function gettext(string: string, ...args: FormatArg[]): string {
-  const val: string = getClient().gettext(string);
+  const translated: string = getClient().gettext(string);
+  const val = UWU_ENABLED ? uwuify(translated) : translated;
 
   if (args.length === 0) {
     staticTranslations.add(val);

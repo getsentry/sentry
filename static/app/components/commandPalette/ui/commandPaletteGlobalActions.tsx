@@ -72,6 +72,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {toggleUwu} from 'sentry/utils/uwu';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
@@ -1106,6 +1107,16 @@ export function GlobalCommandPaletteActions() {
           keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
           onAction={() => {
             toggleLocaleDebug();
+          }}
+        />
+      )}
+
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle UwU Locale'), icon: <IconFlag />}}
+          keywords={['locale', 'uwu', 'owo', 'i18n', 'pseudolocale']}
+          onAction={() => {
+            toggleUwu();
           }}
         />
       )}
