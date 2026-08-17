@@ -52,6 +52,7 @@ type CommandPaletteAction =
       query?: string;
     }
   | {type: 'trigger action'}
+  | {anchor: CMDKNavStack; type: 'return to anchor'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
   | {type: 'freeze list'};
@@ -122,6 +123,14 @@ function commandPaletteReducer(
       };
     case 'trigger action':
       return {...state, pendingReset: true, list: 'active'};
+    case 'return to anchor':
+      return {
+        ...state,
+        action: action.anchor,
+        query: '',
+        pendingReset: false,
+        list: 'active',
+      };
     default:
       unreachable(type);
       return state;

@@ -40,6 +40,7 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKPersistentScope} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
@@ -300,6 +301,42 @@ describe('CommandPalette', () => {
 
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the palette open and returns to the anchor after a persistent action', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const onPersistentAction = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Query clauses'}}>
+          <CMDKPersistentScope>
+            <CMDKAction display={{label: 'Visualize'}}>
+              <CMDKAction
+                display={{label: 'Count spans'}}
+                onAction={onPersistentAction}
+              />
+            </CMDKAction>
+            <CMDKAction display={{label: 'Group by'}}>
+              <CMDKAction display={{label: 'Span operation'}} onAction={() => {}} />
+            </CMDKAction>
+          </CMDKPersistentScope>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Query clauses'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Visualize'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Count spans'}));
+
+    expect(onPersistentAction).toHaveBeenCalledTimes(1);
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('option', {name: 'Visualize'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search inside Query clauses...'
+    );
   });
 
   it('onAction that opens a modal leaves the new modal open', async () => {

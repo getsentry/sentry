@@ -1,3 +1,4 @@
+import {useContext} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
@@ -5,6 +6,11 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
+import {
+  CMDKEnclosingActionProvider,
+  useCMDKPersistentScope,
+} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
+import type {CMDKPersistentAnchor} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
@@ -38,6 +44,7 @@ interface CMDKActionDataTo extends CMDKActionDataBase {
 
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
   onAction: () => void;
+  persistentAnchor?: CMDKPersistentAnchor;
 }
 
 interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
@@ -152,6 +159,8 @@ export function CMDKAction<TData = unknown>({
   limit,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
+  const parentKey = useContext(CMDKCollection.Context);
+  const persistentScope = useCMDKPersistentScope();
 
   // For async-only resource nodes (function children), default limit to 4.
   // For nodes with static children alongside a resource, no default limit applies.
@@ -162,7 +171,14 @@ export function CMDKAction<TData = unknown>({
     to === undefined
       ? onAction === undefined
         ? {display, keywords, ref, resource, prompt, limit: effectiveLimit}
-        : {display, keywords, ref, onAction, limit: effectiveLimit}
+        : {
+            display,
+            keywords,
+            ref,
+            onAction,
+            limit: effectiveLimit,
+            persistentAnchor: persistentScope ?? undefined,
+          }
       : {display, keywords, ref, to, limit: effectiveLimit};
 
   const key = CMDKCollection.useRegisterNode(nodeData, id);
@@ -173,6 +189,13 @@ export function CMDKAction<TData = unknown>({
     return null;
   }
 
+  const enclosingAction = {
+    key,
+    label: display.label,
+    parentKey,
+    prompt,
+  };
+
   if (resource) {
     const resourceOptions = resource(query, {state});
 
@@ -181,21 +204,27 @@ export function CMDKAction<TData = unknown>({
     if (resourceOptions.enabled === false || resourceOptions.queryFn === skipToken) {
       return (
         <CMDKCollection.Context.Provider value={key}>
-          {typeof children === 'function' ? null : children}
+          <CMDKEnclosingActionProvider value={enclosingAction}>
+            {typeof children === 'function' ? null : children}
+          </CMDKEnclosingActionProvider>
         </CMDKCollection.Context.Provider>
       );
     }
 
     return (
-      <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
-        {children}
-      </CMDKActionWithResource>
+      <CMDKEnclosingActionProvider value={enclosingAction}>
+        <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
+          {children}
+        </CMDKActionWithResource>
+      </CMDKEnclosingActionProvider>
     );
   }
 
   return (
     <CMDKCollection.Context.Provider value={key}>
-      {typeof children === 'function' ? null : children}
+      <CMDKEnclosingActionProvider value={enclosingAction}>
+        {typeof children === 'function' ? null : children}
+      </CMDKEnclosingActionProvider>
     </CMDKCollection.Context.Provider>
   );
 }
