@@ -13,6 +13,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.shared_integrations.exceptions import ApiError
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -63,31 +64,38 @@ def find_channel_id(integration: Integration | RpcIntegration, name: str) -> str
     team_id = integration.external_id
     client = MsTeamsClient(integration)
 
-    # handle searching for channels first
-    channel_list = client.get_channel_list(team_id)
-    filtered_channels = list(filter(lambda x: channel_filter(x, name), channel_list))
-    if len(filtered_channels) > 0:
-        return filtered_channels[0].get("id")
+    try:
+        # handle searching for channels first
+        channel_list = client.get_channel_list(team_id)
+        filtered_channels = list(filter(lambda x: channel_filter(x, name), channel_list))
+        if len(filtered_channels) > 0:
+            return filtered_channels[0].get("id")
 
-    # handle searching for users
-    members = client.get_member_list(team_id, None)
-    for i in range(MSTEAMS_MAX_ITERS):
-        member_list = members.get("members")
-        continuation_token = members.get("continuationToken")
+        # handle searching for users
+        members = client.get_member_list(team_id, None)
+        for i in range(MSTEAMS_MAX_ITERS):
+            member_list = members.get("members")
+            continuation_token = members.get("continuationToken")
 
-        filtered_members = list(
-            filter(lambda x: x.get("name").lower() == name.lower(), member_list)
+            filtered_members = list(
+                filter(lambda x: x.get("name").lower() == name.lower(), member_list)
+            )
+            if len(filtered_members) > 0:
+                # TODO: handle duplicate username case
+                user_id = filtered_members[0].get("id")
+                tenant_id = filtered_members[0].get("tenantId")
+                return client.get_user_conversation_id(user_id, tenant_id)
+
+            if not continuation_token:
+                return None
+
+            members = client.get_member_list(team_id, continuation_token)
+    except ApiError:
+        logger.exception(
+            "msteams.find_channel_id.api_error",
+            extra={"team_id": team_id, "integration_id": integration.id},
         )
-        if len(filtered_members) > 0:
-            # TODO: handle duplicate username case
-            user_id = filtered_members[0].get("id")
-            tenant_id = filtered_members[0].get("tenantId")
-            return client.get_user_conversation_id(user_id, tenant_id)
-
-        if not continuation_token:
-            return None
-
-        members = client.get_member_list(team_id, continuation_token)
+        return None
 
     return None
 
