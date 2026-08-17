@@ -65,5 +65,16 @@ class LanguagesFromTreeTest(TestCase):
     def test_extension_matching_is_case_insensitive(self) -> None:
         assert languages_from_tree([blob("Program.CS", 10)]) == {"C#": 10}
 
+    def test_tolerates_a_stringified_size(self) -> None:
+        # Origin serialises 64-bit ints as JSON strings in places -- `size` on
+        # the contents route comes back as "2534". Tree entries use real ints
+        # today, but a bare += would be a TypeError waiting to happen.
+        assert languages_from_tree([{"path": "a.py", "type": "blob", "size": "300"}]) == {
+            "Python": 300
+        }
+
+    def test_ignores_an_unparseable_size(self) -> None:
+        assert languages_from_tree([{"path": "a.py", "type": "blob", "size": "big"}]) == {}
+
     def test_empty_tree(self) -> None:
         assert languages_from_tree([]) == {}

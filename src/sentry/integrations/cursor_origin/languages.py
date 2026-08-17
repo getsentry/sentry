@@ -102,6 +102,20 @@ def _extension(path: str) -> str | None:
     return "." + filename.rsplit(".", 1)[-1].lower()
 
 
+def _size(entry: dict[str, Any]) -> int:
+    """Blob size in bytes, tolerating a stringified number.
+
+    Origin serialises 64-bit integers as JSON strings in places (``size`` on
+    ``contents`` comes back as ``"2534"``). Tree entries use real ints today,
+    but the pattern is common enough in that API that a bare ``+=`` would be a
+    TypeError waiting to happen mid-detection.
+    """
+    try:
+        return int(entry.get("size") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def languages_from_tree(tree: list[dict[str, Any]]) -> dict[str, int]:
     """Byte counts per language, shaped like GitHub's languages API.
 
@@ -126,7 +140,7 @@ def languages_from_tree(tree: list[dict[str, Any]]) -> dict[str, int]:
         if language is None:
             continue
 
-        totals[language] += entry.get("size") or 0
+        totals[language] += _size(entry)
 
     # Drop languages that matched only empty files -- they carry no signal and would
     # register as a detected platform with zero weight.
