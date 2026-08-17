@@ -28,6 +28,12 @@ const POLL_INTERVAL_MS = 500;
 // even when their boxes overlap almost exactly (e.g. a widget with one child chart).
 const DEPTH_COLORS = ['blue400', 'pink400', 'yellow400', 'green400'] as const;
 
+// Floor size for the data panel — big enough to read JSON comfortably —
+// but never applied past the node's own box; see the minWidth/minHeight
+// computation below.
+const PANEL_MIN_WIDTH = 420;
+const PANEL_MIN_HEIGHT = 320;
+
 interface MeasuredNode extends LLMContextOverlayNode {
   depth: number;
   rect: DOMRect;
@@ -157,6 +163,12 @@ export function SeerXRayOverlay() {
           style={{
             top: selectedNode.rect.top,
             left: selectedNode.rect.left,
+            // CSS resolves a min/max conflict by letting min win, so a
+            // static min-width/height would blow past a small node's box —
+            // clamp the min to the box itself instead of hardcoding it,
+            // which also keeps min <= max in every case.
+            minWidth: Math.min(PANEL_MIN_WIDTH, selectedNode.rect.width),
+            minHeight: Math.min(PANEL_MIN_HEIGHT, selectedNode.rect.height),
             maxWidth: selectedNode.rect.width,
             maxHeight: selectedNode.rect.height,
           }}
@@ -212,8 +224,6 @@ const NodeLabel = styled('button')<{color: (typeof DEPTH_COLORS)[number]}>`
 
 const NodeDataPanel = styled('div')`
   position: fixed;
-  min-width: 420px;
-  min-height: 320px;
   overflow: auto;
   pointer-events: auto;
   background: ${p => p.theme.tokens.background.primary};

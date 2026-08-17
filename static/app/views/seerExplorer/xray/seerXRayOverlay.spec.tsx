@@ -96,6 +96,31 @@ describe('SeerXRayOverlay', () => {
     });
   });
 
+  it('caps the data panel to a node box smaller than the panel min size', async () => {
+    setXRayModeEnabled(true);
+    render(
+      <LLMContextProvider>
+        <ContextWidget title="Error Rate" />
+        <SeerXRayOverlay />
+      </LLMContextProvider>
+    );
+
+    const label = await screen.findByText('widget');
+    await userEvent.click(label, {advanceTimers: jest.advanceTimersByTime});
+
+    const panel = await screen.findByText(/"title": "Error Rate"/);
+    const panelEl = panel.closest('div[style*="max-width"]')!;
+
+    // The node's box (100x50 from the `rect()` fixture) is smaller than the
+    // panel's usual 420x320 floor — min must never exceed max, or the panel
+    // spills past the box it's supposed to be capped to (CSS lets a
+    // min-width beat a smaller max-width).
+    expect(panelEl).toHaveStyle({maxWidth: '100px'});
+    expect(panelEl).toHaveStyle({maxHeight: '50px'});
+    expect(parseFloat(panelEl.style.minWidth)).toBeLessThanOrEqual(100);
+    expect(parseFloat(panelEl.style.minHeight)).toBeLessThanOrEqual(50);
+  });
+
   it('reacts to the store toggling on after mount', async () => {
     setXRayModeEnabled(false);
     render(
