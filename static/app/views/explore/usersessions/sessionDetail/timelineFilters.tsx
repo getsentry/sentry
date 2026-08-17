@@ -1,33 +1,44 @@
 import {useMemo} from 'react';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
-import type {TimelineFilters} from './useSessionDetail';
-
-const TYPE_OPTIONS = SESSION_DATASETS.map(config => ({
-  value: config.key,
-  label: config.label,
-}));
+import type {
+  SortDirection,
+  TimelineFilters as TimelineFiltersState,
+} from './useSessionDetail';
 
 interface Props {
-  filters: TimelineFilters;
+  collapseQuiet: boolean;
+  filters: TimelineFiltersState;
+  onToggleCollapseQuiet: (collapse: boolean) => void;
+  onToggleSort: () => void;
+  sortDirection: SortDirection;
 }
 
 /**
- * Filter row for the session timeline: free text over what the rows show, plus a
- * telemetry-type narrowing. Both write to the URL, so a filtered timeline can be
- * shared as-is.
+ * The rail's controls: free text over what the rows show, which end of the
+ * session to read from, and whether quiet stretches collapse.
+ *
+ * Telemetry types are not here — those toggle from the scrubber's lane labels,
+ * where the label also carries the type's color and its shape over the session.
+ * One control per piece of state.
  */
-export function TimelineFilters({filters}: Props) {
-  const {query, types, setQuery, setTypes} = filters;
+export function TimelineFilters({
+  filters,
+  sortDirection,
+  onToggleSort,
+  collapseQuiet,
+  onToggleCollapseQuiet,
+}: Props) {
+  const {query, setQuery} = filters;
 
   // The text input filters as you type, but each keystroke would otherwise be a
   // history entry.
@@ -36,19 +47,9 @@ export function TimelineFilters({filters}: Props) {
     [setQuery]
   );
 
-  // The default trigger label reads "Log +3", which says less than the state it
-  // describes. Naming the interesting cases — everything, one type, or a count —
-  // keeps the trigger legible at a glance.
-  const typeLabel =
-    types.length === TYPE_OPTIONS.length
-      ? t('All')
-      : types.length === 1
-        ? TYPE_OPTIONS.find(option => option.value === types[0])!.label
-        : t('%s selected', types.length);
-
   return (
-    <Flex gap="md" align="center" wrap="wrap">
-      <Container flex="1 1 240px">
+    <Flex gap="md" align="center" wrap="wrap" padding="md xl">
+      <Container flex="1 1 220px">
         {containerProps => (
           <SearchBar
             {...containerProps}
@@ -56,22 +57,39 @@ export function TimelineFilters({filters}: Props) {
             onChange={debouncedSetQuery}
             placeholder={t('Search telemetry by title or detail')}
             aria-label={t('Search telemetry')}
+            size="sm"
           />
         )}
       </Container>
-      <CompactSelect
-        multiple
-        options={TYPE_OPTIONS}
-        value={types}
-        onChange={selected => setTypes(selected.map(option => option.value))}
-        // Prefixed with the name of the column it narrows, so the pairing is
-        // obvious.
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
-            {typeLabel}
-          </OverlayTrigger.Button>
-        )}
-      />
+
+      <Flex as="label" align="center" gap="xs">
+        <Switch
+          checked={collapseQuiet}
+          onChange={event => onToggleCollapseQuiet(event.target.checked)}
+        />
+        <Text size="sm" variant="muted">
+          {t('Collapse quiet stretches')}
+        </Text>
+      </Flex>
+
+      {/*
+        The sort is not only a display order: it decides which end of a truncated
+        session the per-dataset row queries return, so it has to stay explicit now
+        that there is no column header to click.
+      */}
+      <SegmentedControl
+        size="sm"
+        aria-label={t('Timeline order')}
+        value={sortDirection}
+        onChange={value => {
+          if (value !== sortDirection) {
+            onToggleSort();
+          }
+        }}
+      >
+        <SegmentedControl.Item key="asc">{t('Oldest first')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="desc">{t('Newest first')}</SegmentedControl.Item>
+      </SegmentedControl>
     </Flex>
   );
 }

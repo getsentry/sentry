@@ -42,6 +42,16 @@ function mockAllDatasets(phase: 'discovery' | 'counts') {
   );
 }
 
+/** What {@link resolveSessionName} produces when nothing identified the session. */
+const ANONYMOUS_NAME = {
+  handle: 'aaaaaaaa',
+  subject: 'Anonymous',
+  subjectKind: 'unknown',
+  context: undefined,
+  release: undefined,
+  user: undefined,
+};
+
 const KNOWN_KEYS = {
   logs: new Set(['message', 'user.id']),
   metrics: new Set(['metric.name']),
@@ -234,8 +244,79 @@ describe('useUserSessions', () => {
         firstSeen: undefined,
         lastSeen: undefined,
         totalEvents: 4,
+        // Metrics has no any() aggregate, so nothing could name this session.
+        name: ANONYMOUS_NAME,
       },
     ]);
+  });
+
+  it('names a session from whichever dataset carries each attribute', async () => {
+    mockDataset('logs', 'discovery', [
+      {
+        'session.id': A,
+        'count()': 1,
+        'min(timestamp_precise)': EPOCH_NANOS,
+        'max(timestamp_precise)': EPOCH_NANOS,
+      },
+    ]);
+    mockDataset('spans', 'discovery', []);
+    mockDataset('tracemetrics', 'discovery', []);
+    mockDataset('errors', 'discovery', []);
+
+    mockDataset('logs', 'counts', [
+      {
+        'session.id': A,
+        'count()': 1,
+        'min(timestamp_precise)': EPOCH_NANOS,
+        'max(timestamp_precise)': EPOCH_NANOS,
+      },
+    ]);
+    // Spans has the device context but the session was still anonymous there,
+    // and its email came back scrubbed.
+    mockDataset('spans', 'counts', [
+      {
+        'session.id': A,
+        'count()': 1,
+        'min(precise.start_ts)': EPOCH_SECS,
+        'max(precise.finish_ts)': EPOCH_SECS,
+        'any(user.email)': '[Filtered]',
+        'any(browser.name)': 'Chrome',
+        'any(os.name)': 'macOS',
+      },
+    ]);
+    mockDataset('tracemetrics', 'counts', []);
+    // Errors is the only dataset that knows who this was.
+    mockDataset('errors', 'counts', [
+      {
+        'session.id': A,
+        'count()': 1,
+        'min(timestamp)': '2024-01-01T00:00:00+00:00',
+        'max(timestamp)': '2024-01-01T00:00:00+00:00',
+        'any(user.email)': 'lukas@example.com',
+        'any(release)': '1.2.3',
+      },
+    ]);
+
+    const {result} = renderHookWithProviders(() => useUserSessions());
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    // The email had to come from errors, the context from spans, and the
+    // scrubbed value on spans must not have won the email slot.
+    expect(result.current.sessions[0]!.name).toEqual({
+      handle: 'aaaaaaaa',
+      subject: 'lukas@example.com',
+      subjectKind: 'user',
+      context: 'Chrome · macOS',
+      release: '1.2.3',
+      user: {
+        email: 'lukas@example.com',
+        id: '',
+        ip_address: '',
+        username: '',
+        name: '',
+      },
+    });
   });
 
   it('skips the counts phase when discovery finds nothing', async () => {
@@ -309,6 +390,7 @@ describe('useUserSessions', () => {
           firstSeen: EPOCH_MS,
           lastSeen: EPOCH_MS + 30_000,
           totalEvents: 49,
+          name: ANONYMOUS_NAME,
         },
       ]);
     });

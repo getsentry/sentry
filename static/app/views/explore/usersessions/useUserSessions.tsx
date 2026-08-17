@@ -11,6 +11,13 @@ import type {SessionDatasetKey} from './datasets';
 import {SESSION_DATASETS} from './datasets';
 import type {KnownKeysByDataset} from './queryRouting';
 import {datasetsForQuery} from './queryRouting';
+import type {SessionIdentity, SessionName} from './sessionName';
+import {
+  identityFields,
+  mergeIdentities,
+  readIdentity,
+  resolveSessionName,
+} from './sessionName';
 import {SESSIONS_PER_PAGE} from './settings';
 
 const REFERRER = 'api.explore.user-sessions';
@@ -26,7 +33,14 @@ export interface UserSession {
   id: string;
   /** Epoch ms of the latest event across all datasets, if any reported one. */
   lastSeen: number | undefined;
+  /** What to call this session, resolved from the telemetry it carries. */
+  name: SessionName;
   totalEvents: number;
+}
+
+/** A session mid-merge, still collecting the attributes its name comes from. */
+interface SessionAccumulator extends Omit<UserSession, 'name'> {
+  identity: SessionIdentity;
 }
 
 function toCount(value: unknown): number {
@@ -226,6 +240,11 @@ export function useUserSessions({
             config.countField,
             config.firstSeenField,
             config.lastSeenField,
+            // Same grouping, so naming costs extra columns rather than an extra
+            // query. Discovery deliberately does not ask for these: it runs
+            // under the user's filter, and a name has to describe the whole
+            // session rather than the part that matched.
+            ...identityFields(config.key),
           ],
           query: `${SESSION_ID}:[${sessionIds.join(',')}]`,
           sort: `-${config.countField}`,
@@ -246,7 +265,7 @@ export function useUserSessions({
       return [];
     }
 
-    const byId = new Map<string, UserSession>(
+    const byId = new Map<string, SessionAccumulator>(
       sessionIds.map(id => [
         id,
         {
@@ -255,6 +274,7 @@ export function useUserSessions({
           firstSeen: undefined,
           lastSeen: undefined,
           totalEvents: 0,
+          identity: {},
         },
       ])
     );
@@ -281,14 +301,23 @@ export function useUserSessions({
           session.lastSeen,
           config.toEpochMs(row[config.lastSeenField])
         );
+        // Datasets are visited in `SESSION_DATASETS` order, so an attribute
+        // present in more than one is taken from the earlier one.
+        session.identity = mergeIdentities([
+          session.identity,
+          readIdentity(config.key, row),
+        ]);
       });
     });
 
     // Order by the unfiltered `lastSeen` the row actually displays. Discovery
     // ordered by *filtered* recency, which under a query is a different number.
-    return Array.from(byId.values()).sort((a, b) =>
-      byLastSeenDesc([a.id, a.lastSeen], [b.id, b.lastSeen])
-    );
+    return Array.from(byId.values())
+      .map(({identity, ...session}) => ({
+        ...session,
+        name: resolveSessionName(session.id, identity),
+      }))
+      .sort((a, b) => byLastSeenDesc([a.id, a.lastSeen], [b.id, b.lastSeen]));
   }, [counts.isPending, counts.results, hasSessionIds, sessionIds]);
 
   return {

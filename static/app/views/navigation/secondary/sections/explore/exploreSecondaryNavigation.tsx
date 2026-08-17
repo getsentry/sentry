@@ -32,15 +32,6 @@ export function ExploreSecondaryNavigation() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link
-                to={`${baseUrl}/usersessions/`}
-                analyticsItemName="explore_sessions"
-                trailingItems={<FeatureBadge type="alpha" />}
-              >
-                {t('Sessions')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
             <Feature features={['performance-view']}>
               <Feature features={['visibility-explore-view']}>
                 <SecondaryNavigation.ListItem>
@@ -108,6 +99,15 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/usersessions/`}
+                analyticsItemName="explore_sessions"
+                trailingItems={<FeatureBadge type="alpha" />}
+              >
+                {t('Sessions')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
             <Feature
               features="profiling"
               overrideName="feature-disabled:profiling-sidebar-item"

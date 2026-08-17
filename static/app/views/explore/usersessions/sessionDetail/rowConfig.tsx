@@ -25,10 +25,21 @@ interface RowConfig {
   getTitle: (row: Row) => string;
   /** Optional trailing detail (op, severity, value, …). */
   getDetail?: (row: Row) => string | undefined;
+  /**
+   * Duration in ms, for the datasets that have one. Left unset for datasets whose
+   * items are instants, which is how the rail decides not to draw a bar.
+   */
+  getDuration?: (row: Row) => number | undefined;
 }
 
 function str(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
+}
+
+function ms(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 /**
@@ -102,6 +113,8 @@ export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
     getTitle: row =>
       str(row['span.description']) ?? str(row['span.op']) ?? t('(unknown)'),
     getDetail: row => str(row['span.op']),
+    // `span.duration` is already milliseconds.
+    getDuration: row => ms(row['span.duration']),
     getLink: (row, {organization, location}) => {
       const traceSlug = str(row.trace);
       const spanId = str(row.id);

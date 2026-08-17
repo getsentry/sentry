@@ -57,6 +57,9 @@ describe('UserSessionsView', () => {
             'max(precise.finish_ts)': 1704067230,
             'min(timestamp)': '2024-01-01T00:00:00+00:00',
             'max(timestamp)': '2024-01-01T00:00:30+00:00',
+            'any(user.email)': 'lukas@example.com',
+            'any(browser.name)': 'Chrome',
+            'any(os.name)': 'macOS',
           },
         ],
         meta: {fields: {}},
@@ -65,13 +68,18 @@ describe('UserSessionsView', () => {
 
     render(<UserSessionsView />, {organization});
 
-    expect(await screen.findByText(A)).toBeInTheDocument();
+    // The row is named by its user, not by its id — the short handle is what
+    // stands in for the id.
+    expect(await screen.findByText('lukas@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Chrome · macOS')).toBeInTheDocument();
+    expect(screen.queryByText(A)).not.toBeInTheDocument();
 
-    // The session id navigates to its detail page.
-    expect(screen.getByRole('link', {name: A})).toHaveAttribute(
+    // The whole badge navigates to the detail page.
+    expect(screen.getByRole('link', {name: /lukas@example.com/})).toHaveAttribute(
       'href',
       `/organizations/org-slug/explore/usersessions/${A}/`
     );
+    expect(screen.getByText(A.slice(0, 8))).toBeInTheDocument();
 
     // Project, environment and date range filters are all present.
     expect(screen.getByTestId('page-filter-project-selector')).toBeInTheDocument();

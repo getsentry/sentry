@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SESSION_DATASETS} from './datasets';
+import {SessionBadge} from './sessionBadge';
 import {USER_SESSIONS_SUB_PATH} from './settings';
 import type {UserSession} from './useUserSessions';
 
@@ -25,7 +26,7 @@ const COLUMNS: TableColumnConfig[] = [
 ];
 
 const HEADERS: Record<string, string> = {
-  session: t('Session ID'),
+  session: t('Session'),
   total: t('Telemetry'),
   ...Object.fromEntries(SESSION_DATASETS.map(config => [config.key, config.label])),
   duration: t('Duration'),
@@ -120,13 +121,11 @@ function SessionRow({session}: {session: UserSession}) {
           }}
         >
           {/*
-            `variant="inherit"` matters: Text otherwise paints content.primary
-            and swallows the anchor's accent color, leaving the link looking
-            like plain text.
+            The badge's subject text uses `variant="inherit"`: Text otherwise
+            paints content.primary and swallows the anchor's accent color,
+            leaving the link looking like plain text.
           */}
-          <Text monospace size="sm" ellipsis variant="inherit" title={session.id}>
-            {session.id}
-          </Text>
+          <SessionBadge name={session.name} />
         </Link>
       </Table.Cell>
       <Table.Cell>
@@ -171,10 +170,17 @@ const StyledTable = styled(Table)`
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
-  /* The session id leads; every numeric/temporal column right-aligns. */
+  /* The session name leads; every numeric/temporal column right-aligns. */
   th:not(:first-of-type),
   td:not(:first-of-type) {
     justify-content: flex-end;
+  }
+
+  /* The badge ellipsizes its subject, which only works if every link in the
+     flex chain above it is allowed to shrink below its content width. */
+  td:first-of-type,
+  td:first-of-type > a {
+    min-width: 0;
   }
 
   thead {

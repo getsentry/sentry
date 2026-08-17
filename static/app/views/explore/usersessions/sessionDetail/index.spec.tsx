@@ -26,11 +26,42 @@ function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
     match: [
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
-        // The counts query asks for a single aggregate field; the rows query
-        // asks for `timestamp` plus the per-dataset row fields.
+        // The counts query asks for aggregates only; the rows query asks for the
+        // bare `timestamp` field plus the per-dataset row fields.
         (kind === 'count'
           ? !options.query.field.includes('timestamp')
           : options.query.field.includes('timestamp')),
+    ],
+  });
+}
+
+/**
+ * Mocks one page of a rows query, matched on the cursor so a paged dataset can
+ * be given a different response per page. `nextCursor` becomes the `Link` header
+ * the fetch follows to ask for the page after it.
+ */
+function mockRowsPage(
+  dataset: string,
+  {
+    cursor,
+    data,
+    nextCursor,
+  }: {data: unknown[]; cursor?: string; nextCursor?: string | undefined}
+) {
+  const next = nextCursor
+    ? `<https://sentry.io/next>; rel="next"; results="true"; cursor="${nextCursor}"`
+    : '<https://sentry.io/next>; rel="next"; results="false"; cursor="0:0:0"';
+
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {data, meta: {fields: {}}},
+    headers: {Link: next},
+    match: [
+      (_url: string, options: Record<string, any>) =>
+        options.query.dataset === dataset &&
+        options.query.field.includes('timestamp') &&
+        options.query.cursor === cursor,
     ],
   });
 }
@@ -43,6 +74,11 @@ function mockEmptyDatasets(except: string[] = []) {
     mockDataset(dataset, 'count', []);
     mockDataset(dataset, 'rows', []);
   }
+}
+
+/** The rail's items, excluding the quiet-period separators between them. */
+function railItems() {
+  return screen.getAllByRole('listitem');
 }
 
 describe('SessionDetailView', () => {
@@ -59,7 +95,47 @@ describe('SessionDetailView', () => {
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
-  it('shows per-dataset counts and a merged timeline, newest first', async () => {
+  it('names the session from its telemetry, keeping the full id one click away', async () => {
+    mockEmptyDatasets(['spans']);
+    mockDataset('spans', 'count', [
+      {
+        'count()': 1,
+        'any(user.email)': 'lukas@example.com',
+        'any(browser.name)': 'Chrome',
+        'any(os.name)': 'macOS',
+        'any(release)': '1.2.3',
+      },
+    ]);
+    mockDataset('spans', 'rows', []);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('lukas@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Chrome · macOS')).toBeInTheDocument();
+    expect(screen.getByText('1.2.3')).toBeInTheDocument();
+
+    // The handle stands in for the id, in the badge and in the breadcrumb; the
+    // id itself is only ever copied, never shown.
+    expect(screen.getAllByText(SESSION_ID.slice(0, 8))).toHaveLength(2);
+    expect(screen.queryByText(SESSION_ID)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Copy session ID'})).toBeInTheDocument();
+  });
+
+  it('falls back to a handle-only name when nothing identifies the session', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 1}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // Logs has no any() aggregate, so there was nothing to name it with.
+    expect(await screen.findByText('Anonymous')).toBeInTheDocument();
+    expect(screen.getAllByText(SESSION_ID.slice(0, 8))).toHaveLength(2);
+  });
+
+  it('shows per-dataset counts and a merged rail, newest first', async () => {
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('spans', 'count', [{'count()': 1}]);
     mockDataset('tracemetrics', 'count', [{'count(session.id)': 3}]);
@@ -79,6 +155,7 @@ describe('SessionDetailView', () => {
         id: 'abc123def4567890',
         'span.description': 'GET /api/thing',
         'span.op': 'http.client',
+        'span.duration': 250,
         timestamp: '2024-01-01T00:00:03+00:00',
         trace: TRACE,
         'transaction.span_id': 'fedcba9876543210',
@@ -114,25 +191,76 @@ describe('SessionDetailView', () => {
     expect(screen.getByText('Telemetry')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
 
-    // Timeline is ordered by timestamp descending across datasets. The span sits
-    // under a trace row rather than on the timeline itself.
-    const rows = screen.getAllByRole('row');
-    const bodyRows = rows.slice(1);
-    expect(bodyRows).toHaveLength(4);
-    expect(within(bodyRows[0]!).getByText('TypeError: boom')).toBeInTheDocument();
-    expect(
-      within(bodyRows[1]!).getByText(`Trace ${TRACE.slice(0, 8)}`)
-    ).toBeInTheDocument();
-    expect(within(bodyRows[2]!).getByText('checkout.latency')).toBeInTheDocument();
-    expect(within(bodyRows[3]!).getByText('first log')).toBeInTheDocument();
+    // Ordered by timestamp descending across datasets. The span sits under a
+    // trace row rather than on the rail itself.
+    const items = railItems();
+    expect(items).toHaveLength(4);
+    expect(within(items[0]!).getByText('TypeError: boom')).toBeInTheDocument();
+    expect(within(items[1]!).getByText(`Trace ${TRACE.slice(0, 8)}`)).toBeInTheDocument();
+    expect(within(items[2]!).getByText('checkout.latency')).toBeInTheDocument();
+    expect(within(items[3]!).getByText('first log')).toBeInTheDocument();
 
-    // The Type tag labels one item, so it is singular — while the count tiles
-    // above stay plural.
-    expect(within(bodyRows[0]!).getByText('Error')).toBeInTheDocument();
-    expect(within(bodyRows[1]!).getByText('Trace')).toBeInTheDocument();
-    expect(within(bodyRows[2]!).getByText('Metric')).toBeInTheDocument();
-    expect(within(bodyRows[3]!).getByText('Log')).toBeInTheDocument();
-    expect(screen.getByText('Logs')).toBeInTheDocument();
+    // Each row names its type in the singular, while the count tiles stay plural.
+    expect(within(items[0]!).getByText('Error')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('Trace')).toBeInTheDocument();
+    expect(within(items[2]!).getByText('Metric')).toBeInTheDocument();
+    expect(within(items[3]!).getByText('Log')).toBeInTheDocument();
+    // The plural label belongs to the count tile and the scrubber lane, not to a row.
+    expect(screen.getAllByText('Logs')).toHaveLength(2);
+  });
+
+  it('places rows by their offset from the session start, and only spans carry a duration', async () => {
+    mockEmptyDatasets(['logs', 'spans']);
+    mockDataset('logs', 'count', [{'count()': 1}]);
+    mockDataset('spans', 'count', [{'count()': 1}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:00+00:00'},
+    ]);
+    mockDataset('spans', 'rows', [
+      {
+        id: 'abc123def4567890',
+        'span.description': 'GET /api/thing',
+        'span.duration': 250,
+        timestamp: '2024-01-01T00:00:12+00:00',
+      },
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    const items = await waitFor(() => {
+      const rows = railItems();
+      expect(rows).toHaveLength(2);
+      return rows;
+    });
+
+    // The span is 12s into the session; the log opens it.
+    expect(within(items[0]!).getByText('0:12.00')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('0:00.00')).toBeInTheDocument();
+
+    // Only the span reports a duration — the log is an instant.
+    expect(within(items[0]!).getByText('250ms')).toBeInTheDocument();
+    expect(within(items[1]!).queryByText(/ms$/)).not.toBeInTheDocument();
+  });
+
+  it('collapses a quiet stretch into a labelled break, and can be turned off', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 2}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'before the gap', timestamp: '2024-01-01T00:00:00+00:00'},
+      {id: 'log2', message: 'after the gap', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // A minute of nothing between two logs reads as a minute of nothing.
+    expect(await screen.findByText('1.0m quiet')).toBeInTheDocument();
+    // The break sits between the two items rather than counting as one of them.
+    expect(railItems()).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: /Collapse quiet/}));
+    expect(screen.queryByText('1.0m quiet')).not.toBeInTheDocument();
+    // Both items are still there; only the break went away.
+    expect(railItems()).toHaveLength(2);
   });
 
   it('collapses a run of same-trace spans into one expandable trace row', async () => {
@@ -167,84 +295,64 @@ describe('SessionDetailView', () => {
     expect(
       await screen.findByText(`Trace ${OTHER_TRACE.slice(0, 8)}`)
     ).toBeInTheDocument();
-    let bodyRows = screen.getAllByRole('row').slice(1);
-    expect(bodyRows).toHaveLength(2);
-    expect(within(bodyRows[0]!).getByText('1 span')).toBeInTheDocument();
-    expect(within(bodyRows[1]!).getByText('2 spans')).toBeInTheDocument();
+    let items = railItems();
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByText('1 span')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('2 spans')).toBeInTheDocument();
     expect(screen.queryByText('second span')).not.toBeInTheDocument();
 
     // The trace row links to the waterfall, with no span preselected.
-    const traceLink = within(bodyRows[1]!).getByRole('link');
-    const traceHref = traceLink.getAttribute('href')!;
+    const traceHref = within(items[1]!).getByRole('link').getAttribute('href')!;
     expect(traceHref).toContain(`/traces/trace/${TRACE}/`);
     expect(traceHref).not.toContain('node=');
 
-    await userEvent.click(
-      within(bodyRows[1]!).getByRole('button', {name: 'Expand trace'})
-    );
+    await userEvent.click(within(items[1]!).getByRole('button', {name: 'Expand trace'}));
 
     // Expanded: the spans appear under their trace, newest first, and each links
     // to itself.
-    bodyRows = screen.getAllByRole('row').slice(1);
-    expect(bodyRows).toHaveLength(4);
-    expect(within(bodyRows[2]!).getByText('second span')).toBeInTheDocument();
-    expect(within(bodyRows[3]!).getByText('first span')).toBeInTheDocument();
-    expect(within(bodyRows[2]!).getByText('Span')).toBeInTheDocument();
-    expect(within(bodyRows[3]!).getByRole('link')).toHaveAttribute(
+    items = railItems();
+    expect(items).toHaveLength(4);
+    expect(within(items[2]!).getByText('second span')).toBeInTheDocument();
+    expect(within(items[3]!).getByText('first span')).toBeInTheDocument();
+    expect(within(items[2]!).getByText('Span')).toBeInTheDocument();
+    expect(within(items[3]!).getByRole('link')).toHaveAttribute(
       'href',
       expect.stringContaining('node=span-1111111111111111')
     );
 
     await userEvent.click(
-      within(bodyRows[1]!).getByRole('button', {name: 'Collapse trace'})
+      within(items[1]!).getByRole('button', {name: 'Collapse trace'})
     );
-    expect(screen.getAllByRole('row').slice(1)).toHaveLength(2);
+    expect(railItems()).toHaveLength(2);
   });
 
-  it('toggles the timeline sort from the Timestamp header, and asks the API for that order', async () => {
+  it('toggles the rail order, and asks the API for that order', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     const rowsRequest = mockDataset('logs', 'rows', [
-      {
-        id: 'log1',
-        message: 'first log',
-        timestamp: '2024-01-01T00:00:01+00:00',
-      },
-      {
-        id: 'log2',
-        message: 'second log',
-        timestamp: '2024-01-01T00:00:02+00:00',
-      },
+      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
+      {id: 'log2', message: 'second log', timestamp: '2024-01-01T00:00:02+00:00'},
     ]);
 
-    const {router} = render(<SessionDetailView />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
 
     // Default: newest first, without needing a sort param in the URL.
     expect(await screen.findByText('second log')).toBeInTheDocument();
     expect(rowsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({sort: '-timestamp'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: '-timestamp'})})
     );
-    let bodyRows = screen.getAllByRole('row').slice(1);
-    expect(within(bodyRows[0]!).getByText('second log')).toBeInTheDocument();
+    expect(within(railItems()[0]!).getByText('second log')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Timestamp'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Oldest first'}));
 
     expect(router.location.query.sort).toBe('timestamp');
     expect(rowsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'timestamp'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
     );
     await waitFor(() => {
-      bodyRows = screen.getAllByRole('row').slice(1);
-      expect(within(bodyRows[0]!).getByText('first log')).toBeInTheDocument();
+      expect(within(railItems()[0]!).getByText('first log')).toBeInTheDocument();
     });
   });
 
@@ -273,9 +381,7 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const errorLink = await screen.findByRole('link', {
-      name: /TypeError: boom/,
-    });
+    const errorLink = await screen.findByRole('link', {name: /TypeError: boom/});
     expect(errorLink).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/99/events/deadbeefdeadbeefdeadbeefdeadbeef/'
@@ -284,8 +390,9 @@ describe('SessionDetailView', () => {
     // The span lives under its trace row, so reveal it first.
     await userEvent.click(screen.getByRole('button', {name: 'Expand trace'}));
 
-    const spanLink = screen.getByRole('link', {name: /GET \/api\/thing/});
-    const spanHref = spanLink.getAttribute('href')!;
+    const spanHref = screen
+      .getByRole('link', {name: /GET \/api\/thing/})
+      .getAttribute('href')!;
     expect(spanHref).toContain(`/traces/trace/${TRACE}/`);
     // The span is preselected via the node path, with its transaction so the
     // waterfall expands down to it.
@@ -307,8 +414,9 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const link = await screen.findByRole('link', {name: /first log/});
-    const href = link.getAttribute('href')!;
+    const href = (await screen.findByRole('link', {name: /first log/})).getAttribute(
+      'href'
+    )!;
     expect(href).toContain('/organizations/org-slug/explore/logs/');
     expect(href).toContain('logsQuery=id%3Alog1');
   });
@@ -328,13 +436,14 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const link = await screen.findByRole('link', {name: /checkout.latency/});
-    const href = link.getAttribute('href')!;
+    const href = (
+      await screen.findByRole('link', {name: /checkout.latency/})
+    ).getAttribute('href')!;
     expect(href).toContain(`/traces/trace/${TRACE}/`);
     expect(href).toContain('tab=metrics');
   });
 
-  it('filters the timeline by telemetry type, showing all types by default', async () => {
+  it('hides a telemetry type from the scrubber lane it is labelled by', async () => {
     mockEmptyDatasets(['logs', 'errors']);
     mockDataset('logs', 'count', [{'count()': 1}]);
     mockDataset('errors', 'count', [{'count()': 1}]);
@@ -350,34 +459,60 @@ describe('SessionDetailView', () => {
       },
     ]);
 
-    const {router} = render(<SessionDetailView />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    // Default: every type, with no param in the URL.
+    // Every type is on by default, with no param in the URL.
     expect(await screen.findByText('first log')).toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
-    const trigger = screen.getByRole('button', {name: /Type/});
-    expect(trigger).toHaveTextContent('All');
 
-    await userEvent.click(trigger);
-    await userEvent.click(screen.getByRole('option', {name: 'Logs'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Spans'}));
-    await userEvent.keyboard('{Escape}');
+    const logsLane = screen.getByRole('button', {name: 'Logs', pressed: true});
+    await userEvent.click(logsLane);
 
-    expect(router.location.query.telemetryType).toBe('errors');
-    expect(trigger).toHaveTextContent('Errors');
-    expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
+    expect(router.location.query.telemetryType).toEqual(['metrics', 'spans', 'errors']);
     expect(screen.queryByText('first log')).not.toBeInTheDocument();
+    expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
-    // The counts above the timeline stay exact, whatever the timeline shows.
+    // The counts above the rail stay exact, whatever the rail shows.
     expect(screen.getByText('Telemetry')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
+
+    // And back on again.
+    await userEvent.click(screen.getByRole('button', {name: 'Logs', pressed: false}));
+    expect(await screen.findByText('first log')).toBeInTheDocument();
   });
 
-  it('filters the timeline by a free-text search over title and detail', async () => {
+  it('narrows the rail to a keyboard-selected window, and resets it', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [
+      {'count()': 2, 'min(timestamp)': undefined, 'max(timestamp)': undefined},
+    ]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
+      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('early log')).toBeInTheDocument();
+
+    // Squeezing the window from both ends drops the items at the edges of the
+    // session; `ArrowUp` zooms in by an eighth from each side per press.
+    const track = screen.getByRole('group', {name: 'Session time window'});
+    track.focus();
+    await userEvent.keyboard('{ArrowUp>5/}');
+
+    await waitFor(() => {
+      expect(screen.queryByText('early log')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText('late log')).not.toBeInTheDocument();
+    expect(screen.getByText('Nothing in the selected time range.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
+    expect(await screen.findByText('early log')).toBeInTheDocument();
+    expect(screen.getByText('late log')).toBeInTheDocument();
+  });
+
+  it('filters the rail by a free-text search over title and detail', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
@@ -395,10 +530,7 @@ describe('SessionDetailView', () => {
       },
     ]);
 
-    const {router} = render(<SessionDetailView />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<SessionDetailView />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('checkout failed')).toBeInTheDocument();
 
@@ -409,10 +541,9 @@ describe('SessionDetailView', () => {
     await waitFor(() => {
       expect(screen.queryByText('user signed in')).not.toBeInTheDocument();
     });
-    expect(router.location.query.query).toBe('CHECKOUT');
     expect(screen.getByText('checkout failed')).toBeInTheDocument();
 
-    // The detail column is searchable too: `severity` is what a log row shows there.
+    // The detail line is searchable too: `severity` is what a log row shows there.
     await userEvent.clear(search);
     await userEvent.type(search, 'info');
     await waitFor(() => {
@@ -420,7 +551,7 @@ describe('SessionDetailView', () => {
     });
     expect(screen.queryByText('checkout failed')).not.toBeInTheDocument();
 
-    // Nothing matching reads as a filtered-out timeline, not an empty session.
+    // Nothing matching reads as a filtered-out rail, not an empty session.
     await userEvent.clear(search);
     await userEvent.type(search, 'nothing matches this');
     expect(
@@ -444,5 +575,104 @@ describe('SessionDetailView', () => {
 
     expect(await screen.findByText('orphan span')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /orphan span/})).not.toBeInTheDocument();
+  });
+
+  it('follows the cursor to read a dataset that spans several pages', async () => {
+    mockEmptyDatasets(['spans']);
+    mockDataset('spans', 'count', [{'count()': 2}]);
+
+    // Spans are capped at 100 rows per request by the events endpoint, so the
+    // timeline reads them a page at a time.
+    const firstPage = mockRowsPage('spans', {
+      cursor: undefined,
+      nextCursor: '0:100:0',
+      data: [
+        {
+          id: 'span1',
+          'span.description': 'first page span',
+          timestamp: '2024-01-01T00:00:02+00:00',
+        },
+      ],
+    });
+    const secondPage = mockRowsPage('spans', {
+      cursor: '0:100:0',
+      data: [
+        {
+          id: 'span2',
+          'span.description': 'second page span',
+          timestamp: '2024-01-01T00:00:01+00:00',
+        },
+      ],
+    });
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // Both pages land on one rail, in timestamp order rather than fetch order.
+    expect(await screen.findByText('first page span')).toBeInTheDocument();
+    expect(screen.getByText('second page span')).toBeInTheDocument();
+    expect(firstPage).toHaveBeenCalledTimes(1);
+    expect(secondPage).toHaveBeenCalledTimes(1);
+
+    // The last page said it had no successor, so nothing was left behind.
+    expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
+  it('stops paging at the row budget and says the timeline is partial', async () => {
+    mockEmptyDatasets(['spans']);
+    mockDataset('spans', 'count', [{'count()': 5000}]);
+
+    // Every page claims another one behind it, so paging stops on its own budget
+    // rather than on the session running out of spans.
+    const page = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      method: 'GET',
+      body: {
+        data: [
+          {
+            id: 'span1',
+            'span.description': 'a span',
+            timestamp: '2024-01-01T00:00:01+00:00',
+          },
+        ],
+        meta: {fields: {}},
+      },
+      headers: {
+        Link: '<https://sentry.io/next>; rel="next"; results="true"; cursor="0:100:0"',
+      },
+      match: [
+        (_url: string, options: Record<string, any>) =>
+          options.query.dataset === 'spans' && options.query.field.includes('timestamp'),
+      ],
+    });
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText(/may be incomplete/)).toBeInTheDocument();
+
+    // 1000 rows at 100 per request is ten pages, and the budget is a hard stop —
+    // a dataset that never stops advertising a next page cannot loop forever.
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(10));
+  });
+
+  it('measures the session from the extent aggregates, not from the fetched rows', async () => {
+    mockEmptyDatasets(['logs']);
+    // The session started a minute before the only row that came back, which is
+    // what a truncated page looks like.
+    mockDataset('logs', 'count', [
+      {
+        'count()': 1,
+        'min(timestamp_precise)': 1704067200e9,
+        'max(timestamp_precise)': 1704067320e9,
+      },
+    ]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'the only row', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // Offset is measured from the aggregate start (00:00:00), so the row sits a
+    // minute in rather than at zero.
+    expect(await screen.findByText('1:00.00')).toBeInTheDocument();
   });
 });

@@ -1,7 +1,10 @@
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,10 +15,12 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {SessionBadge} from 'sentry/views/explore/usersessions/sessionBadge';
 import {
   USER_SESSIONS_SUB_PATH,
   USER_SESSIONS_TITLE,
@@ -23,15 +28,18 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {SessionCounts} from './sessionCounts';
-import {SessionTimeline} from './sessionTimeline';
+import {SessionRail} from './sessionRail';
+import {SessionScrubber} from './sessionScrubber';
 import {TimelineFilters} from './timelineFilters';
-import {MAX_ROWS_PER_DATASET, useSessionDetail} from './useSessionDetail';
+import {useSessionDetail} from './useSessionDetail';
 
 export default function SessionDetailView() {
   const organization = useOrganization();
   const {sessionId} = useParams<{sessionId: string}>();
   const {
+    bounds,
     counts,
+    name,
     totalEvents,
     items,
     filters,
@@ -42,10 +50,49 @@ export default function SessionDetailView() {
     dateParams,
     sortDirection,
     toggleSort,
+    timestampsByType,
+    truncatedByType,
+    window,
+    setWindow,
   } = useSessionDetail(sessionId);
 
+  // A view preference, not a filter: it changes how the rail is drawn, not which
+  // items it contains, so it stays out of the URL alongside the rest.
+  const [collapseQuiet, setCollapseQuiet] = useState(true);
+
+  const toggleType = useCallback(
+    (key: (typeof filters.types)[number]) => {
+      const next = filters.types.includes(key)
+        ? filters.types.filter(type => type !== key)
+        : [...filters.types, key];
+      filters.setTypes(next);
+    },
+    [filters]
+  );
+
+  // Reserved while loading so the rail does not jump down the page once the
+  // session's extent arrives. A session with no telemetry at all has no extent to
+  // draw, and gets no strip.
+  const scrubber = isPending ? (
+    <Container padding="lg xl">
+      <Placeholder height="216px" />
+    </Container>
+  ) : bounds ? (
+    <SessionScrubber
+      bounds={bounds}
+      timestampsByType={timestampsByType}
+      truncatedByType={truncatedByType}
+      selectedTypes={filters.types}
+      onToggleType={toggleType}
+      window={window}
+      onChangeWindow={setWindow}
+    />
+  ) : null;
+
   return (
-    <SentryDocumentTitle title={t('Session %s', sessionId)} orgSlug={organization.slug}>
+    // The handle rather than the subject: it comes from the id, so it is stable
+    // from first paint instead of flashing "Anonymous" until the queries land.
+    <SentryDocumentTitle title={t('Session %s', name.handle)} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <AnalyticsArea name="explore.usersessions.detail">
           <Stack flex={1}>
@@ -57,7 +104,7 @@ export default function SessionDetailView() {
                     label: USER_SESSIONS_TITLE,
                     preservePageFilters: true,
                   },
-                  {label: sessionId},
+                  {label: name.handle},
                 ]}
               />
             </TopBar.Slot>
@@ -71,15 +118,27 @@ export default function SessionDetailView() {
                     <DatePageFilter />
                   </StyledPageFilterBar>
 
-                  <SessionIdRow>
-                    <SessionIdText>{sessionId}</SessionIdText>
+                  <Flex align="center" gap="sm">
+                    <SessionBadge
+                      name={name}
+                      isPending={isPending}
+                      trailing={
+                        name.release ? (
+                          <Text size="sm" variant="muted" ellipsis>
+                            {name.release}
+                          </Text>
+                        ) : null
+                      }
+                    />
+                    {/* The handle names the session; the full id is what other
+                        tools take, so it stays one click away. */}
                     <CopyToClipboardButton
                       text={sessionId}
                       size="zero"
                       variant="transparent"
                       aria-label={t('Copy session ID')}
                     />
-                  </SessionIdRow>
+                  </Flex>
 
                   <SessionCounts
                     counts={counts}
@@ -89,25 +148,39 @@ export default function SessionDetailView() {
 
                   {isTruncated && (
                     <Alert variant="info">
-                      {tct(
-                        'This timeline shows at most [limit] items per telemetry type, so it may be incomplete. The counts above are exact.',
-                        {limit: MAX_ROWS_PER_DATASET}
+                      {t(
+                        'This timeline caps how many items it loads per telemetry type, so it may be incomplete. The counts above are exact.'
                       )}
                     </Alert>
                   )}
 
-                  <Stack gap="md">
-                    <TimelineFilters filters={filters} />
-                    <SessionTimeline
+                  {/*
+                    Scrubber, controls and rail read as one instrument: the strip
+                    aims, the rail is what it aims at, so they share a frame rather
+                    than sitting in separate cards.
+                  */}
+                  <Panel radius="md" border="primary" background="primary">
+                    {scrubber}
+                    {scrubber && <Separator orientation="horizontal" border="primary" />}
+                    <TimelineFilters
+                      filters={filters}
+                      sortDirection={sortDirection}
+                      onToggleSort={toggleSort}
+                      collapseQuiet={collapseQuiet}
+                      onToggleCollapseQuiet={setCollapseQuiet}
+                    />
+                    <Separator orientation="horizontal" border="primary" />
+                    <SessionRail
                       items={items}
+                      bounds={bounds}
+                      collapseQuiet={collapseQuiet}
                       isFiltered={isFiltered}
+                      isWindowed={window !== null}
                       isPending={isPending}
                       isError={isError}
                       dateParams={dateParams}
-                      sortDirection={sortDirection}
-                      onToggleSort={toggleSort}
                     />
-                  </Stack>
+                  </Panel>
                 </Stack>
               </Layout.Main>
             </Layout.Body>
@@ -122,14 +195,6 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
-const SessionIdRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const SessionIdText = styled('code')`
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
+const Panel = styled(Container)`
+  overflow: hidden;
 `;
