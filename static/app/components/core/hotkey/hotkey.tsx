@@ -84,6 +84,8 @@ const StyledKbd = styled('kbd')`
   box-shadow: none;
 
   &[data-key='backspace'] {
-    scale: 1.1;
+    scale: 1;
+    font-size: ${p => p.theme.font.size.md};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 `;
