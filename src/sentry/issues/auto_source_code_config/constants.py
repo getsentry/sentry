@@ -9,7 +9,10 @@ from .utils.java import find_java_source_roots
 
 METRIC_PREFIX = "auto_source_code_config"
 DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
-SUPPORTED_INTEGRATIONS = [IntegrationProviderSlug.GITHUB.value]
+SUPPORTED_INTEGRATIONS = [
+    IntegrationProviderSlug.GITHUB.value,
+    IntegrationProviderSlug.CURSOR_ORIGIN.value,
+]
 STACK_ROOT_MAX_LEVEL = 4
 
 # The extensions do not need to be exhaustive but only include the ones that show up in stacktraces
