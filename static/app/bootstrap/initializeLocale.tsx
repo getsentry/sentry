@@ -15,9 +15,8 @@ function convertToDjangoLocaleFormat(language: string) {
 async function getTranslations(language: string) {
   language = convertToDjangoLocaleFormat(language);
 
-  // The uwu locale is applied as a transform over the english catalog, so there
-  // is no catalog on disk to fetch for it.
-  if (language === 'en' || language === UWU_LANGUAGE_CODE) {
+  // No need to load the english locale
+  if (language === 'en') {
     return DEFAULT_LOCALE_DATA;
   }
 
@@ -33,6 +32,20 @@ async function getTranslations(language: string) {
 
     // Default locale if not found
     return DEFAULT_LOCALE_DATA;
+  }
+}
+
+/**
+ * The generated catalog already holds uwu-ified strings, so the runtime
+ * transform has to stay off when it loads or every string is transformed twice.
+ * It is only a fallback for a build that skipped `pnpm gen:uwu-catalog`.
+ */
+async function initializeUwuLocale() {
+  try {
+    setLocale(await import(`sentry-locale/${UWU_LANGUAGE_CODE}/LC_MESSAGES/django.po`));
+  } catch {
+    setLocale(DEFAULT_LOCALE_DATA);
+    setUwuEnabled(true);
   }
 }
 
@@ -67,12 +80,10 @@ export async function initializeLocale(config: Config) {
   const languageCode =
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 
-  if (languageCode === UWU_LANGUAGE_CODE) {
-    setUwuEnabled(true);
-  }
-
   try {
-    if (languageCode === 'en' || languageCode === UWU_LANGUAGE_CODE) {
+    if (languageCode === UWU_LANGUAGE_CODE) {
+      await initializeUwuLocale();
+    } else if (languageCode === 'en') {
       const translations = await getTranslations(languageCode);
       setLocale(translations);
     } else {
