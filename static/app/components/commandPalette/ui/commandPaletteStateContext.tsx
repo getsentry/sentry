@@ -233,25 +233,28 @@ export function CommandPaletteHotkeys() {
     dispatch({type: 'reset on open'});
   }, [location.pathname, dispatch]);
 
-  useHotkeys([
-    {
-      match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
-      includeInputs: true,
-      callback: () => {
-        if (!organization) {
-          return;
-        }
-        toggleCommandPalette(
-          {},
-          organization,
-          state,
-          dispatch,
-          'keyboard',
-          isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-        );
+  useHotkeys(
+    [
+      {
+        match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
+        includeInputs: true,
+        callback: () => {
+          if (!organization) {
+            return;
+          }
+          toggleCommandPalette(
+            {},
+            organization,
+            state,
+            dispatch,
+            'keyboard',
+            isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+          );
+        },
       },
-    },
-  ]);
+    ],
+    {capture: true}
+  );
 
   return null;
 }

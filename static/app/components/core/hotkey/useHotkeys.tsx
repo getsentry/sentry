@@ -35,6 +35,14 @@ type Hotkey = {
   skipPreventDefault?: boolean;
 };
 
+interface UseHotkeysOptions {
+  /**
+   * Listen during the capture phase so global shortcuts run before focused
+   * widgets can stop the event from propagating. Defaults to false.
+   */
+  capture?: boolean;
+}
+
 /**
  * Pass in the hotkey combinations under match and the corresponding callback
  * function to be called. Separate key names with +. For example,
@@ -44,8 +52,9 @@ type Hotkey = {
  *
  * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
-export function useHotkeys(hotkeys: Hotkey[]): void {
+export function useHotkeys(hotkeys: Hotkey[], options?: UseHotkeysOptions): void {
   const hotkeysRef = useRef(hotkeys);
+  const capture = options?.capture ?? false;
 
   useEffect(() => {
     hotkeysRef.current = hotkeys;
@@ -91,10 +100,10 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
       }
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDown, capture);
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, capture);
     };
-  }, []);
+  }, [capture]);
 }

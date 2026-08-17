@@ -175,6 +175,20 @@ describe('useHotkeys', () => {
     expect(callback).toHaveBeenCalled();
   });
 
+  it('can listen during the capture phase', () => {
+    const callback = jest.fn();
+
+    renderHook(() =>
+      useHotkeys([{match: 'mod+k', callback, includeInputs: true}], {capture: true})
+    );
+
+    expect(document.addEventListener).toHaveBeenCalledWith(
+      'keydown',
+      expect.any(Function),
+      true
+    );
+  });
+
   it('skips preventDefault', () => {
     const callback = jest.fn();
 
