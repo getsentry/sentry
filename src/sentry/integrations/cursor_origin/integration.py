@@ -178,15 +178,27 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
         except ApiError as e:
             raise IntegrationError(f"Could not read the Cursor Origin installation: {e}")
 
-        account = installation.get("account") or {}
-        name = account.get("slug") or installation.get("ownerSlug") or installation_id
+        # The codebase the app was installed on. Origin calls this `target`; its
+        # `slug` is the namespace that prefixes every repo ("sentry/nuget-trends")
+        # and is what we want as the integration's display name. Falling back to
+        # the installation id keeps the install working but shows an opaque
+        # `i_01…` in the UI, so treat a missing target as worth knowing about.
+        target = installation.get("target") or {}
+        name = target.get("slug") or installation_id
+        if not target.get("slug"):
+            logger.warning(
+                "cursor_origin.installation.missing_target",
+                extra={"installation_id": installation_id},
+            )
 
         return {
             "name": name,
             "external_id": installation_id,
             "metadata": {
                 "installation_id": installation_id,
-                "account": account,
+                "target": target,
+                "scopes": installation.get("scopes") or [],
+                "repo_selection_mode": installation.get("repoSelectionMode"),
                 "domain_name": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}",
             },
         }
