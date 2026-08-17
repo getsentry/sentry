@@ -14,14 +14,22 @@ from sentry.utils.safe import setdefault_path
 
 _windecl_hash = re.compile(r"^@?(.*?)@[0-9]+$")
 _rust_hash = re.compile(r"::h[a-z0-9]{16}$")
-# The hash may be trailed by descriptor suffixes for generic sharing, inlined
-# variants, value type adjustor thunks and delegate invoke thunks. Those describe
-# the generated body rather than the build, so they are matched but kept.
+# Suffixes IL2CPP may append after the method hash, in any combination.
+_il2cpp_descriptors = (
+    "gshared",
+    "fshared",
+    "inline",
+    "AdjustorThunk",
+    "Multicast",
+    "OpenStatic",
+    "OpenInstance",
+    "OpenVirtual",
+    "OpenInterface",
+    "OpenGenericVirtual",
+    "OpenGenericInterface",
+)
 _il2cpp_method_hash = re.compile(
-    r"_m[0-9a-f]{40}"
-    r"(?=(?:_(?:gshared|fshared|inline|AdjustorThunk|Multicast"
-    r"|Open(?:Static|Instance|Virtual|Interface|GenericVirtual|GenericInterface)))*$)",
-    re.IGNORECASE,
+    r"_m[0-9a-fA-F]{40}(?=(?:_(?:%s))*$)" % "|".join(_il2cpp_descriptors)
 )
 _gnu_version = re.compile(r"@@?GLIBC_([0-9.]+)$")
 _cpp_trailer_re = re.compile(r"(\bconst\b|&)$")
@@ -148,7 +156,6 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     original_function = function
     function = function.strip()
 
-    # IL2CPP appends a build-specific managed method identifier to generated symbols.
     function = _il2cpp_method_hash.sub("", function)
 
     # Ensure we don't operate on objc functions
