@@ -6,7 +6,6 @@ from typing import Any
 
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
-from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -21,20 +20,10 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
     name = "Cursor Origin"
     repo_provider = "cursor_origin"
 
-    def _get_installation(
-        self, organization_id: int, integration_id: int
-    ) -> CursorOriginIntegration:
-        integration = integration_service.get_integration(integration_id=integration_id)
-        if integration is None:
-            raise IntegrationError("Cursor Origin integration not found.")
-        installation = integration.get_installation(organization_id=organization_id)
-        assert isinstance(installation, CursorOriginIntegration)
-        return installation
-
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        installation = self._get_installation(organization.id, config["installation"])
+        installation = self.get_installation(config.get("installation"), organization.id)
 
         # `identifier` is the fullName ("owner/repo") chosen in the repo picker.
         repo_name = config["identifier"]
@@ -46,6 +35,9 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
         config["external_id"] = str(repo["id"])
         config["name"] = repo["fullName"]
         config["default_branch"] = repo.get("defaultBranch")
+        # build_repository_config reads this back out; without it repo creation
+        # fails with a bare KeyError after the API calls have already succeeded.
+        config["integration_id"] = installation.model.id
         return config
 
     def build_repository_config(
