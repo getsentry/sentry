@@ -13,8 +13,6 @@ export interface FileChangeTag {
   variant: TagVariant;
 }
 
-// A collapsible file row shared by the PR files list and generated code changes:
-// the caller resolves the change tag from its own enum and owns the diff `children`.
 export function ChangedFileRow({
   additions,
   deletions,

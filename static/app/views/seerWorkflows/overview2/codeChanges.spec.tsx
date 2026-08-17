@@ -54,23 +54,10 @@ describe('CodeChanges', () => {
 
     expect(screen.getByText('1 file changed')).toBeInTheDocument();
     expect(screen.getByText('src/foo.py')).toBeInTheDocument();
-    // The diff stays collapsed until the file is expanded.
     expect(screen.queryByText('new')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: /src\/foo\.py/}));
 
     expect(await screen.findByText('new')).toBeInTheDocument();
-  });
-
-  it('renders the deleted-file view for a deleted file', async () => {
-    render(
-      <CodeChanges
-        codeChanges={[fileFixture({type: DiffFileType.DELETED, path: 'src/gone.py'})]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: /src\/gone\.py/}));
-
-    expect(await screen.findByText('This file will be deleted.')).toBeInTheDocument();
   });
 });

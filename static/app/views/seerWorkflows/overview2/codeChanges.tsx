@@ -17,8 +17,6 @@ const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag> = {
   [DiffFileType.DELETED]: {label: t('Deleted'), variant: 'danger'},
 };
 
-// The generated diffs arrive inline with the overview response, so unlike the
-// PR files list there's no fetch: each row expands straight to its patch.
 export function CodeChanges({codeChanges}: {codeChanges: OverviewCodeChangeFile[]}) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
 
