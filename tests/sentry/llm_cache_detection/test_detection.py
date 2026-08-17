@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from sentry.llm_cache_detection.detection import (
+    MIN_AVG_INPUT_TOKENS,
+    MIN_CALLS_PER_WINDOW,
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
@@ -107,7 +109,7 @@ def make_stats(
             id="ineligible-low-volume",
         ),
         pytest.param(
-            make_stats(call_count=2_000, avg_input_tokens=1024),
+            make_stats(call_count=MIN_CALLS_PER_WINDOW, avg_input_tokens=MIN_AVG_INPUT_TOKENS),
             CacheOutcome.NOT_CACHING,
             id="eligibility-thresholds-inclusive",
         ),
@@ -277,7 +279,7 @@ def test_find_contrast_anchor_ignores_low_volume_candidates() -> None:
     tiny_but_healthy = make_stats(
         transaction="task-b",
         model="gemini-2.5-pro",
-        call_count=1_999,
+        call_count=MIN_CALLS_PER_WINDOW - 1,
         avg_input_tokens=2_000,
         hit_rate=0.9,
     )

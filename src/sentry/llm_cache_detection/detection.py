@@ -13,9 +13,10 @@ from enum import StrEnum
 
 DETECTION_WINDOW_DAYS = 7
 
-# Roughly one call per 5-minute provider cache TTL window over the detection
-# window; sparser traffic cannot keep a cache warm.
-MIN_CALLS_PER_WINDOW = 2_000
+# Provider prompt caches expire on this order, so a call site has to average at
+# least one call per TTL to keep one warm; sparser traffic cannot.
+CACHE_TTL_MINUTES = 5
+MIN_CALLS_PER_WINDOW = DETECTION_WINDOW_DAYS * 24 * (60 // CACHE_TTL_MINUTES)
 # Provider minimum cacheable prefix; below this caching cannot engage.
 MIN_AVG_INPUT_TOKENS = 1024
 
