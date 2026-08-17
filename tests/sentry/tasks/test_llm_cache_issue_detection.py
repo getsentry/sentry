@@ -4,12 +4,16 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db.models import F
 
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.issues.ingest import hash_fingerprint
 from sentry.llm_cache_detection.detection import CacheOutcome, CallSiteStats
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
 from sentry.models.grouphash import GroupHash
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.tasks import llm_cache_issue_detection
 from sentry.tasks.llm_cache_issue_detection import (
     FINDINGS_PER_PROJECT_LIMIT,
     MAX_PRESENCE_PROBES_PER_PROJECT,
@@ -99,17 +103,34 @@ GEMINI_ZERO_STATS = CallSiteStats(
 
 @patch("sentry.tasks.llm_cache_issue_detection.detect_llm_cache_issues_for_project.delay")
 class RunLLMCacheIssueDetectionTest(TestCase):
+    def create_agent_project(self, organization: Organization | None = None) -> Project:
+        """A project that has sent gen-AI spans, i.e. one the fan-out prefilter keeps."""
+        project = self.create_project(organization=organization or self.organization)
+        project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
+        return project
+
+    def dispatched_project_ids(self, mock_delay: MagicMock) -> set[int]:
+        return {call.args[0] for call in mock_delay.call_args_list}
+
     def test_dispatches_sub_tasks_when_enabled(self, mock_delay: MagicMock) -> None:
-        project = self.create_project()
+        project = self.create_agent_project()
 
         with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
             run_llm_cache_issue_detection()
 
-        assert mock_delay.called
-        assert mock_delay.call_args[0][0] == project.id
+        assert self.dispatched_project_ids(mock_delay) == {project.id}
+
+    def test_skips_projects_without_agent_monitoring_spans(self, mock_delay: MagicMock) -> None:
+        self.create_project()
+        agent_project = self.create_agent_project()
+
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
+            run_llm_cache_issue_detection()
+
+        assert self.dispatched_project_ids(mock_delay) == {agent_project.id}
 
     def test_skips_when_detection_feature_disabled(self, mock_delay: MagicMock) -> None:
-        self.create_project()
+        self.create_agent_project()
 
         with self.feature({DETECTION_FEATURE: False, INGEST_FEATURE: True}):
             run_llm_cache_issue_detection()
@@ -117,12 +138,41 @@ class RunLLMCacheIssueDetectionTest(TestCase):
         assert not mock_delay.called
 
     def test_skips_without_ingest_feature(self, mock_delay: MagicMock) -> None:
-        self.create_project()
+        self.create_agent_project()
 
         with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: False}):
             run_llm_cache_issue_detection()
 
         assert not mock_delay.called
+
+    def test_dispatches_across_multiple_batches(self, mock_delay: MagicMock) -> None:
+        projects = [self.create_agent_project() for _ in range(3)]
+
+        with (
+            self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}),
+            patch.object(llm_cache_issue_detection, "PROJECTS_PER_BATCH", 2),
+            patch.object(
+                llm_cache_issue_detection,
+                "_dispatch_detection_for_projects",
+                wraps=llm_cache_issue_detection._dispatch_detection_for_projects,
+            ) as mock_dispatch,
+        ):
+            run_llm_cache_issue_detection()
+
+        assert [len(call.args[0]) for call in mock_dispatch.call_args_list] == [2, 1]
+        assert self.dispatched_project_ids(mock_delay) == {project.id for project in projects}
+
+    def test_evaluates_each_organization_once_per_batch(self, mock_delay: MagicMock) -> None:
+        other_organization = self.create_organization()
+        projects = [self.create_agent_project() for _ in range(3)]
+        projects += [self.create_agent_project(organization=other_organization) for _ in range(2)]
+
+        with patch.object(llm_cache_issue_detection.features, "has", return_value=True) as mock_has:
+            run_llm_cache_issue_detection()
+
+        # Two evaluations per organization (detection plus ingest), not per project.
+        assert mock_has.call_count == 4
+        assert self.dispatched_project_ids(mock_delay) == {project.id for project in projects}
 
 
 @patch("sentry.llm_cache_detection.issue_platform_adapter.produce_occurrence_to_kafka")
