@@ -268,7 +268,7 @@ describe('CommandPalette', () => {
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
-        'Search inside Parent Group Action...'
+        'Search inside Parent Group Action'
       );
     });
 
@@ -332,7 +332,7 @@ describe('CommandPalette', () => {
     expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
-      'Search inside Query clauses...'
+      'Search inside Query clauses'
     );
   });
 

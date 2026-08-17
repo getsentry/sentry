@@ -645,7 +645,7 @@ export function CommandPalette({
                   placeholder={
                     state.action?.value.prompt ??
                     (state.action?.value.label
-                      ? t('Search inside %s...', state.action.value.label)
+                      ? t('Search inside %s', state.action.value.label)
                       : t('Search for commands'))
                   }
                   {...inputCollectionProps}
