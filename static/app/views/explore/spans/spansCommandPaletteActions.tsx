@@ -298,32 +298,50 @@ function SortActions() {
     mode,
     yAxes: visualizes.map(visualize => visualize.yAxis),
   });
+  const currentField = currentSort?.field ?? fieldOptions[0]?.value ?? 'timestamp';
+  const currentKind = currentSort?.kind ?? 'desc';
+  const currentFieldOption = fieldOptions.find(option => option.value === currentField);
 
-  return fieldOptions.map(option => (
-    <CMDKAction
-      key={option.value}
-      display={{
-        label: option.textValue ?? option.value,
-        trailingItem:
-          currentSort?.field === option.value ? (
+  return (
+    <Fragment>
+      <CMDKAction
+        display={{
+          label: currentFieldOption?.textValue ?? currentField,
+        }}
+        keywords={['field', 'sort', ...fieldOptions.map(option => option.value)]}
+        prompt={t('Select sort field')}
+      >
+        {fieldOptions.map(option => (
+          <CMDKAction
+            key={option.value}
+            display={{label: option.textValue ?? option.value}}
+            keywords={[option.value]}
+            onAction={() => setSortBys([{field: option.value, kind: currentKind}])}
+          />
+        ))}
+      </CMDKAction>
+      <CMDKAction
+        display={{
+          label: t('Order'),
+          trailingItem: (
             <QueryValue
-              value={currentSort.kind === 'asc' ? t('Ascending') : t('Descending')}
+              value={currentKind === 'asc' ? t('Ascending') : t('Descending')}
             />
-          ) : undefined,
-      }}
-      keywords={[option.value]}
-      prompt={t('Select sort direction')}
-    >
-      <CMDKAction
-        display={{label: t('Ascending')}}
-        onAction={() => setSortBys([{field: option.value, kind: 'asc'}])}
-      />
-      <CMDKAction
-        display={{label: t('Descending')}}
-        onAction={() => setSortBys([{field: option.value, kind: 'desc'}])}
-      />
-    </CMDKAction>
-  ));
+          ),
+        }}
+        prompt={t('Select sort order')}
+      >
+        <CMDKAction
+          display={{label: t('Ascending')}}
+          onAction={() => setSortBys([{field: currentField, kind: 'asc'}])}
+        />
+        <CMDKAction
+          display={{label: t('Descending')}}
+          onAction={() => setSortBys([{field: currentField, kind: 'desc'}])}
+        />
+      </CMDKAction>
+    </Fragment>
+  );
 }
 
 function SourceActions({
@@ -457,23 +475,38 @@ function QueryClauseActions() {
           )}
         </CMDKChainedActionScope>
       </CMDKAction>
-      {visualizes.map((visualize, index) => (
-        <CMDKAction
-          key={`series-details-${visualize.yAxis}-${index}`}
-          display={{label: t('Series %s', String.fromCharCode(65 + index))}}
-        >
-          <CMDKChainedActionScope>
-            <SeriesActions
-              visualize={visualize}
-              addSearchFilter={addSearchFilter}
-              groupBySummary={groupBySummary}
-              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-              query={draftQuery}
-              sortBySummary={sortBySummary}
-            />
-          </CMDKChainedActionScope>
-        </CMDKAction>
-      ))}
+      <CMDKChainedActionScope>
+        {visualizes.map((visualize, index) => (
+          <CMDKAction
+            key={`series-details-${visualize.yAxis}-${index}`}
+            display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+          >
+            <CMDKChainedActionScope>
+              <SeriesActions
+                visualize={visualize}
+                addSearchFilter={addSearchFilter}
+                groupBySummary={groupBySummary}
+                onChange={nextVisualize => updateVisualize(index, nextVisualize)}
+                query={draftQuery}
+                sortBySummary={sortBySummary}
+              />
+            </CMDKChainedActionScope>
+            {visualizes.length > 1 && (
+              <CMDKAction
+                display={{label: t('Delete Series')}}
+                keywords={['delete', 'remove', 'series']}
+                onAction={() =>
+                  setVisualizes(
+                    visualizes
+                      .filter((_, visualizeIndex) => visualizeIndex !== index)
+                      .map(item => item.serialize())
+                  )
+                }
+              />
+            )}
+          </CMDKAction>
+        ))}
+      </CMDKChainedActionScope>
     </Fragment>
   );
 }
