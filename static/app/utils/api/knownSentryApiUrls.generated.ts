@@ -24,6 +24,8 @@ export type KnownSentryApiUrls =
   | '/auth-v2/merge-accounts/'
   | '/auth-v2/user-merge-verification-codes/'
   | '/auth/'
+  | '/auth/2fa/'
+  | '/auth/2fa/challenge/'
   | '/auth/config/'
   | '/auth/login/'
   | '/auth/validate/'
