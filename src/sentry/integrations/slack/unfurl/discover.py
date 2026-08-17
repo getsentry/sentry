@@ -188,7 +188,11 @@ def _unfurl_discover(
             or (to_list(saved_query_dataset) if saved_query_dataset else []),
         )
 
-        fields = params.getlist("field") or to_list(saved_query.get("fields"))
+        fields = [
+            f
+            for f in (params.getlist("field") or to_list(saved_query.get("fields")))
+            if f is not None
+        ]
         # Mimic Discover to pick the first aggregate as the yAxis option if
         # one isn't specified.
         axis_options = [field for field in fields if is_aggregate(field)] + [DEFAULT_AXIS_OPTION]
