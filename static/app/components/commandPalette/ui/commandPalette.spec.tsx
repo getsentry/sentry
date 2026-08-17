@@ -1485,6 +1485,27 @@ describe('CommandPalette', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('omits redundant section headings for contextual actions', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Current Page'}}>
+              <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+            </CMDKAction>
+          </CommandPaletteSlot>
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Page Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Current Page'})
+      ).not.toBeInTheDocument();
+    });
+
     it('includes matching global actions when searching from a contextual page', async () => {
       render(
         <CommandPaletteProvider>

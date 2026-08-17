@@ -163,13 +163,19 @@ export function CommandPalette({
   const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
   >(() => {
+    const showBrowseSections = !(
+      state.action === null &&
+      state.query === '' &&
+      currentNodes.length > 0 &&
+      currentNodes.every(isContextualNode)
+    );
     const [scored, scoredPrefixMap] = state.query
       ? (() => {
           const scores = new Map<string, CommandPaletteScore>();
           scoreTree(currentNodes, scores, state.query.toLowerCase());
           return flattenActions(currentNodes, scores, state.action !== null);
         })()
-      : flattenActions(currentNodes, null);
+      : flattenActions(currentNodes, null, false, showBrowseSections);
 
     // When a query produces no matches and Seer Explorer is available, inject
     // synthetic items directly into the collection so they participate in the
@@ -838,7 +844,8 @@ function markSubtreeSeen(
 function flattenActions(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
   scores: Map<string, CommandPaletteScore> | null,
-  sortLeafResults = false
+  sortLeafResults = false,
+  showBrowseSections = true
 ): [CMDKFlatItem[], Map<string, string[]>] {
   // Browse mode: show each top-level node and its direct children.
   if (!scores) {
@@ -868,7 +875,9 @@ function flattenActions(
         if (!children.length) {
           continue;
         }
-        results.push(makeSectionAction(node));
+        if (showBrowseSections) {
+          results.push(makeSectionAction(node));
+        }
         const visibleChildren = getLimitedChildren(children, node.limit);
         results.push(...visibleChildren);
         if (shouldShowSeeMore(children.length, node.limit)) {
