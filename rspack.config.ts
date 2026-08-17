@@ -381,6 +381,16 @@ const appConfig: Configuration = {
         ],
       },
       {
+        // See build-utils/ffmpeg-worker-import-ignore-loader.ts for why this
+        // one file needs a targeted patch rather than just being excluded
+        // from the JS rule like the rest of @ffmpeg/ffmpeg.
+        test: /[\\/]node_modules[\\/]@ffmpeg[\\/]ffmpeg[\\/]dist[\\/]esm[\\/]worker\.js$/,
+        loader: path.resolve(
+          import.meta.dirname,
+          './build-utils/ffmpeg-worker-import-ignore-loader.ts'
+        ),
+      },
+      {
         test: /\.po$/,
         loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
         type: 'javascript/dynamic',
