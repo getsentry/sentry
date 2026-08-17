@@ -118,12 +118,17 @@ function UpdateRetentionSettingsModal({
             A value of zero for downsampled means that the downsampled retention defaults
             to the standard retention.
           </p>
+          <p>
+            Org Retention must be at least 1 day. To clear the org-level override, leave
+            the field blank — zero is not a valid retention and will be rejected.
+          </p>
         </div>
         <br />
         <Form onSubmit={onSubmit} submitLabel="Update Settings" onCancel={closeModal}>
           <NumberField
             name="orgStandard"
             label="Org Retention"
+            min={1}
             defaultValue={orgStandard}
             onChange={setOrgStandard}
           />
