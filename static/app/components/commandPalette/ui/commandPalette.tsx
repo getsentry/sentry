@@ -594,7 +594,7 @@ export function CommandPalette({
 
   const content = (
     <Stack height="420px" maxHeight="80vh">
-      <Stack gap="md" padding="xl" flex={1} minHeight={0}>
+      <Stack gap="md" padding="xl xl md xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
             return (
