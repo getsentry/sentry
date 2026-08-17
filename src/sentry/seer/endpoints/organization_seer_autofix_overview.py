@@ -111,6 +111,7 @@ def _serialize_pull_request(
     number: int,
     url: str | None,
     status: PullRequestStatus | None,
+    repo_name: str | None,
     checks_and_review: PullRequestStatusResult,
 ) -> PullRequestPayload:
     return {
@@ -120,6 +121,7 @@ def _serialize_pull_request(
         "status": status,
         "checksStatus": checks_and_review.checks.value if checks_and_review.checks else None,
         "reviewStatus": checks_and_review.review.value if checks_and_review.review else None,
+        "repoName": repo_name,
         "files": [
             {
                 "path": file.path,
@@ -186,12 +188,14 @@ def _pull_requests_by_seer_run_id(
             number = int(pr.key)
         except (TypeError, ValueError):
             continue
+        repo = repos_by_id.get(pr.repository_id)
         by_run[link.seer_run_id].append(
             _serialize_pull_request(
                 pull_request_id=str(pr.id),
                 number=number,
                 url=_external_url(pr),
                 status=status_by_pr_id[pr.id],
+                repo_name=repo.name if repo else None,
                 checks_and_review=checks_and_review_by_pr_id.get(pr.id, PullRequestStatusResult()),
             )
         )
