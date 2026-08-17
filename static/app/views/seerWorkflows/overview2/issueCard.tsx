@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -10,15 +10,14 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
-import {
-  PullRequestChecksBadge,
-  PullRequestReviewBadge,
-} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconBug,
+  IconCheckmark,
+  IconCircle,
   IconClock,
+  IconClose,
   IconCode,
   IconCommit,
   IconGraph,
@@ -27,11 +26,16 @@ import {
   IconPullRequest,
   IconSearch,
   IconSeer,
+  IconThumb,
   IconUser,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {
+  PullRequestChecksStatus,
+  PullRequestReviewStatus,
+} from 'sentry/types/integrations';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {OverviewIssueAssignee} from 'sentry/views/seerWorkflows/overview/overviewIssueAssignee';
 import {
@@ -85,6 +89,44 @@ const ACTION_META: Record<Exclude<AutofixStateKey, 'merged'>, ActionMeta> = {
     description: t('Seer stopped at a diagnosis. Review the root cause to continue.'),
   },
 };
+
+interface PullRequestStatusTagMeta {
+  icon: React.ReactNode;
+  label: string;
+  variant: TagProps['variant'];
+}
+
+const CHECKS_STATUS_TAGS = {
+  failure: {
+    icon: <IconClose />,
+    label: t('Checks Failing'),
+    variant: 'danger',
+  },
+  pending: {
+    icon: <IconCircle />,
+    label: t('Checks Running'),
+    variant: 'warning',
+  },
+  success: {
+    icon: <IconCheckmark />,
+    label: t('Checks Passing'),
+    variant: 'success',
+  },
+} satisfies Record<PullRequestChecksStatus, PullRequestStatusTagMeta>;
+
+const REVIEW_STATUS_TAGS = {
+  approved: {
+    icon: <IconThumb />,
+    label: t('Approved'),
+    variant: 'success',
+  },
+  changes_requested: {
+    icon: <IconClose />,
+    label: t('Changes Requested'),
+    variant: 'warning',
+  },
+  review_required: null,
+} satisfies Record<PullRequestReviewStatus, PullRequestStatusTagMeta | null>;
 
 function Overview2Action({
   sectionKey,
@@ -142,6 +184,13 @@ function Overview2Action({
   }
 
   if (sectionKey === 'review_pr' && reviewPullRequest?.url) {
+    const checksStatusTag = reviewPullRequest.checksStatus
+      ? CHECKS_STATUS_TAGS[reviewPullRequest.checksStatus]
+      : null;
+    const reviewStatusTag = reviewPullRequest.reviewStatus
+      ? REVIEW_STATUS_TAGS[reviewPullRequest.reviewStatus]
+      : null;
+
     return (
       <Stack align="end" gap="xs">
         <Tooltip title={ACTION_META.review_pr.description} skipWrapper>
@@ -153,19 +202,23 @@ function Overview2Action({
           </LinkButton>
         </Tooltip>
         {enrichmentPending ? (
-          // Two slots mirror the checks + review badges the enriched response
+          // Two slots mirror the review + checks tags the enriched response
           // typically fills in, so the row height doesn't jump on resolve.
           <Fragment>
-            <Placeholder height="1.25rem" width="7rem" />
             <Placeholder height="1.25rem" width="5.5rem" />
+            <Placeholder height="1.25rem" width="7rem" />
           </Fragment>
         ) : (
           <Fragment>
-            {reviewPullRequest.checksStatus && (
-              <PullRequestChecksBadge status={reviewPullRequest.checksStatus} />
+            {reviewStatusTag && (
+              <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
+                {reviewStatusTag.label}
+              </Tag>
             )}
-            {reviewPullRequest.reviewStatus && (
-              <PullRequestReviewBadge status={reviewPullRequest.reviewStatus} />
+            {checksStatusTag && (
+              <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
+                {checksStatusTag.label}
+              </Tag>
             )}
           </Fragment>
         )}
