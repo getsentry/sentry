@@ -6,7 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -561,7 +561,12 @@ function EventContextTimelineContent({
   return (
     <FoldSection
       sectionKey={SectionKey.EVENT_CONTEXT_TIMELINE}
-      title={t('Event Context Timeline')}
+      title={
+        <Flex align="center" gap="xs">
+          {t('Event Context Timeline')}
+          <FeatureBadge type="new" />
+        </Flex>
+      }
     >
       <Stack gap="xl" padding="xl" background="secondary" radius="md">
         <Flex align="center" justify="between" gap="md" wrap="wrap">
