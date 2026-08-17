@@ -1190,7 +1190,7 @@ function makeMenuItemFromAction(
       action.display.label
     ),
     details: action.display.details,
-    leadingItems: (
+    leadingItems: action.display.icon ? (
       <Flex
         height="100%"
         align="start"
@@ -1202,7 +1202,7 @@ function makeMenuItemFromAction(
       >
         <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
-    ),
+    ) : undefined,
     trailingItems,
     children: [],
     hideCheck: true,
