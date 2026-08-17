@@ -1,0 +1,164 @@
+import styled from '@emotion/styled';
+
+import {Link} from '@sentry/scraps/link';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
+
+import {Duration} from 'sentry/components/duration/duration';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {SESSION_DATASETS} from './datasets';
+import {USER_SESSIONS_SUB_PATH} from './settings';
+import type {UserSession} from './useUserSessions';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'session', width: 320},
+  {key: 'total'},
+  ...SESSION_DATASETS.map(config => ({key: config.key})),
+  {key: 'duration'},
+  {key: 'lastSeen'},
+];
+
+const HEADERS: Record<string, string> = {
+  session: t('Session ID'),
+  total: t('Telemetry'),
+  ...Object.fromEntries(SESSION_DATASETS.map(config => [config.key, config.label])),
+  duration: t('Duration'),
+  lastSeen: t('Last Seen'),
+};
+
+interface Props {
+  isError: boolean;
+  isPending: boolean;
+  sessions: UserSession[];
+}
+
+export function UserSessionsTable({sessions, isPending, isError}: Props) {
+  return (
+    <StyledTable columns={COLUMNS}>
+      <Table.Head>
+        <Table.Row>
+          {COLUMNS.map(column => (
+            <Table.HeadCell key={column.key} column={column.key}>
+              {HEADERS[column.key]}
+            </Table.HeadCell>
+          ))}
+        </Table.Row>
+      </Table.Head>
+      {isError ? (
+        <Table.StatusBody>
+          <LoadingError message={t('Failed to load sessions.')} />
+        </Table.StatusBody>
+      ) : isPending ? (
+        <Table.StatusBody>
+          <LoadingIndicator />
+        </Table.StatusBody>
+      ) : sessions.length === 0 ? (
+        <Table.StatusBody>
+          <Text variant="muted">
+            {t('No sessions found. Nothing in this time range carries a session.id.')}
+          </Text>
+        </Table.StatusBody>
+      ) : (
+        <Table.Body>
+          {sessions.map(session => (
+            <SessionRow key={session.id} session={session} />
+          ))}
+        </Table.Body>
+      )}
+    </StyledTable>
+  );
+}
+
+function SessionRow({session}: {session: UserSession}) {
+  const organization = useOrganization();
+  const durationMs =
+    session.firstSeen === undefined || session.lastSeen === undefined
+      ? undefined
+      : session.lastSeen - session.firstSeen;
+
+  return (
+    <Table.Row divider>
+      <Table.Cell>
+        <Link
+          to={{
+            pathname: `/organizations/${organization.slug}/explore/${USER_SESSIONS_SUB_PATH}/${session.id}/`,
+          }}
+        >
+          {/*
+            `variant="inherit"` matters: Text otherwise paints content.primary
+            and swallows the anchor's accent color, leaving the link looking
+            like plain text.
+          */}
+          <Text monospace size="sm" ellipsis variant="inherit" title={session.id}>
+            {session.id}
+          </Text>
+        </Link>
+      </Table.Cell>
+      <Table.Cell>
+        <Text tabular>{session.totalEvents.toLocaleString()}</Text>
+      </Table.Cell>
+      {SESSION_DATASETS.map(config => {
+        const count = session.counts[config.key];
+        return (
+          <Table.Cell key={config.key}>
+            <Text tabular variant={count === 0 ? 'muted' : undefined}>
+              {count.toLocaleString()}
+            </Text>
+          </Table.Cell>
+        );
+      })}
+      <Table.Cell>
+        {durationMs === undefined ? (
+          <Text variant="muted">{'—'}</Text>
+        ) : (
+          <Duration duration={[durationMs, 'ms']} precision="sec" />
+        )}
+      </Table.Cell>
+      <Table.Cell>
+        {session.lastSeen === undefined ? (
+          <Text variant="muted">{'—'}</Text>
+        ) : (
+          <TimeSince date={session.lastSeen} />
+        )}
+      </Table.Cell>
+    </Table.Row>
+  );
+}
+
+const StyledTable = styled(Table)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+
+  th,
+  td {
+    display: flex;
+    align-items: center;
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  }
+
+  /* The session id leads; every numeric/temporal column right-aligns. */
+  th:not(:first-of-type),
+  td:not(:first-of-type) {
+    justify-content: flex-end;
+  }
+
+  thead {
+    background: ${p => p.theme.tokens.background.secondary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  }
+
+  /* Reinforce that rows lead somewhere; the accent link is the primary signal. */
+  tbody tr:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+
+  tbody tr:hover a {
+    text-decoration: underline;
+  }
+`;

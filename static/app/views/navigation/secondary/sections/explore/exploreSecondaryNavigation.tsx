@@ -34,8 +34,9 @@ export function ExploreSecondaryNavigation() {
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
-                to={`${baseUrl}/sessions/`}
+                to={`${baseUrl}/usersessions/`}
                 analyticsItemName="explore_sessions"
+                trailingItems={<FeatureBadge type="alpha" />}
               >
                 {t('Sessions')}
               </SecondaryNavigation.Link>
