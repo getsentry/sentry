@@ -1,17 +1,16 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PullRequestFileChangeType} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
-import {ChangedFileRow, type FileChangeTag} from './changedFileRow';
+import type {FileChangeTag} from './changedFileRow';
+import {ChangedFilesSection, useExpandedKeys} from './changedFilesSection';
 import {parseFilePatch} from './filePatch';
 import {
   type OverviewPullRequest,
@@ -85,7 +84,7 @@ export function PullRequestFiles({
   pullRequest: OverviewPullRequest;
 }) {
   const files = pullRequest.files;
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
+  const {expandedKeys, toggle} = useExpandedKeys();
 
   const {data, isPending, isError} = useQuery({
     ...apiOptions.as<PullRequestFilesResponse>()(
@@ -95,7 +94,7 @@ export function PullRequestFiles({
         staleTime: QUERY_STALE_TIME,
       }
     ),
-    enabled: expandedRows.size > 0,
+    enabled: expandedKeys.size > 0,
   });
 
   const diffByPath = useMemo(
@@ -103,56 +102,27 @@ export function PullRequestFiles({
     [data]
   );
 
-  const toggle = (index: number, expanded: boolean) =>
-    setExpandedRows(prev => {
-      const next = new Set(prev);
-      if (expanded) {
-        next.add(index);
-      } else {
-        next.delete(index);
-      }
-      return next;
-    });
+  const groups = [
+    {
+      repoName: pullRequest.repoName || null,
+      files: files.map(file => ({
+        additions: file.additions,
+        deletions: file.deletions,
+        path: file.path,
+        changeTag: file.changeType ? FILE_CHANGE_TAG[file.changeType] : null,
+        renderDiff: () => (
+          <FileDiff
+            file={file}
+            diff={diffByPath.get(file.path)}
+            isPending={isPending}
+            isError={isError}
+          />
+        ),
+      })),
+    },
+  ];
 
   return (
-    <Stack gap="sm">
-      <Flex gap="xs" align="center">
-        <IconCode size="xs" variant="secondary" aria-hidden />
-        <Text size="xs" bold uppercase variant="secondary">
-          {t('Code changes')}
-        </Text>
-      </Flex>
-      <Text size="sm" variant="muted">
-        {files.length === 1
-          ? t('1 file changed')
-          : t('%s files changed', files.length.toLocaleString())}
-      </Text>
-      <Container border="primary" radius="md" overflow="hidden" background="secondary">
-        {files.map((file, index) => {
-          const diff = diffByPath.get(file.path);
-          const isExpanded = expandedRows.has(index);
-          return (
-            <ChangedFileRow
-              key={`${index}-${file.path}`}
-              additions={file.additions}
-              deletions={file.deletions}
-              path={file.path}
-              changeTag={file.changeType ? FILE_CHANGE_TAG[file.changeType] : null}
-              expanded={isExpanded}
-              onExpandedChange={next => toggle(index, next)}
-            >
-              {isExpanded ? (
-                <FileDiff
-                  file={file}
-                  diff={diff}
-                  isPending={isPending}
-                  isError={isError}
-                />
-              ) : null}
-            </ChangedFileRow>
-          );
-        })}
-      </Container>
-    </Stack>
+    <ChangedFilesSection groups={groups} expandedKeys={expandedKeys} onToggle={toggle} />
   );
 }

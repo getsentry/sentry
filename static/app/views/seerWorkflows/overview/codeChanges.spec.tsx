@@ -8,9 +8,12 @@ import {
 import {CodeChanges} from 'sentry/views/seerWorkflows/overview/codeChanges';
 import type {OverviewCodeChangeFile} from 'sentry/views/seerWorkflows/overview/types';
 
-function fileFixture(overrides: Partial<FilePatch> = {}): OverviewCodeChangeFile {
+function fileFixture(
+  overrides: Partial<FilePatch> = {},
+  repoName = 'getsentry/sentry'
+): OverviewCodeChangeFile {
   return {
-    repoName: 'getsentry/sentry',
+    repoName,
     patch: {
       path: 'src/foo.py',
       source_file: 'src/foo.py',
@@ -52,12 +55,45 @@ describe('CodeChanges', () => {
   it('renders the generated files and expands to a diff', async () => {
     render(<CodeChanges codeChanges={[fileFixture()]} />);
 
-    expect(screen.getByText('1 file changed')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('src/foo.py')).toBeInTheDocument();
     expect(screen.queryByText('new')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: /src\/foo\.py/}));
 
     expect(await screen.findByText('new')).toBeInTheDocument();
+  });
+
+  it('groups files under a header for each repository', () => {
+    render(
+      <CodeChanges
+        codeChanges={[
+          fileFixture({path: 'src/a.py'}, 'getsentry/sentry'),
+          fileFixture({path: 'src/b.py'}, 'getsentry/sentry'),
+          fileFixture({path: 'src/c.py'}, 'getsentry/getsentry'),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/getsentry')).toBeInTheDocument();
+    // Each repo header carries its own file count.
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('src/a.py')).toBeInTheDocument();
+    expect(screen.getByText('src/b.py')).toBeInTheDocument();
+    expect(screen.getByText('src/c.py')).toBeInTheDocument();
+  });
+
+  it('renders the deleted-file view for a deleted file', async () => {
+    render(
+      <CodeChanges
+        codeChanges={[fileFixture({type: DiffFileType.DELETED, path: 'src/gone.py'})]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /src\/gone\.py/}));
+
+    expect(await screen.findByText('This file will be deleted.')).toBeInTheDocument();
   });
 });

@@ -469,6 +469,7 @@ describe('AutofixOverview', () => {
       status: 'open',
       checksStatus: null,
       reviewStatus: null,
+      repoName: 'getsentry/sentry',
       files: [],
     };
 
@@ -512,11 +513,36 @@ describe('AutofixOverview', () => {
 
     enriched.resolve();
 
-    expect(await screen.findByText('2 files changed')).toBeInTheDocument();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('src/sentry/foo.py')).toBeInTheDocument();
     expect(screen.getByText('src/sentry/bar.py')).toBeInTheDocument();
     expect(screen.getByText('+10')).toBeInTheDocument();
     expect(screen.getByText('-2')).toBeInTheDocument();
+  });
+
+  it('falls back to a file count when a pull request has no repo name', async () => {
+    const pullRequest: OverviewPullRequest = {
+      id: '99',
+      number: 99,
+      url: 'https://github.com/getsentry/sentry/pull/99',
+      status: 'open',
+      checksStatus: null,
+      reviewStatus: null,
+      repoName: null,
+      files: [
+        {path: 'src/sentry/foo.py', additions: 1, deletions: 1, changeType: 'MODIFIED'},
+        {path: 'src/sentry/bar.py', additions: 2, deletions: 0, changeType: 'ADDED'},
+      ],
+    };
+    mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, pullRequests: [pullRequest]}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('2 files changed')).toBeInTheDocument();
+    expect(screen.getByText('src/sentry/foo.py')).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
   });
 
   it('renders the newest actionable pull request, not the oldest link', async () => {
@@ -712,7 +738,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(await screen.findByText('4 files changed')).toBeInTheDocument();
+    expect(await screen.findByText('src/sentry/new.py')).toBeInTheDocument();
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Deleted')).toBeInTheDocument();
     expect(screen.getByText('Modified')).toBeInTheDocument();
@@ -911,7 +937,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(await screen.findByText('1 file changed')).toBeInTheDocument();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     // The generated diff comes back inline, so expanding needs no extra request.
     await userEvent.click(
       await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
@@ -925,7 +951,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
-    expect(screen.queryByText('1 file changed')).not.toBeInTheDocument();
+    expect(screen.queryByText('Code changes')).not.toBeInTheDocument();
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {
