@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/timezoneContext';
+import {useTimezone} from '@sentry/scraps/datetime';
 
 import {usePageFilterDates as useCronsPageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';

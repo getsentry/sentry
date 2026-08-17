@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/timezoneContext';
+import {useTimezone} from '@sentry/scraps/datetime';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';

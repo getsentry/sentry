@@ -2,8 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
-import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {TimestampTooltipBody} from 'sentry/views/explore/logs/logsTimeTooltip';
@@ -26,9 +25,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
@@ -47,9 +46,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="UTC">
+      <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
@@ -69,9 +68,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.getByText('Occurred')).toBeInTheDocument();
@@ -88,9 +87,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.queryByText('Received')).not.toBeInTheDocument();
@@ -108,9 +107,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.getByText('Received')).toBeInTheDocument();
@@ -127,13 +126,13 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
         <TimestampTooltipBody
           timestamp={timestamp}
           attributes={attributes}
           isTraceItemDetailsPending
         />
-      </TimezoneProvider>
+      </DateTimeProvider>
     );
 
     expect(screen.getByText('Received')).toBeInTheDocument();
@@ -147,11 +146,9 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <TimezoneProvider timezone="America/New_York">
-        <Clock24HoursProvider clock24Hours>
-          <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
-        </Clock24HoursProvider>
-      </TimezoneProvider>
+      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '24'}}>
+        <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
+      </DateTimeProvider>
     );
 
     expect(screen.getByText(/15:45:30\.456/)).toBeInTheDocument();

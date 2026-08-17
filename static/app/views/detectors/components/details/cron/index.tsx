@@ -4,11 +4,11 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DateTimeProvider, useTimezone} from '@sentry/scraps/datetime';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {TimezoneProvider, useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -158,7 +158,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }, []);
 
   return (
-    <TimezoneProvider timezone={timezoneOverride}>
+    <DateTimeProvider value={{timezone: timezoneOverride, clockDisplay: '12'}}>
       <DetailLayout>
         <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
@@ -328,7 +328,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>
-    </TimezoneProvider>
+    </DateTimeProvider>
   );
 }
 

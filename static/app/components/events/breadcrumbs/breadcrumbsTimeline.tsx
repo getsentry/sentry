@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
+import {useTimezone} from '@sentry/scraps/datetime';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {useTimezone} from '@sentry/scraps/timezoneContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';

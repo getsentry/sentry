@@ -2,7 +2,7 @@ import React, {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {useTimezone} from '@sentry/scraps/timezoneContext';
+import {useTimezone} from '@sentry/scraps/datetime';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';

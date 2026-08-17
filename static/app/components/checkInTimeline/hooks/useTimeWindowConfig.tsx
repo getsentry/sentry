@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {useTimezone} from '@sentry/scraps/timezoneContext';
+import {useTimezone} from '@sentry/scraps/datetime';
 
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 

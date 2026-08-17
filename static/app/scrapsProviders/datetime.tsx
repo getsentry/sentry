@@ -1,5 +1,6 @@
-import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
-import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+import {useMemo} from 'react';
+
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {useUser} from 'sentry/utils/useUser';
 
@@ -10,8 +11,8 @@ import {useUser} from 'sentry/utils/useUser';
 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /**
- * Resolves how Sentry formats absolute times for the current viewer and hands
- * it to scraps: which timezone, and whether to use a 24 hour clock.
+ * Resolves how Sentry writes absolute times for the current viewer and hands it
+ * to scraps: which timezone, and which clock.
  *
  * The intended fallback is the user's configured timezone, then the browser's
  * as a guess at where they actually are. **The browser half does not currently
@@ -27,14 +28,15 @@ const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
  * one, and we would rather not add a property to the org for this. If that ever
  * changes, this is the only place that needs to know.
  */
-export function SentryTimeFormatProvider({children}: {children: React.ReactNode}) {
+export function SentryDateTimeProvider({children}: {children: React.ReactNode}) {
   const user = useUser();
   const timezone = user?.options.timezone ?? browserTimezone;
-  const clock24Hours = user?.options.clock24Hours ?? false;
+  const clockDisplay = user?.options.clock24Hours ? '24' : '12';
 
-  return (
-    <TimezoneProvider timezone={timezone}>
-      <Clock24HoursProvider clock24Hours={clock24Hours}>{children}</Clock24HoursProvider>
-    </TimezoneProvider>
+  const value = useMemo(
+    () => ({timezone, clockDisplay}) as const,
+    [timezone, clockDisplay]
   );
+
+  return <DateTimeProvider value={value}>{children}</DateTimeProvider>;
 }

@@ -8,8 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
-import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -76,9 +75,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
@@ -90,11 +89,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
-          <Clock24HoursProvider clock24Hours>
-            <Fragment>{result}</Fragment>
-          </Clock24HoursProvider>
-        </TimezoneProvider>
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
+          <Fragment>{result}</Fragment>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 14:30:45\.123/)).toBeInTheDocument();
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
@@ -106,9 +103,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/\.123/)).toBeInTheDocument();
     });
@@ -122,9 +119,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/2:30:45\.123/)).toBeInTheDocument();
     });
@@ -139,9 +136,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
@@ -153,11 +150,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="Asia/Tokyo">
-          <Clock24HoursProvider clock24Hours>
-            <Fragment>{result}</Fragment>
-          </Clock24HoursProvider>
-        </TimezoneProvider>
+        <DateTimeProvider value={{timezone: 'Asia/Tokyo', clockDisplay: '24'}}>
+          <Fragment>{result}</Fragment>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 23:30:45\.123/)).toBeInTheDocument();
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
@@ -169,9 +164,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
 
       const timestampElement = screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/);

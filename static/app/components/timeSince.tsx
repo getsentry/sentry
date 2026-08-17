@@ -2,9 +2,8 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import {useClock24Hours} from '@sentry/scraps/clock24HoursContext';
+import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
-import {useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -111,7 +110,7 @@ export function TimeSince({
   liveUpdateInterval = 'minute',
   ...props
 }: Props) {
-  const clock24Hours = useClock24Hours();
+  const clockDisplay = useClockDisplay();
   const tz = useTimezone();
 
   // Counter to trigger periodic re-computation of relative time
@@ -143,7 +142,7 @@ export function TimeSince({
   const tooltipFormat = tooltipShowSeconds
     ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
-  const format = clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
+  const format = clockDisplay === '24' ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
   const tooltip = moment.tz(dateObj, tz).format(format);
 

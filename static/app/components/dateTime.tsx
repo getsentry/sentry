@@ -1,7 +1,6 @@
 import moment from 'moment-timezone';
 
-import {useClock24Hours} from '@sentry/scraps/clock24HoursContext';
-import {useTimezone} from '@sentry/scraps/timezoneContext';
+import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 
 import {getFormat} from 'sentry/utils/dates';
 
@@ -66,7 +65,7 @@ export function DateTime({
   forcedTimezone,
   ...props
 }: DateTimeProps) {
-  const clock24Hours = useClock24Hours();
+  const clockDisplay = useClockDisplay();
   const currentTimezone = useTimezone();
 
   const tz = forcedTimezone ?? currentTimezone;
@@ -84,7 +83,7 @@ export function DateTime({
       timeZone: timeZone ?? utc,
       seconds,
       milliseconds,
-      clock24Hours,
+      clock24Hours: clockDisplay === '24',
     });
 
   return (

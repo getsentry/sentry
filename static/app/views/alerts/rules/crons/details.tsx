@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DateTimeProvider, useTimezone} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {TimezoneProvider, useTimezone} from '@sentry/scraps/timezoneContext';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -122,7 +122,7 @@ export default function MonitorDetails() {
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
       <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
-        <TimezoneProvider timezone={timezoneOverride}>
+        <DateTimeProvider value={{timezone: timezoneOverride, clockDisplay: '12'}}>
           <Layout.Main>
             <Flex justify="between" align="center" gap="md">
               <StyledPageFilterBar condensed>
@@ -187,7 +187,7 @@ export default function MonitorDetails() {
               showUnknownLegend={showUnknownLegend}
             />
           </Layout.Side>
-        </TimezoneProvider>
+        </DateTimeProvider>
       </Layout.Body>
     </Stack>
   );

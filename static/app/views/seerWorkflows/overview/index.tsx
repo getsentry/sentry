@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 import {InfoTip} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
-import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -84,7 +84,7 @@ export default function AutofixOverview() {
               )}
             />
           </Layout.Title>
-          <TimezoneProvider timezone={BROWSER_TIMEZONE}>
+          <DateTimeProvider value={{timezone: BROWSER_TIMEZONE, clockDisplay: '12'}}>
             <Stack gap="lg" padding="lg xl">
               {selectedId ? (
                 <FocusedIssue id={selectedId} period={period} />
@@ -115,7 +115,7 @@ export default function AutofixOverview() {
                 </Fragment>
               )}
             </Stack>
-          </TimezoneProvider>
+          </DateTimeProvider>
         </SentryDocumentTitle>
       </PageFiltersContainer>
     </Feature>

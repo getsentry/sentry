@@ -12,7 +12,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {SentryTimeFormatProvider} from 'sentry/scrapsProviders/timeFormat';
+import {SentryDateTimeProvider} from 'sentry/scrapsProviders/datetime';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 
@@ -207,9 +207,9 @@ describe('CronDetectorDetails - check-ins', () => {
       ConfigStore.set('user', user);
 
       render(
-        <SentryTimeFormatProvider>
+        <SentryDateTimeProvider>
           <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </SentryTimeFormatProvider>
+        </SentryDateTimeProvider>
       );
 
       // Wait for check-ins to load and find the table within the section

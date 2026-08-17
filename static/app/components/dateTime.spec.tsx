@@ -1,16 +1,18 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Clock24HoursProvider} from '@sentry/scraps/clock24HoursContext';
-import {TimezoneProvider} from '@sentry/scraps/timezoneContext';
+import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {DateTime} from './dateTime';
 
 describe('DateTime', () => {
-  function renderPDT(child: React.ReactElement, {clock24Hours = false} = {}) {
+  function renderPDT(
+    child: React.ReactElement,
+    {clockDisplay = '12'}: Partial<DateTimeContextValue> = {}
+  ) {
     return render(
-      <TimezoneProvider timezone="America/Los_Angeles">
-        <Clock24HoursProvider clock24Hours={clock24Hours}>{child}</Clock24HoursProvider>
-      </TimezoneProvider>
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay}}>
+        {child}
+      </DateTimeProvider>
     );
   }
 
@@ -75,7 +77,7 @@ describe('DateTime', () => {
   });
 
   describe('24 Hours', () => {
-    const on24HourClock = {clock24Hours: true};
+    const on24HourClock = {clockDisplay: '24'} as const;
 
     it('renders a date', () => {
       renderPDT(<DateTime date={new Date()} />, on24HourClock);
