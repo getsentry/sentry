@@ -26,6 +26,10 @@ from sentry.investigations.models import (
     InvestigationProject,
     InvestigationSourceType,
 )
+from sentry.investigations.services.investigations import (
+    investigation_filters,
+    investigation_source,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -109,11 +113,12 @@ class InvestigationSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
+        source = investigation_source(obj)
         return {
             "id": str(obj.id),
             "title": obj.title,
             "status": obj.status,
-            "sourceType": obj.source.get("type", InvestigationSourceType.MANUAL),
+            "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -206,12 +211,13 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationDetailsSerializerResponse:
+        resolved_source = investigation_source(obj)
         source: InvestigationSourceSerializerResponse = {
-            "type": obj.source.get("type", InvestigationSourceType.MANUAL),
-            "ref": obj.source.get("ref", {}),
+            "type": resolved_source.get("type", InvestigationSourceType.MANUAL),
+            "ref": resolved_source.get("ref", {}),
             "revision": obj.source_revision,
         }
-        snapshot = obj.source.get("snapshot")
+        snapshot = resolved_source.get("snapshot")
         if isinstance(snapshot, dict):
             source["snapshot"] = snapshot
         return {
@@ -222,7 +228,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
                 else None
             ),
             "source": source,
-            "filters": obj.filters,
+            "filters": investigation_filters(obj),
             "projectIds": attrs["project_ids"],
             "parameters": attrs["parameters"],
             "blocks": attrs["blocks"],

@@ -10,7 +10,9 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
     InvestigationProject,
+    InvestigationSourceType,
 )
+from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
@@ -18,6 +20,8 @@ from sentry.investigations.services.investigations import (
     create_manual_investigation,
     create_template_investigation,
     delete_block,
+    duplicate_investigation,
+    investigation_legacy_source_key,
     lock_investigation,
     resolve_investigation_source,
     update_investigation,
@@ -182,6 +186,89 @@ class BreachedMetricSourceRefTest(TestCase):
                 },
                 accessible_project_ids={self.project.id},
             )
+
+
+class SourceTransitionCompatibilityTest(TestCase):
+    def test_template_creation_reuses_and_backfills_a_legacy_active_investigation(self) -> None:
+        source_ref = {"groupId": "1", "openPeriodId": "2"}
+        snapshot = {"monitor": {"name": "Checkout errors"}}
+        resolved_source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": source_ref,
+            "snapshot": snapshot,
+        }
+        legacy = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Legacy",
+            template_key="breached_metric",
+            template_version=1,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source_ref,
+            source_key=investigation_legacy_source_key(resolved_source),
+            source_revision=1,
+            filters={"breachedMetric": snapshot},
+        )
+        resolved = BreachedMetricSource(
+            project_id=self.project.id,
+            dataset="errors",
+            source=resolved_source,
+        )
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_investigation_source",
+            return_value=resolved,
+        ):
+            investigation, created = create_template_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                template_key="breached_metric",
+                template_version=1,
+                source={"type": "metric_open_period", "ref": source_ref},
+                supplied_parameters={},
+                accessible_project_ids={self.project.id},
+            )
+
+        assert not created
+        assert investigation.id == legacy.id
+        investigation.refresh_from_db()
+        assert investigation.source == resolved.source
+        assert investigation.lineage_key is not None
+        assert Investigation.objects.count() == 1
+
+    def test_filter_updates_and_manual_duplicates_do_not_expose_the_legacy_snapshot(self) -> None:
+        snapshot = {"monitor": {"name": "Checkout errors"}}
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": snapshot,
+        }
+        investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            source=source,
+            lineage_key="lineage-key",
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source["ref"],
+            source_key=investigation_legacy_source_key(source),
+            source_revision=1,
+            filters={"breachedMetric": snapshot},
+        )
+
+        updated = update_investigation(
+            investigation=investigation,
+            expected_version=investigation.version,
+            fields={"filters": {"environment": ["production"]}},
+            project_ids=None,
+        )
+        duplicate = duplicate_investigation(investigation=updated, user_id=self.user.id)
+
+        assert updated.filters == {
+            "environment": ["production"],
+            "breachedMetric": snapshot,
+        }
+        assert duplicate.source == {}
+        assert duplicate.filters == {"environment": ["production"]}
 
 
 class ConcurrentModificationTest(TestCase):

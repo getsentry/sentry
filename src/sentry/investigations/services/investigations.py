@@ -8,7 +8,7 @@ from copy import deepcopy
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
@@ -42,6 +42,7 @@ from sentry.utils import json
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 MAX_INVESTIGATION_TITLE_LENGTH = 255
 DEFAULT_INVESTIGATION_TITLE = "Untitled investigation"
+LEGACY_BREACHED_METRIC_FILTER = "breachedMetric"
 
 CREATABLE_BLOCK_FIELDS = frozenset({"kind", "title", "content", "prompt", "config", "display"})
 UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
@@ -72,6 +73,45 @@ class InvestigationConflictError(InvestigationServiceError):
 
 class InvestigationSourceNotFound(InvestigationServiceError):
     pass
+
+
+def investigation_legacy_source_key(source: dict[str, Any]) -> str:
+    source_ref = source["ref"]
+    value = f"breached_metric:{int(source_ref['groupId'])}:{int(source_ref['openPeriodId'])}"
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def investigation_source(investigation: Investigation) -> dict[str, Any]:
+    if investigation.source:
+        return investigation.source
+    if (
+        investigation.source_type == InvestigationSourceType.BREACHED_METRIC
+        and investigation.source_key is not None
+    ):
+        source: dict[str, Any] = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": investigation.source_ref,
+        }
+        snapshot = investigation.filters.get(LEGACY_BREACHED_METRIC_FILTER)
+        if isinstance(snapshot, dict):
+            source["snapshot"] = snapshot
+        return source
+    return {}
+
+
+def investigation_filters(investigation: Investigation) -> dict[str, Any]:
+    filters = dict(investigation.filters)
+    if investigation_source(investigation):
+        filters.pop(LEGACY_BREACHED_METRIC_FILTER, None)
+    return filters
+
+
+def _legacy_storage_filters(source: dict[str, Any], filters: dict[str, Any]) -> dict[str, Any]:
+    stored = dict(filters)
+    snapshot = source.get("snapshot")
+    if isinstance(snapshot, dict):
+        stored[LEGACY_BREACHED_METRIC_FILTER] = snapshot
+    return stored
 
 
 def _validate_template_graph(template: InvestigationTemplateSpec) -> None:
@@ -176,7 +216,7 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
             title=_copy_title(source.title),
             template_key=source.template_key,
             template_version=source.template_version,
-            filters=deepcopy(source.filters),
+            filters=deepcopy(investigation_filters(source)),
         )
         _create_project_links(
             duplicate,
@@ -375,34 +415,52 @@ def _create_template_investigation(
         resolved_title = title or DEFAULT_INVESTIGATION_TITLE
         normalized_source = resolved_source.source
         lineage_key = investigation_lineage_key(template.key, normalized_source)
+        legacy_source_key = investigation_legacy_source_key(normalized_source)
     else:
         raise InvestigationValidationError({"templateKey": "Unsupported template source."})
 
     with transaction.atomic(using=router.db_for_write(Investigation)):
+        # Old and new pods share this lock while allocating source revisions from
+        # different identity columns during the rolling transition.
+        Organization.objects.select_for_update().get(id=organization.id)
+        lineage_filter = Q(lineage_key=lineage_key) | Q(
+            template_key=template.key,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_key=legacy_source_key,
+        )
         active = (
             Investigation.objects.filter(
                 organization=organization,
-                lineage_key=lineage_key,
                 status=InvestigationStatus.ACTIVE,
             )
+            .filter(lineage_filter)
             .order_by("-source_revision", "-id")
             .first()
         )
         if active is not None:
+            if active.lineage_key is None:
+                active.source = investigation_source(active)
+                active.lineage_key = lineage_key
+                active.save(update_fields=["source", "lineage_key"])
             return active, False
-        latest_revision = Investigation.objects.filter(
-            organization=organization,
-            lineage_key=lineage_key,
-        ).aggregate(latest=Max("source_revision"))["latest"]
+        latest_revision = (
+            Investigation.objects.filter(organization=organization)
+            .filter(lineage_filter)
+            .aggregate(latest=Max("source_revision"))["latest"]
+        )
         investigation = Investigation.objects.create(
             organization=organization,
             created_by_id=user_id,
             title=resolved_title,
             template_key=template.key,
             template_version=template.version,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=normalized_source["ref"],
+            source_key=legacy_source_key,
             source=normalized_source,
             lineage_key=lineage_key,
             source_revision=(latest_revision or 0) + 1,
+            filters=_legacy_storage_filters(normalized_source, {}),
         )
         _create_project_links(investigation, project_ids)
 
@@ -497,7 +555,7 @@ def update_investigation(
         restoring_source_investigation = (
             locked.status == InvestigationStatus.ARCHIVED
             and fields.get("status") == InvestigationStatus.ACTIVE
-            and locked.lineage_key is not None
+            and (locked.lineage_key is not None or locked.source_key is not None)
         )
         if restoring_source_investigation:
             raise InvestigationConflictError(
@@ -509,6 +567,8 @@ def update_investigation(
                 {"fields": f"Cannot be updated: {', '.join(unsupported)}."}
             )
         for field, value in fields.items():
+            if field == "filters":
+                value = _legacy_storage_filters(investigation_source(locked), value)
             setattr(locked, field, value)
         if project_ids is not None:
             InvestigationProject.objects.filter(investigation=locked).delete()

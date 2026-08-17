@@ -19,6 +19,7 @@ class InvestigationStatus(models.TextChoices):
 
 class InvestigationSourceType(models.TextChoices):
     MANUAL = "manual", "Manual"
+    BREACHED_METRIC = "breached_metric", "Breached metric"
     METRIC_OPEN_PERIOD = "metric_open_period", "Metric open period"
 
 
@@ -90,6 +91,19 @@ class Investigation(DefaultFieldsModel):
     template_key = models.CharField(max_length=128, null=True)
     template_version = BoundedPositiveIntegerField(null=True)
 
+    # Retained during the rolling-deploy transition. New code keeps these fields
+    # synchronized with `source` and `lineage_key` for old pods.
+    source_type = models.CharField(
+        max_length=32,
+        choices=InvestigationSourceType.choices,
+        default=InvestigationSourceType.MANUAL,
+        db_default=InvestigationSourceType.MANUAL,
+    )
+    source_ref: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
+        default=dict, db_default={}
+    )
+    source_key = models.CharField(max_length=64, null=True)
+
     # An immutable, server-resolved description of the object being investigated.
     # Manual investigations leave this empty.
     source: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
@@ -126,10 +140,29 @@ class Investigation(DefaultFieldsModel):
                 ),
                 name="investigation_template_complete",
             ),
+            models.CheckConstraint(
+                condition=(
+                    Q(
+                        source_type=InvestigationSourceType.MANUAL,
+                        source_key__isnull=True,
+                        source_revision__isnull=True,
+                    )
+                    | (
+                        ~Q(source_type=InvestigationSourceType.MANUAL)
+                        & Q(source_key__isnull=False, source_revision__isnull=False)
+                    )
+                ),
+                name="investigation_source_fields_complete",
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "source_type", "source_key", "source_revision"],
+                condition=Q(source_key__isnull=False),
+                name="investigation_unique_source_revision",
+            ),
             models.UniqueConstraint(
                 fields=["organization", "lineage_key", "source_revision"],
                 condition=Q(lineage_key__isnull=False),
-                name="investigation_unique_source_revision",
+                name="investigation_unique_lineage_revision",
             ),
             models.UniqueConstraint(
                 fields=["organization", "lineage_key"],
@@ -141,9 +174,14 @@ class Investigation(DefaultFieldsModel):
             models.Index(fields=["organization", "status", "-date_updated"]),
             models.Index(fields=["organization", "-date_added"]),
             models.Index(
+                fields=["organization", "source_type", "source_key", "-source_revision"],
+                condition=Q(status=InvestigationStatus.ACTIVE, source_key__isnull=False),
+                name="invest_source_latest_idx",
+            ),
+            models.Index(
                 fields=["organization", "lineage_key", "-source_revision"],
                 condition=Q(lineage_key__isnull=False),
-                name="invest_source_latest_idx",
+                name="invest_lineage_latest_idx",
             ),
         ]
 

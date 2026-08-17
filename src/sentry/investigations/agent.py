@@ -24,6 +24,7 @@ from sentry.investigations.models import (
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
+    investigation_source,
     mark_downstream_blocks_stale,
 )
 from sentry.models.organization import Organization
@@ -108,6 +109,7 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
     context = {
         "request": snapshot.get("prompt"),
         "projectSlugs": snapshot.get("projectSlugs", []),
+        "source": snapshot.get("source", {}),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
         "notebookContext": snapshot.get("context", []),
@@ -778,7 +780,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
         "Do not use tools. Return only the title text. Do not call any function to write or save "
         "it.\n<source_context>\n"
-        f"{json.dumps(investigation.source)}\n</source_context>\n"
+        f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 

@@ -6,6 +6,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecutionStatus,
     InvestigationProject,
+    InvestigationSourceType,
     InvestigationStatus,
 )
 from sentry.testutils.cases import APITestCase
@@ -247,6 +248,9 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         for revision, investigation in enumerate((first, second), start=1):
             Investigation.objects.filter(id=investigation.id).update(
+                source_type=InvestigationSourceType.BREACHED_METRIC,
+                source_ref={},
+                source_key="legacy-lineage",
                 source={"type": "metric_open_period", "ref": {}},
                 lineage_key="lineage",
                 source_revision=revision,

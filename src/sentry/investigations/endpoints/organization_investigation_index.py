@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db import router, transaction
 from django.db.models import Exists, OuterRef, Q
+from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -14,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     require_authenticated_user,
+    require_investigation_project_access,
     service_error,
     user_id,
 )
@@ -47,15 +49,19 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             )
         # A source-backed investigation supersedes earlier revisions of the same
         # lineage, so only the newest revision is listed.
-        newer_lineage_revision = Investigation.objects.filter(
+        newer_lineage_revision = Investigation.objects.annotate(
+            compatibility_lineage_key=Coalesce("source_key", "lineage_key")
+        ).filter(
             organization_id=OuterRef("organization_id"),
-            lineage_key=OuterRef("lineage_key"),
+            compatibility_lineage_key=OuterRef("compatibility_lineage_key"),
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
-        investigations = Investigation.objects.filter(
-            organization=organization, status=requested_status
-        ).filter(Q(lineage_key__isnull=True) | ~Exists(newer_lineage_revision))
+        investigations = (
+            Investigation.objects.filter(organization=organization, status=requested_status)
+            .annotate(compatibility_lineage_key=Coalesce("source_key", "lineage_key"))
+            .filter(Q(compatibility_lineage_key__isnull=True) | ~Exists(newer_lineage_revision))
+        )
         query = request.GET.get("query")
         if query:
             investigations = investigations.filter(title__icontains=query)
@@ -95,6 +101,8 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                             user_id=user_id(request),
                         )
                         investigation.refresh_from_db()
+                    else:
+                        require_investigation_project_access(investigation, project_ids)
             else:
                 created = True
                 requested_project_ids = values.get("project_ids", [])

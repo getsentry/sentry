@@ -3,12 +3,14 @@
 import hashlib
 
 from django.db import migrations, models
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import json
 
 
-def move_sources(apps, schema_editor):
+def move_sources(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Investigation = apps.get_model("investigations", "Investigation")
     active_by_lineage = {}
     for investigation in Investigation.objects.using(schema_editor.connection.alias).order_by(
@@ -22,8 +24,7 @@ def move_sources(apps, schema_editor):
             else investigation.source_type
         )
         source = {"type": source_type, "ref": investigation.source_ref}
-        filters = dict(investigation.filters)
-        snapshot = filters.pop("breachedMetric", None)
+        snapshot = investigation.filters.get("breachedMetric")
         if isinstance(snapshot, dict):
             source["snapshot"] = snapshot
         identity = {
@@ -32,7 +33,7 @@ def move_sources(apps, schema_editor):
             "ref": investigation.source_ref,
         }
         lineage_key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-        updates = {"source": source, "lineage_key": lineage_key, "filters": filters}
+        updates = {"source": source, "lineage_key": lineage_key}
         active_key = investigation.organization_id, lineage_key
         if investigation.status == "active":
             if active_key in active_by_lineage:
@@ -42,29 +43,6 @@ def move_sources(apps, schema_editor):
         Investigation.objects.using(schema_editor.connection.alias).filter(
             id=investigation.id
         ).update(**updates)
-
-
-def restore_sources(apps, schema_editor):
-    Investigation = apps.get_model("investigations", "Investigation")
-    for investigation in Investigation.objects.using(schema_editor.connection.alias).exclude(
-        lineage_key__isnull=True
-    ):
-        source = investigation.source
-        source_type = source.get("type", "manual")
-        if source_type == "metric_open_period":
-            source_type = "breached_metric"
-        filters = dict(investigation.filters)
-        snapshot = source.get("snapshot")
-        if isinstance(snapshot, dict):
-            filters["breachedMetric"] = snapshot
-        Investigation.objects.using(schema_editor.connection.alias).filter(
-            id=investigation.id
-        ).update(
-            source_type=source_type,
-            source_ref=source.get("ref", {}),
-            source_key=investigation.lineage_key,
-            filters=filters,
-        )
 
 
 class Migration(CheckedMigration):
@@ -89,18 +67,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="investigation",
-            name="investigation_source_fields_complete",
-        ),
-        migrations.RemoveConstraint(
-            model_name="investigation",
-            name="investigation_unique_source_revision",
-        ),
-        migrations.RemoveIndex(
-            model_name="investigation",
-            name="invest_source_latest_idx",
-        ),
         migrations.AddField(
             model_name="investigation",
             name="lineage_key",
@@ -113,7 +79,7 @@ class Migration(CheckedMigration):
         ),
         migrations.RunPython(
             move_sources,
-            restore_sources,
+            migrations.RunPython.noop,
             hints={"tables": ["investigations_investigation"]},
         ),
         migrations.AddIndex(
@@ -121,7 +87,7 @@ class Migration(CheckedMigration):
             index=models.Index(
                 condition=models.Q(("lineage_key__isnull", False)),
                 fields=["organization", "lineage_key", "-source_revision"],
-                name="invest_source_latest_idx",
+                name="invest_lineage_latest_idx",
             ),
         ),
         migrations.AddConstraint(
@@ -129,7 +95,7 @@ class Migration(CheckedMigration):
             constraint=models.UniqueConstraint(
                 condition=models.Q(("lineage_key__isnull", False)),
                 fields=("organization", "lineage_key", "source_revision"),
-                name="investigation_unique_source_revision",
+                name="investigation_unique_lineage_revision",
             ),
         ),
         migrations.AddConstraint(
@@ -139,12 +105,5 @@ class Migration(CheckedMigration):
                 fields=("organization", "lineage_key"),
                 name="investigation_unique_active_lineage",
             ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(model_name="investigation", name="source_key"),
-                migrations.RemoveField(model_name="investigation", name="source_ref"),
-                migrations.RemoveField(model_name="investigation", name="source_type"),
-            ]
         ),
     ]

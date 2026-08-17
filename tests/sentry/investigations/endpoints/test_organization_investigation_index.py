@@ -167,6 +167,9 @@ class OrganizationInvestigationIndexTest(APITestCase):
             "organization": self.organization,
             "created_by": self.user,
             "source": {"type": "issue", "ref": {"groupId": "123"}},
+            "source_type": "issue",
+            "source_ref": {"groupId": "123"},
+            "source_key": "issue:123",
             "lineage_key": "issue:123",
         }
         first = self.create_investigation(
@@ -215,6 +218,23 @@ class OrganizationInvestigationIndexTest(APITestCase):
         )
         response = self.client.get(self.collection_url)
         assert [item["id"] for item in response.data] == [str(third.id)]
+
+    def test_legacy_only_lineage_lists_only_the_latest_revision(self) -> None:
+        lineage = {
+            "organization": self.organization,
+            "created_by": self.user,
+            "source_type": InvestigationSourceType.BREACHED_METRIC,
+            "source_ref": {"groupId": "123", "openPeriodId": "456"},
+            "source_key": "legacy-lineage",
+            "status": InvestigationStatus.ARCHIVED,
+        }
+        self.create_investigation(title="First revision", source_revision=1, **lineage)
+        second = self.create_investigation(title="Second revision", source_revision=2, **lineage)
+
+        response = self.client.get(self.collection_url, {"status": "archived"})
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data] == [str(second.id)]
 
     def test_org_auth_token_can_list_investigations(self) -> None:
         self.create_investigation(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -9,11 +10,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
+    can_request_actor_create_investigation,
+    investigation_ids_with_project_access,
     service_error,
 )
 from sentry.investigations.endpoints.validators import InvestigationCandidatesValidator
-from sentry.investigations.models import Investigation, InvestigationStatus
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationSourceType,
+    InvestigationStatus,
+)
 from sentry.investigations.services import (
+    investigation_legacy_source_key,
     investigation_lineage_key,
     resolve_investigation_sources,
 )
@@ -55,28 +63,56 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
                 return response
             raise
 
-        lineage_keys = [
+        lineage_keys = {
             investigation_lineage_key(template.key, source.source)
             for source in resolved_sources
             if source is not None
-        ]
-        existing = {
-            investigation.lineage_key: investigation
-            for investigation in Investigation.objects.filter(
-                organization=organization,
-                lineage_key__in=lineage_keys,
-                status=InvestigationStatus.ACTIVE,
-            )
         }
-        can_create = request.user.is_authenticated and not request.user.is_sentry_app
+        legacy_source_keys = {
+            investigation_legacy_source_key(source.source)
+            for source in resolved_sources
+            if source is not None
+        }
+        existing = list(
+            Investigation.objects.filter(
+                organization=organization,
+                status=InvestigationStatus.ACTIVE,
+            ).filter(
+                Q(lineage_key__in=lineage_keys)
+                | Q(
+                    template_key=template.key,
+                    source_type=InvestigationSourceType.BREACHED_METRIC,
+                    source_key__in=legacy_source_keys,
+                )
+            )
+        )
+        existing_by_lineage_key = {
+            investigation.lineage_key: investigation
+            for investigation in existing
+            if investigation.lineage_key is not None
+        }
+        existing_by_legacy_source_key = {
+            investigation.source_key: investigation
+            for investigation in existing
+            if investigation.source_key is not None
+        }
+        viewable_ids = investigation_ids_with_project_access(
+            existing, request.access.accessible_project_ids
+        )
+        can_create = can_request_actor_create_investigation(request)
         items: list[dict[str, str]] = []
         for source in resolved_sources:
             if source is None:
                 items.append({"status": "unavailable"})
                 continue
-            investigation = existing.get(investigation_lineage_key(template.key, source.source))
+            investigation = existing_by_lineage_key.get(
+                investigation_lineage_key(template.key, source.source)
+            ) or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
             if investigation is not None:
-                items.append({"status": "view", "investigationId": str(investigation.id)})
+                if investigation.id in viewable_ids:
+                    items.append({"status": "view", "investigationId": str(investigation.id)})
+                else:
+                    items.append({"status": "unavailable"})
             elif can_create:
                 items.append({"status": "investigate"})
             else:

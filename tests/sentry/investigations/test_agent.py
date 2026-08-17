@@ -155,6 +155,12 @@ class InvestigationAgentTest(TestCase):
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()
+        self.execution.input_snapshot["source"] = {
+            "snapshot": {
+                "monitor": {"name": "Checkout errors"},
+                "analysisWindow": {"breachStart": "2026-08-01T00:00:00+00:00"},
+            }
+        }
 
         start_execution_run(self.execution, self.organization, self.user, client)
 
@@ -171,6 +177,8 @@ class InvestigationAgentTest(TestCase):
         assert "first character must be { and the last character must be }" in prompt
         assert "Do not wrap the object in a Markdown code fence" in prompt
         assert "exactly these five keys and no others" in prompt
+        assert "Checkout errors" in prompt
+        assert "2026-08-01T00:00:00+00:00" in prompt
         assert "artifact_key" not in options
         assert "artifact_schema" not in options
 

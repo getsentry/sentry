@@ -10,10 +10,12 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import Investigation
+from sentry.investigations.models import Investigation, InvestigationSourceType
+from sentry.investigations.services import investigation_legacy_source_key
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models.data_condition import Condition
@@ -42,18 +44,17 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             message="Checkout error spike",
         )
         open_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
-        query = SnubaQuery.objects.create(
-            type=SnubaQuery.Type.ERROR.value,
-            dataset=Dataset.Events.value,
+        query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
             query="is:unresolved",
             aggregate="count()",
-            time_window=300,
-            resolution=60,
+            time_window=timedelta(minutes=5),
+            resolution=timedelta(minutes=1),
+            environment=None,
         )
-        subscription = QuerySubscription.objects.create(
-            project=self.project,
-            snuba_query=query,
-            type="incidents",
+        subscription = create_snuba_subscription(
+            project=self.project, subscription_type="incidents", snuba_query=query
         )
         data_source = self.create_data_source(
             organization=self.organization,
@@ -111,6 +112,12 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.status_code == 201, launched.data
         assert launched.data["source"]["ref"] == source["ref"]
         assert launched.data["source"]["snapshot"]["analysisWindow"]["end"] == ended_at.isoformat()
+        assert launched.data["filters"] == {}
+        investigation = Investigation.objects.get(id=launched.data["id"])
+        assert investigation.source_type == InvestigationSourceType.BREACHED_METRIC
+        assert investigation.source_ref == source["ref"]
+        assert investigation.source_key is not None
+        assert investigation.filters["breachedMetric"] == launched.data["source"]["snapshot"]
 
         duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 200
@@ -151,3 +158,137 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             format="json",
         )
         assert response.status_code == 404
+
+    def test_legacy_only_investigation_is_viewable_and_reused(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        snapshot = {"monitor": {"name": "Checkout errors"}}
+        investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            template_key="breached_metric",
+            template_version=1,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source["ref"],
+            source_key=investigation_legacy_source_key(source),
+            source_revision=1,
+            filters={"breachedMetric": snapshot},
+        )
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+        assert candidate.status_code == 200
+        assert candidate.data == {
+            "items": [{"status": "view", "investigationId": str(investigation.id)}]
+        }
+
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": investigation.id,
+                },
+            )
+        )
+        assert details.status_code == 200
+        assert details.data["source"] == {
+            "type": "metric_open_period",
+            "ref": source["ref"],
+            "revision": 1,
+            "snapshot": snapshot,
+        }
+        assert details.data["filters"] == {}
+
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_index."
+            "schedule_eligible_auto_run_blocks"
+        ):
+            launched = self.client.post(
+                self.collection_url,
+                {
+                    "templateKey": "breached_metric",
+                    "templateVersion": 1,
+                    "source": source,
+                },
+                format="json",
+            )
+        assert launched.status_code == 200
+        assert launched.data["id"] == str(investigation.id)
+        assert Investigation.objects.count() == 1
+
+    def test_launch_and_candidate_require_access_to_the_existing_investigation(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        launch_payload = {
+            "templateKey": "breached_metric",
+            "templateVersion": 1,
+            "source": source,
+        }
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_index."
+            "schedule_eligible_auto_run_blocks"
+        ):
+            launched = self.client.post(self.collection_url, launch_payload, format="json")
+        assert launched.status_code == 201
+        investigation = Investigation.objects.get(id=launched.data["id"])
+        restricted_team = self.create_team(organization=self.organization)
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        self.create_investigation_project(investigation=investigation, project=restricted_project)
+        viewer = self.create_user()
+        self.create_member(
+            organization=self.organization, user=viewer, role="member", teams=[self.team]
+        )
+        self.login_as(viewer)
+
+        duplicate = self.client.post(self.collection_url, launch_payload, format="json")
+        assert duplicate.status_code == 403
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+        assert candidate.status_code == 200
+        assert candidate.data == {"items": [{"status": "unavailable"}]}
+
+    def test_launch_rolls_back_when_auto_run_scheduling_fails(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        before = Investigation.objects.count()
+        payload = {
+            "templateKey": "breached_metric",
+            "templateVersion": 1,
+            "source": {
+                "type": "metric_open_period",
+                "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+            },
+        }
+
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_index."
+            "schedule_eligible_auto_run_blocks",
+            side_effect=RuntimeError("scheduling failed"),
+        ):
+            response = self.client.post(self.collection_url, payload, format="json")
+
+        assert response.status_code == 500
+        assert Investigation.objects.count() == before
