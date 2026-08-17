@@ -13,7 +13,19 @@ export type InvestigationListItem = {
 
 // Expand this response type as the detail UI begins consuming additional fields.
 // The complete server response is retained at runtime in the query cache.
-export type InvestigationDetail = InvestigationListItem;
+export type InvestigationBlock = {
+  content: string;
+  generatedContent: string;
+  id: string;
+  kind: string;
+  output: unknown;
+  outputStatus: string;
+  title: string;
+};
+
+export type InvestigationDetail = InvestigationListItem & {
+  blocks?: InvestigationBlock[];
+};
 
 export type MetricOpenPeriodInvestigationSource = {
   ref: {
