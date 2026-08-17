@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Text} from '@sentry/scraps/text';
@@ -10,24 +10,26 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
-  useAddSearchFilter,
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
+  useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeFunction,
@@ -39,15 +41,26 @@ interface SpanAttributeValue {
   value: string;
 }
 
+interface SearchFilter {
+  key: string;
+  value: string | number | boolean;
+  negated?: boolean;
+  op?: '>' | '<';
+}
+
 function capitalizeLabel(label: string): string {
   return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }
 
-function FilterActions({summary}: {summary: string}) {
+function FilterActions({
+  addSearchFilter,
+  summary,
+}: {
+  addSearchFilter: (filter: SearchFilter) => void;
+  summary: string;
+}) {
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
-  const addSearchFilter = useAddSearchFilter();
-  const currentQuery = useQueryParamsQuery();
 
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
@@ -78,8 +91,8 @@ function FilterActions({summary}: {summary: string}) {
     keywords: [tag.key],
     prompt: t('Select a value...'),
     resource: (_q: string, ctx: CMDKResourceContext) =>
-      // Include currentQuery in the key so onAction closures reference the
-      // current filter state and don't overwrite previously applied filters.
+      // Include the draft summary in the key so action closures never overwrite
+      // filters selected earlier in the same command-palette session.
       cmdkQueryOptions({
         ...apiOptions.as<SpanAttributeValue[]>()(
           '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
@@ -110,16 +123,10 @@ function FilterActions({summary}: {summary: string}) {
 
   const makeStringSectionResource = (tags: Tag[], cacheKey: string) => () =>
     // Include tags.length so the section updates when attributes finish loading.
-    // Include currentQuery so the item closures capture fresh filter state.
+    // Include summary so the item closures capture fresh draft filter state.
     // eslint-disable-next-line @tanstack/query/exhaustive-deps
     cmdkQueryOptions({
-      queryKey: [
-        cacheKey,
-        organization.slug,
-        pageFilterCacheKey,
-        currentQuery,
-        tags.length,
-      ],
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, summary, tags.length],
       queryFn: () => tags.map(makeStringFilterItem),
       staleTime: Infinity,
     });
@@ -176,11 +183,13 @@ function FilterActions({summary}: {summary: string}) {
 }
 
 function SeriesActions({
+  addSearchFilter,
   groupBySummary,
   sortBySummary,
   visualize,
   query,
 }: {
+  addSearchFilter: (filter: SearchFilter) => void;
   groupBySummary: string;
   query: string;
   sortBySummary: string;
@@ -216,7 +225,7 @@ function SeriesActions({
       >
         <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
       </CMDKAction>
-      <FilterActions summary={query} />
+      <FilterActions addSearchFilter={addSearchFilter} summary={query} />
       <CMDKAction
         display={{
           label: t('Edit Sort By'),
@@ -238,33 +247,64 @@ function QueryValue({value}: {value: string}) {
 }
 
 function QueryClauseActions() {
+  const commandPaletteState = useCommandPaletteState();
+  const setQueryParams = useSetQueryParams();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
+  const [draftQuery, setDraftQuery] = useState(query);
+
+  useEffect(() => {
+    if (!commandPaletteState.open) {
+      setDraftQuery(query);
+    }
+  }, [commandPaletteState.open, query]);
+
+  const addSearchFilter = (filter: SearchFilter) => {
+    const search = new MutableSearch(draftQuery);
+    if (filter.op) {
+      search.setFilterValues(filter.key, [`${filter.op}${filter.value}`]);
+    } else {
+      search.addFilterValue(
+        `${filter.negated ? '!' : ''}${filter.key}`,
+        String(filter.value)
+      );
+    }
+    setDraftQuery(search.formatString());
+  };
 
   const groupBySummary = groupBys.filter(Boolean).join(', ');
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
   const sortBySummary = sortBys.map(sort => `${sort.field} ${sort.kind}`).join(', ');
 
   return (
-    <CMDKChainedActionScope>
-      {visualizes.map((visualize, index) => (
+    <Fragment>
+      <CMDKAction display={{label: t('Commands')}}>
         <CMDKAction
-          key={`${visualize.yAxis}-${index}`}
-          display={{label: t('Series %s', String.fromCharCode(65 + index))}}
-        >
-          <SeriesActions
-            visualize={visualize}
-            groupBySummary={groupBySummary}
-            query={query}
-            sortBySummary={sortBySummary}
-          />
-        </CMDKAction>
-      ))}
-    </CMDKChainedActionScope>
+          display={{label: t('Apply Changes')}}
+          onAction={() => setQueryParams({query: draftQuery})}
+        />
+      </CMDKAction>
+      <CMDKChainedActionScope>
+        {visualizes.map((visualize, index) => (
+          <CMDKAction
+            key={`${visualize.yAxis}-${index}`}
+            display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+          >
+            <SeriesActions
+              visualize={visualize}
+              addSearchFilter={addSearchFilter}
+              groupBySummary={groupBySummary}
+              query={draftQuery}
+              sortBySummary={sortBySummary}
+            />
+          </CMDKAction>
+        ))}
+      </CMDKChainedActionScope>
+    </Fragment>
   );
 }
 
