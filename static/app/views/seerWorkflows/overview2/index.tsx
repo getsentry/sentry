@@ -4,7 +4,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -87,6 +88,10 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
       sort,
       enabled: pageFiltersReady,
     });
+  const populatedSections = OVERVIEW2_SECTIONS.map(section => ({
+    ...section,
+    runs: data?.runsByMilestone[section.milestone] ?? [],
+  })).filter(section => section.runs.length > 0);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
@@ -128,10 +133,11 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
+      ) : populatedSections.length === 0 ? (
+        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
       ) : (
         <Stack gap="lg">
-          {OVERVIEW2_SECTIONS.map(({key, milestone}) => {
-            const runs = data?.runsByMilestone[milestone] ?? [];
+          {populatedSections.map(({key, runs}) => {
             const meta = STATUS_GROUP_META[key];
             const groupLabel =
               key === 'needs_investigation' ? t('Create Plan') : meta.label;
@@ -155,26 +161,18 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
                   </Disclosure.Title>
                 </GroupHeader>
                 <Disclosure.Content>
-                  {runs.length === 0 ? (
-                    <Container padding="md">
-                      <Text as="p" variant="muted" size="sm">
-                        {t('No issues')}
-                      </Text>
-                    </Container>
-                  ) : (
-                    <Stack gap="md" paddingTop="sm">
-                      {runs.map(run => (
-                        <Overview2Card
-                          key={run.seerRunId}
-                          run={run}
-                          orgSlug={organization.slug}
-                          sectionKey={key}
-                          statsPeriod={selection.datetime.period}
-                          enrichmentPending={enrichmentPending}
-                        />
-                      ))}
-                    </Stack>
-                  )}
+                  <Stack gap="md" paddingTop="sm">
+                    {runs.map(run => (
+                      <Overview2Card
+                        key={run.seerRunId}
+                        run={run}
+                        orgSlug={organization.slug}
+                        sectionKey={key}
+                        statsPeriod={selection.datetime.period}
+                        enrichmentPending={enrichmentPending}
+                      />
+                    ))}
+                  </Stack>
                 </Disclosure.Content>
               </StatusGroup>
             );

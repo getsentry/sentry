@@ -181,7 +181,7 @@ describe('AutofixOverview2', () => {
     expect(enrichedRequest).not.toHaveBeenCalled();
   });
 
-  it('renders every section with counts from the single endpoint', async () => {
+  it('renders only populated sections with counts from the single endpoint', async () => {
     mockOverview({
       base: {
         autofix_root_cause: [rootCauseRun],
@@ -197,9 +197,35 @@ describe('AutofixOverview2', () => {
     expect(
       screen.getByRole('button', {name: 'Generate code changes 1'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create PR 0'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Review Open PRs 0'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Create PR/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Review Open PRs/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Merged/})).not.toBeInTheDocument();
+    expect(screen.queryByText('No issues')).not.toBeInTheDocument();
+  });
+
+  it('shows the empty state while keeping the query controls visible', async () => {
+    mockOverview({base: {}});
+
+    renderPage();
+
+    expect(
+      await screen.findByText('You don’t have any Autofix runs...yet.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '14D'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Generate code changes/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Create PR/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Review Open PRs/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Merged/})).not.toBeInTheDocument();
+    expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
   it('renders card prose and links from the endpoint payload', async () => {
