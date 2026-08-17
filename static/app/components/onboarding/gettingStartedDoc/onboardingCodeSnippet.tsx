@@ -1,5 +1,6 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
+import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
@@ -38,10 +39,13 @@ export function OnboardingCodeSnippet({
   ...props
 }: OnboardingCodeSnippetProps) {
   const [authTokenNodes, setAuthTokenNodes] = useState<HTMLSpanElement[]>([]);
-  const [beautifiedJavaScript, setBeautifiedJavaScript] = useState<{
-    input: string;
-    output: string;
-  }>();
+
+  const {data: beautify} = useQuery({
+    queryKey: ['onboarding-code-snippet', 'js-beautify'],
+    queryFn: () => import('js-beautify').then(module => module.default),
+    enabled: language === 'javascript',
+    staleTime: Infinity,
+  });
 
   const handleAfterHighlight = useCallback((element: HTMLElement) => {
     setAuthTokenNodes(replaceTokensWithSpan(element));
@@ -52,36 +56,13 @@ export function OnboardingCodeSnippet({
     [children]
   );
 
-  useEffect(() => {
-    if (language !== 'javascript') {
-      return;
-    }
-
-    let cancelled = false;
-
-    import('js-beautify')
-      .then(({default: beautify}) => {
-        if (!cancelled) {
-          setBeautifiedJavaScript({
-            input: children,
-            output: beautify.js(children, {
-              indent_size: 2,
-              e4x: true,
-              brace_style: 'preserve-inline',
-            }),
-          });
-        }
-      })
-      .catch(() => null);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [children, language]);
-
   const displayedCode =
-    language === 'javascript' && beautifiedJavaScript?.input === children
-      ? beautifiedJavaScript.output
+    language === 'javascript' && beautify
+      ? beautify.js(children, {
+          indent_size: 2,
+          e4x: true,
+          brace_style: 'preserve-inline',
+        })
       : children.trim();
 
   return (
