@@ -16,6 +16,7 @@
  */
 
 import {isValidElement, type Ref, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -111,6 +112,7 @@ export function ScmVirtualizedMenuList({
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
+  const theme = useTheme();
   const rows = Array.isArray(children) ? flattenMenuRows(children) : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
@@ -166,22 +168,40 @@ export function ScmVirtualizedMenuList({
       style={{maxHeight: alignedMaxHeight, overflowY: 'auto'}}
     >
       <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
-        {virtualItems.map(virtualRow => (
-          <div
-            key={virtualRow.key}
-            ref={virtualizer.measureElement}
-            data-index={virtualRow.index}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualRow.start}px)`,
-            }}
-          >
-            {rows[virtualRow.index]?.node}
-          </div>
-        ))}
+        {virtualItems.map(virtualRow => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {/* Flattening drops react-select's Group wrapper, and with it
+                  the Select's between-group divider (styles.group). Reproduce
+                  it on every heading row after the first, using paddings (not
+                  vertical margins) so measureElement counts the boundary in
+                  the row height. */}
+              {row?.isHeading && virtualRow.index > 0 && (
+                <div
+                  data-test-id="menu-group-divider"
+                  style={{padding: `${theme.space.md} ${theme.space.lg}`}}
+                >
+                  <div
+                    style={{borderTop: `1px solid ${theme.tokens.border.secondary}`}}
+                  />
+                </div>
+              )}
+              {row?.node}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
