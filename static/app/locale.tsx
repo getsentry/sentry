@@ -6,7 +6,7 @@ import {sprintf} from 'sprintf-js';
 
 import {toArray} from 'sentry/utils/array/toArray';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {UWU_ENABLED, uwuify} from 'sentry/utils/uwu';
+import {isUwuEnabled, uwuify} from 'sentry/utils/uwu';
 
 const markerStyles = {
   background: '#ff801790',
@@ -145,6 +145,22 @@ type TemplateSubvalue = string | {group: string; id: string};
  * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
  */
 type ParsedTemplate = Record<string, TemplateSubvalue[]>;
+
+/**
+ * Transforms only the text leaves of a parsed template. Group names live in the
+ * non-string subvalues, so they are untouchable by construction rather than by
+ * escaping — `[link:…]` can never become `[wink:…]`.
+ */
+function uwuifyTemplate(parsed: ParsedTemplate): ParsedTemplate {
+  return Object.fromEntries(
+    Object.entries(parsed).map(([group, subvalues]) => [
+      group,
+      subvalues.map(subvalue =>
+        typeof subvalue === 'string' ? uwuify(subvalue) : subvalue
+      ),
+    ])
+  );
+}
 
 /**
  * ComponentMap maps template group keys to react node instances.
@@ -324,7 +340,7 @@ function format(formatString: string, args: FormatArg[]): React.ReactNode {
  */
 function gettext(string: string, ...args: FormatArg[]): string {
   const translated: string = getClient().gettext(string);
-  const val = UWU_ENABLED ? uwuify(translated) : translated;
+  const val = isUwuEnabled() ? uwuify(translated) : translated;
 
   if (args.length === 0) {
     staticTranslations.add(val);
@@ -371,8 +387,11 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
     }
   }
 
+  const translated: string = getClient().ngettext(singular, plural, countArg);
+  const val = isUwuEnabled() ? uwuify(translated) : translated;
+
   // XXX(ts): See XXX in gettext.
-  return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
+  return mark(format(val, args) as string);
 }
 
 /**
@@ -396,7 +415,12 @@ function gettextComponentTemplate(
   components: ComponentMap
 ): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(
+    renderTemplate(
+      isUwuEnabled() ? uwuifyTemplate(parsedTemplate) : parsedTemplate,
+      components
+    )
+  );
 }
 
 /**
@@ -413,7 +437,8 @@ export function tctCode(template: string, components: ComponentMap = {}) {
  * This function is intentionally not included in the gettext extraction script.
  */
 function gettextDescription(string: string): string {
-  const val: string = getClient().gettext(string);
+  const translated: string = getClient().gettext(string);
+  const val = isUwuEnabled() ? uwuify(translated) : translated;
   staticTranslations.add(val);
   return mark(val);
 }

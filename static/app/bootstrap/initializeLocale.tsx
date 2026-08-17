@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
-import {UWU_LANGUAGE_CODE} from 'sentry/utils/uwu';
+import {setUwuEnabled, UWU_LANGUAGE_CODE} from 'sentry/utils/uwu';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {
@@ -66,6 +66,10 @@ export async function initializeLocale(config: Config) {
     : queryString.lang;
   const languageCode =
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
+
+  if (languageCode === UWU_LANGUAGE_CODE) {
+    setUwuEnabled(true);
+  }
 
   try {
     if (languageCode === 'en' || languageCode === UWU_LANGUAGE_CODE) {

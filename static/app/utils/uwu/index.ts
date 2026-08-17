@@ -1,28 +1,10 @@
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
+export {uwuify} from './transform';
+
 export const UWU_LANGUAGE_CODE = 'uwu';
 
 const UWU_STORAGE_KEY = 'uwu';
-
-const UWU_MAP: Array<[RegExp, string]> = [
-  [/(?:r|l)/g, 'w'],
-  [/(?:R|L)/g, 'W'],
-  [/n([aeiou])/g, 'ny$1'],
-  [/N([aeiou])/g, 'Ny$1'],
-  [/N([AEIOU])/g, 'Ny$1'],
-  [/ove/g, 'uv'],
-];
-
-/**
- * Must stay stable: a given input always maps to the same output. Every rule is
- * an unconditional replacement, so nothing here may consult a random source.
- */
-export function uwuify(text: string): string {
-  return UWU_MAP.reduce(
-    (result, [pattern, replacement]) => result.replace(pattern, replacement),
-    text
-  );
-}
 
 function readUwuEnabled(): boolean {
   if (localStorageWrapper.getItem(UWU_STORAGE_KEY) === '1') {
@@ -36,7 +18,20 @@ function readUwuEnabled(): boolean {
   }
 }
 
-export const UWU_ENABLED = readUwuEnabled();
+let uwuEnabled: boolean | null = null;
+
+/**
+ * Resolved lazily rather than at import time because modules call `t()` while
+ * they evaluate, which happens before `initializeLocale` gets to run.
+ */
+export function isUwuEnabled(): boolean {
+  uwuEnabled ??= readUwuEnabled();
+  return uwuEnabled;
+}
+
+export function setUwuEnabled(enabled: boolean) {
+  uwuEnabled = enabled;
+}
 
 export function toggleUwu() {
   const next = localStorageWrapper.getItem(UWU_STORAGE_KEY) !== '1';
