@@ -21,6 +21,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsAggregateSortBys,
@@ -29,11 +30,14 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
+  useSetQueryParamsVisualizes,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeFunction,
+  MAX_VISUALIZES,
   type Visualize,
+  VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -249,6 +253,7 @@ function QueryValue({value}: {value: string}) {
 function QueryClauseActions() {
   const commandPaletteState = useCommandPaletteState();
   const setQueryParams = useSetQueryParams();
+  const setVisualizes = useSetQueryParamsVisualizes();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
@@ -287,6 +292,38 @@ function QueryClauseActions() {
           display={{label: t('Apply Changes')}}
           onAction={() => setQueryParams({query: draftQuery})}
         />
+        {visualizes.map((visualize, index) => (
+          <CMDKAction
+            key={`edit-series-${visualize.yAxis}-${index}`}
+            display={{
+              label: t('Edit Series Source'),
+              trailingItem: (
+                <QueryValue value={t('Series %s', String.fromCharCode(65 + index))} />
+              ),
+            }}
+            keywords={['edit', 'series', 'source', visualize.yAxis]}
+          >
+            <SeriesActions
+              visualize={visualize}
+              addSearchFilter={addSearchFilter}
+              groupBySummary={groupBySummary}
+              query={draftQuery}
+              sortBySummary={sortBySummary}
+            />
+          </CMDKAction>
+        ))}
+        {visualizes.length < MAX_VISUALIZES && (
+          <CMDKAction
+            display={{label: t('Add Series')}}
+            keywords={['add', 'series', 'source', 'visualization']}
+            onAction={() =>
+              setVisualizes([
+                ...visualizes.map(visualize => visualize.serialize()),
+                new VisualizeFunction(DEFAULT_VISUALIZATION).serialize(),
+              ])
+            }
+          />
+        )}
       </CMDKAction>
       <CMDKChainedActionScope>
         {visualizes.map((visualize, index) => (
