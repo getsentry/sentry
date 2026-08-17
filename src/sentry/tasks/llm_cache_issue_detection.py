@@ -222,12 +222,13 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             sample_rate=1.0,
         )
 
-    metrics.incr(
-        "llm_cache_issue_detection.rejected",
-        amount=rejected_already_exists_count,
-        tags={"reason": "already_exists"},
-        sample_rate=1.0,
-    )
+    if rejected_already_exists_count:
+        metrics.incr(
+            "llm_cache_issue_detection.rejected",
+            amount=rejected_already_exists_count,
+            tags={"reason": "already_exists"},
+            sample_rate=1.0,
+        )
 
     logger.info(
         "llm_cache_issue_detection.project_processed",
