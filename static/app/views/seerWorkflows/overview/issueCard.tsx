@@ -37,17 +37,16 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {OverviewIssueAssignee} from 'sentry/views/seerWorkflows/overview/overviewIssueAssignee';
+
+import {CodeChanges} from './codeChanges';
+import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
   type OverviewIssuePriorityGroup,
-} from 'sentry/views/seerWorkflows/overview/overviewIssuePriority';
-import type {AutofixStateKey} from 'sentry/views/seerWorkflows/overview/types';
-
-import {CodeChanges} from './codeChanges';
+} from './overviewIssuePriority';
 import {periodWindowLabel} from './periods';
 import {PullRequestFiles} from './pullRequestFiles';
-import type {OverviewPullRequest, OverviewRun} from './types';
+import type {AutofixStateKey, OverviewPullRequest, OverviewRun} from './types';
 
 // The endpoint orders links oldest-first and only enriches open/draft PRs, so
 // the newest actionable link is the one carrying badges and files.
@@ -129,7 +128,7 @@ const REVIEW_STATUS_TAGS = {
   review_required: null,
 } satisfies Record<PullRequestReviewStatus, PullRequestStatusTagMeta | null>;
 
-function Overview2Action({
+function OverviewAction({
   sectionKey,
   pullRequests,
   reviewPullRequest,
@@ -395,7 +394,7 @@ function PriorityAndAssignee({run}: {run: OverviewRun}) {
   );
 }
 
-export function Overview2Card({
+export function OverviewCard({
   orgSlug,
   run,
   sectionKey,
@@ -474,7 +473,7 @@ export function Overview2Card({
           {/* justify=between + parent align=stretch pins the action to the top
               and the priority/assignee controls to the bottom-right */}
           <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
-            <Overview2Action
+            <OverviewAction
               sectionKey={sectionKey}
               pullRequests={run.pullRequests}
               reviewPullRequest={reviewPullRequest}
