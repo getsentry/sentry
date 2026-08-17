@@ -9,6 +9,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {TOGGLE_NAVIGATION_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -61,7 +62,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
       ? []
       : [
           {
-            match: 'mod+b',
+            match: TOGGLE_NAVIGATION_SHORTCUT,
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]

@@ -16,6 +16,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
+import {useKeyboardShortcutsDrawer} from 'sentry/components/keyboardShortcuts/useKeyboardShortcutsDrawer';
 import {Override} from 'sentry/components/override';
 import {
   DSN_PATTERN,
@@ -36,6 +37,7 @@ import {
   IconGroup,
   IconGraph,
   IconIssues,
+  IconKeyDown,
   IconLink,
   IconList,
   IconLock,
@@ -266,6 +268,7 @@ export function GlobalCommandPaletteActions() {
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
+  const {openKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
@@ -981,6 +984,13 @@ export function GlobalCommandPaletteActions() {
       >
         {data => data.map((item, i) => renderAsyncResult(item, i))}
       </CMDKAction>
+
+      <CMDKAction
+        id="cmdk:supplementary:keyboard-shortcuts"
+        display={{label: t('View keyboard shortcuts'), icon: <IconKeyDown />}}
+        keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
+        onAction={openKeyboardShortcutsDrawer}
+      />
 
       <CMDKAction
         id="cmdk:supplementary:help"

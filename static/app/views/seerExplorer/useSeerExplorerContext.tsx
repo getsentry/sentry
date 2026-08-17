@@ -17,6 +17,7 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
+import {TOGGLE_SEER_SHORTCUTS} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -378,13 +379,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       ? []
       : [
           {
-            match: [
-              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
-              'mod+.', // macOS-friendly alternative
-              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
-              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
-              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
-            ],
+            match: [...TOGGLE_SEER_SHORTCUTS],
             callback: () => {
               toggleSeerExplorer();
             },

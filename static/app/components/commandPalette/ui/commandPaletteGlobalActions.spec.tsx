@@ -23,6 +23,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {
   makeCloseButton,
   makeClosableHeader,
@@ -114,6 +115,31 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     // The search query is cleared when drilling in; wait for project options to appear.
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
+
+  it('opens the keyboard shortcuts drawer', async () => {
+    render(
+      <GlobalDrawer>
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      </GlobalDrawer>,
+      {organization}
+    );
+
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Search commands'}),
+      'View keyboard shortcuts'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'View keyboard shortcuts'})
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Keyboard Shortcuts'})
+    ).toBeInTheDocument();
+  });
 
   it.isKnownFlake(
     'shows a "Current Project" tag on the active project entry',

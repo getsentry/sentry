@@ -4,6 +4,7 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
+import {OPEN_COMMAND_PALETTE_SHORTCUTS} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -234,7 +235,7 @@ export function CommandPaletteHotkeys() {
 
   useHotkeys([
     {
-      match: ['mod+shift+p', 'mod+k'],
+      match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
       includeInputs: true,
       callback: () => {
         if (!organization) {
