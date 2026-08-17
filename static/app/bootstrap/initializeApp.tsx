@@ -20,4 +20,8 @@ export function initializeApp(config: Config) {
   metric.mark({name: 'sentry-app-init'});
   renderOnDomReady(renderMain);
   processInitQueue();
+
+  import('konami-emoji-blast').then(({initializeKonamiEmojiBlast}) => {
+    initializeKonamiEmojiBlast();
+  });
 }
