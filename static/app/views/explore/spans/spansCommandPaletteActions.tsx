@@ -395,7 +395,12 @@ function QueryClauseActions() {
           {visualizes.map((visualize, index) => (
             <CMDKAction
               key={`${visualize.yAxis}-${index}`}
-              display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+              display={{
+                label: t('Edit Series'),
+                trailingItem: (
+                  <QueryValue value={t('Series %s', String.fromCharCode(65 + index))} />
+                ),
+              }}
               keywords={['edit', 'series', 'source', visualize.yAxis]}
             >
               <SeriesActions
