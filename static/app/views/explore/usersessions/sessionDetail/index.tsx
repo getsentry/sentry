@@ -24,6 +24,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {SessionCounts} from './sessionCounts';
 import {SessionTimeline} from './sessionTimeline';
+import {TimelineFilters} from './timelineFilters';
 import {MAX_ROWS_PER_DATASET, useSessionDetail} from './useSessionDetail';
 
 export default function SessionDetailView() {
@@ -33,6 +34,8 @@ export default function SessionDetailView() {
     counts,
     totalEvents,
     items,
+    filters,
+    isFiltered,
     isTruncated,
     isPending,
     isError,
@@ -93,14 +96,18 @@ export default function SessionDetailView() {
                     </Alert>
                   )}
 
-                  <SessionTimeline
-                    items={items}
-                    isPending={isPending}
-                    isError={isError}
-                    dateParams={dateParams}
-                    sortDirection={sortDirection}
-                    onToggleSort={toggleSort}
-                  />
+                  <Stack gap="md">
+                    <TimelineFilters filters={filters} />
+                    <SessionTimeline
+                      items={items}
+                      isFiltered={isFiltered}
+                      isPending={isPending}
+                      isError={isError}
+                      dateParams={dateParams}
+                      sortDirection={sortDirection}
+                      onToggleSort={toggleSort}
+                    />
+                  </Stack>
                 </Stack>
               </Layout.Main>
             </Layout.Body>

@@ -9,6 +9,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {SessionDatasetKey} from './datasets';
 import {SESSION_DATASETS} from './datasets';
+import type {KnownKeysByDataset} from './queryRouting';
+import {datasetsForQuery} from './queryRouting';
 import {SESSIONS_PER_PAGE} from './settings';
 
 const REFERRER = 'api.explore.user-sessions';
@@ -51,6 +53,40 @@ function maxDefined(a: number | undefined, b: number | undefined) {
   return Math.max(a, b);
 }
 
+/** Rows without a usable timestamp sort last in either direction. */
+function byLastSeenDesc(
+  [idA, a]: [string, number | undefined],
+  [idB, b]: [string, number | undefined]
+) {
+  if (a === b) {
+    // Sessions whose dataset did not report a usable timestamp still need a
+    // stable order, hence the id tiebreak.
+    return idA.localeCompare(idB);
+  }
+  if (a === undefined) {
+    return 1;
+  }
+  if (b === undefined) {
+    return -1;
+  }
+  return b - a;
+}
+
+interface UseUserSessionsOptions {
+  /**
+   * Per-dataset searchable keys, used to route `query` to the datasets that can
+   * answer it. Required whenever `query` is set.
+   */
+  knownKeys?: KnownKeysByDataset;
+  /**
+   * True while `knownKeys` is still loading. Discovery waits for it rather than
+   * routing a query against an incomplete key set.
+   */
+  knownKeysLoading?: boolean;
+  /** Search query, applied to individual telemetry items. */
+  query?: string;
+}
+
 /**
  * Lists distinct `session.id` values with a per-dataset event count.
  *
@@ -65,8 +101,18 @@ function maxDefined(a: number | undefined, b: number | undefined) {
  *    `session.id:[...]` over exactly the sessions being rendered. Without this
  *    a session that missed one dataset's top-N would render a 0 count for that
  *    dataset even though events exist.
+ *
+ * `query` narrows discovery only. A session is listed when at least one of its
+ * telemetry items matches, and it is then reported with its full event counts —
+ * the filter selects sessions, it does not redefine what a session contains.
+ * Only the datasets that know every key in the query are asked (see
+ * `datasetsForQuery`), so no dataset is sent a filter it would reject.
  */
-export function useUserSessions() {
+export function useUserSessions({
+  query = '',
+  knownKeys,
+  knownKeysLoading = false,
+}: UseUserSessionsOptions = {}) {
   const organization = useOrganization();
   const {selection, isReady: arePageFiltersReady} = usePageFilters();
 
@@ -81,10 +127,33 @@ export function useUserSessions() {
     [selection]
   );
 
+  const hasQuery = Boolean(query.trim());
+
+  // Parenthesized so a top-level OR in the user's query keeps its precedence
+  // against the `has:session.id` we AND on.
+  const discoveryQuery = hasQuery
+    ? `has:${SESSION_ID} (${query.trim()})`
+    : `has:${SESSION_ID}`;
+
+  const routedDatasets = useMemo(() => {
+    if (!hasQuery) {
+      return new Set(SESSION_DATASETS.map(config => config.key));
+    }
+    if (!knownKeys || knownKeysLoading) {
+      return new Set<SessionDatasetKey>();
+    }
+    return new Set(datasetsForQuery(query, knownKeys));
+  }, [hasQuery, knownKeys, knownKeysLoading, query]);
+
+  const isDiscoveryReady = arePageFiltersReady && !(hasQuery && knownKeysLoading);
+
   const discovery = useQueries({
     queries: SESSION_DATASETS.map(config =>
       apiOptions.as<EventsResponse>()('/organizations/$organizationIdOrSlug/events/', {
-        path: arePageFiltersReady ? {organizationIdOrSlug: organization.slug} : skipToken,
+        path:
+          isDiscoveryReady && routedDatasets.has(config.key)
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
         query: {
           ...commonQuery,
           dataset: config.dataset,
@@ -94,23 +163,32 @@ export function useUserSessions() {
             config.firstSeenField,
             config.lastSeenField,
           ],
-          query: `has:${SESSION_ID}`,
+          query: discoveryQuery,
           sort: `-${config.lastSeenField}`,
         },
         staleTime: 0,
       })
     ),
-    combine: results => ({
-      results,
-      isPending: results.some(result => result.isPending),
-      isError: results.some(result => result.isError),
-      error: results.find(result => result.error)?.error ?? null,
-    }),
+    // Skipped datasets stay `pending` forever, so every aggregate below has to
+    // ignore them or the page would never stop loading.
+    combine: results => {
+      const routed = results.filter((_, index) =>
+        routedDatasets.has(SESSION_DATASETS[index]!.key)
+      );
+      return {
+        results,
+        isPending: routed.some(result => result.isPending),
+        // One dataset rejecting the query degrades to "no matches from that
+        // dataset"; only a total failure is an error.
+        isError: routed.length > 0 && routed.every(result => result.isError),
+        error: routed.find(result => result.error)?.error ?? null,
+      };
+    },
   });
 
   // Assemble the candidate set and pick the globally most-recent sessions.
   const sessionIds = useMemo(() => {
-    if (discovery.isPending) {
+    if (discovery.isPending || !isDiscoveryReady) {
       return [];
     }
 
@@ -129,23 +207,10 @@ export function useUserSessions() {
     });
 
     return Array.from(lastSeenById.entries())
-      .sort(([idA, a], [idB, b]) => {
-        // Sessions whose dataset did not report a usable timestamp sort last but
-        // still need a stable order, hence the id tiebreak.
-        if (a === b) {
-          return idA.localeCompare(idB);
-        }
-        if (a === undefined) {
-          return 1;
-        }
-        if (b === undefined) {
-          return -1;
-        }
-        return b - a;
-      })
+      .sort(byLastSeenDesc)
       .slice(0, SESSIONS_PER_PAGE)
       .map(([id]) => id);
-  }, [discovery.isPending, discovery.results]);
+  }, [discovery.isPending, discovery.results, isDiscoveryReady]);
 
   const hasSessionIds = sessionIds.length > 0;
 
@@ -219,13 +284,19 @@ export function useUserSessions() {
       });
     });
 
-    // Preserve the recency order established during discovery.
-    return sessionIds.map(id => byId.get(id)!);
+    // Order by the unfiltered `lastSeen` the row actually displays. Discovery
+    // ordered by *filtered* recency, which under a query is a different number.
+    return Array.from(byId.values()).sort((a, b) =>
+      byLastSeenDesc([a.id, a.lastSeen], [b.id, b.lastSeen])
+    );
   }, [counts.isPending, counts.results, hasSessionIds, sessionIds]);
 
   return {
     sessions,
-    isPending: discovery.isPending || (hasSessionIds && counts.isPending),
+    isPending:
+      // Without this, a page load with `?query=` in the URL flashes the empty
+      // state before the key sets arrive and routing can run.
+      !isDiscoveryReady || discovery.isPending || (hasSessionIds && counts.isPending),
     isError: discovery.isError || counts.isError,
     error: discovery.error ?? counts.error,
   };

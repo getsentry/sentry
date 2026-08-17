@@ -5,6 +5,7 @@ import {skipToken, useQueries} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,6 +64,74 @@ function useTimelineSort() {
   return {sort, sortDirection, toggleSort};
 }
 
+const QUERY_PARAM = 'query';
+const TYPE_PARAM = 'telemetryType';
+
+const ALL_TYPES: SessionDatasetKey[] = SESSION_DATASETS.map(config => config.key);
+
+function isSessionDatasetKey(value: string): value is SessionDatasetKey {
+  return ALL_TYPES.includes(value as SessionDatasetKey);
+}
+
+export interface TimelineFilters {
+  /** Free text matched against a row's title and detail. Empty means no text filter. */
+  query: string;
+  setQuery: (query: string) => void;
+  setTypes: (types: SessionDatasetKey[]) => void;
+  /** Telemetry types to show. Every type, unless the URL narrows it. */
+  types: SessionDatasetKey[];
+}
+
+/**
+ * Timeline filters, held in the URL alongside the sort so a filtered view is
+ * linkable and survives a reload.
+ *
+ * Filtering happens client-side, over the rows already fetched for the timeline.
+ * The per-dataset queries are capped either way, so narrowing them server-side
+ * would not surface more rows — and the counts above the timeline stay exact.
+ */
+function useTimelineFilters(): TimelineFilters {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const query = decodeScalar(location.query[QUERY_PARAM], '');
+
+  const types = useMemo(() => {
+    const selected = decodeList(location.query[TYPE_PARAM]).filter(isSessionDatasetKey);
+    // No selection means every type, the way an empty project filter means all
+    // projects. Deselecting the last type therefore shows everything again
+    // rather than an unexplained empty timeline.
+    return selected.length === 0 ? ALL_TYPES : selected;
+  }, [location.query]);
+
+  const setParam = useCallback(
+    (param: string, value: string | string[] | undefined) => {
+      navigate(
+        {...location, query: {...location.query, [param]: value}},
+        {replace: true}
+      );
+    },
+    [location, navigate]
+  );
+
+  const setQuery = useCallback(
+    (next: string) => setParam(QUERY_PARAM, next || undefined),
+    [setParam]
+  );
+
+  const setTypes = useCallback(
+    (next: SessionDatasetKey[]) =>
+      // "All" is the default, so it needs no param.
+      setParam(
+        TYPE_PARAM,
+        next.length === 0 || next.length === ALL_TYPES.length ? undefined : next
+      ),
+    [setParam]
+  );
+
+  return {query, types, setQuery, setTypes};
+}
+
 export interface SessionEvent {
   detail: string | undefined;
   /** Dataset this row came from. */
@@ -91,6 +160,8 @@ export type SessionTimelineItem =
 
 export interface SessionDetail {
   counts: Record<SessionDatasetKey, number>;
+  /** True when a filter is hiding rows the session actually has. */
+  isFiltered: boolean;
   /** True when any dataset returned a full page, so the timeline may be truncated. */
   isTruncated: boolean;
   items: SessionTimelineItem[];
@@ -149,6 +220,18 @@ function groupByTrace(events: SessionEvent[]): SessionTimelineItem[] {
 }
 
 /**
+ * Free-text match over what the row actually shows: its title and its detail.
+ * Case-insensitive substring, not search syntax — this filters rows already on
+ * the page rather than issuing a query.
+ */
+function matchesQuery(event: SessionEvent, needle: string): boolean {
+  return (
+    event.title.toLowerCase().includes(needle) ||
+    Boolean(event.detail?.toLowerCase().includes(needle))
+  );
+}
+
+/**
  * Loads one session: per-dataset counts, plus the individual events merged into
  * a single chronological list.
  *
@@ -160,6 +243,7 @@ export function useSessionDetail(sessionId: string) {
   const organization = useOrganization();
   const {selection, isReady: arePageFiltersReady} = usePageFilters();
   const {sort, sortDirection, toggleSort} = useTimelineSort();
+  const filters = useTimelineFilters();
 
   const dateParams = useMemo(
     () => normalizeDateTimeParams(selection.datetime),
@@ -271,17 +355,28 @@ export function useSessionDetail(sessionId: string) {
       return (a.timestamp - b.timestamp) * order;
     });
 
+    // Filtered before grouping, so a run of same-trace spans is only collapsed
+    // out of the rows that survive the filter.
+    const selectedTypes = new Set(filters.types);
+    const needle = filters.query.trim().toLowerCase();
+    const visible = events.filter(
+      event =>
+        selectedTypes.has(event.key) && (needle === '' || matchesQuery(event, needle))
+    );
+
     return {
       counts,
-      items: groupByTrace(events),
+      items: groupByTrace(visible),
+      isFiltered: visible.length < events.length,
       isTruncated,
       totalEvents: Object.values(counts).reduce((sum, count) => sum + count, 0),
     };
-  }, [countQueries.results, rowQueries.results, sort]);
+  }, [countQueries.results, rowQueries.results, sort, filters.types, filters.query]);
 
   return {
     ...detail,
     dateParams,
+    filters,
     sortDirection,
     toggleSort,
     isPending: countQueries.isPending || rowQueries.isPending,

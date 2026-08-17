@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -35,9 +36,19 @@ interface Props {
   isError: boolean;
   isPending: boolean;
   sessions: UserSession[];
+  /** Active search query, which changes what an empty result means. */
+  query?: string;
+  /** Query keys no dataset knows about — the usual cause of an empty result. */
+  unrecognizedKeys?: string[];
 }
 
-export function UserSessionsTable({sessions, isPending, isError}: Props) {
+export function UserSessionsTable({
+  sessions,
+  isPending,
+  isError,
+  query,
+  unrecognizedKeys,
+}: Props) {
   return (
     <StyledTable columns={COLUMNS}>
       <Table.Head>
@@ -59,9 +70,28 @@ export function UserSessionsTable({sessions, isPending, isError}: Props) {
         </Table.StatusBody>
       ) : sessions.length === 0 ? (
         <Table.StatusBody>
-          <Text variant="muted">
-            {t('No sessions found. Nothing in this time range carries a session.id.')}
-          </Text>
+          <Stack gap="xs" align="center">
+            <Text variant="muted">
+              {query
+                ? t('No sessions match this search.')
+                : t(
+                    'No sessions found. Nothing in this time range carries a session.id.'
+                  )}
+            </Text>
+            {unrecognizedKeys?.length ? (
+              <Text variant="muted" size="sm">
+                {unrecognizedKeys.length === 1
+                  ? t(
+                      'No telemetry in this time range has the attribute %s.',
+                      unrecognizedKeys[0]
+                    )
+                  : t(
+                      'No telemetry in this time range has these attributes: %s.',
+                      unrecognizedKeys.join(', ')
+                    )}
+              </Text>
+            ) : null}
+          </Stack>
         </Table.StatusBody>
       ) : (
         <Table.Body>

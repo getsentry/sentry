@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 
@@ -12,12 +12,33 @@ jest.mock('sentry/components/pageFilters/usePageFilters');
 const A = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const EPOCH_NANOS = 1704067200000 * 1e6;
 
+function mockAttributes() {
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/trace-items/attributes/',
+    method: 'GET',
+    body: [
+      {
+        key: 'span.op',
+        name: 'span.op',
+        attributeType: 'string',
+        attributeSource: {source_type: 'sentry'},
+      },
+    ],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/tags/',
+    method: 'GET',
+    body: [],
+  });
+}
+
 describe('UserSessionsView', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    mockAttributes();
   });
 
   it('renders the filter bar and a session row with per-dataset counts', async () => {
@@ -56,6 +77,7 @@ describe('UserSessionsView', () => {
     expect(screen.getByTestId('page-filter-project-selector')).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('search-query-builder')).toBeInTheDocument();
 
     // Column headers for each dataset.
     for (const header of ['Logs', 'Metrics', 'Spans', 'Errors', 'Duration']) {
@@ -74,6 +96,51 @@ describe('UserSessionsView', () => {
 
     expect(
       await screen.findByText(/Nothing in this time range carries a session.id/)
+    ).toBeInTheDocument();
+  });
+
+  it('puts a submitted search into the URL', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      method: 'GET',
+      body: {data: [], meta: {fields: {}}},
+    });
+
+    const {router} = render(<UserSessionsView />, {organization});
+
+    await screen.findByText(/Nothing in this time range carries a session.id/);
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.paste('span.op:pageload');
+    await userEvent.keyboard('{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('span.op:pageload');
+    });
+  });
+
+  it('explains an empty result caused by an attribute no dataset knows', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      method: 'GET',
+      body: {data: [], meta: {fields: {}}},
+    });
+
+    render(<UserSessionsView />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/usersessions/',
+          query: {query: 'nonsense.key:1'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('No sessions match this search.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'No telemetry in this time range has the attribute nonsense.key.'
+      )
     ).toBeInTheDocument();
   });
 });

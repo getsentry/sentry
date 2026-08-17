@@ -67,6 +67,8 @@ function groupKey(group: SessionTraceGroup): string {
 interface Props {
   dateParams: Record<string, any>;
   isError: boolean;
+  /** True when a filter is hiding rows, which changes what an empty table means. */
+  isFiltered: boolean;
   isPending: boolean;
   items: SessionTimelineItem[];
   onToggleSort: () => void;
@@ -75,6 +77,7 @@ interface Props {
 
 export function SessionTimeline({
   items,
+  isFiltered,
   isPending,
   isError,
   dateParams,
@@ -124,7 +127,11 @@ export function SessionTimeline({
         </Table.StatusBody>
       ) : items.length === 0 ? (
         <Table.StatusBody>
-          <Text variant="muted">{t('No telemetry found for this session.')}</Text>
+          <Text variant="muted">
+            {isFiltered
+              ? t('No telemetry matches these filters.')
+              : t('No telemetry found for this session.')}
+          </Text>
         </Table.StatusBody>
       ) : (
         <Table.Body>

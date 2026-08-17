@@ -16,7 +16,12 @@ const EPOCH_MS = 1704067200000;
 const EPOCH_NANOS = EPOCH_MS * 1e6;
 const EPOCH_SECS = EPOCH_MS / 1e3;
 
-function mockDataset(dataset: string, phase: 'discovery' | 'counts', data: unknown[]) {
+function mockDataset(
+  dataset: string,
+  phase: 'discovery' | 'counts',
+  data: unknown[],
+  discoveryQuery = 'has:session.id'
+) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     method: 'GET',
@@ -25,11 +30,24 @@ function mockDataset(dataset: string, phase: 'discovery' | 'counts', data: unkno
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
         (phase === 'discovery'
-          ? options.query.query === 'has:session.id'
+          ? options.query.query === discoveryQuery
           : options.query.query.startsWith('session.id:[')),
     ],
   });
 }
+
+function mockAllDatasets(phase: 'discovery' | 'counts') {
+  return ['logs', 'spans', 'tracemetrics', 'errors'].map(dataset =>
+    mockDataset(dataset, phase, [])
+  );
+}
+
+const KNOWN_KEYS = {
+  logs: new Set(['message', 'user.id']),
+  metrics: new Set(['metric.name']),
+  spans: new Set(['span.op', 'user.id']),
+  errors: new Set(['level', 'user.id']),
+};
 
 describe('useUserSessions', () => {
   beforeEach(() => {
@@ -221,10 +239,7 @@ describe('useUserSessions', () => {
   });
 
   it('skips the counts phase when discovery finds nothing', async () => {
-    mockDataset('logs', 'discovery', []);
-    mockDataset('spans', 'discovery', []);
-    mockDataset('tracemetrics', 'discovery', []);
-    mockDataset('errors', 'discovery', []);
+    mockAllDatasets('discovery');
     const counts = mockDataset('logs', 'counts', []);
 
     const {result} = renderHookWithProviders(() => useUserSessions());
@@ -233,5 +248,222 @@ describe('useUserSessions', () => {
 
     expect(result.current.sessions).toEqual([]);
     expect(counts).not.toHaveBeenCalled();
+  });
+
+  describe('with a search query', () => {
+    it('only queries the datasets that know every key in the query', async () => {
+      const query = 'span.op:pageload';
+      const discoveryQuery = 'has:session.id (span.op:pageload)';
+
+      const spanDiscovery = mockDataset(
+        'spans',
+        'discovery',
+        [
+          {
+            'session.id': A,
+            'count()': 7,
+            'min(precise.start_ts)': EPOCH_SECS,
+            'max(precise.finish_ts)': EPOCH_SECS + 30,
+          },
+        ],
+        discoveryQuery
+      );
+      const logDiscovery = mockDataset('logs', 'discovery', [], discoveryQuery);
+
+      // Counts stay unfiltered: the filter selects sessions, it does not redefine
+      // what a session contains.
+      const logCounts = mockDataset('logs', 'counts', [
+        {
+          'session.id': A,
+          'count()': 42,
+          'min(timestamp_precise)': EPOCH_NANOS,
+          'max(timestamp_precise)': EPOCH_NANOS + 30 * 1e9,
+        },
+      ]);
+      mockDataset('spans', 'counts', [
+        {
+          'session.id': A,
+          'count()': 7,
+          'min(precise.start_ts)': EPOCH_SECS,
+          'max(precise.finish_ts)': EPOCH_SECS + 30,
+        },
+      ]);
+      mockDataset('tracemetrics', 'counts', []);
+      mockDataset('errors', 'counts', []);
+
+      const {result} = renderHookWithProviders(() =>
+        useUserSessions({query, knownKeys: KNOWN_KEYS})
+      );
+
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+
+      expect(spanDiscovery).toHaveBeenCalled();
+      // `span.op` is meaningless to logs, so logs is never asked.
+      expect(logDiscovery).not.toHaveBeenCalled();
+
+      expect(logCounts).toHaveBeenCalled();
+      expect(result.current.sessions).toEqual([
+        {
+          id: A,
+          counts: {logs: 42, metrics: 0, spans: 7, errors: 0},
+          firstSeen: EPOCH_MS,
+          lastSeen: EPOCH_MS + 30_000,
+          totalEvents: 49,
+        },
+      ]);
+    });
+
+    it('unions candidates across every dataset that knows a shared key', async () => {
+      const discoveryQuery = 'has:session.id (user.id:123)';
+
+      const logDiscovery = mockDataset(
+        'logs',
+        'discovery',
+        [
+          {
+            'session.id': A,
+            'count()': 1,
+            'min(timestamp_precise)': EPOCH_NANOS,
+            'max(timestamp_precise)': EPOCH_NANOS,
+          },
+        ],
+        discoveryQuery
+      );
+      const spanDiscovery = mockDataset(
+        'spans',
+        'discovery',
+        [
+          {
+            'session.id': B,
+            'count()': 1,
+            'min(precise.start_ts)': EPOCH_SECS,
+            'max(precise.finish_ts)': EPOCH_SECS,
+          },
+        ],
+        discoveryQuery
+      );
+      const errorDiscovery = mockDataset('errors', 'discovery', [], discoveryQuery);
+      // `user.id` is not in the metrics key set.
+      const metricDiscovery = mockDataset(
+        'tracemetrics',
+        'discovery',
+        [],
+        discoveryQuery
+      );
+
+      mockDataset('logs', 'counts', [
+        {
+          'session.id': A,
+          'count()': 1,
+          'min(timestamp_precise)': EPOCH_NANOS,
+          'max(timestamp_precise)': EPOCH_NANOS,
+        },
+        {
+          'session.id': B,
+          'count()': 2,
+          'min(timestamp_precise)': EPOCH_NANOS + 60 * 1e9,
+          'max(timestamp_precise)': EPOCH_NANOS + 60 * 1e9,
+        },
+      ]);
+      mockDataset('spans', 'counts', []);
+      mockDataset('tracemetrics', 'counts', []);
+      mockDataset('errors', 'counts', []);
+
+      const {result} = renderHookWithProviders(() =>
+        useUserSessions({query: 'user.id:123', knownKeys: KNOWN_KEYS})
+      );
+
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+
+      expect(logDiscovery).toHaveBeenCalled();
+      expect(spanDiscovery).toHaveBeenCalled();
+      expect(errorDiscovery).toHaveBeenCalled();
+      expect(metricDiscovery).not.toHaveBeenCalled();
+
+      // B leads on the unfiltered `lastSeen` the row displays, even though the
+      // filtered discovery timestamps put A and B the other way round.
+      expect(result.current.sessions.map(session => session.id)).toEqual([B, A]);
+    });
+
+    it('issues no request and finds nothing when no dataset knows the key', async () => {
+      const discovery = mockAllDatasets('discovery');
+      const counts = mockAllDatasets('counts');
+
+      const {result} = renderHookWithProviders(() =>
+        useUserSessions({query: 'nonsense.key:1', knownKeys: KNOWN_KEYS})
+      );
+
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+
+      expect(result.current.sessions).toEqual([]);
+      expect(result.current.isError).toBe(false);
+      [...discovery, ...counts].forEach(mock => expect(mock).not.toHaveBeenCalled());
+    });
+
+    it('stays pending until the key sets arrive, rather than flashing empty', () => {
+      const discovery = mockAllDatasets('discovery');
+
+      const {result} = renderHookWithProviders(() =>
+        useUserSessions({
+          query: 'span.op:pageload',
+          knownKeys: KNOWN_KEYS,
+          knownKeysLoading: true,
+        })
+      );
+
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.sessions).toEqual([]);
+      discovery.forEach(mock => expect(mock).not.toHaveBeenCalled());
+    });
+
+    it('treats one dataset failing as no matches from that dataset', async () => {
+      const discoveryQuery = 'has:session.id (user.id:123)';
+
+      mockDataset(
+        'logs',
+        'discovery',
+        [
+          {
+            'session.id': A,
+            'count()': 1,
+            'min(timestamp_precise)': EPOCH_NANOS,
+            'max(timestamp_precise)': EPOCH_NANOS,
+          },
+        ],
+        discoveryQuery
+      );
+      mockDataset('errors', 'discovery', [], discoveryQuery);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        statusCode: 400,
+        body: {detail: 'invalid query'},
+        match: [
+          (_url: string, options: Record<string, any>) =>
+            options.query.dataset === 'spans' && options.query.query === discoveryQuery,
+        ],
+      });
+
+      mockDataset('logs', 'counts', [
+        {
+          'session.id': A,
+          'count()': 1,
+          'min(timestamp_precise)': EPOCH_NANOS,
+          'max(timestamp_precise)': EPOCH_NANOS,
+        },
+      ]);
+      mockDataset('spans', 'counts', []);
+      mockDataset('tracemetrics', 'counts', []);
+      mockDataset('errors', 'counts', []);
+
+      const {result} = renderHookWithProviders(() =>
+        useUserSessions({query: 'user.id:123', knownKeys: KNOWN_KEYS})
+      );
+
+      await waitFor(() => expect(result.current.sessions).toHaveLength(1));
+
+      expect(result.current.isError).toBe(false);
+      expect(result.current.sessions[0]!.id).toBe(A);
+    });
   });
 });

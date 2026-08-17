@@ -334,6 +334,100 @@ describe('SessionDetailView', () => {
     expect(href).toContain('tab=metrics');
   });
 
+  it('filters the timeline by telemetry type, showing all types by default', async () => {
+    mockEmptyDatasets(['logs', 'errors']);
+    mockDataset('logs', 'count', [{'count()': 1}]);
+    mockDataset('errors', 'count', [{'count()': 1}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:01+00:00'},
+    ]);
+    mockDataset('errors', 'rows', [
+      {
+        id: 'deadbeefdeadbeefdeadbeefdeadbeef',
+        'issue.id': 99,
+        title: 'TypeError: boom',
+        timestamp: '2024-01-01T00:00:02+00:00',
+      },
+    ]);
+
+    const {router} = render(<SessionDetailView />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    // Default: every type, with no param in the URL.
+    expect(await screen.findByText('first log')).toBeInTheDocument();
+    expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
+    const trigger = screen.getByRole('button', {name: /Type/});
+    expect(trigger).toHaveTextContent('All');
+
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByRole('option', {name: 'Logs'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Metrics'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Spans'}));
+    await userEvent.keyboard('{Escape}');
+
+    expect(router.location.query.telemetryType).toBe('errors');
+    expect(trigger).toHaveTextContent('Errors');
+    expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
+    expect(screen.queryByText('first log')).not.toBeInTheDocument();
+
+    // The counts above the timeline stay exact, whatever the timeline shows.
+    expect(screen.getByText('Telemetry')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('filters the timeline by a free-text search over title and detail', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 2}]);
+    mockDataset('logs', 'rows', [
+      {
+        id: 'log1',
+        message: 'checkout failed',
+        severity: 'error',
+        timestamp: '2024-01-01T00:00:01+00:00',
+      },
+      {
+        id: 'log2',
+        message: 'user signed in',
+        severity: 'info',
+        timestamp: '2024-01-01T00:00:02+00:00',
+      },
+    ]);
+
+    const {router} = render(<SessionDetailView />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('checkout failed')).toBeInTheDocument();
+
+    const search = screen.getByRole('textbox', {name: 'Search telemetry'});
+    await userEvent.type(search, 'CHECKOUT');
+
+    // Case-insensitive match on the title.
+    await waitFor(() => {
+      expect(screen.queryByText('user signed in')).not.toBeInTheDocument();
+    });
+    expect(router.location.query.query).toBe('CHECKOUT');
+    expect(screen.getByText('checkout failed')).toBeInTheDocument();
+
+    // The detail column is searchable too: `severity` is what a log row shows there.
+    await userEvent.clear(search);
+    await userEvent.type(search, 'info');
+    await waitFor(() => {
+      expect(screen.getByText('user signed in')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('checkout failed')).not.toBeInTheDocument();
+
+    // Nothing matching reads as a filtered-out timeline, not an empty session.
+    await userEvent.clear(search);
+    await userEvent.type(search, 'nothing matches this');
+    expect(
+      await screen.findByText('No telemetry matches these filters.')
+    ).toBeInTheDocument();
+  });
+
   it('renders a row unlinked when it lacks the ids needed to build a target', async () => {
     mockEmptyDatasets(['spans']);
     mockDataset('spans', 'count', [{'count()': 1}]);
