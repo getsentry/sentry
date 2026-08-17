@@ -28,10 +28,6 @@ const POLL_INTERVAL_MS = 500;
 // even when their boxes overlap almost exactly (e.g. a widget with one child chart).
 const DEPTH_COLORS = ['blue400', 'pink400', 'yellow400', 'green400'] as const;
 
-// Above every existing z-index layer (modals, drawers, tooltips) — XRay must
-// be able to highlight nodes rendered inside any of them too.
-const OVERLAY_Z_INDEX = 2_147_483_000;
-
 interface MeasuredNode extends LLMContextOverlayNode {
   depth: number;
   rect: DOMRect;
@@ -179,7 +175,11 @@ export function SeerXRayOverlay() {
 const Container = styled('div')`
   position: fixed;
   inset: 0;
-  z-index: ${OVERLAY_Z_INDEX};
+  /* Above ordinary page content, but always below the cmd+k command palette
+     (which renders as a modal at theme.zIndex.modal) — XRay must never
+     obscure it. Derived from the token rather than a hardcoded number so
+     this relationship holds even if the modal layer's value changes. */
+  z-index: ${p => p.theme.zIndex.modal - 1};
   /* Boxes opt back into pointer-events individually (the label, the data
      panel) — everywhere else, clicks pass through to the real page. */
   pointer-events: none;
