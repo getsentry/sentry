@@ -145,8 +145,9 @@ describe('IntegrationOrganizationLink', () => {
       body: org2,
     });
 
-    // Drive the API pipeline: initialize hands back the auto-advancing Vercel
-    // step, and advancing completes the install with the new integration.
+    // Drive the API pipeline: initialize hands back the auto-advancing token
+    // exchange step, which advances to the confirmation step. Only confirming
+    // completes the install with the new integration.
     MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
       method: 'POST',
@@ -154,7 +155,7 @@ describe('IntegrationOrganizationLink', () => {
       body: {
         step: 'oauth_login',
         stepIndex: 0,
-        totalSteps: 1,
+        totalSteps: 2,
         provider: 'vercel',
         data: {state: 'pipeline-sig'},
       },
@@ -163,6 +164,24 @@ describe('IntegrationOrganizationLink', () => {
       url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
       method: 'POST',
       match: [MockApiClient.matchData({state: 'pipeline-sig'})],
+      body: {
+        status: 'advance',
+        step: 'vercel_confirm_install',
+        stepIndex: 1,
+        totalSteps: 2,
+        provider: 'vercel',
+        data: {
+          account: 'My Team Name',
+          accountType: 'team',
+          organization: org2.name,
+          state: 'confirm-sig',
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      match: [MockApiClient.matchData({state: 'confirm-sig'})],
       body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
     });
 
@@ -180,6 +199,10 @@ describe('IntegrationOrganizationLink', () => {
 
     await selectEvent.select(await screen.findByRole('textbox'), org2.name);
     await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Install Vercel integration'})
+    );
 
     await waitFor(() => {
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
