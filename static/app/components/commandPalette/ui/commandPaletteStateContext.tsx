@@ -3,6 +3,7 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import type {CMDKPersistentAnchor} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,7 +53,7 @@ type CommandPaletteAction =
       query?: string;
     }
   | {type: 'trigger action'}
-  | {anchor: CMDKNavStack; type: 'return to anchor'}
+  | {anchor: CMDKPersistentAnchor; type: 'return to anchor'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
   | {type: 'freeze list'};
@@ -60,6 +61,33 @@ type CommandPaletteAction =
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
   createContext<React.Dispatch<CommandPaletteAction> | null>(null);
+
+function findActionInStack(stack: CMDKNavStack | null, key: string): CMDKNavStack | null {
+  if (!stack || stack.value.key === key) {
+    return stack;
+  }
+  return findActionInStack(stack.previous, key);
+}
+
+function makePersistentAnchorStack(
+  stack: CMDKNavStack | null,
+  anchor: CMDKPersistentAnchor
+): CMDKNavStack {
+  const existingAnchor = findActionInStack(stack, anchor.key);
+  if (existingAnchor) {
+    return existingAnchor;
+  }
+
+  return {
+    previous: anchor.parentKey ? findActionInStack(stack, anchor.parentKey) : null,
+    value: {
+      key: anchor.key,
+      label: anchor.label,
+      prompt: anchor.prompt,
+      query: '',
+    },
+  };
+}
 
 function commandPaletteReducer(
   state: CommandPaletteState,
@@ -126,7 +154,7 @@ function commandPaletteReducer(
     case 'return to anchor':
       return {
         ...state,
-        action: action.anchor,
+        action: makePersistentAnchorStack(state.action, action.anchor),
         query: '',
         pendingReset: false,
         list: 'active',

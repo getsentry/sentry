@@ -502,30 +502,8 @@ export function CommandPalette({
       analytics.recordAction(action, resultIndex, '');
 
       if ('onAction' in action && action.persistentAnchor) {
-        const persistentAnchor = action.persistentAnchor;
-        let anchor = state.action;
-        while (anchor && anchor.value.key !== persistentAnchor.key) {
-          anchor = anchor.previous;
-        }
-
-        if (!anchor) {
-          let previous = state.action;
-          while (previous && previous.value.key !== persistentAnchor.parentKey) {
-            previous = previous.previous;
-          }
-          anchor = {
-            previous: persistentAnchor.parentKey ? previous : null,
-            value: {
-              key: persistentAnchor.key,
-              label: persistentAnchor.label,
-              prompt: persistentAnchor.prompt,
-              query: '',
-            },
-          };
-        }
-
         action.onAction();
-        dispatch({type: 'return to anchor', anchor});
+        dispatch({type: 'return to anchor', anchor: action.persistentAnchor});
         return;
       }
 
@@ -557,7 +535,6 @@ export function CommandPalette({
       dispatch,
       navigate,
       state.query,
-      state.action,
     ]
   );
 
