@@ -2994,9 +2994,9 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
 # URL of the teapot GPU crash dump symbolication service (sibling to Symbolicator).
-# Left unset by default so the runtime-modifiable `teapot.options["url"]` option is
-# the source of truth (this env var is just a local/deploy override).
-SENTRY_TEAPOT_URL = os.getenv("TEAPOT")
+# In production getsentry sets this from the `SENTRY_TEAPOT_HOST` env var, the same
+# way it sets the other internal service URLs (Tempest, Vroom, ...).
+SENTRY_TEAPOT_URL = os.getenv("TEAPOT", "http://127.0.0.1:8125")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 

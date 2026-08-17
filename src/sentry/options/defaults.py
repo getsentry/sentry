@@ -435,11 +435,6 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "teapot.options",
-    default={"url": "http://127.0.0.1:8125"},
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Tight timeout: decode is sub-second, so a slow teapot should fail fast.
 register(
     "teapot.timeout-seconds",
