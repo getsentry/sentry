@@ -385,66 +385,49 @@ function QueryClauseActions() {
   };
 
   return (
-    <Fragment>
-      <CMDKAction display={{label: t('Commands')}}>
-        <CMDKChainedActionScope>
-          <CMDKAction
-            display={{label: t('Apply Changes')}}
-            onAction={() => setQueryParams({query: draftQuery})}
-          />
+    <CMDKAction display={{label: t('Commands')}}>
+      <CMDKChainedActionScope>
+        <CMDKAction
+          display={{label: t('Apply Changes')}}
+          onAction={() => setQueryParams({query: draftQuery})}
+        />
+        <CMDKAction
+          display={{label: t('Edit Series')}}
+          keywords={['edit', 'series', 'source', ...visualizes.map(v => v.yAxis)]}
+        >
           {visualizes.map((visualize, index) => (
             <CMDKAction
               key={`${visualize.yAxis}-${index}`}
-              display={{
-                label: t('Edit'),
-                trailingItem: (
-                  <QueryValue value={t('Series %s', String.fromCharCode(65 + index))} />
-                ),
-              }}
-              keywords={['edit', 'series', 'source', visualize.yAxis]}
+              display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+              keywords={[visualize.yAxis]}
             >
-              <SeriesActions
-                visualize={visualize}
-                addSearchFilter={addSearchFilter}
-                groupBySummary={groupBySummary}
-                onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-                query={draftQuery}
-                sortBySummary={sortBySummary}
-              />
+              <CMDKChainedActionScope>
+                <SeriesActions
+                  visualize={visualize}
+                  addSearchFilter={addSearchFilter}
+                  groupBySummary={groupBySummary}
+                  onChange={nextVisualize => updateVisualize(index, nextVisualize)}
+                  query={draftQuery}
+                  sortBySummary={sortBySummary}
+                />
+              </CMDKChainedActionScope>
             </CMDKAction>
           ))}
-          {visualizes.length < MAX_VISUALIZES && (
-            <CMDKAction
-              display={{label: t('Add Series')}}
-              keywords={['add', 'series', 'source', 'visualization']}
-              onAction={() =>
-                setVisualizes([
-                  ...visualizes.map(visualize => visualize.serialize()),
-                  new VisualizeFunction(DEFAULT_VISUALIZATION).serialize(),
-                ])
-              }
-            />
-          )}
-        </CMDKChainedActionScope>
-      </CMDKAction>
-      <CMDKChainedActionScope>
-        {visualizes.map((visualize, index) => (
+        </CMDKAction>
+        {visualizes.length < MAX_VISUALIZES && (
           <CMDKAction
-            key={`series-details-${visualize.yAxis}-${index}`}
-            display={{label: t('Series %s', String.fromCharCode(65 + index))}}
-          >
-            <SeriesActions
-              visualize={visualize}
-              addSearchFilter={addSearchFilter}
-              groupBySummary={groupBySummary}
-              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-              query={draftQuery}
-              sortBySummary={sortBySummary}
-            />
-          </CMDKAction>
-        ))}
+            display={{label: t('Add Series')}}
+            keywords={['add', 'series', 'source', 'visualization']}
+            onAction={() =>
+              setVisualizes([
+                ...visualizes.map(visualize => visualize.serialize()),
+                new VisualizeFunction(DEFAULT_VISUALIZATION).serialize(),
+              ])
+            }
+          />
+        )}
       </CMDKChainedActionScope>
-    </Fragment>
+    </CMDKAction>
   );
 }
 
