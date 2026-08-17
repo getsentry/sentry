@@ -1239,7 +1239,9 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-cache-issue-detection": {
         "task": "issues:sentry.tasks.llm_cache_issue_detection.run_llm_cache_issue_detection",
-        "schedule": crontab("0", "4", "*", "*", "*"),
+        # Hourly while rolling out, for faster feedback. The detection window is
+        # 7 days, so this can be widened once the signal is trusted.
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "heal-stale-derived-data": {
         "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
