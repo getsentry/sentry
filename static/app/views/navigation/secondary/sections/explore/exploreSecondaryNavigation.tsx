@@ -32,6 +32,14 @@ export function ExploreSecondaryNavigation() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/sessions/`}
+                analyticsItemName="explore_sessions"
+              >
+                {t('Sessions')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
             <Feature features={['performance-view']}>
               <Feature features={['visibility-explore-view']}>
                 <SecondaryNavigation.ListItem>

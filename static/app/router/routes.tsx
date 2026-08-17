@@ -2303,6 +2303,10 @@ function buildRoutes(): RouteObject[] {
       children: errorsChildren,
     },
     {
+      path: 'sessions/',
+      component: make(() => import('sentry/views/explore/sessions')),
+    },
+    {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
