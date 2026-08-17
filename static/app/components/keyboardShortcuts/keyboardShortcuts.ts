@@ -40,7 +40,7 @@ export function getKeyboardShortcutGroups(): KeyboardShortcutGroup[] {
       ],
     },
     {
-      label: t('Command Palette'),
+      label: t('Navigation'),
       shortcuts: [
         {label: t('Move through results'), keybindings: ['up', 'down']},
         {label: t('Select command'), keybindings: ['enter']},

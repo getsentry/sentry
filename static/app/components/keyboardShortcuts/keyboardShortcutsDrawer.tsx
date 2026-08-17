@@ -27,7 +27,7 @@ export function KeyboardShortcutsDrawer() {
 
   return (
     <Stack height="100%">
-      <DrawerHeader hideCloseButtonText>
+      <DrawerHeader hideBar hideCloseButtonText>
         <Heading as="h2" size="md">
           {t('Keyboard Shortcuts')}
         </Heading>

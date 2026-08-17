@@ -37,7 +37,6 @@ import {
   IconGroup,
   IconGraph,
   IconIssues,
-  IconKeyDown,
   IconLink,
   IconList,
   IconLock,
@@ -986,13 +985,6 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction
-        id="cmdk:supplementary:keyboard-shortcuts"
-        display={{label: t('View keyboard shortcuts'), icon: <IconKeyDown />}}
-        keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
-        onAction={openKeyboardShortcutsDrawer}
-      />
-
-      <CMDKAction
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         keywords={[t('support'), t('contact')]}
@@ -1031,6 +1023,11 @@ export function GlobalCommandPaletteActions() {
           });
         }}
       >
+        <CMDKAction
+          display={{label: t('View Keyboard Shortcuts')}}
+          keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
+          onAction={openKeyboardShortcutsDrawer}
+        />
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
           keywords={['docs', 'documentation']}

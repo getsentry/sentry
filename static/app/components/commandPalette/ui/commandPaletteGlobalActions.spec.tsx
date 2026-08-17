@@ -128,12 +128,9 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       {organization}
     );
 
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Search commands'}),
-      'View keyboard shortcuts'
-    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Help'}));
     await userEvent.click(
-      await screen.findByRole('option', {name: 'View keyboard shortcuts'})
+      await screen.findByRole('option', {name: 'View Keyboard Shortcuts'})
     );
 
     expect(

@@ -7,7 +7,7 @@ describe('KeyboardShortcutsDrawer', () => {
     render(<KeyboardShortcutsDrawer />);
 
     expect(screen.getByRole('heading', {name: 'General'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Command Palette'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Navigation'})).toBeInTheDocument();
     expect(screen.getByText('Open command palette')).toBeInTheDocument();
     expect(screen.getByText('Select command')).toBeInTheDocument();
   });
