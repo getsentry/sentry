@@ -334,7 +334,10 @@ const appConfig: Configuration = {
             // react-select: Ships pre-compiled ESM with emotion's keyframes already
             // compiled via swc. Re-processing with @swc/plugin-emotion causes
             // "illegal escape sequence" warnings in dev mode.
-            exclude: /node_modules[\\/](core-js|react-select)/,
+            // @ffmpeg/core: Emscripten-generated glue code with its own
+            // wasm-loading paths; must be served as a raw, unprocessed
+            // static file (see the asset rules below), not run through swc.
+            exclude: /node_modules[\\/](core-js|react-select|@ffmpeg[\\/]core)/,
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
@@ -392,8 +395,17 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4|wasm)$/,
         type: 'asset',
+      },
+      {
+        // @ffmpeg/core ships its wasm-loader glue as a .js file that must be
+        // served as-is (see the swc exclude above) rather than bundled —
+        // scoped narrowly to this one vendor path so it can't shadow any
+        // other .js file in node_modules.
+        test: /\.js$/,
+        include: /node_modules[\\/]@ffmpeg[\\/]core/,
+        type: 'asset/resource',
       },
     ],
   },
@@ -522,6 +534,29 @@ const appConfig: Configuration = {
         'ios-device-list',
         'dist',
         'ios-device-list.min.js'
+      ),
+      // @ffmpeg/core's package.json "exports" field only exposes '.' and
+      // './wasm' with conditional (import/require) mappings, which this
+      // project's `new URL(..., import.meta.url)` asset resolution doesn't
+      // satisfy. Aliasing straight to the files sidesteps package exports
+      // resolution entirely, the same way `ios-device-list` does above.
+      'ffmpeg-core.js': path.join(
+        import.meta.dirname,
+        'node_modules',
+        '@ffmpeg',
+        'core',
+        'dist',
+        'esm',
+        'ffmpeg-core.js'
+      ),
+      'ffmpeg-core.wasm': path.join(
+        import.meta.dirname,
+        'node_modules',
+        '@ffmpeg',
+        'core',
+        'dist',
+        'esm',
+        'ffmpeg-core.wasm'
       ),
     },
 

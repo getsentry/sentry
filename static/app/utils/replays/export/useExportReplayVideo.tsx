@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {FFmpeg} from '@ffmpeg/ffmpeg';
-import {toBlobURL} from '@ffmpeg/util';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -13,14 +12,23 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 const CAPTURE_FPS = 30;
 const FRAME_FILENAME_DIGITS = 6;
 
-// `@ffmpeg/core`'s ~30MB of wasm+glue is loaded from a CDN at runtime rather
-// than bundled, per the library's own recommended usage (bundling
-// ffmpeg-core.js through webpack/rspack's normal JS pipeline breaks its
-// internal wasm-loading paths). That means this feature requires outbound
-// access to unpkg.com; a strict CSP or an air-gapped/self-hosted deployment
-// without internet access will cause `load()` to fail.
-const FFMPEG_CORE_VERSION = '0.12.10'; // Keep in sync with the installed @ffmpeg/core version.
-const FFMPEG_CORE_BASE_URL = `https://unpkg.com/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm`;
+// `@ffmpeg/core`'s ~30MB of wasm+glue is vendored from the installed
+// npm package (not committed to git — pulled in at build time from
+// node_modules, same as any other dependency) and served from our own
+// origin, rather than fetched from a CDN. ffmpeg.wasm's docs recommend a CDN
+// with `toBlobURL()`, but that produces a blob: URL that its own internal
+// worker then tries to dynamically `import()` — which this project's rspack
+// dev server can't resolve ("Cannot find module 'blob:...'"). Same-origin
+// URLs sidestep that entirely. `ffmpeg-core.js`/`.wasm` are referenced via
+// the `ffmpeg-core.js`/`ffmpeg-core.wasm` aliases in rspack.config.ts
+// (pointing straight at the files in node_modules — @ffmpeg/core's
+// package.json "exports" field doesn't expose a subpath this project's
+// `new URL(..., import.meta.url)` asset resolution can satisfy) rather than
+// a bare package specifier. See the `@ffmpeg/core` exclude/asset rules
+// there for how these get served unprocessed instead of run through the JS
+// bundling pipeline (which breaks ffmpeg-core.js's own wasm-loading paths).
+const FFMPEG_CORE_URL = new URL('ffmpeg-core.js', import.meta.url).toString();
+const FFMPEG_CORE_WASM_URL = new URL('ffmpeg-core.wasm', import.meta.url).toString();
 
 type ExportStatus =
   | 'idle'
@@ -131,14 +139,8 @@ export function useExportReplayVideo() {
         }));
       });
       await ffmpeg.load({
-        coreURL: await toBlobURL(
-          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.js`,
-          'text/javascript'
-        ),
-        wasmURL: await toBlobURL(
-          `${FFMPEG_CORE_BASE_URL}/ffmpeg-core.wasm`,
-          'application/wasm'
-        ),
+        coreURL: FFMPEG_CORE_URL,
+        wasmURL: FFMPEG_CORE_WASM_URL,
       });
       if (cancelledRef.current) {
         return;

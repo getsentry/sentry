@@ -58,9 +58,6 @@ importers:
       '@ffmpeg/ffmpeg':
         specifier: ^0.12.15
         version: 0.12.15
-      '@ffmpeg/util':
-        specifier: ^0.12.2
-        version: 0.12.2
       '@intercom/messenger-js-sdk':
         specifier: ^0.0.18
         version: 0.0.18
@@ -1499,10 +1496,6 @@ packages:
   '@ffmpeg/types@0.12.4':
     resolution: {integrity: sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==}
     engines: {node: '>=16.x'}
-
-  '@ffmpeg/util@0.12.2':
-    resolution: {integrity: sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==}
-    engines: {node: '>=18.x'}
 
   '@figma/code-connect@1.4.8':
     resolution: {integrity: sha512-Z9KyZPCx88ryFoRbe5M+vs3ZlPo7hFzD8yqeT+43nJM1PaIag04Xm2a0+9C7bCgwyn8jmKKNtDNG5f++Nn1tfA==}
@@ -9917,8 +9910,6 @@ snapshots:
       '@ffmpeg/types': 0.12.4
 
   '@ffmpeg/types@0.12.4': {}
-
-  '@ffmpeg/util@0.12.2': {}
 
   '@figma/code-connect@1.4.8':
     dependencies:
