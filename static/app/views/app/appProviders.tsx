@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -29,7 +28,6 @@ export function AppProviders({preloadData, children}: AppProvidersProps) {
 
   const providers: Array<React.ComponentType<{children: NonNullable<React.ReactNode>}>> =
     [
-      UserTimezoneProvider,
       LastKnownRouteContextProvider,
       RouteAnalyticsContextProvider,
       OrganizationProvider,

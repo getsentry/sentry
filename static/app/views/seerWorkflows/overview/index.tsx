@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 import {InfoTip} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,7 +10,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -84,7 +84,7 @@ export default function AutofixOverview() {
               )}
             />
           </Layout.Title>
-          <TimezoneProvider timezone={BROWSER_TIMEZONE}>
+          <DateTimeProvider value={{timezone: BROWSER_TIMEZONE, clockDisplay: '12'}}>
             <Stack gap="lg" padding="lg xl">
               {selectedId ? (
                 <FocusedIssue id={selectedId} period={period} />
@@ -115,7 +115,7 @@ export default function AutofixOverview() {
                 </Fragment>
               )}
             </Stack>
-          </TimezoneProvider>
+          </DateTimeProvider>
         </SentryDocumentTitle>
       </PageFiltersContainer>
     </Feature>
