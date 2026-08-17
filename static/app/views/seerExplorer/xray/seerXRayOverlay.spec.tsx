@@ -108,8 +108,10 @@ describe('SeerXRayOverlay', () => {
     const label = await screen.findByText('widget');
     await userEvent.click(label, {advanceTimers: jest.advanceTimersByTime});
 
-    const panel = await screen.findByText(/"title": "Error Rate"/);
-    const panelEl = panel.closest('div[style*="max-width"]')!;
+    const panelBody = await screen.findByText(/"title": "Error Rate"/);
+    // `panelBody` is the <pre> (NodeDataPanelBody); its direct parent is the
+    // sized NodeDataPanel div itself.
+    const panelEl = panelBody.parentElement!;
 
     // The node's box (100x50 from the `rect()` fixture) is smaller than the
     // panel's usual 420x320 floor — min must never exceed max, or the panel
