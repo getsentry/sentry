@@ -458,6 +458,40 @@ class IssueEventSerializerTest(TestCase):
         result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
 
+    def test_resolved_with_skips_frames_without_resolution(self) -> None:
+        min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": min_ago,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "foo"},
+                                    {"function": "bar"},
+                                    {"function": "baz"},
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        # resolved_with is written into frame data by symbolication, after
+        # normalization; inject it the same way.
+        frames = event.data["exception"]["values"][0]["stacktrace"]["frames"]
+        frames[0].setdefault("data", {})["resolved_with"] = "scraping"
+        frames[1].setdefault("data", {})["symbolicated"] = True
+
+        result = serialize(event, None, IssueEventSerializer())
+        assert result["resolvedWith"] == ["scraping"]
+
 
 class SqlFormatEventSerializerTest(TestCase):
     def test_event_breadcrumb_formatting(self) -> None:

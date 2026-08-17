@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TypedDict
 
+from sentry.seer.agent.client_models import FilePatch
+
 
 class PullRequestFilePayload(TypedDict):
     path: str
@@ -12,11 +14,13 @@ class PullRequestFilePayload(TypedDict):
 
 
 class PullRequestPayload(TypedDict):
+    id: str
     number: int
     url: str | None
     status: str | None
     checksStatus: str | None
     reviewStatus: str | None
+    repoName: str | None
     files: list[PullRequestFilePayload]
 
 
@@ -27,7 +31,7 @@ class IssueProjectPayload(TypedDict):
 
 
 class IssuePayload(TypedDict):
-    count: int | None
+    count: str | None
     userCount: int | None
     lastSeen: str | None
     level: str | None
@@ -39,6 +43,11 @@ class IssuePayload(TypedDict):
     assignedTo: dict | None
     owners: list
     project: IssueProjectPayload
+
+
+class CodeChangeFilePayload(TypedDict):
+    repoName: str
+    patch: FilePatch
 
 
 class RootCausePayload(TypedDict):
@@ -58,6 +67,7 @@ class RunPayload(TypedDict):
     seerRunId: str
     lastTriggeredAt: datetime
     pullRequests: list[PullRequestPayload]
+    codeChanges: list[CodeChangeFilePayload]
     issue: IssuePayload
 
 

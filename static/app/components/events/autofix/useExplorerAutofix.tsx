@@ -968,6 +968,10 @@ export function useExplorerAutofix(
      */
     isLoading: isPending || (isFetching && !runState),
     /**
+     * Whether a step was started but the backend has not returned its first run state yet.
+     */
+    isWaitingForRun: waitingForResponse && !runState,
+    /**
      * Whether we're actively processing (used for UI indicators).
      */
     isPolling:
