@@ -118,6 +118,8 @@ export function useExportReplayVideo() {
         } else if (message.type === 'encoding') {
           setState(prev => ({...prev, progressPct: message.ratio}));
         } else if (message.type === 'error') {
+          // eslint-disable-next-line no-console
+          console.error('[replay-video-export]', message.message);
           Sentry.captureMessage('Replay video export failed', {extra: {message}});
           addErrorMessage(t('Could not export replay as video. Please try again.'));
           cleanup();
@@ -126,6 +128,21 @@ export function useExportReplayVideo() {
           cleanup();
           setState({status: 'idle', progressPct: 0});
         }
+      };
+      worker.onerror = (event: ErrorEvent) => {
+        // Fires if the worker script itself fails to load or throws outside
+        // the try/catch in its onmessage handler (e.g. blocked by CSP,
+        // network failure fetching the chunk, syntax error).
+        // eslint-disable-next-line no-console
+        console.error(
+          '[replay-video-export] worker failed to load',
+          event.message,
+          event
+        );
+        Sentry.captureException(event.error ?? new Error(event.message));
+        addErrorMessage(t('Could not export replay as video. Please try again.'));
+        cleanup();
+        setState({status: 'idle', progressPct: 0});
       };
       worker.postMessage({type: 'init', handle, width, height, fps: CAPTURE_FPS});
 
@@ -148,12 +165,20 @@ export function useExportReplayVideo() {
         }
       };
       pump().catch(error => {
+        // eslint-disable-next-line no-console
+        console.error('[replay-video-export]', error);
         Sentry.captureException(error);
       });
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        // User dismissed a permission prompt; not an error worth reporting.
-      } else {
+      const isUserCancellation =
+        error instanceof DOMException &&
+        // AbortError: the save-file picker was cancelled.
+        // NotAllowedError: the tab-share (getDisplayMedia) prompt was
+        // denied or dismissed.
+        (error.name === 'AbortError' || error.name === 'NotAllowedError');
+      if (!isUserCancellation) {
+        // eslint-disable-next-line no-console
+        console.error('[replay-video-export]', error);
         Sentry.captureException(error);
         addErrorMessage(t('Could not export replay as video. Please try again.'));
       }
