@@ -151,8 +151,14 @@ export function CommandPalette({
   const currentNodes = useMemo(() => {
     const currentRootKey = state.action?.value.key ?? null;
     const nodes = presortBySlotRef(store.tree(currentRootKey));
+    const contextualNodes = nodes.filter(isContextualNode);
+
+    if (currentRootKey === null && state.query === '' && contextualNodes.length > 0) {
+      return contextualNodes;
+    }
+
     return nodes;
-  }, [store, state.action]);
+  }, [store, state.action, state.query]);
 
   const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
@@ -739,6 +745,10 @@ function presortBySlotRef(
     } // b has no slot ref → sort a before b
     return aEl.compareDocumentPosition(bEl) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
+}
+
+function isContextualNode(node: CollectionTreeNode<CMDKActionData>): boolean {
+  return node.slot === 'task' || node.slot === 'page';
 }
 
 function scoreNode(

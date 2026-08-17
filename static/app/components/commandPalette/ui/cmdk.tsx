@@ -11,7 +11,11 @@ import {
   useCMDKChainedActionScope,
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {
+  CommandPaletteSlot,
+  useCommandPaletteSlotName,
+} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import type {CommandPaletteSlotName} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
 import {
@@ -36,6 +40,7 @@ interface CMDKActionDataBase {
   keywords?: string[];
   limit?: number;
   ref?: React.RefObject<HTMLElement | null>;
+  slot?: CommandPaletteSlotName;
 }
 
 interface CMDKActionDataTo extends CMDKActionDataBase {
@@ -159,6 +164,7 @@ export function CMDKAction<TData = unknown>({
   limit,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
+  const slotName = useCommandPaletteSlotName();
   const parentKey = useContext(CMDKCollection.Context);
   const chainedActionScope = useCMDKChainedActionScope();
 
@@ -170,7 +176,15 @@ export function CMDKAction<TData = unknown>({
   const nodeData: CMDKActionData<TData> =
     to === undefined
       ? onAction === undefined
-        ? {display, keywords, ref, resource, prompt, limit: effectiveLimit}
+        ? {
+            display,
+            keywords,
+            ref,
+            resource,
+            prompt,
+            limit: effectiveLimit,
+            slot: slotName ?? undefined,
+          }
         : {
             display,
             keywords,
@@ -178,8 +192,16 @@ export function CMDKAction<TData = unknown>({
             onAction,
             limit: effectiveLimit,
             chainedActionAnchor: chainedActionScope ?? undefined,
+            slot: slotName ?? undefined,
           }
-      : {display, keywords, ref, to, limit: effectiveLimit};
+      : {
+          display,
+          keywords,
+          ref,
+          to,
+          limit: effectiveLimit,
+          slot: slotName ?? undefined,
+        };
 
   const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query, action: navAction} = useCommandPaletteState();

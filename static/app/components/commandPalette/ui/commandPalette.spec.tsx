@@ -1465,19 +1465,10 @@ describe('CommandPalette', () => {
       expect(onAction).toHaveBeenCalledTimes(1);
     });
 
-    it('page slot actions are rendered before global actions', async () => {
-      // This test mirrors the real app structure:
-      //   - Global actions are registered directly in CMDKCollection (e.g. from the nav sidebar)
-      //   - Page-specific actions are registered via <CommandPaletteSlot name="page">
-      //
-      // Expected: page slot actions appear first in the list, global actions second.
-      // The "page" outlet is rendered above the "global" outlet inside CommandPalette,
-      // so page slot actions should always take priority in the list order.
+    it('shows only contextual actions for an empty query', async () => {
       render(
         <CommandPaletteProvider>
-          {/* Global action registered directly — simulates e.g. GlobalCommandPaletteActions */}
           <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
-          {/* Page-specific action portaled via the page slot */}
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -1486,13 +1477,15 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
 
-      const options = await screen.findAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveAccessibleName('Page Action');
-      expect(options[1]).toHaveAccessibleName('Global Action');
+      expect(
+        await screen.findByRole('option', {name: 'Page Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Global Action'})
+      ).not.toBeInTheDocument();
     });
 
-    it('task < page < global ordering when all three slots are populated', async () => {
+    it('includes matching global actions when searching from a contextual page', async () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="global">
@@ -1501,19 +1494,36 @@ describe('CommandPalette', () => {
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
-          <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Page Action'});
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search commands'}),
+        'Global'
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Global Action'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows global actions when no contextual actions are registered', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot name="global">
+            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
-      const options = await screen.findAllByRole('option');
-      expect(options).toHaveLength(3);
-      expect(options[0]).toHaveAccessibleName('Task Action');
-      expect(options[1]).toHaveAccessibleName('Page Action');
-      expect(options[2]).toHaveAccessibleName('Global Action');
+      expect(
+        await screen.findByRole('option', {name: 'Global Action'})
+      ).toBeInTheDocument();
     });
 
     it('actions registered via a slot consumer are not duplicated', async () => {
