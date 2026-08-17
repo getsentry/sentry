@@ -17,12 +17,17 @@ import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  DEFAULT_VISUALIZATION,
+  updateVisualizeAggregate,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -189,12 +194,14 @@ function FilterActions({
 function SeriesActions({
   addSearchFilter,
   groupBySummary,
+  onChange,
   sortBySummary,
   visualize,
   query,
 }: {
   addSearchFilter: (filter: SearchFilter) => void;
   groupBySummary: string;
+  onChange: (visualize: Visualize) => void;
   query: string;
   sortBySummary: string;
   visualize: Visualize;
@@ -210,16 +217,42 @@ function SeriesActions({
           label: t('Edit Source'),
           trailingItem: <QueryValue value={sourceSummary} />,
         }}
+        prompt={t('Search for sources...')}
       >
-        <CMDKAction display={{label: t('Configure source')}} onAction={() => {}} />
+        <SourceActions visualize={visualize} onChange={onChange} />
       </CMDKAction>
       <CMDKAction
         display={{
           label: t('Edit Aggregate Function'),
           trailingItem: <QueryValue value={aggregateSummary} />,
         }}
+        prompt={t('Search for aggregate functions...')}
       >
-        <CMDKAction display={{label: t('Configure aggregate')}} onAction={() => {}} />
+        {isVisualizeFunction(visualize) &&
+          ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => (
+            <CMDKAction
+              key={aggregate}
+              display={{
+                label: aggregate,
+                trailingItem: <QueryValue value={getAggregateKind(aggregate)} />,
+              }}
+              onAction={() => {
+                const currentFunction = visualize.parsedFunction;
+                if (!currentFunction) {
+                  return;
+                }
+                onChange(
+                  visualize.replace({
+                    yAxis: updateVisualizeAggregate({
+                      newAggregate: aggregate,
+                      oldAggregate: currentFunction.name,
+                      oldArguments: currentFunction.arguments,
+                    }),
+                  })
+                );
+              }}
+            />
+          ))}
       </CMDKAction>
       <CMDKAction
         display={{
@@ -240,6 +273,58 @@ function SeriesActions({
       </CMDKAction>
     </Fragment>
   );
+}
+
+function SourceActions({
+  onChange,
+  visualize,
+}: {
+  onChange: (visualize: Visualize) => void;
+  visualize: Visualize;
+}) {
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const parsedFunction = isVisualizeFunction(visualize) ? visualize.parsedFunction : null;
+  const options = useVisualizeFields({
+    booleanTags,
+    numberTags,
+    parsedFunction,
+    stringTags,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  if (!isVisualizeFunction(visualize) || !parsedFunction) {
+    return null;
+  }
+
+  return options.map(option => (
+    <CMDKAction
+      key={option.value}
+      display={{
+        label: option.textValue ?? option.value,
+        trailingItem: option.trailingItems,
+      }}
+      keywords={[option.value]}
+      onAction={() =>
+        onChange(
+          visualize.replace({
+            yAxis: `${parsedFunction.name}(${option.value})`,
+          })
+        )
+      }
+    />
+  ));
+}
+
+function getAggregateKind(aggregate: string): string {
+  if (aggregate.startsWith('p') || aggregate === 'percentile') {
+    return t('Percentile');
+  }
+  if (aggregate === 'avg' || aggregate === 'count_unique') {
+    return t('Algebraic');
+  }
+  return t('Distributive');
 }
 
 function QueryValue({value}: {value: string}) {
@@ -284,6 +369,13 @@ function QueryClauseActions() {
   const groupBySummary = groupBys.filter(Boolean).join(', ');
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
   const sortBySummary = sortBys.map(sort => `${sort.field} ${sort.kind}`).join(', ');
+  const updateVisualize = (index: number, nextVisualize: Visualize) => {
+    setVisualizes(
+      visualizes.map((visualize, visualizeIndex) =>
+        (visualizeIndex === index ? nextVisualize : visualize).serialize()
+      )
+    );
+  };
 
   return (
     <Fragment>
@@ -307,6 +399,7 @@ function QueryClauseActions() {
               visualize={visualize}
               addSearchFilter={addSearchFilter}
               groupBySummary={groupBySummary}
+              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
               query={draftQuery}
               sortBySummary={sortBySummary}
             />
@@ -335,6 +428,7 @@ function QueryClauseActions() {
               visualize={visualize}
               addSearchFilter={addSearchFilter}
               groupBySummary={groupBySummary}
+              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
               query={draftQuery}
               sortBySummary={sortBySummary}
             />
