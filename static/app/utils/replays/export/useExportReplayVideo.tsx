@@ -13,9 +13,15 @@ import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {canExportReplayAsVideo} from 'sentry/utils/replays/export/replayVideoExportSupport';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
-const CAPTURE_FPS = 30;
 const FRAME_FILENAME_DIGITS = 6;
+// A frame is always captured at least this often, even during a stretch of
+// the replay with no DOM changes at all (e.g. someone just reading a page) —
+// otherwise a long idle period would hold on one frame indefinitely instead
+// of gently confirming nothing changed.
+const MAX_FRAME_GAP_MS = 5000;
+const MIN_FRAME_DURATION_S = 0.05;
 
 // `@ffmpeg/core`'s ~30MB of wasm+glue is vendored from the installed
 // npm package (not committed to git — pulled in at build time from
@@ -51,6 +57,11 @@ function frameFilename(index: number) {
   return `frame${String(index).padStart(FRAME_FILENAME_DIGITS, '0')}.png`;
 }
 
+function logDebug(...args: unknown[]) {
+  // eslint-disable-next-line no-console
+  console.debug('[replay-video-export]', ...args);
+}
+
 /**
  * Captures the live replay player (a real iframe + DOM, not a canvas) and
  * downloads it as an MP4. Runs entirely on the main thread for now — the
@@ -63,16 +74,24 @@ function frameFilename(index: number) {
  *    capture down to just the player's mount element, at its rendered
  *    proportions, so the output isn't the whole Sentry UI.
  * 3. `MediaStreamTrackProcessor` turns the cropped track into raw
- *    `VideoFrame`s, each rasterized to PNG via `OffscreenCanvas` and written
- *    into ffmpeg.wasm's virtual filesystem.
- * 4. Once capture finishes, a single `ffmpeg -i frame%06d.png ... out.mp4`
- *    pass muxes the whole video, and the result is downloaded as a normal
- *    browser download (a plain Blob + `<a download>`, not
- *    `showSaveFilePicker` — that API doesn't exist in every Chromium-based
- *    browser; Brave disables it outright with no way to enable it).
+ *    `VideoFrame`s. Rather than capturing at a constant framerate, we walk
+ *    the replay's own rrweb events for DOM-mutation timestamps and only
+ *    rasterize+encode a frame when the replay's current playback position
+ *    reaches one — most of a typical replay is mouse movement or idle time
+ *    with no visual change, so this both cuts the CPU cost per captured
+ *    frame and (more importantly) the number of frames ffmpeg has to mux at
+ *    the end, without needing to touch every single rendered frame.
+ * 4. Once capture finishes, ffmpeg's concat demuxer muxes the captured PNGs
+ *    into an MP4, each held on screen for exactly as long as it actually
+ *    was in the replay (a plain constant framerate would otherwise squash
+ *    or stretch the real pacing between sparse, irregularly-spaced
+ *    frames). The result is downloaded as a normal browser download (a
+ *    plain Blob + `<a download>`, not `showSaveFilePicker` — that API
+ *    doesn't exist in every Chromium-based browser; Brave disables it
+ *    outright with no way to enable it).
  */
 export function useExportReplayVideo() {
-  const {rootEl, dimensions, isFinished, setCurrentTime, togglePlayPause} =
+  const {rootEl, dimensions, currentTime, isFinished, setCurrentTime, togglePlayPause} =
     useReplayContext();
   const replay = useReplayReader();
 
@@ -83,6 +102,7 @@ export function useExportReplayVideo() {
   const ffmpegRef = useRef<FFmpeg | null>(null);
   const cancelledRef = useRef(false);
   const isFinishedRef = useRef(isFinished);
+  const currentTimeRef = useRef(currentTime);
   // Tracks the last progress "bucket" shown in the loading toast, so we
   // update it every ~5% instead of on every single frame.
   const lastToastBucketRef = useRef(-1);
@@ -90,6 +110,10 @@ export function useExportReplayVideo() {
   useEffect(() => {
     isFinishedRef.current = isFinished;
   }, [isFinished]);
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
 
   const cleanup = useCallback(() => {
     cancelledRef.current = true;
@@ -132,6 +156,23 @@ export function useExportReplayVideo() {
 
     cancelledRef.current = false;
     const filename = `${replay?.getReplay().id ?? 'replay'}.mp4`;
+    const replayDurationMs = replay?.getDurationMs() ?? 0;
+
+    // Every DOM-mutation (or full-snapshot) timestamp, in ms relative to the
+    // start of the replay — the playback positions we actually need a frame
+    // for. Mouse movement, scrolling, etc. are deliberately not included;
+    // they don't necessarily change what's visually on screen.
+    const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
+    const changeTimestamps = Array.from(
+      new Set(
+        (replay?.getRRWebFrames() ?? [])
+          .filter(isRRWebChangeFrame)
+          .map(frame => Math.max(0, frame.timestamp - startTimestampMs))
+      )
+    ).sort((a, b) => a - b);
+    logDebug(
+      `${changeTimestamps.length} DOM-change timestamps identified for a ${replayDurationMs}ms replay`
+    );
 
     try {
       setState({status: 'requesting-permission', progressPct: 0});
@@ -157,8 +198,10 @@ export function useExportReplayVideo() {
 
       setState({status: 'loading-encoder', progressPct: 0});
       showProgressToast(t('Loading video encoder…'));
+      const encoderLoadStartedAt = performance.now();
       const ffmpeg = new FFmpeg();
       ffmpegRef.current = ffmpeg;
+      ffmpeg.on('log', ({message}) => logDebug('[ffmpeg]', message));
       ffmpeg.on('progress', ({progress}) => {
         const pct = Math.max(0, Math.min(1, progress));
         setState(prev => ({...prev, progressPct: pct}));
@@ -168,6 +211,9 @@ export function useExportReplayVideo() {
         coreURL: FFMPEG_CORE_URL,
         wasmURL: FFMPEG_CORE_WASM_URL,
       });
+      logDebug(
+        `encoder loaded in ${Math.round(performance.now() - encoderLoadStartedAt)}ms`
+      );
       if (cancelledRef.current) {
         return;
       }
@@ -189,25 +235,55 @@ export function useExportReplayVideo() {
       showProgressToast(t('Recording replay…'));
 
       let frameCount = 0;
-      const totalFrames = ((replay?.getDurationMs() ?? 0) / 1000) * CAPTURE_FPS;
+      let changeIndex = 0;
+      let lastCapturedAtMs = -Infinity;
+      const capturedAtMs: number[] = [];
+      const recordingStartedAt = performance.now();
+      let framesSeen = 0;
+      let framesSkipped = 0;
+
       while (!cancelledRef.current && !isFinishedRef.current) {
         const {value: frame, done} = await reader.read();
         if (done || !frame) {
           break;
         }
+        framesSeen += 1;
+
+        const nowMs = currentTimeRef.current;
+        const priorChangeIndex = changeIndex;
+        while (
+          changeIndex < changeTimestamps.length &&
+          changeTimestamps[changeIndex]! <= nowMs
+        ) {
+          changeIndex += 1;
+        }
+        const shouldCapture =
+          frameCount === 0 ||
+          isFinishedRef.current ||
+          changeIndex > priorChangeIndex ||
+          nowMs - lastCapturedAtMs >= MAX_FRAME_GAP_MS;
+
+        if (!shouldCapture) {
+          framesSkipped += 1;
+          frame.close();
+          continue;
+        }
+
         try {
           canvasCtx.drawImage(frame, 0, 0, width, height);
           const blob = await canvas.convertToBlob({type: 'image/png'});
           const data = new Uint8Array(await blob.arrayBuffer());
           await ffmpeg.writeFile(frameFilename(frameCount), data);
+          capturedAtMs.push(nowMs);
+          lastCapturedAtMs = nowMs;
           frameCount += 1;
-          const framesWritten = frameCount;
-          const pct = totalFrames ? Math.min(1, framesWritten / totalFrames) : null;
-          setState(prev => ({
-            ...prev,
-            progressPct: pct ?? prev.progressPct,
-          }));
+          logDebug(
+            `captured frame ${frameCount} at replay t=${Math.round(nowMs)}ms` +
+              ` (seen ${framesSeen}, skipped ${framesSkipped})`
+          );
+          const pct = replayDurationMs ? Math.min(1, nowMs / replayDurationMs) : null;
           if (pct !== null) {
+            setState(prev => ({...prev, progressPct: pct}));
             showProgressToast(t('Recording replay…'), pct);
           }
         } finally {
@@ -217,20 +293,54 @@ export function useExportReplayVideo() {
       readerRef.current = null;
       streamRef.current?.getTracks().forEach(mediaTrack => mediaTrack.stop());
       streamRef.current = null;
+      logDebug(
+        `capture finished in ${Math.round((performance.now() - recordingStartedAt) / 1000)}s:` +
+          ` ${frameCount} frames written, ${framesSkipped} skipped (of ${framesSeen} seen)`
+      );
 
       if (cancelledRef.current) {
         return;
       }
+      if (frameCount === 0) {
+        throw new Error('No frames were captured');
+      }
 
       setState({status: 'finalizing', progressPct: 0});
       showProgressToast(t('Finishing video…'));
+      const finalizeStartedAt = performance.now();
+
+      // Frames were captured at irregular intervals (only when something
+      // changed), so a constant framerate would misrepresent the replay's
+      // real pacing. The concat demuxer instead holds each frame on screen
+      // for exactly the gap until the next one.
+      const manifestLines: string[] = [];
+      for (let i = 0; i < frameCount; i++) {
+        const next = capturedAtMs[i + 1] ?? replayDurationMs;
+        const durationS = Math.max(
+          MIN_FRAME_DURATION_S,
+          (next - capturedAtMs[i]!) / 1000
+        );
+        manifestLines.push(`file '${frameFilename(i)}'`);
+        manifestLines.push(`duration ${durationS.toFixed(3)}`);
+      }
+      // The concat demuxer ignores the final entry's `duration`; repeating
+      // the last file once more (with no duration after it) is the
+      // documented workaround so it's actually held for its full length.
+      manifestLines.push(`file '${frameFilename(frameCount - 1)}'`);
+      await ffmpeg.writeFile(
+        'concat.txt',
+        new TextEncoder().encode(manifestLines.join('\n'))
+      );
+
       await ffmpeg.exec([
-        '-framerate',
-        String(CAPTURE_FPS),
-        '-start_number',
+        '-f',
+        'concat',
+        '-safe',
         '0',
         '-i',
-        `frame%0${FRAME_FILENAME_DIGITS}d.png`,
+        'concat.txt',
+        '-vsync',
+        'vfr',
         '-c:v',
         'libx264',
         '-pix_fmt',
@@ -239,6 +349,9 @@ export function useExportReplayVideo() {
         '+faststart',
         'out.mp4',
       ]);
+      logDebug(
+        `ffmpeg mux finished in ${Math.round(performance.now() - finalizeStartedAt)}ms`
+      );
 
       const data = await ffmpeg.readFile('out.mp4');
       const raw = typeof data === 'string' ? new TextEncoder().encode(data) : data;
