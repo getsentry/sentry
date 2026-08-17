@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from unittest import mock
 
+from sentry import search
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
@@ -13,7 +15,7 @@ from sentry.integrations.source_code_management.status_check import (
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models.run import SeerRunMilestoneType
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import PriorityLevel
 
@@ -73,7 +75,7 @@ def _root_cause_state(description):
     )
 
 
-class OrganizationSeerAutofixOverviewTest(APITestCase):
+class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-seer-autofix-overview"
 
     def setUp(self):
@@ -86,6 +88,21 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         reconcile_milestones(run, _root_cause_state(description))
         return run
 
+    def _group_with_events(self, fingerprint, *, events, users=1, minutes_ago=1):
+        group = None
+        for i in range(events):
+            event = self.store_event(
+                data={
+                    "fingerprint": [fingerprint],
+                    "timestamp": before_now(minutes=minutes_ago).isoformat(),
+                    "user": {"id": str(i % users)},
+                },
+                project_id=self.project.id,
+            )
+            group = event.group
+        assert group is not None
+        return group
+
     def test_root_cause_run_grouped_under_root_cause_milestone(self):
         group = self.create_group()
         self._run_for_group(group, "the boom")
@@ -95,6 +112,105 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         assert runs[0]["shortId"] == group.qualified_short_id
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
         assert runs[0]["proposedFix"] is None
+
+    def _root_cause_short_ids(self, resp):
+        return [r["shortId"] for r in resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]]
+
+    def test_default_sort_orders_by_seer_recent_activity(self):
+        older = self.create_group()
+        newer = self.create_group()
+        run_old = self._run_for_group(older, "old")
+        run_new = self._run_for_group(newer, "new")
+        run_old.update(last_triggered_at=before_now(minutes=10))
+        run_new.update(last_triggered_at=before_now(minutes=1))
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert self._root_cause_short_ids(resp) == [
+            newer.qualified_short_id,
+            older.qualified_short_id,
+        ]
+
+    def test_invalid_sort_falls_back_to_default(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "nonsense"})
+
+        assert self._root_cause_short_ids(resp) == [group.qualified_short_id]
+
+    def test_sort_events_orders_by_event_count(self):
+        low = self._group_with_events("low", events=1)
+        high = self._group_with_events("high", events=5)
+        self._run_for_group(low, "low")
+        self._run_for_group(high, "high")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
+
+        assert self._root_cause_short_ids(resp) == [
+            high.qualified_short_id,
+            low.qualified_short_id,
+        ]
+
+    def test_sort_users_orders_by_user_count(self):
+        few = self._group_with_events("few", events=4, users=1)
+        many = self._group_with_events("many", events=4, users=4)
+        self._run_for_group(few, "few")
+        self._run_for_group(many, "many")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "users"})
+
+        assert self._root_cause_short_ids(resp) == [
+            many.qualified_short_id,
+            few.qualified_short_id,
+        ]
+
+    def test_sort_issue_orders_by_most_recent_event(self):
+        stale = self._group_with_events("stale", events=1, minutes_ago=60)
+        fresh = self._group_with_events("fresh", events=1, minutes_ago=1)
+        self._run_for_group(stale, "stale")
+        self._run_for_group(fresh, "fresh")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "issue"})
+
+        assert self._root_cause_short_ids(resp) == [
+            fresh.qualified_short_id,
+            stale.qualified_short_id,
+        ]
+
+    @mock.patch(
+        "sentry.seer.endpoints.organization_seer_autofix_overview._MAX_RUNS_PER_MILESTONE", 1
+    )
+    def test_events_sort_selects_correct_run_before_cap(self):
+        # The high-event issue is the OLDEST seer run, so a cap-then-sort impl would drop it.
+        high = self._group_with_events("high", events=5)
+        low = self._group_with_events("low", events=1)
+        run_high = self._run_for_group(high, "high")
+        run_low = self._run_for_group(low, "low")
+        run_high.update(last_triggered_at=before_now(minutes=60))
+        run_low.update(last_triggered_at=before_now(minutes=1))
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
+
+        assert self._root_cause_short_ids(resp) == [high.qualified_short_id]
+
+    def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
+        # Without the max_limit override the paginator silently caps at 100 and
+        # candidates beyond it would sort last; assert the endpoint raises it.
+        low = self._group_with_events("low", events=1)
+        high = self._group_with_events("high", events=2)
+        self._run_for_group(low, "low")
+        self._run_for_group(high, "high")
+
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+            wraps=search.backend.query,
+        ) as mock_query:
+            self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["limit"] == 2
+        assert mock_query.call_args.kwargs["paginator_options"] == {"max_limit": 2}
 
     def _solution_state(self, rc, sol):
         from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
@@ -164,11 +280,33 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         assert issue["project"]["id"] == str(group.project_id)
         assert issue["project"]["slug"] == group.project.slug
         assert issue["priority"] == "high"
-        assert "count" in issue
-        assert "userCount" in issue
-        assert "lastSeen" in issue
         assert issue["assignedTo"] is None
         assert issue["owners"] == []
+
+    def test_issue_stats_absent_issues_no_snuba_query(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        with mock.patch(
+            "sentry.api.serializers.models.group."
+            "GroupSerializerSnuba._execute_error_seen_stats_query",
+            return_value={"data": []},
+        ) as execute:
+            resp = self.get_success_response(self.organization.slug)
+        assert execute.call_count == 0
+        issue = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]["issue"]
+        assert issue["count"] is None
+        assert issue["userCount"] is None
+        assert issue["lastSeen"] is None
+
+    def test_issue_stats_expand_requests_snuba_stats(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.StreamGroupSerializerSnuba",
+            wraps=StreamGroupSerializerSnuba,
+        ) as serializer:
+            self.get_success_response(self.organization.slug, qs_params={"expand": "issueStats"})
+        assert "stats" not in serializer.call_args.kwargs["collapse"]
 
     def _pull_request_for_run(self, group, run, *, key="123", **updates):
         repo = self.create_repo(
@@ -193,19 +331,32 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         mock_get_integration.return_value = integration
         return client
 
-    def _pull_requests(self):
-        resp = self.get_success_response(self.organization.slug)
+    def _pull_requests(self, *, expand=None):
+        kwargs = {"qs_params": {"expand": expand}} if expand is not None else {}
+        resp = self.get_success_response(self.organization.slug, **kwargs)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         return run_data["pullRequests"]
 
-    def test_run_includes_pull_requests(self):
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
         run = self._run_for_group(group, "boom")
-        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        pull_request = self._pull_request_for_run(
+            group, run, state=PullRequestLifecycleState.OPEN, draft=False
+        )
+        client = self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
+            ),
+        )
         resp = self.get_success_response(self.organization.slug)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        # Default (no expand=scmInfo) must not call the SCM provider.
+        assert client.requested_keys == []
         assert run_data["pullRequests"] == [
             {
+                "id": str(pull_request.id),
                 "number": 123,
                 "url": "https://github.com/getsentry/sentry/pull/123",
                 "status": "open",
@@ -244,7 +395,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["files"] == [
             {
@@ -274,7 +425,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
@@ -289,7 +440,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         )
         client = self._set_provider_client(mock_get_integration, PullRequestStatusClientFake())
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["status"] == "merged"
         assert pull_requests[0]["checksStatus"] is None
@@ -305,7 +456,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             mock_get_integration, PullRequestStatusClientFake(error=RuntimeError("nope"))
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["number"] == 123
         assert pull_requests[0]["status"] == "open"
@@ -360,7 +511,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         assert client.requested_keys == ["123"]
         assert [pr["number"] for pr in pull_requests] == [123]
@@ -390,7 +541,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             ),
         )
 
-        pull_requests = self._pull_requests()
+        pull_requests = self._pull_requests(expand="scmInfo")
 
         # A disconnected repo is skipped: no provider call, no url, null enrichment.
         assert client.requested_keys == []
@@ -426,3 +577,23 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         resp = self.get_success_response(self.organization.slug)
 
         assert len(resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]) == 2
+
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_both_expands_enrich_pull_request_and_request_stats(self, mock_get_integration):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {"123": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)}
+            ),
+        )
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.StreamGroupSerializerSnuba",
+            wraps=StreamGroupSerializerSnuba,
+        ) as serializer:
+            pull_requests = self._pull_requests(expand=["scmInfo", "issueStats"])
+        assert client.requested_keys == ["123"]
+        assert pull_requests[0]["checksStatus"] == "success"
+        assert "stats" not in serializer.call_args.kwargs["collapse"]

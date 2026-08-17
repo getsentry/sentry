@@ -108,10 +108,7 @@ class OnboardingProgressService:
                 sequence=0,
                 stages=initial_stages(),
             )
-            if not self.redis.set(
-                self._state_key(claim.claimed_run_id), self._serialize(run), ex=ttl
-            ):
-                raise RuntimeError("Unable to store onboarding run")
+            self.redis.set(self._state_key(claim.claimed_run_id), self._serialize(run), ex=ttl)
         except Exception:
             self._release_index(token_key, claim.claimed_run_id)
             self._release_index(index_key, claim.claimed_run_id)

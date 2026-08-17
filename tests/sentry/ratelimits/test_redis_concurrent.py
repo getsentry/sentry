@@ -12,6 +12,9 @@ from sentry.ratelimits.concurrent import (
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
+# must match the expiry the api_limiter.lua script sets on the key
+KEY_TTL_SECONDS = 86400
+
 
 class ConcurrentLimiterTest(TestCase):
     def setUp(self) -> None:
@@ -74,6 +77,12 @@ class ConcurrentLimiterTest(TestCase):
             assert (
                 self.backend.start_request("foo", limit, "updated_request").current_executions == 1
             )
+
+    def test_key_is_expired(self) -> None:
+        """A request that never finishes leaves a member behind, so the key must expire on its own"""
+        key = self.backend.namespaced_key("ttl_key")
+        self.backend.start_request("ttl_key", 1, "abandoned_request")
+        assert 0 < self.backend.client.ttl(key) <= KEY_TTL_SECONDS
 
     def test_finish_non_existent(self) -> None:
         # this shouldn't crash

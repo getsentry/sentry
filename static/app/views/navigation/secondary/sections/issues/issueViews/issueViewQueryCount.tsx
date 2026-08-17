@@ -1,4 +1,4 @@
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -8,7 +8,7 @@ import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issu
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 
 const constructCountTimeFrame = (
-  timeFilters: PageFilters['datetime']
+  timeFilters: PageFilterDatetime
 ): {
   end?: string;
   start?: string;

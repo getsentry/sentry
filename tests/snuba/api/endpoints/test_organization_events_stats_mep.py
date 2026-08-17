@@ -17,7 +17,12 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.utils.samples import load_data
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @pytest.mark.skip(
@@ -1836,7 +1841,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         )
         assert spec.to_metric_spec(self.project) == {
             "category": "transaction",
-            "mri": "c:transactions/on_demand@none",
+            "mri": "c:spans/on_demand@none",
             "field": None,
             "tags": [
                 {"key": "query_hash", "value": "ac241f56"},

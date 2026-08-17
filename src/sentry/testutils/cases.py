@@ -146,7 +146,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
-from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.public import SpanMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -178,7 +178,7 @@ from ..snuba.metrics import (
     MetricOrderByField,
     get_date_range,
 )
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
+from ..snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI, parse_mri
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1639,6 +1639,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
+            # Generic metrics sets/gauges/distributions are no longer registered in Snuba.
+            if metric_type in {"s", "d", "g"}:
+                return
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
         else:
             entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
@@ -1925,14 +1928,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
-        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
-        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
-        "s": TransactionMetricKey.SET_ON_DEMAND.value,
+        "c": SpanMetricKey.COUNT_ON_DEMAND.value,
+        "d": SpanMetricKey.DIST_ON_DEMAND.value,
+        "s": SpanMetricKey.SET_ON_DEMAND.value,
     }
     ON_DEMAND_MRI_MAP = {
-        "c": TransactionMRI.COUNT_ON_DEMAND.value,
-        "d": TransactionMRI.DIST_ON_DEMAND.value,
-        "s": TransactionMRI.SET_ON_DEMAND.value,
+        "c": SpanMRI.COUNT_ON_DEMAND.value,
+        "d": SpanMRI.DIST_ON_DEMAND.value,
+        "s": SpanMRI.SET_ON_DEMAND.value,
     }
     ON_DEMAND_ENTITY_MAP = {
         "c": EntityKey.MetricsCounters.value,
@@ -2085,8 +2088,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         project,
         total,
-        metric="transaction.duration",
-        mri=TransactionMRI.DURATION.value,
+        metric="transaction.count_per_root_project",
+        mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
         attempts=2,
     ):
         attempt = 0

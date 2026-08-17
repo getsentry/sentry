@@ -1,4 +1,4 @@
-export {TABLE_HEAD_ROW_HEIGHT} from './styles';
+export {TABLE_HEAD_ROW_HEIGHT, TableResizer, TableStatusCell} from './styles';
 export {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
