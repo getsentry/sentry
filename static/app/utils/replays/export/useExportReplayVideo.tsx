@@ -2,7 +2,12 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {FFmpeg} from '@ffmpeg/ffmpeg';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
@@ -78,6 +83,9 @@ export function useExportReplayVideo() {
   const ffmpegRef = useRef<FFmpeg | null>(null);
   const cancelledRef = useRef(false);
   const isFinishedRef = useRef(isFinished);
+  // Tracks the last progress "bucket" shown in the loading toast, so we
+  // update it every ~5% instead of on every single frame.
+  const lastToastBucketRef = useRef(-1);
 
   useEffect(() => {
     isFinishedRef.current = isFinished;
@@ -95,6 +103,23 @@ export function useExportReplayVideo() {
 
   useEffect(() => cleanup, [cleanup]);
 
+  // Persists across the dropdown menu closing (which happens the instant you
+  // click the item) — otherwise there's no visible feedback that anything is
+  // happening for what can be a multi-minute export.
+  const showProgressToast = useCallback((label: string, pct: number | null = null) => {
+    if (pct === null) {
+      lastToastBucketRef.current = -1;
+      addLoadingMessage(label, {duration: null});
+      return;
+    }
+    const bucket = Math.floor(pct * 20); // 5% buckets
+    if (bucket === lastToastBucketRef.current) {
+      return;
+    }
+    lastToastBucketRef.current = bucket;
+    addLoadingMessage(`${label} ${Math.round(pct * 100)}%`, {duration: null});
+  }, []);
+
   const exportVideo = useCallback(async () => {
     if (!canExportReplayAsVideo()) {
       addErrorMessage(t('Video export is not supported in this browser.'));
@@ -110,6 +135,7 @@ export function useExportReplayVideo() {
 
     try {
       setState({status: 'requesting-permission', progressPct: 0});
+      showProgressToast(t('Waiting for screen-share permission…'));
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         preferCurrentTab: true,
         video: true,
@@ -130,13 +156,13 @@ export function useExportReplayVideo() {
       const height = settings.height ?? dimensions.height;
 
       setState({status: 'loading-encoder', progressPct: 0});
+      showProgressToast(t('Loading video encoder…'));
       const ffmpeg = new FFmpeg();
       ffmpegRef.current = ffmpeg;
       ffmpeg.on('progress', ({progress}) => {
-        setState(prev => ({
-          ...prev,
-          progressPct: Math.max(0, Math.min(1, progress)),
-        }));
+        const pct = Math.max(0, Math.min(1, progress));
+        setState(prev => ({...prev, progressPct: pct}));
+        showProgressToast(t('Finishing video…'), pct);
       });
       await ffmpeg.load({
         coreURL: FFMPEG_CORE_URL,
@@ -160,6 +186,7 @@ export function useExportReplayVideo() {
       setCurrentTime(0);
       togglePlayPause(true);
       setState({status: 'recording', progressPct: 0});
+      showProgressToast(t('Recording replay…'));
 
       let frameCount = 0;
       const totalFrames = ((replay?.getDurationMs() ?? 0) / 1000) * CAPTURE_FPS;
@@ -175,12 +202,14 @@ export function useExportReplayVideo() {
           await ffmpeg.writeFile(frameFilename(frameCount), data);
           frameCount += 1;
           const framesWritten = frameCount;
+          const pct = totalFrames ? Math.min(1, framesWritten / totalFrames) : null;
           setState(prev => ({
             ...prev,
-            progressPct: totalFrames
-              ? Math.min(1, framesWritten / totalFrames)
-              : prev.progressPct,
+            progressPct: pct ?? prev.progressPct,
           }));
+          if (pct !== null) {
+            showProgressToast(t('Recording replay…'), pct);
+          }
         } finally {
           frame.close();
         }
@@ -194,6 +223,7 @@ export function useExportReplayVideo() {
       }
 
       setState({status: 'finalizing', progressPct: 0});
+      showProgressToast(t('Finishing video…'));
       await ffmpeg.exec([
         '-framerate',
         String(CAPTURE_FPS),
@@ -219,12 +249,15 @@ export function useExportReplayVideo() {
       const url = URL.createObjectURL(blob);
       downloadFromHref(filename, url);
       URL.revokeObjectURL(url);
+      addSuccessMessage(t('Downloaded %s', filename));
     } catch (error) {
       const isUserCancellation =
         error instanceof DOMException &&
         // The tab-share (getDisplayMedia) prompt was denied or dismissed.
         error.name === 'NotAllowedError';
-      if (!isUserCancellation) {
+      if (isUserCancellation) {
+        clearIndicators();
+      } else {
         // eslint-disable-next-line no-console
         console.error('[replay-video-export]', error);
         Sentry.captureException(error);
@@ -234,10 +267,19 @@ export function useExportReplayVideo() {
       cleanup();
       setState({status: 'idle', progressPct: 0});
     }
-  }, [rootEl, dimensions, replay, setCurrentTime, togglePlayPause, cleanup]);
+  }, [
+    rootEl,
+    dimensions,
+    replay,
+    setCurrentTime,
+    togglePlayPause,
+    cleanup,
+    showProgressToast,
+  ]);
 
   const cancelExport = useCallback(() => {
     cleanup();
+    clearIndicators();
     setState({status: 'idle', progressPct: 0});
   }, [cleanup]);
 
