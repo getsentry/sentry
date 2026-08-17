@@ -1,3 +1,8 @@
+import {applyLexicon, embellish} from './embellish';
+import type {Random} from './seed';
+import {createRandom} from './seed';
+import {isUntouchableWord, LETTER} from './words';
+
 const UWU_MAP: Array<[RegExp, string]> = [
   [/(?:r|l)/g, 'w'],
   [/(?:R|L)/g, 'W'],
@@ -25,42 +30,29 @@ const PROTECTED_TOKEN = new RegExp(
   'g'
 );
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const URL_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
-const BARE_SCHEME = /^(?:mailto|tel):/i;
-
-/**
- * Words that carry meaning a reader has to be able to retype or click. Note this
- * deliberately does not treat every colon-terminated word as a URL — labels like
- * "IP Addresses:" are prose and should be transformed.
- */
-function isUntouchableWord(word: string): boolean {
-  return (
-    word.startsWith('@') ||
-    URL_SCHEME.test(word) ||
-    BARE_SCHEME.test(word) ||
-    EMAIL.test(word)
-  );
-}
-
 function uwuifyWord(word: string): string {
-  return UWU_MAP.reduce(
-    (result, [pattern, replacement]) => result.replace(pattern, replacement),
-    word
+  if (isUntouchableWord(word)) {
+    return word;
+  }
+
+  return (
+    applyLexicon(word) ??
+    UWU_MAP.reduce(
+      (result, [pattern, replacement]) => result.replace(pattern, replacement),
+      word
+    )
   );
 }
 
 function uwuifyProse(text: string): string {
-  return text.replace(/\S+/g, word =>
-    isUntouchableWord(word) ? word : uwuifyWord(word)
-  );
+  return text.replace(/\S+/g, uwuifyWord);
 }
 
 /**
- * Must stay stable: a given input always maps to the same output. Every rule is
- * an unconditional replacement, so nothing here may consult a random source.
+ * Carries no randomness at all, so every caller gets the same answer for a given
+ * string without needing a seed.
  */
-export function uwuify(text: string): string {
+export function uwuifyPhonemes(text: string): string {
   const segments: string[] = [];
   let cursor = 0;
 
@@ -72,6 +64,59 @@ export function uwuify(text: string): string {
   segments.push(uwuifyProse(text.slice(cursor)));
 
   return segments.join('');
+}
+
+function protectedTokens(text: string): string {
+  return JSON.stringify(Array.from(text.matchAll(PROTECTED_TOKEN), match => match[0]));
+}
+
+/**
+ * An embellishment can create a token as well as damage one: appending a face to
+ * "100%" yields "100% uwu", whose "% u" reads as a sprintf token that the source
+ * string never had. Rather than special-casing each adjacency, drop any
+ * embellishment that changes the token list at all.
+ */
+function embellishSafely(text: string, random: Random): string {
+  const embellished = embellish(text, random);
+
+  return protectedTokens(embellished) === protectedTokens(text) ? embellished : text;
+}
+
+/**
+ * Whether anything outside the placeholders is actually prose. "%s" has a letter
+ * in it, but not one a flourish can attach to.
+ */
+function hasProse(text: string): boolean {
+  return LETTER.test(text.replace(PROTECTED_TOKEN, ''));
+}
+
+/**
+ * Seeded on the msgid rather than on the rendered fragment, so a given UI string
+ * looks the same everywhere it appears and `t` and `tct` agree on it.
+ */
+export function uwuify(text: string, seed: string = text): string {
+  const phonetic = uwuifyPhonemes(text);
+
+  return hasProse(phonetic) ? embellishSafely(phonetic, createRandom(seed)) : phonetic;
+}
+
+/**
+ * `tct` arrives as a list of text leaves rather than one string. They share a
+ * single budget, spent on the last non-empty leaf so the flourish still lands at
+ * the end of the rendered sentence.
+ */
+export function uwuifyLeaves(leaves: string[], seed: string): string[] {
+  const random = createRandom(seed);
+  const transformed = leaves.map(uwuifyPhonemes);
+
+  for (let index = transformed.length - 1; index >= 0; index--) {
+    if (hasProse(transformed[index]!)) {
+      transformed[index] = embellishSafely(transformed[index]!, random);
+      break;
+    }
+  }
+
+  return transformed;
 }
 
 export function getSprintfTokens(text: string): string[] {

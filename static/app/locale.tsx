@@ -6,7 +6,7 @@ import {sprintf} from 'sprintf-js';
 
 import {toArray} from 'sentry/utils/array/toArray';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {isUwuEnabled, uwuify} from 'sentry/utils/uwu';
+import {isUwuEnabled, uwuify, uwuifyLeaves} from 'sentry/utils/uwu';
 
 const markerStyles = {
   background: '#ff801790',
@@ -151,12 +151,20 @@ type ParsedTemplate = Record<string, TemplateSubvalue[]>;
  * non-string subvalues, so they are untouchable by construction rather than by
  * escaping — `[link:…]` can never become `[wink:…]`.
  */
-function uwuifyTemplate(parsed: ParsedTemplate): ParsedTemplate {
+function uwuifyTemplate(parsed: ParsedTemplate, seed: string): ParsedTemplate {
+  const entries = Object.entries(parsed);
+  const leaves = entries.flatMap(([, subvalues]) =>
+    subvalues.filter((subvalue): subvalue is string => typeof subvalue === 'string')
+  );
+  const transformed = uwuifyLeaves(leaves, seed);
+
+  let cursor = 0;
+
   return Object.fromEntries(
-    Object.entries(parsed).map(([group, subvalues]) => [
+    entries.map(([group, subvalues]) => [
       group,
       subvalues.map(subvalue =>
-        typeof subvalue === 'string' ? uwuify(subvalue) : subvalue
+        typeof subvalue === 'string' ? transformed[cursor++]! : subvalue
       ),
     ])
   );
@@ -340,7 +348,7 @@ function format(formatString: string, args: FormatArg[]): React.ReactNode {
  */
 function gettext(string: string, ...args: FormatArg[]): string {
   const translated: string = getClient().gettext(string);
-  const val = isUwuEnabled() ? uwuify(translated) : translated;
+  const val = isUwuEnabled() ? uwuify(translated, string) : translated;
 
   if (args.length === 0) {
     staticTranslations.add(val);
@@ -388,7 +396,7 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
   }
 
   const translated: string = getClient().ngettext(singular, plural, countArg);
-  const val = isUwuEnabled() ? uwuify(translated) : translated;
+  const val = isUwuEnabled() ? uwuify(translated, singular) : translated;
 
   // XXX(ts): See XXX in gettext.
   return mark(format(val, args) as string);
@@ -417,7 +425,7 @@ function gettextComponentTemplate(
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
   return mark(
     renderTemplate(
-      isUwuEnabled() ? uwuifyTemplate(parsedTemplate) : parsedTemplate,
+      isUwuEnabled() ? uwuifyTemplate(parsedTemplate, template) : parsedTemplate,
       components
     )
   );
@@ -438,7 +446,7 @@ export function tctCode(template: string, components: ComponentMap = {}) {
  */
 function gettextDescription(string: string): string {
   const translated: string = getClient().gettext(string);
-  const val = isUwuEnabled() ? uwuify(translated) : translated;
+  const val = isUwuEnabled() ? uwuify(translated, string) : translated;
   staticTranslations.add(val);
   return mark(val);
 }

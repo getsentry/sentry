@@ -1,6 +1,6 @@
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
-export {uwuify} from './transform';
+export {uwuify, uwuifyLeaves} from './transform';
 
 export const UWU_LANGUAGE_CODE = 'uwu';
 

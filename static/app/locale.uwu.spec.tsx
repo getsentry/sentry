@@ -17,13 +17,13 @@ describe('locale with the uwu transform enabled', () => {
   it('transforms the string when calling t', () => {
     const result = t('Resolve all errors');
 
-    expect(result).toBe('Wesowve aww ewwows');
+    expect(result).toBe('Wesowve aww ewwows >w<');
   });
 
   it('leaves the named argument intact when calling t with one', () => {
     const result = t('Deleted %(count)s replays', {count: 4});
 
-    expect(result).toBe('Deweted 4 wepways');
+    expect(result).toBe('Deweted 4 wepways OwO');
   });
 
   it('transforms both forms when calling tn', () => {
