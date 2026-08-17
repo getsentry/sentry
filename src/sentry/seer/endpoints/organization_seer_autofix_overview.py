@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -34,7 +35,9 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
+from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
+    CodeChangeFilePayload,
     IssuePayload,
     OverviewResponse,
     ProposedFixPayload,
@@ -43,6 +46,7 @@ from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     RunPayload,
 )
 from sentry.seer.models.run import (
+    CodeChangesArtifactExtras,
     RootCauseArtifactExtras,
     SeerRun,
     SeerRunMilestone,
@@ -91,6 +95,11 @@ class _RunMilestones:
     def solution_artifact(self) -> SolutionArtifactExtras | None:
         extras = self.extras_by_milestone.get(SeerRunMilestoneType.SOLUTION, {})
         return extras.get("solution_artifact")
+
+    @property
+    def code_changes_artifact(self) -> CodeChangesArtifactExtras | None:
+        extras = self.extras_by_milestone.get(SeerRunMilestoneType.CODE_CHANGES, {})
+        return extras.get("code_changes_artifact")
 
 
 def _serialize_pull_request(
@@ -206,6 +215,20 @@ def _serialize_issue(group: Group, serialized_group: dict) -> IssuePayload:
     }
 
 
+def _serialize_code_changes(artifact: CodeChangesArtifactExtras) -> list[CodeChangeFilePayload]:
+    files: list[CodeChangeFilePayload] = []
+    for patches in artifact["diffs_by_repo"].values():
+        for raw in patches:
+            file_patch = AgentFilePatch.parse_obj(raw)
+            files.append(
+                {
+                    "repoName": file_patch.repo_name,
+                    "patch": cast(FilePatch, file_patch.patch.dict()),
+                }
+            )
+    return files
+
+
 def _serialize_run(
     group: Group,
     run: _RunMilestones,
@@ -224,6 +247,11 @@ def _serialize_run(
         {"oneLineSummary": solution_artifact.get("one_line_summary")} if solution_artifact else None
     )
 
+    code_changes_artifact = run.code_changes_artifact
+    code_changes: list[CodeChangeFilePayload] = (
+        _serialize_code_changes(code_changes_artifact) if code_changes_artifact else []
+    )
+
     return {
         "groupId": str(group.id),
         "shortId": group.qualified_short_id,
@@ -233,6 +261,7 @@ def _serialize_run(
         "seerRunId": str(run.seer_run.uuid),
         "lastTriggeredAt": run.seer_run.last_triggered_at,
         "pullRequests": pull_requests,
+        "codeChanges": code_changes,
         "issue": _serialize_issue(group, serialized_group),
     }
 

@@ -245,6 +245,105 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert runs[0]["rootCause"]["oneLineDescription"] == "rc text"
         assert runs[0]["proposedFix"]["oneLineSummary"] == "fix text"
 
+    def _code_changes_state(self, rc):
+        from sentry.seer.agent.client_models import (
+            AgentFilePatch,
+            Artifact,
+            DiffLine,
+            FilePatch,
+            Hunk,
+            MemoryBlock,
+            Message,
+            SeerRunState,
+        )
+
+        patch = AgentFilePatch(
+            repo_name="getsentry/sentry",
+            patch=FilePatch(
+                path="src/foo.py",
+                type="M",
+                added=1,
+                removed=1,
+                hunks=[
+                    Hunk(
+                        source_start=1,
+                        source_length=1,
+                        target_start=1,
+                        target_length=1,
+                        section_header="",
+                        lines=[
+                            DiffLine(
+                                line_type="-",
+                                value="old",
+                                source_line_no=1,
+                                target_line_no=None,
+                                diff_line_no=1,
+                            ),
+                            DiffLine(
+                                line_type="+",
+                                value="new",
+                                source_line_no=None,
+                                target_line_no=1,
+                                diff_line_no=2,
+                            ),
+                        ],
+                    )
+                ],
+            ),
+            diff="@@ -1 +1 @@\n-old\n+new",
+        )
+        return SeerRunState(
+            run_id=1,
+            blocks=[
+                MemoryBlock(
+                    id="b",
+                    message=Message(role="assistant", content="c"),
+                    timestamp="2026-02-10T00:00:00Z",
+                    artifacts=[
+                        Artifact(key="root_cause", data={"one_line_description": rc}, reason="r")
+                    ],
+                    merged_file_patches=[patch],
+                )
+            ],
+            status="completed",
+            updated_at="2026-02-10T00:00:00Z",
+        )
+
+    def _run_with_code_changes(self, group):
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        reconcile_milestones(run, self._code_changes_state("rc text"))
+        return run
+
+    def test_code_changes_returns_generated_diffs(self):
+        group = self.create_group()
+        self._run_with_code_changes(group)
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.CODE_CHANGES]
+        assert len(runs) == 1
+        files = runs[0]["codeChanges"]
+        assert len(files) == 1
+        assert files[0]["repoName"] == "getsentry/sentry"
+        patch = files[0]["patch"]
+        assert patch["path"] == "src/foo.py"
+        assert patch["type"] == "M"
+        assert patch["added"] == 1
+        assert patch["removed"] == 1
+        lines = patch["hunks"][0]["lines"]
+        assert lines[0]["line_type"] == "-"
+        assert lines[1]["line_type"] == "+"
+        assert lines[1]["value"] == "new"
+
+    def test_run_without_code_changes_has_empty_list(self):
+        group = self.create_group()
+        self._run_for_group(group, "no changes yet")
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert len(runs) == 1
+        assert runs[0]["codeChanges"] == []
+
     def test_only_latest_run_per_group_is_shown(self):
         group = self.create_group()
         self._run_for_group(group, "old run")
