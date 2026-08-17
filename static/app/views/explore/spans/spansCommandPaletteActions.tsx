@@ -312,6 +312,7 @@ function SortActions() {
           ) : undefined,
       }}
       keywords={[option.value]}
+      prompt={t('Select sort direction')}
     >
       <CMDKAction
         display={{label: t('Ascending')}}
