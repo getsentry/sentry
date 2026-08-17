@@ -1,0 +1,253 @@
+from __future__ import annotations
+
+import logging
+import re
+import time
+from typing import TYPE_CHECKING, Any
+
+from requests import PreparedRequest
+
+from sentry.integrations.cursor_origin.constants import (
+    CURSOR_ORIGIN_API_BASE_URL,
+    TOKEN_MINIMUM_VALIDITY_SECONDS,
+)
+from sentry.integrations.cursor_origin.languages import languages_from_tree
+from sentry.integrations.cursor_origin.utils import get_jwt
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger("sentry.integrations.cursor_origin")
+
+# Matches GitHub's `/repos/{owner}/{repo}/contents/{path}` so it can be rewritten to
+# Origin's `/repos/{owner}/{repo}/contents?path=…`.
+_GITHUB_CONTENTS_PATH = re.compile(
+    r"^/repos/(?P<repo>[^/]+/[^/]+)/contents/(?P<path>.+)$",
+)
+
+# Origin names each collection after the resource rather than using a generic
+# "items" key, so callers say which key they expect.
+PAGE_SIZE = 100
+
+
+class CursorOriginApiMixin:
+    """Read methods shared by the setup client and the installed-integration client.
+
+    Everything here is written against the *verified* Origin API, which differs from
+    the published docs in one important way: file contents live at
+    ``/contents?path=…``, not ``/contents/{path}``. The documented path form returns a
+    404 with a route-not-found body, which reads like an auth failure but is not.
+    """
+
+    # Concrete subclasses supply `post` via the shared API client base. Declared here
+    # only so mypy can see it -- do NOT give it a body, or the MRO will shadow the
+    # real implementation.
+    if TYPE_CHECKING:
+
+        def post(self, path: str, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        """Read, translating GitHub-shaped contents paths to Origin's form.
+
+        Origin serves file contents from ``/contents?path=…`` while GitHub uses
+        ``/contents/{path}``. Rewriting here rather than at every call site lets
+        Sentry's existing GitHub-oriented helpers -- platform detection, CODEOWNERS
+        lookups, stacktrace linking -- run against Origin unmodified.
+
+        The failure this prevents is a confusing one: the documented path form
+        returns 404 with a route-not-found body, which reads like a permissions
+        problem rather than a wrong URL.
+        """
+        match = _GITHUB_CONTENTS_PATH.match(path)
+        if match:
+            repo, file_path = match.group("repo"), match.group("path")
+            params = dict(kwargs.pop("params", None) or {})
+            params["path"] = file_path
+            kwargs["params"] = params
+            path = f"/repos/{repo}/contents"
+
+        return super().get(path, *args, **kwargs)  # type: ignore[misc]
+
+    # -- repositories --------------------------------------------------------
+
+    def get_repositories(self) -> list[dict[str, Any]]:
+        """Repositories this installation can see.
+
+        Note: excludes repositories mirrored inbound from GitHub -- installations
+        cannot access those.
+        """
+        return self._paginate("/installation/repos", "repositories")
+
+    def get_repo(self, repo_full_name: str) -> dict[str, Any]:
+        return self.get(f"/repos/{repo_full_name}")
+
+    # -- git data ------------------------------------------------------------
+
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
+        """Full recursive tree.
+
+        Shape is identical to GitHub's ``git/trees``: entries carry
+        ``path``/``mode``/``type``/``sha``, and blobs additionally carry ``size``.
+        Origin exposes no ``truncated`` flag, so unlike GitHub we cannot tell whether
+        a very large tree was capped.
+        """
+        response = self.get(
+            f"/repos/{repo_full_name}/git/trees/{tree_sha}", params={"recursive": "1"}
+        )
+        if not isinstance(response, dict):
+            return []
+        return response.get("tree", []) or []
+
+    def get_blob(self, repo_full_name: str, sha: str) -> dict[str, Any]:
+        return self.get(f"/repos/{repo_full_name}/git/blobs/{sha}")
+
+    def get_languages(self, repo_full_name: str, ref: str | None = None) -> dict[str, int]:
+        """Byte counts per language, shaped like GitHub's languages API.
+
+        Origin has no languages endpoint, so this is derived from the tree. Keeping
+        the GitHub shape means the whole existing platform registry works unchanged.
+        """
+        return languages_from_tree(self.get_tree(repo_full_name, ref or "HEAD"))
+
+    # -- contents ------------------------------------------------------------
+
+    def get_contents(
+        self, repo_full_name: str, path: str, ref: str | None = None
+    ) -> dict[str, Any]:
+        """Read a file or directory.
+
+        A file returns ``{"type": "file", "encoding": "base64", "content": …}``;
+        a directory returns ``{"type": "dir", "entries": [...]}``. Missing paths 404.
+        """
+        params: dict[str, Any] = {"path": path}
+        if ref:
+            params["ref"] = ref
+        return self.get(f"/repos/{repo_full_name}/contents", params=params)
+
+    # -- branches ------------------------------------------------------------
+
+    def get_branches(self, repo_full_name: str) -> list[dict[str, Any]]:
+        return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
+
+    # -- pagination ----------------------------------------------------------
+
+    def _paginate(self, path: str, collection_key: str) -> list[dict[str, Any]]:
+        """Follow Origin's cursor pagination.
+
+        Origin uses opaque ``pageToken``/``nextPageToken`` cursors rather than
+        GitHub's ``Link`` header and ``page`` counter.
+        """
+        results: list[dict[str, Any]] = []
+        page_token: str | None = None
+
+        while True:
+            params: dict[str, Any] = {"pageSize": PAGE_SIZE}
+            if page_token:
+                params["pageToken"] = page_token
+
+            response = self.get(path, params=params)
+            if not isinstance(response, dict):
+                break
+
+            results.extend(response.get(collection_key, []) or [])
+
+            page_token = response.get("nextPageToken") or None
+            if not page_token:
+                break
+
+        return results
+
+
+class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
+    """Client that authenticates as the app itself, with no stored integration.
+
+    Used during install (before an Integration row exists) and for local
+    verification. The installed-integration client persists its token on the
+    Integration; this one just keeps it in memory.
+    """
+
+    base_url = CURSOR_ORIGIN_API_BASE_URL
+    integration_type = "integration"
+    integration_name = "cursor_origin_setup"
+
+    def __init__(
+        self,
+        installation_id: str | None = None,
+        app_id: str | None = None,
+        private_key: str | None = None,
+        verify_ssl: bool = True,
+    ):
+        super().__init__(verify_ssl=verify_ssl)
+        self.installation_id = installation_id
+        self._app_id = app_id
+        self._private_key = private_key
+        self._access_token: str | None = None
+        self._expires_at: float = 0.0
+
+    # -- auth ----------------------------------------------------------------
+
+    def _jwt(self) -> str:
+        return get_jwt(app_id=self._app_id, private_key=self._private_key)
+
+    def _is_app_route(self, path_url: str) -> bool:
+        """``/app`` and everything under it authenticates with the app JWT.
+
+        That includes the token-exchange call itself. Repository routes
+        (``/repos/…``, ``/installation/repos``) use the installation token.
+        """
+        return path_url.startswith("/v1/origin/app") or path_url.startswith("/app")
+
+    def get_access_token(self) -> str:
+        """Mint or reuse an installation token.
+
+        Origin's tokens expire in under 15 minutes -- far shorter than GitHub's hour
+        -- so this refreshes aggressively rather than on the GitHub cadence.
+        """
+        if self.installation_id is None:
+            raise ValueError("installation_id is required for installation-scoped calls")
+
+        if self._access_token and time.time() < self._expires_at:
+            return self._access_token
+
+        response = self.post(f"/app/installations/{self.installation_id}/access_tokens")
+        if not isinstance(response, dict):
+            raise ApiError("unexpected access_token response from Cursor Origin")
+
+        token = next(
+            (v for v in response.values() if isinstance(v, str) and v.startswith("oit_")),
+            None,
+        )
+        if not token:
+            raise ApiError("no installation token in Cursor Origin response")
+
+        self._access_token = token
+        # Origin does not return a usable expiry, so assume the documented ceiling
+        # and refresh well before it.
+        self._expires_at = time.time() + TOKEN_MINIMUM_VALIDITY_SECONDS
+        return token
+
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        if self._is_app_route(prepared_request.path_url):
+            token = self._jwt()
+        else:
+            token = self.get_access_token()
+
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/json"
+        return prepared_request
+
+    # -- app-level endpoints -------------------------------------------------
+
+    def get_app(self) -> dict[str, Any]:
+        return self.get("/app")
+
+    def get_installations(self) -> list[dict[str, Any]]:
+        response = self.get("/app/installations")
+        if not isinstance(response, dict):
+            return []
+        for value in response.values():
+            if isinstance(value, list):
+                return value
+        return []
+
+    def get_installation(self, installation_id: str) -> dict[str, Any]:
+        return self.get(f"/app/installations/{installation_id}")
