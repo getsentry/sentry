@@ -297,14 +297,8 @@ class WebhookActionValidatorHandler(BaseActionValidatorHandler):
         }
 
     def generate_action_form_data(self) -> dict[str, Any]:
-        config = self.validated_data.get("config") or {}
-        target_identifier = config.get("target_identifier")
-        if not target_identifier:
-            raise ValidationError(
-                "A service must be selected for webhook actions (target_identifier is required in config)."
-            )
         return {
-            "service": target_identifier,
+            "service": self.validated_data["config"].get("target_identifier"),
         }
 
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
