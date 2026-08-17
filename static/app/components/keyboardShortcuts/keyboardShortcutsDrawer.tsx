@@ -27,7 +27,7 @@ export function KeyboardShortcutsDrawer() {
 
   return (
     <Stack height="100%">
-      <DrawerHeader>
+      <DrawerHeader hideCloseButtonText>
         <Heading as="h2" size="md">
           {t('Keyboard Shortcuts')}
         </Heading>
@@ -49,11 +49,11 @@ export function KeyboardShortcutsDrawer() {
 
           {shortcutGroups.length > 0 ? (
             shortcutGroups.map(group => (
-              <Stack key={group.label} gap="md">
+              <Stack key={group.label} gap="lg">
                 <Heading as="h3" size="sm">
                   {group.label}
                 </Heading>
-                <Stack gap="sm">
+                <Stack gap="md">
                   {group.shortcuts.map(shortcut => (
                     <Grid
                       key={shortcut.label}
