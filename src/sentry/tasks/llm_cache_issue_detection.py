@@ -91,7 +91,6 @@ def run_llm_cache_issue_detection() -> None:
                 id__in={organization_id for _, organization_id in batch}
             )
             if features.has(LLM_CACHE_DETECTION_FEATURE, organization)
-            and LLMCacheUsageGroupType.allow_ingest(organization)
         }
 
         for project_id, organization_id in batch:

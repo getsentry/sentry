@@ -137,13 +137,15 @@ class RunLLMCacheIssueDetectionTest(TestCase):
 
         assert not mock_delay.called
 
-    def test_skips_without_ingest_feature(self, mock_delay: MagicMock) -> None:
-        self.create_agent_project()
+    def test_dispatches_without_the_ingest_feature(self, mock_delay: MagicMock) -> None:
+        # Ingest is enforced by the per-project task and again by the occurrence
+        # consumer; the fan-out only decides whether an org is scanned at all.
+        project = self.create_agent_project()
 
         with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: False}):
             run_llm_cache_issue_detection()
 
-        assert not mock_delay.called
+        assert self.dispatched_project_ids(mock_delay) == {project.id}
 
     def test_dispatches_across_multiple_batches(self, mock_delay: MagicMock) -> None:
         projects = [self.create_agent_project() for _ in range(3)]
@@ -171,8 +173,8 @@ class RunLLMCacheIssueDetectionTest(TestCase):
         with patch.object(llm_cache_issue_detection.features, "has", return_value=True) as mock_has:
             run_llm_cache_issue_detection()
 
-        # Two evaluations per organization (detection plus ingest), not per project.
-        assert mock_has.call_count == 4
+        # One evaluation per organization, not per project.
+        assert mock_has.call_count == 2
         assert self.dispatched_project_ids(mock_delay) == {project.id for project in projects}
 
 
