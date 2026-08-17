@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Text} from '@sentry/scraps/text';
@@ -29,6 +29,10 @@ import {
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {
+  isVisualizeFunction,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface SpanAttributeValue {
@@ -123,7 +127,7 @@ function FilterActions({summary}: {summary: string}) {
   return (
     <CMDKAction
       display={{
-        label: t('Filter by'),
+        label: summary ? t('Edit Filter by') : t('Add Filter by'),
         trailingItem: (
           <Text size="sm" variant={summary ? 'accent' : 'muted'} ellipsis>
             {summary || t('None')}
@@ -171,6 +175,68 @@ function FilterActions({summary}: {summary: string}) {
   );
 }
 
+function SeriesActions({
+  groupBySummary,
+  sortBySummary,
+  visualize,
+  query,
+}: {
+  groupBySummary: string;
+  query: string;
+  sortBySummary: string;
+  visualize: Visualize;
+}) {
+  const parsedFunction = isVisualizeFunction(visualize) ? visualize.parsedFunction : null;
+  const sourceSummary = parsedFunction?.arguments[0] ?? visualize.yAxis;
+  const aggregateSummary = parsedFunction?.name ?? t('Equation');
+
+  return (
+    <Fragment>
+      <CMDKAction
+        display={{
+          label: t('Edit Source'),
+          trailingItem: <QueryValue value={sourceSummary} />,
+        }}
+      >
+        <CMDKAction display={{label: t('Configure source')}} onAction={() => {}} />
+      </CMDKAction>
+      <CMDKAction
+        display={{
+          label: t('Edit Aggregate Function'),
+          trailingItem: <QueryValue value={aggregateSummary} />,
+        }}
+      >
+        <CMDKAction display={{label: t('Configure aggregate')}} onAction={() => {}} />
+      </CMDKAction>
+      <CMDKAction
+        display={{
+          label: groupBySummary ? t('Edit Group by') : t('Add Group by'),
+          trailingItem: <QueryValue value={groupBySummary} />,
+        }}
+      >
+        <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
+      </CMDKAction>
+      <FilterActions summary={query} />
+      <CMDKAction
+        display={{
+          label: t('Edit Sort By'),
+          trailingItem: <QueryValue value={sortBySummary} />,
+        }}
+      >
+        <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
+      </CMDKAction>
+    </Fragment>
+  );
+}
+
+function QueryValue({value}: {value: string}) {
+  return (
+    <Text size="sm" variant={value ? 'accent' : 'muted'} ellipsis>
+      {value || t('None')}
+    </Text>
+  );
+}
+
 function QueryClauseActions() {
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
@@ -179,53 +245,25 @@ function QueryClauseActions() {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
 
-  const visualizeSummary = visualizes.map(visualize => visualize.yAxis).join(', ');
   const groupBySummary = groupBys.filter(Boolean).join(', ');
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
   const sortBySummary = sortBys.map(sort => `${sort.field} ${sort.kind}`).join(', ');
 
   return (
     <CMDKChainedActionScope>
-      <CMDKAction
-        display={{
-          label: t('Visualize'),
-          trailingItem: (
-            <Text size="sm" variant={visualizeSummary ? 'accent' : 'muted'} ellipsis>
-              {visualizeSummary || t('None')}
-            </Text>
-          ),
-        }}
-        keywords={['chart', 'graph', 'aggregate', 'measure', visualizeSummary]}
-      >
-        <CMDKAction display={{label: t('Configure visualization')}} onAction={() => {}} />
-      </CMDKAction>
-      <CMDKAction
-        display={{
-          label: t('Group by'),
-          trailingItem: (
-            <Text size="sm" variant={groupBySummary ? 'accent' : 'muted'} ellipsis>
-              {groupBySummary || t('None')}
-            </Text>
-          ),
-        }}
-        keywords={['group', 'facet', 'breakdown', groupBySummary]}
-      >
-        <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
-      </CMDKAction>
-      <CMDKAction
-        display={{
-          label: t('Sort by'),
-          trailingItem: (
-            <Text size="sm" variant={sortBySummary ? 'accent' : 'muted'} ellipsis>
-              {sortBySummary || t('None')}
-            </Text>
-          ),
-        }}
-        keywords={['sort', 'order', 'ascending', 'descending', sortBySummary]}
-      >
-        <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
-      </CMDKAction>
-      <FilterActions summary={query} />
+      {visualizes.map((visualize, index) => (
+        <CMDKAction
+          key={`${visualize.yAxis}-${index}`}
+          display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+        >
+          <SeriesActions
+            visualize={visualize}
+            groupBySummary={groupBySummary}
+            query={query}
+            sortBySummary={sortBySummary}
+          />
+        </CMDKAction>
+      ))}
     </CMDKChainedActionScope>
   );
 }
