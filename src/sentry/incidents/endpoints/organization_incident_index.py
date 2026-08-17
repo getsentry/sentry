@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from typing import Any
 
-from dateutil.parser import parse as parse_date
 from django.db.models import BigIntegerField, Exists, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 from rest_framework import status
@@ -32,11 +31,11 @@ from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
@@ -193,16 +192,19 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             .select_related("group", "project__organization")
         )
 
-        # Date range filters
-        if query_start_s is not None:
-            # Exclude incidents closed before the window
-            query_start = ensure_aware(parse_date(query_start_s))
-            open_periods = open_periods.exclude(date_ended__lt=query_start)
+        # Date range filters. Accept ISO-8601 and unix timestamps (same as other APIs).
+        try:
+            if query_start_s is not None:
+                # Exclude incidents closed before the window
+                query_start = parse_datetime_string(query_start_s)
+                open_periods = open_periods.exclude(date_ended__lt=query_start)
 
-        if query_end_s is not None:
-            # Exclude incidents started after the window
-            query_end = ensure_aware(parse_date(query_end_s))
-            open_periods = open_periods.exclude(date_started__gt=query_end)
+            if query_end_s is not None:
+                # Exclude incidents started after the window
+                query_end = parse_datetime_string(query_end_s)
+                open_periods = open_periods.exclude(date_started__gt=query_end)
+        except InvalidQuery as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
         # Status filter
         if query_status is not None:
