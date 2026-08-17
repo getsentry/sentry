@@ -44,6 +44,7 @@ import {
 } from 'sentry/views/seerWorkflows/overview/overviewIssuePriority';
 import type {AutofixStateKey} from 'sentry/views/seerWorkflows/overview/types';
 
+import {CodeChanges} from './codeChanges';
 import {periodWindowLabel} from './periods';
 import {PullRequestFiles} from './pullRequestFiles';
 import type {OverviewPullRequest, OverviewRun} from './types';
@@ -460,6 +461,9 @@ export function Overview2Card({
                 {proposedFix}
               </NarrativeBlock>
             )}
+            {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
+              <CodeChanges codeChanges={run.codeChanges} />
+            ) : null}
             {enrichmentPending && reviewPullRequest?.url ? (
               <Placeholder height="3rem" />
             ) : reviewPullRequest && changedFiles.length > 0 ? (
