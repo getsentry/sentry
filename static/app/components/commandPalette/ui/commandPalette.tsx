@@ -501,9 +501,9 @@ export function CommandPalette({
 
       analytics.recordAction(action, resultIndex, '');
 
-      if ('onAction' in action && action.persistentAnchor) {
+      if ('onAction' in action && action.chainedActionAnchor) {
         action.onAction();
-        dispatch({type: 'return to anchor', anchor: action.persistentAnchor});
+        dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
         return;
       }
 

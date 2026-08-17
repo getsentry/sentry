@@ -8,9 +8,9 @@ import type {
 } from 'sentry/components/commandPalette/types';
 import {
   CMDKEnclosingActionProvider,
-  useCMDKPersistentScope,
-} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
-import type {CMDKPersistentAnchor} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
+  useCMDKChainedActionScope,
+} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
+import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
@@ -44,7 +44,7 @@ interface CMDKActionDataTo extends CMDKActionDataBase {
 
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
   onAction: () => void;
-  persistentAnchor?: CMDKPersistentAnchor;
+  chainedActionAnchor?: CMDKChainedActionAnchor;
 }
 
 interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
@@ -160,7 +160,7 @@ export function CMDKAction<TData = unknown>({
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
   const parentKey = useContext(CMDKCollection.Context);
-  const persistentScope = useCMDKPersistentScope();
+  const chainedActionScope = useCMDKChainedActionScope();
 
   // For async-only resource nodes (function children), default limit to 4.
   // For nodes with static children alongside a resource, no default limit applies.
@@ -177,7 +177,7 @@ export function CMDKAction<TData = unknown>({
             ref,
             onAction,
             limit: effectiveLimit,
-            persistentAnchor: persistentScope ?? undefined,
+            chainedActionAnchor: chainedActionScope ?? undefined,
           }
       : {display, keywords, ref, to, limit: effectiveLimit};
 

@@ -40,7 +40,7 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKPersistentScope} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
+import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
@@ -303,24 +303,21 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the palette open and returns to the anchor after a persistent action', async () => {
+  it('keeps the palette open and returns to the anchor after a chained action', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const onPersistentAction = jest.fn();
+    const onChainedAction = jest.fn();
 
     render(
       <GlobalActionsComponent>
         <CMDKAction display={{label: 'Query clauses'}}>
-          <CMDKPersistentScope>
+          <CMDKChainedActionScope>
             <CMDKAction display={{label: 'Visualize'}}>
-              <CMDKAction
-                display={{label: 'Count spans'}}
-                onAction={onPersistentAction}
-              />
+              <CMDKAction display={{label: 'Count spans'}} onAction={onChainedAction} />
             </CMDKAction>
             <CMDKAction display={{label: 'Group by'}}>
               <CMDKAction display={{label: 'Span operation'}} onAction={() => {}} />
             </CMDKAction>
-          </CMDKPersistentScope>
+          </CMDKChainedActionScope>
         </CMDKAction>
       </GlobalActionsComponent>
     );
@@ -329,7 +326,7 @@ describe('CommandPalette', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'Visualize'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Count spans'}));
 
-    expect(onPersistentAction).toHaveBeenCalledTimes(1);
+    expect(onChainedAction).toHaveBeenCalledTimes(1);
     expect(closeSpy).not.toHaveBeenCalled();
     expect(await screen.findByRole('option', {name: 'Visualize'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();

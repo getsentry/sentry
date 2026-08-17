@@ -3,7 +3,7 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
-import type {CMDKPersistentAnchor} from 'sentry/components/commandPalette/ui/cmdkPersistentScope';
+import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,7 +53,7 @@ type CommandPaletteAction =
       query?: string;
     }
   | {type: 'trigger action'}
-  | {anchor: CMDKPersistentAnchor; type: 'return to anchor'}
+  | {anchor: CMDKChainedActionAnchor; type: 'return to anchor'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
   | {type: 'freeze list'};
@@ -69,9 +69,9 @@ function findActionInStack(stack: CMDKNavStack | null, key: string): CMDKNavStac
   return findActionInStack(stack.previous, key);
 }
 
-function makePersistentAnchorStack(
+function makeChainedActionAnchorStack(
   stack: CMDKNavStack | null,
-  anchor: CMDKPersistentAnchor
+  anchor: CMDKChainedActionAnchor
 ): CMDKNavStack {
   const existingAnchor = findActionInStack(stack, anchor.key);
   if (existingAnchor) {
@@ -154,7 +154,7 @@ function commandPaletteReducer(
     case 'return to anchor':
       return {
         ...state,
-        action: makePersistentAnchorStack(state.action, action.anchor),
+        action: makeChainedActionAnchorStack(state.action, action.anchor),
         query: '',
         pendingReset: false,
         list: 'active',
