@@ -152,14 +152,15 @@ class RunLLMCacheIssueDetectionTest(TestCase):
             self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}),
             patch.object(llm_cache_issue_detection, "PROJECTS_PER_BATCH", 2),
             patch.object(
-                llm_cache_issue_detection,
-                "_dispatch_detection_for_projects",
-                wraps=llm_cache_issue_detection._dispatch_detection_for_projects,
-            ) as mock_dispatch,
+                llm_cache_issue_detection.Organization.objects,
+                "filter",
+                wraps=llm_cache_issue_detection.Organization.objects.filter,
+            ) as mock_filter,
         ):
             run_llm_cache_issue_detection()
 
-        assert [len(call.args[0]) for call in mock_dispatch.call_args_list] == [2, 1]
+        # One organization lookup per batch: three projects at two per batch.
+        assert mock_filter.call_count == 2
         assert self.dispatched_project_ids(mock_delay) == {project.id for project in projects}
 
     def test_evaluates_each_organization_once_per_batch(self, mock_delay: MagicMock) -> None:

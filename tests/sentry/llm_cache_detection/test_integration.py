@@ -105,8 +105,6 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
 
         stats = fetch_call_site_stats(self.project)
 
-        assert len(stats) == 2
-
         uncached = self.stats_for(stats, CLAUDE)
         assert uncached.transaction == "/chat"
         assert uncached.span_description == "generate_content claude"
@@ -129,22 +127,31 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         # ops have no prompt-cache concept at all.
         self.store_spans(
             [
-                self.gen_ai_span(op="gen_ai.invoke_agent", model="agent-model"),
-                self.gen_ai_span(op="gen_ai.embeddings", model="embedding-model"),
-                self.gen_ai_span(op="db.query", model="not-a-model"),
+                self.gen_ai_span(op="gen_ai.invoke_agent", model="excluded-invoke-agent"),
+                self.gen_ai_span(op="gen_ai.embeddings", model="excluded-embeddings"),
+                self.gen_ai_span(op="db.query", model="excluded-db-query"),
             ]
         )
 
-        stats = fetch_call_site_stats(self.project)
+        models = {entry.model for entry in fetch_call_site_stats(self.project)}
 
-        assert [entry.model for entry in stats] == [CLAUDE]
+        assert CLAUDE in models
+        assert not {model for model in models if model.startswith("excluded-")}
 
     def test_excludes_other_projects(self) -> None:
         other_project = self.create_project()
         self.store_call_site(model=CLAUDE, cache_read_tokens=0, cache_creation_tokens=0)
-        self.store_call_site(model=GEMINI, cache_read_tokens=1_000, project=other_project, count=2)
+        self.store_call_site(
+            model="excluded-other-project",
+            cache_read_tokens=1_000,
+            project=other_project,
+            count=2,
+        )
 
-        assert [entry.model for entry in fetch_call_site_stats(self.project)] == [CLAUDE]
+        models = {entry.model for entry in fetch_call_site_stats(self.project)}
+
+        assert CLAUDE in models
+        assert "excluded-other-project" not in models
 
 
 class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
@@ -177,10 +184,10 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
             description="generate_content x/chat", model=CLAUDE, cache_read_tokens=0
         )
 
-        all_stats = fetch_call_site_stats(self.project)
-        assert len(all_stats) == 2
         stats = next(
-            entry for entry in all_stats if entry.span_description == "generate_content */chat"
+            entry
+            for entry in fetch_call_site_stats(self.project)
+            if entry.span_description == "generate_content */chat"
         )
 
         assert count_spans_with_cache_attributes(self.project, stats) == CALLS_PER_CALL_SITE

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
+from itertools import batched
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -56,29 +57,16 @@ def _all_active_projects_with_flags() -> Generator[tuple[int, int, int]]:
     )
 
 
-def _dispatch_detection_for_projects(projects: Sequence[tuple[int, int]]) -> int:
-    """Dispatch per-project tasks for the batch's enabled orgs, returning how many were sent.
-
-    A batch is dominated by projects sharing an organization, so each org is
-    resolved and flag-evaluated once: the cost scales with orgs in the batch
-    rather than with projects.
-    """
-    organization_ids = {organization_id for _, organization_id in projects}
-    enabled_by_organization = {
-        organization.id: (
-            features.has(LLM_CACHE_DETECTION_FEATURE, organization)
-            and LLMCacheUsageGroupType.allow_ingest(organization)
-        )
-        for organization in Organization.objects.filter(id__in=organization_ids)
-    }
-
-    dispatched_count = 0
-    for project_id, organization_id in projects:
-        if not enabled_by_organization.get(organization_id, False):
-            continue
-        detect_llm_cache_issues_for_project.delay(project_id)
-        dispatched_count += 1
-    return dispatched_count
+def _projects_with_agent_spans(skipped: Counter[str]) -> Generator[tuple[int, int]]:
+    """Stream (project_id, organization_id) for projects that have sent gen-AI spans."""
+    for project_id, organization_id, flags in _all_active_projects_with_flags():
+        # Ingest sets this flag for any span whose op starts with `gen_ai`, so it
+        # is a superset of the generate_content spans detection reads: a project
+        # without it cannot produce a finding.
+        if flags & Project.flags.has_insights_agent_monitoring:
+            yield project_id, organization_id
+        else:
+            skipped["no_agent_spans"] += 1
 
 
 @instrumented_task(
@@ -88,31 +76,33 @@ def _dispatch_detection_for_projects(projects: Sequence[tuple[int, int]]) -> int
 )
 def run_llm_cache_issue_detection() -> None:
     """Fan out per-project detection tasks for orgs with the feature enabled."""
-    batch: list[tuple[int, int]] = []
-    no_agent_spans_count = 0
+    skipped: Counter[str] = Counter()
     candidate_count = 0
     dispatched_count = 0
 
-    for project_id, organization_id, flags in _all_active_projects_with_flags():
-        # Ingest sets this flag for any span whose op starts with `gen_ai`, so it
-        # is a superset of the generate_content spans detection reads: a project
-        # without it cannot produce a finding.
-        if not flags & Project.flags.has_insights_agent_monitoring:
-            no_agent_spans_count += 1
-            continue
+    for batch in batched(_projects_with_agent_spans(skipped), PROJECTS_PER_BATCH):
+        candidate_count += len(batch)
+        # A batch is dominated by projects sharing an organization, so resolve and
+        # flag-evaluate each one once: the cost scales with organizations in the
+        # batch rather than with projects.
+        enabled_organization_ids = {
+            organization.id
+            for organization in Organization.objects.filter(
+                id__in={organization_id for _, organization_id in batch}
+            )
+            if features.has(LLM_CACHE_DETECTION_FEATURE, organization)
+            and LLMCacheUsageGroupType.allow_ingest(organization)
+        }
 
-        candidate_count += 1
-        batch.append((project_id, organization_id))
-        if len(batch) >= PROJECTS_PER_BATCH:
-            dispatched_count += _dispatch_detection_for_projects(batch)
-            batch = []
-
-    if batch:
-        dispatched_count += _dispatch_detection_for_projects(batch)
+        for project_id, organization_id in batch:
+            if organization_id not in enabled_organization_ids:
+                continue
+            detect_llm_cache_issues_for_project.delay(project_id)
+            dispatched_count += 1
 
     metrics.incr(
         "llm_cache_issue_detection.projects.skipped",
-        amount=no_agent_spans_count,
+        amount=skipped["no_agent_spans"],
         tags={"reason": "no_agent_spans"},
         sample_rate=1.0,
     )
@@ -131,7 +121,7 @@ def run_llm_cache_issue_detection() -> None:
     logger.info(
         "llm_cache_issue_detection.fan_out_completed",
         extra={
-            "projects_without_agent_spans": no_agent_spans_count,
+            "projects_without_agent_spans": skipped["no_agent_spans"],
             "projects_considered": candidate_count,
             "projects_dispatched": dispatched_count,
         },
