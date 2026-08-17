@@ -337,7 +337,15 @@ const appConfig: Configuration = {
             // @ffmpeg/core: Emscripten-generated glue code with its own
             // wasm-loading paths; must be served as a raw, unprocessed
             // static file (see the asset rules below), not run through swc.
-            exclude: /node_modules[\\/](core-js|react-select|@ffmpeg[\\/]core)/,
+            // @ffmpeg/ffmpeg: swcReactLoaderConfig() unconditionally enables
+            // React Fast Refresh (`refresh: SHOULD_HOT_MODULE_RELOAD`) for
+            // every file this rule touches. That's harmless on the main
+            // thread, but @ffmpeg/ffmpeg spawns its own Worker
+            // (classes.js/worker.js) to run the actual wasm core, and the
+            // injected `$RefreshReg$(...)` calls throw immediately in a
+            // worker's global scope, which has no such global — breaking
+            // the worker before it can load ffmpeg-core.
+            exclude: /node_modules[\\/](core-js|react-select|@ffmpeg[\\/](core|ffmpeg))/,
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
