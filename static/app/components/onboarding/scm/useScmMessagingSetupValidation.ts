@@ -8,13 +8,29 @@ import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {providerDetails} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-export type StaleDestinationReason = 'channel' | 'inactiveIntegration' | 'integration';
+export type StaleDestinationReason =
+  | 'channel'
+  | 'inactiveIntegration'
+  | 'ineligibleIntegration'
+  | 'integration';
 
 export function isIntegrationActive(integration: OrganizationIntegration): boolean {
   return (
     integration.status === 'active' &&
     integration.organizationIntegrationStatus === 'active'
   );
+}
+
+/**
+ * Returns true when the integration can receive Issue Alert actions.
+ * MS Teams "tenant" installations route notifications differently and
+ * cannot be used as an issue-alert destination.
+ */
+export function isEligibleForIssueAlerts(integration: OrganizationIntegration): boolean {
+  if (integration.provider.key !== 'msteams') {
+    return true;
+  }
+  return integration.configData?.installationType !== 'tenant';
 }
 
 /**
@@ -34,7 +50,8 @@ function resolveSavedIntegration(
   if (
     candidate.id !== messagingSetup.integrationId ||
     candidate.provider.key !== messagingSetup.providerKey ||
-    !isIntegrationActive(candidate)
+    !isIntegrationActive(candidate) ||
+    !isEligibleForIssueAlerts(candidate)
   ) {
     return undefined;
   }
@@ -98,6 +115,8 @@ export function useScmMessagingSetupValidation({
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
   const hasInactiveIntegration =
     fetchedIntegration !== undefined && !isIntegrationActive(fetchedIntegration);
+  const hasIneligibleIntegration =
+    fetchedIntegration !== undefined && !isEligibleForIssueAlerts(fetchedIntegration);
   const integration = resolveSavedIntegration(fetchedIntegration, messagingSetup);
 
   // A 404 settles the query as conclusively as a successful fetch does; any
@@ -143,7 +162,13 @@ export function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
-      setStaleReason(hasInactiveIntegration ? 'inactiveIntegration' : 'integration');
+      setStaleReason(
+        hasInactiveIntegration
+          ? 'inactiveIntegration'
+          : hasIneligibleIntegration
+            ? 'ineligibleIntegration'
+            : 'integration'
+      );
       onMessagingSetupChange({mode: 'unconfigured'});
       return;
     }
@@ -166,6 +191,7 @@ export function useScmMessagingSetupValidation({
   }, [
     channelValidateQuery.data,
     hasInactiveIntegration,
+    hasIneligibleIntegration,
     integration,
     isChannelSettled,
     isIntegrationSettled,

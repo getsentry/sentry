@@ -1,9 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+
+import type {ScmMessagingProviderKey} from './messagingProviders';
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import type {ScmMessagingSetup} from './scmMessagingSetup';
 
@@ -76,17 +79,20 @@ function mockChannelValidate(valid: boolean, integrationId: string) {
 }
 
 function renderPicker({
-  integration = slackIntegration,
+  eligibleIntegrations = [slackIntegration],
   existingSetup,
+  providerKey = 'slack',
 }: {
+  eligibleIntegrations?: OrganizationIntegration[];
   existingSetup?: ScmMessagingSetup;
-  integration?: typeof slackIntegration;
+  providerKey?: ScmMessagingProviderKey;
 } = {}) {
   const onConfigured = jest.fn();
 
   render(
     <ScmMessagingChannelPicker
-      integration={integration}
+      eligibleIntegrations={eligibleIntegrations}
+      providerKey={providerKey}
       onConfigured={onConfigured}
       existingSetup={existingSetup}
     />,
@@ -129,7 +135,7 @@ describe('ScmMessagingChannelPicker', () => {
   describe('staging a new destination', () => {
     it('stores Slack by display name', async () => {
       mockChannels('10', [slackChannel]);
-      const {onConfigured} = renderPicker({integration: slackIntegration});
+      const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -145,7 +151,10 @@ describe('ScmMessagingChannelPicker', () => {
 
     it('stores Discord by channel ID', async () => {
       mockChannels('20', [discordChannel]);
-      const {onConfigured} = renderPicker({integration: discordIntegration});
+      const {onConfigured} = renderPicker({
+        eligibleIntegrations: [discordIntegration],
+        providerKey: 'discord',
+      });
 
       await selectEvent.select(screen.getByLabelText('channel'), '#general (1234567890)');
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -161,7 +170,7 @@ describe('ScmMessagingChannelPicker', () => {
 
     it('disables Add destination until a channel is chosen', () => {
       mockChannels('10', [slackChannel]);
-      renderPicker({integration: slackIntegration});
+      renderPicker({eligibleIntegrations: [slackIntegration]});
 
       expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
     });
@@ -173,7 +182,10 @@ describe('ScmMessagingChannelPicker', () => {
       // Manual entries validate as you type, via the shared hook's
       // `enabled: !!channel?.new` query.
       mockChannelValidate(true, '20');
-      const {onConfigured} = renderPicker({integration: discordIntegration});
+      const {onConfigured} = renderPicker({
+        eligibleIntegrations: [discordIntegration],
+        providerKey: 'discord',
+      });
 
       const channelUrl = 'https://discord.com/channels/111/1234567890';
       // ChannelSelect sets formatCreateLabel to the raw input, so the create
@@ -199,8 +211,9 @@ describe('ScmMessagingChannelPicker', () => {
     it('preserves the Discord channel ID through a no-op edit', async () => {
       mockChannels('20', [discordChannel]);
       const {onConfigured} = renderPicker({
-        integration: discordIntegration,
+        eligibleIntegrations: [discordIntegration],
         existingSetup: selectedDiscordSetup,
+        providerKey: 'discord',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -217,7 +230,7 @@ describe('ScmMessagingChannelPicker', () => {
     it('preserves the Slack channel name through a no-op edit', async () => {
       mockChannels('10', [slackChannel]);
       const {onConfigured} = renderPicker({
-        integration: slackIntegration,
+        eligibleIntegrations: [slackIntegration],
         existingSetup: selectedSlackSetup,
       });
 
@@ -238,8 +251,9 @@ describe('ScmMessagingChannelPicker', () => {
       // breaks revalidation. An empty /channels/ must not corrupt the saved name.
       mockChannels('30', []);
       const {onConfigured} = renderPicker({
-        integration: msteamsIntegration,
+        eligibleIntegrations: [msteamsIntegration],
         existingSetup: selectedMsTeamsSetup,
+        providerKey: 'msteams',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -258,8 +272,9 @@ describe('ScmMessagingChannelPicker', () => {
       // the stored name rather than overwrite it with the id.
       mockChannels('20', []);
       const {onConfigured} = renderPicker({
-        integration: discordIntegration,
+        eligibleIntegrations: [discordIntegration],
         existingSetup: selectedDiscordSetup,
+        providerKey: 'discord',
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
@@ -271,6 +286,195 @@ describe('ScmMessagingChannelPicker', () => {
         channelId: '1234567890',
         channelName: '#general',
       });
+    });
+  });
+
+  describe('multi-workspace', () => {
+    const slackIntegration2 = OrganizationIntegrationsFixture({
+      id: '11',
+      name: 'second-workspace',
+      provider: {
+        key: 'slack',
+        slug: 'slack',
+        name: 'Slack',
+        canAdd: true,
+        canDisable: false,
+        features: [],
+        aspects: {},
+      },
+    });
+
+    it('enables the Workspace select when there are multiple eligible integrations', () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', []);
+      renderPicker({eligibleIntegrations: [slackIntegration, slackIntegration2]});
+
+      expect(screen.getByLabelText('workspace')).toBeEnabled();
+    });
+
+    it('disables the Workspace select when there is only one eligible integration', () => {
+      mockChannels('10', [slackChannel]);
+      renderPicker({eligibleIntegrations: [slackIntegration]});
+
+      expect(screen.getByLabelText('workspace')).toBeDisabled();
+    });
+
+    it('writes the selected workspace integrationId on save', async () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', [slackChannel]);
+      const {onConfigured} = renderPicker({
+        eligibleIntegrations: [slackIntegration, slackIntegration2],
+      });
+
+      // Switch to the second workspace.
+      await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'selected',
+          providerKey: 'slack',
+          integrationId: '11',
+        })
+      );
+    });
+
+    it('seeds the channel from the saved workspace and not the other', async () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', []);
+      renderPicker({
+        eligibleIntegrations: [slackIntegration, slackIntegration2],
+        existingSetup: selectedSlackSetup,
+      });
+
+      // The saved workspace (id 10) seeds a channel; wait for channel loading to
+      // settle before checking the Add destination button is enabled.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      });
+    });
+
+    it('falls back to the first survivor and clears the channel when the selected workspace is removed', async () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', [slackChannel]);
+
+      const onConfigured = jest.fn();
+      const {rerender} = render(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration, slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+        />,
+        {organization}
+      );
+
+      // Switch to the second workspace and pick a channel.
+      await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+
+      // The second workspace disappears (e.g. after a refetch).
+      rerender(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+        />
+      );
+
+      // Workspace falls back to the first survivor and channel is cleared.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+      });
+
+      // Save writes the surviving integration id.
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '10'})
+      );
+    });
+
+    it('clears the seeded channel and falls back when the default (saved) workspace is removed', async () => {
+      // Regression: when selectedIntegrationId is undefined (user never explicitly
+      // switched workspaces), the removal effect's guard (`selectedIntegrationId &&`)
+      // would short-circuit and leave the seeded channel intact. A subsequent save
+      // would then pair the stale channel with the new fallback integrationId.
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', [slackChannel]);
+
+      const onConfigured = jest.fn();
+      const {rerender} = render(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration, slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+          existingSetup={selectedSlackSetup}
+        />,
+        {organization}
+      );
+
+      // The saved workspace (id 10) seeds the channel; selectedIntegrationId stays undefined.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      });
+
+      // Saved workspace (id 10) is removed from the list — e.g. after a refetch.
+      rerender(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+          existingSetup={selectedSlackSetup}
+        />
+      );
+
+      // Channel must be cleared; Add destination disabled.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+      });
+
+      // Save must write the surviving workspace id, not the vanished one paired
+      // with the stale channel.
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '11'})
+      );
+      expect(onConfigured).not.toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '10'})
+      );
+    });
+
+    it('only shows the integrations it receives — eligibility is enforced upstream', () => {
+      // The row (via the view model) is responsible for filtering to eligibleIntegrations
+      // before passing them to the picker. The picker renders whatever it receives.
+      const msteamsTeam = OrganizationIntegrationsFixture({
+        id: '41',
+        name: 'team-workspace',
+        provider: {
+          key: 'msteams',
+          slug: 'msteams',
+          name: 'Microsoft Teams',
+          canAdd: true,
+          canDisable: false,
+          features: [],
+          aspects: {},
+        },
+        configData: {installationType: 'team'},
+      });
+
+      mockChannels('41', []);
+      // Only the eligible team integration is passed; the tenant was excluded by the row.
+      renderPicker({
+        eligibleIntegrations: [msteamsTeam],
+        providerKey: 'msteams',
+      });
+
+      expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
+      expect(screen.getByText('team-workspace')).toBeInTheDocument();
     });
   });
 });
