@@ -79,16 +79,23 @@ function handleFrame(frame: VideoFrame) {
   const index = frameCount;
   frameCount += 1;
 
+  // `frame` must stay open until it's actually drawn below — closing it
+  // eagerly here (instead of once the queued write below runs) invalidates
+  // it before drawImage() can read from it.
   writeChain = writeChain
     .then(async () => {
-      if (!ffmpeg || !canvas || !canvasCtx) {
-        return;
+      try {
+        if (!ffmpeg || !canvas || !canvasCtx) {
+          return;
+        }
+        canvasCtx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        const blob = await canvas.convertToBlob({type: 'image/png'});
+        const data = new Uint8Array(await blob.arrayBuffer());
+        await ffmpeg.writeFile(frameFilename(index), data);
+        postOutbound({type: 'capturing', framesWritten: index + 1});
+      } finally {
+        frame.close();
       }
-      canvasCtx.drawImage(frame, 0, 0, canvas.width, canvas.height);
-      const blob = await canvas.convertToBlob({type: 'image/png'});
-      const data = new Uint8Array(await blob.arrayBuffer());
-      await ffmpeg.writeFile(frameFilename(index), data);
-      postOutbound({type: 'capturing', framesWritten: index + 1});
     })
     .catch(error => {
       postOutbound({
@@ -97,8 +104,6 @@ function handleFrame(frame: VideoFrame) {
           error instanceof Error ? error.message : 'Failed to capture a replay frame',
       });
     });
-
-  frame.close();
 }
 
 async function handleStop() {
