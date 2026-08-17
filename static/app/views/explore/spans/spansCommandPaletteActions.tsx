@@ -6,19 +6,26 @@ import {
   CMDKAction,
   type CMDKResourceContext,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconFilter, IconSpan} from 'sentry/icons';
+import {IconFilter, IconGraph, IconGroup, IconSort, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useAddSearchFilter,
+  useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
   useQueryParamsQuery,
+  useQueryParamsSortBys,
+  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -30,7 +37,7 @@ function capitalizeLabel(label: string): string {
   return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }
 
-function FilterActions() {
+function FilterActions({label}: {label: string}) {
   const organization = useOrganization();
   const {selection: pageFilters} = usePageFilters();
   const addSearchFilter = useAddSearchFilter();
@@ -113,7 +120,7 @@ function FilterActions() {
 
   return (
     <CMDKAction
-      display={{label: t('Filter by'), icon: <IconFilter />}}
+      display={{label, icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
       {sortedStringAttributes.length > 0 && (
@@ -155,11 +162,58 @@ function FilterActions() {
   );
 }
 
+function QueryClauseActions() {
+  const visualizes = useQueryParamsVisualizes();
+  const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const query = useQueryParamsQuery();
+
+  const visualizeSummary = visualizes.map(visualize => visualize.yAxis).join(', ');
+  const groupBySummary = groupBys.filter(Boolean).join(', ');
+  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
+  const sortBySummary = sortBys.map(sort => `${sort.field} ${sort.kind}`).join(', ');
+
+  return (
+    <CMDKChainedActionScope>
+      <CMDKAction
+        display={{
+          label: t('Visualize: %s', visualizeSummary || t('None')),
+          icon: <IconGraph />,
+        }}
+        keywords={['chart', 'graph', 'aggregate', 'measure']}
+      >
+        <CMDKAction display={{label: t('Configure visualization')}} onAction={() => {}} />
+      </CMDKAction>
+      <CMDKAction
+        display={{
+          label: t('Group By: %s', groupBySummary || t('None')),
+          icon: <IconGroup />,
+        }}
+        keywords={['group', 'facet', 'breakdown']}
+      >
+        <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
+      </CMDKAction>
+      <CMDKAction
+        display={{
+          label: t('Sort By: %s', sortBySummary || t('None')),
+          icon: <IconSort />,
+        }}
+        keywords={['sort', 'order', 'ascending', 'descending']}
+      >
+        <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
+      </CMDKAction>
+      <FilterActions label={t('Filter By: %s', query || t('None'))} />
+    </CMDKChainedActionScope>
+  );
+}
+
 export function SpansCommandPaletteActions() {
   return (
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Traces'), icon: <IconSpan />}}>
-        <FilterActions />
+        <QueryClauseActions />
       </CMDKAction>
     </CommandPaletteSlot>
   );
