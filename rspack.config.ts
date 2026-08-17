@@ -339,13 +339,20 @@ const appConfig: Configuration = {
             // static file (see the asset rules below), not run through swc.
             // @ffmpeg/ffmpeg: swcReactLoaderConfig() unconditionally enables
             // React Fast Refresh (`refresh: SHOULD_HOT_MODULE_RELOAD`) for
-            // every file this rule touches. That's harmless on the main
-            // thread, but @ffmpeg/ffmpeg spawns its own Worker
-            // (classes.js/worker.js) to run the actual wasm core, and the
-            // injected `$RefreshReg$(...)` calls throw immediately in a
-            // worker's global scope, which has no such global — breaking
-            // the worker before it can load ffmpeg-core.
-            exclude: /node_modules[\\/](core-js|react-select|@ffmpeg[\\/](core|ffmpeg))/,
+            // every file this rule touches. @ffmpeg/ffmpeg spawns its own
+            // Worker (classes.js/worker.js) to run the actual wasm core,
+            // and a worker's global scope has no `$RefreshReg$` global for
+            // any injected refresh registration calls to find.
+            // @rspack/core/hot: the actual source of those calls in
+            // practice — rspack's dev-server wires its own HMR runtime
+            // (an EventEmitter in emitter.js, plus only-dev-server.js /
+            // log-apply-result.js) into every async-loaded chunk so it can
+            // hot-swap them, including the ffmpeg worker's own chunk via
+            // splitChunks' default vendor grouping. Those hot/*.js files
+            // aren't excluded elsewhere, so they get refresh-instrumented
+            // too, and that's what actually throws inside the worker.
+            exclude:
+              /node_modules[\\/](core-js|react-select|@ffmpeg[\\/](core|ffmpeg)|@rspack[\\/]core[\\/]hot)/,
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
