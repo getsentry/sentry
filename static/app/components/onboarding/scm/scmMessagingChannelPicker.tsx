@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -67,26 +67,32 @@ export function ScmMessagingChannelPicker({
       i => i.id === (selectedIntegrationId ?? defaultIntegration?.id)
     ) ?? firstIntegration;
 
-  const [channel, setChannel] = useState<IntegrationChannel | undefined>(() =>
+  // Keep the chosen channel bound to the workspace it was chosen for. It only
+  // surfaces (and is only saved) while its workspace is the selected one, so a
+  // fallback after the workspace is removed can never pair a stale channel with a
+  // different integration.
+  const [channelState, setChannelState] = useState<{
+    channel: IntegrationChannel | undefined;
+    integrationId: string | undefined;
+  }>(() => ({
+    integrationId: savedSelection?.integrationId,
     // Only seed the channel when the default workspace is the saved one. Switching
     // workspaces starts blank.
-    savedSelection && defaultIntegration?.id === savedSelection.integrationId
+    channel: savedSelection
       ? {label: savedSelection.channelName, value: savedSelection[channelSelectedBy]}
-      : undefined
-  );
+      : undefined,
+  }));
 
-  // If the previously selected workspace is removed from the list (e.g. after a
-  // refetch), clear the explicit selection so the default derivation takes over,
-  // and reset the channel to avoid a stale channel from the vanished workspace.
-  useEffect(() => {
-    if (
-      selectedIntegrationId &&
-      !eligibleIntegrations.some(i => i.id === selectedIntegrationId)
-    ) {
-      setSelectedIntegrationId(undefined);
-      setChannel(undefined);
-    }
-  }, [eligibleIntegrations, selectedIntegrationId]);
+  const channel =
+    channelState.integrationId === selectedIntegration?.id
+      ? channelState.channel
+      : undefined;
+
+  const setChannel = useCallback(
+    (nextChannel: IntegrationChannel | undefined) =>
+      setChannelState({channel: nextChannel, integrationId: selectedIntegration?.id}),
+    [selectedIntegration?.id]
+  );
 
   const providersToIntegrations = useMemo(
     () => ({[providerKey]: eligibleIntegrations}),

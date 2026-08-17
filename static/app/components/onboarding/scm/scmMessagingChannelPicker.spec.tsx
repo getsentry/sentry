@@ -396,6 +396,58 @@ describe('ScmMessagingChannelPicker', () => {
       );
     });
 
+    it('clears the seeded channel and falls back when the default (saved) workspace is removed', async () => {
+      // Regression: when selectedIntegrationId is undefined (user never explicitly
+      // switched workspaces), the removal effect's guard (`selectedIntegrationId &&`)
+      // would short-circuit and leave the seeded channel intact. A subsequent save
+      // would then pair the stale channel with the new fallback integrationId.
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', [slackChannel]);
+
+      const onConfigured = jest.fn();
+      const {rerender} = render(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration, slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+          existingSetup={selectedSlackSetup}
+        />,
+        {organization}
+      );
+
+      // The saved workspace (id 10) seeds the channel; selectedIntegrationId stays undefined.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      });
+
+      // Saved workspace (id 10) is removed from the list — e.g. after a refetch.
+      rerender(
+        <ScmMessagingChannelPicker
+          eligibleIntegrations={[slackIntegration2]}
+          providerKey="slack"
+          onConfigured={onConfigured}
+          existingSetup={selectedSlackSetup}
+        />
+      );
+
+      // Channel must be cleared; Add destination disabled.
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeDisabled();
+      });
+
+      // Save must write the surviving workspace id, not the vanished one paired
+      // with the stale channel.
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '11'})
+      );
+      expect(onConfigured).not.toHaveBeenCalledWith(
+        expect.objectContaining({integrationId: '10'})
+      );
+    });
+
     it('only shows the integrations it receives — eligibility is enforced upstream', () => {
       // The row (via the view model) is responsible for filtering to eligibleIntegrations
       // before passing them to the picker. The picker renders whatever it receives.
