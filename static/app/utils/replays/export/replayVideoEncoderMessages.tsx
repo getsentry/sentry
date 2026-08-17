@@ -25,9 +25,15 @@ export type EncoderInboundMessage =
   | EncoderFrameMessage
   | EncoderStopMessage;
 
-export interface EncoderProgressMessage {
-  framesEncoded: number;
-  type: 'progress';
+export interface EncoderCapturingMessage {
+  framesWritten: number;
+  type: 'capturing';
+}
+
+/** Progress of the final ffmpeg encode/mux pass, reported by ffmpeg itself. */
+export interface EncoderEncodingMessage {
+  ratio: number;
+  type: 'encoding';
 }
 
 export interface EncoderDoneMessage {
@@ -40,6 +46,7 @@ export interface EncoderErrorMessage {
 }
 
 export type EncoderOutboundMessage =
-  | EncoderProgressMessage
+  | EncoderCapturingMessage
+  | EncoderEncodingMessage
   | EncoderDoneMessage
   | EncoderErrorMessage;

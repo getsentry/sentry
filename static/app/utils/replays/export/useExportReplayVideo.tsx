@@ -28,10 +28,11 @@ interface ExportState {
  *    proportions, so the output isn't the whole Sentry UI.
  * 3. `MediaStreamTrackProcessor` turns the cropped track into a stream of
  *    raw `VideoFrame`s, which are transferred (not copied) into a worker.
- * 4. The worker encodes each frame with WebCodecs' `VideoEncoder` and muxes
- *    it into an MP4 with `mp4-muxer`, writing straight to a
- *    `FileSystemWritableFileStream` obtained from `showSaveFilePicker`. Bytes
- *    hit disk as they're produced instead of buffering in memory.
+ * 4. The worker rasterizes each frame to PNG and writes it into ffmpeg.wasm's
+ *    virtual filesystem. Once capture finishes, a single `ffmpeg -i
+ *    frame%06d.png ... out.mp4` pass muxes the whole video, and the result is
+ *    written to a `FileSystemWritableFileStream` obtained from
+ *    `showSaveFilePicker`.
  */
 export function useExportReplayVideo() {
   const {rootEl, dimensions, isFinished, setCurrentTime, togglePlayPause} =
@@ -106,14 +107,16 @@ export function useExportReplayVideo() {
       workerRef.current = worker;
       worker.onmessage = (event: MessageEvent<EncoderOutboundMessage>) => {
         const message = event.data;
-        if (message.type === 'progress') {
+        if (message.type === 'capturing') {
           const totalFrames = ((replay?.getDurationMs() ?? 0) / 1000) * CAPTURE_FPS;
           setState(prev => ({
             ...prev,
             progressPct: totalFrames
-              ? Math.min(1, message.framesEncoded / totalFrames)
+              ? Math.min(1, message.framesWritten / totalFrames)
               : prev.progressPct,
           }));
+        } else if (message.type === 'encoding') {
+          setState(prev => ({...prev, progressPct: message.ratio}));
         } else if (message.type === 'error') {
           Sentry.captureMessage('Replay video export failed', {extra: {message}});
           addErrorMessage(t('Could not export replay as video. Please try again.'));
