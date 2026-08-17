@@ -83,16 +83,16 @@ export function ScmMessagingChannelPicker({
       : undefined,
   }));
 
-  const channel =
-    channelState.integrationId === selectedIntegration?.id
-      ? channelState.channel
-      : undefined;
-
   const setChannel = useCallback(
     (nextChannel: IntegrationChannel | undefined) =>
       setChannelState({channel: nextChannel, integrationId: selectedIntegration?.id}),
     [selectedIntegration?.id]
   );
+
+  const channel =
+    channelState.integrationId === selectedIntegration?.id
+      ? channelState.channel
+      : undefined;
 
   const providersToIntegrations = useMemo(
     () => ({[providerKey]: eligibleIntegrations}),
