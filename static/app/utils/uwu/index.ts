@@ -33,6 +33,29 @@ export function setUwuEnabled(enabled: boolean) {
   uwuEnabled = enabled;
 }
 
+/**
+ * `?expand=35` targets strings 35% longer than english, matching roughly what a
+ * real locale like german costs. Capped because past a point every string wraps
+ * and the sweep stops telling you anything.
+ */
+function readUwuExpansion(): number {
+  try {
+    const value = new URLSearchParams(window.location.search).get('expand');
+    const percent = value === null ? 0 : Number.parseFloat(value);
+
+    return Number.isFinite(percent) ? Math.min(Math.max(percent, 0), 200) / 100 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+let uwuExpansion: number | null = null;
+
+export function getUwuExpansion(): number {
+  uwuExpansion ??= readUwuExpansion();
+  return uwuExpansion;
+}
+
 export function toggleUwu() {
   const next = localStorageWrapper.getItem(UWU_STORAGE_KEY) !== '1';
   localStorageWrapper.setItem(UWU_STORAGE_KEY, next ? '1' : '0');

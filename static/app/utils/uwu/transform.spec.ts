@@ -261,3 +261,62 @@ describe('uwuifyLeaves', () => {
     expect(first).toEqual(second);
   });
 });
+
+describe('uwuify with expansion', () => {
+  const PHRASES = [
+    'Resolve all errors in this project',
+    'Alerts allow you to monitor your errors',
+    'Showing %s of %s events in the selected period',
+    'Learn more about [link:release health] in our documentation',
+    'Are you sure you want to delete this alert rule?',
+  ];
+
+  it('reaches the requested inflation across a set of phrases', () => {
+    const source = PHRASES.join('').length;
+    const expanded = PHRASES.map(phrase => uwuify(phrase, phrase, 0.35)).join('').length;
+
+    expect(expanded / source).toBeGreaterThanOrEqual(1.3);
+  });
+
+  it('inflates further when asked for more', () => {
+    const lengths = [0.1, 0.35, 0.8].map(
+      ratio => PHRASES.map(phrase => uwuify(phrase, phrase, ratio)).join('').length
+    );
+
+    expect(lengths[0]! < lengths[1]! && lengths[1]! < lengths[2]!).toBe(true);
+  });
+
+  it('leaves every sprintf token untouched when expanding', () => {
+    const corrupted = SPRINTF_INPUTS.filter(
+      input =>
+        getSprintfTokens(input).join(' ') !==
+        getSprintfTokens(uwuify(input, input, 0.8)).join(' ')
+    );
+
+    expect(corrupted).toEqual([]);
+  });
+
+  it('leaves every template group intact when expanding', () => {
+    const corrupted = TEMPLATE_SHAPES.filter(
+      input =>
+        getTemplateGroups(input).join(' ') !==
+        getTemplateGroups(uwuify(input, input, 0.8)).join(' ')
+    );
+
+    expect(corrupted).toEqual([]);
+  });
+
+  it('stutters a word more than once when one pass cannot reach the target', () => {
+    const result = uwuify('Alerts allow you to monitor your errors', undefined, 1.2);
+
+    expect(/(\w)-\1-/.test(result)).toBe(true);
+  });
+
+  it('returns the same output when expanding repeatedly with the same seed', () => {
+    const outputs = Array.from({length: 20}, () =>
+      uwuify('Alerts allow you to monitor your errors', undefined, 0.35)
+    );
+
+    expect(new Set(outputs).size).toBe(1);
+  });
+});

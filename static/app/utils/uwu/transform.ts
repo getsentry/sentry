@@ -1,4 +1,4 @@
-import {applyLexicon, embellish} from './embellish';
+import {applyLexicon, embellish, expand} from './embellish';
 import type {Random} from './seed';
 import {createRandom} from './seed';
 import {isUntouchableWord, LETTER} from './words';
@@ -71,15 +71,21 @@ function protectedTokens(text: string): string {
 }
 
 /**
- * An embellishment can create a token as well as damage one: appending a face to
+ * A decoration can create a token as well as damage one: appending a face to
  * "100%" yields "100% uwu", whose "% u" reads as a sprintf token that the source
  * string never had. Rather than special-casing each adjacency, drop any
- * embellishment that changes the token list at all.
+ * decoration that changes the token list at all.
  */
-function embellishSafely(text: string, random: Random): string {
-  const embellished = embellish(text, random);
+function guard(text: string, apply: () => string): string {
+  const decorated = apply();
 
-  return protectedTokens(embellished) === protectedTokens(text) ? embellished : text;
+  return protectedTokens(decorated) === protectedTokens(text) ? decorated : text;
+}
+
+function decorate(text: string, random: Random, expansion: number): string {
+  return expansion > 0
+    ? guard(text, () => expand(text, random, expansion))
+    : guard(text, () => embellish(text, random));
 }
 
 /**
@@ -94,10 +100,12 @@ function hasProse(text: string): boolean {
  * Seeded on the msgid rather than on the rendered fragment, so a given UI string
  * looks the same everywhere it appears and `t` and `tct` agree on it.
  */
-export function uwuify(text: string, seed: string = text): string {
+export function uwuify(text: string, seed: string = text, expansion = 0): string {
   const phonetic = uwuifyPhonemes(text);
 
-  return hasProse(phonetic) ? embellishSafely(phonetic, createRandom(seed)) : phonetic;
+  return hasProse(phonetic)
+    ? decorate(phonetic, createRandom(seed), expansion)
+    : phonetic;
 }
 
 /**
@@ -105,13 +113,19 @@ export function uwuify(text: string, seed: string = text): string {
  * single budget, spent on the last non-empty leaf so the flourish still lands at
  * the end of the rendered sentence.
  */
-export function uwuifyLeaves(leaves: string[], seed: string): string[] {
+export function uwuifyLeaves(leaves: string[], seed: string, expansion = 0): string[] {
   const random = createRandom(seed);
   const transformed = leaves.map(uwuifyPhonemes);
 
+  if (expansion > 0) {
+    return transformed.map(leaf =>
+      hasProse(leaf) ? decorate(leaf, random, expansion) : leaf
+    );
+  }
+
   for (let index = transformed.length - 1; index >= 0; index--) {
     if (hasProse(transformed[index]!)) {
-      transformed[index] = embellishSafely(transformed[index]!, random);
+      transformed[index] = decorate(transformed[index]!, random, 0);
       break;
     }
   }

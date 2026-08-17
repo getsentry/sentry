@@ -29,6 +29,8 @@ const LEXICON = new Map([
   ['have', 'haz'],
 ]);
 
+const MAX_STUTTER_PASSES = 3;
+
 const STUTTER_CHANCE = 0.35;
 const FACE_CHANCE = 0.25;
 
@@ -84,6 +86,14 @@ function stutter(word: string): string {
   return `${leading}${core![0]}-${core}${trailing}`;
 }
 
+function eligibleIndexes(words: string[]): number[] {
+  return words.reduce<number[]>(
+    (indexes, word, index) =>
+      isUntouchableWord(word) || !canStutter(word) ? indexes : [...indexes, index],
+    []
+  );
+}
+
 /**
  * Spends at most one embellishment on the phrase. Per-word coin flips gave a
  * long tail of strings carrying three or more, and tied a given flourish to a
@@ -96,11 +106,7 @@ export function embellish(text: string, random: Random): string {
 
   const roll = random();
   const words = text.split(' ');
-  const eligible = words.reduce<number[]>(
-    (indexes, word, index) =>
-      isUntouchableWord(word) || !canStutter(word) ? indexes : [...indexes, index],
-    []
-  );
+  const eligible = eligibleIndexes(words);
 
   if (roll < STUTTER_CHANCE && eligible.length > 2) {
     const index = pick(random, eligible);
@@ -113,4 +119,44 @@ export function embellish(text: string, random: Random): string {
   }
 
   return text;
+}
+
+/**
+ * Stutters words until the phrase is `ratio` longer than it started.
+ *
+ * This exists because uwu is naturally length-neutral — the phoneme rules
+ * inflate the catalog by about 1%, and `l -> w` is one character for one. So the
+ * locale is useless as a layout stress test unless the expansion is asked for
+ * explicitly. German runs roughly 30% longer than english, which is the number
+ * worth aiming at.
+ */
+export function expand(text: string, random: Random, ratio: number): string {
+  const words = text.split(' ');
+  const order = eligibleIndexes(words);
+
+  for (let index = order.length - 1; index > 0; index--) {
+    const swap = Math.floor(random() * (index + 1));
+    const held = order[index]!;
+    order[index] = order[swap]!;
+    order[swap] = held;
+  }
+
+  const target = text.length * (1 + ratio);
+  let length = text.length;
+
+  // One stutter per word tops out around 30% inflation, so a word may be
+  // stuttered again ("w-w-word") when a higher target is asked for.
+  for (let pass = 0; pass < MAX_STUTTER_PASSES && length < target; pass++) {
+    for (const index of order) {
+      if (length >= target) {
+        break;
+      }
+
+      const before = words[index]!.length;
+      words[index] = stutter(words[index]!);
+      length += words[index].length - before;
+    }
+  }
+
+  return words.join(' ');
 }

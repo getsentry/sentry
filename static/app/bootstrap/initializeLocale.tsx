@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
-import {setUwuEnabled, UWU_LANGUAGE_CODE} from 'sentry/utils/uwu';
+import {getUwuExpansion, setUwuEnabled, UWU_LANGUAGE_CODE} from 'sentry/utils/uwu';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {
@@ -39,8 +39,17 @@ async function getTranslations(language: string) {
  * The generated catalog already holds uwu-ified strings, so the runtime
  * transform has to stay off when it loads or every string is transformed twice.
  * It is only a fallback for a build that skipped `pnpm gen:uwu-catalog`.
+ *
+ * `?expand=` is a runtime knob and the catalog was generated without it, so
+ * asking for expansion takes the runtime path instead.
  */
 async function initializeUwuLocale() {
+  if (getUwuExpansion() > 0) {
+    setLocale(DEFAULT_LOCALE_DATA);
+    setUwuEnabled(true);
+    return;
+  }
+
   try {
     setLocale(await import(`sentry-locale/${UWU_LANGUAGE_CODE}/LC_MESSAGES/django.po`));
   } catch {

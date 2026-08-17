@@ -6,7 +6,7 @@ import {sprintf} from 'sprintf-js';
 
 import {toArray} from 'sentry/utils/array/toArray';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {isUwuEnabled, uwuify, uwuifyLeaves} from 'sentry/utils/uwu';
+import {getUwuExpansion, isUwuEnabled, uwuify, uwuifyLeaves} from 'sentry/utils/uwu';
 
 const markerStyles = {
   background: '#ff801790',
@@ -156,7 +156,7 @@ function uwuifyTemplate(parsed: ParsedTemplate, seed: string): ParsedTemplate {
   const leaves = entries.flatMap(([, subvalues]) =>
     subvalues.filter((subvalue): subvalue is string => typeof subvalue === 'string')
   );
-  const transformed = uwuifyLeaves(leaves, seed);
+  const transformed = uwuifyLeaves(leaves, seed, getUwuExpansion());
 
   let cursor = 0;
 
@@ -348,7 +348,7 @@ function format(formatString: string, args: FormatArg[]): React.ReactNode {
  */
 function gettext(string: string, ...args: FormatArg[]): string {
   const translated: string = getClient().gettext(string);
-  const val = isUwuEnabled() ? uwuify(translated, string) : translated;
+  const val = isUwuEnabled() ? uwuify(translated, string, getUwuExpansion()) : translated;
 
   if (args.length === 0) {
     staticTranslations.add(val);
@@ -396,7 +396,9 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
   }
 
   const translated: string = getClient().ngettext(singular, plural, countArg);
-  const val = isUwuEnabled() ? uwuify(translated, singular) : translated;
+  const val = isUwuEnabled()
+    ? uwuify(translated, singular, getUwuExpansion())
+    : translated;
 
   // XXX(ts): See XXX in gettext.
   return mark(format(val, args) as string);
@@ -446,7 +448,7 @@ export function tctCode(template: string, components: ComponentMap = {}) {
  */
 function gettextDescription(string: string): string {
   const translated: string = getClient().gettext(string);
-  const val = isUwuEnabled() ? uwuify(translated, string) : translated;
+  const val = isUwuEnabled() ? uwuify(translated, string, getUwuExpansion()) : translated;
   staticTranslations.add(val);
   return mark(val);
 }
