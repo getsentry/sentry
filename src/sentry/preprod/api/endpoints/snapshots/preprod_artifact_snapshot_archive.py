@@ -88,12 +88,9 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
 
     def _download(self, artifact: PreprodArtifact) -> HttpResponseBase:
         session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
-        try:
-            result = session.get(archive_object_key(artifact.id))
-        except RequestError as e:
-            if e.status == 404:
-                return Response({"detail": "Download not ready"}, status=409)
-            raise
+        result = session.get(archive_object_key(artifact.id))
+        if result is None:
+            return Response({"detail": "Download not ready"}, status=409)
 
         response = StreamingHttpResponse(
             _stream_object(result.payload), content_type="application/zip"
@@ -147,7 +144,6 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
             return resolved
         artifact, _metrics = resolved
         user_id = getattr(request.user, "id", None)
-
         try:
             build_snapshot_images_zip.apply_async(
                 kwargs={
@@ -155,6 +151,8 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                     "project_id": artifact.project_id,
                     "artifact_id": artifact.id,
                     "user_id": user_id,
+                    # TODO: Remove after this change has been fully deployed.
+                    "include_manifest": True,
                 }
             )
         except Exception:

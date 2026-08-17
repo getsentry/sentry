@@ -18,6 +18,7 @@ export function CopyToClipboardButton({
   onError,
   onClick,
   text,
+  icon,
   ...props
 }: CopyToClipboardButtonProps) {
   const {copy} = useCopyToClipboard();
@@ -26,10 +27,16 @@ export function CopyToClipboardButton({
     <Button
       {...props}
       onClick={e => {
-        copy(text).then(onCopy).catch(onError);
+        copy(text).then(result => {
+          if (result === undefined) {
+            onError?.(new Error('Failed to copy to clipboard'));
+          } else {
+            onCopy?.(result);
+          }
+        });
         onClick?.(e);
       }}
-      icon={<IconCopy variant="muted" />}
+      icon={icon ?? <IconCopy variant="muted" />}
     />
   );
 }

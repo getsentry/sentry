@@ -30,29 +30,121 @@ interface ExtractedField {
 }
 
 /**
- * Determines whether a TypeScript expression resolves to a plain string value.
- * Only string literals and t() calls with a string literal argument are considered
- * string-typed; anything else (variables, conditionals, JSX elements, other calls)
- * causes the caller to bail out.
+ * Extracts the plain text represented by a tct template.
  */
-function isStringTypeExpression(expr: ts.Expression): boolean {
+export function extractTctText(template: string): string {
+  return extractTctTextContent(template)
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+}
+
+/**
+ * Extract the visible text from a tct template. Component groups such as
+ * `[link:Learn more]` contribute `Learn more`, while component-only groups such
+ * as `[link]` do not have any statically known text and are omitted.
+ */
+function extractTctTextContent(template: string): string {
+  let text = '';
+
+  for (let index = 0; index < template.length;) {
+    if (template[index] !== '[') {
+      text += template[index];
+      index++;
+      continue;
+    }
+
+    const groupEnd = findTctGroupEnd(template, index + 1);
+    if (groupEnd === null) {
+      text += template[index];
+      index++;
+      continue;
+    }
+
+    const group = template.slice(index + 1, groupEnd);
+    const separator = findTctGroupSeparator(group);
+    if (separator !== -1) {
+      text += extractTctTextContent(group.slice(separator + 1));
+    }
+    index = groupEnd + 1;
+  }
+
+  return text;
+}
+
+function findTctGroupEnd(template: string, startIndex: number): number | null {
+  let depth = 0;
+
+  for (let index = startIndex; index < template.length; index++) {
+    if (template[index] === '[') {
+      depth++;
+    } else if (template[index] === ']') {
+      if (depth === 0) {
+        return index;
+      }
+      depth--;
+    }
+  }
+
+  return null;
+}
+
+function findTctGroupSeparator(group: string): number {
+  let depth = 0;
+
+  for (let index = 0; index < group.length; index++) {
+    if (group[index] === '[') {
+      depth++;
+    } else if (group[index] === ']') {
+      depth--;
+    } else if (group[index] === ':' && depth === 0) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * Returns a string expression suitable for the generated registry.
+ *
+ * Only string literals and t()/tct() calls with a string literal argument are
+ * considered string-typed; anything else (variables, conditionals, JSX elements,
+ * other calls) causes the caller to bail out. Since tct() returns a React node,
+ * its template is converted to a translated string expression after removing
+ * component markup.
+ */
+function getStaticStringExpression(
+  expr: ts.Expression,
+  sourceFile: ts.SourceFile
+): string | null {
   // 'Name' or "Name"
   if (ts.isStringLiteral(expr)) {
-    return true;
+    return expr.getText(sourceFile);
   }
 
   // t('Name') — the i18n translation helper
   if (
     ts.isCallExpression(expr) &&
     ts.isIdentifier(expr.expression) &&
-    expr.expression.text === 't' &&
-    expr.arguments.length > 0 &&
-    ts.isStringLiteral(expr.arguments[0]!)
+    expr.arguments.length > 0
   ) {
-    return true;
+    const firstArgument = expr.arguments[0];
+    if (!firstArgument || !ts.isStringLiteral(firstArgument)) {
+      return null;
+    }
+
+    if (expr.expression.text === 't') {
+      return expr.getText(sourceFile);
+    }
+
+    // tct('Text with [link:visible text]', {link: <Link />})
+    if (expr.expression.text === 'tct') {
+      return `t(${JSON.stringify(extractTctText(firstArgument.text))})`;
+    }
   }
 
-  return false;
+  return null;
 }
 
 class FormFieldExtractor {
@@ -275,7 +367,7 @@ class FormFieldExtractor {
 
   /**
    * Extract text content from JSX element children as expression (for Meta.Label, Meta.HintText)
-   * Returns the expression text as-is, preserving t() calls
+   * Returns a translatable string expression when possible.
    */
   private getJsxTextContent(
     node: ts.JsxElement | ts.JsxSelfClosingElement,
@@ -296,10 +388,7 @@ class FormFieldExtractor {
       // Expression: <Meta.Label>{t('Name')}</Meta.Label> -> t('Name')
       if (ts.isJsxExpression(child) && child.expression) {
         const expr = child.expression;
-        if (!isStringTypeExpression(expr)) {
-          return null;
-        }
-        return expr.getText(sourceFile);
+        return getStaticStringExpression(expr, sourceFile);
       }
     }
 
@@ -342,7 +431,7 @@ class FormFieldExtractor {
   }
 
   /**
-   * Get the string value of a JSX attribute (extracts from t() calls)
+   * Get the string value of a JSX attribute (extracts from t()/tct() calls)
    * Used for 'name' attribute where we want just the identifier
    */
   private getJsxAttribute(
@@ -392,7 +481,8 @@ class FormFieldExtractor {
   }
 
   /**
-   * Get the expression text of a JSX attribute as-is (preserves t() calls)
+   * Get the expression text of a JSX attribute (preserves t() calls and
+   * converts tct() calls to plain translated strings)
    * Used for 'label' and 'hintText' where we want the full expression
    */
   private getJsxAttributeExpression(
@@ -418,10 +508,7 @@ class FormFieldExtractor {
           // JSX expression: label={t('Name')} -> t('Name')
           if (ts.isJsxExpression(attr.initializer) && attr.initializer.expression) {
             const expr = attr.initializer.expression;
-            if (!isStringTypeExpression(expr)) {
-              return null;
-            }
-            return expr.getText(sourceFile);
+            return getStaticStringExpression(expr, sourceFile);
           }
         }
       }

@@ -421,8 +421,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           A common issue with Y axes is data ranges. Some time series, like crash rates
           tend to hover very close to 100%. In these cases, starting the Y axis at 0 can
           make it difficult to see the actual values. You can set the{' '}
-          <code>axisRange</code> prop to <code>"dataMin"</code> to start the Y axis at the
-          minimum value of the data.
+          <code>axisRange</code> prop to <code>"dataMin"</code> to start the Y axis near
+          the minimum value of the data, instead of at 0. The exact starting value is the
+          nearest round tick value at or below the data minimum, so the axis labels stay
+          legible.
         </p>
 
         <p>

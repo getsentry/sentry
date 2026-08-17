@@ -15,11 +15,11 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -33,6 +33,7 @@ import {
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -104,27 +105,27 @@ export function MultiQueryModeChart({
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   if (defined(yAxes[0])) {
-    items.push({
-      key: 'create-alert',
-      textValue: t('Create an Alert'),
-      label: t('Create an Alert'),
-      to: getAlertsUrl({
-        project,
-        query: queryParts.query,
-        pageFilters: pageFilters.selection,
-        aggregate: yAxes[0],
+    items.push(
+      getSaveAsAlertMenuItem({
         organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      }),
-      onAction: () => {
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'alert',
-          ui_source: 'compare chart',
+        to: getAlertsUrl({
+          project,
+          query: queryParts.query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxes[0],
           organization,
-        });
-      },
-    });
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'compare chart',
+            organization,
+          });
+        },
+      })
+    );
   }
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');

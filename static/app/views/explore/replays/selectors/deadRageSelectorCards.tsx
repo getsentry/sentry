@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -222,14 +222,19 @@ function AccordionItemHeader({
   );
 }
 
-const SplitCardContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: max-content;
-  grid-auto-flow: column;
-  gap: 0 ${p => p.theme.space.xl};
-  align-items: stretch;
-`;
+function SplitCardContainer({children}: {children: ReactNode}) {
+  return (
+    <Grid
+      align="stretch"
+      columns={{zero: '1fr', xl: '1fr 1fr'}}
+      flow={{zero: 'row', xl: 'column'}}
+      gap={{zero: 'xl', xl: '0 xl'}}
+      rows="max-content"
+    >
+      {children}
+    </Grid>
+  );
+}
 
 const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.colors.gray500};

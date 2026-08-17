@@ -535,6 +535,89 @@ class WebhookTest(GitLabTestCase):
         assert pull.merged_at == merged_at
         assert pull.closed_at == closed_at
 
+    def _post_merge_event(self, payload: dict) -> None:
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+    def test_merge_event_stale_update_after_merge_does_not_regress_state(self) -> None:
+        # An `update` hook that failed its first delivery is retried minutes later,
+        # landing after the `merge` it preceded. Its object_attributes still
+        # describe an open merge request, so replaying it would rewrite the merged
+        # row back to open. The older snapshot must be dropped wholesale.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        merge_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        merge_payload["object_attributes"]["state"] = "merged"
+        merge_payload["object_attributes"]["action"] = "merge"
+        merge_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        merge_payload["object_attributes"]["merged_at"] = "2017-09-28T12:23:42.365Z"
+        merge_payload["object_attributes"]["merge_commit_sha"] = "abc123"
+        self._post_merge_event(merge_payload)
+
+        stale_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        stale_payload["object_attributes"]["action"] = "update"
+        stale_payload["object_attributes"]["state"] = "opened"
+        stale_payload["object_attributes"]["updated_at"] = "2017-09-28T12:20:00.000Z"
+        stale_payload["object_attributes"]["title"] = "Stale title"
+        self._post_merge_event(stale_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.MERGED
+        assert pull.merged_at == datetime(2017, 9, 28, 12, 23, 42, 365000, tzinfo=timezone.utc)
+        assert pull.closed_at == pull.merged_at
+        assert pull.merge_commit_sha == "abc123"
+        assert pull.title != "Stale title"
+
+    def test_merge_event_stale_update_after_close_does_not_reopen(self) -> None:
+        # Same reordering, but the merge request was closed unmerged. `close` ->
+        # `reopen` is a legitimate transition, so only the payload timestamp can
+        # tell the stale replay from a real reopen.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        close_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        close_payload["object_attributes"]["state"] = "closed"
+        close_payload["object_attributes"]["action"] = "close"
+        close_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        self._post_merge_event(close_payload)
+
+        stale_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        stale_payload["object_attributes"]["action"] = "update"
+        stale_payload["object_attributes"]["state"] = "opened"
+        stale_payload["object_attributes"]["updated_at"] = "2017-09-28T12:20:00.000Z"
+        self._post_merge_event(stale_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.CLOSED
+        assert pull.closed_at == datetime(2017, 9, 28, 12, 23, 42, 365000, tzinfo=timezone.utc)
+
+    def test_merge_event_reopen_after_close_is_applied(self) -> None:
+        # The guard rejects only *older* snapshots: a genuine reopen carries a
+        # later updated_at and must still land.
+        self.create_gitlab_repo("getsentry/sentry")
+
+        close_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        close_payload["object_attributes"]["state"] = "closed"
+        close_payload["object_attributes"]["action"] = "close"
+        close_payload["object_attributes"]["updated_at"] = "2017-09-28T12:23:42.365Z"
+        self._post_merge_event(close_payload)
+
+        reopen_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        reopen_payload["object_attributes"]["state"] = "opened"
+        reopen_payload["object_attributes"]["action"] = "reopen"
+        reopen_payload["object_attributes"]["updated_at"] = "2017-09-28T12:30:00.000Z"
+        self._post_merge_event(reopen_payload)
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.OPEN
+        assert pull.closed_at is None
+        assert pull.provider_updated_at == datetime(2017, 9, 28, 12, 30, tzinfo=timezone.utc)
+
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"

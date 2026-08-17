@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
@@ -25,6 +25,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import registry as group_type_registry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.issues.search import (
@@ -33,7 +34,7 @@ from sentry.issues.search import (
     MergeableRow,
     SearchQueryPartial,
     UnsupportedSearchQuery,
-    get_search_strategies,
+    get_search_strategy,
     group_categories_from,
     group_types_from,
 )
@@ -64,6 +65,12 @@ from sentry.utils.tracing import set_span_data, start_span
 logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
+DEFAULT_GROUP_SEARCH_CATEGORY_IDS = frozenset(
+    category.value
+    for category in GroupCategory
+    # Hide certain categories from the default issue stream
+    if category not in {GroupCategory.FEEDBACK, GroupCategory.CONFIGURATION}
+)
 
 
 class TrendsSortWeights(TypedDict):
@@ -194,14 +201,9 @@ def get_search_filter(
 
 def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
-
-    if not group_categories:
-        group_categories = set(get_search_strategies().keys())
-        # Hide certain categories from the default issue stream
-        group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.CONFIGURATION.value)
-
-    return group_categories
+    if group_categories:
+        return group_categories
+    return set(DEFAULT_GROUP_SEARCH_CATEGORY_IDS)
 
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
@@ -341,9 +343,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         return aggregations
 
-    def _prepare_params_for_category(
+    def _prepare_params_for_categories(
         self,
-        group_category: int,
+        group_categories: Sequence[int],
+        visible_group_type_ids: Collection[int],
         query_partial: IntermediateSearchQueryPartial,
         organization: Organization,
         project_ids: Sequence[int],
@@ -359,14 +362,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> SnubaQueryParams | None:
-        """
-        :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
-        """
-
-        if group_category in SEARCH_FILTER_UPDATERS:
-            # remove filters not relevant to the group_category
-            search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
-
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(
             organization.id, project_ids, environments, search_filters
@@ -383,7 +378,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        use_issue_platform = group_category is not GroupCategory.ERROR.value
+        use_issue_platform = GroupCategory.ERROR.value not in group_categories
         aggregations = self._prepare_aggregations(
             sort_field, start, end, having, aggregate_kwargs, use_issue_platform
         )
@@ -399,7 +394,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         else:
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
-            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
+            group_id_sort = "-group_id" if len(group_categories) > 1 else "group_id"
+            orderby = [f"-{sort_field}", group_id_sort]
 
         pinned_query_partial: SearchQueryPartial = cast(
             SearchQueryPartial,
@@ -411,8 +407,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
-        snuba_query_params = strategy(
+        query_builder = get_search_strategy(
+            [GroupCategory(group_category) for group_category in group_categories],
+            visible_group_type_ids,
+        )
+        snuba_query_params = query_builder(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -491,20 +490,51 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         group_categories = group_categories_from_search_filters(search_filters or ())
-
-        query_params_for_categories = {}
-
-        for gc in group_categories:
+        visible_group_type_ids = (
+            {
+                group_type.type_id
+                for group_type in group_type_registry.get_visible(organization, actor)
+            }
+            if group_categories - {GroupCategory.ERROR.value}
+            else set()
+        )
+        category_filter_groups: list[tuple[list[int], Sequence[SearchFilter]]] = []
+        for group_category in sorted(group_categories):
             try:
-                query_params = self._prepare_params_for_category(
-                    gc,
+                category_search_filters = (
+                    SEARCH_FILTER_UPDATERS[group_category](snuba_search_filters)
+                    if group_category in SEARCH_FILTER_UPDATERS
+                    else snuba_search_filters
+                )
+            except UnsupportedSearchQuery:
+                continue
+
+            if group_category != GroupCategory.ERROR.value:
+                for grouped_categories, grouped_search_filters in category_filter_groups:
+                    if (
+                        GroupCategory.ERROR.value not in grouped_categories
+                        and category_search_filters == grouped_search_filters
+                    ):
+                        grouped_categories.append(group_category)
+                        break
+                else:
+                    category_filter_groups.append(([group_category], category_search_filters))
+            else:
+                category_filter_groups.append(([group_category], category_search_filters))
+
+        query_params_for_categories: dict[tuple[int, ...], SnubaQueryParams] = {}
+        for grouped_categories, category_search_filters in category_filter_groups:
+            try:
+                query_params = self._prepare_params_for_categories(
+                    grouped_categories,
+                    visible_group_type_ids,
                     query_partial,
                     organization,
                     project_ids,
                     environments,
                     group_ids,
                     filters,
-                    snuba_search_filters,
+                    category_search_filters,
                     sort_field,
                     start,
                     end,
@@ -513,15 +543,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     actor,
                     aggregate_kwargs,
                 )
-            except UnsupportedSearchQuery:
-                pass
             except EmptyGroupIdIntersectionError:
                 # Postgres candidates and the snuba group_id condition are
                 # disjoint for this category — it can't match anything. Skip it.
-                pass
-            else:
-                if query_params is not None:
-                    query_params_for_categories[gc] = query_params
+                continue
+
+            if query_params is not None:
+                query_params_for_categories[tuple(grouped_categories)] = query_params
 
         callsite = "PostgresSnubaQueryExecutor.snuba_search"
 
@@ -535,14 +563,16 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     "snuba.search.group_category_bulk",
                     tags={
                         GroupCategory(gc_val).name.lower(): True
-                        for gc_val, _ in query_params_for_categories.items()
+                        for group_category_values in query_params_for_categories
+                        for gc_val in group_category_values
                     },
                 )
                 # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
                 # we'll fallback to querying for errors only
-                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                error_query_params = query_params_for_categories.get((GroupCategory.ERROR.value,))
+                if error_query_params is not None:
                     bulk_query_results = bulk_raw_query(
-                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        [error_query_params],
                         referrer=referrer,
                     )
                 else:
@@ -821,15 +851,21 @@ def _recommended_aggregation(
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
-    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    # Severity: maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
     severity_weight = options.get("snuba.search.recommended.severity-weight")
-    severity = (
-        "max(multiIf("
+    severity_signal = (
+        "multiIf("
         "equals(level, 'fatal'), 1.0, "
         "equals(level, 'error'), 0.75, "
         "equals(level, 'warning'), 0.5, "
         "equals(level, 'info'), 0.25, "
-        "0.0))"
+        "0.0)"
+    )
+    severity_aggregate = options.get("snuba.search.recommended.severity-aggregate")
+    severity = (
+        f"divide(sum({severity_signal}), count())"
+        if severity_aggregate == "mean"
+        else f"max({severity_signal})"
     )
 
     # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0

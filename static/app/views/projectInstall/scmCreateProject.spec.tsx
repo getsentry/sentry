@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -36,6 +36,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       })),
     getTotalSize: () => count * 36,
     measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
   })),
 }));
 
@@ -271,6 +272,7 @@ describe('ScmCreateProject', () => {
       origin: 'existing_org',
     });
   });
+
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 

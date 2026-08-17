@@ -29,6 +29,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   initialQuery: string;
   projectIds: number[];
   strategy: string;
+  className?: string;
   /**
    * Fallback mutation options to use if the polling endpoint fails.
    * If provided, the component will fall back to AskSeerComboBox on start failure.
@@ -118,6 +119,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   if (startFailed && fallbackMutationOptions) {
     return (
       <AskSeerComboBox
+        {...props}
         initialQuery={initialQuery}
         askSeerMutationOptions={fallbackMutationOptions}
         applySeerSearchQuery={applySeerSearchQuery}

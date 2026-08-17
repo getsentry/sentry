@@ -2,6 +2,9 @@ from datetime import timedelta
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
+import pytest
+from scm.types import ReviewComment
+
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -22,8 +25,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
+    UnsupportedProviderError,
+    _build_review_feedback,
     _delete_own_comment_eyes_reaction,
     _ineligible_pr_iteration_comment_body,
+    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
@@ -385,12 +391,18 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
 
-    def _queued(self, feedback: Feedback) -> QueuedAutofixFeedback:
+    def _queued(
+        self,
+        feedback: Feedback,
+        referrer: AutofixReferrer = AutofixReferrer.GITHUB_PR_COMMENT,
+        actor_user_id: int | None = None,
+    ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=feedback,
-            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            referrer=referrer,
+            actor_user_id=actor_user_id,
         )
 
     def _iteration_block(self, idx: int) -> MemoryBlock:
@@ -545,13 +557,26 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         fresh = Feedback(
             source=GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry fresh"})
         )
-        mock_pop.return_value = [self._queued(stale), self._queued(fresh)]
+        mock_pop.return_value = [
+            self._queued(
+                stale,
+                AutofixReferrer.GITHUB_PR_REVIEW,
+                actor_user_id=self.create_user().id,
+            ),
+            self._queued(
+                fresh,
+                AutofixReferrer.GITHUB_PR_COMMENT,
+                actor_user_id=self.user.id,
+            ),
+        ]
 
         self._call()
 
         mock_trigger.assert_called_once()
         _, kwargs = mock_trigger.call_args
         assert [f.text for f in kwargs["feedback"]] == ["fresh"]
+        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+        assert kwargs["actor_user_id"] == self.user.id
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -866,6 +891,58 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args.kwargs["user_context"] == "top level\n\nui feedback"
 
+    def _commenter_feedback(self, comment_id: int, login: str, user_id: int) -> Feedback:
+        return Feedback(
+            source=GithubPrCommentFeedbackSource(
+                comment={
+                    "id": comment_id,
+                    "body": "@sentry fix it",
+                    "user": {"id": user_id, "login": login},
+                }
+            )
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_commit_author_attributed_to_a_single_commenter(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        octocat = self._commenter_feedback(1001, "octocat", 583231)
+        hubot = self._commenter_feedback(1002, "hubot", 2)
+        mock_fetch.return_value = self._state()
+
+        mock_pop.return_value = [self._queued(octocat)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] == {
+            "name": "octocat",
+            "email": "583231+octocat@users.noreply.github.com",
+        }
+
+        # Two different commenters in one batch: no single author to attribute to.
+        mock_pop.return_value = [self._queued(octocat), self._queued(hubot)]
+        self._call()
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_no_commit_author_for_check_suite_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        assert mock_trigger.call_args.kwargs["commit_author"] is None
+
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
     def _feedback(self) -> Feedback:
@@ -1082,3 +1159,194 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+
+class _ResolveThreadScmProtocols:
+    """Method surface matching the resolve protocols so ``spec`` MagicMocks
+    satisfy the ``@runtime_checkable`` ``isinstance`` guards."""
+
+    def get_thread_id_from_review_comment_unique_id(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def resolve_review_thread(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_pull_request_review_threads(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class ResolveReviewCommentThreadsTest(TestCase):
+    def _scm(self) -> MagicMock:
+        return MagicMock(spec=_ResolveThreadScmProtocols)
+
+    def _thread(
+        self,
+        thread_id: str,
+        comment_unique_ids: list[str],
+        *,
+        is_resolved: bool = False,
+    ) -> dict[str, Any]:
+        return {
+            "id": thread_id,
+            "is_resolved": is_resolved,
+            "comments": [{"unique_id": uid} for uid in comment_unique_ids],
+        }
+
+    def _page(
+        self, threads: list[dict[str, Any]], next_cursor: str | None = None
+    ) -> dict[str, Any]:
+        return {"data": threads, "meta": {"next_cursor": next_cursor}}
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_resolves_matching_threads(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"]), self._thread("PRRT_2", ["PRRC_b"])]
+        )
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        assert result.resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_dedupes_shared_thread(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a", "PRRC_b"])]
+        )
+
+        result = _resolve_review_comment_threads(
+            scm, pr_number=7, comment_unique_ids=["PRRC_a", "PRRC_b"]
+        )
+
+        assert result.resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_1")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_skips_already_resolved(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"], is_resolved=True)]
+        )
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        assert result.resolved == 0
+        assert result.already_resolved == 1
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_unknown_unique_id_not_found(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"])]
+        )
+
+        result = _resolve_review_comment_threads(
+            scm, pr_number=7, comment_unique_ids=["PRRC_missing"]
+        )
+
+        assert result.resolved == 0
+        assert result.not_found == 1
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_pages_until_exhausted(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        pages = [
+            self._page([self._thread("PRRT_1", ["PRRC_a"])], next_cursor="page-2"),
+            self._page([self._thread("PRRT_2", ["PRRC_b"])]),
+        ]
+
+        # Assert the cursor is threaded across pages, not ignored: the first page
+        # must start at ``after: null`` (empty cursor) and the second at page-1's
+        # next_cursor.
+        def get_threads(scm_arg: Any, pr_number_str: str, pagination: Any) -> dict[str, Any]:
+            if mock_scm_actions.get_pull_request_review_threads.call_count == 1:
+                assert pagination["cursor"] == ""
+                assert pagination["per_page"] == 100
+            else:
+                assert pagination["cursor"] == "page-2"
+            return pages[mock_scm_actions.get_pull_request_review_threads.call_count - 1]
+
+        mock_scm_actions.get_pull_request_review_threads.side_effect = get_threads
+
+        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_b"])
+
+        assert result.resolved == 1
+        assert mock_scm_actions.get_pull_request_review_threads.call_count == 2
+        mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_2")
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_raises_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+        # A mock missing one protocol method fails the isinstance guard.
+        scm = MagicMock(
+            spec=["resolve_review_thread", "get_thread_id_from_review_comment_unique_id"]
+        )
+
+        with pytest.raises(UnsupportedProviderError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+        mock_scm_actions.get_pull_request_review_threads.assert_not_called()
+        mock_scm_actions.resolve_review_thread.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_propagates_exceptions(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
+            [self._thread("PRRT_1", ["PRRC_a"])]
+        )
+        mock_scm_actions.resolve_review_thread.side_effect = RuntimeError("boom")
+
+        with pytest.raises(RuntimeError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+
+
+class BuildReviewFeedbackTest(TestCase):
+    def _review_comment(self, unique_id: str | None) -> ReviewComment:
+        return {
+            "id": "222",
+            "unique_id": unique_id,
+            "url": "https://example.com/c/222",
+            "file_path": "test.py",
+            "body": "inline feedback",
+            "author": {"id": "1", "username": "octocat"},
+            "created_at": None,
+            "diff_hunk": None,
+            "line": None,
+            "start_line": None,
+            "review_id": "55",
+            "author_association": None,
+            "commit_sha": None,
+            "head": None,
+            "thread_id": None,
+        }
+
+    def test_carries_unique_id_onto_source(self) -> None:
+        feedback = _build_review_feedback(
+            [self._review_comment("PRRC_a")],
+            None,
+            review_id=55,
+            review_html_url=None,
+            review_state=None,
+            review_author=None,
+            author_is_bot=False,
+        )
+
+        assert len(feedback) == 1
+        source = feedback[0].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.comment.unique_id == "PRRC_a"
+
+    def test_missing_unique_id_is_none(self) -> None:
+        feedback = _build_review_feedback(
+            [self._review_comment(None)],
+            None,
+            review_id=55,
+            review_html_url=None,
+            review_state=None,
+            review_author=None,
+            author_is_bot=False,
+        )
+
+        source = feedback[0].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        assert source.comment.unique_id is None

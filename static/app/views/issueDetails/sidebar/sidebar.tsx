@@ -101,13 +101,16 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
               <AutofixSection group={group} project={project} />
             </ErrorBoundary>
           )}
-          {event && (
-            <ErrorBoundary mini>
-              <ExternalIssueSidebarList group={group} event={event} />
-            </ErrorBoundary>
-          )}
           <ErrorBoundary mini>
-            <ActivitySection group={group} />
+            <ExternalIssueSidebarList group={group} event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <ActivitySection
+              group={group}
+              enableMentionComposer={organization.features.includes(
+                'issue-activity-mention-input'
+              )}
+            />
           </ErrorBoundary>
           {showPeopleSection && (
             <PeopleSection

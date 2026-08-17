@@ -9,9 +9,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
+import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
 const traceViewFeedbackOptions = {
   messagePlaceholder: t('How can we make the trace view better for you?'),
@@ -33,23 +35,32 @@ export function PlaceHolder({
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={getTraceViewBreadcrumbs({
-                organization,
-                location,
-                moduleURLBuilder,
-                traceSlug,
-                project,
-                view,
-              })}
+          {hasNewBreadcrumbs ? (
+            <TraceBreadcrumbs
+              organization={organization}
+              traceSlug={traceSlug}
+              project={project}
             />
-          </TopBar.Slot>
+          ) : (
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={getTraceViewBreadcrumbs({
+                  organization,
+                  location,
+                  moduleURLBuilder,
+                  traceSlug,
+                  project,
+                  view,
+                })}
+              />
+            </TopBar.Slot>
+          )}
           <Grid flow="column" align="center" gap="md">
             <TopBar.Slot name="feedback">
               <FeedbackButton

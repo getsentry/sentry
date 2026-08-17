@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
 
 import type {GetTagKeys} from 'sentry/components/searchQueryBuilder';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {useGetTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+import {isHiddenAttribute} from 'sentry/views/explore/utils';
 
 export function useGetTraceItemAttributeTagKeys({
   itemType,
@@ -15,7 +16,7 @@ export function useGetTraceItemAttributeTagKeys({
   datetime,
 }: {
   itemType: TraceItemDataset;
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   extraTags?: TagCollection;
   hiddenKeys?: string[];
   projects?: PageFilters['projects'];
@@ -36,9 +37,10 @@ export function useGetTraceItemAttributeTagKeys({
         ...Object.values(keys.stringAttributes),
         ...Object.values(keys.numberAttributes),
         ...Object.values(keys.booleanAttributes),
+        ...Object.values(keys.arrayAttributes),
       ];
       const filteredFetched = hiddenKeySet
-        ? fetched.filter(t => !hiddenKeySet.has(t.key) && !hiddenKeySet.has(t.name))
+        ? fetched.filter(t => !isHiddenAttribute(t, hiddenKeySet))
         : fetched;
       const fetchedKeySet = new Set(filteredFetched.map(t => t.key));
       return [

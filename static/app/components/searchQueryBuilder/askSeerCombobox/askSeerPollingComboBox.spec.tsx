@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -187,6 +187,35 @@ describe('AskSeerPollingComboBox results', () => {
     });
   });
 
+  it('shows result feedback in the reworked footer', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+
+    await submitQuery();
+
+    expect(await screen.findByText('How did we do?')).toBeInTheDocument();
+    expect(
+      screen.queryByText('We loaded the results. Does this look right?')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Generate again'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Query parameters:/})).toBeInTheDocument();
+  });
+
   it('does not autofocus the query builder after applying a selected query', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
@@ -251,5 +280,71 @@ describe('AskSeerPollingComboBox results', () => {
     });
     expect(queryBuilderInputs).not.toContain(document.activeElement);
     expect(screen.getByRole('grid')).not.toHaveFocus();
+  });
+});
+
+describe('AskSeerPollingComboBox error state', () => {
+  beforeEach(() => {
+    destroyAnnouncer();
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders the error actions and retries the failed search', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'error',
+          current_step: null,
+          completed_steps: [],
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+
+    await waitFor(() => expect(startRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('preserves the legacy error state when the rework is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'error',
+          current_step: null,
+          completed_steps: [],
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features']);
+
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 });

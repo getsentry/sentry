@@ -28,7 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function IssueListSeerComboBox() {
+export function IssueListSeerComboBox({className}: {className?: string}) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -143,6 +143,7 @@ export function IssueListSeerComboBox() {
 
   return (
     <AskSeerPollingComboBox<AskSeerSearchQuery>
+      className={className}
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Issues"

@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -46,8 +47,9 @@ const useApdex = (props: Props) => {
   const commonQuery = {
     environment: environments,
     project: projects.map(String),
-    field: ['apdex()'],
-    query: ['event.type:transaction count():>0', query].join(' ').trim(),
+    field: ['apdex(span.duration,300)'],
+    query: ['is_transaction:true count():>0', query].join(' ').trim(),
+    dataset: DiscoverDatasets.SPANS,
   };
 
   const currentQuery = useApiQuery<TableData>(
@@ -108,9 +110,10 @@ export function ProjectApdexScoreCard(props: Props) {
 
   const {data, previousData, isLoading, error, refetch} = useApdex(props);
 
-  const apdex = Number(data?.data?.[0]?.['apdex()']) || undefined;
+  const apdex = Number(data?.data?.[0]?.['apdex(span.duration,300)']) || undefined;
 
-  const previousApdex = Number(previousData?.data?.[0]?.['apdex()']) || undefined;
+  const previousApdex =
+    Number(previousData?.data?.[0]?.['apdex(span.duration,300)']) || undefined;
 
   const cardTitle = t('Apdex');
 
@@ -172,7 +175,7 @@ export function ProjectApdexScoreCard(props: Props) {
         <BigNumberWidgetVisualization
           value={apdex}
           previousPeriodValue={previousApdex}
-          field="apdex()"
+          field="apdex(span.duration,300)"
           type="number"
           unit={null}
           preferredPolarity="+"

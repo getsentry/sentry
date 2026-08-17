@@ -266,7 +266,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-type EntryBreadcrumbs = {
+export type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };
@@ -765,6 +765,7 @@ interface EventBase {
   dateCreated?: string;
   device?: Record<string, any>;
   endTimestamp?: number;
+  formatted?: {content: string; format: string};
   groupID?: string;
   groupingConfig?: {
     enhancements: string;

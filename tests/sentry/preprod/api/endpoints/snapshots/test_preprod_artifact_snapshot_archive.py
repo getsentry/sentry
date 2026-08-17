@@ -61,6 +61,7 @@ class SnapshotArchiveTriggerTest(BaseSnapshotArchiveTest):
                 "project_id": self.project.id,
                 "artifact_id": artifact.id,
                 "user_id": self.user.id,
+                "include_manifest": True,
             }
         )
 
@@ -89,12 +90,13 @@ class SnapshotArchiveReadinessTest(BaseSnapshotArchiveTest):
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
         assert response.data["ready"] is True
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_get_reports_not_ready_when_archive_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id))
         assert response.status_code == 200
@@ -125,12 +127,13 @@ class SnapshotArchiveDownloadTest(BaseSnapshotArchiveTest):
         assert response.status_code == 200
         assert response["Content-Type"] == "application/zip"
         assert b"".join(response.streaming_content) == b"ZIPBYTES"
+        session.get.assert_called_once_with(f"snapshot_archives/{artifact.id}.zip")
 
     @patch(SESSION_TARGET)
     def test_download_returns_409_when_absent(self, mock_session):
         artifact = self._artifact()
         session = MagicMock()
-        session.get.side_effect = RequestError("not found", status=404, response="")
+        session.get.return_value = None
         mock_session.return_value = session
         response = self.client.get(self._url(artifact.id, download=True))
         assert response.status_code == 409

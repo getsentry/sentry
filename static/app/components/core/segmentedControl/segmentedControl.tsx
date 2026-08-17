@@ -7,8 +7,7 @@ import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
 import {useRadioGroupState} from '@react-stately/radio';
-import type {Node} from '@react-types/shared';
-import type {CollectionChildren} from '@react-types/shared/src/collections';
+import type {CollectionChildren, Node} from '@react-types/shared';
 import {LayoutGroup} from 'framer-motion';
 
 import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
@@ -92,7 +91,7 @@ interface SegmentedControlProps<Value extends string> extends Omit<
   size?: FormSize;
 }
 
-const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
+const collectionFactory = <T,>(nodes: Iterable<Node<T>>) => new ListCollection(nodes);
 
 export function SegmentedControl<Value extends string>({
   value,
@@ -104,8 +103,8 @@ export function SegmentedControl<Value extends string>({
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const collection = useCollection(
-    props as Parameters<typeof useCollection>[0],
+  const collection = useCollection<Value, ListCollection<Value>>(
+    props,
     collectionFactory
   );
   const ariaProps = {

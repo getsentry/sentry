@@ -887,6 +887,75 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         )
         assert PullRequestMetrics.objects.count() == 0
 
+    def test_stale_replay_after_merge_does_not_regress_counters(self) -> None:
+        # The merge landed first, so the row already reads merged (written by
+        # PullRequestEventWebhook before this processor runs). The retried
+        # `synchronize` carries pre-merge counters; applying them would leave
+        # select_verdict reading zero discussion off a PR that had reviewer
+        # engagement and emitting a permanent CLOSED_UNMERGED.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.MERGED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(
+            action="closed",
+            state="closed",
+            merged=True,
+            updated_at="2015-05-05T23:45:00Z",
+            comments=4,
+            review_comments=6,
+            commits=3,
+        )
+
+        self._call(
+            action="synchronize",
+            state="open",
+            updated_at="2015-05-05T23:41:00Z",
+            comments=0,
+            review_comments=0,
+            commits=1,
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+        assert metrics_row.review_comments_count == 6
+        assert metrics_row.commits_count == 3
+
+    def test_stale_replay_after_close_does_not_regress_counters(self) -> None:
+        # Closed unmerged, so the terminal-state rule can't fire — only the payload
+        # timestamp separates this replay from a real reopen.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.CLOSED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(action="closed", state="closed", updated_at="2015-05-05T23:45:00Z", comments=4)
+
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:41:00Z", comments=0
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+
+    def test_newer_payload_still_refreshes_counters(self) -> None:
+        # The guard rejects only older snapshots; counters must keep tracking a PR
+        # that is still moving forward.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.OPEN,
+            provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+        )
+        self._call(action="opened", state="open", updated_at="2015-05-05T23:40:00Z", comments=1)
+
+        self.pull_request.update(
+            provider_updated_at=datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
+        )
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:50:00Z", comments=7
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 7
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
@@ -1850,6 +1919,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         conclusion: str = "success",
         head_sha: str = "headsha1",
         app_slug: str = "github-actions",
+        suite_id: int = 12345,
         check_runs_count: int = 4,
         pr_numbers: tuple[int, ...] = (42,),
         foreign_pr_numbers: tuple[int, ...] = (),
@@ -1858,6 +1928,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         event: dict[str, Any] = {
             "action": action,
             "check_suite": {
+                "id": suite_id,
                 "head_sha": head_sha,
                 "status": "completed",
                 "conclusion": conclusion,
@@ -1882,6 +1953,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         check_name: str = "build",
         head_sha: str = "headsha1",
         app_slug: str = "github-actions",
+        suite_id: int = 12345,
         pr_numbers: tuple[int, ...] = (42,),
         foreign_pr_numbers: tuple[int, ...] = (),
         webhook_id: str | None = "delivery-1",
@@ -1894,6 +1966,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
                 "status": "completed",
                 "conclusion": conclusion,
                 "app": {"slug": app_slug},
+                "check_suite": {"id": suite_id},
                 "pull_requests": self._pull_request_refs(pr_numbers, foreign_pr_numbers),
             },
             "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
@@ -2022,6 +2095,36 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         self._call_run(pr_numbers=(), foreign_pr_numbers=(42,))
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    # The counter that makes the control-side own-repo drop verifiable: it has to
+    # track rows written, or enabling that drop has no cell-side signal at all.
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_run_recorded_activity_is_counted(self, mock_metrics: MagicMock) -> None:
+        self._call_run()
+
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.check.activity_recorded", tags={"github_event": "check_run"}
+        )
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_suite_recorded_activity_is_counted(self, mock_metrics: MagicMock) -> None:
+        self._call_suite()
+
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.check.activity_recorded", tags={"github_event": "check_suite"}
+        )
+
+    @patch("sentry.pr_metrics.webhooks.metrics")
+    def test_check_run_counts_nothing_when_no_own_repo_pr(self, mock_metrics: MagicMock) -> None:
+        """The exact payload control would drop. The counter must already read zero
+        here, or it cannot distinguish a working drop from a broken one."""
+        self._call_run(pr_numbers=(), foreign_pr_numbers=(42,))
+
+        assert not any(
+            call.args[0] == "pr_metrics.check.activity_recorded"
+            for call in mock_metrics.incr.call_args_list
+        )
 
     def test_check_run_flag_off_skips(self) -> None:
         with self.feature({"organizations:pr-metrics-activity": False}):

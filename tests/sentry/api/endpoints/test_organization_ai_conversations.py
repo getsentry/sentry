@@ -1,6 +1,7 @@
 import json  # noqa: S003
 from datetime import timedelta
 from typing import Any
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -112,6 +113,15 @@ class TestGetLastOutput:
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
+
+    def test_agents_conversations_url(self) -> None:
+        assert (
+            reverse(
+                "sentry-api-0-organization-agent-conversations",
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            )
+            == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
+        )
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
@@ -243,6 +253,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["inputTokens"] == LLM_INPUT_TOKENS * 2
         assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
+        assert conversation["projectId"] == self.project.id
+        assert conversation["generationDuration"] > 0
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
         assert conversation["endTimestamp"] > 0
@@ -397,7 +409,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_multiple_conversations(self) -> None:
         """Test multiple conversations are returned correctly"""
-        now = before_now(days=40).replace(microsecond=0)
+        now = before_now(days=24).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
@@ -438,7 +450,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
-        now = before_now(days=50).replace(microsecond=0)
+        now = before_now(days=25).replace(microsecond=0)
 
         for i in range(3):
             conversation_id = uuid4().hex
@@ -474,7 +486,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_zero_values(self) -> None:
         """Test conversations with zero values for token metrics but with input/output"""
-        now = before_now(days=60).replace(microsecond=0)
+        now = before_now(days=26).replace(microsecond=0)
         conversation_id = uuid4().hex
 
         self.store_ai_span(
@@ -513,7 +525,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_mixed_error_statuses(self) -> None:
         """Test that various error statuses are counted correctly"""
-        now = before_now(days=70).replace(microsecond=0)
+        now = before_now(days=27).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -556,7 +568,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_flow_ordering(self) -> None:
         """Test that flow agents are ordered by timestamp"""
-        now = before_now(days=80).replace(microsecond=0)
+        now = before_now(days=28).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1237,7 +1249,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_errors_counted(self) -> None:
         """Test that toolErrors counts only failed tool spans"""
-        now = before_now(days=35).replace(microsecond=0)
+        now = before_now(days=29).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1420,3 +1432,241 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         # Verify counts are correct
         assert conversation["llmCalls"] == 1
         assert conversation["flow"] == ["Test Agent"]
+
+    def _store_conversation_span(self, conversation_id, timestamp, project=None):
+        """Store one minimal ai_client span so a conversation shows up in the list."""
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=uuid4().hex,
+            messages=[{"role": "user", "content": "hello"}],
+            response_text="hi",
+            project=project,
+        )
+
+    def test_title_is_null_without_metadata(self) -> None:
+        """A conversation with no stored metadata still exposes a null title."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] is None
+
+    def test_title_from_metadata(self) -> None:
+        """A stored title for this project is returned on the conversation."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Refund a duplicate charge",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Refund a duplicate charge"
+
+    def test_title_is_null_when_metadata_row_is_untitled(self) -> None:
+        """A metadata row that never got a title does not change the response."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title=None,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] is None
+
+    def test_title_not_taken_from_unrelated_project(self) -> None:
+        """A same-named conversation in another project must not supply the title."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id=conversation_id,
+            title="Someone else's conversation",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id, other_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] is None
+
+    def test_title_for_conversation_spanning_projects(self) -> None:
+        """Equal source timestamps: lowest project id breaks the tie."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        lower_project = self.create_project(organization=self.organization)
+        higher_project = self.create_project(organization=self.organization)
+        assert lower_project.id < higher_project.id
+
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=2), project=lower_project
+        )
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=higher_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=lower_project,
+            conversation_id=conversation_id,
+            title="Lower project id title",
+            title_source_timestamp=now,
+        )
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id=conversation_id,
+            title="Higher project id title",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [lower_project.id, higher_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Lower project id title"
+
+    def test_title_earliest_source_timestamp_wins_across_projects(self) -> None:
+        """Across projects, earliest title_source_timestamp wins (not lowest project id)."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        lower_project = self.create_project(organization=self.organization)
+        higher_project = self.create_project(organization=self.organization)
+        assert lower_project.id < higher_project.id
+
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=2), project=lower_project
+        )
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=higher_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=lower_project,
+            conversation_id=conversation_id,
+            title="Later titled project",
+            title_source_timestamp=now - timedelta(seconds=1),
+        )
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id=conversation_id,
+            title="Earlier titled project",
+            title_source_timestamp=now - timedelta(seconds=2),
+        )
+
+        query = {
+            "project": [lower_project.id, higher_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Earlier titled project"
+
+    def test_title_found_when_only_higher_project_id_has_one(self) -> None:
+        """Every project the conversation spans is searched, not just the lowest."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        lower_project = self.create_project(organization=self.organization)
+        higher_project = self.create_project(organization=self.organization)
+        assert lower_project.id < higher_project.id
+
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=2), project=lower_project
+        )
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=higher_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id=conversation_id,
+            title="Higher project id title",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [lower_project.id, higher_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Higher project id title"
+
+    @patch(
+        "sentry.api.endpoints.organization_ai_conversations.fetch_conversation_titles",
+        side_effect=Exception("metadata unavailable"),
+    )
+    def test_title_lookup_failure_does_not_break_list(
+        self, mock_fetch_conversation_titles: MagicMock
+    ) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] is None
+        assert mock_fetch_conversation_titles.call_count == 1

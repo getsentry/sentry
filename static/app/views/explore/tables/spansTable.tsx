@@ -1,16 +1,13 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Pagination} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
@@ -20,10 +17,7 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
-  TableHeadCellContent,
   TableRow,
-  TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -61,13 +55,6 @@ export function SpansTable({
 
   const {result, eventView} = spansTableResult;
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields,
-    tableRef,
-    {minimumColumnWidth: 50}
-  );
-
   const meta = useMemo(
     () =>
       addValidatedFieldTypesToMeta({
@@ -88,7 +75,7 @@ export function SpansTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="spans-table">
+      <Table data-test-id="spans-table" fields={visibleFields} minimumColumnWidth={50}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -112,34 +99,15 @@ export function SpansTable({
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
-                  {i !== visibleFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
+                <TableHeadCell
+                  align={align}
+                  columnIndex={i}
+                  key={i}
+                  isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
+                >
+                  {label}
                 </TableHeadCell>
               );
             })}
@@ -147,13 +115,13 @@ export function SpansTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
               <TableRow key={i}>
@@ -172,11 +140,11 @@ export function SpansTable({
               </TableRow>
             ))
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>
