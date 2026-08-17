@@ -1,23 +1,24 @@
-import {UserFixture} from 'sentry-fixture/user';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
-
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
-import {ConfigStore} from 'sentry/stores/configStore';
 
 // 2026-07-29T06:40:00Z is 2026-07-28 11:40 PM in Los Angeles (PDT).
 const DATE = '2026-07-29T06:40:00Z';
 
-function renderInTimezone(children: NonNullable<React.ReactNode>, timezone: string) {
-  return render(<TimezoneProvider timezone={timezone}>{children}</TimezoneProvider>);
+function renderInTimezone(
+  children: NonNullable<React.ReactNode>,
+  timezone: string,
+  clockDisplay: DateTimeContextValue['clockDisplay'] = '12'
+) {
+  return render(
+    <DateTimeProvider value={{timezone, clockDisplay}}>{children}</DateTimeProvider>
+  );
 }
 
 describe('RelativeTime', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2027-03-29T06:40:00Z'));
-    ConfigStore.set('user', UserFixture());
   });
 
   afterEach(() => {
@@ -32,6 +33,16 @@ describe('RelativeTime', () => {
 
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
     expect(screen.getByText('8 months ago')).toBeInTheDocument();
+  });
+
+  it('renders no header when it has no label', () => {
+    // Most timestamps in the app are already labelled by what they sit next to,
+    // so the rows are the whole card.
+    renderInTimezone(<RelativeTime date={DATE} suffix="ago" />, 'America/Los_Angeles');
+
+    expect(screen.queryByText('8 months ago')).not.toBeInTheDocument();
+    expect(screen.getByText('PDT')).toBeInTheDocument();
+    expect(screen.getByText('UTC')).toBeInTheDocument();
   });
 
   it('renders the viewer timezone and UTC rows', () => {
@@ -59,19 +70,26 @@ describe('RelativeTime', () => {
   });
 
   it('honors the 24 hour clock preference', () => {
-    const user = UserFixture();
-    ConfigStore.set('user', {
-      ...user,
-      options: {...user.options, clock24Hours: true},
-    });
-
     renderInTimezone(
       <RelativeTime date={DATE} label="Last Seen" />,
-      'America/Los_Angeles'
+      'America/Los_Angeles',
+      '24'
     );
 
     expect(screen.getByText('23:40')).toBeInTheDocument();
     expect(screen.getByText('06:40')).toBeInTheDocument();
+  });
+
+  it('shows seconds when asked', () => {
+    // Spans in a trace are not identified by the minute alone, so dropping the
+    // seconds the old tooltip showed would lose what the row is for.
+    renderInTimezone(
+      <RelativeTime date={DATE} label="Last Seen" showSeconds />,
+      'America/Los_Angeles'
+    );
+
+    expect(screen.getByText('11:40:00 PM')).toBeInTheDocument();
+    expect(screen.getByText('6:40:00 AM')).toBeInTheDocument();
   });
 
   it('collapses to one row when the viewer is already in UTC', () => {

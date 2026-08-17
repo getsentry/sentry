@@ -24,27 +24,38 @@ showing the absolute time twice: once in the viewer's timezone and once in UTC.
 
 ## Usage
 
-This is tooltip content, not a standalone element. It is designed to fill a tooltip edge to
-edge, and handles the padding and alignment that requires by itself — adopting the card never
-restyles the overlay, so it cannot affect any other tooltip. `RELATIVE_TIME_TOOLTIP_PROPS`
-carries the one thing that must come from the tooltip: the width the card is designed at.
+You usually do not render this yourself. `TimeSince` is the trigger this card belongs to, and
+it renders one for every timestamp — pass `tooltipPrefix` to give the card its header.
 
 ```jsx
-import {RELATIVE_TIME_TOOLTIP_PROPS, RelativeTime} from '@sentry/scraps/relativeTime';
-
-<TimeSince
-  date={date}
-  suffix="ago"
-  unitStyle="short"
-  {...RELATIVE_TIME_TOOLTIP_PROPS}
-  tooltipBody={
-    <RelativeTime date={date} label={t('Last Seen')} suffix="ago" unitStyle="short" />
-  }
-/>;
+<TimeSince date={date} suffix="ago" unitStyle="short" tooltipPrefix={t('Last Seen')} />
 ```
 
-Pass `tooltipBody` rather than `tooltipPrefix` — the card renders its own label, and a
-`tooltipPrefix` would stack a second one above it.
+Reach for `RelativeTime` directly only when you are building the tooltip yourself. It is
+composed out of `Tooltip.Header` and `Tooltip.Grid`, which pad themselves, and the tooltip
+cannot see them through a component boundary — so it needs `padding="0"` and the card's width
+from you.
+
+```jsx
+import {RELATIVE_TIME_MAX_WIDTH, RelativeTime} from '@sentry/scraps/relativeTime';
+
+<Tooltip
+  padding="0"
+  maxWidth={RELATIVE_TIME_MAX_WIDTH}
+  title={<RelativeTime date={date} label={t('Last Seen')} />}
+>
+  {trigger}
+</Tooltip>;
+```
+
+## The header is optional
+
+Most timestamps in the app are already labelled by what they sit beside, so a card without a
+`label` is the two timezone rows on their own.
+
+<Storybook.Demo>
+  <RelativeTime date="2026-07-29T06:40:00Z" suffix="ago" />
+</Storybook.Demo>
 
 ## Matching the trigger
 
@@ -75,5 +86,15 @@ A viewer whose own timezone is UTC gets a single row rather than the same one tw
 that merely share UTC's offset — `GMT`, or `Europe/London` in winter — keep both rows, since
 there the differing label is the useful part.
 
-Zones without an abbreviation format as an offset instead (`+0545`, `+1245`). The card grows
-to fit those rather than clipping them, so it is not always exactly 240px wide.
+Zones without an abbreviation format as an offset instead (`+0545`, `+1245`). The card sizes
+to its content and is allowed to grow to `RELATIVE_TIME_MAX_WIDTH` to fit those rather than
+clipping them.
+
+## Seconds
+
+Timestamps that the minute alone does not identify — spans in a trace, say — can show seconds
+on both rows with `showSeconds`.
+
+<Storybook.Demo>
+  <RelativeTime date="2026-07-29T06:40:00Z" label="Span start" showSeconds />
+</Storybook.Demo>

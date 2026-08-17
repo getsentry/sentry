@@ -77,4 +77,61 @@ describe('TimeSince', () => {
     await userEvent.hover(timeElement);
     expect(await screen.findByText(/E[SD]T/)).toBeInTheDocument();
   });
+
+  describe('tooltip', () => {
+    const date = new Date('2024-01-15T12:00:00Z');
+
+    function renderInNewYork(element: React.ReactElement) {
+      return render(
+        <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+          {element}
+        </DateTimeProvider>
+      );
+    }
+
+    it('resolves every timestamp against UTC, labelled or not', async () => {
+      // The card is what every TimeSince opens now, so the UTC row is there
+      // whether or not the call site named the timestamp.
+      renderInNewYork(<TimeSince date={date} />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('UTC')).toBeInTheDocument();
+      expect(screen.getByText('7:00 AM')).toBeInTheDocument();
+      expect(screen.getByText('12:00 PM')).toBeInTheDocument();
+    });
+
+    it('uses tooltipPrefix as the card header', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipPrefix="Last Seen" suffix="ago" />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Last Seen')).toBeInTheDocument();
+    });
+
+    it('shows seconds when the call site asks for them', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipShowSeconds />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('7:00:00 AM')).toBeInTheDocument();
+    });
+
+    it('lets a tooltipBody replace the card', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipBody={<span>Custom body</span>} />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Custom body')).toBeInTheDocument();
+      expect(screen.queryByText('UTC')).not.toBeInTheDocument();
+    });
+
+    it('renders no tooltip when the absolute one is disabled', async () => {
+      renderInNewYork(<TimeSince date={date} disabledAbsoluteTooltip />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(screen.queryByText('UTC')).not.toBeInTheDocument();
+    });
+  });
 });
