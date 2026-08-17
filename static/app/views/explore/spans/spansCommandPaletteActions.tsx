@@ -396,7 +396,7 @@ function QueryClauseActions() {
             <CMDKAction
               key={`${visualize.yAxis}-${index}`}
               display={{
-                label: t('Edit Series'),
+                label: t('Edit Series Source'),
                 trailingItem: (
                   <QueryValue value={t('Series %s', String.fromCharCode(65 + index))} />
                 ),
