@@ -202,35 +202,40 @@ Tooltips can display rich content including formatted text, multiple lines, and 
 ## Structured Content
 
 When a tooltip carries labelled values rather than a sentence, compose it out of
-`Tooltip.Header`, `Tooltip.Body` and `Tooltip.Footer`. Each section applies its own
-padding so that it spans the full width of the overlay, which means the tooltip itself has
-to opt out of the shared content padding with `padding="0"`.
+`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`. Each section applies its own
+padding so that it spans the full width of the overlay, and composing them is by itself
+what drops the overlay's shared content padding — there is nothing to opt out of by hand.
 
-`Tooltip.Row` renders its children directly into the column tracks declared by
-`Tooltip.Body`, so a column stays aligned across every row — below, the two dates line up
-even though `PDT` and `UTC` are different widths. A row that owned its own grid would only
-align against itself.
+`Tooltip.Row` takes `leadingItems` and `trailingItems` either side of its main cell, and
+renders all three directly into the column tracks declared by `Tooltip.Grid`. That is what
+keeps a column aligned across every row — below, the two dates line up even though `PDT`
+and `UTC` are different widths. A row that owned its own grid would only align against
+itself.
+
+A component that renders these sections internally is opaque to the tooltip, so it does
+have to pass `padding="0"` itself.
 
 <Storybook.Demo>
   <Tooltip
-    padding="0"
     maxWidth={280}
     forceVisible
     title={
       <Fragment>
-        <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
-        <Tooltip.Body columns="max-content 1fr max-content">
-          <Tooltip.Row>
-            <Tag variant="info">PDT</Tag>
+        <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
+        <Tooltip.Grid columns="max-content 1fr max-content">
+          <Tooltip.Row
+            leadingItems={<Tag variant="info">PDT</Tag>}
+            trailingItems={<Text align="right">11:40 PM</Text>}
+          >
             <Text>Jul 28, 2026</Text>
-            <Text align="right">11:40 PM</Text>
           </Tooltip.Row>
-          <Tooltip.Row>
-            <Tag variant="muted">UTC</Tag>
+          <Tooltip.Row
+            leadingItems={<Tag variant="muted">UTC</Tag>}
+            trailingItems={<Text align="right">6:40 AM</Text>}
+          >
             <Text>Jul 29, 2026</Text>
-            <Text align="right">6:40 AM</Text>
           </Tooltip.Row>
-        </Tooltip.Body>
+        </Tooltip.Grid>
       </Fragment>
     }
   >
@@ -239,23 +244,24 @@ align against itself.
 </Storybook.Demo>
 ```jsx
 <Tooltip
-  padding="0"
   maxWidth={280}
   title={
     <Fragment>
-      <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
-      <Tooltip.Body columns="max-content 1fr max-content">
-        <Tooltip.Row>
-          <Tag variant="info">PDT</Tag>
+      <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
+      <Tooltip.Grid columns="max-content 1fr max-content">
+        <Tooltip.Row
+          leadingItems={<Tag variant="info">PDT</Tag>}
+          trailingItems={<Text align="right">11:40 PM</Text>}
+        >
           <Text>Jul 28, 2026</Text>
-          <Text align="right">11:40 PM</Text>
         </Tooltip.Row>
-        <Tooltip.Row>
-          <Tag variant="muted">UTC</Tag>
+        <Tooltip.Row
+          leadingItems={<Tag variant="muted">UTC</Tag>}
+          trailingItems={<Text align="right">6:40 AM</Text>}
+        >
           <Text>Jul 29, 2026</Text>
-          <Text align="right">6:40 AM</Text>
         </Tooltip.Row>
-      </Tooltip.Body>
+      </Tooltip.Grid>
     </Fragment>
   }
 >
@@ -304,14 +310,26 @@ For text that may or may not overflow, use the `showOnlyOnOverflow` prop to cond
         title="This text is long and will be truncated with overflow"
         showOnlyOnOverflow
       >
-        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+        <div
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           This text is long and will be truncated with overflow
         </div>
       </Tooltip>
     </div>
     <div style={{width: 200}}>
       <Tooltip title="Short text" showOnlyOnOverflow>
-        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+        <div
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           Short text
         </div>
       </Tooltip>

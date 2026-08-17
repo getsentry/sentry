@@ -1,4 +1,12 @@
-import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
+import {
+  Children,
+  createContext,
+  Fragment,
+  isValidElement,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+} from 'react';
 import {createPortal} from 'react-dom';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
@@ -34,7 +42,9 @@ interface TooltipContextProps {
   container: Element | DocumentFragment | null;
 }
 
-export const TooltipContext = createContext<TooltipContextProps>({container: null});
+export const TooltipContext = createContext<TooltipContextProps>({
+  container: null,
+});
 
 export interface TooltipProps extends UseHoverOverlayProps {
   /**
@@ -57,13 +67,42 @@ export interface TooltipProps extends UseHoverOverlayProps {
   /**
    * Padding around the tooltip content.
    *
-   * Set to `'0'` when composing `Tooltip.Header`, `Tooltip.Body` and
-   * `Tooltip.Footer` — each section applies its own padding so that it can span
-   * the full width of the overlay, which a shared outer padding would prevent.
+   * Composing `Tooltip.Header`, `Tooltip.Grid` or `Tooltip.Footer` directly into
+   * `title` drops this to `'0'` on its own — each section applies its own
+   * padding so that it can span the full width of the overlay, which a shared
+   * outer padding would prevent.
    *
-   * @default 'md lg'
+   * Set it explicitly when the sections are rendered by a component of your own
+   * rather than passed here as elements. `title={<RelativeTime />}` is one
+   * element as far as this tooltip can see, so it cannot tell that the sections
+   * are in there.
+   *
+   * @default 'md lg', or '0' when `title` composes sections
    */
   padding?: ContainerProps['padding'];
+}
+
+/**
+ * Whether `title` composes the section components directly, in which case the
+ * overlay's own padding has to get out of their way.
+ *
+ * Only sees what this tooltip was handed. A component that renders sections
+ * internally is opaque from here, so it passes `padding` itself.
+ */
+function composesSections(node: React.ReactNode): boolean {
+  return Children.toArray(node).some(child => {
+    if (!isValidElement(child)) {
+      return false;
+    }
+
+    // Sections are almost always siblings under a fragment, which is one child
+    // from out here.
+    if (child.type === Fragment) {
+      return composesSections((child.props as {children?: React.ReactNode}).children);
+    }
+
+    return TOOLTIP_SECTIONS.has(child.type as React.ElementType);
+  });
 }
 
 function TooltipComponent({
@@ -72,11 +111,13 @@ function TooltipComponent({
   title,
   disabled = false,
   maxWidth,
-  padding = 'md lg',
+  padding,
   isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
+  const sectioned = useMemo(() => composesSections(title), [title]);
+  const resolvedPadding = padding ?? (sectioned ? '0' : 'md lg');
   const {container} = useContext(TooltipContext);
   const {
     wrapTrigger,
@@ -140,7 +181,7 @@ function TooltipComponent({
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
-                  padding={padding}
+                  padding={resolvedPadding}
                   arrowProps={arrowProps}
                   originPoint={arrowData}
                   placement={placement}
@@ -181,10 +222,15 @@ interface TooltipHeaderProps {
    */
   children: React.ReactNode;
   /**
-   * Optional value pinned to the opposite edge of the header, e.g. the
-   * relative time the rows below resolve.
+   * Rendered before the label, e.g. an icon identifying what the section is
+   * about. Rendered as given, so that a graphic is not forced into text styles.
    */
-  trailing?: React.ReactNode;
+  leadingItems?: React.ReactNode;
+  /**
+   * Value pinned to the opposite edge of the header, e.g. the relative time the
+   * rows below resolve.
+   */
+  trailingItems?: React.ReactNode;
 }
 
 /**
@@ -192,27 +238,33 @@ interface TooltipHeaderProps {
  * and position carry the hierarchy, so it is deliberately not uppercased and
  * carries no bottom border.
  */
-function TooltipHeader({children, trailing}: TooltipHeaderProps) {
+function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderProps) {
   return (
     <Flex align="center" justify="between" gap="xs" padding="md lg">
-      <Text bold align="left">
-        {children}
-      </Text>
-      {defined(trailing) && (
+      <Flex align="center" gap="xs">
+        {leadingItems}
+        <Text bold align="left">
+          {children}
+        </Text>
+      </Flex>
+      {defined(trailingItems) && (
         <Text bold align="right" wrap="nowrap">
-          {trailing}
+          {trailingItems}
         </Text>
       )}
     </Flex>
   );
 }
 
-interface TooltipBodyProps {
+interface TooltipGridProps {
   children: React.ReactNode;
   /**
-   * The column tracks rows are laid out in. `Tooltip.Row` renders its children
+   * The column tracks rows are laid out in. `Tooltip.Row` renders its cells
    * straight into these tracks, so a column stays aligned across every row even
    * when one row's cell is wider than the same cell in the row above.
+   *
+   * A row with both `leadingItems` and `trailingItems` occupies three tracks,
+   * which is `'max-content 1fr max-content'`.
    *
    * @default '1fr'
    */
@@ -227,7 +279,7 @@ interface TooltipBodyProps {
  * The padded region a tooltip's rows are laid out in, and the grid those rows
  * share.
  */
-function TooltipBody({children, columns = '1fr', gap = '2xs sm'}: TooltipBodyProps) {
+function TooltipGrid({children, columns = '1fr', gap = '2xs sm'}: TooltipGridProps) {
   return (
     <Grid columns={columns} gap={gap} align="center" padding="md lg">
       {children}
@@ -236,39 +288,68 @@ function TooltipBody({children, columns = '1fr', gap = '2xs sm'}: TooltipBodyPro
 }
 
 interface TooltipRowProps {
+  /**
+   * The row's main cell.
+   */
   children: React.ReactNode;
+  /**
+   * Cell before the main one, e.g. what the row's value is labelled by.
+   */
+  leadingItems?: React.ReactNode;
+  /**
+   * Cell after the main one.
+   */
+  trailingItems?: React.ReactNode;
 }
 
 /**
- * One row of a `Tooltip.Body`. Renders as `display: contents` so that its
- * children become grid items of the body itself rather than of a nested box —
- * a row that owned its own grid would align its columns only against itself.
+ * One row of a `Tooltip.Grid`, as up to three cells.
+ *
+ * Renders as `display: contents` so that those cells become grid items of the
+ * grid itself rather than of a nested box — a row that established its own
+ * layout box would align its columns only against itself, which is the whole
+ * thing a shared grid is for. Rows in one grid should therefore fill the same
+ * tracks as each other.
  */
-function TooltipRow({children}: TooltipRowProps) {
-  return <Container display="contents">{children}</Container>;
+function TooltipRow({children, leadingItems, trailingItems}: TooltipRowProps) {
+  return (
+    <Container display="contents">
+      {leadingItems}
+      {children}
+      {trailingItems}
+    </Container>
+  );
 }
 
 interface TooltipFooterProps {
   children: React.ReactNode;
   /**
-   * Optional value pinned to the opposite edge of the footer.
+   * Rendered before the label, e.g. an icon. Rendered as given, so that a
+   * graphic is not forced into text styles.
    */
-  trailing?: React.ReactNode;
+  leadingItems?: React.ReactNode;
+  /**
+   * Value pinned to the opposite edge of the footer.
+   */
+  trailingItems?: React.ReactNode;
 }
 
 /**
  * Trailing note for a tooltip, e.g. what the rows above are qualified by. Muted
  * so it reads as secondary to them.
  */
-function TooltipFooter({children, trailing}: TooltipFooterProps) {
+function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterProps) {
   return (
     <Flex align="center" justify="between" gap="xs" padding="md lg">
-      <Text variant="muted" align="left">
-        {children}
-      </Text>
-      {defined(trailing) && (
+      <Flex align="center" gap="xs">
+        {leadingItems}
+        <Text variant="muted" align="left">
+          {children}
+        </Text>
+      </Flex>
+      {defined(trailingItems) && (
         <Text variant="muted" align="right" wrap="nowrap">
-          {trailing}
+          {trailingItems}
         </Text>
       )}
     </Flex>
@@ -276,22 +357,36 @@ function TooltipFooter({children, trailing}: TooltipFooterProps) {
 }
 
 /**
+ * The sections, as a set, so that a tooltip can recognize them in its own
+ * `title` and drop its content padding. Declared after them because a `const`
+ * is not hoisted; `composesSections` only runs during render, by which point
+ * this is initialized.
+ */
+const TOOLTIP_SECTIONS = new Set<React.ElementType>([
+  TooltipHeader,
+  TooltipGrid,
+  TooltipRow,
+  TooltipFooter,
+]);
+
+/**
  * Tooltips show contextual information about an element on hover.
  *
  * For content that is a row of labelled values rather than a sentence, compose
- * it from the sections rather than passing a block of markup. Each section
- * applies its own padding so that it spans the full width of the overlay, which
- * means the tooltip has to opt out of the shared content padding:
+ * it from the sections rather than passing a block of markup. Composing them
+ * here drops the overlay's content padding, so that each section can apply its
+ * own and span the full width:
  *
  * ```tsx
  * <Tooltip
- *   padding="0"
  *   title={
  *     <Fragment>
- *       <Tooltip.Header trailing="8mo ago">Last Seen</Tooltip.Header>
- *       <Tooltip.Body columns="max-content 1fr max-content">
- *         <Tooltip.Row>{cells}</Tooltip.Row>
- *       </Tooltip.Body>
+ *       <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
+ *       <Tooltip.Grid columns="max-content 1fr max-content">
+ *         <Tooltip.Row leadingItems={<Tag>UTC</Tag>} trailingItems={time}>
+ *           {date}
+ *         </Tooltip.Row>
+ *       </Tooltip.Grid>
  *     </Fragment>
  *   }
  * >
@@ -299,13 +394,17 @@ function TooltipFooter({children, trailing}: TooltipFooterProps) {
  * </Tooltip>
  * ```
  *
+ * A component that renders the sections internally is opaque from out here, so
+ * it has to pass `padding="0"` itself.
+ *
  * Sections set their own text alignment, because a tooltip centers its content
- * by default — right for a sentence, wrong for a row of labelled values. They
- * set no font size, so they inherit the tooltip's.
+ * by default — right for a sentence, wrong for a row of labelled values. Cells
+ * passed to a `Tooltip.Row` are yours to align. They set no font size, so they
+ * inherit the tooltip's.
  */
 export const Tooltip = Object.assign(TooltipComponent, {
   Header: TooltipHeader,
-  Body: TooltipBody,
+  Grid: TooltipGrid,
   Row: TooltipRow,
   Footer: TooltipFooter,
 });
