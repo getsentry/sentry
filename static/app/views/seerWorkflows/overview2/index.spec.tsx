@@ -163,6 +163,12 @@ describe('AutofixOverview2', () => {
     });
   }
 
+  function getTagForText(text: string) {
+    const tag = screen.getByText(text).closest('[data-test-id="tag-background"]');
+    expect(tag).toBeInTheDocument();
+    return tag!;
+  }
+
   it('gates the page and issues no requests when the feature is disabled', async () => {
     const {baseRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
@@ -529,9 +535,57 @@ describe('AutofixOverview2', () => {
       'https://github.com/getsentry/sentry/pull/2'
     );
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
-    expect(screen.getByText('Checks passed')).toBeInTheDocument();
-    expect(screen.getByText('Approved')).toBeInTheDocument();
+    const approvedTag = getTagForText('Approved');
+    const checksPassingTag = getTagForText('Checks Passing');
+    expect(
+      approvedTag.compareDocumentPosition(checksPassingTag) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(approvedTag.className).toEqual(checksPassingTag.className);
     expect(screen.getByText('src/sentry/foo.py')).toBeInTheDocument();
+  });
+
+  it('renders failure and pending statuses with the configured tags', async () => {
+    const failingPullRequest: OverviewPullRequest = {
+      ...pullRequestFixture({number: 3, status: 'open'}),
+      checksStatus: 'failure',
+      reviewStatus: 'changes_requested',
+    };
+    const pendingPullRequest: OverviewPullRequest = {
+      ...pullRequestFixture({number: 4, status: 'open'}),
+      checksStatus: 'pending',
+      reviewStatus: 'review_required',
+    };
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {...rootCauseRun, pullRequests: [failingPullRequest]},
+          {
+            ...rootCauseRun,
+            groupId: '3',
+            shortId: 'PROJ-2',
+            title: 'KeyError in proxy handler',
+            seerRunId: 'run-2',
+            pullRequests: [pendingPullRequest],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Changes Requested')).toBeInTheDocument();
+    const changesRequestedTag = getTagForText('Changes Requested');
+    const checksFailingTag = getTagForText('Checks Failing');
+    const checksRunningTag = getTagForText('Checks Running');
+    expect(
+      changesRequestedTag.compareDocumentPosition(checksFailingTag) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(changesRequestedTag.className).toEqual(checksRunningTag.className);
+    expect(checksFailingTag.className).not.toEqual(changesRequestedTag.className);
+    expect(screen.queryByText(/^\d+ Checks Failing$/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Review Required')).not.toBeInTheDocument();
   });
 
   it('renders a draft pull request as the actionable one', async () => {
