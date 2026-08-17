@@ -98,11 +98,7 @@ class _RetryableTeapotError(TeapotUnavailable):
 
 def _resolve_url() -> str | None:
     base = getattr(settings, "SENTRY_TEAPOT_URL", None)
-    if base:
-        return base.rstrip("/")
-    configured = options.get("teapot.options") or {}
-    url = configured.get("url") if isinstance(configured, dict) else None
-    return url.rstrip("/") if url else None
+    return base.rstrip("/") if base else None
 
 
 class TeapotClient:

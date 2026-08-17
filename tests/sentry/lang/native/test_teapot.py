@@ -376,36 +376,9 @@ def test_client_non_json_body() -> None:
 def test_client_missing_url_raises() -> None:
     from django.conf import settings
 
-    with (
-        mock.patch.object(settings, "SENTRY_TEAPOT_URL", None, create=True),
-        mock.patch(
-            "sentry.lang.native.teapot.options.get",
-            lambda key: {} if key == "teapot.options" else None,
-        ),
-    ):
+    with mock.patch.object(settings, "SENTRY_TEAPOT_URL", None, create=True):
         with pytest.raises(TeapotRequestError):
             TeapotClient(_FakeProject(), "abc")
-
-
-def test_client_falls_back_to_options() -> None:
-    from django.conf import settings
-
-    project = _FakeProject()
-    dump = _FakeAttachment(b"dump")
-    with (
-        mock.patch.object(settings, "SENTRY_TEAPOT_URL", None, create=True),
-        mock.patch(
-            "sentry.lang.native.teapot.options.get",
-            lambda key: (
-                {"url": "http://teapot-from-options.test"} if key == "teapot.options" else None
-            ),
-        ),
-        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-    ):
-        mock_post.return_value = _FakeResponse(200, _completed_response())
-        TeapotClient(project, "abc").symbolicate(dump)
-
-    assert mock_post.call_args[0][0] == "http://teapot-from-options.test/symbolicate"
 
 
 def test_client_skips_when_attachment_not_stored() -> None:
@@ -430,13 +403,7 @@ def test_submit_to_teapot_returns_none_on_request_error() -> None:
     # (None) so the caller doesn't trip the breaker.
     from django.conf import settings
 
-    with (
-        mock.patch.object(settings, "SENTRY_TEAPOT_URL", None, create=True),
-        mock.patch(
-            "sentry.lang.native.teapot.options.get",
-            lambda key: None,
-        ),
-    ):
+    with mock.patch.object(settings, "SENTRY_TEAPOT_URL", None, create=True):
         assert submit_to_teapot(_FakeProject(), "abc", _FakeAttachment(b"dump"), []) is None
 
 
