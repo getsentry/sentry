@@ -474,6 +474,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 "status": "open",
                 "checksStatus": None,
                 "reviewStatus": None,
+                "repoName": "getsentry/sentry",
                 "files": [],
             }
         ]
@@ -659,6 +660,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert client.requested_keys == []
         assert pull_requests[0]["url"] is None
         assert pull_requests[0]["checksStatus"] is None
+        assert pull_requests[0]["repoName"] is None
 
     def test_run_without_pull_requests_has_empty_list(self):
         group = self.create_group()

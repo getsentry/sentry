@@ -20,6 +20,7 @@ class PullRequestPayload(TypedDict):
     status: str | None
     checksStatus: str | None
     reviewStatus: str | None
+    repoName: str | None
     files: list[PullRequestFilePayload]
 
 
