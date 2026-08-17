@@ -724,7 +724,7 @@ class VercelApiPipelineTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["step"] == "oauth_login"
         assert resp.data["stepIndex"] == 0
-        assert resp.data["totalSteps"] == 1
+        assert resp.data["totalSteps"] == 2
         assert resp.data["provider"] == "vercel"
         # The marketplace already granted the code, so the step signals the
         # frontend to auto-advance -- no authorize popup, no code echoed out.
@@ -772,6 +772,16 @@ class VercelApiPipelineTest(APITestCase):
 
         resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
         assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "vercel_confirm_install"
+        assert resp.data["data"]["account"] == "My Team Name"
+        assert resp.data["data"]["accountType"] == "team"
+        assert resp.data["data"]["organization"] == self.organization.name
+        # Exchanging the code must not install anything on its own.
+        assert not Integration.objects.filter(provider="vercel").exists()
+
+        resp = self._advance_step({"state": self._get_pipeline_signature(resp)})
+        assert resp.status_code == 200
         assert resp.data["status"] == "complete"
 
         integration = Integration.objects.get(provider="vercel")
@@ -814,6 +824,13 @@ class VercelApiPipelineTest(APITestCase):
 
         resp = self._advance_step({"code": "oauth-code", "state": pipeline_signature})
         assert resp.status_code == 200
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "vercel_confirm_install"
+        assert resp.data["data"]["account"] == "My Name"
+        assert resp.data["data"]["accountType"] == "user"
+
+        resp = self._advance_step({"state": self._get_pipeline_signature(resp)})
+        assert resp.status_code == 200
         assert resp.data["status"] == "complete"
 
         integration = Integration.objects.get(provider="vercel")
@@ -826,6 +843,35 @@ class VercelApiPipelineTest(APITestCase):
             organization_id=self.organization.id,
             integration=integration,
         ).exists()
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel")
+    def test_confirm_step_invalid_state_does_not_install(self) -> None:
+        responses.add(
+            responses.POST,
+            VercelIdentityProvider.oauth_access_token_url,
+            json={
+                "access_token": "my_access_token",
+                "user_id": "my_user_id",
+                "installation_id": self.config_id,
+                "team_id": self.team_id,
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_TEAM_URL % self.team_id}?teamId={self.team_id}",
+            json={"name": "My Team Name", "slug": "my_team_slug"},
+        )
+
+        resp = self._initialize_pipeline()
+        resp = self._advance_step(
+            {"code": "oauth-code", "state": self._get_pipeline_signature(resp)}
+        )
+        assert resp.data["step"] == "vercel_confirm_install"
+
+        resp = self._advance_step({"state": "not-the-pipeline-signature"})
+        assert resp.status_code == 400
+        assert not Integration.objects.filter(provider="vercel").exists()
 
 
 class VercelIntegrationMetadataTest(TestCase):
