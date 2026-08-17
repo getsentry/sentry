@@ -26,15 +26,19 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateSortBys,
+  useSetQueryParamsSortBys,
   useSetQueryParamsVisualizes,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
@@ -269,10 +273,56 @@ function SeriesActions({
           trailingItem: <QueryValue value={sortBySummary} />,
         }}
       >
-        <CMDKAction display={{label: t('Configure sorting')}} onAction={() => {}} />
+        <SortActions />
       </CMDKAction>
     </Fragment>
   );
+}
+
+function SortActions() {
+  const mode = useQueryParamsMode();
+  const fields = useQueryParamsFields();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const setSampleSortBys = useSetQueryParamsSortBys();
+  const setAggregateSortBys = useSetQueryParamsAggregateSortBys();
+  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
+  const setSortBys = mode === Mode.SAMPLES ? setSampleSortBys : setAggregateSortBys;
+  const currentSort = sortBys[0];
+  const fieldOptions = useSortByFields({
+    config: {traceItemType: TraceItemDataset.SPANS, enabled: true},
+    fields,
+    groupBys,
+    mode,
+    yAxes: visualizes.map(visualize => visualize.yAxis),
+  });
+
+  return fieldOptions.map(option => (
+    <CMDKAction
+      key={option.value}
+      display={{
+        label: option.textValue ?? option.value,
+        trailingItem:
+          currentSort?.field === option.value ? (
+            <QueryValue
+              value={currentSort.kind === 'asc' ? t('Ascending') : t('Descending')}
+            />
+          ) : undefined,
+      }}
+      keywords={[option.value]}
+    >
+      <CMDKAction
+        display={{label: t('Ascending')}}
+        onAction={() => setSortBys([{field: option.value, kind: 'asc'}])}
+      />
+      <CMDKAction
+        display={{label: t('Descending')}}
+        onAction={() => setSortBys([{field: option.value, kind: 'desc'}])}
+      />
+    </CMDKAction>
+  ));
 }
 
 function SourceActions({
