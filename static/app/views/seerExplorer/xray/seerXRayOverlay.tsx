@@ -126,6 +126,8 @@ export function SeerXRayOverlay() {
     return null;
   }
 
+  const selectedNode = measured.find(node => node.nodeId === selectedNodeId);
+
   return createPortal(
     <Container>
       {measured.map(node => {
@@ -148,17 +150,27 @@ export function SeerXRayOverlay() {
             >
               {node.nodeType}
             </NodeLabel>
-            {isSelected && (
-              <NodeDataPanel>
-                <NodeDataPanelTitle>{node.nodeType}</NodeDataPanelTitle>
-                <NodeDataPanelBody>
-                  {JSON.stringify(node.data, null, 2)}
-                </NodeDataPanelBody>
-              </NodeDataPanel>
-            )}
           </NodeBox>
         );
       })}
+      {/* Rendered last (and outside every NodeBox) so it always paints on
+          top of every box's own content, regardless of which node — shallow
+          or deep — it belongs to. */}
+      {selectedNode && (
+        <NodeDataPanel
+          style={{
+            top: selectedNode.rect.top,
+            left: selectedNode.rect.left,
+            maxWidth: selectedNode.rect.width,
+            maxHeight: selectedNode.rect.height,
+          }}
+        >
+          <NodeDataPanelTitle>{selectedNode.nodeType}</NodeDataPanelTitle>
+          <NodeDataPanelBody>
+            {JSON.stringify(selectedNode.data, null, 2)}
+          </NodeDataPanelBody>
+        </NodeDataPanel>
+      )}
     </Container>,
     document.body
   );
@@ -199,11 +211,9 @@ const NodeLabel = styled('button')<{color: (typeof DEPTH_COLORS)[number]}>`
 `;
 
 const NodeDataPanel = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  max-width: 420px;
-  max-height: 320px;
+  position: fixed;
+  min-width: 420px;
+  min-height: 320px;
   overflow: auto;
   pointer-events: auto;
   background: ${p => p.theme.tokens.background.primary};
