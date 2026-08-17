@@ -16,18 +16,18 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PullRequestStatus} from 'sentry/types/integrations';
-import AutofixOverview2 from 'sentry/views/seerWorkflows/overview2';
+import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import type {
   AutofixOverviewResponse,
   OverviewPullRequest,
   OverviewRunIssue,
-} from 'sentry/views/seerWorkflows/overview2/types';
+} from 'sentry/views/seerWorkflows/overview/types';
 
-describe('AutofixOverview2', () => {
+describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
     features: ['seer-night-shift-ui'],
   });
-  const basePath = `/organizations/${organization.slug}/issues/autofix/overview2/`;
+  const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
 
   const emptyMilestones = {
     autofix_root_cause: [],
@@ -158,7 +158,7 @@ describe('AutofixOverview2', () => {
   });
 
   function renderPage() {
-    return render(<AutofixOverview2 />, {
+    return render(<AutofixOverview />, {
       organization,
       initialRouterConfig: {location: {pathname: basePath}},
     });
@@ -175,7 +175,7 @@ describe('AutofixOverview2', () => {
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
-    render(<AutofixOverview2 />, {
+    render(<AutofixOverview />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig: {location: {pathname: basePath}},
     });
@@ -292,7 +292,7 @@ describe('AutofixOverview2', () => {
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
-    render(<AutofixOverview2 />, {
+    render(<AutofixOverview />, {
       organization,
       initialRouterConfig: {
         location: {pathname: basePath, query: {statsPeriod: '7d'}},
@@ -314,7 +314,7 @@ describe('AutofixOverview2', () => {
     const {baseRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
-    // Overview2 reads everything from the overview endpoint; the legacy
+    // Overview reads everything from the overview endpoint; the legacy
     // per-card endpoints must never be hit.
     const runsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,

@@ -1,6 +1,19 @@
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Actor} from 'sentry/types/core';
 import type {Level} from 'sentry/types/event';
-import type {Group, PriorityLevel} from 'sentry/types/group';
+import type {
+  Group,
+  IssueCategory,
+  IssueType,
+  PriorityLevel,
+  SuggestedOwner,
+} from 'sentry/types/group';
+import type {
+  PullRequestChecksStatus,
+  PullRequestFileChangeType,
+  PullRequestReviewStatus,
+  PullRequestStatus,
+} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
 
 // Shared staleTime for the overview's issue/run/state queries.
@@ -26,7 +39,7 @@ export type AutofixStateKey =
 // (root cause → plan → code → PR → merge) a card in this stage has reached; it
 // is the single source of stage precedence, driving the section-header
 // checklist and the focus-mode fallback (which walks stages furthest-first).
-export interface PipelineStage {
+interface PipelineStage {
   fill: number;
   key: AutofixStateKey;
 }
@@ -41,7 +54,7 @@ export const PIPELINE: PipelineStage[] = [
   {key: 'merged', fill: 5},
 ];
 
-export const SECTION_ORDER: AutofixStateKey[] = PIPELINE.map(stage => stage.key);
+const SECTION_ORDER: AutofixStateKey[] = PIPELINE.map(stage => stage.key);
 
 // One answered question, mirrors the run output in
 // src/sentry/api/serializers/models/seer_run.py
@@ -91,4 +104,97 @@ export interface OverviewIssue {
   title: string;
   userCount: number;
   owners?: Group['owners'];
+}
+
+export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
+
+// The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
+type MilestoneKey =
+  | 'autofix_root_cause'
+  | 'autofix_solution'
+  | 'autofix_code_changes'
+  | 'has_pull_request'
+  | 'pull_requests_merged';
+
+// Layout is the frontend's: the endpoint groups by milestone, we decide which
+// section each milestone renders into and in what order.
+const MILESTONE_BY_SECTION: Record<AutofixStateKey, MilestoneKey> = {
+  review_pr: 'has_pull_request',
+  code_changes_ready: 'autofix_code_changes',
+  solution_ready: 'autofix_solution',
+  needs_investigation: 'autofix_root_cause',
+  merged: 'pull_requests_merged',
+};
+
+export const OVERVIEW_SECTIONS: Array<{
+  key: AutofixStateKey;
+  milestone: MilestoneKey;
+}> = SECTION_ORDER.map(key => ({
+  key,
+  milestone: MILESTONE_BY_SECTION[key],
+}));
+
+export interface OverviewPullRequestFile {
+  additions: number;
+  changeType: PullRequestFileChangeType | null;
+  deletions: number;
+  path: string;
+}
+
+export interface OverviewPullRequest {
+  checksStatus: PullRequestChecksStatus | null;
+  files: OverviewPullRequestFile[];
+  id: string;
+  number: number;
+  reviewStatus: PullRequestReviewStatus | null;
+  status: PullRequestStatus | null;
+  url: string | null;
+}
+
+export interface PullRequestFileDiff {
+  patch: string | null;
+  path: string;
+}
+
+export interface PullRequestFilesResponse {
+  files: PullRequestFileDiff[];
+}
+
+export interface OverviewCodeChangeFile {
+  patch: FilePatch;
+  repoName: string;
+}
+
+// Issue-side facts the endpoint serializes off the Group; mirrors the fields the
+// reused priority/assignee widgets and the vitals row consume.
+export interface OverviewRunIssue {
+  assignedTo: Actor | null;
+  count: string | null;
+  issueCategory: IssueCategory | null;
+  issueType: IssueType | null;
+  lastSeen: string | null;
+  level: Level | null;
+  owners: SuggestedOwner[];
+  priority: PriorityLevel | null;
+  priorityLockedAt: string | null;
+  project: {id: string; slug: string; platform?: PlatformKey};
+  substatus: string | null;
+  userCount: number | null;
+}
+
+export interface OverviewRun {
+  groupId: string;
+  issue: OverviewRunIssue;
+  lastTriggeredAt: string;
+  proposedFix: {oneLineSummary: string | null} | null;
+  pullRequests: OverviewPullRequest[];
+  rootCause: {oneLineDescription: string | null} | null;
+  seerRunId: string;
+  shortId: string;
+  title: string;
+  codeChanges?: OverviewCodeChangeFile[];
+}
+
+export interface AutofixOverviewResponse {
+  runsByMilestone: Record<MilestoneKey, OverviewRun[]>;
 }

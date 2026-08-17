@@ -28,14 +28,10 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  STATUS_GROUP_META,
-  type StatusGroupKey,
-  StatusGroupTooltip,
-} from 'sentry/views/seerWorkflows/overview/statusGroups';
 
-import {Overview2Card} from './issueCard';
-import {OVERVIEW2_SECTIONS, type OverviewSort} from './types';
+import {OverviewCard} from './issueCard';
+import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
+import {OVERVIEW_SECTIONS, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
@@ -45,7 +41,7 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'users', label: t('Most users')},
 ];
 
-export default function AutofixOverview2() {
+export default function AutofixOverview() {
   const organization = useOrganization();
 
   return (
@@ -60,7 +56,7 @@ export default function AutofixOverview2() {
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
-          <AutofixOverview2Content organization={organization} />
+          <AutofixOverviewContent organization={organization} />
         </SentryDocumentTitle>
       </PageFiltersContainer>
     </Feature>
@@ -68,12 +64,12 @@ export default function AutofixOverview2() {
 }
 
 // Owns every request so a feature-disabled org mounts no query at all.
-function AutofixOverview2Content({organization}: {organization: Organization}) {
+function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
-    'seer-autofix-overview2:collapsed-groups',
+    'seer-autofix-overview:collapsed-groups',
     []
   );
 
@@ -88,7 +84,7 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
       sort,
       enabled: pageFiltersReady,
     });
-  const populatedSections = OVERVIEW2_SECTIONS.map(section => ({
+  const populatedSections = OVERVIEW_SECTIONS.map(section => ({
     ...section,
     runs: data?.runsByMilestone[section.milestone] ?? [],
   })).filter(section => section.runs.length > 0);
@@ -163,7 +159,7 @@ function AutofixOverview2Content({organization}: {organization: Organization}) {
                 <Disclosure.Content>
                   <Stack gap="md" paddingTop="sm">
                     {runs.map(run => (
-                      <Overview2Card
+                      <OverviewCard
                         key={run.seerRunId}
                         run={run}
                         orgSlug={organization.slug}
