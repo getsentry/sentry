@@ -4,7 +4,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
 
-import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
+import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {t} from 'sentry/locale';
 
 import {KeyboardShortcutsDrawer} from './keyboardShortcutsDrawer';
@@ -44,7 +44,7 @@ export function KeyboardShortcutsHotkeys() {
   useHotkeys(
     [
       {
-        match: [...VIEW_KEYBOARD_SHORTCUTS_SHORTCUTS],
+        match: VIEW_KEYBOARD_SHORTCUTS_SHORTCUT,
         includeInputs: true,
         callback: () => {
           if (visible) {

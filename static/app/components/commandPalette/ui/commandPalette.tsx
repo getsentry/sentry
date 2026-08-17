@@ -269,10 +269,18 @@ export function CommandPalette({
         .map(action => action.key)
     );
   }, [actions]);
+  const sectionSeparatorKeys = useMemo(() => {
+    return new Set(
+      actions
+        .filter(action => action.listItemType === 'section')
+        .slice(1)
+        .map(action => action.key)
+    );
+  }, [actions]);
 
   const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
-    children: actions.map((action, index) => {
+    children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
 
       if (action.listItemType === 'section') {
@@ -284,20 +292,14 @@ export function CommandPalette({
             {...{
               leadingItems: null,
               label: (
-                <Stack
-                  borderTop={index > 0 ? 'primary' : undefined}
-                  paddingTop={index > 0 ? 'md' : undefined}
-                  width="100%"
-                >
-                  <Flex align="center" gap="md" width="100%" minWidth={0}>
-                    <IconDefaultsProvider size="sm">
-                      {action.display.icon}
-                    </IconDefaultsProvider>
-                    <Text size="sm" bold variant="primary" ellipsis>
-                      {action.display.label}
-                    </Text>
-                  </Flex>
-                </Stack>
+                <Flex align="center" gap="md" width="100%" minWidth={0}>
+                  <IconDefaultsProvider size="sm">
+                    {action.display.icon}
+                  </IconDefaultsProvider>
+                  <Text size="sm" bold variant="primary" ellipsis>
+                    {action.display.label}
+                  </Text>
+                </Flex>
               ),
               details: action.display.details ? (
                 <Container style={{paddingLeft: '22px'}}>
@@ -591,8 +593,8 @@ export function CommandPalette({
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
   const content = (
-    <Stack gap="md">
-      <Container padding="xl xl 0">
+    <Stack height="550px" maxHeight="80vh">
+      <Stack gap="md" padding="xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
             return (
@@ -680,45 +682,46 @@ export function CommandPalette({
             );
           }}
         </Flex>
-      </Container>
 
-      {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery || isLoading ? null : (
-          <CommandPaletteNoResults />
-        )
-      ) : (
-        <ResultsList
-          direction="column"
-          width="100%"
-          padding="0 xl"
-          maxHeight="min(calc(100vh - 128px - 4rem), 400px)"
-          overflow="auto"
-        >
-          <ListBox
-            scrollContainerRef={resultsListRef}
-            listState={treeState}
-            keyDownHandler={() => true}
-            overlayIsOpen
-            virtualized
-            virtualizedListPadding={0}
-            size="md"
-            aria-label={t('Search results')}
-            selectionMode="none"
-            shouldUseVirtualFocus
-            onMouseEnter={() => {
-              mouseLeftResultsRef.current = false;
-            }}
-            onMouseLeave={() => {
-              mouseLeftResultsRef.current = true;
-            }}
-            onAction={key => {
-              onActionSelection(key, {
-                modifierKeys: modifierKeysRef.current,
-              });
-            }}
-          />
-        </ResultsList>
-      )}
+        {treeState.collection.size === 0 ? (
+          isEmptyPromptQuery || isLoading ? null : (
+            <CommandPaletteNoResults />
+          )
+        ) : (
+          <ResultsList
+            direction="column"
+            width="100%"
+            flex={1}
+            minHeight={0}
+            overflow="hidden"
+          >
+            <ListBox
+              scrollContainerRef={resultsListRef}
+              listState={treeState}
+              keyDownHandler={() => true}
+              overlayIsOpen
+              virtualized
+              virtualizedListPadding={0}
+              separatorBeforeKeys={sectionSeparatorKeys}
+              size="sm"
+              aria-label={t('Search results')}
+              selectionMode="none"
+              shouldUseVirtualFocus
+              onMouseEnter={() => {
+                mouseLeftResultsRef.current = false;
+              }}
+              onMouseLeave={() => {
+                mouseLeftResultsRef.current = true;
+              }}
+              onAction={key => {
+                onActionSelection(key, {
+                  modifierKeys: modifierKeysRef.current,
+                });
+              }}
+            />
+          </ResultsList>
+        )}
+      </Stack>
       <CommandPaletteHints />
     </Stack>
   );

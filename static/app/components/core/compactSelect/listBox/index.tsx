@@ -79,6 +79,8 @@ interface ListBoxProps<T extends ListItemBase>
    * Whether the select has a search input field.
    */
   searchable?: boolean;
+  /** Keys of options that should have a visual separator rendered before them. */
+  separatorBeforeKeys?: ReadonlySet<SelectKey>;
   /**
    * When false, hides option details.
    */
@@ -139,6 +141,7 @@ export function ListBox<T extends ListItemBase>({
   virtualized,
   virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
+  separatorBeforeKeys = EMPTY_SET,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -275,14 +278,26 @@ export function ListBox<T extends ListItemBase>({
                 }
 
                 return (
-                  <ListBoxOption
-                    key={item.key}
-                    {...virtualizer.itemProps(row.index)}
-                    item={item}
-                    listState={listState}
-                    size={size}
-                    showDetails={showDetails}
-                  />
+                  <Fragment key={item.key}>
+                    {separatorBeforeKeys.has(item.key) && (
+                      <Container
+                        as="li"
+                        display="block"
+                        padding="md"
+                        role="separator"
+                        width="100%"
+                      >
+                        <Container borderTop="muted" />
+                      </Container>
+                    )}
+                    <ListBoxOption
+                      {...virtualizer.itemProps(row.index)}
+                      item={item}
+                      listState={listState}
+                      size={size}
+                      showDetails={showDetails}
+                    />
+                  </Fragment>
                 );
               })}
 
