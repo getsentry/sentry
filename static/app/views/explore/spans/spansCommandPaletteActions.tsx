@@ -17,6 +17,7 @@ import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,8 +38,6 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
-  useSetQueryParamsAggregateSortBys,
-  useSetQueryParamsSortBys,
   useSetQueryParamsVisualizes,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
@@ -197,18 +196,30 @@ function FilterActions({
 
 function SeriesActions({
   addSearchFilter,
+  groupBys,
   groupBySummary,
+  mode,
   onChange,
+  query,
+  seriesId,
+  setSortBys,
+  sortBys,
   sortBySummary,
   visualize,
-  query,
+  visualizes,
 }: {
   addSearchFilter: (filter: SearchFilter) => void;
   groupBySummary: string;
+  groupBys: readonly string[];
+  mode: Mode;
   onChange: (visualize: Visualize) => void;
   query: string;
+  seriesId: string;
+  setSortBys: (sortBys: Sort[]) => void;
   sortBySummary: string;
+  sortBys: readonly Sort[];
   visualize: Visualize;
+  visualizes: readonly Visualize[];
 }) {
   const parsedFunction = isVisualizeFunction(visualize) ? visualize.parsedFunction : null;
   const sourceSummary = parsedFunction?.arguments[0] ?? visualize.yAxis;
@@ -217,6 +228,7 @@ function SeriesActions({
   return (
     <Fragment>
       <CMDKAction
+        id={`${seriesId}-source-${sourceSummary}`}
         display={{
           label: t('Edit Source'),
           trailingItem: <QueryValue value={sourceSummary} />,
@@ -226,6 +238,7 @@ function SeriesActions({
         <SourceActions visualize={visualize} onChange={onChange} />
       </CMDKAction>
       <CMDKAction
+        id={`${seriesId}-aggregate-${aggregateSummary}`}
         display={{
           label: t('Edit Aggregate Function'),
           trailingItem: <QueryValue value={aggregateSummary} />,
@@ -266,30 +279,44 @@ function SeriesActions({
       >
         <CMDKAction display={{label: t('Configure grouping')}} onAction={() => {}} />
       </CMDKAction>
-      <FilterActions addSearchFilter={addSearchFilter} summary={query} />
+      <FilterActions
+        key={`${seriesId}-filter-${query}`}
+        addSearchFilter={addSearchFilter}
+        summary={query}
+      />
       <CMDKAction
+        id={`${seriesId}-sort-${sortBySummary}`}
         display={{
           label: t('Edit Sort By'),
           trailingItem: <QueryValue value={sortBySummary} />,
         }}
       >
-        <SortActions />
+        <SortActions
+          groupBys={groupBys}
+          mode={mode}
+          setSortBys={setSortBys}
+          sortBys={sortBys}
+          visualizes={visualizes}
+        />
       </CMDKAction>
     </Fragment>
   );
 }
 
-function SortActions() {
-  const mode = useQueryParamsMode();
+function SortActions({
+  groupBys,
+  mode,
+  setSortBys,
+  sortBys,
+  visualizes,
+}: {
+  groupBys: readonly string[];
+  mode: Mode;
+  setSortBys: (sortBys: Sort[]) => void;
+  sortBys: readonly Sort[];
+  visualizes: readonly Visualize[];
+}) {
   const fields = useQueryParamsFields();
-  const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
-  const sampleSortBys = useQueryParamsSortBys();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const setSampleSortBys = useSetQueryParamsSortBys();
-  const setAggregateSortBys = useSetQueryParamsAggregateSortBys();
-  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
-  const setSortBys = mode === Mode.SAMPLES ? setSampleSortBys : setAggregateSortBys;
   const currentSort = sortBys[0];
   const fieldOptions = useSortByFields({
     config: {traceItemType: TraceItemDataset.SPANS, enabled: true},
@@ -306,7 +333,10 @@ function SortActions() {
     <Fragment>
       <CMDKAction
         display={{
-          label: currentFieldOption?.textValue ?? currentField,
+          label: t('Edit Field'),
+          trailingItem: (
+            <QueryValue value={currentFieldOption?.textValue ?? currentField} />
+          ),
         }}
         keywords={['field', 'sort', ...fieldOptions.map(option => option.value)]}
         prompt={t('Select sort field')}
@@ -322,7 +352,7 @@ function SortActions() {
       </CMDKAction>
       <CMDKAction
         display={{
-          label: t('Order'),
+          label: t('Edit Order'),
           trailingItem: (
             <QueryValue
               value={currentKind === 'asc' ? t('Ascending') : t('Descending')}
@@ -422,33 +452,53 @@ function QueryClauseActions() {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
   const [draftQuery, setDraftQuery] = useState(query);
+  const [draftVisualizes, setDraftVisualizes] = useState<Visualize[]>([...visualizes]);
+  const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
+    ...sampleSortBys,
+  ]);
+  const [draftAggregateSortBys, setDraftAggregateSortBys] = useState<Sort[]>([
+    ...aggregateSortBys,
+  ]);
 
   useEffect(() => {
     if (!commandPaletteState.open) {
       setDraftQuery(query);
+      setDraftVisualizes([...visualizes]);
+      // The palette intentionally snapshots URL state when it closes so a new
+      // editing session starts from the latest applied values.
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setDraftSampleSortBys([...sampleSortBys]);
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setDraftAggregateSortBys([...aggregateSortBys]);
     }
-  }, [commandPaletteState.open, query]);
+  }, [aggregateSortBys, commandPaletteState.open, query, sampleSortBys, visualizes]);
 
   const addSearchFilter = (filter: SearchFilter) => {
-    const search = new MutableSearch(draftQuery);
-    if (filter.op) {
-      search.setFilterValues(filter.key, [`${filter.op}${filter.value}`]);
-    } else {
-      search.addFilterValue(
-        `${filter.negated ? '!' : ''}${filter.key}`,
-        String(filter.value)
-      );
-    }
-    setDraftQuery(search.formatString());
+    setDraftQuery(currentQuery => {
+      const search = new MutableSearch(currentQuery);
+      if (filter.op) {
+        search.setFilterValues(filter.key, [`${filter.op}${filter.value}`]);
+      } else {
+        search.addFilterValue(
+          `${filter.negated ? '!' : ''}${filter.key}`,
+          String(filter.value)
+        );
+      }
+      return search.formatString();
+    });
   };
 
   const groupBySummary = groupBys.filter(Boolean).join(', ');
-  const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
-  const sortBySummary = sortBys.map(sort => `${sort.field}, ${sort.kind}`).join(', ');
+  const draftSortBys = mode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
+  const setDraftSortBys =
+    mode === Mode.SAMPLES ? setDraftSampleSortBys : setDraftAggregateSortBys;
+  const sortBySummary = draftSortBys
+    .map(sort => `${sort.field}, ${sort.kind}`)
+    .join(', ');
   const updateVisualize = (index: number, nextVisualize: Visualize) => {
-    setVisualizes(
-      visualizes.map((visualize, visualizeIndex) =>
-        (visualizeIndex === index ? nextVisualize : visualize).serialize()
+    setDraftVisualizes(currentVisualizes =>
+      currentVisualizes.map((visualize, visualizeIndex) =>
+        visualizeIndex === index ? nextVisualize : visualize
       )
     );
   };
@@ -456,50 +506,61 @@ function QueryClauseActions() {
   return (
     <Fragment>
       <CMDKAction display={{label: t('Commands')}}>
-        <CMDKChainedActionScope>
-          <CMDKAction
-            display={{label: t('Apply Changes')}}
-            onAction={() => setQueryParams({query: draftQuery})}
-          />
-          {visualizes.length < MAX_VISUALIZES && (
-            <CMDKAction
-              display={{label: t('Add Series')}}
-              keywords={['add', 'series', 'source', 'visualization']}
-              onAction={() =>
-                setVisualizes([
-                  ...visualizes.map(visualize => visualize.serialize()),
-                  new VisualizeFunction(DEFAULT_VISUALIZATION).serialize(),
-                ])
-              }
-            />
-          )}
-        </CMDKChainedActionScope>
+        <CMDKAction
+          display={{label: t('Apply Changes')}}
+          keywords={['apply', 'save', 'changes']}
+          onAction={() => {
+            setVisualizes(draftVisualizes.map(visualize => visualize.serialize()));
+            setQueryParams({
+              aggregateSortBys: draftAggregateSortBys,
+              query: draftQuery,
+              sortBys: draftSampleSortBys,
+            });
+          }}
+        />
       </CMDKAction>
       <CMDKChainedActionScope>
-        {visualizes.map((visualize, index) => (
+        {draftVisualizes.length < MAX_VISUALIZES && (
           <CMDKAction
-            key={`series-details-${visualize.yAxis}-${index}`}
+            display={{label: t('Add Series')}}
+            keywords={['add', 'series', 'source', 'visualization']}
+            onAction={() =>
+              setDraftVisualizes(currentVisualizes => [
+                ...currentVisualizes,
+                new VisualizeFunction(DEFAULT_VISUALIZATION),
+              ])
+            }
+          />
+        )}
+        {draftVisualizes.map((visualize, index) => (
+          <CMDKAction
+            key={`series-details-${index}`}
+            id={`spans-series-details-${index}`}
             display={{label: t('Series %s', String.fromCharCode(65 + index))}}
           >
-            <CMDKChainedActionScope>
-              <SeriesActions
-                visualize={visualize}
-                addSearchFilter={addSearchFilter}
-                groupBySummary={groupBySummary}
-                onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-                query={draftQuery}
-                sortBySummary={sortBySummary}
-              />
-            </CMDKChainedActionScope>
-            {visualizes.length > 1 && (
+            <SeriesActions
+              visualize={visualize}
+              addSearchFilter={addSearchFilter}
+              groupBys={groupBys}
+              groupBySummary={groupBySummary}
+              mode={mode}
+              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
+              query={draftQuery}
+              seriesId={`spans-series-${index}`}
+              setSortBys={setDraftSortBys}
+              sortBys={draftSortBys}
+              sortBySummary={sortBySummary}
+              visualizes={draftVisualizes}
+            />
+            {draftVisualizes.length > 1 && (
               <CMDKAction
                 display={{label: t('Delete Series')}}
                 keywords={['delete', 'remove', 'series']}
                 onAction={() =>
-                  setVisualizes(
-                    visualizes
-                      .filter((_, visualizeIndex) => visualizeIndex !== index)
-                      .map(item => item.serialize())
+                  setDraftVisualizes(currentVisualizes =>
+                    currentVisualizes.filter(
+                      (_, visualizeIndex) => visualizeIndex !== index
+                    )
                   )
                 }
               />
