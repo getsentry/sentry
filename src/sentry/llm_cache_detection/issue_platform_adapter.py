@@ -28,9 +28,19 @@ FINDING_TITLES: dict[CacheOutcome, str] = {
 }
 
 
-def create_fingerprint(outcome: CacheOutcome, stats: CallSiteStats) -> str:
+# Versioned so grouping can change later without merging into existing issues.
+FINGERPRINT_VERSION = "v1"
+
+
+def create_fingerprint(stats: CallSiteStats) -> str:
+    """Identify a call site, independently of which diagnosis it currently draws.
+
+    The outcome is deliberately excluded: the two outcomes are alternative
+    readings of the same call site, so including it would open a second issue
+    whenever one shifted and orphan the first, which never auto-resolves.
+    """
     prehashed_fingerprint = (
-        f"llm-cache-detection-{outcome.value}-"
+        f"llm-cache-detection-{FINGERPRINT_VERSION}-"
         f"{stats.transaction}-{stats.span_description}-{stats.model}"
     )
     return hashlib.sha1(prehashed_fingerprint.encode()).hexdigest()
@@ -45,7 +55,13 @@ def _format_rate(rate: float) -> str:
 
 
 def _format_tokens(value: float) -> str:
-    return f"{value:,.0f}"
+    """Render a token total approximately: it is extrapolated from sampled spans,
+    so digit-exact precision would overstate what is known."""
+    if value < 1_000:
+        return f"{value:,.0f}"
+    if value < 1_000_000:
+        return f"~{value / 1_000:.1f}K"
+    return f"~{value / 1_000_000:.1f}M"
 
 
 @trace
@@ -54,7 +70,7 @@ def send_llm_cache_issue_to_platform(
 ) -> None:
     """Produce an occurrence for a flagged call-site group."""
     stats = finding.stats
-    fingerprint = create_fingerprint(finding.outcome, stats)
+    fingerprint = create_fingerprint(stats)
     anchor = finding.anchor
     now = datetime.now(UTC)
     event_id = uuid4().hex

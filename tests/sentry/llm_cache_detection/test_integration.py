@@ -56,16 +56,25 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         cache_creation_tokens: int | None = None,
         op: str = "gen_ai.generate_content",
         project: Project | None = None,
+        deprecated_attribute_names: bool = False,
     ) -> dict[str, Any]:
         """Build a gen-AI call span. Omitted token kwargs are left off the span entirely."""
+        read_attribute, creation_attribute = (
+            ("gen_ai.usage.input_tokens.cached", "gen_ai.usage.input_tokens.cache_write")
+            if deprecated_attribute_names
+            else (
+                "gen_ai.usage.cache_read.input_tokens",
+                "gen_ai.usage.cache_creation.input_tokens",
+            )
+        )
         data: dict[str, Any] = {
             "gen_ai.request.model": model,
             "gen_ai.usage.input_tokens": input_tokens,
         }
         if cache_read_tokens is not None:
-            data["gen_ai.usage.cache_read.input_tokens"] = cache_read_tokens
+            data[read_attribute] = cache_read_tokens
         if cache_creation_tokens is not None:
-            data["gen_ai.usage.cache_creation.input_tokens"] = cache_creation_tokens
+            data[creation_attribute] = cache_creation_tokens
 
         return self.create_span(
             project=project or self.project,
@@ -137,6 +146,48 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
 
         assert CLAUDE in models
         assert not {model for model in models if model.startswith("excluded-")}
+
+    def test_counts_spans_written_under_the_deprecated_attribute_names(self) -> None:
+        # Only langchain writes the canonical names; the shared record_token_usage
+        # path and most other integrations emit the deprecated aliases. Querying
+        # the canonical names still has to see them, via the resolver's backfill.
+        self.store_call_site(
+            model=CLAUDE,
+            cache_read_tokens=1_200,
+            cache_creation_tokens=300,
+            deprecated_attribute_names=True,
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+
+        assert stats.sum_cache_read_tokens == 1_200 * CALLS_PER_CALL_SITE
+        assert stats.sum_cache_creation_tokens == 300 * CALLS_PER_CALL_SITE
+        assert stats.hit_rate == 0.6
+
+    def test_does_not_double_count_across_attribute_families(self) -> None:
+        # Both families resolve to the same column, so a call site carrying a mix
+        # must total once rather than once per name.
+        self.store_spans(
+            [
+                self.gen_ai_span(model=CLAUDE, cache_read_tokens=1_000),
+                self.gen_ai_span(
+                    model=CLAUDE, cache_read_tokens=500, deprecated_attribute_names=True
+                ),
+            ]
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+
+        assert stats.sum_cache_read_tokens == 1_500
+
+    def test_probe_sees_spans_using_the_deprecated_attribute_names(self) -> None:
+        # The instrumentation-gap probe reads the same names, so a false UNKNOWN
+        # here would suppress every finding from these integrations.
+        self.store_call_site(model=CLAUDE, cache_read_tokens=0, deprecated_attribute_names=True)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+
+        assert count_spans_with_cache_attributes(self.project, stats) == CALLS_PER_CALL_SITE
 
     def test_excludes_other_projects(self) -> None:
         other_project = self.create_project()

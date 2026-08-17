@@ -194,9 +194,7 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
                 outcome_counts[candidate.outcome] -= 1
                 outcome_counts[resolved] += 1
                 continue
-        if check_unresolved_llm_cache_issue_exists(
-            project, create_fingerprint(candidate.outcome, candidate.stats)
-        ):
+        if check_unresolved_llm_cache_issue_exists(project, create_fingerprint(candidate.stats)):
             rejected_already_exists_count += 1
             continue
         findings.append(candidate)

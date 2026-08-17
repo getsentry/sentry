@@ -8,7 +8,7 @@ from django.db.models import F
 
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.issues.ingest import hash_fingerprint
-from sentry.llm_cache_detection.detection import CacheOutcome, CallSiteStats
+from sentry.llm_cache_detection.detection import CallSiteStats
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
 from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization
@@ -231,9 +231,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             "generate_content generate_structured | gemini-2.5-pro"
         )
         assert uncached_occurrence.culprit == "seer.code_review.pr_review_step.pr_review_task"
-        assert uncached_occurrence.fingerprint == [
-            create_fingerprint(CacheOutcome.NOT_CACHING, NOT_CACHING_STATS)
-        ]
+        assert uncached_occurrence.fingerprint == [create_fingerprint(NOT_CACHING_STATS)]
         evidence = uncached_occurrence.evidence_data
         assert evidence["call_count"] == 169_000
         assert evidence["hit_rate"] == pytest.approx(0.000088, rel=1e-2)
@@ -267,9 +265,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             "/v1/automation/malicious-issue-detection/classify | "
             "generate_content anthropic_generation | claude-sonnet-5"
         )
-        assert thrash_occurrence.fingerprint == [
-            create_fingerprint(CacheOutcome.THRASH, THRASH_STATS)
-        ]
+        assert thrash_occurrence.fingerprint == [create_fingerprint(THRASH_STATS)]
         evidence = thrash_occurrence.evidence_data
         assert evidence["write_read_ratio"] == pytest.approx(10.7, rel=1e-3)
         assert evidence["hit_rate"] == pytest.approx(0.086, rel=1e-2)
@@ -362,7 +358,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [NOT_CACHING_STATS]
         mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
 
-        fingerprint = create_fingerprint(CacheOutcome.NOT_CACHING, NOT_CACHING_STATS)
+        fingerprint = create_fingerprint(NOT_CACHING_STATS)
         group = self.create_group(project=project)
         GroupHash.objects.create(
             project=project, group=group, hash=hash_fingerprint([fingerprint])[0]
@@ -440,7 +436,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             GroupHash.objects.create(
                 project=project,
                 group=group,
-                hash=hash_fingerprint([create_fingerprint(CacheOutcome.NOT_CACHING, stats)])[0],
+                hash=hash_fingerprint([create_fingerprint(stats)])[0],
             )
 
         with self.enabled_features():

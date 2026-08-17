@@ -32,12 +32,15 @@ THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
 
 CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
 
-# Model families whose instrumentation records cache-token attributes only for
-# positive values (Gemini omits cache_read when 0 and never reports writes on
-# generate calls). For these, wholly-absent cache attributes are consistent
-# with a genuine 0% hit rate. Everything else (Anthropic and OpenAI report
-# zeros; unknown providers) treats absence as an instrumentation gap.
-POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini",)
+# Model families whose instrumentation records cache-token attributes only when
+# they are positive: the Gemini integration omits cache_read at zero and reports
+# no writes on generate calls, and the OpenAI one discards any zero token value
+# before recording it. For these, wholly-absent cache attributes are consistent
+# with a genuine 0% hit rate. Anthropic records real zeros, so for it -- and for
+# unknown providers -- absence is treated as an instrumentation gap instead.
+# Matching on model name is crude; a provider-reported capability would be
+# better if one ever reaches the span.
+POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
 
 
 class CacheOutcome(StrEnum):
@@ -83,7 +86,12 @@ class CallSiteStats:
 
     @property
     def uncached_tokens(self) -> float:
-        """Input tokens that were neither read from nor written to cache."""
+        """Input tokens that were neither read from nor written to cache.
+
+        Assumes input tokens include the cached ones, as the conventions specify.
+        A provider that reports them exclusively instead clamps this to zero, which
+        sorts the call site last rather than misreporting it.
+        """
         return max(
             self.sum_input_tokens - self.sum_cache_read_tokens - self.sum_cache_creation_tokens,
             0.0,

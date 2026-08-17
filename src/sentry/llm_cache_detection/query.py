@@ -17,9 +17,16 @@ from sentry.snuba.spans_rpc import Spans
 GEN_AI_CALL_FILTER = "span.op:gen_ai.generate_content has:gen_ai.usage.input_tokens"
 
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
+MODEL = "gen_ai.request.model"
+
+# Most integrations emit the deprecated aliases (`gen_ai.usage.input_tokens.cached`
+# and `.cache_write`) rather than these names -- only langchain writes them
+# directly. Querying the canonical names still covers both: the resolver carries
+# a backfill deprecation from each alias to its replacement, so reading either
+# family here would double-count.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
-MODEL = "gen_ai.request.model"
+CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 
 # Sorting by total input tokens keeps the worst offenders inside the cap even
 # when a project has more distinct call sites than this.
@@ -41,11 +48,21 @@ def _escape_filter_value(value: str) -> str:
     """Escape a value for a quoted EAP search term.
 
     ``*`` must be escaped or OP_EQUALS silently degrades to a LIKE wildcard
-    match; ``"`` would terminate the quoted term. Backslashes are left alone:
-    the grammar never unescapes ``\\\\``, so callers must reject values that
-    contain one instead.
+    match; ``"`` would terminate the quoted term. Backslashes are left alone
+    because the grammar preserves them verbatim -- escaping one would change
+    the value being matched.
     """
     return value.replace('"', '\\"').replace("*", "\\*")
+
+
+def _is_unexpressible(value: str) -> bool:
+    """Whether the search grammar cannot match this value exactly.
+
+    A trailing backslash escapes the term's own closing quote. A backslash
+    directly before a ``*`` reads as an escaped wildcard whichever way the star
+    is written, so the literal cannot be expressed at all.
+    """
+    return value.endswith("\\") or "\\*" in value
 
 
 def _build_group_filter(stats: CallSiteStats) -> str | None:
@@ -54,7 +71,7 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
     Returns None when a group value cannot be expressed in the search grammar.
     """
     values = (stats.transaction, stats.span_description, stats.model)
-    if any("\\" in value for value in values):
+    if any(_is_unexpressible(value) for value in values):
         return None
     transaction, span_description, model = (_escape_filter_value(value) for value in values)
     return " ".join(
@@ -100,8 +117,7 @@ def fetch_call_site_stats(project: Project) -> list[CallSiteStats]:
             MODEL,
             "count()",
             f"sum({INPUT_TOKENS})",
-            f"sum({CACHE_READ_TOKENS})",
-            f"sum({CACHE_CREATION_TOKENS})",
+            *(f"sum({attribute})" for attribute in CACHE_TOKEN_ATTRIBUTES),
             f"avg({INPUT_TOKENS})",
         ],
         orderby=[f"-sum({INPUT_TOKENS})"],
@@ -139,9 +155,12 @@ def count_spans_with_cache_attributes(project: Project, stats: CallSiteStats) ->
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return None
+    cache_attribute_present = " OR ".join(
+        f"has:{attribute}" for attribute in CACHE_TOKEN_ATTRIBUTES
+    )
     result = _run_spans_query(
         project,
-        query_string=(f"{group_filter} (has:{CACHE_READ_TOKENS} OR has:{CACHE_CREATION_TOKENS})"),
+        query_string=f"{group_filter} ({cache_attribute_present})",
         selected_columns=["count()"],
         orderby=None,
         limit=1,

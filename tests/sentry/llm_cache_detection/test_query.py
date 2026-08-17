@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from sentry.llm_cache_detection.detection import (
     CacheOutcome,
     CallSiteStats,
@@ -47,14 +49,28 @@ def test_group_filter_escapes_double_quote() -> None:
     assert 'transaction:"say \\"hi\\" task"' in group_filter
 
 
-def test_group_filter_none_for_backslash_values() -> None:
-    # The search grammar never unescapes `\\`, so a value containing a
-    # backslash cannot be expressed as an exact match at all.
-    assert _build_group_filter(make_stats(transaction="C:\\jobs\\nightly")) is None
+def test_group_filter_keeps_interior_backslashes_verbatim() -> None:
+    # The grammar preserves a backslash that isn't escaping anything, so these
+    # values match exactly and must not be rejected.
+    group_filter = _build_group_filter(make_stats(transaction="C:\\jobs\\nightly"))
+
+    assert group_filter is not None
+    assert 'transaction:"C:\\jobs\\nightly"' in group_filter
 
 
-def test_backslash_value_resolves_unknown_without_querying() -> None:
-    stats = make_stats(model="model\\x")
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("trailing\\", id="trailing-backslash-escapes-the-closing-quote"),
+        pytest.param("a\\*b", id="backslash-before-star-always-reads-as-a-wildcard"),
+    ],
+)
+def test_group_filter_none_for_unexpressible_values(value: str) -> None:
+    assert _build_group_filter(make_stats(transaction=value)) is None
+
+
+def test_unexpressible_value_resolves_unknown_without_querying() -> None:
+    stats = make_stats(model="model\\")
     project = MagicMock()
 
     count = count_spans_with_cache_attributes(project, stats)
