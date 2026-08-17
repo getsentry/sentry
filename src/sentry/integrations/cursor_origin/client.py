@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import re
 import time
+from base64 import b64decode
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_API_BASE_URL,
@@ -13,6 +15,9 @@ from sentry.integrations.cursor_origin.constants import (
 )
 from sentry.integrations.cursor_origin.languages import languages_from_tree
 from sentry.integrations.cursor_origin.utils import get_jwt
+from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -29,7 +34,7 @@ _GITHUB_CONTENTS_PATH = re.compile(
 PAGE_SIZE = 100
 
 
-class CursorOriginApiMixin:
+class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
     """Read methods shared by the setup client and the installed-integration client.
 
     Everything here is written against the *verified* Origin API, which differs from
@@ -37,6 +42,34 @@ class CursorOriginApiMixin:
     ``/contents?path=…``, not ``/contents/{path}``. The documented path form returns a
     404 with a route-not-found body, which reads like an auth failure but is not.
     """
+
+    # Seeded with the documented installation budget and replaced by the real
+    # figure as soon as a response carrying rate-limit headers arrives. Starting
+    # at 0 would read as "exhausted" and make callers back off before we have
+    # made a single request.
+    _rate_limit_remaining: int = 3000
+
+    def track_response_data(
+        self,
+        code: str | int,
+        error: Exception | None = None,
+        resp: Response | None = None,
+        extra: Mapping[str, str | int] | None = None,
+    ) -> None:
+        """Capture Origin's rate-limit headers on the way past.
+
+        This is the only place the raw response is visible, and `repo_trees`
+        backs off when the remaining budget gets low, so the figure has to be
+        live rather than assumed.
+        """
+        if resp is not None:
+            remaining = resp.headers.get("x-ratelimit-remaining")
+            if remaining is not None:
+                try:
+                    self._rate_limit_remaining = int(remaining)
+                except ValueError:
+                    pass
+        super().track_response_data(code, error, resp, extra)  # type: ignore[misc]
 
     # Concrete subclasses supply `post` via the shared API client base. Declared here
     # only so mypy can see it -- do NOT give it a body, or the MRO will shadow the
@@ -127,6 +160,51 @@ class CursorOriginApiMixin:
 
     def get_branches(self, repo_full_name: str) -> list[dict[str, Any]]:
         return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
+
+    # -- RepositoryClient ----------------------------------------------------
+
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
+        """Does this path exist? Used by stacktrace linking and CODEOWNERS.
+
+        Origin has no HEAD route for contents, so this is a GET whose body we
+        discard. Missing paths 404, which surfaces as ApiError.
+        """
+        try:
+            return self.get_contents(repo.name, path, ref=version)
+        except ApiError:
+            return None
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        contents = self.get_contents(repo.name, path, ref=ref)
+        return b64decode(contents["content"]).decode("utf-8")
+
+    # -- RepoTreesClient -----------------------------------------------------
+
+    def get_remaining_api_requests(self) -> int:
+        """Requests left in the current window, from the last response's headers.
+
+        Origin uses the same ``X-RateLimit-*`` header names as GitHub. When we
+        have not made a request yet, report the documented installation budget
+        rather than 0, which callers treat as "back off".
+        """
+        return self._rate_limit_remaining
+
+    def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
+        """Whether this error counts toward the connection-error tally.
+
+        An empty or inaccessible repository is an expected condition when
+        walking an org's trees, not a sign the integration is broken.
+        """
+        message = (error.json or {}).get("message") if error.json else error.text
+        if message and (
+            "not found" in message.lower()
+            or "empty" in message.lower()
+            or "permission" in message.lower()
+        ):
+            return False
+        return True
 
     # -- pagination ----------------------------------------------------------
 

@@ -161,6 +161,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
         IntegrationProviderSlug.PERFORCE,
+        IntegrationProviderSlug.CURSOR_ORIGIN,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
