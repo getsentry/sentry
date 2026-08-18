@@ -222,7 +222,6 @@ function OverviewAction({
     );
   }
 
-  // A review_pr card without a PR URL keeps the plain issue link fallback.
   if (sectionKey === 'review_pr') {
     return (
       <Tooltip title={REVIEW_PR_META.description} skipWrapper>

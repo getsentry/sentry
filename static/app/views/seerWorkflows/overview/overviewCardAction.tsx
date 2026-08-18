@@ -96,8 +96,7 @@ export function OverviewCardAction({
   const queryClient = useQueryClient();
   const config = ACTIONS[sectionKey];
   const [dispatched, setDispatched] = useState(false);
-  // Agent options are only needed once the dropdown opens; deferring the
-  // fetches avoids draining per-project repo pagination for every card.
+  // Defer agent-option fetches until the dropdown opens to avoid per-card repo pagination.
   const [menuOpened, setMenuOpened] = useState(false);
 
   const autofix = useExplorerAutofix(
@@ -120,8 +119,6 @@ export function OverviewCardAction({
       enabled: menuOpened,
     });
 
-  // Only Draft PR cards can create a PR; mirror the drawer's write-access gate
-  // so a missing-permissions repo sends the user to grant access.
   const isDraftPr = sectionKey === 'code_changes_ready';
   const {permissionsTarget, isPending: isCreatePrGatePending} = useAutofixCreatePrGate({
     group: {id: run.groupId},
@@ -197,8 +194,6 @@ export function OverviewCardAction({
     });
     try {
       await config.trigger(autofix, run.seerRunId);
-      // Mark the overview stale so mounted lists refetch and can re-bucket the
-      // card once the backend reflects the new milestone.
       queryClient.invalidateQueries({
         queryKey: [
           getApiUrl('/organizations/$organizationIdOrSlug/seer/autofix-overview/', {
@@ -211,8 +206,6 @@ export function OverviewCardAction({
         const detail = (error as RequestError)?.responseJSON?.detail;
         addErrorMessage(typeof detail === 'string' ? detail : config.errorFallback);
       }
-      // startStep writes an error into the shared explorer cache; drop it so a
-      // later drawer open doesn't briefly show this card's stale failure.
       queryClient.removeQueries({
         queryKey: [
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {

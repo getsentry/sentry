@@ -55,7 +55,6 @@ describe('OverviewCardAction', () => {
       url: '/projects/org-slug/project-slug/seer/repos/',
       body: [{provider: 'github'}],
     });
-    // Draft-PR cards fetch write-access via the shared create-PR gate.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/2/autofix/repos/',
       body: {repos: [{has_write_access: true, integration_id: 5}]},
