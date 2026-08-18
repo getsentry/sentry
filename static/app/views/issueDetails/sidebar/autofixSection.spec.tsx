@@ -6,7 +6,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
-import {IssueCategory, type Group} from 'sentry/types/group';
+import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {
   LLMContextProvider,
@@ -91,6 +91,34 @@ describe('AutofixSection', () => {
     });
 
     expect(screen.getByText('Resources')).toBeInTheDocument();
+  });
+
+  it('renders Resources instead of Seer when the issue type does not support Seer', () => {
+    // Replay hydration errors set `autofix: false` and `issueSummary: {enabled: false}`
+    // but still carry resources, so the Resources fold must win even though the org
+    // has AI features enabled.
+    const hydrationGroup: Group = {
+      ...mockGroup,
+      issueCategory: IssueCategory.REPLAY,
+      issueType: IssueType.REPLAY_HYDRATION_ERROR,
+      title: 'Hydration Error',
+      platform: 'javascript-nextjs',
+    };
+
+    const nextjsProject: Project = {
+      ...mockProject,
+      platform: 'javascript-nextjs',
+    };
+
+    render(<AutofixSection group={hydrationGroup} project={nextjsProject} />, {
+      organization,
+    });
+
+    expect(screen.getByText('Resources')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Resolving Hydration Errors'})
+    ).toHaveAttribute('href', 'https://sentry.io/answers/hydration-error-nextjs/');
+    expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument();
   });
 
   it('returns null when AI features are disabled and no resources exist', () => {
