@@ -147,7 +147,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
           }
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} size="sm" prefix={t('Sort')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
         <AssigneeFilter
