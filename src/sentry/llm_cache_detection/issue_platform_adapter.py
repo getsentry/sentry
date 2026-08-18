@@ -40,8 +40,6 @@ AGENT_LABEL_EVIDENCE_NAMES: dict[AgentLabelSource, str] = {
 }
 
 # Versioned so grouping can change later without merging into existing issues.
-# Still v1: the detector has never run outside a local checkout, so no issue
-# exists that a bump could separate this key from.
 FINGERPRINT_VERSION = "v1"
 
 
