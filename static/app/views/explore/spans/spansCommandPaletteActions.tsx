@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
@@ -12,6 +13,7 @@ import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/comman
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   addSearchFilterToQuery,
@@ -39,8 +41,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeFunction,
+  isVisualizeEquation,
   MAX_VISUALIZES,
   type Visualize,
+  VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -67,14 +71,39 @@ function SpansFilterActions({
 }
 
 function SeriesActions({
+  index,
   onChange,
   seriesId,
   visualize,
+  visualizes,
 }: {
+  index: number;
   onChange: (visualize: Visualize) => void;
   seriesId: string;
   visualize: Visualize;
+  visualizes: readonly Visualize[];
 }) {
+  if (isVisualizeEquation(visualize)) {
+    const expression = stripEquationPrefix(visualize.yAxis);
+
+    return (
+      <CMDKAction
+        id={`${seriesId}-equation`}
+        display={{
+          label: t('Edit Equation'),
+          trailingItem: <QueryValue value={expression} />,
+        }}
+        textInput={{
+          ariaLabel: t('Edit Equation'),
+          initialValue: expression,
+          onSubmit: value =>
+            onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})),
+          footer: <EquationFooter index={index} visualizes={visualizes} />,
+        }}
+      />
+    );
+  }
+
   const parsedFunction = isVisualizeFunction(visualize) ? visualize.parsedFunction : null;
   const sourceSummary = parsedFunction?.arguments[0] ?? visualize.yAxis;
   const aggregateSummary = parsedFunction?.name ?? t('Equation');
@@ -129,10 +158,47 @@ function SeriesActions({
   );
 }
 
+function EquationFooter({
+  index,
+  visualizes,
+}: {
+  index: number;
+  visualizes: readonly Visualize[];
+}) {
+  const referencedSeries = visualizes.slice(0, index);
+
+  return (
+    <Flex align="center" justify="end" gap="lg" flex={1} minWidth={0}>
+      <Flex align="center" gap="md" minWidth={0} overflow="hidden">
+        {referencedSeries.map((series, seriesIndex) => (
+          <Flex key={seriesIndex} align="center" gap="xs" minWidth={0}>
+            <Text size="sm" variant="accent">
+              {String.fromCharCode(65 + seriesIndex)}
+            </Text>
+            <Text size="sm" ellipsis>
+              {isVisualizeEquation(series)
+                ? stripEquationPrefix(series.yAxis)
+                : series.yAxis}
+            </Text>
+          </Flex>
+        ))}
+      </Flex>
+      <Flex align="center" gap="xs" flexShrink={0}>
+        <Text size="sm" variant="accent">
+          + − / *
+        </Text>
+        <Text size="sm">{t('operators')}</Text>
+      </Flex>
+    </Flex>
+  );
+}
+
 function GroupByActions({
+  appliedGroupBys,
   groupBys,
   setGroupBys,
 }: {
+  appliedGroupBys: readonly string[];
   groupBys: readonly string[];
   setGroupBys: (groupBys: string[]) => void;
 }) {
@@ -157,7 +223,9 @@ function GroupByActions({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
-              labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
+              labelSuffix: appliedGroupBys.includes(option.value) ? (
+                <QueryValue value={t('Current')} />
+              ) : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
                   ? option.trailingItems({
@@ -418,16 +486,28 @@ function QueryClauseActions() {
           />
         </CMDKTerminalActionScope>
         {draftVisualizes.length < MAX_VISUALIZES && (
-          <CMDKAction
-            display={{label: t('Add Series')}}
-            keywords={['add', 'chart', 'series', 'source', 'visualization']}
-            onAction={() =>
-              setDraftVisualizes(currentVisualizes => [
-                ...currentVisualizes,
-                new VisualizeFunction(DEFAULT_VISUALIZATION),
-              ])
-            }
-          />
+          <Fragment>
+            <CMDKAction
+              display={{label: t('Add Series')}}
+              keywords={['add', 'chart', 'series', 'source', 'visualization']}
+              onAction={() =>
+                setDraftVisualizes(currentVisualizes => [
+                  ...currentVisualizes,
+                  new VisualizeFunction(DEFAULT_VISUALIZATION),
+                ])
+              }
+            />
+            <CMDKAction
+              display={{label: t('Add Equation')}}
+              keywords={['add', 'chart', 'equation', 'series', 'visualization']}
+              onAction={() =>
+                setDraftVisualizes(currentVisualizes => [
+                  ...currentVisualizes,
+                  new VisualizeEquation(EQUATION_PREFIX),
+                ])
+              }
+            />
+          </Fragment>
         )}
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
@@ -438,7 +518,11 @@ function QueryClauseActions() {
           }}
           prompt={t('Search for attribute')}
         >
-          <GroupByActions groupBys={draftGroupBys} setGroupBys={setDraftGroupBys} />
+          <GroupByActions
+            appliedGroupBys={groupBys}
+            groupBys={draftGroupBys}
+            setGroupBys={setDraftGroupBys}
+          />
         </CMDKAction>
         <SpansFilterActions addSearchFilter={addSearchFilter} summary={draftQuery} />
         <CMDKAction
@@ -465,7 +549,9 @@ function QueryClauseActions() {
           display={{label: t('Series %s', String.fromCharCode(65 + index))}}
         >
           <SeriesActions
+            index={index}
             visualize={visualize}
+            visualizes={draftVisualizes}
             onChange={nextVisualize => updateVisualize(index, nextVisualize)}
             seriesId={`spans-series-${index}`}
           />

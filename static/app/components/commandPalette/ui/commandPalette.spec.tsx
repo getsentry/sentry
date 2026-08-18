@@ -223,8 +223,12 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    const internalAction = await screen.findByRole('option', {name: 'Internal'});
-    const externalAction = await screen.findByRole('option', {name: 'External'});
+    const internalAction = await screen.findByRole('option', {
+      name: 'Internal',
+    });
+    const externalAction = await screen.findByRole('option', {
+      name: 'External',
+    });
 
     expect(
       internalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
@@ -247,7 +251,9 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    const option = await screen.findByRole('option', {
+      name: 'Action with trailing',
+    });
     expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
     expect(
       option.querySelector('[data-test-id="command-palette-link-indicator"]')
@@ -353,7 +359,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Group by'}}>
               <CMDKAction display={{label: 'Attribute'}}>
                 <CMDKAction
-                  display={{label: 'Environment'}}
+                  display={{label: 'Environment', labelSuffix: 'Current'}}
                   isSelected={isEnvironmentSelected}
                   onAction={onAction}
                   onMultiSelect={() => {
@@ -385,6 +391,7 @@ describe('CommandPalette', () => {
     expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0]).toBeChecked();
     expect(checkboxes[1]).not.toBeChecked();
+    await userEvent.keyboard('{ArrowDown}');
     const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
     expect(scrollContainer).toBeInTheDocument();
     scrollContainer!.scrollTop = 200;
@@ -392,10 +399,11 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(onMultiSelect).toHaveBeenCalledTimes(1);
-    expect(scrollContainer).toHaveProperty('scrollTop', 0);
+    expect(scrollContainer).toHaveProperty('scrollTop', 200);
     expect(closeSpy).not.toHaveBeenCalled();
     expect(screen.getAllByRole('checkbox', {hidden: true})[0]).not.toBeChecked();
-    expect(screen.getByRole('option', {name: 'Environment'})).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Environment/})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Release'})).toBeInTheDocument();
 
     await userEvent.keyboard('{Enter}');
@@ -513,7 +521,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'route');
 
       expect(
@@ -531,7 +541,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'xyzzy');
 
       expect(screen.queryAllByRole('option')).toHaveLength(0);
@@ -543,7 +555,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'route');
       expect(
         await screen.findByRole('option', {name: 'Go to route'})
@@ -577,7 +591,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'child');
 
       // The item now renders with its parent group as a prefix, so match by regex
@@ -592,7 +608,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'test query');
 
       expect(input).toHaveValue('test query');
@@ -604,7 +622,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'ROUTE');
 
       expect(
@@ -619,7 +639,9 @@ describe('CommandPalette', () => {
           <CMDKAction to="/b/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -638,7 +660,9 @@ describe('CommandPalette', () => {
           <CMDKAction to="/top/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -658,7 +682,9 @@ describe('CommandPalette', () => {
           />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'hotkeys');
 
       expect(
@@ -700,7 +726,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'help');
 
       expect(
@@ -911,7 +939,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
 
       expect(await screen.findByRole('option', {name: 'Item 1'})).toBeInTheDocument();
@@ -938,7 +968,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       // "Project" matches both the nested group label "Project Keys" and all four items.
       await userEvent.type(input, 'Project');
 
@@ -993,7 +1025,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Action');
 
       expect(await screen.findByRole('option', {name: 'Action 1'})).toBeInTheDocument();
@@ -1071,7 +1105,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -1092,7 +1128,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -1153,7 +1191,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'java');
 
       const previewOptions = screen
@@ -1190,7 +1230,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'path');
 
       const options = screen
@@ -1262,7 +1304,10 @@ describe('CommandPalette', () => {
                     cmdkQueryOptions({
                       queryKey: ['test-filter-values'],
                       queryFn: () => [
-                        {display: {label: 'project-one'}, onAction: () => {}},
+                        {
+                          display: {label: 'project-one'},
+                          onAction: () => {},
+                        },
                       ],
                       enabled: state === 'selected',
                     })
@@ -1382,7 +1427,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1398,7 +1445,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1412,7 +1461,7 @@ describe('CommandPalette', () => {
   });
 
   describe('query restoration', () => {
-    it('stays at the top when options load above the initially focused item', async () => {
+    it('does not focus a partial result while picker options are loading', async () => {
       function ProgressiveGroup({loaded}: {loaded: boolean}) {
         return (
           <GlobalActionsComponent>
@@ -1441,15 +1490,18 @@ describe('CommandPalette', () => {
       expect(
         await screen.findByRole('option', {name: 'Current Attribute'})
       ).toBeInTheDocument();
+      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      expect(input).not.toHaveAttribute('aria-activedescendant');
       const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
       expect(scrollContainer).toBeInTheDocument();
-      scrollContainer!.scrollTop = 200;
+      expect(scrollContainer).toHaveProperty('scrollTop', 0);
 
       rerender(<ProgressiveGroup loaded />);
 
       expect(
         await screen.findByRole('option', {name: 'First Attribute'})
       ).toBeInTheDocument();
+      expect(input).not.toHaveAttribute('aria-activedescendant');
       expect(scrollContainer).toHaveProperty('scrollTop', 0);
     });
 
@@ -1460,7 +1512,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const group = await screen.findByRole('option', {name: 'Parent Group Action'});
+      const group = await screen.findByRole('option', {
+        name: 'Parent Group Action',
+      });
       const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
       expect(scrollContainer).toBeInTheDocument();
       scrollContainer!.scrollTop = 200;
@@ -1470,7 +1524,11 @@ describe('CommandPalette', () => {
       expect(
         await screen.findByRole('option', {name: 'Child Action'})
       ).toBeInTheDocument();
-      expect(scrollContainer).toHaveProperty('scrollTop', 0);
+      const nextScrollContainer =
+        screen.getByRole('listbox').parentElement?.parentElement;
+      expect(nextScrollContainer).toBeInTheDocument();
+      expect(nextScrollContainer).not.toBe(scrollContainer);
+      expect(nextScrollContainer).toHaveProperty('scrollTop', 0);
     });
 
     it('drilling into a group clears the active query', async () => {
@@ -1479,7 +1537,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query that shows the group in search results
       await userEvent.type(input, 'parent');
@@ -1497,7 +1557,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1518,7 +1580,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1693,6 +1757,7 @@ describe('CommandPalette', () => {
               <CMDKAction display={{label: 'Commands'}}>
                 <CMDKAction display={{label: 'Apply Changes'}} onAction={jest.fn()} />
                 <CMDKAction display={{label: 'Add Series'}} onAction={jest.fn()} />
+                <CMDKAction display={{label: 'Add Equation'}} onAction={jest.fn()} />
               </CMDKAction>
               <CMDKAction display={{label: 'Query'}}>
                 <CMDKAction display={{label: 'Group by'}} onAction={jest.fn()} />
@@ -1726,6 +1791,7 @@ describe('CommandPalette', () => {
       ).toBeTruthy();
       expect(screen.getByRole('option', {name: 'Apply Changes'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Add Series'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Add Equation'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Sort by'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Source'})).toBeInTheDocument();
@@ -2036,7 +2102,9 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'navigate');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
@@ -2063,7 +2131,9 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'async');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match

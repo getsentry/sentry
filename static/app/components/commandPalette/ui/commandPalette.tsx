@@ -16,7 +16,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
-import {InputGroup} from '@sentry/scraps/input';
+import {Input, InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
@@ -71,7 +71,11 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
   return {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
-    exit: {scale: 0.95, opacity: 0, transition: theme.motion.framer.exit.fast},
+    exit: {
+      scale: 0.95,
+      opacity: 0,
+      transition: theme.motion.framer.exit.fast,
+    },
     enter: {
       scale: 1,
       opacity: 1,
@@ -118,6 +122,14 @@ export function CommandPalette({
   const seerExplorerEnabled = !!openSeerExplorer;
   const openForm = useFeedbackForm();
 
+  const currentTextInput = useMemo(() => {
+    const currentActionKey = state.action?.value.key;
+    if (!currentActionKey) {
+      return;
+    }
+    return findCollectionNode(store.tree(), currentActionKey)?.textInput;
+  }, [state.action, store]);
+
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
     [state.input]
@@ -148,15 +160,22 @@ export function CommandPalette({
   }
 
   const debouncedQuery = useDebouncedValue(state.query, 300);
-  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
+  const isFetchingQueries = useIsFetching({
+    predicate: q => q.meta?.cmdk === true,
+  });
   const isLoading =
+    !currentTextInput &&
     state.list === 'active' &&
     ((state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0);
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
+    !currentTextInput &&
+    state.action?.value.prompt !== undefined &&
+    (state.query.length === 0 || isLoading);
 
   const currentNodes = useMemo(() => {
-    const currentRootKey = state.action?.value.key ?? null;
+    const currentRootKey = currentTextInput
+      ? (state.action?.previous?.value.key ?? null)
+      : (state.action?.value.key ?? null);
     const nodes = presortBySlotRef(store.tree(currentRootKey));
     const contextualNodes = nodes.filter(isContextualNode);
 
@@ -167,18 +186,19 @@ export function CommandPalette({
     }
 
     return nodes;
-  }, [store, state.action, state.query]);
+  }, [currentTextInput, store, state.action, state.query]);
 
   const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
   >(() => {
-    const [scored, scoredPrefixMap] = state.query
-      ? (() => {
-          const scores = new Map<string, CommandPaletteScore>();
-          scoreTree(currentNodes, scores, state.query.toLowerCase());
-          return flattenActions(currentNodes, scores, state.action !== null);
-        })()
-      : flattenActions(currentNodes, null);
+    const [scored, scoredPrefixMap] =
+      state.query && !currentTextInput
+        ? (() => {
+            const scores = new Map<string, CommandPaletteScore>();
+            scoreTree(currentNodes, scores, state.query.toLowerCase());
+            return flattenActions(currentNodes, scores, state.action !== null);
+          })()
+        : flattenActions(currentNodes, null);
 
     // When a query produces no matches and Seer Explorer is available, inject
     // synthetic items directly into the collection so they participate in the
@@ -224,7 +244,10 @@ export function CommandPalette({
               parent: null,
               children: [] as CMDKFlatItem[],
               listItemType: 'action' as const,
-              display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
+              display: {
+                label: t('Tell us what to improve'),
+                icon: <IconMegaphone />,
+              },
               onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
             },
           ]
@@ -234,6 +257,7 @@ export function CommandPalette({
     return [fallback, new Map(), true];
   }, [
     currentNodes,
+    currentTextInput,
     state.action,
     state.query,
     seerExplorerEnabled,
@@ -317,6 +341,9 @@ export function CommandPalette({
   }, [treeState.selectionManager]);
 
   const currentActionKey = state.action?.value.key ?? null;
+  const listActionKey = currentTextInput
+    ? (state.action?.previous?.value.key ?? null)
+    : currentActionKey;
   const previousActionKeyRef = useRef(currentActionKey);
   useLayoutEffect(() => {
     if (previousActionKeyRef.current === currentActionKey) {
@@ -326,37 +353,17 @@ export function CommandPalette({
     resetResultsNavigation();
   }, [currentActionKey, resetResultsNavigation]);
 
-  const previousFirstFocusableKeyRef = useRef(firstFocusableKey?.key ?? null);
-  const previousCollectionRef = useRef(treeState.collection);
   useLayoutEffect(() => {
-    const previousFirstFocusableKey = previousFirstFocusableKeyRef.current;
-    const nextFirstFocusableKey = firstFocusableKey?.key ?? null;
-    const collectionChanged = previousCollectionRef.current !== treeState.collection;
-    previousFirstFocusableKeyRef.current = nextFirstFocusableKey;
-    previousCollectionRef.current = treeState.collection;
-
-    if (mouseLeftResultsRef.current || nextFirstFocusableKey === null) {
-      return;
-    }
-
-    const focusedKey = treeState.selectionManager.focusedKey;
-    const wasFollowingFirstItem =
-      focusedKey === null || focusedKey === previousFirstFocusableKey;
-    if (!wasFollowingFirstItem) {
-      return;
-    }
-
     if (
-      collectionChanged &&
-      previousFirstFocusableKey !== null &&
-      resultsListRef.current
+      state.action !== null ||
+      treeState.selectionManager.focusedKey !== null ||
+      mouseLeftResultsRef.current ||
+      firstFocusableKey === null
     ) {
-      resultsListRef.current.scrollTop = 0;
+      return;
     }
-    if (focusedKey !== nextFirstFocusableKey) {
-      treeState.selectionManager.setFocusedKey(nextFirstFocusableKey);
-    }
-  }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
+    treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
+  }, [state.action, treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
   const delegate = useMemo(
     () =>
@@ -388,9 +395,18 @@ export function CommandPalette({
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch({type: 'set query', query: e.target.value});
-      resetResultsNavigation();
+      if (!currentTextInput) {
+        resetResultsNavigation();
+      }
     },
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && currentTextInput) {
+        e.preventDefault();
+        currentTextInput.onSubmit(state.query);
+        dispatch({type: 'pop action'});
+        return;
+      }
+
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         dispatch({type: 'freeze list'});
       }
@@ -410,7 +426,7 @@ export function CommandPalette({
 
       collectionKeyDown?.(e);
 
-      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
+      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled && !currentTextInput) {
         e.preventDefault();
         dispatch({type: 'trigger action'});
         closeModal?.();
@@ -489,6 +505,18 @@ export function CommandPalette({
         return;
       }
 
+      if ('textInput' in action && action.textInput) {
+        animatePress();
+        dispatch({
+          type: 'push action',
+          key: action.key,
+          label: action.display.label,
+          prompt: 'prompt' in action ? action.prompt : undefined,
+          query: action.textInput.initialValue ?? '',
+        });
+        return;
+      }
+
       if ('prompt' in action && action.prompt) {
         animatePress();
         dispatch({
@@ -504,12 +532,14 @@ export function CommandPalette({
 
       if ('onAction' in action && action.chainedActionAnchor) {
         if (action.onMultiSelect && options?.modifierKeys?.shiftKey) {
-          resetResultsNavigation();
           action.onMultiSelect();
           dispatch({type: 'set query', query: ''});
         } else {
           action.onAction();
-          dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
+          dispatch({
+            type: 'return to anchor',
+            anchor: action.chainedActionAnchor,
+          });
         }
         return;
       }
@@ -541,7 +571,6 @@ export function CommandPalette({
       closeModal,
       dispatch,
       navigate,
-      resetResultsNavigation,
       state.query,
     ]
   );
@@ -584,6 +613,35 @@ export function CommandPalette({
   // while the input is empty (e.g. a brief loading state after clearing) should
   // be invisible rather than drawing attention with a flash.
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
+
+  const resultsList = (
+    <ResultsList direction="column" width="100%" flex={1} minHeight={0} overflow="hidden">
+      <ListBox
+        key={listActionKey === null ? 'root' : `action:${listActionKey}`}
+        scrollContainerRef={resultsListRef}
+        listState={treeState}
+        keyDownHandler={() => true}
+        overlayIsOpen
+        virtualized
+        virtualizedListPadding={0}
+        size="sm"
+        aria-label={t('Search results')}
+        selectionMode="none"
+        shouldUseVirtualFocus
+        onMouseEnter={() => {
+          mouseLeftResultsRef.current = false;
+        }}
+        onMouseLeave={() => {
+          mouseLeftResultsRef.current = true;
+        }}
+        onAction={key => {
+          onActionSelection(key, {
+            modifierKeys: modifierKeysRef.current,
+          });
+        }}
+      />
+    </ResultsList>
+  );
 
   const content = (
     <Stack height="430px" maxHeight="80vh">
@@ -629,17 +687,18 @@ export function CommandPalette({
                   </AnimatePresence>
                 </StyledInputLeadingItems>
                 <StyledInputGroupInput
-                  seerEnabled={seerExplorerEnabled}
-                  autoFocus
+                  seerEnabled={seerExplorerEnabled && !currentTextInput}
+                  autoFocus={!currentTextInput}
                   data-1p-ignore
-                  ref={state.input}
-                  value={state.query}
+                  ref={currentTextInput ? undefined : state.input}
+                  value={currentTextInput ? '' : state.query}
+                  readOnly={Boolean(currentTextInput)}
                   aria-label={t('Search commands')}
                   placeholder={state.action?.value.prompt ?? t('Search for commands')}
-                  {...inputCollectionProps}
+                  {...(currentTextInput ? {} : inputCollectionProps)}
                 />
                 <InputGroup.TrailingItems>
-                  {seerExplorerEnabled ? (
+                  {seerExplorerEnabled && !currentTextInput ? (
                     <Flex align="center" gap="xs">
                       <Text size="xs" variant="muted">
                         {t('Ask Seer')}
@@ -671,55 +730,61 @@ export function CommandPalette({
           }}
         </Flex>
 
-        {treeState.collection.size === 0 ? (
+        {currentTextInput ? (
+          <Fragment>
+            <Input
+              autoFocus
+              data-1p-ignore
+              ref={state.input}
+              value={state.query}
+              aria-label={currentTextInput.ariaLabel}
+              placeholder={t('Define Equation')}
+              onChange={inputCollectionProps.onChange}
+              onKeyDown={inputCollectionProps.onKeyDown}
+            />
+            <Container display="none">{resultsList}</Container>
+          </Fragment>
+        ) : treeState.collection.size === 0 ? (
           isEmptyPromptQuery || isLoading ? null : (
             <CommandPaletteNoResults />
           )
         ) : (
-          <ResultsList
-            direction="column"
-            width="100%"
-            flex={1}
-            minHeight={0}
-            overflow="hidden"
-          >
-            <ListBox
-              scrollContainerRef={resultsListRef}
-              listState={treeState}
-              keyDownHandler={() => true}
-              overlayIsOpen
-              virtualized
-              virtualizedListPadding={0}
-              size="sm"
-              aria-label={t('Search results')}
-              selectionMode="none"
-              shouldUseVirtualFocus
-              onMouseEnter={() => {
-                mouseLeftResultsRef.current = false;
-              }}
-              onMouseLeave={() => {
-                mouseLeftResultsRef.current = true;
-              }}
-              onAction={key => {
-                onActionSelection(key, {
-                  modifierKeys: modifierKeysRef.current,
-                });
-              }}
-            />
-          </ResultsList>
+          resultsList
         )}
       </Stack>
-      <CommandPaletteHints>
-        {actions.some(
-          action => 'onMultiSelect' in action && action.onMultiSelect !== undefined
-        ) ? (
-          <CommandPaletteMultiSelectHint />
-        ) : null}
-      </CommandPaletteHints>
+      {currentTextInput ? (
+        <CommandPaletteTextInputHints>
+          {currentTextInput.footer}
+        </CommandPaletteTextInputHints>
+      ) : (
+        <CommandPaletteHints>
+          {actions.some(
+            action => 'onMultiSelect' in action && action.onMultiSelect !== undefined
+          ) ? (
+            <CommandPaletteMultiSelectHint />
+          ) : null}
+        </CommandPaletteHints>
+      )}
     </Stack>
   );
 
   return <Body>{content}</Body>;
+}
+
+function findCollectionNode(
+  nodes: Array<CollectionTreeNode<CMDKActionData>>,
+  key: string
+): CollectionTreeNode<CMDKActionData> | undefined {
+  for (const node of nodes) {
+    if (node.key === key) {
+      return node;
+    }
+    const match = findCollectionNode(node.children, key);
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -782,7 +847,11 @@ function scoreNode(
       matched = true;
     }
   }
-  return {length: matched ? bestLength : Infinity, matched, score: matched ? best : 0};
+  return {
+    length: matched ? bestLength : Infinity,
+    matched,
+    score: matched ? best : 0,
+  };
 }
 
 function compareCommandPaletteScores(
@@ -854,7 +923,9 @@ function flattenActions(
       // `to` or `onAction`, so only skip when none of the four action types apply.
       if (!isGroup && !('to' in node) && !('onAction' in node)) {
         const hasPromptOrResource =
-          ('prompt' in node && !!node.prompt) || ('resource' in node && !!node.resource);
+          ('prompt' in node && !!node.prompt) ||
+          ('resource' in node && !!node.resource) ||
+          ('textInput' in node && !!node.textInput);
         if (!hasPromptOrResource || isEmptyResourceNode(node)) {
           continue;
         }
@@ -1041,7 +1112,10 @@ function flattenActions(
         usedSectionHeaders.add(root.key);
         return [
           ...sectionHeader,
-          ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
+          ...limitedMatches.map(c => ({
+            ...c,
+            listItemType: 'action' as const,
+          })),
           ...(seeMore ? [makeSeeMoreAction(item)] : []),
         ];
       }
@@ -1054,7 +1128,10 @@ function flattenActions(
       usedSectionHeaders.add(item.key);
       return [
         ...sectionHeader,
-        ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
+        ...limitedMatches.map(c => ({
+          ...c,
+          listItemType: 'action' as const,
+        })),
         ...(seeMore ? [makeSeeMoreAction(item)] : []),
       ];
     }
@@ -1143,7 +1220,8 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
     'resource' in node &&
     !('to' in node) &&
     !('onAction' in node) &&
-    !('prompt' in node && node.prompt)
+    !('prompt' in node && node.prompt) &&
+    !('textInput' in node && node.textInput)
   );
 }
 
@@ -1319,6 +1397,22 @@ function CommandPaletteHints({children}: {children?: React.ReactNode}) {
   );
 }
 
+function CommandPaletteTextInputHints({children}: {children?: React.ReactNode}) {
+  return (
+    <Stack borderTop="muted" padding="md xl">
+      <Flex align="center" gap="lg" width="100%">
+        <Flex align="center" gap="xs" flexShrink={0}>
+          <Hotkey variant="debossed" value="enter" />
+          <Text size="xs" variant="muted">
+            {t('Select')}
+          </Text>
+        </Flex>
+        {children}
+      </Flex>
+    </Stack>
+  );
+}
+
 function CommandPaletteMultiSelectHint() {
   return (
     <Flex align="center" gap="xs">
@@ -1372,7 +1466,9 @@ const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
 `;
 
-const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
+const StyledInputGroupInput = styled(InputGroup.Input)<{
+  seerEnabled?: boolean;
+}>`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
   padding-right: ${p => (p.seerEnabled ? '104px' : '38px')};
 `;

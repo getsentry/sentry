@@ -198,10 +198,17 @@ export function ListBox<T extends ListItemBase>({
     listPadding: virtualizedListPadding,
   });
 
+  const previousFocusedKeyRef = useRef(listState.selectionManager.focusedKey);
+
   useEffect(() => {
+    const focusedKey = listState.selectionManager.focusedKey;
+    const focusedKeyChanged = previousFocusedKeyRef.current !== focusedKey;
+    previousFocusedKeyRef.current = focusedKey;
+
     if (
       !virtualized ||
-      listState.selectionManager.focusedKey === null ||
+      focusedKey === null ||
+      !focusedKeyChanged ||
       getInteractionModality() === 'pointer'
     ) {
       return;
@@ -209,11 +216,9 @@ export function ListBox<T extends ListItemBase>({
 
     const focusedIndex = listItems.findIndex(
       item =>
-        item.key === listState.selectionManager.focusedKey ||
+        item.key === focusedKey ||
         (item.type === 'section' &&
-          [...item.childNodes].some(
-            child => child.key === listState.selectionManager.focusedKey
-          ))
+          [...item.childNodes].some(child => child.key === focusedKey))
     );
     if (focusedIndex !== -1) {
       virtualizer.scrollToIndex(focusedIndex);

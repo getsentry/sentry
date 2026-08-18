@@ -36,12 +36,24 @@ interface DisplayProps {
   trailingItem?: React.ReactNode;
 }
 
+export interface CMDKTextInput {
+  /** Accessible label for the palette input while editing. */
+  ariaLabel: string;
+  /** Called with the raw input value when Enter is pressed. */
+  onSubmit: (value: string) => void;
+  /** Content displayed below the input while editing. */
+  footer?: React.ReactNode;
+  /** Value placed in the palette input when the action is opened. */
+  initialValue?: string;
+}
+
 interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
   limit?: number;
   ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
+  textInput?: CMDKTextInput;
 }
 
 interface CMDKActionDataTo extends CMDKActionDataBase {
@@ -106,6 +118,8 @@ interface CMDKActionProps<TData = unknown> {
   onMultiSelect?: () => void;
   prompt?: string;
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
+  /** Turns this action into a free-text editor that submits on Enter. */
+  textInput?: CMDKTextInput;
   to?: LocationDescriptor;
 }
 
@@ -177,6 +191,7 @@ export function CMDKAction<TData = unknown>({
   onMultiSelect,
   prompt,
   resource,
+  textInput,
   limit,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
@@ -199,6 +214,7 @@ export function CMDKAction<TData = unknown>({
               ref,
               resource,
               prompt,
+              textInput,
               limit: effectiveLimit,
               slot: slotName ?? undefined,
             }
@@ -212,6 +228,7 @@ export function CMDKAction<TData = unknown>({
               limit: effectiveLimit,
               chainedActionAnchor: chainedActionScope ?? undefined,
               slot: slotName ?? undefined,
+              textInput,
             }
         : {
             display,
@@ -220,6 +237,7 @@ export function CMDKAction<TData = unknown>({
             to,
             limit: effectiveLimit,
             slot: slotName ?? undefined,
+            textInput,
           },
     [
       chainedActionScope,
@@ -233,6 +251,7 @@ export function CMDKAction<TData = unknown>({
       ref,
       resource,
       slotName,
+      textInput,
       to,
     ]
   );
@@ -260,7 +279,7 @@ export function CMDKAction<TData = unknown>({
     [display.label, key, parentKey, prompt]
   );
 
-  if (!children && !resource) {
+  if (!children && !resource && !textInput) {
     return null;
   }
 
