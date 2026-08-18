@@ -76,7 +76,10 @@ export function OverviewIssueAssignee({
   );
 
   const handleSuccess = useCallback(
-    (nextAssignedTo: Group['assignedTo']) => {
+    async (nextAssignedTo: Group['assignedTo']) => {
+      // Cancel in-flight overview fetches first so a stale response can't land
+      // after the patch and revert the assignee.
+      await queryClient.cancelQueries({queryKey: [overviewUrl]});
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
         {queryKey: [overviewUrl]},
         previous =>

@@ -50,27 +50,39 @@ describe('OverviewIssueAssignee', () => {
     },
   };
 
-  it('patches the cached overview payload after mutation', async () => {
+  it('patches the cache and survives a stale in-flight overview response', async () => {
     const assignee = UserFixture({
       id: '42',
       name: 'Next Assignee',
       email: 'next.assignee@example.com',
     });
+    const assignedTo = {id: assignee.id, name: assignee.name, type: 'user'};
     const assignRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'PUT',
-      body: {
-        ...group,
-        assignedTo: {id: assignee.id, name: assignee.name, type: 'user'},
-      },
+      body: {...group, assignedTo},
     });
 
     const queryClient = makeTestQueryClient();
-    const {queryKey: overviewKey} = apiOptions.as<AutofixOverviewResponse>()(
+    const overviewOptions = apiOptions.as<AutofixOverviewResponse>()(
       '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
       {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     );
+    const overviewKey = overviewOptions.queryKey;
     queryClient.setQueryData(overviewKey, {json: overviewResponse, headers: {}});
+
+    // A background refetch that is still in flight when the reassign lands, and
+    // whose response carries the pre-assign assignee.
+    let releaseStale!: () => void;
+    const stale = new Promise<void>(resolve => {
+      releaseStale = resolve;
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/autofix-overview/`,
+      asyncDelay: stale,
+      body: overviewResponse,
+    });
+    const inFlight = queryClient.fetchQuery(overviewOptions);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -88,11 +100,15 @@ describe('OverviewIssueAssignee', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: new RegExp(assignee.name)})
     );
-
     await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+    // Let the stale response resolve; the reassign must have cancelled it.
+    releaseStale();
+    await inFlight.catch(() => {});
+
     const patched = queryClient.getQueryData(overviewKey);
     expect(patched?.json.runsByMilestone.autofix_root_cause[0]?.issue.assignedTo).toEqual(
-      {id: assignee.id, name: assignee.name, type: 'user'}
+      assignedTo
     );
   });
 });
