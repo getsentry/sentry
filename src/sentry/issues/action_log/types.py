@@ -131,6 +131,7 @@ class ActionSource(StrEnum):
     MCP = "mcp"
     SEER_EXPLORER = "seer:explorer"
     SEER_SLACK = "seer:slack"
+    VSCODE = "vscode"
     SLACK = "slack"
     SLACK_STAGING = "slack_staging"
     DISCORD = "discord"

@@ -1,7 +1,9 @@
 import logging
 from typing import Any, NotRequired, TypedDict
 
-from sentry import features, options
+from django.contrib.auth.models import AnonymousUser
+
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
@@ -62,6 +64,7 @@ ITERATION_REFERRER_TO_ACTION_SOURCE: dict[AutofixReferrer, ActionSource] = {
     AutofixReferrer.CLI: ActionSource.SENTRY_CLI,
     AutofixReferrer.LINEAR_AGENT: ActionSource.API,
     AutofixReferrer.MCP: ActionSource.MCP,
+    AutofixReferrer.VSCODE: ActionSource.VSCODE,
     AutofixReferrer.WEB: ActionSource.WEB,
     AutofixReferrer.GITHUB_PR_COMMENT: ActionSource.GITHUB,
     AutofixReferrer.GITHUB_PR_REVIEW: ActionSource.GITHUB,
@@ -82,6 +85,7 @@ def has_seer_autofix_entrypoint_access(
     *,
     organization: Organization,
     entrypoint_key: SeerEntrypointKey | None = None,
+    actor: User | RpcUser | AnonymousUser | None = None,
 ) -> bool:
     """
     Checks if the organization has access to Seer and at least one autofix entrypoint.
@@ -102,10 +106,10 @@ def has_seer_autofix_entrypoint_access(
             )
             return False
         entrypoint_cls = autofix_entrypoint_registry.registrations[entrypoint_key]
-        return entrypoint_cls.has_access(organization)
+        return entrypoint_cls.has_access(organization, actor=actor)
 
     return any(
-        entrypoint_cls.has_access(organization=organization)
+        entrypoint_cls.has_access(organization=organization, actor=actor)
         for entrypoint_cls in autofix_entrypoint_registry.registrations.values()
     )
 
@@ -125,9 +129,10 @@ class SeerAutofixOperator[CachePayloadT]:
         *,
         organization: Organization,
         entrypoint_key: SeerEntrypointKey | None = None,
+        actor: User | RpcUser | AnonymousUser | None = None,
     ) -> bool:
         return has_seer_autofix_entrypoint_access(
-            organization=organization, entrypoint_key=entrypoint_key
+            organization=organization, entrypoint_key=entrypoint_key, actor=actor
         )
 
     @classmethod
@@ -235,11 +240,13 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
-                    with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
+                    with action_context_scope(
+                        self.entrypoint.action_source, GroupActionActor.user(user.id)
+                    ):
                         run = trigger_autofix_agent(
                             group=group,
                             step=AutofixStep.ROOT_CAUSE,
-                            referrer=AutofixReferrer.SLACK,
+                            referrer=self.entrypoint.autofix_referrer,
                             run_id=None,
                             user=user,
                         )
@@ -248,18 +255,18 @@ class SeerAutofixOperator[CachePayloadT]:
                             group,
                             ActivityType.TRIGGER_AUTOFIX,
                             user_id=user.id,
-                            data={"referrer": AutofixReferrer.SLACK.value},
+                            data={"referrer": self.entrypoint.autofix_referrer.value},
                             send_notification=False,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
                         group,
                         run_id,
-                        referrer=AutofixReferrer.SLACK,
+                        referrer=self.entrypoint.autofix_referrer,
                         author=commit_author_for_user(
                             user,
                             group.organization.id,
-                            referrer="autofix_open_pr_slack",
+                            referrer=self.entrypoint.commit_author_referrer,
                         ),
                     )
                 else:
@@ -270,7 +277,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     trigger_autofix_agent(
                         group=group,
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
-                        referrer=AutofixReferrer.SLACK,
+                        referrer=self.entrypoint.autofix_referrer,
                         run_id=run_id,
                         user=user,
                     )
@@ -403,7 +410,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     trigger_coding_agent_handoff(
                         group=group,
                         run_id=run_id,
-                        referrer=AutofixReferrer.SLACK,
+                        referrer=self.entrypoint.autofix_referrer,
                         integration_id=handoff_config.integration_id,
                     )
             except UnableToAcquireLock as e:
@@ -431,6 +438,7 @@ def has_seer_agent_entrypoint_access(
     *,
     organization: Organization | RpcOrganization,
     entrypoint_key: SeerEntrypointKey | None = None,
+    actor: User | RpcUser | AnonymousUser | None = None,
 ) -> bool:
     """
     Checks if the organization has access to Seer Agent and at least one agent entrypoint.
@@ -443,7 +451,7 @@ def has_seer_agent_entrypoint_access(
     """
     from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 
-    has_access, _ = has_seer_agent_access_with_detail(organization, None)
+    has_access, _ = has_seer_agent_access_with_detail(organization, actor)
     if not has_access:
         return False
 
@@ -458,10 +466,10 @@ def has_seer_agent_entrypoint_access(
             )
             return False
         entrypoint_cls = agent_entrypoint_registry.registrations[entrypoint_key]
-        return entrypoint_cls.has_access(organization)
+        return entrypoint_cls.has_access(organization, actor=actor)
 
     return any(
-        entrypoint_cls.has_access(organization=organization)
+        entrypoint_cls.has_access(organization=organization, actor=actor)
         for entrypoint_cls in agent_entrypoint_registry.registrations.values()
     )
 
@@ -481,20 +489,23 @@ class SeerAgentOperator[CachePayloadT]:
         *,
         organization: Organization | RpcOrganization,
         entrypoint_key: SeerEntrypointKey | None = None,
+        actor: User | RpcUser | AnonymousUser | None = None,
     ) -> bool:
         return has_seer_agent_entrypoint_access(
-            organization=organization, entrypoint_key=entrypoint_key
+            organization=organization, entrypoint_key=entrypoint_key, actor=actor
         )
 
     def trigger_agent(
         self,
         *,
         organization: Organization,
-        user: User | RpcUser | None,
+        user: User | RpcUser | AnonymousUser | None,
         prompt: str,
         on_page_context: str | None = None,
         category_key: str,
         category_value: str,
+        group: Group | None = None,
+        run_id: int | None = None,
     ) -> int | None:
         """
         Start or continue a Seer Agent run and return the run_id.
@@ -514,27 +525,22 @@ class SeerAgentOperator[CachePayloadT]:
                 }
             )
 
-            enable_code_mode_tools = "off"
-            if category_key == "slack_thread" and features.has(
-                "organizations:seer-slack-code-mode", organization
-            ):
-                enable_code_mode_tools = "only"
+            enable_code_mode_tools = self.entrypoint.get_code_mode_tools(organization)
 
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
                 client = SeerAgentClient(
                     organization=organization,
                     user=user,
+                    project=group.project if group is not None else None,
+                    group=group,
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
-                    is_interactive=True,
-                    enable_coding=False,
+                    is_interactive=self.entrypoint.is_interactive,
+                    enable_coding=self.entrypoint.enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
-                    # Entrypoints (e.g. Slack) render responses as plain markdown and
-                    # can't display embed widgets, so the raw Markdoc tags would leak as
-                    # text. Don't ask the agent to emit them in the first place.
-                    enable_embeds=False,
+                    enable_embeds=self.entrypoint.enable_embeds,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -546,26 +552,33 @@ class SeerAgentOperator[CachePayloadT]:
                 return None
 
             try:
-                existing_runs = client.get_runs(
-                    category_key=category_key,
-                    category_value=category_value,
-                    limit=1,
-                    only_current_user=False,
-                )
-
-                if existing_runs:
+                if run_id is not None:
                     run_id = client.continue_run(
-                        run_id=existing_runs[0].run_id,
+                        run_id=run_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
                     ).seer_run_state_id
                     lifecycle.add_extra("continued", "true")
                 else:
-                    run_id = client.start_run(
-                        prompt=prompt,
-                        on_page_context=on_page_context,
-                    ).seer_run_state_id
-                    lifecycle.add_extra("continued", "false")
+                    existing_runs = client.get_runs(
+                        category_key=category_key,
+                        category_value=category_value,
+                        limit=1,
+                        only_current_user=self.entrypoint.only_current_user,
+                    )
+                    if existing_runs:
+                        run_id = client.continue_run(
+                            run_id=existing_runs[0].run_id,
+                            prompt=prompt,
+                            on_page_context=on_page_context,
+                        ).seer_run_state_id
+                        lifecycle.add_extra("continued", "true")
+                    else:
+                        run_id = client.start_run(
+                            prompt=prompt,
+                            on_page_context=on_page_context,
+                        ).seer_run_state_id
+                        lifecycle.add_extra("continued", "false")
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
@@ -894,9 +907,7 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
                 if not entrypoint_cls.has_access(organization=organization):
                     continue
 
-                from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
-
-                cache_payload = SeerOperatorAgentCache[SlackAgentCachePayload].get(
+                cache_payload = SeerOperatorAgentCache[dict[str, Any]].get(
                     entrypoint_key=str(entrypoint_key),
                     run_id=run_id,
                 )

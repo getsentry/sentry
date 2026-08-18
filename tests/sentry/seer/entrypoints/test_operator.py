@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
+from sentry import features
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -58,6 +59,9 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     """Mock entrypoint implementation for testing. Stores function calls similar to a mock."""
 
     key = cast(SeerEntrypointKey, "MOCK")
+    action_source = ActionSource.SLACK
+    autofix_referrer = AutofixReferrer.SLACK
+    commit_author_referrer = "autofix_open_pr_slack"
 
     def __init__(self):
         self.thread_id = str(uuid.uuid4())
@@ -70,7 +74,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
         self.handoff_already_exists: list[tuple[int, CodingAgentProviderType, bool]] = []
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(organization: Organization, actor=None) -> bool:
         return True
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
@@ -902,6 +906,16 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
     """Mock agent entrypoint for testing."""
 
     key = cast(SeerEntrypointKey, "MOCK_AGENT")
+    enable_coding = False
+    enable_embeds = False
+    is_interactive = True
+    only_current_user = False
+
+    @staticmethod
+    def get_code_mode_tools(organization: Organization) -> str:
+        if features.has("organizations:seer-slack-code-mode", organization):
+            return "only"
+        return "off"
 
     def __init__(self):
         self.thread_id = str(uuid.uuid4())
@@ -909,7 +923,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         self.agent_run_ids: list[int] = []
 
     @staticmethod
-    def has_access(organization: Organization | RpcOrganization) -> bool:
+    def has_access(organization: Organization | RpcOrganization, actor=None) -> bool:
         return True
 
     def on_trigger_agent_error(self, *, error: str) -> None:
@@ -964,6 +978,26 @@ class TestSeerAgentOperatorAccess(TestCase):
     def test_has_access_without_seer_agent(self):
         with self.feature({"organizations:gen-ai-features": False}):
             assert not SeerAgentOperator.has_access(organization=self.organization)
+
+    @patch("sentry.seer.agent.client_utils.has_seer_agent_access_with_detail")
+    def test_has_access_passes_actor_to_general_and_entrypoint_checks(self, mock_access):
+        mock_access.return_value = (True, None)
+        mock_entrypoint = Mock(spec=SeerAgentEntrypoint)
+        mock_entrypoint.has_access.return_value = True
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+            {MockAgentEntrypoint.key: mock_entrypoint},
+            clear=True,
+        ):
+            assert SeerAgentOperator.has_access(
+                organization=self.organization,
+                entrypoint_key=MockAgentEntrypoint.key,
+                actor=self.user,
+            )
+
+        mock_access.assert_called_once_with(self.organization, self.user)
+        mock_entrypoint.has_access.assert_called_once_with(self.organization, actor=self.user)
 
 
 class TestSeerOperatorCompletionHook(TestCase):
@@ -1204,6 +1238,27 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_explicit_run_id_continues_without_category_lookup(self, mock_client_cls):
+        mock_client = Mock()
+        mock_client.continue_run.return_value = Mock(seer_run_state_id=42)
+        mock_client_cls.return_value = mock_client
+
+        run_id = self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="follow up",
+            category_key="vscode",
+            category_value="session-123",
+            run_id=42,
+        )
+
+        assert run_id == 42
+        mock_client.get_runs.assert_not_called()
+        mock_client.continue_run.assert_called_once_with(
+            run_id=42, prompt="follow up", on_page_context=None
+        )
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_slack_code_mode_disabled(self, mock_client_cls):
         mock_client = Mock()
         mock_client.get_runs.return_value = []
@@ -1222,7 +1277,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
-    def test_non_slack_category_ignores_flag(self, mock_client_cls):
+    def test_entrypoint_capability_applies_independent_of_category(self, mock_client_cls):
         mock_client = Mock()
         mock_client.get_runs.return_value = []
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
@@ -1238,4 +1293,4 @@ class TestSeerAgentOperatorCodeMode(TestCase):
             )
 
         mock_client_cls.assert_called_once()
-        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"

@@ -1,14 +1,21 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
+from sentry.issues.action_log.types import ActionSource
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
+    VSCODE = "vscode"
 
 
 class SeerAutofixEntrypoint[CachePayloadT](Protocol):
@@ -18,9 +25,15 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+    action_source: ActionSource
+    autofix_referrer: AutofixReferrer
+    commit_author_referrer: str
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
+    def has_access(
+        organization: Organization,
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> bool:
         """
         Used by the operator (SeerAutofixOperator.has_access) to gate access unless
         the organization has access to at least one entrypoint. The operator will check for
@@ -111,9 +124,21 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+    enable_coding: bool
+    enable_embeds: bool
+    is_interactive: bool
+    only_current_user: bool
 
     @staticmethod
-    def has_access(organization: Organization | RpcOrganization) -> bool:
+    def get_code_mode_tools(organization: Organization) -> str:
+        """Return the code-mode setting supported by this surface."""
+        ...
+
+    @staticmethod
+    def has_access(
+        organization: Organization | RpcOrganization,
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> bool:
         """
         Entrypoint-specific access gate. The operator checks general Seer Agent access
         (``has_seer_agent_access_with_detail``) prior to this, so only entrypoint-specific

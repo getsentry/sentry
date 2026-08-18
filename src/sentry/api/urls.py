@@ -575,6 +575,12 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_editor_sessions import (
+    OrganizationSeerEditorSessionActionsEndpoint,
+    OrganizationSeerEditorSessionDetailsEndpoint,
+    OrganizationSeerEditorSessionMessagesEndpoint,
+    OrganizationSeerEditorSessionsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -2530,6 +2536,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
         OrganizationSeerRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-runs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/editor/sessions/$",
+        OrganizationSeerEditorSessionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-editor-sessions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/editor/sessions/(?P<session_id>[^/]+)/$",
+        OrganizationSeerEditorSessionDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-editor-session-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/editor/sessions/(?P<session_id>[^/]+)/messages/$",
+        OrganizationSeerEditorSessionMessagesEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-editor-session-messages",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/editor/sessions/(?P<session_id>[^/]+)/actions/$",
+        OrganizationSeerEditorSessionActionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-editor-session-actions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
