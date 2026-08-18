@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -17,7 +18,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconBug,
   IconCheckmark,
-  IconCircle,
   IconClock,
   IconClose,
   IconCommit,
@@ -78,6 +78,27 @@ interface PullRequestStatusTagMeta {
   variant: TagProps['variant'];
 }
 
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// Inherits the tag's variant color via currentColor, like the other status icons.
+const ChecksSpinner = styled('span')`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  animation: ${spin} 0.6s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 2.4s;
+  }
+`;
+
 const CHECKS_STATUS_TAGS = {
   failure: {
     icon: <IconClose />,
@@ -85,7 +106,7 @@ const CHECKS_STATUS_TAGS = {
     variant: 'danger',
   },
   pending: {
-    icon: <IconCircle />,
+    icon: <ChecksSpinner aria-hidden />,
     label: t('Checks Running'),
     variant: 'warning',
   },
