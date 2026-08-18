@@ -34,17 +34,16 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
-FREE_AUTOFIX_COHORT_OPTION = "agentic-triage-free-cohort"
 
 
 def _clear_free_autofix_cohort_configuration(organization: Organization) -> None:
-    if not organization.get_option(FREE_AUTOFIX_COHORT_OPTION, False):
+    if not organization.get_option("agentic-triage-free-cohort", False):
         return
 
     SeerProjectRepository.objects.filter(
         project_repository__project__organization_id=organization.id
     ).delete()
-    organization.delete_option(FREE_AUTOFIX_COHORT_OPTION)
+    organization.delete_option("agentic-triage-free-cohort")
 
 
 def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
