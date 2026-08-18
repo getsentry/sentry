@@ -1,3 +1,6 @@
+from django.test import override_settings
+
+from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
@@ -7,6 +10,7 @@ us = Cell("us", 1, "https://us.testserver")
 de = Cell("de", 2, "https://de.testserver")
 st = Cell("acme", 3, "https://acme.testserver")
 cell_config = (us, de, st)
+SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 us_locality = Locality(
     name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
@@ -105,6 +109,25 @@ class UserUserRolesTest(APITestCase):
             de_locality.api_serialize(),
             us_locality.api_serialize(),
         ]
+
+    @override_cells(cell_config)
+    @override_settings(SEER_API_SHARED_SECRET=SECRET)
+    def test_get_for_user_with_agent_token_error(self) -> None:
+        organization = self.create_organization(cell="us", owner=self.user)
+        bearer, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=organization.id,
+            scopes=["org:read"],
+            session_id="user-regions",
+        )
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.get_response(
+                "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {bearer}"}
+            )
+
+        assert response.status_code == 403
+        assert "insufficient_scope" not in response.get("WWW-Authenticate", "")
 
     @override_cells(cell_config)
     def test_get_other_user_with_auth_token_error(self) -> None:
