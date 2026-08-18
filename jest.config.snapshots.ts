@@ -58,7 +58,7 @@ const config: Config.InitialOptions = {
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
   // mock in static/ collides with its copies and the file that ends up backing
   // jest.mock() is decided by crawl order. Keep the module map to this checkout.
-  modulePathIgnorePatterns: ['<rootDir>/\\.claude'],
+  modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
