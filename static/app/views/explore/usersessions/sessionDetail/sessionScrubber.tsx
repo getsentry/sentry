@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -77,6 +76,11 @@ const MARKER_MAX = 26;
 const BAR_HEIGHT = 12;
 /** A trace can be shorter than a pixel of session. It still happened. */
 const BAR_MIN_PX = 3;
+/** The bar's corner. A literal now that a paint rather than CSS applies it. */
+const BAR_RADIUS_PX = 4;
+
+/** A chart with no route band still paints its lanes; it just has no wash. */
+const EMPTY_VISITS: RouteVisit[] = [];
 
 /** Target width of one density bucket. Wider reads as a bar chart, narrower as noise. */
 const BUCKET_WIDTH = 6;
@@ -290,6 +294,20 @@ export function SessionScrubber({
   const overviewEvents = useMemo(
     () => LANE_ORDER.filter(key => enabled.has(key)).flatMap(key => eventsByType[key]),
     [enabled, eventsByType]
+  );
+
+  /**
+   * Each lane reduced to what painting it needs. Held by identity so a hover, which
+   * changes none of it, does not repaint the lanes.
+   */
+  const laneMarks = useMemo(
+    () =>
+      LANES.map(config => ({
+        color: theme.tokens.graphics[config.graphicsVariant].vibrant,
+        events: eventsByType[config.key],
+        isOn: enabled.has(config.key),
+      })),
+    [enabled, eventsByType, theme.tokens.graphics]
   );
 
   /**
@@ -810,24 +828,26 @@ export function SessionScrubber({
         )}
 
         {/*
-          The route's reach into the lanes, and the reason it reads as overarching
-          rather than as a fifth lane.
+          Every lane's marks, and the route's reach into them, on one surface.
 
-          Neutral rather than route-coloured, on purpose. These sit directly behind
-          the markers — a magenta wash under an error dot would tint how bad the
-          error looks, and the band above is already where a route's identity is
-          said. What a wash means here is only "the same side of a boundary as its
-          neighbours", which is why alternating is enough and the parity of a
-          particular visit carries nothing.
+          The wash is neutral rather than route-coloured, on purpose. It sits
+          directly behind the marks — a magenta wash under an error dot would tint
+          how bad the error looks, and the band above is already where a route's
+          identity is said. What a wash means here is only "the same side of a
+          boundary as its neighbours", which is why alternating is enough and the
+          parity of a particular visit carries nothing.
         */}
-        {hasRoutes && (
-          <BandWash
-            visits={routeVisits}
-            toPercent={toPercent}
-            routeColor={routeColor}
-            firstLaneRow={firstLaneRow}
-          />
-        )}
+        <LaneCanvas
+          lanes={laneMarks}
+          visits={hasRoutes ? routeVisits : EMPTY_VISITS}
+          routeColor={routeColor}
+          buckets={buckets}
+          domain={domain}
+          start={view.start}
+          width={width}
+          firstLaneRow={firstLaneRow}
+          tint={theme.tokens.background.transparent.neutral.muted}
+        />
 
         {LANES.map((config, index) => {
           const isOn = enabled.has(config.key);
@@ -894,16 +914,7 @@ export function SessionScrubber({
                   )}
                 </Flex>
               </LaneToggle>
-              <Lane
-                color={color}
-                events={eventsByType[config.key]}
-                buckets={buckets}
-                domain={domain}
-                start={view.start}
-                isOn={isOn}
-                row={row}
-                isLast={isLast}
-              />
+              <LaneTrack aria-hidden data-last={isLast} style={{gridRow: String(row)}} />
             </Fragment>
           );
         })}
@@ -1351,63 +1362,6 @@ const RouteBand = memo(function RouteBandImpl({
 });
 
 /**
- * The route's reach into the lanes, and the reason the band reads as overarching
- * rather than as a fifth lane.
- *
- * Neutral rather than route-coloured, on purpose. These sit directly behind the
- * markers — a magenta wash under an error dot would tint how bad the error looks,
- * and the band above is already where a route's identity is said. What a wash
- * means here is only "the same side of a boundary as its neighbours", which is why
- * alternating is enough and the parity of a particular visit carries nothing.
- *
- * Memoized for the same reason as {@link RouteBand}: nothing here reads the
- * pointer, so nothing here should be rebuilt by it.
- */
-const BandWash = memo(function BandWashImpl({
-  visits,
-  toPercent,
-  routeColor,
-  firstLaneRow,
-}: {
-  firstLaneRow: number;
-  routeColor: (visit: RouteVisit) => string;
-  toPercent: (timestamp: number) => number;
-  visits: RouteVisit[];
-}) {
-  return (
-    <Bands aria-hidden style={{gridRow: `${firstLaneRow} / -1`}}>
-      {visits.map((visit, index) => {
-        const from = toPercent(visit.start);
-        const to = toPercent(visit.end);
-        if (to <= 0 || from >= 100) {
-          return null;
-        }
-        const left = Math.max(0, from);
-        return (
-          <Fragment key={`${visit.route}-${visit.start}`}>
-            {index % 2 === 1 && (
-              <BandTint
-                style={{left: `${left}%`, width: `${Math.min(100, to) - left}%`}}
-              />
-            )}
-            {/* Only where the change is actually in view — a rule pinned to the
-                viewport's edge would invent a boundary there. */}
-            {index > 0 && from >= 0 && (
-              <BandEdge
-                style={{
-                  left: `${from}%`,
-                  borderLeftColor: `color-mix(in srgb, ${routeColor(visit)} 70%, transparent)`,
-                }}
-              />
-            )}
-          </Fragment>
-        );
-      })}
-    </Bands>
-  );
-});
-
-/**
  * The whole session, whatever the lanes are showing of it.
  *
  * Zooming costs the one thing a fixed chart had for free: knowing where you are.
@@ -1661,111 +1615,193 @@ const OverviewTicks = memo(function OverviewTicksImpl({
  * hover treatment a lane gets is drawn by the overlay above it rather than by the
  * lane, which is what makes that possible.
  */
-const Lane = memo(function LaneImpl({
-  color,
-  events,
+/**
+ * Every lane's marks, and the route wash behind them, on one canvas.
+ *
+ * These were four hundred absolutely positioned elements, and a zoom moves all of
+ * them: it changes the domain the chart is drawn against, so every left and every
+ * width is genuinely different and React had to reconcile, restyle and re-lay-out
+ * the lot at pointer rate. The marks earn none of that. They carry no text, they
+ * are already hidden from assistive tech, and nothing clicks them — hit testing
+ * reads the sorted event arrays, not the DOM, so what drew the pixels is not
+ * something the rest of the chart has an opinion about.
+ *
+ * So they are painted instead. Cost becomes the marks actually drawn, at roughly a
+ * microsecond each, rather than the nodes reconciled at sixty times that — which is
+ * what makes a lane holding the full thousand rows affordable rather than merely
+ * permitted.
+ *
+ * What stays in the DOM stays for a reason: the route band has text, tooltips and a
+ * hover state; the overview strip cannot change under a zoom; the overlay is where
+ * every interactive affordance lives. This canvas is only the part that is pure
+ * shape.
+ */
+const LaneCanvas = memo(function LaneCanvasImpl({
+  lanes,
+  visits,
+  routeColor,
   buckets,
   domain,
   start,
-  isOn,
-  row,
-  isLast,
+  width,
+  firstLaneRow,
+  tint,
 }: {
   buckets: number;
-  color: string;
   domain: number;
-  events: SessionEvent[];
-  isLast: boolean;
-  isOn: boolean;
-  row: number;
+  firstLaneRow: number;
+  lanes: Array<{color: string; events: SessionEvent[]; isOn: boolean}>;
+  routeColor: (visit: RouteVisit) => string;
   start: number;
+  tint: string;
+  visits: RouteVisit[];
+  width: number;
 }) {
-  const hasDurations = useMemo(
-    () => events.some(event => event.duration !== undefined),
-    [events]
-  );
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const height = LANES.length * LANE_HEIGHT;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || width === 0) {
+      return;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
+    }
+
+    // Backed at device resolution and scaled back down, so a hairline rule is a
+    // hairline rather than a smear on the displays this is mostly read on.
+    const ratio = globalThis.devicePixelRatio || 1;
+    const pixelWidth = Math.round(width * ratio);
+    const pixelHeight = Math.round(height * ratio);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, width, height);
+
+    const toX = (timestamp: number) => ((timestamp - start) / domain) * width;
+
+    // The route's reach into the lanes, painted first so the marks land on top.
+    visits.forEach((visit, index) => {
+      const from = toX(visit.start);
+      const to = toX(visit.end);
+      if (to <= 0 || from >= width) {
+        return;
+      }
+      const left = Math.max(0, from);
+      if (index % 2 === 1) {
+        context.globalAlpha = 0.35;
+        context.fillStyle = tint;
+        context.fillRect(left, 0, Math.min(width, to) - left, height);
+      }
+      // Only where the change is actually in view — a rule pinned to the
+      // viewport's edge would invent a boundary there.
+      if (index > 0 && from >= 0) {
+        context.globalAlpha = 0.7;
+        context.fillStyle = routeColor(visit);
+        context.fillRect(Math.round(from), 0, 1, height);
+      }
+    });
+
+    lanes.forEach((lane, laneIndex) => {
+      const top = laneIndex * LANE_HEIGHT;
+      const middle = top + LANE_HEIGHT / 2;
+      // A lane that is off is dimmed rather than dropped: the same treatment its
+      // track used to carry, moved to the paint that replaced it.
+      context.globalAlpha = lane.isOn ? 1 : 0.3;
+      context.fillStyle = lane.color;
+
+      if (hasDurations(lane.events)) {
+        context.globalAlpha *= 0.75;
+        for (const bar of durationBars(lane.events, domain, start)) {
+          const left = bar.left * width;
+          const barWidth = Math.max(BAR_MIN_PX, bar.width * width);
+          context.beginPath();
+          context.roundRect(
+            left,
+            middle - BAR_HEIGHT / 2,
+            barWidth,
+            BAR_HEIGHT,
+            BAR_RADIUS_PX
+          );
+          context.fill();
+        }
+        return;
+      }
+
+      const bucketWidth = width / buckets;
+      for (const mark of densityMarks(lane.events, buckets, domain, start)) {
+        // Centred on its bucket, so a lone marker sits where the item is rather
+        // than at the left edge of the slice it fell into.
+        const centre = (mark.index + 0.5) * bucketWidth;
+        const markWidth = Math.max(MARKER_MIN, bucketWidth);
+        context.beginPath();
+        // A pill, which is what `radius.full` drew: the shorter side, halved.
+        context.roundRect(
+          centre - markWidth / 2,
+          middle - mark.height / 2,
+          markWidth,
+          mark.height,
+          Math.min(markWidth, mark.height) / 2
+        );
+        context.fill();
+      }
+    });
+
+    context.globalAlpha = 1;
+  }, [lanes, visits, routeColor, buckets, domain, start, width, height, tint]);
 
   return (
-    <LaneTrack
+    <LaneSurface
+      ref={canvasRef}
       aria-hidden
-      data-last={isLast}
-      // The lane's colour is carried as a variable rather than set on each shape:
-      // it is the same for every marker in the lane and never changes while one is
-      // being drawn, so writing it per element was one inline style property per
-      // marker per zoom notch for a value that had not moved.
-      style={
-        {
-          gridRow: String(row),
-          opacity: isOn ? 1 : 0.3,
-          '--scrubber-lane-color': color,
-        } as CSSProperties
-      }
-    >
-      {hasDurations ? (
-        <DurationMarkers events={events} domain={domain} start={start} />
-      ) : (
-        <DensityMarkers events={events} buckets={buckets} domain={domain} start={start} />
-      )}
-    </LaneTrack>
+      data-test-id="session-lanes"
+      style={{gridRow: `${firstLaneRow} / -1`, height}}
+    />
   );
 });
 
-/**
- * A bar per item, across the time it occupied. Overlapping bars are drawn over
- * each other at partial opacity rather than stacked into rows: the lane is one
- * band of time, and where two traces overlap the darker patch says so.
- */
-function DurationMarkers({
-  events,
-  domain,
-  start,
-}: {
-  domain: number;
-  events: SessionEvent[];
-  start: number;
-}) {
-  const bars = useMemo(
-    () =>
-      events
-        .map((event, index) => {
-          if (event.timestamp === undefined) {
-            return null;
-          }
-          // Clipped by the track either way, but a zoomed lane would otherwise keep
-          // every off-screen bar in the DOM.
-          if (
-            event.timestamp + (event.duration ?? 0) < start ||
-            event.timestamp > start + domain
-          ) {
-            return null;
-          }
-          const left = ((event.timestamp - start) / domain) * 100;
-          const width = ((event.duration ?? 0) / domain) * 100;
-          return {index, left, width};
-        })
-        .filter(bar => bar !== null),
-    [events, domain, start]
-  );
-
-  return (
-    <Fragment>
-      {bars.map(bar => (
-        <Bar
-          key={bar.index}
-          style={{
-            left: `${bar.left}%`,
-            width: `max(${BAR_MIN_PX}px, ${bar.width}%)`,
-          }}
-        />
-      ))}
-    </Fragment>
-  );
+/** Whether a lane is drawn across time or at instants. */
+function hasDurations(events: SessionEvent[]): boolean {
+  return events.some(event => event.duration !== undefined);
 }
 
 /**
- * Bucketed markers for the instants. Positioned by percentage rather than laid out
- * per bucket, so an empty stretch costs no DOM and the lane is correct before its
- * width has been measured.
+ * A bar per item, across the time it occupied, as a fraction of the viewport.
+ * Overlapping bars are drawn over each other at partial opacity rather than
+ * stacked into rows: the lane is one band of time, and where two traces overlap
+ * the darker patch says so.
+ */
+function durationBars(
+  events: SessionEvent[],
+  domain: number,
+  start: number
+): Array<{left: number; width: number}> {
+  const bars: Array<{left: number; width: number}> = [];
+  for (const event of events) {
+    if (event.timestamp === undefined) {
+      continue;
+    }
+    // Culled rather than drawn and clipped: off-screen bars cost a path each.
+    if (
+      event.timestamp + (event.duration ?? 0) < start ||
+      event.timestamp > start + domain
+    ) {
+      continue;
+    }
+    bars.push({
+      left: (event.timestamp - start) / domain,
+      width: (event.duration ?? 0) / domain,
+    });
+  }
+  return bars;
+}
+
+/**
+ * Bucketed marks for the instants, so an empty stretch costs no drawing.
  *
  * They are centred on the lane rather than grown from its floor: a swimlane is
  * read for *when* something happened, and a row of bottom-anchored bars reads as
@@ -1774,74 +1810,52 @@ function DurationMarkers({
  * Each lane is scaled to its own busiest bucket. A once-a-minute metric heartbeat
  * and a burst of two hundred logs have nothing useful to say on one scale.
  */
-function DensityMarkers({
-  events,
-  buckets,
-  domain,
-  start,
-}: {
-  buckets: number;
-  domain: number;
-  events: SessionEvent[];
-  start: number;
-}) {
-  const markers = useMemo(() => {
-    const counts = Array.from<number>({length: buckets}).fill(0);
-    const end = start + domain;
-    events.forEach(event => {
-      // Dropped rather than clamped. The index clamp below is there for the item
-      // landing exactly on `end`; letting it absorb everything *outside* the
-      // viewport as well would pile the session's other half into the first bucket
-      // and invent a burst at each edge of every zoom.
-      if (
-        event.timestamp === undefined ||
-        event.timestamp < start ||
-        event.timestamp > end
-      ) {
-        return;
-      }
-      const index = Math.min(
-        buckets - 1,
-        Math.max(0, Math.floor(((event.timestamp - start) / domain) * buckets))
-      );
-      counts[index]! += 1;
+function densityMarks(
+  events: SessionEvent[],
+  buckets: number,
+  domain: number,
+  start: number
+): Array<{height: number; index: number}> {
+  const counts = Array.from<number>({length: buckets}).fill(0);
+  const end = start + domain;
+  for (const event of events) {
+    // Dropped rather than clamped. The index clamp below is there for the item
+    // landing exactly on `end`; letting it absorb everything *outside* the
+    // viewport as well would pile the session's other half into the first bucket
+    // and invent a burst at each edge of every zoom.
+    if (
+      event.timestamp === undefined ||
+      event.timestamp < start ||
+      event.timestamp > end
+    ) {
+      continue;
+    }
+    const index = Math.min(
+      buckets - 1,
+      Math.max(0, Math.floor(((event.timestamp - start) / domain) * buckets))
+    );
+    counts[index]! += 1;
+  }
+
+  const max = Math.max(...counts, 1);
+  const marks: Array<{height: number; index: number}> = [];
+  counts.forEach((count, index) => {
+    if (count === 0) {
+      return;
+    }
+    marks.push({
+      index,
+      // A single item is a dot, whatever the lane's busiest bucket holds — the
+      // height is spent on how much *more* than one happened here. Rooted rather
+      // than linear so two stays visible beside fifty.
+      height:
+        max === 1
+          ? MARKER_MIN
+          : MARKER_MIN +
+            Math.pow((count - 1) / (max - 1), 0.55) * (MARKER_MAX - MARKER_MIN),
     });
-
-    const max = Math.max(...counts, 1);
-    return counts
-      .map((count, index) => ({count, index}))
-      .filter(bucket => bucket.count > 0)
-      .map(({count, index}) => ({
-        index,
-        // A single item is a dot, whatever the lane's busiest bucket holds — the
-        // height is spent on how much *more* than one happened here. Rooted
-        // rather than linear so two stays visible beside fifty.
-        height:
-          max === 1
-            ? MARKER_MIN
-            : MARKER_MIN +
-              Math.pow((count - 1) / (max - 1), 0.55) * (MARKER_MAX - MARKER_MIN),
-      }));
-  }, [events, buckets, domain, start]);
-
-  const bucketWidth = 100 / buckets;
-
-  return (
-    <Fragment>
-      {markers.map(marker => (
-        <Marker
-          key={marker.index}
-          style={{
-            // Centred on its bucket, so a lone marker sits where the item is
-            // rather than at the left edge of the slice it fell into.
-            left: `${(marker.index + 0.5) * bucketWidth}%`,
-            width: `max(${MARKER_MIN}px, ${bucketWidth}%)`,
-            height: `${marker.height}px`,
-          }}
-        />
-      ))}
-    </Fragment>
-  );
+  });
+  return marks;
 }
 
 /**
@@ -1933,58 +1947,6 @@ const RouteName = styled('span')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-/**
- * The route's reach into the lanes. Spans every lane row as one element and paints
- * before them in DOM order, so the lane markers — which sit on transparent tracks
- * — draw on top without needing a stacking context of their own.
- */
-const Bands = styled('div')`
-  grid-column: 2;
-  position: relative;
-  overflow: hidden;
-  pointer-events: none;
-  /* Read by the tints and edges below, so those stay static. */
-  --scrubber-band-tint: color-mix(
-    in srgb,
-    ${p => p.theme.tokens.background.transparent.neutral.muted} 35%,
-    transparent
-  );
-  --scrubber-band-edge: ${p => p.theme.tokens.border.neutral.muted};
-`;
-
-/**
- * A hint, not a highlight. `neutral.muted` is built to lightly emphasize a block
- * of content; here it is only marking which side of a boundary something is on,
- * and the markers it sits behind are what the eye is meant to land on. Cut to a
- * fraction of the token rather than swapped for a literal, so it still tracks the
- * theme.
- */
-const BandTint = styled('div')`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: var(--scrubber-band-tint);
-`;
-
-/**
- * Where the route changed, run down every lane. The one channel that has to stay
- * legible: it was `border.primary` — `opaque200`, the faintest token there is —
- * which over 160px of lanes was invisible, and two stays on the *same* route have
- * nothing else to tell them apart. Their fill matches, their colour matches, their
- * label matches; without this line a navigation back to where you already were
- * draws as one unbroken segment.
- *
- * Coloured by the route being entered, and a rule rather than a wash. That is what
- * lets it be crisp without becoming the tint again — a hairline says "here",
- * where a fill would say "this whole region is special".
- */
-const BandEdge = styled('div')`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-left: 1px solid var(--scrubber-band-edge);
 `;
 
 /**
@@ -2128,50 +2090,32 @@ const LaneIcon = styled('span')`
  * and the labels are inside the chart. A bar drawn from an item a fraction of a
  * second outside the domain would otherwise reach back across its own label.
  */
+/**
+ * A lane's row. Empty now that the marks are painted: what it still carries is the
+ * rule that closes the lane, which the grid needs an element to hang off and which
+ * stays crisper as a border than as a line drawn into the canvas.
+ */
 const LaneTrack = styled('div')`
   grid-column: 2;
   position: relative;
-  overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  /* Read by every {@link Marker} and {@link Bar} inside, so those stay static. */
-  --scrubber-marker-radius: ${p => p.theme.radius.full};
-  --scrubber-bar-radius: ${p => p.theme.radius.xs};
 
   &[data-last='true'] {
     border-bottom: 0;
   }
 `;
 
-// The shapes below read their values from custom properties the lane sets rather
-// than interpolating the theme themselves, and it is worth saying why: a styled
-// component holding a `${p => p.theme…}` has to be re-serialized and re-hashed per
-// instance on every render, and a lane draws these by the hundred. Reading a
-// variable instead makes each one a static rule that emotion serializes once for
-// the whole page, while the value still tracks the theme. The same reasoning moves
-// the lane's colour and the bar's fixed height off the inline `style`: neither
-// changes while a lane is being drawn, so writing them per element per zoom notch
-// was work for a value that had not moved.
-const Marker = styled('div')`
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: var(--scrubber-marker-radius);
-  background: var(--scrubber-lane-color);
-`;
-
 /**
- * Not centred on its position the way a density marker is — a bar starts where its
- * item started, and grows to the right.
+ * What the lanes are painted on. Spans every lane row as one element and paints
+ * before them in DOM order, so the rules that close each lane draw over it.
+ *
+ * Sized in CSS and backed at device resolution in the paint, which is the only
+ * part of a canvas that has to be said twice.
  */
-const Bar = styled('div')`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  border-radius: var(--scrubber-bar-radius);
-  /* Fixed, unlike a density marker's: see {@link BAR_HEIGHT}. */
-  height: ${BAR_HEIGHT}px;
-  background: var(--scrubber-lane-color);
-  opacity: 0.75;
+const LaneSurface = styled('canvas')`
+  grid-column: 2;
+  width: 100%;
+  pointer-events: none;
 `;
 
 /**
