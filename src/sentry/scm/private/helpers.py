@@ -49,10 +49,11 @@ def fetch_service_provider(
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     elif integration.provider == "gitea":
-        # Gitea is always self-hosted and its ROOT_URL may carry a sub-path, so
-        # the provider cannot rebuild a base URL from a hostname the way the
-        # GitLab provider does -- it has to be handed the one `fetch_repository`
-        # derived. A repository missing it is unusable, so fail gracefully into
+        # Gitea instances are reachable at an arbitrary ROOT_URL -- gitea.com,
+        # or any self-hosted host, optionally under a sub-path -- so the
+        # provider cannot rebuild a base URL from a hostname the way the GitLab
+        # provider does. It has to be handed the one `fetch_repository` derived.
+        # A repository missing it is unusable, so fail gracefully into
         # `ProviderNotFound` rather than letting the provider raise.
         web_base_url = repository["web_base_url"]
         if not web_base_url:

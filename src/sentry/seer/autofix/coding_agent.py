@@ -497,14 +497,21 @@ class ExtractedAgentResult(NamedTuple):
 def extract_result_from_events(
     events: list[ClaudeSessionEvent],
 ) -> ExtractedAgentResult:
-    """Extract a GitHub PR or branch URL and its surrounding text block from session events.
+    """Extract a PR or branch URL and its surrounding text block from session events.
+
+    The host is left generic so a self-hosted or non-GitHub forge is recognised too; only
+    the path shape is pinned. GitHub writes ``/pull/{n}`` and ``/tree/{branch}``, Gitea
+    ``/pulls/{n}`` and ``/src/branch/{branch}`` -- and Gitea's sibling ``/src/commit/{sha}``
+    and ``/src/tag/{t}`` deliberately do not match, since neither names a branch.
 
     The patterns only locate a URL inside the agent's prose; what a PR URL means is left to
     :func:`parse_pull_request_url`, which ``pr_pattern`` is strictly narrower than -- so
     every URL it finds parses.
     """
-    pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
-    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/([-\w./]*[-\w])")
+    pr_pattern = re.compile(r"https://[^\s/]+/[^\s/]+/[^\s/]+/pulls?/\d+")
+    branch_pattern = re.compile(
+        r"https://[^\s/]+/[^\s/]+/[^\s/]+/(?:tree|src/branch)/([-\w./]*[-\w])"
+    )
 
     for event in reversed(events):
         if event.type != "agent.message":
