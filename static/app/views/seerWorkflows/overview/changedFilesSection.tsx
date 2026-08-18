@@ -47,7 +47,7 @@ export function ChangedFilesSection({
   onToggle: (key: string, expanded: boolean) => void;
 }) {
   return (
-    <Stack gap="sm">
+    <Stack gap="md">
       <Flex gap="xs" align="center">
         <IconCode size="xs" variant="secondary" aria-hidden />
         <Text size="xs" bold uppercase variant="secondary">
@@ -60,7 +60,7 @@ export function ChangedFilesSection({
             <Flex
               gap="md"
               align="center"
-              padding="md xl"
+              padding="md"
               borderBottom="primary"
               borderTop={groupIndex > 0 ? 'primary' : undefined}
             >

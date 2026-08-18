@@ -776,7 +776,7 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
   });
 
-  it('labels each changed file with its change type', async () => {
+  it('labels non-modified files with their change type', async () => {
     mockOverview({
       base: {
         has_pull_request: [
@@ -829,19 +829,18 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('src/sentry/new.py')).toBeInTheDocument();
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Deleted')).toBeInTheDocument();
-    expect(screen.getByText('Modified')).toBeInTheDocument();
     expect(screen.getByText('Renamed')).toBeInTheDocument();
+    expect(screen.queryByText('Modified')).not.toBeInTheDocument();
     expect(screen.getByText('+12')).toBeInTheDocument();
     expect(screen.getByText('-30')).toBeInTheDocument();
 
-    // Added and deleted keep their own color, rather than all six collapsing
-    // into the muted label used for the rest.
+    // Added and deleted keep their own color, while other non-modified states
+    // use the muted label.
     const tagClassName = (label: string) =>
       screen.getByText(label).closest('[data-test-id="tag-background"]')?.className;
     expect(tagClassName('Added')).not.toEqual(tagClassName('Deleted'));
-    expect(tagClassName('Added')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Renamed')).toEqual(tagClassName('Modified'));
+    expect(tagClassName('Added')).not.toEqual(tagClassName('Renamed'));
+    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Renamed'));
   });
 
   it('renders a file with an unknown change type without a tag', async () => {
