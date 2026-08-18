@@ -290,4 +290,96 @@ describe('OverviewCardAction', () => {
     });
     expect(agentItem).toHaveAttribute('aria-disabled', 'true');
   });
+
+  function runWithEligibility(hasReposConnected: boolean, hasNonGithubRepo: boolean) {
+    return runFixture({
+      issue: {
+        ...issueFixture(),
+        project: {
+          id: '2',
+          slug: 'project-slug',
+          platform: 'python',
+          hasReposConnected,
+          hasNonGithubRepo,
+        },
+      },
+    });
+  }
+
+  it('uses precomputed repo eligibility and skips the repos fetch', async () => {
+    const reposRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [{provider: 'github'}],
+    });
+
+    render(
+      <OverviewCardAction
+        run={runWithEligibility(true, false)}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
+
+    const agentItem = await screen.findByRole('menuitemradio', {
+      name: 'Send to Claude Agent',
+    });
+    expect(agentItem).not.toHaveAttribute('aria-disabled', 'true');
+    expect(reposRequest).not.toHaveBeenCalled();
+  });
+
+  it('disables handoff from precomputed eligibility without fetching repos', async () => {
+    const reposRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [{provider: 'github'}],
+    });
+
+    render(
+      <OverviewCardAction
+        run={runWithEligibility(false, false)}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
+
+    const agentItem = await screen.findByRole('menuitemradio', {
+      name: 'Send to Claude Agent',
+    });
+    expect(agentItem).toHaveAttribute('aria-disabled', 'true');
+    expect(reposRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows a loading state before revealing all options at once', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
+      },
+      asyncDelay: 50,
+    });
+
+    render(
+      <OverviewCardAction
+        run={runWithEligibility(true, false)}
+        sectionKey="needs_investigation"
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
+
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Open Seer'})
+    ).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Open Seer'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Send to Claude Agent'})
+    ).toBeInTheDocument();
+  });
 });
