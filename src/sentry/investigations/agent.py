@@ -779,7 +779,8 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     prompt = (
         "Write a concise, single-line title that identifies the specific incident being "
         "investigated. Prefer concrete incident details such as the monitor or issue name, "
-        "affected project, breached threshold or direction, and relevant time window. Avoid "
+        "affected project, and breached threshold or direction. Keep the title under 80 "
+        "characters and omit dates unless they distinguish this incident from another one. Avoid "
         "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
         "Do not use tools. Return only the title text. Do not call any function to write or save "
         "it.\n<source_context>\n"

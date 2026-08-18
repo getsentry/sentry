@@ -7,16 +7,25 @@ from sentry.investigations.templates import (
     InvestigationTemplateSpec,
     get_investigation_template,
 )
-from sentry.investigations.templates.breached_metric import BREACHED_METRIC_TEMPLATE
+from sentry.investigations.templates.breached_metric import (
+    BREACHED_METRIC_TEMPLATE,
+    BREACHED_METRIC_TEMPLATE_V1,
+)
 from sentry.investigations.templates.registry import _TEMPLATES
 
 ALL_TEMPLATES = tuple(_TEMPLATES.values())
 
 
 def test_registry_resolves_a_registered_template() -> None:
-    template = get_investigation_template("breached_metric", 1)
+    template = get_investigation_template("breached_metric", 2)
 
     assert template is BREACHED_METRIC_TEMPLATE
+
+
+def test_registry_keeps_the_previous_template_version() -> None:
+    template = get_investigation_template("breached_metric", 1)
+
+    assert template is BREACHED_METRIC_TEMPLATE_V1
 
 
 def test_registry_returns_none_for_an_unknown_key() -> None:
@@ -24,7 +33,7 @@ def test_registry_returns_none_for_an_unknown_key() -> None:
 
 
 def test_registry_returns_none_for_an_unknown_version() -> None:
-    assert get_investigation_template("breached_metric", 2) is None
+    assert get_investigation_template("breached_metric", 3) is None
 
 
 def test_registry_is_keyed_by_key_and_version() -> None:
@@ -109,10 +118,11 @@ def test_specs_are_frozen(template: InvestigationTemplateSpec) -> None:
 class TestBreachedMetricTemplate:
     def test_declares_the_expected_blocks(self) -> None:
         assert [block.key for block in BREACHED_METRIC_TEMPLATE.blocks] == [
-            "metric_chart",
+            "summary",
             "overview",
-            "synthesis",
+            "metric_chart",
             "contributors",
+            "synthesis",
         ]
 
     def test_is_a_breached_metric_source(self) -> None:
@@ -124,6 +134,17 @@ class TestBreachedMetricTemplate:
         )
 
         assert set(synthesis.dependencies) == {"metric_chart", "contributors"}
+
+    def test_summary_runs_after_every_analysis_block(self) -> None:
+        summary = BREACHED_METRIC_TEMPLATE.blocks[0]
+
+        assert summary.key == "summary"
+        assert set(summary.dependencies) == {
+            "metric_chart",
+            "overview",
+            "contributors",
+            "synthesis",
+        }
 
     def test_every_block_auto_runs(self) -> None:
         assert all(block.config.get("autoRun") is True for block in BREACHED_METRIC_TEMPLATE.blocks)
