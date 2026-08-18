@@ -1,0 +1,81 @@
+---
+title: OTPInput
+description: A segmented input for one-time authentication codes.
+category: forms
+source: '@sentry/scraps/input'
+---
+
+import {OTPInput} from '@sentry/scraps/input';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/input');
+
+`OTPInput` presents a one-time code as individual slots while retaining a single native
+input for autofill, paste, keyboard navigation, and assistive technology.
+
+```jsx
+<OTPInput length={6} onComplete={code => submit(code)} />
+```
+
+## Sizes
+
+Use the size that matches the surrounding form controls.
+
+<Storybook.Demo>
+  <OTPInput length={6} size="xs" onComplete={() => {}} />
+  <OTPInput length={6} size="sm" onComplete={() => {}} />
+  <OTPInput length={6} size="md" onComplete={() => {}} />
+</Storybook.Demo>
+```jsx
+<OTPInput length={6} size="xs" onComplete={handleComplete} />
+<OTPInput length={6} size="sm" onComplete={handleComplete} />
+<OTPInput length={6} size="md" onComplete={handleComplete} />
+```
+
+## Disabled
+
+<Storybook.Demo>
+  <OTPInput disabled length={6} onComplete={() => {}} />
+</Storybook.Demo>
+```jsx
+<OTPInput disabled length={6} onComplete={handleComplete} />
+```
+
+## Alphanumeric Codes
+
+Use `characterSet="alphanumeric"` for codes containing letters and numbers. A `transform`
+can normalize input from typing, paste, and autofill before completion.
+
+<Storybook.Demo>
+  <OTPInput
+    characterSet="alphanumeric"
+    length={6}
+    onComplete={() => {}}
+    transform={value => value.toUpperCase()}
+  />
+</Storybook.Demo>
+```jsx
+<OTPInput
+  characterSet="alphanumeric"
+  length={6}
+  onComplete={handleComplete}
+  transform={value => value.toUpperCase()}
+/>
+```
+
+## Accessibility
+
+The component exposes one native input named “One-time password.” This preserves normal
+text input behavior for screen readers and enables `one-time-code` autofill on supported
+devices. The segmented slots are visual and hidden from the accessibility tree.
+
+## Props
+
+| Prop           | Type                          | Default     | Description                                  |
+| -------------- | ----------------------------- | ----------- | -------------------------------------------- |
+| `length`       | `number`                      | —           | Number of characters in the code.            |
+| `onComplete`   | `(value: string) => void`     | —           | Called when every slot contains a character. |
+| `characterSet` | `'numeric' \| 'alphanumeric'` | `'numeric'` | Limits the characters accepted.              |
+| `transform`    | `(value: string) => string`   | —           | Normalizes the value as it changes.          |
+| `size`         | `'xs' \| 'sm' \| 'md'`        | `'md'`      | Size of each code slot.                      |
+| `disabled`     | `boolean`                     | `false`     | Disables code entry.                         |
