@@ -38,6 +38,7 @@ class InvestigationSerializerTest(TestCase):
             "version": 1,
             "blockCount": 0,
             "isFavorited": False,
+            "titleGeneration": {"status": None},
         }
 
     def test_counts_only_active_blocks(self) -> None:

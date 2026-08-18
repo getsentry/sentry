@@ -63,6 +63,7 @@ class InvestigationSerializerResponse(TypedDict):
     version: int
     blockCount: int
     isFavorited: bool
+    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -72,7 +73,6 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
-    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 @register(Investigation)
@@ -129,6 +129,7 @@ class InvestigationSerializer(Serializer):
             "version": obj.version,
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
+            "titleGeneration": {"status": obj.title_generation_status},
         }
 
 
