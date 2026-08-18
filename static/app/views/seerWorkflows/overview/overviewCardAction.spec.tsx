@@ -38,6 +38,7 @@ describe('OverviewCardAction', () => {
       seerRunId: 'run-1',
       lastTriggeredAt: '2026-07-14T09:00:00Z',
       pullRequests: [],
+      status: null,
       issue: issueFixture(),
       ...overrides,
     };

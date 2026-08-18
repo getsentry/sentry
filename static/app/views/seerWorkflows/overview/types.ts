@@ -19,6 +19,11 @@ import type {PlatformKey} from 'sentry/types/platform';
 // Shared staleTime for the overview's issue/run/state queries.
 export const QUERY_STALE_TIME = 30_000;
 
+// How often the `expand=status` poll refreshes live run status.
+export const POLL_INTERVAL = 10_000;
+
+export type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+
 // Runs filter: the explorer runs autofix creates. Combined with a
 // ``group:[...]`` filter so we only fetch runs for the issues on the page.
 export const RUNS_QUERY = 'type:explorer source:autofix';
@@ -193,6 +198,7 @@ export interface OverviewRun {
   rootCause: {oneLineDescription: string | null} | null;
   seerRunId: string;
   shortId: string;
+  status: RunStatus | null;
   title: string;
   codeChanges?: OverviewCodeChangeFile[];
 }
