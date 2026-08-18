@@ -610,6 +610,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Show Generative AI Features'),
     hintText: t('Allows organization members to access generative AI features'),
   },
+  'pii-encryption.piiPrivateKey': {
+    name: 'piiPrivateKey',
+    formId: 'pii-encryption',
+    route: '/settings/:orgId/security-and-privacy/',
+    label: t('Private Key'),
+    hintText: t(
+      'The matching private key, used to read encrypted attributes back in Sentry. Sentry cannot recover it for you, so keep your own copy.'
+    ),
+  },
   'organization-security-and-privacy.require2FA': {
     name: 'require2FA',
     formId: 'organization-security-and-privacy',

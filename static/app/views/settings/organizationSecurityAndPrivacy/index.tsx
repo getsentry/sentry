@@ -30,6 +30,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
+import {PiiEncryption} from 'sentry/views/settings/components/piiEncryption';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const securitySchema = z.object({
@@ -391,6 +392,8 @@ export default function OrganizationSecurityAndPrivacyContent() {
         disabled={!hasOrgWrite}
         onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
       />
+
+      <PiiEncryption />
     </FormSearch>
   );
 }

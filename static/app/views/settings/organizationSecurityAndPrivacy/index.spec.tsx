@@ -148,7 +148,13 @@ describe('OrganizationSecurityAndPrivacy', () => {
       )
     ).toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    // Scoped to this form: the page renders a Save button per editable panel.
+    const scrubbingConfigForm = screen.getByTestId(
+      'organization-settings-security-and-privacy'
+    );
+    await userEvent.click(
+      within(scrubbingConfigForm).getByRole('button', {name: 'Save'})
+    );
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalled();
