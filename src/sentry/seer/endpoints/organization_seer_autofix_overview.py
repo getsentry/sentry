@@ -39,6 +39,7 @@ from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
+from sentry.seer.agent.client_utils import fetch_run_statuses
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     CodeChangeFilePayload,
     IssuePayload,
@@ -262,6 +263,7 @@ def _serialize_run(
     run: _RunMilestones,
     serialized_group: dict,
     pull_requests: list[PullRequestPayload],
+    status: str | None,
 ) -> RunPayload:
     root_cause_artifact = run.root_cause_artifact
     root_cause: RootCausePayload | None = (
@@ -290,6 +292,7 @@ def _serialize_run(
         "pullRequests": pull_requests,
         "codeChanges": code_changes,
         "issue": _serialize_issue(group, serialized_group),
+        "status": status,
     }
 
 
@@ -311,6 +314,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand")
         include_scm_info = "scmInfo" in expand
         include_issue_stats = "issueStats" in expand
+        include_status = "status" in expand
         environments = self.get_environments(request, organization)
 
         sort = request.GET.get("sort")
@@ -379,6 +383,15 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             [run.seer_run.id for _, run in capped], include_scm_info=include_scm_info
         )
 
+        status_by_state_id: dict[int, str] = {}
+        if include_status:
+            state_ids = [
+                run.seer_run.seer_run_state_id
+                for _, run in capped
+                if run.seer_run.seer_run_state_id is not None
+            ]
+            status_by_state_id = fetch_run_statuses(state_ids, organization)
+
         runs_by_milestone: dict[str, list[RunPayload]] = {milestone: [] for milestone in _PIPELINE}
         for milestone, pairs in capped_runs_by_milestone.items():
             for group_id, run in pairs:
@@ -391,6 +404,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                         run,
                         serialized_by_id[str(group_id)],
                         pull_requests_by_seer_run_id.get(run.seer_run.id, []),
+                        status_by_state_id.get(run.seer_run.seer_run_state_id),
                     )
                 )
 
