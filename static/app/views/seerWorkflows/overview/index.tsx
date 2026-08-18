@@ -105,14 +105,21 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       {replace: true}
     );
 
-  const {data, isPending, isError, enrichmentPending, isRefetching, refetch} =
-    useAutofixOverview({
-      organization,
-      selection,
-      sort,
-      enabled: pageFiltersReady,
-    });
-  useMilestoneAdvanceToasts(data);
+  const {
+    data,
+    isPending,
+    isError,
+    enrichmentPending,
+    isRefetching,
+    refetch,
+    enrichedSettled,
+  } = useAutofixOverview({
+    organization,
+    selection,
+    sort,
+    enabled: pageFiltersReady,
+  });
+  useMilestoneAdvanceToasts(data, enrichedSettled);
   const allRuns = useMemo(
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]

@@ -109,8 +109,14 @@ describe('MilestoneToast', () => {
 });
 
 describe('useMilestoneAdvanceToasts', () => {
-  function Harness({data}: {data: AutofixOverviewResponse | undefined}) {
-    useMilestoneAdvanceToasts(data);
+  function Harness({
+    data,
+    dataSettled = true,
+  }: {
+    data: AutofixOverviewResponse | undefined;
+    dataSettled?: boolean;
+  }) {
+    useMilestoneAdvanceToasts(data, dataSettled);
     return null;
   }
 
@@ -142,6 +148,22 @@ describe('useMilestoneAdvanceToasts', () => {
         to_milestone: 'autofix_code_changes',
       })
     );
+  });
+
+  it('stays quiet for advances that happened while unmounted', () => {
+    const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
+
+    const {rerender} = render(
+      <Harness data={response({autofix_root_cause: [run()]})} dataSettled={false} />,
+      {organization}
+    );
+    rerender(<Harness data={response({autofix_code_changes: [run()]})} dataSettled />);
+
+    expect(addSuccessMessage).not.toHaveBeenCalled();
+
+    rerender(<Harness data={response({has_pull_request: [run()]})} dataSettled />);
+
+    expect(addSuccessMessage).toHaveBeenCalledTimes(1);
   });
 
   it('does not toast when only the status changes', () => {

@@ -116,12 +116,18 @@ function showMilestoneAdvanceToast(
   });
 }
 
-export function useMilestoneAdvanceToasts(data: AutofixOverviewResponse | undefined) {
+export function useMilestoneAdvanceToasts(
+  data: AutofixOverviewResponse | undefined,
+  dataSettled: boolean
+) {
   const organization = useOrganization();
   const previousRef = useRef<AutofixOverviewResponse | undefined>(undefined);
 
   useEffect(() => {
-    if (!data) {
+    // Only diff once the source query has settled, so a stale-cache remount
+    // baselines off the refetch instead of toasting advances that landed while
+    // unmounted.
+    if (!data || !dataSettled) {
       return;
     }
     const previous = previousRef.current;
@@ -132,5 +138,5 @@ export function useMilestoneAdvanceToasts(data: AutofixOverviewResponse | undefi
     for (const advance of detectMilestoneAdvances(previous, data)) {
       showMilestoneAdvanceToast(advance, organization);
     }
-  }, [data, organization]);
+  }, [data, dataSettled, organization]);
 }
