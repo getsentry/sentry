@@ -318,7 +318,22 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "You cannot use an MRI on alerts as the performance metrics dataset is being deprecated."
                 )
 
-        query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
+        # setdefault evaluates its default eagerly, so look up the dataset mapping
+        # only when query_type is missing. Unsupported datasets (e.g. spans) must
+        # become a ValidationError instead of a 500 KeyError.
+        if "query_type" not in data:
+            try:
+                data["query_type"] = query_datasets_to_type[dataset]
+            except KeyError:
+                raise serializers.ValidationError(
+                    {
+                        "dataset": _(
+                            "Unsupported dataset for alerts: %(dataset)s"
+                            % {"dataset": getattr(dataset, "value", dataset)}
+                        )
+                    }
+                )
+        query_type = data["query_type"]
 
         valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
         if dataset not in valid_datasets:
