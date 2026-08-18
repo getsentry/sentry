@@ -246,7 +246,13 @@ export function CMDKAction<TData = unknown>({
   // Otherwise selecting a child unmounts the resource that registered that child.
   const state = matchingNavAction ? 'selected' : undefined;
   const resourceQuery =
-    navAction?.value.key === key ? query : matchingNavAction?.value.query;
+    navAction === null
+      ? query
+      : matchingNavAction
+        ? navAction.value.key === key
+          ? query
+          : matchingNavAction.value.query
+        : '';
 
   const enclosingAction = useMemo(
     () => ({key, label: display.label, parentKey, prompt}),

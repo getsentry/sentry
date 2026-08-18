@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import orderBy from 'lodash/orderBy';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -12,13 +11,16 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
-import {IconSpan} from 'sentry/icons';
+import {IconCheckmark, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
@@ -36,7 +38,6 @@ import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
-  useQueryParamsMode,
   useQueryParamsQuery,
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
@@ -54,6 +55,62 @@ interface SearchFilter {
   key: string;
   op: TermOperator;
   value: string | number | boolean;
+}
+
+export function addSearchFilterToQuery(
+  currentQuery: string,
+  filter: SearchFilter
+): string {
+  const search = new MutableSearch(currentQuery);
+  const value = String(filter.value);
+  const isNegated = [
+    TermOperator.NOT_EQUAL,
+    TermOperator.DOES_NOT_CONTAIN,
+    TermOperator.DOES_NOT_START_WITH,
+    TermOperator.DOES_NOT_END_WITH,
+  ].includes(filter.op);
+  const key = isNegated ? `!${filter.key}` : filter.key;
+
+  const addFilter = (target: MutableSearch) => {
+    switch (filter.op) {
+      case TermOperator.CONTAINS:
+      case TermOperator.DOES_NOT_CONTAIN:
+        target.addContainsFilterValue(key, value);
+        break;
+      case TermOperator.STARTS_WITH:
+      case TermOperator.DOES_NOT_START_WITH:
+        target.addStartsWithFilterValue(key, value);
+        break;
+      case TermOperator.ENDS_WITH:
+      case TermOperator.DOES_NOT_END_WITH:
+        target.addEndsWithFilterValue(key, value);
+        break;
+      case TermOperator.NOT_EQUAL:
+      case TermOperator.DEFAULT:
+        target.addFilterValue(key, value);
+        break;
+      default:
+        target.addFilterValue(key, `${filter.op}${value}`, false);
+    }
+  };
+
+  const normalizedFilter = new MutableSearch('');
+  addFilter(normalizedFilter);
+  const normalizedToken = normalizedFilter.tokens[0];
+  if (
+    normalizedToken &&
+    search.tokens.some(
+      token =>
+        token.type === normalizedToken.type &&
+        token.key === normalizedToken.key &&
+        token.value === normalizedToken.value
+    )
+  ) {
+    return currentQuery;
+  }
+
+  addFilter(search);
+  return search.formatString();
 }
 
 const STRING_FILTER_OPERATORS = [
@@ -80,6 +137,9 @@ function FilterActions({
   addSearchFilter: (filter: SearchFilter) => void;
   summary: string;
 }) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const commandPaletteState = useCommandPaletteState();
   const [selectedValues, setSelectedValues] = useState<Record<string, string[]>>({});
   const getStringAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: TraceItemDataset.SPANS,
@@ -88,6 +148,13 @@ function FilterActions({
 
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
+  const datetimeParams = normalizeDateTimeParams(selection.datetime);
+
+  useEffect(() => {
+    if (!commandPaletteState.open) {
+      setSelectedValues({});
+    }
+  }, [commandPaletteState.open]);
 
   const sortedStringAttributes = useMemo(
     () => orderBy(Object.values(stringAttributes), ['key']),
@@ -111,7 +178,12 @@ function FilterActions({
     return {
       display: {
         label: value,
-        icon: <Checkbox checked={isSelected} readOnly />,
+        icon: isSelected ? <IconCheckmark /> : undefined,
+        labelSuffix: (
+          <Text size="sm" variant="muted">
+            {isSelected ? t('Selected') : t('Not selected')}
+          </Text>
+        ),
       },
       multiSelect: true,
       onMultiSelect: () => {
@@ -182,7 +254,6 @@ function FilterActions({
               );
 
               if (type === 'boolean') {
-                const selectionKey = getFilterValueSelectionKey(tag.key, operator.op);
                 return (
                   <CMDKAction
                     key={operator.op || 'is'}
@@ -192,14 +263,15 @@ function FilterActions({
                       cmdkQueryOptions({
                         queryKey: [
                           'cmdk-span-filter-values',
+                          organization.slug,
+                          selection.projects,
+                          datetimeParams,
                           tag.key,
                           operator.op,
-                          selectedValues[selectionKey] ?? [],
                         ],
-                        queryFn: () =>
-                          ['true', 'false'].map(value =>
-                            renderValueAction(tag, operator, value)
-                          ),
+                        queryFn: () => ['true', 'false'],
+                        select: values =>
+                          values.map(value => renderValueAction(tag, operator, value)),
                         enabled: context.state === 'selected',
                         staleTime: Infinity,
                       })
@@ -210,8 +282,6 @@ function FilterActions({
                 );
               }
 
-              const selectionKey = getFilterValueSelectionKey(tag.key, operator.op);
-
               return (
                 <CMDKAction
                   key={operator.op || 'is'}
@@ -221,20 +291,20 @@ function FilterActions({
                     cmdkQueryOptions({
                       queryKey: [
                         'cmdk-span-filter-values',
+                        organization.slug,
+                        selection.projects,
+                        datetimeParams,
                         tag.key,
                         operator.op,
                         query,
-                        selectedValues[selectionKey] ?? [],
                       ],
-                      queryFn: async () => {
-                        const values = await getStringAttributeValues({
-                          tag,
+                      queryFn: () =>
+                        getStringAttributeValues({
+                          tag: {key: tag.key, name: tag.name, kind: tag.kind},
                           searchQuery: query,
-                        });
-                        return values.map(item =>
-                          renderValueAction(tag, operator, item.value)
-                        );
-                      },
+                        }),
+                      select: values =>
+                        values.map(item => renderValueAction(tag, operator, item.value)),
                       enabled: context.state === 'selected',
                       staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
                     })
@@ -364,12 +434,11 @@ function GroupByActions({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
-              icon: (
-                <Checkbox
-                  aria-label={t('%s selected', option.textValue ?? option.value)}
-                  checked={isSelected}
-                  readOnly
-                />
+              icon: isSelected ? <IconCheckmark /> : undefined,
+              labelSuffix: (
+                <Text size="sm" variant="muted">
+                  {isSelected ? t('Selected') : t('Not selected')}
+                </Text>
               ),
               trailingItem:
                 typeof option.trailingItems === 'function'
@@ -436,6 +505,14 @@ function SortActions({
               option.value === currentSort?.field ? (
                 <QueryValue value={t('Current')} />
               ) : undefined,
+            trailingItem:
+              typeof option.trailingItems === 'function'
+                ? option.trailingItems({
+                    disabled: false,
+                    isFocused: false,
+                    isSelected: option.value === currentSort?.field,
+                  })
+                : option.trailingItems,
           }}
           keywords={[option.value]}
           prompt={t('Select sort order')}
@@ -571,7 +648,6 @@ function QueryClauseActions() {
   const setQueryParams = useSetQueryParams();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
-  const mode = useQueryParamsMode();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
@@ -608,23 +684,15 @@ function QueryClauseActions() {
   ]);
 
   const addSearchFilter = (filter: SearchFilter) => {
-    setDraftQuery(currentQuery => {
-      const search = new MutableSearch(currentQuery);
-      if (filter.op === TermOperator.DEFAULT) {
-        search.addFilterValue(filter.key, String(filter.value));
-      } else if (filter.op === TermOperator.NOT_EQUAL) {
-        search.addFilterValue(`!${filter.key}`, String(filter.value));
-      } else {
-        search.setFilterValues(filter.key, [`${filter.op}${filter.value}`], false);
-      }
-      return search.formatString();
-    });
+    setDraftQuery(currentQuery => addSearchFilterToQuery(currentQuery, filter));
   };
 
   const groupBySummary = draftGroupBys.filter(Boolean).join(', ');
-  const draftSortBys = mode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
+  const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
+  const draftSortBys =
+    draftMode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
   const setDraftSortBys =
-    mode === Mode.SAMPLES ? setDraftSampleSortBys : setDraftAggregateSortBys;
+    draftMode === Mode.SAMPLES ? setDraftSampleSortBys : setDraftAggregateSortBys;
   const sortBySummary = draftSortBys
     .map(sort => `${sort.field}, ${sort.kind}`)
     .join(', ');
@@ -651,7 +719,7 @@ function QueryClauseActions() {
                   ...draftVisualizes.map(visualize => visualize.serialize()),
                 ],
                 aggregateSortBys: draftAggregateSortBys,
-                mode: draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES,
+                mode: draftMode,
                 query: draftQuery,
                 sortBys: draftSampleSortBys,
               });
@@ -677,7 +745,7 @@ function QueryClauseActions() {
           >
             <SortActions
               groupBys={draftGroupBys}
-              mode={mode}
+              mode={draftMode}
               setSortBys={setDraftSortBys}
               sortBys={draftSortBys}
               visualizes={draftVisualizes}

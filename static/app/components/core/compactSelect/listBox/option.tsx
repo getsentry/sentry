@@ -1,4 +1,5 @@
 import {Fragment, useContext, useMemo, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
@@ -22,6 +23,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
   size: MenuListItemProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
+  separatorBefore?: boolean;
   showDetails?: boolean;
 }
 
@@ -35,6 +37,7 @@ export function ListBoxOption({
   size,
   showDetails = true,
   ref: refProp,
+  separatorBefore = false,
   'data-index': dataIndex,
 }: ListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
@@ -107,6 +110,7 @@ export function ListBoxOption({
 
   return (
     <StyledMenuListItem
+      $separatorBefore={separatorBefore}
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
@@ -129,7 +133,19 @@ export function ListBoxOption({
   );
 }
 
-const StyledMenuListItem = styled(MenuListItem)`
+const StyledMenuListItem = styled(MenuListItem)<{$separatorBefore: boolean}>`
+  ${p =>
+    p.$separatorBefore &&
+    css`
+      &::before {
+        border-top: 1px solid ${p.theme.tokens.border.secondary};
+        content: '';
+        display: block;
+        height: 17px;
+        margin: 0 ${p.theme.space.md};
+      }
+    `}
+
   > ${InnerWrap} {
     padding-left: ${p => p.theme.space.md};
   }

@@ -196,6 +196,7 @@ export function ListBox<T extends ListItemBase>({
 
   const virtualizer = useVirtualizedItems({
     listItems,
+    separatorBeforeKeys,
     virtualized,
     size,
     listPadding: virtualizedListPadding,
@@ -278,26 +279,15 @@ export function ListBox<T extends ListItemBase>({
                 }
 
                 return (
-                  <Fragment key={item.key}>
-                    {separatorBeforeKeys.has(item.key) && (
-                      <Container
-                        as="li"
-                        display="block"
-                        padding="md"
-                        role="separator"
-                        width="100%"
-                      >
-                        <Container borderTop="muted" />
-                      </Container>
-                    )}
-                    <ListBoxOption
-                      {...virtualizer.itemProps(row.index)}
-                      item={item}
-                      listState={listState}
-                      size={size}
-                      showDetails={showDetails}
-                    />
-                  </Fragment>
+                  <ListBoxOption
+                    {...virtualizer.itemProps(row.index)}
+                    key={item.key}
+                    item={item}
+                    listState={listState}
+                    separatorBefore={separatorBeforeKeys.has(item.key)}
+                    size={size}
+                    showDetails={showDetails}
+                  />
                 );
               })}
 
@@ -328,12 +318,14 @@ const listPaddingVertical = 4;
 
 function useVirtualizedItems<T extends ListItemBase>({
   listItems,
+  separatorBeforeKeys,
   virtualized = false,
   size,
   listPadding,
 }: {
   listItems: Array<Node<T>>;
   listPadding: number;
+  separatorBeforeKeys: ReadonlySet<SelectKey>;
   size: FormSize;
   virtualized: boolean | undefined;
 }) {
@@ -355,7 +347,10 @@ function useVirtualizedItems<T extends ListItemBase>({
       if (item?.props?.details) {
         return heightEstimation.large;
       }
-      return heightEstimation.regular;
+      return (
+        heightEstimation.regular +
+        (item && separatorBeforeKeys.has(item.key) ? optionSeparatorHeight : 0)
+      );
     },
     enabled: virtualized,
   });
@@ -401,3 +396,6 @@ function useVirtualizedItems<T extends ListItemBase>({
     listWrapStyle: {},
   } as const;
 }
+
+/** Matches the separator rendered inside ListBoxOption (16px spacing + 1px border). */
+const optionSeparatorHeight = 17;
