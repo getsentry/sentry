@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
@@ -115,7 +116,18 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
-  const {pullRequests} = run;
+  const {pullRequests, status} = run;
+  if (status === 'processing') {
+    return (
+      <Flex align="center" gap="xs">
+        <LoadingIndicator mini />
+        <Text size="sm" variant="muted">
+          {t('Working…')}
+        </Text>
+      </Flex>
+    );
+  }
+
   if (sectionKey === 'merged') {
     if (pullRequests.length > 0) {
       return (
