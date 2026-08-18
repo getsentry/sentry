@@ -225,14 +225,21 @@ function OverviewAction({
                 disabled={failedChecks.length === 0}
                 title={
                   <Stack gap="xs" align="start">
-                    <Text size="sm" bold>
+                    <Text size="sm" bold align="left">
                       {t('Failing checks:')}
                     </Text>
-                    {failedChecks.map((name, index) => (
-                      <Text key={`${name}-${index}`} size="sm">
-                        {name}
-                      </Text>
-                    ))}
+                    <Stack gap="2xs" align="start">
+                      {failedChecks.map((name, index) => (
+                        <Flex key={`${name}-${index}`} gap="xs" align="start">
+                          <Text size="sm" variant="muted">
+                            •
+                          </Text>
+                          <Text size="sm" align="left">
+                            {name}
+                          </Text>
+                        </Flex>
+                      ))}
+                    </Stack>
                   </Stack>
                 }
               >
