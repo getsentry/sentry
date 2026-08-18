@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,8 +9,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, SentryAppStatusParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import RpcOrganization
@@ -35,26 +36,13 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         summary="Retrieve the custom integrations created by an organization",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            OpenApiParameter(
-                name="status",
-                location="query",
-                required=False,
-                type=str,
-                enum=[
-                    SentryAppStatus.UNPUBLISHED_STR,
-                    SentryAppStatus.PUBLISHED_STR,
-                    SentryAppStatus.INTERNAL_STR,
-                    SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-                    SentryAppStatus.DELETION_IN_PROGRESS_STR,
-                ],
-                description="Filter integrations by their status.",
-            ),
+            SentryAppStatusParams.SENTRY_APP_STATUS,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationSentryAppDetailsResponse", list[SentryAppSerializerResponse]
             ),
-            400: OpenApiResponse(description="Bad Request"),
+            400: RESPONSE_BAD_REQUEST,
         },
         examples=SentryAppExamples.GET_ORGANIZATIONS_SENTRY_APPS,
     )
@@ -72,18 +60,11 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         status = request.GET.get("status")
         if status is not None:
             try:
-                queryset = queryset.filter(status=SentryAppStatus.as_int(status))
+                status_int = SentryAppStatus.as_int(status)
             except ValueError:
-                valid = ", ".join(
-                    [
-                        SentryAppStatus.UNPUBLISHED_STR,
-                        SentryAppStatus.PUBLISHED_STR,
-                        SentryAppStatus.INTERNAL_STR,
-                        SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-                        SentryAppStatus.DELETION_IN_PROGRESS_STR,
-                    ]
-                )
+                valid = ", ".join(SentryAppStatus.as_str_choices())
                 raise ParseError(f"Invalid status {status!r}. Must be one of: {valid}")
+            queryset = queryset.filter(status=status_int)
 
         return self.paginate(
             request=request,
