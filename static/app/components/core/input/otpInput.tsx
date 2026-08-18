@@ -47,7 +47,7 @@ export function OTPInput({
         characterSet === 'numeric' ? REGEXP_ONLY_DIGITS : REGEXP_ONLY_DIGITS_AND_CHARS
       }
       render={({slots}) => (
-        <Flex aria-hidden gap="xs">
+        <Flex aria-hidden gap="xs" paddingRight="md">
           {slots.map((slot, index) => (
             <OTPInputSlot
               key={index}
