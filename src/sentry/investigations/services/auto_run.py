@@ -27,6 +27,15 @@ def _dependency_is_ready(block: InvestigationBlock) -> bool:
     )
 
 
+def _dispatch_after_commit(execution: InvestigationBlockExecution) -> None:
+    from sentry.tasks.seer.investigation import dispatch_investigation_execution
+
+    transaction.on_commit(
+        partial(dispatch_investigation_execution, execution.id),
+        using=router.db_for_write(InvestigationBlockExecution),
+    )
+
+
 def schedule_eligible_auto_run_blocks(
     *, investigation_id: int, user_id: int, retry_failed: bool = False
 ) -> None:
@@ -49,6 +58,9 @@ def schedule_eligible_auto_run_blocks(
         if not block.config.get("autoRun"):
             continue
         if block.current_execution is not None and block.stale_at is None:
+            if block.current_execution.status == InvestigationBlockExecutionStatus.PENDING:
+                _dispatch_after_commit(block.current_execution)
+                continue
             if not retry_failed or block.current_execution.status not in {
                 InvestigationBlockExecutionStatus.FAILED,
                 InvestigationBlockExecutionStatus.CANCELLED,
@@ -66,9 +78,4 @@ def schedule_eligible_auto_run_blocks(
             accessible_project_ids=set(project_ids),
         )
         if created:
-            from sentry.tasks.seer.investigation import dispatch_investigation_execution
-
-            transaction.on_commit(
-                partial(dispatch_investigation_execution.delay, execution.id),
-                using=router.db_for_write(InvestigationBlockExecution),
-            )
+            _dispatch_after_commit(execution)

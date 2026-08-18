@@ -116,7 +116,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert duplicate.status_code == 200
         assert duplicate.data["id"] == launched.data["id"]
         assert Investigation.objects.count() == 1
-        schedule_auto_run.assert_called_once()
+        assert schedule_auto_run.call_count == 2
 
         response = self.client.post(self.candidates_url, candidate_payload, format="json")
         assert response.data == {
