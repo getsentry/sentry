@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
+  type UseInfiniteQueryResult,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -10,12 +11,13 @@ import {debounce, parseAsStringLiteral, parseAsString, useQueryState} from 'nuqs
 
 import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -31,7 +33,8 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
@@ -42,10 +45,12 @@ import {
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
   NON_GITHUB_HANDOFF_WARNING,
+  orgDefaultAgentQueryOptions,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
 import {
   fetchProjectHasNonGithubRepo,
+  isGitHubProvider,
   prefetchAllSeerProjectRepos,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -53,12 +58,25 @@ import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
+import {getInfiniteSeerProjectSuggestionsQueryOptions} from 'sentry/utils/seer/seerProjectSuggestions';
 import {
   coaleseStoppingPoint,
+  PROJECT_STOPPING_POINT_OPTIONS,
+  useOrgDefaultStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
-import type {AgentIntegration, AutofixAgentSelectOption} from 'sentry/utils/seer/types';
+import type {
+  AgentIntegration,
+  AutofixAgentSelectOption,
+  SeerProjectSuggestionResponse,
+  UserFacingStoppingPoint,
+} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
+import {
+  AutofixSettingsPartialSaveError,
+  type AutofixProjectMutationVariables,
+  useMutateAutofixProject,
+} from 'sentry/utils/seer/useMutateAutofixProject';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -123,13 +141,32 @@ export function SeerProjectTable() {
   useFetchAllPages({result});
   const {data, isPending, isError, error, hasNextPage} = result;
 
+  const suggestionsEnabled =
+    organization.features.includes('seer-autofix-quick-add') &&
+    canWrite &&
+    searchTerm === '' &&
+    agentFilter === 'all';
+  const suggestionsResult = useInfiniteQuery({
+    ...getInfiniteSeerProjectSuggestionsQueryOptions({
+      organization,
+      enabled: suggestionsEnabled,
+    }),
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+  const suggestions = suggestionsEnabled ? (suggestionsResult.data ?? []) : [];
+  const suggestionsSettled = !suggestionsEnabled || !suggestionsResult.isPending;
+  const suggestionsFailed = suggestionsEnabled && suggestionsResult.isError;
+
   if (
     !isError &&
     !isPending &&
     data?.length === 0 &&
     !hasNextPage &&
     searchTerm === '' &&
-    agentFilter === 'all'
+    agentFilter === 'all' &&
+    suggestionsSettled &&
+    !suggestionsFailed &&
+    suggestions.length === 0
   ) {
     return (
       <Container display="flex" padding="2xl" border="primary" radius="md">
@@ -189,6 +226,12 @@ export function SeerProjectTable() {
           <AddProjectButton />
         </Flex>
       </Stack>
+      {suggestionsEnabled ? (
+        <SuggestedProjectsPanel
+          agentSelectOptions={agentSelectOptions}
+          result={suggestionsResult}
+        />
+      ) : null}
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
@@ -316,6 +359,262 @@ export function SeerProjectTable() {
   );
 }
 
+interface SuggestedProjectsPanelProps {
+  agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
+  result: UseInfiniteQueryResult<SeerProjectSuggestionResponse[]>;
+}
+
+function SuggestedProjectsPanel({
+  agentSelectOptions,
+  result,
+}: SuggestedProjectsPanelProps) {
+  const organization = useOrganization();
+  const projectsById = useProjectsById();
+  const defaultAgentQuery = useQuery(orgDefaultAgentQueryOptions({organization}));
+  const defaultAgent = defaultAgentQuery.data ?? 'seer';
+  const stoppingPoint: UserFacingStoppingPoint | undefined = useOrgDefaultStoppingPoint();
+  const saveMutation = useMutateAutofixProject();
+  const {isLoadingModal, openProjectModal} = useProjectAddRepoModal();
+  const [failedMutationVariables, setFailedMutationVariables] =
+    useState<AutofixProjectMutationVariables | null>(null);
+
+  const suggestions = result.data ?? [];
+  const stoppingPointLabel =
+    PROJECT_STOPPING_POINT_OPTIONS.find(option => option.value === stoppingPoint)
+      ?.label ?? t('Not configured');
+
+  async function enableAutofix(
+    suggestion: SeerProjectSuggestionResponse,
+    project: Project,
+    agentOption: AutofixAgentSelectOption
+  ) {
+    if (stoppingPoint === undefined) {
+      return;
+    }
+
+    const variables: AutofixProjectMutationVariables = {
+      project,
+      repoEntries: suggestion.linkedRepositories.map(repository => ({
+        repoId: repository.repositoryId,
+        branch: '',
+      })),
+      agentOption,
+      stoppingPoint,
+    };
+
+    try {
+      await saveMutation.mutateAsync(variables);
+    } catch (error) {
+      if (error instanceof AutofixSettingsPartialSaveError) {
+        setFailedMutationVariables(variables);
+        return;
+      }
+      addErrorMessage(t('Could not enable Autofix. Try again.'));
+    }
+  }
+
+  async function retrySettings() {
+    if (!failedMutationVariables) {
+      return;
+    }
+
+    try {
+      await saveMutation.mutateAsync(failedMutationVariables);
+      setFailedMutationVariables(null);
+    } catch (error) {
+      if (!(error instanceof AutofixSettingsPartialSaveError)) {
+        addErrorMessage(t('Could not retry Autofix settings. Try again.'));
+      }
+    }
+  }
+
+  const showPanel = result.isPending || result.isError || suggestions.length > 0;
+  if (!showPanel && !failedMutationVariables) {
+    return null;
+  }
+
+  return (
+    <Stack gap="md">
+      {failedMutationVariables ? (
+        <Alert.Container>
+          <Alert
+            variant="warning"
+            trailingItems={
+              <Flex gap="sm">
+                <Alert.Button
+                  variant="secondary"
+                  busy={saveMutation.isPending}
+                  disabled={saveMutation.isPending}
+                  onClick={() => void retrySettings()}
+                >
+                  {t('Retry settings')}
+                </Alert.Button>
+                <Alert.Button
+                  variant="secondary"
+                  disabled={saveMutation.isPending}
+                  onClick={() => setFailedMutationVariables(null)}
+                >
+                  {t('Dismiss')}
+                </Alert.Button>
+              </Flex>
+            }
+          >
+            {t(
+              'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
+            )}
+          </Alert>
+        </Alert.Container>
+      ) : null}
+
+      {showPanel ? (
+        <Container border="primary" radius="md" padding="lg">
+          <Stack gap="lg">
+            <Stack gap="xs">
+              <Heading as="h3" size="md">
+                {t('Suggested Projects')}
+              </Heading>
+              <Text variant="muted">
+                {t(
+                  'These projects have trusted repository links and are not yet configured for Autofix.'
+                )}
+              </Text>
+            </Stack>
+
+            {result.isError ? (
+              <LoadingError
+                message={result.error?.message}
+                onRetry={() => void result.refetch()}
+              />
+            ) : null}
+
+            {result.isPending ? (
+              <Flex justify="center" align="center" padding="lg">
+                <LoadingIndicator />
+              </Flex>
+            ) : (
+              <Stack gap="sm">
+                {suggestions.map(suggestion => {
+                  const project = projectsById.get(suggestion.projectId);
+                  const hasOnlyGithubRepositories =
+                    suggestion.linkedRepositories.length > 0 &&
+                    suggestion.linkedRepositories.every(
+                      repository =>
+                        Boolean(repository.provider) &&
+                        isGitHubProvider(repository.provider)
+                    );
+                  const effectiveAgent = hasOnlyGithubRepositories
+                    ? defaultAgent
+                    : 'seer';
+                  const agentLabel = defaultAgentQuery.isPending
+                    ? t('Loading')
+                    : (agentSelectOptions.find(option => option.value === effectiveAgent)
+                        ?.label ?? t('Seer'));
+                  const shouldConfigure =
+                    suggestion.linkedReposCount > 10 || stoppingPoint === undefined;
+                  const isCurrentMutation =
+                    saveMutation.isPending &&
+                    saveMutation.variables?.project.id === project?.id;
+
+                  return (
+                    <Container
+                      key={suggestion.projectId}
+                      border="primary"
+                      radius="md"
+                      padding="md"
+                    >
+                      <Grid
+                        columns={{
+                          zero: '1fr',
+                          xl: 'minmax(160px, 1fr) minmax(220px, 2fr) minmax(180px, 1fr) max-content',
+                        }}
+                        gap="md"
+                        align="center"
+                      >
+                        <ProjectBadge
+                          disableLink
+                          project={project ?? {slug: suggestion.projectSlug}}
+                          avatarSize={20}
+                        />
+                        <Stack gap="2xs" minWidth={0}>
+                          <Text size="sm">
+                            {suggestion.linkedRepositories.length > 0
+                              ? suggestion.linkedRepositories
+                                  .map(repository => repository.name)
+                                  .join(', ')
+                              : t('Repository details unavailable')}
+                          </Text>
+                          <Text variant="muted" size="sm">
+                            {tn(
+                              '%s linked repository',
+                              '%s linked repositories',
+                              suggestion.linkedReposCount
+                            )}
+                          </Text>
+                        </Stack>
+                        <Stack gap="2xs">
+                          <Text size="sm">{t('Agent: %s', agentLabel)}</Text>
+                          <Text size="sm">
+                            {t('Stopping point: %s', stoppingPointLabel)}
+                          </Text>
+                        </Stack>
+                        {project ? (
+                          shouldConfigure ? (
+                            <Button
+                              size="sm"
+                              busy={isLoadingModal}
+                              disabled={saveMutation.isPending || isLoadingModal}
+                              onClick={() => void openProjectModal(project)}
+                            >
+                              {t('Configure')}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              busy={isCurrentMutation}
+                              disabled={
+                                saveMutation.isPending ||
+                                defaultAgentQuery.isPending ||
+                                isLoadingModal
+                              }
+                              onClick={() =>
+                                void enableAutofix(suggestion, project, effectiveAgent)
+                              }
+                            >
+                              {t('Enable Autofix')}
+                            </Button>
+                          )
+                        ) : (
+                          <Button size="sm" disabled>
+                            {t('Unavailable')}
+                          </Button>
+                        )}
+                      </Grid>
+                    </Container>
+                  );
+                })}
+              </Stack>
+            )}
+
+            {result.hasNextPage ? (
+              <Flex justify="end">
+                <Button
+                  size="sm"
+                  busy={result.isFetchingNextPage}
+                  disabled={result.isFetchingNextPage}
+                  onClick={() => void result.fetchNextPage()}
+                >
+                  {t('Show more')}
+                </Button>
+              </Flex>
+            ) : null}
+          </Stack>
+        </Container>
+      ) : null}
+    </Stack>
+  );
+}
+
 interface AgentSelectCellProps {
   agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
   disabled: boolean;
@@ -394,33 +693,46 @@ function AgentSelectCell({
   );
 }
 
-function AddProjectButton() {
+function useProjectAddRepoModal() {
   const {openModal} = useModal();
-
   const [isLoadingModal, setIsLoadingModal] = useState(false);
+
+  async function openProjectModal(defaultProject?: Project) {
+    setIsLoadingModal(true);
+    try {
+      const {ProjectAddRepoModal} =
+        await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
+
+      openModal(
+        deps => (
+          <ProjectAddRepoModal
+            {...deps}
+            title={t('Add Project to Autofix')}
+            defaultProject={defaultProject}
+          />
+        ),
+        {
+          modalCss: css`
+            width: 700px;
+          `,
+        }
+      );
+    } finally {
+      setIsLoadingModal(false);
+    }
+  }
+
+  return {isLoadingModal, openProjectModal};
+}
+
+function AddProjectButton() {
+  const {isLoadingModal, openProjectModal} = useProjectAddRepoModal();
 
   return (
     <Button
       variant="primary"
       size="md"
-      onClick={async () => {
-        setIsLoadingModal(true);
-        try {
-          const {ProjectAddRepoModal} =
-            await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
-
-          openModal(
-            deps => <ProjectAddRepoModal {...deps} title={t('Add Project to Autofix')} />,
-            {
-              modalCss: css`
-                width: 700px;
-              `,
-            }
-          );
-        } finally {
-          setIsLoadingModal(false);
-        }
-      }}
+      onClick={() => void openProjectModal()}
       icon={<IconAdd />}
       busy={isLoadingModal}
       disabled={isLoadingModal}

@@ -62,6 +62,19 @@ export type SeerProjectSettingResponse = {
   stoppingPoint: SeerAutofixStoppingPoint;
 };
 
+export type SuggestedRepositoryResponse = {
+  name: string;
+  provider: string;
+  repositoryId: string;
+};
+
+export type SeerProjectSuggestionResponse = {
+  linkedReposCount: number;
+  linkedRepositories: SuggestedRepositoryResponse[];
+  projectId: string;
+  projectSlug: string;
+};
+
 type BranchOverrideInput = {
   branchName: string;
   tagName: string;

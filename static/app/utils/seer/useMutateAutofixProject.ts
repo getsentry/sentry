@@ -15,6 +15,7 @@ import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getSeerProjectSettingsQueryOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
+import {getInfiniteSeerProjectSuggestionsQueryOptions} from 'sentry/utils/seer/seerProjectSuggestions';
 import {
   getTuningFromStoppingPoint,
   resolveStoppingPoint,
@@ -26,7 +27,7 @@ import type {
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type TVariables = {
+export type AutofixProjectMutationVariables = {
   agentOption: AutofixAgentSelectOption;
   project: Project;
   repoEntries: Array<{
@@ -66,7 +67,7 @@ export function useMutateAutofixProject() {
       repoEntries,
       agentOption,
       stoppingPoint,
-    }: TVariables): Promise<void> => {
+    }: AutofixProjectMutationVariables): Promise<void> => {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
       const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
       const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
@@ -169,6 +170,12 @@ export function useMutateAutofixProject() {
         getInfiniteSeerProjectsSettingsQueryOptions({organization, query: {}});
       queryClient.invalidateQueries({
         queryKey: [infiniteProjectsQueryKey[0]],
+        exact: false,
+      });
+      const {queryKey: infiniteSuggestionsQueryKey} =
+        getInfiniteSeerProjectSuggestionsQueryOptions({organization, enabled: true});
+      queryClient.invalidateQueries({
+        queryKey: [infiniteSuggestionsQueryKey[0]],
         exact: false,
       });
     },

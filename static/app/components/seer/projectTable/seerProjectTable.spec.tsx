@@ -5,8 +5,17 @@ import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
+
+const mockOpenModal = jest.fn();
+
+jest.mock('@sentry/scraps/modal', () => ({
+  ...jest.requireActual('@sentry/scraps/modal'),
+  useModal: () => ({openModal: mockOpenModal}),
+}));
 
 // jsdom has no layout, so the virtualizer would render zero rows. Force it to
 // render a row per item so the table body is present.
@@ -29,31 +38,82 @@ jest.mock('@tanstack/react-virtual', () => ({
 }));
 
 describe('SeerProjectTable', () => {
-  const organization = OrganizationFixture({access: ['org:write']});
-  const project = ProjectFixture({id: '2', slug: 'project-slug'});
+  let organization = OrganizationFixture();
+  let project = ProjectFixture();
+  let suggestedProject = ProjectFixture();
 
-  function mockBaseEndpoints() {
+  function makeProjectSettings(overrides: Record<string, unknown> = {}) {
+    return {
+      projectId: project.id,
+      projectSlug: project.slug,
+      agent: 'seer',
+      integrationId: null,
+      stoppingPoint: 'root_cause',
+      autoCreatePr: null,
+      automationTuning: 'off',
+      scannerAutomation: false,
+      reposCount: 1,
+      ...overrides,
+    };
+  }
+
+  function makeSuggestion(overrides: Record<string, unknown> = {}) {
+    return {
+      projectId: suggestedProject.id,
+      projectSlug: suggestedProject.slug,
+      linkedReposCount: 1,
+      linkedRepositories: [
+        {
+          repositoryId: '11',
+          name: 'getsentry/suggested-repository',
+          provider: 'integrations:github',
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  function mockBaseEndpoints({
+    projectSettings = [makeProjectSettings()],
+    codingAgents,
+    codingAgentsDelay,
+  }: {
+    codingAgents?: () => unknown;
+    codingAgentsDelay?: number;
+    projectSettings?: unknown[];
+  } = {}) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body:
+        codingAgents ??
+        (() => ({
+          integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
+        })),
+      ...(codingAgentsDelay ? {asyncDelay: codingAgentsDelay} : {}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
-      body: [
-        {
-          projectId: '2',
-          projectSlug: 'project-slug',
-          agent: 'seer',
-          integrationId: null,
-          stoppingPoint: 'root_cause',
-          autoCreatePr: null,
-          automationTuning: 'off',
-          scannerAutomation: false,
-          reposCount: 1,
-        },
-      ],
+      body: projectSettings,
+    });
+  }
+
+  function mockSuggestions({
+    body = [makeSuggestion()],
+    headers,
+    match,
+    statusCode,
+  }: {
+    body?: unknown[] | (() => unknown[]);
+    headers?: Record<string, string>;
+    match?: Array<(url: string, options: Record<string, unknown>) => boolean>;
+    statusCode?: number;
+  } = {}) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/project-suggestions/`,
+      body,
+      ...(headers ? {headers} : {}),
+      ...(match ? {match} : {}),
+      ...(statusCode ? {statusCode} : {}),
     });
   }
 
@@ -81,23 +141,70 @@ describe('SeerProjectTable', () => {
   }
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData([project]);
+    organization = OrganizationFixture({access: ['org:write']});
+    project = ProjectFixture({id: '2', slug: 'project-slug'});
+    suggestedProject = ProjectFixture({
+      id: '3',
+      slug: 'suggested-project',
+      name: 'Suggested Project',
+    });
+    ProjectsStore.loadInitialData([project, suggestedProject]);
     mockBaseEndpoints();
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    mockOpenModal.mockReset();
     jest.restoreAllMocks();
   });
 
-  function renderTable() {
+  function renderTable(search = '') {
+    const query = Object.fromEntries(new URLSearchParams(search));
     render(
       <SentryNuqsTestingAdapter>
         <SeerProjectTable />
       </SentryNuqsTestingAdapter>,
-      {organization}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/seer/projects/`,
+            query,
+          },
+        },
+      }
     );
+  }
+
+  function setupSuggestionTable({
+    organizationOverrides,
+    projectSettings = [makeProjectSettings()],
+    suggestions = [makeSuggestion()],
+    codingAgents,
+    codingAgentsDelay,
+    statusCode,
+  }: {
+    codingAgents?: () => unknown;
+    codingAgentsDelay?: number;
+    organizationOverrides?: Partial<Organization>;
+    projectSettings?: unknown[];
+    statusCode?: number;
+    suggestions?: null | unknown[] | (() => unknown[]);
+  } = {}) {
+    organization = OrganizationFixture({
+      access: ['org:write'],
+      features: ['seer-autofix-quick-add'],
+      defaultAutomatedRunStoppingPoint: AutofixStoppingPoint.ROOT_CAUSE,
+      ...organizationOverrides,
+    });
+    MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
+    ProjectsStore.loadInitialData([project, suggestedProject]);
+    mockBaseEndpoints({projectSettings, codingAgents, codingAgentsDelay});
+    return suggestions === null
+      ? undefined
+      : mockSuggestions({body: suggestions, statusCode});
   }
 
   it('blocks coding-agent handoff and warns for a project with a non-GitHub repo', async () => {
@@ -187,5 +294,399 @@ describe('SeerProjectTable', () => {
     // The check passes, so the selection is persisted and no warning is shown.
     await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  describe('suggested projects', () => {
+    const disabledSuggestionCases: Array<[string, Partial<Organization>]> = [
+      ['the feature is disabled', {features: []}],
+      ['the user cannot write settings', {access: ['org:read']}],
+    ];
+
+    it.each(disabledSuggestionCases)(
+      'does not request suggestions when %s',
+      async (_label, organizationOverrides) => {
+        const suggestionsRequest = setupSuggestionTable({
+          organizationOverrides,
+          projectSettings: [],
+        });
+
+        renderTable();
+
+        expect(
+          await screen.findByRole('heading', {name: 'Enable Autofix on a Project'})
+        ).toBeInTheDocument();
+        expect(suggestionsRequest).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(['?name=project', '?agent=seer'])(
+      'does not request or show suggestions with active filters: %s',
+      async search => {
+        const suggestionsRequest = setupSuggestionTable();
+
+        renderTable(search);
+
+        await screen.findByText(project.slug);
+        expect(suggestionsRequest).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('heading', {name: 'Suggested Projects'})
+        ).not.toBeInTheDocument();
+      }
+    );
+
+    it('renders candidate metadata without requesting all organization repositories', async () => {
+      setupSuggestionTable();
+      const allRepositoriesRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        body: [],
+      });
+
+      renderTable();
+
+      expect(
+        await screen.findByRole('heading', {name: 'Suggested Projects'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText('getsentry/suggested-repository')
+      ).toBeInTheDocument();
+      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
+      expect(screen.getByText('1 linked repository')).toBeInTheDocument();
+      expect(screen.getByText('Agent: Seer')).toBeInTheDocument();
+      expect(
+        screen.getByText('Stopping point: Stop after Root Cause')
+      ).toBeInTheDocument();
+      expect(allRepositoriesRequest).not.toHaveBeenCalled();
+    });
+
+    it('loads the next suggestion page only after Show more is selected', async () => {
+      const secondSuggestedProject = ProjectFixture({
+        id: '4',
+        slug: 'second-suggested-project',
+        name: 'Second Suggested Project',
+      });
+      setupSuggestionTable({suggestions: null});
+      ProjectsStore.loadInitialData([project, suggestedProject, secondSuggestedProject]);
+      const suggestionsUrl = `/organizations/${organization.slug}/seer/project-suggestions/`;
+      const firstPageRequest = MockApiClient.addMockResponse({
+        url: suggestionsUrl,
+        body: [makeSuggestion()],
+        headers: {
+          Link: `<${suggestionsUrl}?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"`,
+        },
+      });
+      const secondPageRequest = MockApiClient.addMockResponse({
+        url: suggestionsUrl,
+        body: [
+          makeSuggestion({
+            projectId: secondSuggestedProject.id,
+            projectSlug: secondSuggestedProject.slug,
+            linkedRepositories: [
+              {
+                repositoryId: '12',
+                name: 'getsentry/second-repository',
+                provider: 'integrations:github',
+              },
+            ],
+          }),
+        ],
+        headers: {
+          Link: `<${suggestionsUrl}?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"`,
+        },
+        match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+      });
+
+      renderTable();
+
+      expect(
+        await screen.findByText('getsentry/suggested-repository')
+      ).toBeInTheDocument();
+      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
+      expect(secondPageRequest).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show more'}));
+
+      expect(await screen.findByText('getsentry/second-repository')).toBeInTheDocument();
+      expect(screen.getByText(secondSuggestedProject.slug)).toBeInTheDocument();
+      expect(firstPageRequest).toHaveBeenCalledTimes(1);
+      expect(secondPageRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the resolved project, agent, and stopping point and refreshes both lists', async () => {
+      let repositoriesSaved = false;
+      setupSuggestionTable({
+        organizationOverrides: {defaultCodingAgentIntegrationId: 123},
+        suggestions: () => (repositoriesSaved ? [] : [makeSuggestion()]),
+      });
+      const repositoriesPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: () => {
+          repositoriesSaved = true;
+          return {};
+        },
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
+      });
+      const projectUpdate = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Enable Autofix'}));
+
+      await waitFor(() => expect(settingsPut).toHaveBeenCalled());
+      expect(repositoriesPut).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {repos: [{repositoryId: 11, branchName: null}]},
+        })
+      );
+      expect(settingsPut).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            agent: 'cursor_background_agent',
+            integrationId: '123',
+            automationTuning: 'medium',
+            stoppingPoint: 'root_cause',
+          }),
+        })
+      );
+      expect(repositoriesPut.mock.invocationCallOrder[0]).toBeLessThan(
+        settingsPut.mock.invocationCallOrder[0]!
+      );
+      expect(projectUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({id: suggestedProject.id, slug: suggestedProject.slug})
+      );
+      await waitFor(() =>
+        expect(screen.queryByText(suggestedProject.slug)).not.toBeInTheDocument()
+      );
+    });
+
+    it.each([
+      ['a non-GitHub provider', 'integrations:gitlab'],
+      ['a missing provider', ''],
+    ])('forces the Seer agent for %s', async (_label, provider) => {
+      setupSuggestionTable({
+        organizationOverrides: {defaultCodingAgentIntegrationId: 123},
+        suggestions: [
+          makeSuggestion({
+            linkedRepositories: [
+              {
+                repositoryId: '11',
+                name: 'getsentry/suggested-repository',
+                provider,
+              },
+            ],
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: {},
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Enable Autofix'}));
+
+      await waitFor(() => expect(settingsPut).toHaveBeenCalled());
+      const settingsPayload = settingsPut.mock.calls[0]![1].data;
+      expect(settingsPayload.agent).toBe('seer');
+      expect(settingsPayload).not.toHaveProperty('integrationId');
+    });
+
+    it('disables Enable Autofix while the default agent is pending', async () => {
+      setupSuggestionTable({
+        codingAgentsDelay: 10_000,
+      });
+
+      renderTable();
+
+      expect(await screen.findByRole('button', {name: 'Enable Autofix'})).toBeDisabled();
+    });
+
+    it('opens Configure when the stopping point default is missing', async () => {
+      setupSuggestionTable({
+        organizationOverrides: {defaultAutomatedRunStoppingPoint: undefined},
+      });
+      const repositoriesPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        body: [],
+      });
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+
+      await waitFor(() => expect(mockOpenModal).toHaveBeenCalledTimes(1));
+      const modalElement = mockOpenModal.mock.calls[0]![0]({});
+      expect(modalElement.props.defaultProject).toBe(suggestedProject);
+      expect(repositoriesPut).not.toHaveBeenCalled();
+    });
+
+    it('opens Configure when the full repository count is greater than 10', async () => {
+      setupSuggestionTable({
+        suggestions: [makeSuggestion({linkedReposCount: 11})],
+      });
+      const repositoriesPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/`,
+        body: [],
+      });
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+
+      await waitFor(() => expect(mockOpenModal).toHaveBeenCalledTimes(1));
+      const modalElement = mockOpenModal.mock.calls[0]![0]({});
+      expect(modalElement.props.defaultProject).toBe(suggestedProject);
+      expect(repositoriesPut).not.toHaveBeenCalled();
+    });
+
+    it('disables the action when the full project object is unavailable', async () => {
+      setupSuggestionTable();
+      ProjectsStore.loadInitialData([project]);
+
+      renderTable();
+
+      expect(await screen.findByRole('button', {name: 'Unavailable'})).toBeDisabled();
+    });
+
+    it('keeps the suggestion visible when the repository write fails', async () => {
+      setupSuggestionTable();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: () => {
+          throw new Error('repository write failed');
+        },
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+      });
+      const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Enable Autofix'}));
+
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith('Could not enable Autofix. Try again.')
+      );
+      expect(settingsPut).not.toHaveBeenCalled();
+      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
+    });
+
+    it('keeps a retry warning after a partial save and clears it after retry', async () => {
+      let repositoriesSaved = false;
+      let settingsAttempts = 0;
+      setupSuggestionTable({
+        suggestions: () => (repositoriesSaved ? [] : [makeSuggestion()]),
+      });
+      const repositoriesPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: () => {
+          repositoriesSaved = true;
+          return {};
+        },
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+        body: () => {
+          settingsAttempts += 1;
+          if (settingsAttempts === 1) {
+            throw new Error('settings write failed');
+          }
+          return {};
+        },
+      });
+
+      renderTable();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Enable Autofix'}));
+
+      expect(
+        await screen.findByText(
+          'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
+        )
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByText('Suggested Project')).not.toBeInTheDocument()
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry settings'}));
+
+      await waitFor(() =>
+        expect(
+          screen.queryByText(
+            'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
+          )
+        ).not.toBeInTheDocument()
+      );
+      expect(repositoriesPut).toHaveBeenCalledTimes(2);
+      expect(settingsPut).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses the standard table layout when only suggestions exist', async () => {
+      setupSuggestionTable({projectSettings: []});
+
+      renderTable();
+
+      expect(
+        await screen.findByRole('heading', {name: 'Suggested Projects'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Enable Autofix on a Project'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+      expect(await screen.findByText('All')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Project'})).toBeInTheDocument();
+      expect(await screen.findByText('No projects found')).toBeInTheDocument();
+    });
+
+    it('shows the large empty state when both configured projects and suggestions are empty', async () => {
+      setupSuggestionTable({projectSettings: [], suggestions: []});
+
+      renderTable();
+
+      expect(
+        await screen.findByRole('heading', {name: 'Enable Autofix on a Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Suggested Projects'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the configured table usable when the suggestion query fails', async () => {
+      setupSuggestionTable({statusCode: 500});
+
+      renderTable();
+
+      expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+      expect(screen.getByText(project.slug)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Add Project'})).toBeInTheDocument();
+    });
   });
 });
