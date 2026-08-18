@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -470,9 +471,17 @@ export function OverviewCard({
                   <TitleLink to={issueUrl}>{run.title}</TitleLink>
                 </Text>
                 <Flex wrap="wrap" gap="md" align="center">
-                  <Text size="sm" monospace variant="muted">
-                    {run.shortId}
-                  </Text>
+                  <Flex gap="xs" align="center">
+                    <ProjectAvatar
+                      project={run.issue.project}
+                      size={12}
+                      hasTooltip
+                      tooltip={run.issue.project.slug}
+                    />
+                    <Text size="sm" monospace variant="muted">
+                      {run.shortId}
+                    </Text>
+                  </Flex>
                   <IssueVitals
                     run={run}
                     statsPeriod={statsPeriod}
