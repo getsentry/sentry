@@ -25,6 +25,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
+    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
@@ -130,6 +131,37 @@ class CursorOriginIntegration(
         except ApiError:
             return False
         return True
+
+    # -- error classification ------------------------------------------------
+
+    def is_rate_limited_error(self, exc: ApiError) -> bool:
+        """Origin signals rate limiting with a plain 429 plus Retry-After.
+
+        The base class returns False for every error, so without this a rate
+        limit is indistinguishable from a broken integration and the install
+        gets marked unauthorized for what is a transient condition.
+        """
+        return exc.code == 429
+
+    def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
+        """Treat a failed token exchange as a terminal state.
+
+        When an app is uninstalled or its access revoked, Origin stops issuing
+        installation tokens. Every subsequent call fails at the exchange rather
+        than on the resource, which the generic handling reads as an ordinary
+        404 and retries forever. Surfacing it as terminal is what lets the
+        integration be shown as broken instead.
+
+        `installation.deleted` normally gets there first, but only when the
+        webhook was delivered -- revocation and missed deliveries both land here.
+        """
+        if isinstance(exc, ApiError) and exc.url and "access_tokens" in exc.url:
+            if self.is_rate_limited_error(exc):
+                return "rate_limited"
+            if exc.code in (401, 403, 404):
+                return "installation_suspended"
+
+        return super().is_broken_integration_error(exc)
 
     # -- stacktrace linking --------------------------------------------------
 
