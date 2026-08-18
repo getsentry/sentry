@@ -10,7 +10,7 @@ import type {
   YAXisComponentOption,
 } from 'echarts';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {
   EChartChartReadyHandler,
@@ -263,7 +263,7 @@ function createIncidentMarkerSeries({
     data: incidentPeriods,
     color: theme.colors.red400,
     animation: false,
-    markLine: MarkLine({
+    markLine: markLine({
       silent: false,
       animation: false,
       data: markLineData,

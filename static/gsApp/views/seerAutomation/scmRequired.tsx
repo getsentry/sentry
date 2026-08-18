@@ -18,6 +18,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -58,7 +59,7 @@ export default function SeerAutomationSCMRequired() {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
-  if (!hasSeatBasedSeer && !hasCodeReviewBeta) {
+  if (orgNeedsSeerTrial(organization)) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/trial/`)} />;
   }
 

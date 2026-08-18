@@ -19,7 +19,10 @@ import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {
+  CONVERSATIONS_DETAIL_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
+} from 'sentry/views/explore/conversations/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -1329,7 +1332,7 @@ function buildRoutes(): RouteObject[] {
   const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
     {
       index: true,
-      component: make(() => import('sentry/views/alerts/list/incidents')),
+      redirectTo: forCustomerDomain ? '/monitors/' : '/organizations/:orgId/monitors/',
     },
     {
       path: 'rules/',
@@ -1378,7 +1381,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'uptime/',
-          component: make(() => import('sentry/views/alerts/rules/uptime')),
+          component: make(() => import('sentry/views/detectors/components/uptime')),
           children: [
             {
               path: ':projectId/:detectorId/details/',
@@ -2259,7 +2262,7 @@ function buildRoutes(): RouteObject[] {
       children: metricsChildren,
     },
     {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      path: `${EXPLORE_AGENTS_SUB_PATH}/`,
       component: make(() => import('sentry/views/explore/conversations/layout')),
       children: [
         {
@@ -2267,13 +2270,31 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/explore/conversations/overview')),
         },
         {
-          path: ':conversationId/',
+          path: `${CONVERSATIONS_DETAIL_SUB_PATH}/:conversationId/`,
           component: make(
             () => import('sentry/views/explore/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,
         traceView,
+      ],
+    },
+    {
+      // Redirect the legacy `/explore/conversations/*` paths to `/explore/agents/`.
+      path: 'conversations/',
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
       ],
     },
     {
@@ -2284,6 +2305,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
     },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
@@ -2308,6 +2333,12 @@ function buildRoutes(): RouteObject[] {
     path: '/explore/',
     withOrgPath: true,
     children: exploreChildren,
+  };
+
+  const investigationRoutes: SentryRouteObject = {
+    path: '/seer/investigation/:investigationId/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/investigations/detail')),
   };
 
   const preprodChildren: SentryRouteObject[] = [
@@ -2782,6 +2813,7 @@ function buildRoutes(): RouteObject[] {
       domainViewRoutes,
       tracesRoutes,
       exploreRoutes,
+      investigationRoutes,
       llmMonitoringRedirects,
       profilingRoutes,
       gettingStartedRoutes,

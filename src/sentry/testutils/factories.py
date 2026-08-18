@@ -86,11 +86,6 @@ from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
-    InvestigationCell,
-    InvestigationCellDependency,
-    InvestigationCellExecution,
-    InvestigationCellExecutionProject,
-    InvestigationCellParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -174,6 +169,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -447,22 +443,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell(investigation, position=0, kind="text", **kwargs):
-        return InvestigationCell.objects.create(
-            investigation=investigation, position=position, kind=kind, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block(investigation, position=0, kind="text", **kwargs):
         return InvestigationBlock.objects.create(
             investigation=investigation, position=position, kind=kind, **kwargs
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_dependency(cell, depends_on):
-        return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -476,11 +460,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_parameter(cell, parameter, **kwargs):
-        return InvestigationCellParameter.objects.create(cell=cell, parameter=parameter, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_parameter(block, parameter, **kwargs):
         return InvestigationBlockParameter.objects.create(
             block=block, parameter=parameter, **kwargs
@@ -488,20 +467,8 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution(cell, **kwargs):
-        return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_block_execution(block, **kwargs):
         return InvestigationBlockExecution.objects.create(block=block, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_cell_execution_project(execution, project):
-        return InvestigationCellExecutionProject.objects.create(
-            execution=execution, project=project
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -732,6 +699,26 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_replay_deletion_job(
+        project: Project,
+        range_start: datetime,
+        range_end: datetime,
+        status: str = DeletionJobStatus.PENDING,
+        query: str = "",
+        environments: list[str] | None = None,
+    ) -> ReplayDeletionJobModel:
+        return ReplayDeletionJobModel.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            range_start=range_start,
+            range_end=range_end,
+            status=status,
+            query=query,
+            environments=environments or [],
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -3018,6 +3005,7 @@ class Factories:
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files={"item_0": trace_item.SerializeToString()},
+            timeout=30,
         )
         assert response.status_code == 200
 

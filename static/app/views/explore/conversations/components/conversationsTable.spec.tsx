@@ -40,7 +40,7 @@ const organization = OrganizationFixture({
 
 function mockConversations(body: Array<Record<string, unknown>>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/ai-conversations/`,
+    url: `/organizations/${organization.slug}/agents/conversations/`,
     body,
   });
 }

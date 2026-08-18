@@ -4,10 +4,12 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -135,6 +137,18 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/members/',
       body: [MemberFixture({id: assignedUser.id, user: assignedUser})],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {},
+    });
   });
 
   afterEach(() => {
@@ -191,10 +205,18 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
+    autofixSetup = AutofixSetupFixture({
+      billing: {hasAutofixQuota: false},
+      integration: {ok: false, reason: null},
+      seerReposLinked: false,
+    }),
+    autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
+    autofixSetup?: ReturnType<typeof AutofixSetupFixture>;
+    autofixSetupDelay?: Promise<unknown>;
     group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
@@ -217,11 +239,8 @@ describe('InboxPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
-      body: {
-        integration: {ok: false, reason: null},
-        billing: {hasAutofixQuota: false},
-        seerReposLinked: false,
-      },
+      body: autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -247,10 +266,6 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/pull-requests/`,
       body: {pullRequests: []},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replay-count/',
-      body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -280,6 +295,37 @@ describe('InboxPage', () => {
     return preview;
   }
 
+  function mockAssignedPreview(
+    autofixSetup: ReturnType<typeof AutofixSetupFixture>,
+    autofixSetupDelay?: Promise<unknown>
+  ) {
+    mockSuccessfulSections();
+    mockIssuePreview({
+      group: assignedGroup,
+      autofixSetup,
+      ...(autofixSetupDelay === undefined ? {} : {autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+  }
+
+  async function openAssignedPreview() {
+    const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+
+    await userEvent.click(
+      await within(assignedSection).findByRole('link', {name: /Assigned issue/})
+    );
+
+    return screen.getByRole('complementary', {name: 'Issue preview'});
+  }
+
   it('loads and renders the three progress sections with filtered issue metadata', async () => {
     const requests = mockSuccessfulSections();
     mockIssuePreview();
@@ -293,7 +339,7 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
-    expect(assignedIssue).not.toBeVisible();
+    expect(assignedIssue).toBeVisible();
     expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
@@ -310,12 +356,11 @@ describe('InboxPage', () => {
           expect.objectContaining({
             method: 'GET',
             query: {
-              project: [-1],
               query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
-              expand: ['derivedData'],
+              expand: ['derivedData', 'owners'],
             },
           })
         )
@@ -342,7 +387,7 @@ describe('InboxPage', () => {
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(within(fixSection).getByText('PROJECT-101')).toBeInTheDocument();
+    expect(within(fixSection).queryByText('PROJECT-101')).not.toBeInTheDocument();
     expect(within(fixSection).getByTitle('Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByRole('img', {name: 'Jane Doe'})).toHaveAttribute(
       'src',
@@ -356,6 +401,112 @@ describe('InboxPage', () => {
     const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
     expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+  });
+
+  it('shows up to two pull request badges only in pull request sections', async () => {
+    mockSuccessfulSections();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      body: fixProposedGroup,
+    });
+    const diagnosedPullRequests = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${diagnosedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    const assignedPullRequests = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/org/repository/pull/10',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+          {
+            ...PullRequestFixture({
+              id: '11',
+              externalUrl: 'https://github.com/org/repository/pull/11',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+          {
+            ...PullRequestFixture({
+              id: '12',
+              externalUrl: 'https://github.com/org/repository/pull/12',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'closed',
+          },
+        ],
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(
+      await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+    expect(
+      within(fixSection).getByRole('link', {name: 'Pull request #11, Merged'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/11');
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #12, Closed'})
+    ).not.toBeInTheDocument();
+    expect(diagnosedPullRequests).not.toHaveBeenCalled();
+    expect(assignedPullRequests).not.toHaveBeenCalled();
+  });
+
+  it('shows suggested owners on inbox cards', async () => {
+    const suggestedOwner = UserFixture({id: '11', name: 'John Smith'});
+    const groupWithSuggestedOwner = GroupFixture({
+      ...diagnosedGroup,
+      owners: [
+        {
+          type: 'seerSuggested',
+          owner: `user:${suggestedOwner.id}`,
+          date_added: '',
+        },
+      ],
+    });
+    mockSection('issue.progress:fix_proposed is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
+      groupWithSuggestedOwner,
+    ]);
+    mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
+    const suggestedOwnerRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      match: [MockApiClient.matchQuery({query: `user.id:${suggestedOwner.id}`})],
+      body: [MemberFixture({id: suggestedOwner.id, user: suggestedOwner})],
+    });
+    mockIssuePreview({group: groupWithSuggestedOwner});
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const issueCard = await screen.findByRole('link', {name: /Diagnosed issue/});
+    expect(
+      await within(issueCard).findByTestId('suggested-avatar-stack')
+    ).toHaveTextContent('JS');
+    expect(suggestedOwnerRequest).toHaveBeenCalledTimes(1);
   });
 
   it('restores the persisted Inbox pane width', () => {
@@ -418,15 +569,34 @@ describe('InboxPage', () => {
     // Identified should be visible on the default "Me" tab
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', {name: 'My Teams'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^My Teams/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole('radio', {name: 'All'}));
+    await userEvent.click(screen.getByRole('radio', {name: /^All/}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
     await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the total issue count for each assignee tab', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      body: {
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 10,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 49,
+        [`issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved${INBOX_AUTOFIX_CATEGORY_FILTER}`]: 100,
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    expect(await screen.findByRole('radio', {name: 'Me 10'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'My Teams 49'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'All 99+'})).toBeInTheDocument();
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -456,31 +626,31 @@ describe('InboxPage', () => {
     expect(await within(fixSection).findByText('1000+')).toBeInTheDocument();
   });
 
-  it('expands and collapses progress sections', async () => {
+  it('expands non-empty progress sections and collapses empty sections', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
+    const fixProposedIssue = await screen.findByText('Fix proposed issue');
+    const identifiedEmptyMessage = await screen.findByText('No identified issues');
     const fixProposedButton = screen.getByRole('button', {
       name: 'Fix Proposed',
     });
-    const assignedButton = screen.getByRole('button', {name: 'Assigned'});
-    const fixProposedIssue = await screen.findByText('Fix proposed issue');
-    const assignedIssue = screen.getByText('Assigned issue');
+    const identifiedButton = screen.getByRole('button', {name: 'Identified'});
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'true');
     expect(fixProposedIssue).toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'false');
-    expect(assignedIssue).not.toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'false');
+    expect(identifiedEmptyMessage).not.toBeVisible();
 
     await userEvent.click(fixProposedButton);
-    await userEvent.click(assignedButton);
+    await userEvent.click(identifiedButton);
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'false');
     expect(fixProposedIssue).not.toBeVisible();
-    expect(assignedButton).toHaveAttribute('aria-expanded', 'true');
-    expect(assignedIssue).toBeVisible();
+    expect(identifiedButton).toHaveAttribute('aria-expanded', 'true');
+    expect(identifiedEmptyMessage).toBeVisible();
   });
 
   it('filters sections by the selected assignee', async () => {
@@ -521,9 +691,9 @@ describe('InboxPage', () => {
       initialRouterConfig,
     });
 
-    const meFilter = screen.getByRole('radio', {name: 'Me'});
-    const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
-    const allFilter = screen.getByRole('radio', {name: 'All'});
+    const meFilter = screen.getByRole('radio', {name: /^Me/});
+    const myTeamsFilter = screen.getByRole('radio', {name: /^My Teams/});
+    const allFilter = screen.getByRole('radio', {name: /^All/});
     expect(meFilter).toBeChecked();
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
@@ -637,6 +807,14 @@ describe('InboxPage', () => {
       body: [nextFixProposedGroup],
       headers: {'X-Hits': '2'},
       asyncDelay: 100,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${nextFixProposedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
     mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
       diagnosedGroup,
@@ -761,6 +939,7 @@ describe('InboxPage', () => {
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -771,6 +950,103 @@ describe('InboxPage', () => {
         })
       )
     );
+  });
+
+  it('shows the Seer empty state for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      within(preview).getByRole('button', {name: 'Find Root Cause'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows root cause generation after starting Autofix for an assigned issue', async () => {
+    mockAssignedPreview(AutofixSetupFixture({}));
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    const startAutofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+    await userEvent.click(
+      await within(preview).findByRole('button', {name: 'Find Root Cause'})
+    );
+
+    expect(within(preview).getByText('Generating root cause...')).toBeInTheDocument();
+    await waitFor(() => expect(startAutofixRequest).toHaveBeenCalledTimes(1));
+
+    // Immediately sets "find root cause" button to busy state.
+    const startButton = within(preview).getByRole('button', {name: 'Find Root Cause'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('waits for Seer setup before showing assigned issue actions', async () => {
+    const autofixSetupDelay = Promise.withResolvers<void>();
+    mockAssignedPreview(
+      AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+      autofixSetupDelay.promise
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Resolve'})
+    ).not.toBeInTheDocument();
+
+    autofixSetupDelay.resolve();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows project setup for an assigned issue with paid Seer', async () => {
+    mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByText('Finish Configuring Seer')
+    ).toBeInTheDocument();
+    expect(
+      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
+    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
+    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+  });
+
+  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+    mockAssignedPreview(
+      AutofixSetupFixture({
+        billing: {hasAutofixQuota: false},
+      })
+    );
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const preview = await openAssignedPreview();
+
+    expect(
+      await within(preview).findByRole('button', {name: 'Resolve'})
+    ).toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
   });
 
   it('starts making a plan in Autofix when the root cause is complete', async () => {
@@ -798,9 +1074,7 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
-    const seerButton = await within(preview).findByRole('button', {
-      name: 'Make a Plan',
-    });
+    await within(preview).findByRole('button', {name: 'Make a Plan'});
 
     // After starting the step, the refetch will see a processing state
     mockAutofixResponse(
@@ -809,7 +1083,7 @@ describe('InboxPage', () => {
       })
     );
 
-    await userEvent.click(seerButton);
+    await userEvent.click(within(preview).getByRole('button', {name: 'Make a Plan'}));
 
     expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>
@@ -857,38 +1131,6 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('links to a completed Autofix pull request while polling', async () => {
-    mockSuccessfulSections();
-    mockIssuePreview();
-    mockAutofixResponse(
-      ExplorerAutofixResponseFixture({
-        autofix: ExplorerAutofixStateFixture({
-          queued_feedback: [{text: 'Please revise the fix'}],
-          repo_pr_states: {
-            'org/repository': AutofixRepoPRStateFixture(),
-          },
-        }),
-      })
-    );
-
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
-
-    const preview = await openFixProposedPreview();
-    const pullRequestButton = await within(preview).findByRole('button', {
-      name: 'View org/repository#10',
-    });
-    expect(pullRequestButton).toHaveAttribute(
-      'href',
-      'https://github.com/org/repository/pull/10'
-    );
-    expect(
-      within(pullRequestButton).getByTestId('pull-request-github')
-    ).toBeInTheDocument();
-  });
-
   it('labels a coding agent pull request like a Seer one', async () => {
     // A delegated agent's PR arrives under coding_agents rather than repo_pr_states.
     mockSuccessfulSections();
@@ -929,34 +1171,6 @@ describe('InboxPage', () => {
         name: 'View org/repository#649',
       })
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
-  });
-
-  it('continues in Seer when a completed Autofix pull request is missing data', async () => {
-    mockSuccessfulSections();
-    mockIssuePreview();
-    mockAutofixResponse(
-      ExplorerAutofixResponseFixture({
-        autofix: ExplorerAutofixStateFixture({
-          repo_pr_states: {
-            'org/repository': AutofixRepoPRStateFixture({
-              pr_creation_status: 'completed',
-              pr_number: null,
-              pr_url: null,
-            }),
-          },
-        }),
-      })
-    );
-
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
-
-    const preview = await openFixProposedPreview();
-    expect(
-      await within(preview).findByRole('button', {name: 'Continue in Seer'})
-    ).toBeInTheDocument();
   });
 
   it('retries a failed Autofix pull request', async () => {
@@ -1074,6 +1288,20 @@ describe('InboxPage', () => {
         })
       ).toHaveAttribute('aria-current', 'true');
       unmount();
+    });
+
+    it('shows an empty state when every section is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
+
+      render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('No Issues in your Inbox!')).toBeInTheDocument();
     });
 
     it('follows section order even when a later section resolves first', async () => {

@@ -160,11 +160,12 @@ describe('OrganizationGeneralSettings', () => {
       expect(isDisabled).toBe(true);
     }
 
+    expect(screen.getByTestId('org-permission-alert')).toHaveTextContent(
+      'These settings can only be edited by users with the organization owner or manager role.'
+    );
     expect(
-      screen.getByText(
-        'These settings can only be edited by users with the organization owner or manager role.'
-      )
-    ).toBeInTheDocument();
+      screen.getByRole('link', {name: 'View your organization members'})
+    ).toHaveAttribute('href', '/settings/org-slug/members/');
   });
 
   it('does not have remove organization button without org:admin permission', () => {

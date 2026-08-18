@@ -61,8 +61,8 @@ const GroupingValue = styled('code')<{
     (valueType === 'function' || valueType === 'symbol') &&
     css`
       font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
-      color: ${contributes
-        ? theme.tokens.content.primary
-        : theme.tokens.content.secondary};
+      color: ${
+        contributes ? theme.tokens.content.primary : theme.tokens.content.secondary
+      };
     `}
 `;

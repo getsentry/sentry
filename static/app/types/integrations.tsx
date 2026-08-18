@@ -156,9 +156,16 @@ export interface PullRequest {
 
 export type PullRequestStatus = 'merged' | 'open' | 'closed' | 'draft' | 'unknown';
 
+export type PullRequestAttributionAgent =
+  | 'cursor'
+  | 'github_copilot'
+  | 'claude_code'
+  | 'unknown';
+
 type SeerAttribution = {
   id: 'seer';
   type: 'seer';
+  agent?: PullRequestAttributionAgent | null;
 };
 
 export type PullRequestAttribution = SeerAttribution;
@@ -169,6 +176,14 @@ export type PullRequestReviewStatus =
   | 'approved'
   | 'changes_requested'
   | 'review_required';
+
+export type PullRequestFileChangeType =
+  | 'ADDED'
+  | 'CHANGED'
+  | 'COPIED'
+  | 'DELETED'
+  | 'MODIFIED'
+  | 'RENAMED';
 
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;

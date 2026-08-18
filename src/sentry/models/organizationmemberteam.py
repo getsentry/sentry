@@ -6,26 +6,33 @@ from django.db import models
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
-from sentry.hybridcloud.models.outbox import CellOutboxBase
-from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.db.models import (
+    BoundedAutoField,
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
+from sentry.db.models.manager.base import BaseManager
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
 @cell_silo_model
-class OrganizationMemberTeam(ReplicatedCellModel):
+class OrganizationMemberTeam(Model):
     """
     Identifies relationships between organization members and the teams they are on.
     """
 
-    objects: ClassVar[CellOutboxProducingManager[Self]] = CellOutboxProducingManager()
+    objects: ClassVar[BaseManager[Self]] = BaseManager()
 
     __relocation_scope__ = RelocationScope.Organization
-    category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
 
     id = BoundedAutoField(primary_key=True)
+    # Shadow column for the in-progress widening of `id` to int8; swapped into the
+    # primary key once backfilled. Nothing reads or writes it yet.
+    new_id = BoundedBigIntegerField(null=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
@@ -39,15 +46,6 @@ class OrganizationMemberTeam(ReplicatedCellModel):
         unique_together = (("team", "organizationmember"),)
 
     __repr__ = sane_repr("team_id", "organizationmember_id")
-
-    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
-        return super().outbox_for_update(
-            shard_identifier=(
-                self.organizationmember.organization_id
-                if shard_identifier is None
-                else shard_identifier
-            )
-        )
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {

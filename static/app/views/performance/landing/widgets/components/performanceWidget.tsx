@@ -11,7 +11,7 @@ import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useApi} from 'sentry/utils/useApi';
 import {
-  getPerformanceWidgetContainer,
+  PERFORMANCE_WIDGET_CONTAINERS,
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
 import type {
@@ -111,9 +111,7 @@ function DataDisplay<T extends WidgetDataConstraint>(
 ) {
   const {Visualizations, chartHeight, totalHeight, containerType, EmptyComponent} = props;
 
-  const Container = getPerformanceWidgetContainer({
-    containerType,
-  });
+  const Container = PERFORMANCE_WIDGET_CONTAINERS[containerType];
 
   const numberKeys = Object.keys(props.Queries).length;
   const missingDataKeys = Object.values(props.widgetData).length !== numberKeys;
