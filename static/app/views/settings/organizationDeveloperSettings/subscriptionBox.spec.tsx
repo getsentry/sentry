@@ -91,6 +91,24 @@ describe('SubscriptionBox', () => {
     });
   });
 
+  describe('deploy resource subscription', () => {
+    it('hidden without deploy-webhooks flag', () => {
+      renderComponent({resource: 'deploy'});
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('renders deploy checkbox enabled with deploy-webhooks flag', () => {
+      renderComponent(
+        {resource: 'deploy'},
+        {organization: OrganizationFixture({features: ['deploy-webhooks']})}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'deploy'})).toBeEnabled();
+      expect(screen.getByRole('checkbox', {name: 'deploy.created'})).toBeInTheDocument();
+    });
+  });
+
   describe('preprod_artifact resource subscription', () => {
     it('renders preprod_artifact checkbox enabled', () => {
       renderComponent({resource: 'preprod_artifact'});

@@ -551,7 +551,13 @@ export type IntegrationIssueConfig = {
 
 export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;
 
-export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
+export type WebhookEvent =
+  | 'issue'
+  | 'error'
+  | 'comment'
+  | 'deploy'
+  | 'seer'
+  | 'preprod_artifact';
 
 /**
  * Codeowners and repository path mappings.
