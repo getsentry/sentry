@@ -32,6 +32,7 @@ export function OTPInput({
   transform,
 }: OTPInputProps) {
   const [value, setValue] = useState('');
+  const transformValue = (newValue: string) => transform?.(newValue) ?? newValue;
 
   return (
     <OTPInputPrimitive
@@ -40,8 +41,8 @@ export function OTPInput({
       disabled={disabled}
       inputMode={characterSet === 'numeric' ? 'numeric' : 'text'}
       maxLength={length}
-      onChange={newValue => setValue(transform?.(newValue) ?? newValue)}
-      onComplete={onComplete}
+      onChange={newValue => setValue(transformValue(newValue))}
+      onComplete={(newValue: string) => onComplete(transformValue(newValue))}
       pattern={
         characterSet === 'numeric' ? REGEXP_ONLY_DIGITS : REGEXP_ONLY_DIGITS_AND_CHARS
       }
@@ -70,6 +71,7 @@ export function OTPInput({
 
 const OTPInputSlot = styled(Flex)<{$isActive: boolean; $size: FormSize}>`
   ${p => inputStyles({theme: p.theme, size: p.$size})};
+  display: flex;
   min-width: ${p => p.theme.form[p.$size].height};
   padding: 0;
   width: ${p => p.theme.form[p.$size].height};
