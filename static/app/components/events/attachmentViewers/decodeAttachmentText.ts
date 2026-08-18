@@ -12,7 +12,7 @@ function hasPrefix(bytes: Uint8Array, prefix: readonly number[]): boolean {
 /**
  * Detect a Unicode encoding from a leading BOM.
  */
-export function encodingFromBom(bytes: Uint8Array): string | null {
+function encodingFromBom(bytes: Uint8Array): string | null {
   if (hasPrefix(bytes, UTF16LE_BOM)) {
     return 'utf-16le';
   }
