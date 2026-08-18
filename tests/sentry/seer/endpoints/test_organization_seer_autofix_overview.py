@@ -1,6 +1,9 @@
 from collections.abc import Sequence
 from unittest import mock
 
+from django.db import connections
+from django.test.utils import CaptureQueriesContext
+
 from sentry import search
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.constants import ObjectStatus
@@ -458,6 +461,148 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug, **kwargs)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         return run_data["pullRequests"]
+
+    def _issue_project(self, resp, milestone=SeerRunMilestoneType.ROOT_CAUSE):
+        return resp.data["runsByMilestone"][milestone][0]["issue"]["project"]
+
+    def _projects_by_id(self, resp, milestone=SeerRunMilestoneType.ROOT_CAUSE):
+        return {
+            r["issue"]["project"]["id"]: r["issue"]["project"]
+            for r in resp.data["runsByMilestone"][milestone]
+        }
+
+    def test_scm_info_marks_project_with_github_repo_eligible(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        project = self._issue_project(resp)
+        assert project.get("hasReposConnected") is True
+        assert project.get("hasNonGithubRepo") is False
+
+    def test_project_without_repos_is_not_eligible(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is False
+        assert project["hasNonGithubRepo"] is False
+
+    def test_non_github_repo_flags_has_non_github(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:gitlab")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        with self.feature("organizations:seer-gitlab-support"):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "scmInfo"}
+            )
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is True
+        assert project["hasNonGithubRepo"] is True
+
+    def test_eligibility_absent_without_scm_info_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(self.organization.slug)
+
+        project = self._issue_project(resp)
+        assert "hasReposConnected" not in project
+        assert "hasNonGithubRepo" not in project
+
+    def test_github_enterprise_repo_is_github(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github_enterprise")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is True
+        assert project["hasNonGithubRepo"] is False
+
+    def test_mixed_github_and_gitlab_repos(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        gh = self.create_repo(self.project, provider="integrations:github")
+        gl = self.create_repo(self.project, provider="integrations:gitlab")
+        self.create_seer_project_repository(project=self.project, repository=gh)
+        self.create_seer_project_repository(project=self.project, repository=gl)
+
+        with self.feature("organizations:seer-gitlab-support"):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": "scmInfo"}
+            )
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is True
+        assert project["hasNonGithubRepo"] is True
+
+    def test_gitlab_repo_without_flag_is_not_connected(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:gitlab")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is False
+        assert project["hasNonGithubRepo"] is False
+
+    def test_inactive_repo_is_not_connected(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        repo.update(status=ObjectStatus.DISABLED)
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        project = self._issue_project(resp)
+        assert project["hasReposConnected"] is False
+        assert project["hasNonGithubRepo"] is False
+
+    def test_eligibility_is_keyed_per_project(self):
+        eligible_group = self.create_group()
+        self._run_for_group(eligible_group, "eligible")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        other_project = self.create_project(organization=self.organization)
+        ineligible_group = self.create_group(project=other_project)
+        self._run_for_group(ineligible_group, "ineligible")
+
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        projects = self._projects_by_id(resp)
+        assert projects[str(self.project.id)]["hasReposConnected"] is True
+        assert projects[str(other_project.id)]["hasReposConnected"] is False
+
+    def test_repo_eligibility_is_one_query_regardless_of_project_count(self):
+        for i in range(3):
+            project = self.create_project(organization=self.organization)
+            group = self.create_group(project=project)
+            self._run_for_group(group, f"boom {i}")
+            repo = self.create_repo(project, provider="integrations:github")
+            self.create_seer_project_repository(project=project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_run_includes_pull_requests(self, mock_get_integration):
