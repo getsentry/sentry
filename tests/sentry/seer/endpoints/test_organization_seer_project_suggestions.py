@@ -33,7 +33,7 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
         project: Project | None = None,
         source: ProjectRepositorySource = ProjectRepositorySource.MANUAL,
         provider: str | None = GITHUB_PROVIDER,
-        status: ObjectStatus = ObjectStatus.ACTIVE,
+        status: int = ObjectStatus.ACTIVE,
         repository_organization_id: int | None = None,
         name: str | None = None,
     ) -> tuple[Repository, ProjectRepository]:
