@@ -73,3 +73,4 @@ class RunPayload(TypedDict):
 
 class OverviewResponse(TypedDict):
     runsByMilestone: dict[str, list[RunPayload]]
+    truncatedMilestones: list[str]
