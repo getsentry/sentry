@@ -88,6 +88,8 @@ export function SeerProjectTable() {
   const location = useLocation();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const [failedSuggestionMutationVariables, setFailedSuggestionMutationVariables] =
+    useState<AutofixProjectMutationVariables | null>(null);
 
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
@@ -158,6 +160,7 @@ export function SeerProjectTable() {
   const suggestionsFailed = suggestionsEnabled && suggestionsResult.isError;
 
   if (
+    !failedSuggestionMutationVariables &&
     !isError &&
     !isPending &&
     data?.length === 0 &&
@@ -226,10 +229,13 @@ export function SeerProjectTable() {
           <AddProjectButton />
         </Flex>
       </Stack>
-      {suggestionsEnabled ? (
+      {suggestionsEnabled || failedSuggestionMutationVariables ? (
         <SuggestedProjectsPanel
           agentSelectOptions={agentSelectOptions}
+          failedMutationVariables={failedSuggestionMutationVariables}
           result={suggestionsResult}
+          suggestionsEnabled={suggestionsEnabled}
+          onFailedMutationVariablesChange={setFailedSuggestionMutationVariables}
         />
       ) : null}
       <ListItemCheckboxProvider
@@ -361,12 +367,20 @@ export function SeerProjectTable() {
 
 interface SuggestedProjectsPanelProps {
   agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
+  failedMutationVariables: AutofixProjectMutationVariables | null;
+  onFailedMutationVariablesChange: (
+    variables: AutofixProjectMutationVariables | null
+  ) => void;
   result: UseInfiniteQueryResult<SeerProjectSuggestionResponse[]>;
+  suggestionsEnabled: boolean;
 }
 
 function SuggestedProjectsPanel({
   agentSelectOptions,
+  failedMutationVariables,
+  onFailedMutationVariablesChange,
   result,
+  suggestionsEnabled,
 }: SuggestedProjectsPanelProps) {
   const organization = useOrganization();
   const projectsById = useProjectsById();
@@ -375,10 +389,8 @@ function SuggestedProjectsPanel({
   const stoppingPoint: UserFacingStoppingPoint | undefined = useOrgDefaultStoppingPoint();
   const saveMutation = useMutateAutofixProject();
   const {isLoadingModal, openProjectModal} = useProjectAddRepoModal();
-  const [failedMutationVariables, setFailedMutationVariables] =
-    useState<AutofixProjectMutationVariables | null>(null);
 
-  const suggestions = result.data ?? [];
+  const suggestions = suggestionsEnabled ? (result.data ?? []) : [];
   const stoppingPointLabel =
     PROJECT_STOPPING_POINT_OPTIONS.find(option => option.value === stoppingPoint)
       ?.label ?? t('Not configured');
@@ -406,7 +418,7 @@ function SuggestedProjectsPanel({
       await saveMutation.mutateAsync(variables);
     } catch (error) {
       if (error instanceof AutofixSettingsPartialSaveError) {
-        setFailedMutationVariables(variables);
+        onFailedMutationVariablesChange(variables);
         return;
       }
       addErrorMessage(t('Could not enable Autofix. Try again.'));
@@ -420,7 +432,7 @@ function SuggestedProjectsPanel({
 
     try {
       await saveMutation.mutateAsync(failedMutationVariables);
-      setFailedMutationVariables(null);
+      onFailedMutationVariablesChange(null);
     } catch (error) {
       if (!(error instanceof AutofixSettingsPartialSaveError)) {
         addErrorMessage(t('Could not retry Autofix settings. Try again.'));
@@ -428,7 +440,8 @@ function SuggestedProjectsPanel({
     }
   }
 
-  const showPanel = result.isPending || result.isError || suggestions.length > 0;
+  const showPanel =
+    suggestionsEnabled && (result.isPending || result.isError || suggestions.length > 0);
   if (!showPanel && !failedMutationVariables) {
     return null;
   }
@@ -452,7 +465,7 @@ function SuggestedProjectsPanel({
                 <Alert.Button
                   variant="secondary"
                   disabled={saveMutation.isPending}
-                  onClick={() => setFailedMutationVariables(null)}
+                  onClick={() => onFailedMutationVariablesChange(null)}
                 >
                   {t('Dismiss')}
                 </Alert.Button>
@@ -497,10 +510,8 @@ function SuggestedProjectsPanel({
                   const project = projectsById.get(suggestion.projectId);
                   const hasOnlyGithubRepositories =
                     suggestion.linkedRepositories.length > 0 &&
-                    suggestion.linkedRepositories.every(
-                      repository =>
-                        Boolean(repository.provider) &&
-                        isGitHubProvider(repository.provider)
+                    suggestion.linkedRepositories.every(repository =>
+                      isGitHubProvider(repository.provider)
                     );
                   const effectiveAgent = hasOnlyGithubRepositories
                     ? defaultAgent

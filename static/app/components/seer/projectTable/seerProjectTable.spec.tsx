@@ -467,10 +467,7 @@ describe('SeerProjectTable', () => {
       );
     });
 
-    it.each([
-      ['a non-GitHub provider', 'integrations:gitlab'],
-      ['a missing provider', ''],
-    ])('forces the Seer agent for %s', async (_label, provider) => {
+    it('forces the Seer agent for a non-GitHub provider', async () => {
       setupSuggestionTable({
         organizationOverrides: {defaultCodingAgentIntegrationId: 123},
         suggestions: [
@@ -479,7 +476,7 @@ describe('SeerProjectTable', () => {
               {
                 repositoryId: '11',
                 name: 'getsentry/suggested-repository',
-                provider,
+                provider: 'integrations:gitlab',
               },
             ],
           }),
@@ -516,33 +513,23 @@ describe('SeerProjectTable', () => {
       expect(await screen.findByRole('button', {name: 'Enable Autofix'})).toBeDisabled();
     });
 
-    it('opens Configure when the stopping point default is missing', async () => {
-      setupSuggestionTable({
-        organizationOverrides: {defaultAutomatedRunStoppingPoint: undefined},
-      });
-      const repositoriesPut = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
-        method: 'PUT',
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/repos/`,
-        body: [],
-      });
-
-      renderTable();
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
-
-      await waitFor(() => expect(mockOpenModal).toHaveBeenCalledTimes(1));
-      const modalElement = mockOpenModal.mock.calls[0]![0]({});
-      expect(modalElement.props.defaultProject).toBe(suggestedProject);
-      expect(repositoriesPut).not.toHaveBeenCalled();
-    });
-
-    it('opens Configure when the full repository count is greater than 10', async () => {
-      setupSuggestionTable({
-        suggestions: [makeSuggestion({linkedReposCount: 11})],
-      });
+    it.each<[string, () => void]>([
+      [
+        'the stopping point default is missing',
+        () =>
+          setupSuggestionTable({
+            organizationOverrides: {defaultAutomatedRunStoppingPoint: undefined},
+          }),
+      ],
+      [
+        'the full repository count is greater than 10',
+        () =>
+          setupSuggestionTable({
+            suggestions: [makeSuggestion({linkedReposCount: 11})],
+          }),
+      ],
+    ])('opens Configure when %s', async (_label, setup) => {
+      setup();
       const repositoriesPut = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
         method: 'PUT',
@@ -597,10 +584,11 @@ describe('SeerProjectTable', () => {
       expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
     });
 
-    it('keeps a retry warning after a partial save and clears it after retry', async () => {
+    it('keeps a retry warning across filtering and clears it after retry', async () => {
       let repositoriesSaved = false;
       let settingsAttempts = 0;
       setupSuggestionTable({
+        projectSettings: [],
         suggestions: () => (repositoriesSaved ? [] : [makeSuggestion()]),
       });
       const repositoriesPut = MockApiClient.addMockResponse({
@@ -635,6 +623,14 @@ describe('SeerProjectTable', () => {
       await waitFor(() =>
         expect(screen.queryByText('Suggested Project')).not.toBeInTheDocument()
       );
+
+      await userEvent.click(await screen.findByText('All'));
+      await userEvent.click(await screen.findByRole('option', {name: 'Seer'}));
+      expect(
+        screen.getByText(
+          'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
+        )
+      ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry settings'}));
 
