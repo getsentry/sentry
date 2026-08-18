@@ -123,7 +123,7 @@ export function OverviewCardAction({
   // Only Draft PR cards can create a PR; mirror the drawer's write-access gate
   // so a missing-permissions repo sends the user to grant access.
   const isDraftPr = sectionKey === 'code_changes_ready';
-  const {permissionsTarget} = useAutofixCreatePrGate({
+  const {permissionsTarget, isPending: isCreatePrGatePending} = useAutofixCreatePrGate({
     group: {id: run.groupId},
     enabled: isDraftPr,
   });
@@ -253,6 +253,7 @@ export function OverviewCardAction({
             variant="secondary"
             icon={<config.Icon />}
             onClick={handleTrigger}
+            disabled={isCreatePrGatePending}
           >
             {config.label}
           </Button>

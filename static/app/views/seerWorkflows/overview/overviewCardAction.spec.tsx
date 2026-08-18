@@ -161,6 +161,28 @@ describe('OverviewCardAction', () => {
     expect(postRequest).not.toHaveBeenCalled();
   });
 
+  it('disables the Draft PR button until the write-access gate resolves', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/repos/',
+      body: {repos: [{has_write_access: true, integration_id: 5}]},
+      asyncDelay: 20,
+    });
+
+    render(
+      <OverviewCardAction
+        run={runFixture()}
+        sectionKey="code_changes_ready"
+        issueUrl={issueUrl}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByRole('button', {name: 'Draft PR'})).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Draft PR'})).toBeEnabled()
+    );
+  });
+
   it('restores the action button when the trigger fails', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/2/autofix/',
