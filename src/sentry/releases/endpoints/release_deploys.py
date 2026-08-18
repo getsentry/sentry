@@ -116,7 +116,7 @@ def create_deploy(
         name=result.get("name"),
         url=result.get("url"),
     )
-    deploy_created.send_robust(deploy=deploy, sender=create_deploy)
+    deploy_created.send_robust(deploy=deploy, projects=projects, sender=create_deploy)
 
     # XXX(dcramer): this has a race for most recent deploy, but
     # should be unlikely to hit in the real world

@@ -7,12 +7,14 @@ from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.signals import deploy_created
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -397,3 +399,40 @@ class TestIssueWorkflowNotificationsForExactSubscription(APITestCase):
             user_id=self.user.id,
             data={},
         )
+
+
+@patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook.delay")
+class TestDeployCreatedWebhook(APITestCase):
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            events=["deploy"],
+            scopes=["project:releases"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        self.release = self.create_release(project=self.project, version="1.0.0")
+        self.environment = self.create_environment(project=self.project, name="production")
+        self.login_as(self.user)
+
+    def create_deploy_via_signal(self) -> Deploy:
+        deploy = self.create_deploy(release=self.release, environment=self.environment)
+        deploy_created.send_robust(deploy=deploy, projects=[self.project], sender=None)
+        return deploy
+
+    def test_notifies_subscribed_installation(self, delay: MagicMock) -> None:
+        with self.feature("organizations:deploy-webhooks"), self.tasks():
+            self.create_deploy_via_signal()
+
+        delay.assert_called_once()
+        assert delay.call_args[0][0] == self.install.id
+        assert delay.call_args[0][1] == "deploy.created"
+        assert delay.call_args[0][2]["deploy"]["release"] == {"version": "1.0.0"}
+        assert delay.call_args[0][2]["deploy"]["projects"] == [{"slug": self.project.slug}]
+
+    def test_skips_when_feature_disabled(self, delay: MagicMock) -> None:
+        with self.feature({"organizations:deploy-webhooks": False}), self.tasks():
+            self.create_deploy_via_signal()
+
+        assert not delay.called

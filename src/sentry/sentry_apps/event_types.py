@@ -24,6 +24,9 @@ class SentryAppEventType(StrEnum):
     METRIC_ALERT_CRITICAL = "metric_alert.critical"
     METRIC_ALERT_WARNING = "metric_alert.warning"
 
+    # deploy webhooks
+    DEPLOY_CREATED = "deploy.created"
+
     # comment webhooks
     COMMENT_CREATED = "comment.created"
     COMMENT_UPDATED = "comment.updated"

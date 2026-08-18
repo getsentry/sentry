@@ -140,7 +140,7 @@ alert_rule_created = BetterSignal()
 alert_rule_edited = BetterSignal()  # ["project", "rule", "user", "rule_type", "is_api_token"]
 repo_linked = BetterSignal()  # ["repo", "user"]
 release_created = BetterSignal()  # ["release"]
-deploy_created = BetterSignal()  # ["deploy"]
+deploy_created = BetterSignal()  # ["deploy", "projects"]
 ownership_rule_created = BetterSignal()  # ["project"]
 
 # issues

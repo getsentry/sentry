@@ -6,6 +6,7 @@ import orjson
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.utils.webhooks import (
+    DeployActionType,
     ErrorActionType,
     InstallationActionType,
     IssueActionType,
@@ -244,6 +245,26 @@ class AppPlatformEventSerializerTest(TestCase):
             )
             == f"Sentry metric_alert.open: {url}"
         )
+        release_url = "https://org.sentry.io/organizations/org/releases/1.0.0/"
+        assert (
+            self._text_summary(
+                SentryAppResourceType.DEPLOY,
+                DeployActionType.CREATED,
+                {"deploy": {"web_url": release_url, "url": "https://ci.example.com/build/42"}},
+            )
+            == f"Sentry deploy.created: {release_url}"
+        )
+
+    def test_text_summary_prefers_sentry_permalink_over_user_supplied_deploy_url(self) -> None:
+        """`deploy.url` is an arbitrary user-supplied CI link, so it must never be the URL
+        surfaced in the summary."""
+        summary = self._text_summary(
+            SentryAppResourceType.DEPLOY,
+            DeployActionType.CREATED,
+            {"deploy": {"url": "https://evil.example.com/phish"}},
+        )
+
+        assert summary == "Sentry deploy.created"
 
     def test_text_summary_without_issue_data(self) -> None:
         result = AppPlatformEvent[dict[str, Any]](
