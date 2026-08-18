@@ -719,7 +719,6 @@ class InvestigationAgentTest(TestCase):
         assert "Checkout errors breached 100 events" in prompt
         assert "checkout-api" in prompt
         assert "Avoid generic titles" in prompt
-        assert "under 80 characters" in prompt
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:

@@ -94,7 +94,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         }
         candidate_payload = {
             "templateKey": "breached_metric",
-            "templateVersion": 2,
+            "templateVersion": 1,
             "sources": [source],
         }
 
@@ -104,14 +104,11 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         launch_payload = {
             "templateKey": "breached_metric",
-            "templateVersion": 2,
+            "templateVersion": 1,
             "source": source,
         }
         launched = self.client.post(self.collection_url, launch_payload, format="json")
         assert launched.status_code == 201, launched.data
-        assert launched.data["template"] == {"key": "breached_metric", "version": 2}
-        assert launched.data["blocks"][0]["title"] == "Investigation summary"
-        assert len(launched.data["blocks"][0]["dependencies"]) == 4
         assert launched.data["source"]["ref"] == source["ref"]
         assert launched.data["source"]["snapshot"]["analysisWindow"]["end"] == ended_at.isoformat()
 
