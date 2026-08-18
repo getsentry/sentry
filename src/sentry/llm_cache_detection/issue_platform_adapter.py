@@ -40,10 +40,9 @@ AGENT_LABEL_EVIDENCE_NAMES: dict[AgentLabelSource, str] = {
 }
 
 # Versioned so grouping can change later without merging into existing issues.
-# v2 keys on the agent label and span name where v1 keyed on the transaction and
-# the span description, so every fingerprint moved: issues opened under v1 stop
-# matching and are superseded rather than continued.
-FINGERPRINT_VERSION = "v2"
+# Still v1: the detector has never run outside a local checkout, so no issue
+# exists that a bump could separate this key from.
+FINGERPRINT_VERSION = "v1"
 
 
 def create_fingerprint(stats: CallSiteStats) -> str:
