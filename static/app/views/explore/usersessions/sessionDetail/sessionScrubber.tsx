@@ -742,11 +742,7 @@ export function SessionScrubber({
         lane's label onto a row of its own.
       */}
       <Chart hasRoutes={hasRoutes}>
-        <OverviewLabel>
-          <Text size="xs" variant="muted" uppercase>
-            {t('Session')}
-          </Text>
-        </OverviewLabel>
+        <SessionHeader />
         <Overview
           bounds={bounds}
           view={view}
@@ -755,11 +751,7 @@ export function SessionScrubber({
           onChangeView={commitView}
         />
 
-        <HeaderCell>
-          <Text size="xs" variant="muted" uppercase>
-            {t('Time')}
-          </Text>
-        </HeaderCell>
+        <TimeHeader />
 
         <Axis>
           {ticks.map(ratio => (
@@ -785,37 +777,11 @@ export function SessionScrubber({
 
         {hasRoutes && (
           <Fragment>
-            <RouteLabel>
-              <LaneIcon>
-                <IconWindow size="sm" />
-              </LaneIcon>
-              <Text size="sm">{t('Route')}</Text>
-              {/*
-                A footnote on the band, in the same place and the same shape the
-                lane counts use for theirs. An error and a cap are both "this band
-                is not the whole journey", and which one it is belongs in the
-                tooltip rather than in two different markers.
-              */}
-              {(routes.isError || routes.isTruncated) && (
-                <Fragment>
-                  <Flex flex="1" />
-                  <InfoText
-                    size="xs"
-                    variant="warning"
-                    title={
-                      routes.isError
-                        ? t('Routes failed to load, so this band is missing.')
-                        : tct(
-                            'Only the first [limit] route changes are plotted, so this band is partial.',
-                            {limit: routeVisits.length}
-                          )
-                    }
-                  >
-                    {'*'}
-                  </InfoText>
-                </Fragment>
-              )}
-            </RouteLabel>
+            <RouteHeader
+              isError={routes.isError}
+              isTruncated={routes.isTruncated}
+              visitCount={routeVisits.length}
+            />
             <RouteBand
               visits={routeVisits}
               hoverRoute={hoverRoute}
@@ -863,24 +829,12 @@ export function SessionScrubber({
                 data-last={isLast}
                 style={{gridRow: String(row)}}
               >
-                {/*
-                  A glyph per lane, so a lane is identified before its label is
-                  read — and the same glyph the rail marks this type's rows with,
-                  which is what ties a row back to the lane it came from.
-                */}
-                <LaneIcon style={{color, opacity: isOn ? 1 : 0.4}}>
-                  <TelemetryTypeIcon type={config.key} size="sm" />
-                </LaneIcon>
-                <Text size="sm" variant={isOn ? 'primary' : 'muted'}>
-                  {config.label}
-                </Text>
-                {/*
-                  The count belongs beside the shape it summarizes rather than in a
-                  row of tiles of its own: "12 traces" and where those 12 fell in
-                  the session are one thought, and the label column already carries
-                  this type's color and its toggle.
-                */}
-                <Flex flex="1" />
+                <LaneLabel
+                  label={config.label}
+                  type={config.key}
+                  color={color}
+                  isOn={isOn}
+                />
                 <Flex align="baseline" gap="2xs">
                   <Text
                     size="sm"
@@ -1279,6 +1233,126 @@ function Highlight({
     />
   );
 }
+
+/**
+ * The two column headings, and the route band's.
+ *
+ * Split out and memoized for one reason: a zoom re-renders the chart, and a scraps
+ * `Text` is not free to re-render — it re-serializes its styles, which the profile
+ * put at the top of what a notch costs once the lanes stopped being elements. None
+ * of the words here change with the viewport, so none of them should be rebuilt by
+ * it.
+ */
+const SessionHeader = memo(function SessionHeaderImpl() {
+  return (
+    <OverviewLabel>
+      <Text size="xs" variant="muted" uppercase>
+        {t('Session')}
+      </Text>
+    </OverviewLabel>
+  );
+});
+
+const TimeHeader = memo(function TimeHeaderImpl() {
+  return (
+    <HeaderCell>
+      <Text size="xs" variant="muted" uppercase>
+        {t('Time')}
+      </Text>
+    </HeaderCell>
+  );
+});
+
+/**
+ * The route band's label. A lane's is a button because a lane can be switched off;
+ * this one cannot — the route is the frame the other lanes are read inside, and a
+ * frame you can remove is just another lane.
+ */
+const RouteHeader = memo(function RouteHeaderImpl({
+  isError,
+  isTruncated,
+  visitCount,
+}: {
+  isError: boolean;
+  isTruncated: boolean;
+  visitCount: number;
+}) {
+  return (
+    <RouteLabel>
+      <LaneIcon>
+        <IconWindow size="sm" />
+      </LaneIcon>
+      <Text size="sm">{t('Route')}</Text>
+      {/*
+        A footnote on the band, in the same place and the same shape the lane
+        counts use for theirs. An error and a cap are both "this band is not the
+        whole journey", and which one it is belongs in the tooltip rather than in
+        two different markers.
+      */}
+      {(isError || isTruncated) && (
+        <Fragment>
+          <Flex flex="1" />
+          <InfoText
+            size="xs"
+            variant="warning"
+            title={
+              isError
+                ? t('Routes failed to load, so this band is missing.')
+                : tct(
+                    'Only the first [limit] route changes are plotted, so this band is partial.',
+                    {limit: visitCount}
+                  )
+            }
+          >
+            {'*'}
+          </InfoText>
+        </Fragment>
+      )}
+    </RouteLabel>
+  );
+});
+
+/**
+ * A lane's glyph and name — the half of its toggle a zoom cannot touch.
+ *
+ * The count beside it genuinely follows the viewport and re-renders with it; this
+ * half only moves when the lane is switched on or off, so it is held apart and
+ * memoized rather than rebuilt four times a notch for words that did not change.
+ */
+const LaneLabel = memo(function LaneLabelImpl({
+  label,
+  type,
+  color,
+  isOn,
+}: {
+  color: string;
+  isOn: boolean;
+  label: string;
+  type: SessionDatasetKey;
+}) {
+  return (
+    <Fragment>
+      {/*
+        A glyph per lane, so a lane is identified before its label is read — and
+        the same glyph the rail marks this type's rows with, which is what ties a
+        row back to the lane it came from.
+      */}
+      <LaneIcon style={{color, opacity: isOn ? 1 : 0.4}}>
+        <TelemetryTypeIcon type={type} size="sm" />
+      </LaneIcon>
+      <Text size="sm" variant={isOn ? 'primary' : 'muted'}>
+        {label}
+      </Text>
+      {/*
+        The count belongs beside the shape it summarizes rather than in a row of
+        tiles of its own: "12 traces" and where those 12 fell in the session are
+        one thought, and the label column already carries this type's color and
+        its toggle.
+      */}
+      <Flex flex="1" />
+    </Fragment>
+  );
+});
 
 /**
  * The route band's segments.
@@ -1876,6 +1950,19 @@ const Chart = styled('div')<{hasRoutes: boolean}>`
    */
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
+
+  /*
+   * Read by the pieces that redraw with the viewport — the lane toggles, the lane
+   * rows and the axis ticks. Each of those interpolated the theme itself, which
+   * emotion has to re-serialize and re-hash per instance per render, and between
+   * them they are two dozen elements a zoom notch. Hoisted here they are static
+   * rules serialized once for the page.
+   */
+  --scrubber-rule: ${p => p.theme.tokens.border.primary};
+  --scrubber-label-gap: ${p => p.theme.space.sm};
+  --scrubber-label-padding: ${p => p.theme.space.lg};
+  --scrubber-label-hover: ${p => p.theme.tokens.background.secondary};
+  --scrubber-tick-padding: ${p => p.theme.space.xs};
 `;
 
 /**
@@ -2051,20 +2138,20 @@ const Tick = styled('div')`
   position: absolute;
   top: 50%;
   white-space: nowrap;
-  padding: 0 ${p => p.theme.space.xs};
+  padding: 0 var(--scrubber-tick-padding);
 `;
 
 const LaneToggle = styled('button')`
   grid-column: 1;
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: var(--scrubber-label-gap);
   width: 100%;
   background: none;
   border: 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: 0 ${p => p.theme.space.lg};
+  border-right: 1px solid var(--scrubber-rule);
+  border-bottom: 1px solid var(--scrubber-rule);
+  padding: 0 var(--scrubber-label-padding);
   margin: 0;
   cursor: pointer;
   text-align: left;
@@ -2074,7 +2161,7 @@ const LaneToggle = styled('button')`
   }
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: var(--scrubber-label-hover);
   }
 `;
 
@@ -2098,7 +2185,7 @@ const LaneIcon = styled('span')`
 const LaneTrack = styled('div')`
   grid-column: 2;
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid var(--scrubber-rule);
 
   &[data-last='true'] {
     border-bottom: 0;
