@@ -458,10 +458,8 @@ describe('SessionDetailView', () => {
     // The segment span's duration is the trace's, and it is shown.
     expect(within(items[1]!).getByText('1.20s')).toBeInTheDocument();
 
-    // Rows link to the whole trace, not to the span that named it.
-    const href = within(items[1]!).getByRole('link').getAttribute('href')!;
-    expect(href).toContain(`/traces/trace/${TRACE}/`);
-    expect(href).not.toContain('node=');
+    // Nothing in a row navigates: the deep link lives in the panel the row opens.
+    expect(within(items[1]!).queryByRole('link')).not.toBeInTheDocument();
 
     // Only segment spans are asked for — the individual spans of a trace are not
     // what the timeline is made of.
@@ -589,19 +587,63 @@ describe('SessionDetailView', () => {
         timestamp: '2024-01-01T00:00:01+00:00',
         trace: TRACE,
         'transaction.span_id': 'fedcba9876543210',
+        'project.id': Number(PROJECT.id),
       },
     ]);
 
+    // Reading a link off the panel means opening the panel, which loads each
+    // item's own body. None of that is what this test is about, so it is mocked
+    // just enough to keep the reads from failing.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/99/events/deadbeefdeadbeefdeadbeefdeadbeef/',
+      method: 'GET',
+      body: EventFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-trace/${TRACE}/`,
+      method: 'GET',
+      body: {transactions: [], orphan_errors: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-trace-meta/${TRACE}/`,
+      method: 'GET',
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+        transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${PROJECT.slug}/trace-items/abc123def4567890/`,
+      method: 'GET',
+      body: {itemId: 'abc123def4567890', timestamp: '', attributes: [], meta: {}},
+    });
+
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const errorLink = await screen.findByRole('link', {name: /TypeError: boom/});
-    expect(errorLink).toHaveAttribute(
+    // Opened from the row rather than followed from it: the row selects, and the
+    // panel is what carries the way out.
+    await userEvent.click(await screen.findByText('TypeError: boom'));
+    const errorPanel = await screen.findByRole('complementary', {
+      name: 'Telemetry details',
+    });
+    // `LinkButton` renders an anchor with role="button", so the panel's way out is a
+    // button to ARIA even though it navigates.
+    expect(within(errorPanel).getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/99/events/deadbeefdeadbeefdeadbeefdeadbeef/'
     );
 
-    const traceHref = screen
-      .getByRole('link', {name: /GET \/api\/thing/})
+    await userEvent.click(screen.getByText('GET /api/thing'));
+    const tracePanel = await screen.findByRole('complementary', {
+      name: 'Telemetry details',
+    });
+    const traceHref = within(tracePanel)
+      .getByRole('button', {name: 'Open Full Trace'})
       .getAttribute('href')!;
     expect(traceHref).toContain(`/traces/trace/${TRACE}/`);
     // The row stands for the whole trace, so nothing inside it is preselected.
@@ -622,9 +664,11 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const href = (await screen.findByRole('link', {name: /first log/})).getAttribute(
-      'href'
-    )!;
+    await userEvent.click(await screen.findByText('first log'));
+    const panel = await screen.findByRole('complementary', {name: 'Telemetry details'});
+    const href = within(panel)
+      .getByRole('button', {name: 'Open in Logs'})
+      .getAttribute('href')!;
     expect(href).toContain('/organizations/org-slug/explore/logs/');
     expect(href).toContain('logsQuery=id%3Alog1');
   });
@@ -644,9 +688,11 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    const href = (
-      await screen.findByRole('link', {name: /checkout.latency/})
-    ).getAttribute('href')!;
+    await userEvent.click(await screen.findByText('checkout.latency'));
+    const panel = await screen.findByRole('complementary', {name: 'Telemetry details'});
+    const href = within(panel)
+      .getByRole('button', {name: 'Open in Trace'})
+      .getAttribute('href')!;
     expect(href).toContain(`/traces/trace/${TRACE}/`);
     expect(href).toContain('tab=metrics');
   });
@@ -1144,7 +1190,7 @@ describe('SessionDetailView', () => {
       });
     });
 
-    it("leaves the row's own deep link alone", async () => {
+    it('opens the panel from the title rather than navigating away', async () => {
       mockOneLog();
 
       const {router} = render(<SessionDetailView />, {
@@ -1152,14 +1198,17 @@ describe('SessionDetailView', () => {
         initialRouterConfig,
       });
 
-      // Selecting the row is the row's job; the title is still a link out to the
-      // tool that owns the item.
+      // The title used to be a link, which made the most obvious thing to click the
+      // one that left the session behind. Clicking it now selects the item like the
+      // rest of the row.
       await userEvent.click(await screen.findByText('first log'));
 
       await waitFor(() => {
-        expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
+        expect(router.location.query.item).toBe('logs:log1');
       });
-      expect(router.location.query.item).toBeUndefined();
+      expect(router.location.pathname).toBe(
+        `/organizations/org-slug/explore/usersessions/${SESSION_ID}/`
+      );
     });
 
     it('opens an item clicked in a scrubber lane, and marks its row', async () => {

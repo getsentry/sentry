@@ -2,12 +2,10 @@ import {useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -15,13 +13,10 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
 import {itemKey} from './itemKey';
-import {ROW_CONFIG} from './rowConfig';
 import {formatDurationMs, formatOffset} from './sessionTime';
 import type {SeverityVariant} from './severity';
 import {graphicsColor, severityVariant} from './severity';
@@ -35,7 +30,6 @@ const DATASET_BY_KEY = Object.fromEntries(
 interface Props {
   /** Session extent, which every offset is measured from. */
   bounds: SessionRange | undefined;
-  dateParams: Record<string, any>;
   isError: boolean;
   /** True when a filter is hiding rows, which changes what an empty rail means. */
   isFiltered: boolean;
@@ -60,8 +54,9 @@ interface Props {
  * exists: a trace gets a bar, while logs, metrics and errors are instants and get
  * none.
  *
- * A row is also the way into the details panel. Clicking anywhere in it selects
- * it; the deep link on its title keeps doing its own job.
+ * A row is the way into the details panel: clicking anywhere in it selects the
+ * item, which opens the panel and marks the item in the swim lanes above. Nothing
+ * in a row navigates, so a mis-click costs a panel rather than the page.
  */
 export function SessionRail({
   items,
@@ -70,7 +65,6 @@ export function SessionRail({
   isWindowed,
   isPending,
   isError,
-  dateParams,
   selectedKey,
   onSelect,
 }: Props) {
@@ -151,7 +145,6 @@ export function SessionRail({
             style={{transform: `translateY(${row.start}px)`}}
             event={item}
             bounds={bounds}
-            dateParams={dateParams}
             maxDuration={maxDuration}
             isSelected={key !== undefined && key === selectedKey}
             onSelect={key === undefined ? undefined : () => onSelect(key)}
@@ -183,13 +176,11 @@ function EventRow({
   style,
   event,
   bounds,
-  dateParams,
   maxDuration,
   isSelected,
   onSelect,
 }: {
   bounds: SessionRange | undefined;
-  dateParams: Record<string, any>;
   event: SessionEvent;
   /** Position in the full list. The virtualizer reads it back off the DOM to measure. */
   index: number;
@@ -199,14 +190,7 @@ function EventRow({
   ref?: React.Ref<HTMLLIElement>;
   style?: React.CSSProperties;
 }) {
-  const organization = useOrganization();
-  const location = useLocation();
   const config = DATASET_BY_KEY[event.key];
-  const link = ROW_CONFIG[event.key].getLink(event.row, {
-    organization,
-    location,
-    dateParams,
-  });
   const variant = severityVariant(event);
 
   return (
@@ -231,7 +215,6 @@ function EventRow({
         title={event.title}
         tooltip={event.title}
         detail={event.detail}
-        link={link}
         duration={event.duration}
         maxDuration={maxDuration}
       />
@@ -246,8 +229,9 @@ function EventRow({
  *
  * The row is the wide target and the button is what the keyboard and a screen
  * reader address — the same split the logs explorer uses for its expandable rows.
- * Anything inside the row that already does something (the title's link) keeps
- * doing it.
+ * The guard keeps the row's handler off anything that already has one of its own,
+ * which is now just the panel button — without it the button would toggle the
+ * selection twice.
  *
  * Both toggle, so the row that opened the panel is also what closes it.
  */
@@ -357,7 +341,6 @@ function Body({
   title,
   tooltip,
   detail,
-  link,
   duration,
   maxDuration,
 }: {
@@ -369,26 +352,21 @@ function Body({
   detail?: string;
   detailVariant?: SeverityVariant;
   duration?: number;
-  link?: LocationDescriptor;
 }) {
   const theme = useTheme();
 
   return (
     <BodyCell>
-      {link ? (
-        // `variant="inherit"` matters: Text otherwise paints content.primary and
-        // swallows the anchor's accent color, leaving the link looking like plain
-        // text.
-        <TruncatedLink to={link}>
-          <Text ellipsis size="sm" variant="inherit" title={tooltip}>
-            {title}
-          </Text>
-        </TruncatedLink>
-      ) : (
-        <Text ellipsis size="sm" title={tooltip}>
-          {title}
-        </Text>
-      )}
+      {/*
+        Plain text, not a link. The row's whole job is to open the details panel,
+        and a title that navigated away instead made the most obvious thing to
+        click the one that left the page — easy to hit by accident, and the
+        session is the context you were reading it in. The deep link out lives in
+        the panel, behind a labelled button that says where it goes.
+      */}
+      <Text ellipsis size="sm" title={tooltip}>
+        {title}
+      </Text>
       <Flex align="center" gap="xs" minWidth="0">
         <KindLabel size="xs" variant={variant}>
           {kind}
@@ -484,10 +462,6 @@ const Row = styled('li')`
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
-  }
-
-  &:hover a {
-    text-decoration: underline;
   }
 
   &[data-selected='true'],
@@ -599,13 +573,4 @@ const MetaCell = styled('div')`
   align-items: flex-start;
   padding: ${p => p.theme.space.xs} 0;
   white-space: nowrap;
-`;
-
-/**
- * An anchor is a flex item with `min-width: auto`, so it refuses to shrink below
- * its text and overflows the cell. Zeroing that hands the truncation back to the
- * `Text` inside.
- */
-const TruncatedLink = styled(Link)`
-  min-width: 0;
 `;

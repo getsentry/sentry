@@ -236,7 +236,6 @@ export default function SessionDetailView() {
                   isWindowed={window !== null}
                   isPending={isPending}
                   isError={isError}
-                  dateParams={dateParams}
                   selectedKey={selection.selectedKey}
                   onSelect={selection.toggleItem}
                 />
