@@ -20,6 +20,19 @@ fragment PullRequestStatusFields on PullRequest {
       commit {
         statusCheckRollup {
           state
+          contexts(first: 100) {
+            nodes {
+              __typename
+              ... on CheckRun {
+                name
+                conclusion
+              }
+              ... on StatusContext {
+                context
+                state
+              }
+            }
+          }
         }
       }
     }
@@ -47,6 +60,12 @@ _CHECKS_STATUS_BY_STATE: dict[str, AggregateChecksStatus] = {
     "PENDING": AggregateChecksStatus.PENDING,
     "EXPECTED": AggregateChecksStatus.PENDING,
 }
+
+# CANCELLED is deliberately absent: like the rollup mapping above, it is neither pass nor fail.
+_FAILING_CHECK_RUN_CONCLUSIONS = frozenset(
+    ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED")
+)
+_FAILING_STATUS_CONTEXT_STATES = frozenset(("FAILURE", "ERROR"))
 
 _REVIEW_STATUS_BY_DECISION: dict[str, AggregateReviewStatus] = {
     "APPROVED": AggregateReviewStatus.APPROVED,
@@ -137,6 +156,37 @@ def _extract_files(pull_request: Any) -> tuple[PullRequestFileSummary, ...]:
     return tuple(files)
 
 
+def _extract_failed_checks(pull_request: Any) -> tuple[str, ...]:
+    nodes = (
+        get_path(
+            pull_request,
+            "commits",
+            "nodes",
+            0,
+            "commit",
+            "statusCheckRollup",
+            "contexts",
+            "nodes",
+        )
+        or []
+    )
+    failed: list[str] = []
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        if node.get("__typename") == "CheckRun":
+            name = node.get("name")
+            failing = node.get("conclusion") in _FAILING_CHECK_RUN_CONCLUSIONS
+        elif node.get("__typename") == "StatusContext":
+            name = node.get("context")
+            failing = node.get("state") in _FAILING_STATUS_CONTEXT_STATES
+        else:
+            continue
+        if failing and isinstance(name, str):
+            failed.append(name)
+    return tuple(failed)
+
+
 def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
     state = get_path(pull_request, "commits", "nodes", 0, "commit", "statusCheckRollup", "state")
     decision = get_path(pull_request, "reviewDecision")
@@ -144,6 +194,7 @@ def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
         checks=_CHECKS_STATUS_BY_STATE.get(state),
         review=_REVIEW_STATUS_BY_DECISION.get(decision),
         files=_extract_files(pull_request),
+        failed_checks=_extract_failed_checks(pull_request),
     )
 
 
