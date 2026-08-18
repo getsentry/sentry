@@ -1,7 +1,9 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -15,6 +17,7 @@ import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import type {
@@ -102,24 +105,32 @@ describe('AutofixOverview', () => {
     enrichedAsyncDelay,
     enrichedStatusCode,
     baseStatusCode,
+    truncated,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
     enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
     enrichedAsyncDelay?: number | Promise<void>;
     enrichedStatusCode?: number;
+    truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
     const baseRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       statusCode: baseStatusCode,
-      body: {runsByMilestone: {...emptyMilestones, ...base}},
+      body: {
+        runsByMilestone: {...emptyMilestones, ...base},
+        truncatedMilestones: truncated ?? [],
+      },
     });
     const enrichedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats']})],
       asyncDelay: enrichedAsyncDelay,
       statusCode: enrichedStatusCode,
-      body: {runsByMilestone: {...emptyMilestones, ...(enriched ?? base)}},
+      body: {
+        runsByMilestone: {...emptyMilestones, ...(enriched ?? base)},
+        truncatedMilestones: truncated ?? [],
+      },
     });
     return {baseRequest, enrichedRequest};
   }
@@ -158,10 +169,10 @@ describe('AutofixOverview', () => {
     });
   });
 
-  function renderPage() {
+  function renderPage(query: Record<string, string> = {}) {
     return render(<AutofixOverview />, {
       organization,
-      initialRouterConfig: {location: {pathname: basePath}},
+      initialRouterConfig: {location: {pathname: basePath, query}},
     });
   }
 
@@ -1055,6 +1066,136 @@ describe('AutofixOverview', () => {
       )
     );
     expect(router.location.query.sort).toBe(sort);
+  });
+
+  describe('assignee filter', () => {
+    const jane: Actor = {type: 'user', id: '7', name: 'Jane Doe', email: ''};
+    const assignedRun = {
+      ...rootCauseRun,
+      issue: issueFixture({assignedTo: jane, count: '1200', userCount: 5}),
+    };
+
+    it('derives options with counts and filters sections via the URL', async () => {
+      const {enrichedRequest} = mockOverview({
+        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
+      });
+
+      const {router} = renderPage();
+      await screen.findByRole('button', {name: 'Generate code changes 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+
+      const janeOption = await screen.findByRole('option', {name: /Jane Doe/});
+      expect(within(janeOption).getByText('1')).toBeInTheDocument();
+      const unassignedOption = screen.getByRole('option', {name: /Unassigned/});
+      expect(within(unassignedOption).getByText('1')).toBeInTheDocument();
+
+      await userEvent.click(janeOption);
+
+      expect(
+        await screen.findByRole('button', {name: 'Create Plan 1'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /Generate code changes/})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.assignee).toBe('user:7');
+      expect(enrichedRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a filtered empty state when no runs match the assignee', async () => {
+      mockOverview({base: {autofix_root_cause: [assignedRun]}});
+
+      renderPage({assignee: 'user:999'});
+
+      expect(
+        await screen.findByText('No Autofix runs match the selected assignee.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('You don’t have any Autofix runs...yet.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a truncation notice when the backend caps a section', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [assignedRun]},
+        truncated: ['autofix_root_cause'],
+      });
+
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('formats team assignees with a # prefix', async () => {
+      const squad: Actor = {type: 'team', id: '9', name: 'squad'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {...rootCauseRun, issue: issueFixture({assignedTo: squad})},
+          ],
+        },
+      });
+
+      renderPage();
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+
+      expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
+    });
+
+    it('clears the filter and restores all sections', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
+      });
+
+      const {router} = renderPage({assignee: 'user:7'});
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+      expect(
+        screen.queryByRole('button', {name: /Generate code changes/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Clear'}));
+
+      expect(
+        await screen.findByRole('button', {name: 'Generate code changes 1'})
+      ).toBeInTheDocument();
+      expect(router.location.query.assignee).toBeUndefined();
+    });
+
+    it('adds a newly assigned user to the filter options', async () => {
+      const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [MemberFixture({user: nextAssignee})],
+      });
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      const assignRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${rootCauseRun.groupId}/`,
+        method: 'PUT',
+        body: {
+          ...GroupFixture({id: rootCauseRun.groupId}),
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+        },
+      });
+
+      renderPage();
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
+      await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+      await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+      const newOption = await screen.findByRole('option', {name: /Next Assignee/});
+      expect(within(newOption).getByText('1')).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Unassigned/})).not.toBeInTheDocument();
+    });
   });
 
   it('shows an error state when the request fails', async () => {

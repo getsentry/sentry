@@ -199,4 +199,5 @@ export interface OverviewRun {
 
 export interface AutofixOverviewResponse {
   runsByMilestone: Record<MilestoneKey, OverviewRun[]>;
+  truncatedMilestones?: MilestoneKey[];
 }
