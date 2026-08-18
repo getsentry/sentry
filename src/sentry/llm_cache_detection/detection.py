@@ -34,14 +34,13 @@ THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
 
 CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
 
-# Model families whose instrumentation records cache-token attributes only when
-# they are positive: the Gemini integration omits cache_read at zero and reports
-# no writes on generate calls, and the OpenAI one discards any zero token value
-# before recording it. For these, wholly-absent cache attributes are consistent
-# with a genuine 0% hit rate. Anthropic records real zeros, so for it -- and for
-# unknown providers -- absence is treated as an instrumentation gap instead.
-# Matching on model name is crude; a provider-reported capability would be
-# better if one ever reaches the span.
+# Model families whose instrumentation records cache tokens only when positive:
+# Gemini omits cache_read at zero, and the OpenAI integration discards any zero
+# token value before recording. For these, absent attributes are consistent with
+# a genuine 0% hit rate; Anthropic records real zeros, so for it and for unknown
+# providers absence is treated as an instrumentation gap.
+#
+# Matching on model name is crude, but nothing on the span states the provider.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
 # The same OpenAI integration wraps the reasoning models, whose names carry no
 # `gpt` at all (`o3`, `o4-mini`, `openai/o1-preview`). Matched only at the start

@@ -145,11 +145,10 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         logger.warning("Project does not exist", extra={"project_id": project_id})
         return
 
-    # The two gates are tallied apart because they mean different things: the
-    # detection flag decides whether an organization is scanned at all, while
-    # the group type decides whether a finding may be filed. During rollout the
-    # first is on while the second is not, and one shared reason cannot tell
-    # that steady state from the rollout flag being off.
+    # Tallied apart because they mean different things: detection decides whether
+    # an org is scanned, the group type whether a finding may be filed. During
+    # rollout the first is on while the second is not, and one shared reason
+    # cannot tell that steady state from the flag being off.
     if not features.has(LLM_CACHE_DETECTION_FEATURE, project.organization):
         _record_projects_skipped("detection_disabled")
         return

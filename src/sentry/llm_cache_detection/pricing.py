@@ -94,11 +94,10 @@ def _estimate_from_costs(finding: CacheFinding, costs: AIModelCost) -> SavingsEs
         ) - stats.sum_cache_read_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = overpay if overpay > 0 else None
     else:
-        # Nothing is being cached, so the whole uncached volume was billed at the
-        # full input rate -- a formula that never touches the write price, which
-        # matters because providers that cache implicitly report no writes at
-        # all. This is an upper bound: how much of each prompt is a shared prefix
-        # is not knowable from the aggregates.
+        # Nothing is cached, so the whole uncached volume was billed at the full
+        # input rate. Deliberately never touches the write price, which providers
+        # that cache implicitly do not report. An upper bound: how much of each
+        # prompt is a shared prefix is not knowable from aggregates.
         savings = stats.uncached_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = None
 

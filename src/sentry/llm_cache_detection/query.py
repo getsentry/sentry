@@ -11,17 +11,12 @@ from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
-# `ai_client` is the ingestion-normalized marker for an LLM call, so this matches
-# whatever op the SDK chose -- `gen_ai.chat`, `gen_ai.responses`,
-# `gen_ai.text_completion`, `generate_content`. Matching an op directly would
-# cover one integration: the op name varies per SDK and per provider.
-#
-# Agent spans carry their own operation type, which keeps the double counting out:
-# invoke_agent re-aggregates the token usage of its child calls, against a null
-# model. Embeddings are excluded by hand because they are LLM calls by this
-# classification but have no prompt cache -- and for a model that only reports
-# positive cache values, absent cache attributes would read as a genuine 0% hit
-# rate rather than as the absence of the feature.
+# `ai_client` is added during ingestion from the op, so it matches an LLM call
+# whichever op the SDK chose; matching an op directly would cover one integration.
+# Agent spans carry their own type, which keeps out invoke_agent's re-aggregated
+# token totals. Embeddings classify as LLM calls but have no prompt cache, so
+# they are excluded by hand -- a model that reports cache tokens only when
+# positive would otherwise read as a genuine 0% hit rate.
 GEN_AI_CALL_FILTER = (
     "gen_ai.operation.type:ai_client "
     "!gen_ai.operation.name:embeddings "
@@ -32,10 +27,9 @@ INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 
 # Most integrations emit the deprecated aliases (`gen_ai.usage.input_tokens.cached`
-# and `.cache_write`) rather than these names -- only langchain writes them
-# directly. Querying the canonical names still covers both: the resolver carries
-# a backfill deprecation from each alias to its replacement, so reading either
-# family here would double-count.
+# and `.cache_write`); only langchain writes these names directly. The resolver
+# backfills each alias onto its replacement, so querying the canonical names
+# covers both -- and reading either family alongside them would double-count.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
 CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
