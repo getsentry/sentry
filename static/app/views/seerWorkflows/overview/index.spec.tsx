@@ -993,23 +993,7 @@ describe('AutofixOverview', () => {
       issue: issueFixture({assignedTo: jane, count: '1200', userCount: 5}),
     };
 
-    it('derives options and issue counts from the loaded results', async () => {
-      mockOverview({
-        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
-      });
-
-      renderPage();
-      await screen.findByRole('button', {name: 'Create Plan 1'});
-
-      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
-
-      const janeOption = await screen.findByRole('option', {name: /Jane Doe/});
-      expect(within(janeOption).getByText('1')).toBeInTheDocument();
-      const unassignedOption = screen.getByRole('option', {name: /Unassigned/});
-      expect(within(unassignedOption).getByText('1')).toBeInTheDocument();
-    });
-
-    it('filters sections client-side and records the selection in the URL', async () => {
+    it('derives options with counts and filters sections via the URL', async () => {
       const {enrichedRequest} = mockOverview({
         base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
       });
@@ -1018,7 +1002,13 @@ describe('AutofixOverview', () => {
       await screen.findByRole('button', {name: 'Generate code changes 1'});
 
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
-      await userEvent.click(await screen.findByRole('option', {name: /Jane Doe/}));
+
+      const janeOption = await screen.findByRole('option', {name: /Jane Doe/});
+      expect(within(janeOption).getByText('1')).toBeInTheDocument();
+      const unassignedOption = screen.getByRole('option', {name: /Unassigned/});
+      expect(within(unassignedOption).getByText('1')).toBeInTheDocument();
+
+      await userEvent.click(janeOption);
 
       expect(
         await screen.findByRole('button', {name: 'Create Plan 1'})
@@ -1073,8 +1063,7 @@ describe('AutofixOverview', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
 
-      const option = await screen.findByRole('option', {name: /#squad/});
-      expect(within(option).getByText('1')).toBeInTheDocument();
+      expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
     });
 
     it('clears the filter and restores all sections', async () => {

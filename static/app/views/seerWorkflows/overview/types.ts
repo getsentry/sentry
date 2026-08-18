@@ -197,6 +197,5 @@ export interface OverviewRun {
 
 export interface AutofixOverviewResponse {
   runsByMilestone: Record<MilestoneKey, OverviewRun[]>;
-  // Sections the backend capped; optional until the backend change is deployed.
   truncatedMilestones?: MilestoneKey[];
 }

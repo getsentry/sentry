@@ -20,8 +20,6 @@ export function matchesAssignee(run: OverviewRun, selected: string): boolean {
   return assigneeValue(run.issue.assignedTo) === selected;
 }
 
-// Options are derived from the loaded results: only assignees with at least one
-// run appear, each with its matching issue count.
 export function AssigneeFilter({
   runs,
   value,

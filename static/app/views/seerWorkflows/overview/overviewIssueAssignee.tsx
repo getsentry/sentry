@@ -24,8 +24,6 @@ interface OverviewIssueAssigneeProps {
   owners?: Group['owners'];
 }
 
-// Object.fromEntries widens the key type, so the milestone Record is restored
-// with a cast; the map itself never adds or drops keys.
 function withRunAssignee(
   response: AutofixOverviewResponse,
   groupId: string,
@@ -79,8 +77,6 @@ export function OverviewIssueAssignee({
 
   const handleSuccess = useCallback(
     (nextAssignedTo: Group['assignedTo']) => {
-      // The cached overview payload is the single source of truth: patching it
-      // re-renders this card and the payload-derived assignee filter alike.
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
         {queryKey: [overviewUrl]},
         previous =>
