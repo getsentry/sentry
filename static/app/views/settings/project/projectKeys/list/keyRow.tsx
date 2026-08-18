@@ -94,6 +94,7 @@ export function KeyRow({
           btnText={t('Expand')}
         >
           <ProjectKeyCredentials
+            key={data.managedIngest?.dsn.public ?? data.dsn.public}
             projectId={`${data.projectId}`}
             data={data}
             showMinidump={!isJsPlatform}

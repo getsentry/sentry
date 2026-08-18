@@ -124,6 +124,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsubscription import GroupSubscription
+from sentry.models.managed_ingest_domain import ManagedIngestDomain
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
@@ -815,6 +816,21 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_managed_ingest_domain(
+        project: Project,
+        hostname: str = "errors.example.com",
+        provider: ManagedIngestDomain.Provider = ManagedIngestDomain.Provider.FAKE,
+        **kwargs,
+    ) -> ManagedIngestDomain:
+        return ManagedIngestDomain.objects.create(
+            project=project,
+            hostname=hostname,
+            provider=provider,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

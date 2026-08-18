@@ -984,6 +984,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
+    "sentry.tasks.managed_ingest_domains",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.organization_contributors",
@@ -1712,6 +1713,11 @@ SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS: dict[str, str] = {}
 # Glob patterns for the custom-error inbound filter (Relay generic filters).
 # Each entry is (exception_type, message); either may be None.
 SENTRY_INBOUND_FILTER_CUSTOM_VALUES: list[tuple[str | None, str | None]] = []
+
+# HackWeek custom ingest hostname provisioning. Getsentry supplies the provider credentials and,
+# optionally, a cloudflare_domain_connect mapping for signed one-click DNS configuration;
+# self-hosted and ordinary development installations leave the feature unavailable.
+SENTRY_MANAGED_INGEST: dict[str, Any] | None = None
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"

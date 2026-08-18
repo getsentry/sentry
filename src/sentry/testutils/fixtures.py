@@ -31,6 +31,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.managed_ingest_domain import ManagedIngestDomain
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
@@ -271,6 +272,13 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_project_key(project, *args, **kwargs)
+
+    def create_managed_ingest_domain(
+        self, project: Project | None = None, *args, **kwargs
+    ) -> ManagedIngestDomain:
+        if project is None:
+            project = self.project
+        return Factories.create_managed_ingest_domain(project, *args, **kwargs)
 
     def create_project_custom_inbound_filter(
         self, project=None, *args, **kwargs

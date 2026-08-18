@@ -2,7 +2,7 @@ import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
@@ -17,6 +17,9 @@ interface Props {
   title: ReactNode;
   button?: ReactNode;
   className?: string;
+  hideImageOnSmallScreens?: boolean;
+  imageFit?: 'contain' | 'cover';
+  imagePosition?: 'left center' | 'right center';
   onDismiss?: () => void;
   style?: CSSProperties;
 }
@@ -26,8 +29,11 @@ export function PageBanner({
   className,
   description,
   heading,
+  hideImageOnSmallScreens = false,
   icon,
   image,
+  imageFit = 'cover',
+  imagePosition = 'right center',
   onDismiss,
   style,
   title,
@@ -42,7 +48,14 @@ export function PageBanner({
           size="xs"
         />
       )}
-      <Background image={image} />
+      <Background
+        image={image}
+        imageFit={imageFit}
+        imagePosition={imagePosition}
+        display={
+          hideImageOnSmallScreens ? {'screen:2xs': 'none', 'screen:lg': 'flex'} : 'flex'
+        }
+      />
       <Stack justify="between" gap="md" maxWidth="50%">
         <TypeText>
           {icon}
@@ -78,19 +91,23 @@ const CloseButton = styled(Button)`
   z-index: 1;
 `;
 
-const Background = styled('div')<{image: any}>`
-  display: flex;
+const Background = styled(Container)<{
+  image: any;
+  imageFit: 'contain' | 'cover';
+  imagePosition: 'left center' | 'right center';
+}>`
   justify-self: flex-end;
   position: absolute;
-  top: 0px;
+  top: ${p => (p.imageFit === 'contain' ? p.theme.space.md : '0')};
+  bottom: ${p => (p.imageFit === 'contain' ? p.theme.space.md : '0')};
   right: 0px;
-  height: 100%;
   width: 50%;
   /* Prevent the image from going behind the text, keep text readable */
   max-width: 500px;
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
-  background-size: cover;
+  background-position: ${p => p.imagePosition};
+  background-size: ${p => p.imageFit};
 `;
 
 const TextContainer = styled('div')`

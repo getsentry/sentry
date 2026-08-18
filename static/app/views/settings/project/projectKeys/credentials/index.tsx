@@ -1,17 +1,19 @@
 import {Fragment, useMemo} from 'react';
-import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getManagedIngestDisplayDsn} from 'sentry/utils/managedIngestDomain';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
@@ -238,7 +240,8 @@ export function ProjectKeyCredentials({
   showSecurityEndpoint = true,
   showUnreal = true,
 }: Props) {
-  const location = useLocation();
+  const organization = useOrganization();
+  const standardDsn = getManagedIngestDisplayDsn(data.dsn.public, organization.id);
 
   const availableTabs = useMemo<TabConfig[]>(() => {
     const tabs: TabConfig[] = [
@@ -283,12 +286,10 @@ export function ProjectKeyCredentials({
     showProjectId,
   ]);
 
-  const [showDeprecatedDsn] = useQueryState('showDeprecated', parseAsBoolean);
-
   const dsnForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      dsn: data.dsn.public,
+      dsn: data.managedIngest?.dsn.public ?? standardDsn,
       useCase: data.useCase ?? '',
     },
     validators: {
@@ -358,37 +359,34 @@ export function ProjectKeyCredentials({
             {field => (
               <field.Layout.Stack
                 label={t('DSN')}
-                hintText={tct(
-                  'The DSN tells the SDK where to send the events to. [link]',
-                  {
-                    link: (
-                      <Link
-                        to={{
-                          query: {
-                            ...location.query,
-                            showDeprecated: showDeprecatedDsn ? undefined : 'true',
-                          },
-                        }}
-                      >
-                        {showDeprecatedDsn
-                          ? t('Hide deprecated DSN')
-                          : t('Show deprecated DSN')}
-                      </Link>
-                    ),
-                  }
-                )}
+                hintText={t('The DSN tells the SDK where to send events.')}
               >
                 <TextCopyInput aria-label={t('DSN URL')}>
                   {field.state.value}
                 </TextCopyInput>
-                {showDeprecatedDsn && (
+                {data.managedIngest && (
                   <Stack gap="sm" paddingTop="2xs">
                     <Text size="sm" variant="muted">
                       {t(
-                        'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                        'SDK events sent with this DSN use your custom domain, %s.',
+                        data.managedIngest.hostname
                       )}
                     </Text>
-                    <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+                    <Disclosure size="sm">
+                      <Disclosure.Title>{t('Show standard Sentry DSN')}</Disclosure.Title>
+                      <Disclosure.Content>
+                        <Stack gap="sm">
+                          <Text size="sm" variant="muted">
+                            {t(
+                              'Use this DSN to send SDK events directly to Sentry instead.'
+                            )}
+                          </Text>
+                          <TextCopyInput aria-label={t('Standard Sentry DSN')}>
+                            {standardDsn}
+                          </TextCopyInput>
+                        </Stack>
+                      </Disclosure.Content>
+                    </Disclosure>
                   </Stack>
                 )}
               </field.Layout.Stack>

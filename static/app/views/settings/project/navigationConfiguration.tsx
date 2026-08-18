@@ -192,6 +192,12 @@ export function getNavigationConfiguration({
           ],
         },
         {
+          path: `${pathPrefix}/custom-ingest-domain/`,
+          title: t('Custom Ingest Domain'),
+          description: t('Send SDK telemetry through a domain you control'),
+          keywords: [t('dsn'), t('ingest'), t('custom domain'), t('cname')],
+        },
+        {
           path: `${pathPrefix}/loader-script/`,
           title: t('Loader Script'),
           description: t("View and manage the project's Loader Script"),

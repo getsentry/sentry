@@ -872,6 +872,11 @@ from .endpoints.project_custom_inbound_filters import (
 )
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
+from .endpoints.project_managed_ingest_domain import (
+    ProjectManagedIngestDomainConnectEndpoint,
+    ProjectManagedIngestDomainEndpoint,
+    ProjectManagedIngestDomainRefreshEndpoint,
+)
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -2881,6 +2886,21 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/$",
         ProjectDetailsEndpoint.as_view(),
         name="sentry-api-0-project-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/managed-ingest-domain/$",
+        ProjectManagedIngestDomainEndpoint.as_view(),
+        name="sentry-api-0-project-managed-ingest-domain",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/managed-ingest-domain/refresh/$",
+        ProjectManagedIngestDomainRefreshEndpoint.as_view(),
+        name="sentry-api-0-project-managed-ingest-domain-refresh",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/managed-ingest-domain/domain-connect/$",
+        ProjectManagedIngestDomainConnectEndpoint.as_view(),
+        name="sentry-api-0-project-managed-ingest-domain-domain-connect",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/alert-rules/(?P<alert_rule_id>[^/]+)/$",

@@ -4,12 +4,13 @@ import enum
 import re
 import secrets
 from collections.abc import Mapping
+from functools import partial
 from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
 from django.conf import settings
-from django.db import ProgrammingError, models
+from django.db import ProgrammingError, models, router, transaction
 from django.db.models.signals import pre_delete
 from django.forms import model_to_dict
 from django.urls import reverse
@@ -48,11 +49,13 @@ class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
+        _schedule_managed_ingest_reconcile(instance)
 
     def post_delete(self, instance, **kwargs):
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
+        _schedule_managed_ingest_reconcile(instance)
 
     def for_request(self, request):
         """Return objects that the given request user is allowed to access"""
@@ -63,6 +66,18 @@ class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
             qs = qs.filter(use_case=UseCase.USER.value)
 
         return qs
+
+
+def _schedule_managed_ingest_reconcile(project_key: ProjectKey) -> None:
+    if settings.SENTRY_MANAGED_INGEST is None:
+        return
+
+    from sentry.tasks.managed_ingest_domains import reconcile_managed_ingest_domain
+
+    transaction.on_commit(
+        partial(reconcile_managed_ingest_domain.delay, project_key.project_id),
+        using=router.db_for_write(type(project_key)),
+    )
 
 
 class UseCase(enum.Enum):

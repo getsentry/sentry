@@ -694,6 +694,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'custom-ingest-domain/',
+      name: t('Custom Ingest Domain'),
+      component: make(() => import('sentry/views/settings/projectCustomIngestDomain')),
+    },
+    {
       path: 'loader-script/',
       name: t('Loader Script'),
       component: make(() => import('sentry/views/settings/project/loaderScript')),

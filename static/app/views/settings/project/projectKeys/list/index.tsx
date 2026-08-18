@@ -1,9 +1,14 @@
-import {Fragment, useState} from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {Fragment, useEffect, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import customIngestDomainBanner from 'sentry-images/spot/seer-config-connect-1.svg';
+
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
@@ -11,21 +16,29 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {PageBanner} from 'sentry/components/alerts/pageBanner';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconFlag} from 'sentry/icons';
+import {IconAdd, IconFlag, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {
+  managedIngestDomainApiOptions,
+  MANAGED_INGEST_DOMAIN_POLL_INTERVAL,
+  shouldPollManagedIngestDomain,
+  type ManagedIngestDomainStatus,
+} from 'sentry/utils/managedIngestDomain';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {RelayDsnOverrideAlert} from 'sentry/views/settings/project/projectKeys/relayDsnOverrideAlert';
@@ -40,26 +53,67 @@ export default function ProjectKeys() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
   const routes = useRoutes();
 
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
+  const managedDomainQuery = useQuery({
+    ...managedIngestDomainApiOptions({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+    }),
+    refetchInterval: query => {
+      const status = query.state.data?.json.domain?.status;
+      return shouldPollManagedIngestDomain(status)
+        ? MANAGED_INGEST_DOMAIN_POLL_INTERVAL
+        : false;
+    },
+  });
+  const managedDomain = managedDomainQuery.data?.domain;
+  const managedDomainStatus = managedDomain?.status;
+  const previousManagedDomainStatus = usePrevious(managedDomainStatus);
+
+  const projectKeysQueryOptions = projectKeysApiOptions({
+    orgSlug: organization.slug,
+    projSlug: project.slug,
+    query: {
+      cursor: decodeScalar(location.query.cursor),
+      per_page: 5,
+    },
+  });
   const {
     data: keyListResponse,
     isPending,
     isError,
     refetch,
   } = useQuery({
-    ...projectKeysApiOptions({
-      orgSlug: organization.slug,
-      projSlug: project.slug,
-      query: {
-        cursor: decodeScalar(location.query.cursor),
-        per_page: 5,
-      },
-    }),
+    ...projectKeysQueryOptions,
     select: selectJsonWithHeaders,
+    refetchInterval: shouldPollManagedIngestDomain(managedDomainStatus)
+      ? MANAGED_INGEST_DOMAIN_POLL_INTERVAL
+      : false,
   });
+
+  useEffect(() => {
+    if (previousManagedDomainStatus === managedDomainStatus) {
+      return;
+    }
+
+    if (
+      previousManagedDomainStatus === 'active' ||
+      managedDomainStatus === 'active' ||
+      managedDomain === null
+    ) {
+      void queryClient.invalidateQueries({queryKey: projectKeysQueryOptions.queryKey});
+    }
+  }, [
+    managedDomain,
+    managedDomainStatus,
+    previousManagedDomainStatus,
+    projectKeysQueryOptions.queryKey,
+    queryClient,
+  ]);
 
   /**
    * Optimistically remove key
@@ -183,6 +237,72 @@ export default function ProjectKeys() {
 
   const isEmpty = !keyList.length;
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+  const customIngestDomainUrl = `/settings/${organization.slug}/projects/${project.slug}/custom-ingest-domain/`;
+  const managedDomainNotice = managedDomain
+    ? (
+        {
+          creating: {
+            action: t('Continue Setup'),
+            description: t('Sentry is registering %s.', managedDomain.hostname),
+            heading: t('Your new front door is on the way.'),
+            variant: 'info',
+          },
+          pending_dns: {
+            action: t('Continue Setup'),
+            description: t(
+              'Finish the DNS setup for %s to keep things moving.',
+              managedDomain.hostname
+            ),
+            heading: t('Your new front door is almost open.'),
+            variant: 'warning',
+          },
+          pending_certificate: {
+            action: t('Continue Setup'),
+            description: t(
+              'DNS is ready. Sentry is issuing a TLS certificate for %s.',
+              managedDomain.hostname
+            ),
+            heading: t('DNS is done. The lock is next.'),
+            variant: 'info',
+          },
+          active: {
+            action: t('Manage'),
+            description: t(
+              '%s is live. The custom DSNs below send SDK events through it.',
+              managedDomain.hostname
+            ),
+            heading: t('Your errors have a new front door.'),
+            variant: 'success',
+          },
+          error: {
+            action: t('Fix Setup'),
+            description: t(
+              '%s needs attention before it can receive SDK events.',
+              managedDomain.hostname
+            ),
+            heading: t('Your custom domain hit a snag.'),
+            variant: 'danger',
+          },
+          deleting: {
+            action: t('View Status'),
+            description: t(
+              'Sentry is removing %s. The standard DSNs below remain available.',
+              managedDomain.hostname
+            ),
+            heading: t('Back to the standard route.'),
+            variant: 'muted',
+          },
+        } satisfies Record<
+          ManagedIngestDomainStatus,
+          {
+            action: string;
+            description: string;
+            heading: string;
+            variant: AlertProps['variant'];
+          }
+        >
+      )[managedDomain.status]
+    : null;
 
   return (
     <div data-test-id="project-keys">
@@ -216,6 +336,44 @@ export default function ProjectKeys() {
 
       <ProjectPermissionAlert project={project} />
       <RelayDsnOverrideAlert />
+
+      {managedDomain === null ? (
+        <Container paddingBottom="xl">
+          <PageBanner
+            title={t('Custom Ingest Domain')}
+            heading={t("Don't let blockers eat your errors")}
+            description={t(
+              "Route SDK telemetry through your own domain so ad blockers and network filters are less likely to swallow events. Swap in the new DSN. That's the whole migration."
+            )}
+            hideImageOnSmallScreens
+            icon={<IconGlobe size="sm" variant="accent" />}
+            image={customIngestDomainBanner}
+            imageFit="contain"
+            imagePosition="left center"
+            button={
+              <LinkButton variant="primary" to={customIngestDomainUrl}>
+                {t('Set Up Custom Domain')}
+              </LinkButton>
+            }
+          />
+        </Container>
+      ) : managedDomainNotice ? (
+        <Container paddingBottom="xl">
+          <Alert
+            variant={managedDomainNotice.variant}
+            trailingItems={
+              <LinkButton size="sm" to={customIngestDomainUrl}>
+                {managedDomainNotice.action}
+              </LinkButton>
+            }
+          >
+            <Stack gap="xs">
+              <Text bold>{managedDomainNotice.heading}</Text>
+              <Text size="sm">{managedDomainNotice.description}</Text>
+            </Stack>
+          </Alert>
+        </Container>
+      ) : null}
 
       {isEmpty ? renderEmpty() : renderResults()}
     </div>

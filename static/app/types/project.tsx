@@ -197,6 +197,13 @@ export type ProjectKey = {
     window: number;
   } | null;
   secret: string;
+  managedIngest?: {
+    domainId: string;
+    dsn: {
+      public: string;
+    };
+    hostname: string;
+  };
   useCase?: string;
 };
 

@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
@@ -9,7 +9,8 @@ from sentry.loader.browsersdkversion import (
     get_selected_browser_sdk_version,
 )
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
-from sentry.models.projectkey import ProjectKey
+from sentry.models.managed_ingest_domain import ManagedIngestDomain
+from sentry.models.projectkey import ProjectKey, UseCase
 
 
 class RateLimit(TypedDict):
@@ -45,6 +46,16 @@ class DynamicSDKLoaderOptions(TypedDict):
     hasLogsAndMetrics: bool
 
 
+class ManagedIngestDSN(TypedDict):
+    public: str
+
+
+class ManagedIngest(TypedDict):
+    domainId: str
+    hostname: str
+    dsn: ManagedIngestDSN
+
+
 class ProjectKeySerializerResponse(TypedDict):
     """
     This represents a Sentry Project Client Key.
@@ -63,11 +74,32 @@ class ProjectKeySerializerResponse(TypedDict):
     browserSdk: BrowserSDK
     dateCreated: datetime | None
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
+    managedIngest: NotRequired[ManagedIngest]
     useCase: NotRequired[str]
 
 
 @register(ProjectKey)
 class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
+    def get_attrs(
+        self, item_list: Sequence[ProjectKey], user: Any, **kwargs: Any
+    ) -> MutableMapping[ProjectKey, Any]:
+        domains_by_project: dict[int, ManagedIngestDomain] = {}
+        domains = ManagedIngestDomain.objects.filter(
+            project_id__in={key.project_id for key in item_list},
+            status=ManagedIngestDomain.Status.ACTIVE,
+        ).select_related("project__organization")
+        for domain in domains:
+            organization = domain.project.organization
+            if organization.get_option("sentry:relay_dsn_endpoint"):
+                continue
+            if organization.get_option("sentry:ingest-through-trusted-relays-only") == "enabled":
+                continue
+            domains_by_project[domain.project_id] = domain
+
+        return {
+            key: {"managed_domain": domains_by_project.get(key.project_id)} for key in item_list
+        }
+
     def serialize(
         self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> ProjectKeySerializerResponse:
@@ -126,5 +158,20 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
         request = kwargs.get("request")
         if request and is_active_superuser(request):
             data["useCase"] = obj.use_case
+
+        domain = attrs.get("managed_domain")
+        if (
+            domain is not None
+            and obj.is_active
+            and obj.use_case == UseCase.USER.value
+            and obj.public_key is not None
+        ):
+            data["managedIngest"] = {
+                "domainId": str(domain.id),
+                "hostname": domain.hostname,
+                "dsn": {
+                    "public": f"https://{obj.public_key}@{domain.hostname}/{obj.project_id}",
+                },
+            }
 
         return data

@@ -40,8 +40,36 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
 
+    def test_managed_dsn(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.create_managed_ingest_domain(
+            project=project,
+            hostname="errors.example.com",
+            status="active",
+        )
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data[0]["dsn"]["public"] == key.dsn_public
+        assert response.data[0]["managedIngest"] == {
+            "domainId": str(project.managed_ingest_domain.id),
+            "hostname": "errors.example.com",
+            "dsn": {"public": f"https://{key.public_key}@errors.example.com/{project.id}"},
+        }
+
     def test_relay_dsn_endpoint_override(self) -> None:
         project = self.create_project()
+        self.create_managed_ingest_domain(project=project, status="active")
         project.organization.update_option(
             "sentry:relay_dsn_endpoint", "https://relay.example.com/ingest"
         )
@@ -57,6 +85,7 @@ class ListProjectKeysTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200
+        assert "managedIngest" not in response.data[0]
         assert response.data[0]["dsn"] == {
             "public": f"https://{key.public_key}@relay.example.com/ingest/{project.id}",
             "secret": f"https://{key.public_key}:{key.secret_key}@relay.example.com/ingest/{project.id}",
@@ -72,6 +101,27 @@ class ListProjectKeysTest(APITestCase):
             "otlp_traces": f"https://relay.example.com/ingest/api/{project.id}/integration/otlp/v1/traces",
             "otlp_logs": f"https://relay.example.com/ingest/api/{project.id}/integration/otlp/v1/logs",
         }
+
+    def test_trusted_relay_only_hides_managed_dsn(self) -> None:
+        project = self.create_project()
+        self.create_managed_ingest_domain(project=project, status="active")
+        project.organization.update_option(
+            "sentry:ingest-through-trusted-relays-only",
+            "enabled",
+        )
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert "managedIngest" not in response.data[0]
 
     def test_integration_endpoint(self) -> None:
         project = self.create_project()

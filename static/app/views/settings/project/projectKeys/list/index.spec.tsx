@@ -3,6 +3,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -15,6 +16,12 @@ import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 describe('ProjectKeys', () => {
   const {organization, project} = initializeOrg();
   const projectKeys = ProjectKeysFixture();
+  const managedDomainEndpoint = `/projects/${organization.slug}/${project.slug}/managed-ingest-domain/`;
+  const managedDomain = {
+    hostname: 'errors.example.com',
+    id: '1',
+    status: 'pending_dns',
+  };
   let deleteMock: jest.Mock;
 
   const initialRouterConfig = {
@@ -31,10 +38,19 @@ describe('ProjectKeys', () => {
       method: 'GET',
       body: projectKeys,
     });
+    MockApiClient.addMockResponse({
+      url: managedDomainEndpoint,
+      method: 'GET',
+      body: {domain: null},
+    });
     deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('renders empty', async () => {
@@ -43,6 +59,11 @@ describe('ProjectKeys', () => {
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: managedDomainEndpoint,
+      method: 'GET',
+      body: {domain: null},
     });
     render(<ProjectKeys />, {
       organization,
@@ -53,6 +74,148 @@ describe('ProjectKeys', () => {
     expect(
       await screen.findByText('There are no keys active for this project.')
     ).toBeInTheDocument();
+  });
+
+  it('links to custom ingest domain setup', async () => {
+    const {router} = render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText("Don't let blockers eat your errors")
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Set Up Custom Domain'}));
+
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/projects/${project.slug}/custom-ingest-domain/`
+    );
+  });
+
+  it('points back to setup while the custom domain is pending', async () => {
+    MockApiClient.addMockResponse({
+      url: managedDomainEndpoint,
+      method: 'GET',
+      body: {domain: managedDomain},
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText('Your new front door is almost open.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Continue Setup'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${project.slug}/custom-ingest-domain/`
+    );
+    expect(screen.getByRole('textbox', {name: 'DSN URL'})).toHaveValue(
+      projectKeys[0].dsn.public
+    );
+  });
+
+  it('makes the custom DSN primary after the domain is active', async () => {
+    const [projectKey] = ProjectKeysFixture();
+    const customDsn = 'https://public-key@errors.example.com/1';
+    projectKey.managedIngest = {
+      domainId: managedDomain.id,
+      hostname: managedDomain.hostname,
+      dsn: {public: customDsn},
+    };
+    MockApiClient.addMockResponse({
+      url: managedDomainEndpoint,
+      method: 'GET',
+      body: {domain: {...managedDomain, status: 'active'}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: [projectKey],
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText('Your errors have a new front door.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'DSN URL'})).toHaveValue(customDsn);
+    expect(screen.getByRole('textbox', {name: 'OTLP Endpoint'})).toHaveValue(
+      `${projectKey.dsn.integration}otlp`
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show standard Sentry DSN'}));
+
+    expect(screen.getByRole('textbox', {name: 'Standard Sentry DSN'})).toHaveValue(
+      projectKey.dsn.public
+    );
+  });
+
+  it('polls pending setup and refreshes the DSN when the domain becomes active', async () => {
+    jest.useFakeTimers();
+
+    const [projectKey] = ProjectKeysFixture();
+    const customDsn = 'https://public-key@errors.example.com/1';
+    const activeProjectKey = {
+      ...projectKey,
+      managedIngest: {
+        domainId: managedDomain.id,
+        hostname: managedDomain.hostname,
+        dsn: {public: customDsn},
+      },
+    };
+    let domainIsActive = false;
+    let keyRequestCount = 0;
+    const domainRequest = MockApiClient.addMockResponse({
+      url: managedDomainEndpoint,
+      method: 'GET',
+      body: () => {
+        const domain = {
+          ...managedDomain,
+          status: domainIsActive ? 'active' : 'pending_dns',
+        };
+        domainIsActive = true;
+        return {domain};
+      },
+    });
+    const keysRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      method: 'GET',
+      body: () => [keyRequestCount++ === 0 ? projectKey : activeProjectKey],
+    });
+
+    render(<ProjectKeys />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText('Your new front door is almost open.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'DSN URL'})).toHaveValue(
+      projectKey.dsn.public
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    jest.useRealTimers();
+
+    await waitFor(() => expect(domainRequest).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Your errors have a new front door.')).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'DSN URL'})).toHaveValue(customDsn)
+    );
+    expect(keysRequest.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it.isKnownFlake('has clippable box', async () => {
