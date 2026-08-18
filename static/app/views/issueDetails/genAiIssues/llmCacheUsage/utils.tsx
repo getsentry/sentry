@@ -17,8 +17,16 @@ import type {
 export const INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.input_tokens';
 export const CACHE_READ_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read.input_tokens';
 export const CACHE_CREATION_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation.input_tokens';
-const GEN_AI_CALL_OP = 'gen_ai.generate_content';
 const MODEL_ATTRIBUTE = 'gen_ai.request.model';
+/**
+ * The detector's own span filter, verbatim.
+ *
+ * `gen_ai.operation.type` is added during ingestion from the op, so it matches
+ * an LLM call whichever op the SDK chose. Any divergence from the detector here
+ * means the page's live queries answer a different question than the finding.
+ */
+const GEN_AI_CALL_FILTER =
+  'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens';
 
 export const LLM_CACHE_REFERRER = 'llm-cache-usage-issue';
 
@@ -192,8 +200,7 @@ export function buildCallSiteQuery({
     return null;
   }
 
-  const search = new MutableSearch('');
-  search.addFilterValue('span.op', GEN_AI_CALL_OP);
+  const search = new MutableSearch(GEN_AI_CALL_FILTER);
   // `transaction` and `span.description` are wildcard-allowed fields, so the
   // usual helpers deliberately leave `*` unescaped in them. These values are
   // exact call-site names -- a transaction the clusterer rewrote to `/api/*/chat`

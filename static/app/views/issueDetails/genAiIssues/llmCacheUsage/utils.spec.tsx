@@ -129,7 +129,7 @@ describe('buildCallSiteQuery', () => {
         model: 'claude-sonnet-4',
       })
     ).toBe(
-      'span.op:gen_ai.generate_content transaction:"agent.execute step" span.description:"chat claude sonnet" gen_ai.request.model:claude-sonnet-4'
+      'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens transaction:"agent.execute step" span.description:"chat claude sonnet" gen_ai.request.model:claude-sonnet-4'
     );
   });
 
