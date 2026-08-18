@@ -64,6 +64,9 @@ export function InvestigationCell({
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
+  const progressState = getCellProgressState(block, investigation.blocks ?? []);
+  const waitingForDependencies =
+    progressState === 'waiting' || progressState === 'blocked';
 
   const chartTitle =
     block.kind === 'query'
@@ -120,6 +123,7 @@ export function InvestigationCell({
       variant="transparent"
       icon={<IconSeer size="xs" />}
       aria-label={t('Ask Seer about %s', displayTitle)}
+      disabled={waitingForDependencies}
       onClick={panelOpen ? () => setPanelOpen(false) : openPanel}
     />
   );
@@ -201,12 +205,20 @@ export function InvestigationCell({
     >
       {block.kind === 'query' ? (
         <Fragment>
-          <QueryResult actions={queryHeaderActions} block={block} />
+          <QueryResult
+            actions={queryHeaderActions}
+            block={block}
+            progressState={progressState}
+          />
           {panel}
         </Fragment>
       ) : (
         <Fragment>
-          <CellResult block={block} refinementButton={refinementButton} />
+          <CellResult
+            block={block}
+            progressState={progressState}
+            refinementButton={refinementButton}
+          />
           {panel}
         </Fragment>
       )}
@@ -216,9 +228,11 @@ export function InvestigationCell({
 
 function CellResult({
   block,
+  progressState,
   refinementButton,
 }: {
   block: InvestigationBlock;
+  progressState: CellProgressState;
   refinementButton: React.ReactNode;
 }) {
   const markdown = getTextOutput(block.output);
@@ -228,7 +242,7 @@ function CellResult({
       {markdown ? (
         <SeerMarkdown raw={markdown} />
       ) : (
-        <Text variant="muted">{t('This cell has no output yet.')}</Text>
+        <CellProgress state={progressState} />
       )}
     </TextResult>
   );
@@ -237,9 +251,11 @@ function CellResult({
 function QueryResult({
   actions,
   block,
+  progressState,
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
+  progressState: CellProgressState;
 }) {
   const [expanded, setExpanded] = useState(true);
   const output = getQueryOutput(block.output);
@@ -291,13 +307,63 @@ function QueryResult({
             ) : output?.tableMarkdown ? (
               <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
             ) : (
-              <Text variant="muted">{t('This cell has no output yet.')}</Text>
+              <QueryCellProgress>
+                <CellProgress state={progressState} />
+              </QueryCellProgress>
             )}
           </QueryResultBody>
         </QueryResultCard>
       ) : null}
     </QueryResultContainer>
   );
+}
+
+type CellProgressState = 'running' | 'waiting' | 'blocked' | null;
+
+function CellProgress({state}: {state: CellProgressState}) {
+  if (!state) {
+    return <Text variant="muted">{t('This cell has no output yet.')}</Text>;
+  }
+  let message = t('Waiting for a successful result from previous cells.');
+  if (state === 'running') {
+    message = t('Seer is working on this cell…');
+  } else if (state === 'waiting') {
+    message = t('Waiting for previous cells…');
+  }
+  return (
+    <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
+      <IconSeer size="xs" animation={state === 'blocked' ? undefined : 'waiting'} />
+      <Text variant="muted">{message}</Text>
+    </Flex>
+  );
+}
+
+function getCellProgressState(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[]
+): CellProgressState {
+  if (isExecutionActive(block.currentExecution?.status)) {
+    return 'running';
+  }
+  if (
+    block.currentExecution ||
+    block.config.autoRun !== true ||
+    block.dependencies.length === 0
+  ) {
+    return null;
+  }
+  const dependencies = block.dependencies.flatMap(dependencyId => {
+    const dependency = blocks.find(candidate => candidate.id === dependencyId);
+    return dependency ? [dependency] : [];
+  });
+  if (
+    dependencies.some(dependency =>
+      ['failed', 'cancelled'].includes(dependency.currentExecution?.status ?? '')
+    )
+  ) {
+    return 'blocked';
+  }
+  return 'waiting';
 }
 
 function FlushTable({children}: {children: React.ReactNode}) {
@@ -845,6 +911,10 @@ const QueryResultBody = styled('div')<{$withPadding: boolean}>`
   width: 100%;
   overflow: hidden;
   padding: ${p => (p.$withPadding ? `${p.theme.space.md} ${p.theme.space.lg}` : 0)};
+`;
+
+const QueryCellProgress = styled('div')`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const QueryTable = styled('table')`
