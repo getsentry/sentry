@@ -327,9 +327,7 @@ function DropdownItem({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          isDisabled
-            ? undefined
-            : (item.callback ?? onClick.bind(null, item.value, item))
+          isDisabled ? undefined : (item.callback ?? onClick.bind(null, item.value, item))
         }
         ref={element => {
           if (item.active && element) {

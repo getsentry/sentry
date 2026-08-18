@@ -9,12 +9,7 @@ type Props = {
   meta?: Record<any, any>;
 };
 
-export function FunctionName({
-  frame,
-  className,
-  meta,
-  ...props
-}: Props) {
+export function FunctionName({frame, className, meta, ...props}: Props) {
   const getValueOutput = ():
     | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
     | undefined => {

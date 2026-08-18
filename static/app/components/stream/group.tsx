@@ -384,9 +384,10 @@ export function StreamGroup({
 
   const {period, start, end} = selection.datetime || {};
 
-  const summary = !!start && !!end
-    ? 'time range'
-    : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
+  const summary =
+    !!start && !!end
+      ? 'time range'
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
   const sharedAnalytics = useMemo(() => {
     const owners = group?.owners ?? [];

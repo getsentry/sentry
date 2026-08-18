@@ -205,10 +205,7 @@ export function useSpanProfileDetails(
   };
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-}: SpanProfileDetailsProps) {
+export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);

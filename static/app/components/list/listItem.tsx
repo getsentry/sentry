@@ -7,18 +7,16 @@ export interface ListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   symbol?: React.ReactElement;
 }
 
-export const ListItem = styled(
-  ({ref, symbol, children, ...props}: ListItemProps) => (
-    <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
-      {symbol && (
-        <Flex align="center" minHeight="22.5px" position="absolute" top="0" left="0">
-          {symbol}
-        </Flex>
-      )}
-      {children}
-    </li>
-  )
-)`
+export const ListItem = styled(({ref, symbol, children, ...props}: ListItemProps) => (
+  <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
+    {symbol && (
+      <Flex align="center" minHeight="22.5px" position="absolute" top="0" left="0">
+        {symbol}
+      </Flex>
+    )}
+    {children}
+  </li>
+))`
   position: relative;
   padding-left: ${p => (p.symbol ? p.theme.space['3xl'] : undefined)};
 `;

@@ -116,9 +116,7 @@ export function PlatformDocHeader({
 
   return (
     <StyledPageHeader>
-      <h2>
-        {t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
-      </h2>
+      <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
       <Grid flow="column" align="center" gap="md">
         <Button
           size="sm"

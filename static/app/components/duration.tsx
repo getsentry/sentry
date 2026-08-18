@@ -8,13 +8,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   fixedDigits?: number;
 }
 
-export function Duration({
-  seconds,
-  fixedDigits,
-  abbreviation,
-  exact,
-  ...props
-}: Props) {
+export function Duration({seconds, fixedDigits, abbreviation, exact, ...props}: Props) {
   return (
     <span {...props}>
       {exact

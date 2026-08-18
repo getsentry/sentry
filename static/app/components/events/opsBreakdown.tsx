@@ -225,11 +225,7 @@ export function generateStats(
   return breakdown;
 }
 
-export function OpsBreakdown({
-  event,
-  operationNameFilters,
-  hideHeader = false,
-}: Props) {
+export function OpsBreakdown({event, operationNameFilters, hideHeader = false}: Props) {
   const theme = useTheme();
   const transactionEvent =
     event.type === 'transaction' || event.type === 'aggregateTransaction'

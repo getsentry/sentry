@@ -55,12 +55,7 @@ function StackLayout(props: LayoutProps) {
   const field = useFieldContext();
 
   return (
-    <HighlightableFlex
-      id={field.name}
-      direction="column"
-      gap="md"
-      flexGrow={1}
-    >
+    <HighlightableFlex id={field.name} direction="column" gap="md" flexGrow={1}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}

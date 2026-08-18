@@ -93,10 +93,10 @@ function PanelTable({
       {...props}
     >
       {headers.map((header, i) => (
-          <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
-            {header}
-          </PanelTableHeader>
-        ))}
+        <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
+          {header}
+        </PanelTableHeader>
+      ))}
 
       {shouldShowLoading && (
         <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>

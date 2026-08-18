@@ -22,10 +22,7 @@ interface MetricInfoTabsProps {
   isMetricOptionsEmpty?: boolean;
 }
 
-export function MetricInfoTabs({
-  traceMetric,
-  isMetricOptionsEmpty,
-}: MetricInfoTabsProps) {
+export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
@@ -54,9 +51,7 @@ export function MetricInfoTabs({
                 >
                   {t('Samples')}
                 </TabList.Item>
-                <TabList.Item key={Mode.AGGREGATE}>
-                  {t('Aggregates')}
-                </TabList.Item>
+                <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
               </TabList>
             </TabListWrapper>
           </Flex>

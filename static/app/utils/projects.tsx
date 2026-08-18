@@ -272,11 +272,7 @@ class BaseProjects extends Component<Props, State> {
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
     const projectsOrPlaceholder = Array.from(this.fetchQueue)
-      .map(slug =>
-        projectsMap.has(slug)
-          ? projectsMap.get(slug)
-          : {slug}
-      )
+      .map(slug => (projectsMap.has(slug) ? projectsMap.get(slug) : {slug}))
       .filter(defined);
 
     this.setState({

@@ -64,12 +64,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupHeaderRow({
-  data,
-  query,
-  eventId,
-  source,
-}: GroupHeaderRowProps) {
+export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 

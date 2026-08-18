@@ -300,13 +300,7 @@ export function TracesTable({
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
-      return (
-        <BodyCell
-          column={column}
-          dataRow={dataRow}
-          query={combinedQuery}
-        />
-      );
+      return <BodyCell column={column} dataRow={dataRow} query={combinedQuery} />;
     },
     [combinedQuery]
   );

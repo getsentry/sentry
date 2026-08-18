@@ -97,12 +97,7 @@ type HoverHeaderProps = {
   copyLabel?: React.ReactNode;
 };
 
-function HoverHeader({
-  title,
-  copyLabel,
-  copyContent,
-  organization,
-}: HoverHeaderProps) {
+function HoverHeader({title, copyLabel, copyContent, organization}: HoverHeaderProps) {
   return (
     <Flex align="center" justify="between">
       {title}

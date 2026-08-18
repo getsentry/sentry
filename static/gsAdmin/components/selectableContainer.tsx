@@ -57,11 +57,7 @@ type Props = {
   panelTitle?: string;
 };
 
-export function SelectableContainer({
-  dropdownPrefix,
-  sections,
-  panelTitle,
-}: Props) {
+export function SelectableContainer({dropdownPrefix, sections, panelTitle}: Props) {
   const [sectionKey, setSection] = useState(sections[0]?.key ?? '');
 
   const section = sections.find(s => s.key === sectionKey);

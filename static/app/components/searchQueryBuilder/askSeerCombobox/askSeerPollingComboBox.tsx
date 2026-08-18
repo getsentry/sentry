@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

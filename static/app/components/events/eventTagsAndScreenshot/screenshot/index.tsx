@@ -145,10 +145,9 @@ export function Screenshot({
                 label: t('Download'),
                 onAction: () => {
                   window.location.assign(`${downloadUrl}?download=1`);
-                  trackAnalytics(
-                    'issue_details.issue_tab.screenshot_dropdown_download',
-                    {organization}
-                  );
+                  trackAnalytics('issue_details.issue_tab.screenshot_dropdown_download', {
+                    organization,
+                  });
                 },
               },
               {

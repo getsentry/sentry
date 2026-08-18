@@ -10,10 +10,7 @@ interface GroupStatusBadgeProps {
 /**
  * A styled tag shared between the inbox reason badge and the status badge.
  */
-export function GroupStatusTag({
-  fontSize = 'sm',
-  children,
-}: GroupStatusBadgeProps) {
+export function GroupStatusTag({fontSize = 'sm', children}: GroupStatusBadgeProps) {
   return (
     <StyledTag variant="muted" fontSize={fontSize}>
       {children}

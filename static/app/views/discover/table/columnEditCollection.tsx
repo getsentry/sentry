@@ -330,10 +330,7 @@ function ColumnEditCollection({
     });
 
     // Issue column in Issue widgets are fixed (cannot be moved or deleted)
-    if (
-      targetIndex >= 0 &&
-      targetIndex !== draggingTargetIndex
-    ) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       setDragState(prev => ({...prev, draggingTargetIndex: targetIndex}));
     }
   };

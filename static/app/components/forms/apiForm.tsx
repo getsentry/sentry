@@ -19,12 +19,7 @@ type Props = FormProps & {
  * DO NOT USE THIS. Prefer using `Form` instead. Form already supports API
  * requests, this is quite old and should be removed
  */
-export function ApiForm({
-  onSubmit,
-  apiMethod,
-  apiEndpoint,
-  ...otherProps
-}: Props) {
+export function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
   const api = useApi();
 
   const handleSubmit = useCallback(

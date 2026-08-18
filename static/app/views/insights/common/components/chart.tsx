@@ -427,13 +427,7 @@ export function Chart({
 
     // overlay additional series data such as releases and issues on top of the original insights chart
     return (
-      <ChartZoom
-        saveOnZoom
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-      >
+      <ChartZoom saveOnZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps =>
           renderingContext?.isFullscreen ? (
             <ReleaseSeries

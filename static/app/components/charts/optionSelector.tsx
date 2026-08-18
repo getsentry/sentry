@@ -123,11 +123,7 @@ export function OptionSelector({
       isOptionDisabled={isOptionDisabled}
       position="bottom-end"
       trigger={triggerProps => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          variant="transparent"
-          prefix={title}
-        />
+        <OverlayTrigger.Button {...triggerProps} variant="transparent" prefix={title} />
       )}
     />
   );

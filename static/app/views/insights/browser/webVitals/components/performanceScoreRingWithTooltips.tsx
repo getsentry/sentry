@@ -93,19 +93,15 @@ function WebVitalLabel({
       onMouseLeave={() => onUnHover()}
       disabled={!inPerformanceWidget}
     >
-      <ProgressRingText
-        isLink={inPerformanceWidget}
-        x={coordinates.x}
-        y={coordinates.y}
-      >
+      <ProgressRingText isLink={inPerformanceWidget} x={coordinates.x} y={coordinates.y}>
         {webVital}
       </ProgressRingText>
       {inPerformanceWidget && (
-          <ProgressRingSubText x={coordinates.x} y={coordinates.y + 15}>
-            {webvitalInfo}
-          </ProgressRingSubText>
-        )}
-      </Link>
+        <ProgressRingSubText x={coordinates.x} y={coordinates.y + 15}>
+          {webvitalInfo}
+        </ProgressRingSubText>
+      )}
+    </Link>
   );
 }
 

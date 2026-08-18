@@ -242,11 +242,7 @@ export function EventsTable({
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
           });
         } else if (dataRow.trace) {
-          target = generateTraceLink(transactionName)(
-            organization,
-            dataRow,
-            location
-          );
+          target = generateTraceLink(transactionName)(organization, dataRow, location);
         }
 
         return (

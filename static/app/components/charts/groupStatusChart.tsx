@@ -108,22 +108,22 @@ export function GroupStatusChart({
     <LazyRender containerHeight={showMarkLine ? 26 : 24}>
       <Stack>
         <ChartAnimationWrapper>
-            <MiniBarChart
-              animateBars
-              showXAxisLine
-              hideZeros={hideZeros}
-              markLineLabelSide="right"
-              barOpacity={1}
-              height={showMarkLine ? 36 : 24}
-              isGroupedByDate
-              showTimeInTooltip
-              series={graphOptions.series}
-              colors={graphOptions.colors}
-              emphasisColors={graphOptions.emphasisColors}
-              hideDelay={50}
-              showMarkLineLabel={showMarkLine}
-            />
-          </ChartAnimationWrapper>
+          <MiniBarChart
+            animateBars
+            showXAxisLine
+            hideZeros={hideZeros}
+            markLineLabelSide="right"
+            barOpacity={1}
+            height={showMarkLine ? 36 : 24}
+            isGroupedByDate
+            showTimeInTooltip
+            series={graphOptions.series}
+            colors={graphOptions.colors}
+            emphasisColors={graphOptions.emphasisColors}
+            hideDelay={50}
+            showMarkLineLabel={showMarkLine}
+          />
+        </ChartAnimationWrapper>
         <GraphText>{groupStatus}</GraphText>
       </Stack>
     </LazyRender>

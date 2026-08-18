@@ -9,11 +9,7 @@ type DetectorTypeCellProps = {
 };
 
 export function DetectorTypeCell({type, className}: DetectorTypeCellProps) {
-  return (
-    <Type className={className}>
-      {getDetectorTypeLabel(type)}
-    </Type>
-  );
+  return <Type className={className}>{getDetectorTypeLabel(type)}</Type>;
 }
 
 const Type = styled('div')`

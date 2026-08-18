@@ -13,10 +13,7 @@ interface GithubButtonProps {
   onAddIntegration: () => void;
 }
 
-export function GithubButton({
-  onAddIntegration,
-  analyticsView,
-}: GithubButtonProps) {
+export function GithubButton({onAddIntegration, analyticsView}: GithubButtonProps) {
   const {provider, isProviderPending, installationData, isInstallationPending} =
     useSeerOnboardingContext();
   const organization = useOrganization();

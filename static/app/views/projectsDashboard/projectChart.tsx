@@ -21,12 +21,7 @@ type Props = {
   transactionStats?: ProjectStats;
 };
 
-export function ProjectChart({
-  firstEvent,
-  stats,
-  transactionStats,
-  project,
-}: Props) {
+export function ProjectChart({firstEvent, stats, transactionStats, project}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
   const navigate = useNavigate();

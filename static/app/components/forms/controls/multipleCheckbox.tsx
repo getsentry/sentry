@@ -79,9 +79,9 @@ function Item<T extends string | number>({
   disabled: itemDisabled,
   className,
 }: CheckboxItemProps<T>) {
-  const {value, handleChange, name} = useContext<
-    MultipleCheckboxContextValue<T>
-  >(MultipleCheckboxContext);
+  const {value, handleChange, name} = useContext<MultipleCheckboxContextValue<T>>(
+    MultipleCheckboxContext
+  );
 
   return (
     <LabelContainer className={className}>

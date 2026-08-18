@@ -51,10 +51,7 @@ export interface IdentityIconProps {
 export function IdentityIcon({providerId}: IdentityIconProps) {
   return (
     <StyledIdentityIconContainer size={36}>
-      <StyledIdentityIcon
-        size={36}
-        identitySrc={getIdentityIconSource(providerId)}
-      />
+      <StyledIdentityIcon size={36} identitySrc={getIdentityIconSource(providerId)} />
     </StyledIdentityIconContainer>
   );
 }

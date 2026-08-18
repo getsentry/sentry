@@ -58,13 +58,7 @@ interface Props extends ModalRenderProps {
   title: string;
 }
 
-export function ProjectAddRepoModal({
-  Header,
-  Body,
-  Footer,
-  title,
-  closeModal,
-}: Props) {
+export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: Props) {
   const organization = useOrganization();
   const projectsById = useProjectsById();
   const repositoriesById = useRepositoriesById();
