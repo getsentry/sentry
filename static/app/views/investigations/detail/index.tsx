@@ -113,7 +113,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [draftTitle, setDraftTitle] = useState(investigation.title);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
+  const displayedTitle = draftTitle ?? investigation.title;
   const persistedTitle = useRef(investigation.title);
   const titleEditedByUser = useRef(false);
   const titleGenerationSettled = useRef(false);
@@ -235,9 +236,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   function handleTitleBlur() {
-    const title = draftTitle.trim();
+    const title = displayedTitle.trim();
     if (title) {
-      if (title !== draftTitle) {
+      if (title !== displayedTitle) {
         handleTitleChange(title);
       }
       return;
@@ -262,7 +263,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   return (
-    <SentryDocumentTitle title={draftTitle} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
         <Layout.Title>
           <HeaderBreadcrumbs
@@ -279,7 +280,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {t('Investigations')}
             </HeaderBreadcrumbLink>
             <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{draftTitle}</HeaderInvestigationTitle>
+            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
             <DropdownMenu
               items={[
                 {
@@ -329,7 +330,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
-                value={draftTitle}
+                value={displayedTitle}
                 onChange={event => handleTitleChange(event.target.value)}
                 onBlur={handleTitleBlur}
                 maxLength={200}
