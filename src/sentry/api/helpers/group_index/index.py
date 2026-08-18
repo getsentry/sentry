@@ -7,7 +7,7 @@ from typing import Any
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -30,7 +30,7 @@ from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
-from .validators import ValidationError
+
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
