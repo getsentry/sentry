@@ -509,17 +509,20 @@ export class Client {
           let twoHundredErrorReason: string | undefined;
 
           const useArrayBuffer = options.responseType === 'arraybuffer';
+          // Error bodies are JSON (sso-required, sudo-required, …). Only decode
+          // successful responses as ArrayBuffer so global error handlers still work.
+          const decodeAsArrayBuffer = useArrayBuffer && response.ok;
 
           // Try to get the body out of the response no matter the status
           try {
-            if (useArrayBuffer) {
+            if (decodeAsArrayBuffer) {
               responseData = await response.arrayBuffer();
               responseText = '';
             } else {
               responseText = await response.text();
             }
           } catch (error: any) {
-            twoHundredErrorReason = useArrayBuffer
+            twoHundredErrorReason = decodeAsArrayBuffer
               ? 'Failed awaiting response.arrayBuffer()'
               : 'Failed awaiting response.text()';
             ok = false;
@@ -536,7 +539,7 @@ export class Client {
             requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
           const isStatus3XX = status >= 300 && status < 400;
-          if (!useArrayBuffer && status !== 204 && !isStatus3XX) {
+          if (!decodeAsArrayBuffer && status !== 204 && !isStatus3XX) {
             try {
               responseJSON = JSON.parse(responseText);
             } catch (error: any) {
@@ -572,7 +575,7 @@ export class Client {
           };
 
           // Respect the response content-type header
-          if (!useArrayBuffer) {
+          if (!decodeAsArrayBuffer) {
             responseData = isResponseJSON ? responseJSON : responseText;
           }
 
