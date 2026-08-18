@@ -110,6 +110,38 @@ const REVIEW_STATUS_TAGS = {
   review_required: null,
 } satisfies Record<PullRequestReviewStatus, PullRequestStatusTagMeta | null>;
 
+function OpenSeerButton({
+  run,
+  variant,
+}: {
+  run: OverviewRun;
+  variant: 'primary' | 'secondary';
+}) {
+  const organization = useOrganization();
+  const location = useLocation();
+  return (
+    <Tooltip title={t('Open Seer')} skipWrapper>
+      <LinkButton
+        size="sm"
+        variant={variant}
+        aria-label={t('Open Seer')}
+        icon={<IconSeer size="sm" />}
+        to={{
+          pathname: location.pathname,
+          query: {...location.query, seerDrawer: run.groupId},
+        }}
+        onClick={() =>
+          trackAnalytics('autofix.overview.open_seer_clicked', {
+            organization,
+            group_id: run.groupId,
+            run_id: run.seerRunId,
+          })
+        }
+      />
+    </Tooltip>
+  );
+}
+
 function OverviewAction({
   sectionKey,
   run,
@@ -123,8 +155,6 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
-  const organization = useOrganization();
-  const location = useLocation();
   const {pullRequests, status} = run;
   if (status === 'processing') {
     return (
@@ -138,25 +168,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <Tooltip title={t('Open Seer')} skipWrapper>
-          <LinkButton
-            size="sm"
-            variant="secondary"
-            aria-label={t('Open Seer')}
-            icon={<IconSeer size="sm" />}
-            to={{
-              pathname: location.pathname,
-              query: {...location.query, seerDrawer: run.groupId},
-            }}
-            onClick={() =>
-              trackAnalytics('autofix.overview.open_seer_clicked', {
-                organization,
-                group_id: run.groupId,
-                run_id: run.seerRunId,
-              })
-            }
-          />
-        </Tooltip>
+        <OpenSeerButton run={run} variant="secondary" />
       </ButtonBar>
     );
   }
@@ -167,13 +179,19 @@ function OverviewAction({
         <Stack gap="xs" align="end">
           {pullRequests.map(pullRequest => {
             const label = t('Merged #%s', pullRequest.number);
+            const title = t('The pull request for this fix was merged.');
+            if (!pullRequest.url) {
+              return (
+                <Tooltip key={pullRequest.id} title={title} skipWrapper>
+                  <Tag variant="muted" icon={<IconMerge />}>
+                    {label}
+                  </Tag>
+                </Tooltip>
+              );
+            }
             return (
-              <Tooltip
-                key={pullRequest.id}
-                title={t('The pull request for this fix was merged.')}
-                skipWrapper
-              >
-                {pullRequest.url ? (
+              <ButtonBar key={pullRequest.id}>
+                <Tooltip title={title} skipWrapper>
                   <LinkButton
                     size="sm"
                     variant="secondary"
@@ -183,12 +201,9 @@ function OverviewAction({
                   >
                     {label}
                   </LinkButton>
-                ) : (
-                  <Tag variant="muted" icon={<IconMerge />}>
-                    {label}
-                  </Tag>
-                )}
-              </Tooltip>
+                </Tooltip>
+                <OpenSeerButton run={run} variant="secondary" />
+              </ButtonBar>
             );
           })}
         </Stack>
@@ -226,25 +241,7 @@ function OverviewAction({
               </Flex>
             </LinkButton>
           </Tooltip>
-          <Tooltip title={t('Open Seer')} skipWrapper>
-            <LinkButton
-              size="sm"
-              variant="primary"
-              aria-label={t('Open Seer')}
-              icon={<IconSeer size="sm" />}
-              to={{
-                pathname: location.pathname,
-                query: {...location.query, seerDrawer: run.groupId},
-              }}
-              onClick={() =>
-                trackAnalytics('autofix.overview.open_seer_clicked', {
-                  organization,
-                  group_id: run.groupId,
-                  run_id: run.seerRunId,
-                })
-              }
-            />
-          </Tooltip>
+          <OpenSeerButton run={run} variant="primary" />
         </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
