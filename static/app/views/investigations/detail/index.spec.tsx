@@ -229,6 +229,46 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('renders the persisted title when completion has no preview', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: null},
+    });
+
+    renderView();
+    expect(await screen.findByDisplayValue('Untitled investigation')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Mobile API Monitor False Alert',
+        summary: 'Comparison logic triggered breach',
+        summaryDescription: 'One event appeared against a zero-event baseline.',
+        titleGeneration: {status: 'completed'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: null},
+    });
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+          'Mobile API Monitor False Alert'
+        ),
+      {timeout: 2000}
+    );
+    expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
+  });
+
   it('invalidates the investigations list when metadata generation settles', async () => {
     const queryClient = makeTestQueryClient();
     const listOptions = investigationListQueryOptions({
