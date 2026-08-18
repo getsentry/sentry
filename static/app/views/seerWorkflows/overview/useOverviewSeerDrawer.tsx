@@ -25,8 +25,7 @@ function SeerDrawerLoader({groupId}: {groupId: string}) {
 }
 
 // Opens the Seer drawer in place when ?seerDrawer=<groupId> is set, so the
-// overview stays put instead of navigating to the issue page. The group id lets
-// a reload reopen the drawer for the same run.
+// overview stays put instead of navigating to the issue page.
 export function useOverviewSeerDrawer() {
   const {openDrawer} = useDrawer();
   const organization = useOrganization();
