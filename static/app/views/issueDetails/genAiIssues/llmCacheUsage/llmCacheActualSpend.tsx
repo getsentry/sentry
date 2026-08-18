@@ -1,13 +1,10 @@
-import {InfoTip} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {CallSiteMetric} from './callSiteMetric';
 import type {LlmCacheEvidenceData} from './types';
 import {useCallSitePageFilters} from './useCallSitePageFilters';
 import {buildCallSiteQuery, formatUsd, LLM_CACHE_REFERRER} from './utils';
@@ -64,23 +61,13 @@ export function LlmCacheActualSpend({evidenceData}: LlmCacheActualSpendProps) {
   }
 
   return (
-    <KeyValueData.Content
-      disableFormattedData
-      item={{
-        key: 'actual-spend',
-        subject: t('Spend'),
-        value: (
-          <Flex align="center" gap="xs">
-            <Text monospace>{formatUsd(spend)}</Text>
-            <InfoTip
-              size="xs"
-              title={t(
-                'Input-token spend recorded for this call site over the detection window.'
-              )}
-            />
-          </Flex>
-        ),
-      }}
+    <CallSiteMetric
+      id="actual-spend"
+      label={t('Spend')}
+      value={formatUsd(spend)}
+      tooltip={t(
+        'Input-token spend recorded for this call site over the detection window.'
+      )}
     />
   );
 }

@@ -1,7 +1,6 @@
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -92,27 +91,38 @@ export function LlmCacheTokenBar({
     segments.map(segment => segment.value),
     total
   );
+  const bands = segments.map((segment, index) => ({
+    ...segment,
+    percentage: percentages[index]!,
+  }));
 
   return (
     <Stack gap="sm">
       <Flex height="12px" radius="sm" overflow="hidden">
-        {segments.map(segment => (
-          <Segment
-            key={segment.key}
-            style={{flexGrow: segment.value, background: segment.color}}
+        {bands.map(band => (
+          <Container
+            key={band.key}
+            minWidth="2px"
+            style={{flexGrow: band.value, background: band.color}}
           />
         ))}
       </Flex>
       <Flex gap="lg" wrap="wrap">
-        {segments.map((segment, index) => (
-          <Flex key={segment.key} align="center" gap="xs">
-            <Swatch style={{background: segment.color}} />
+        {bands.map(band => (
+          <Flex key={band.key} align="center" gap="xs">
+            <Container
+              width="10px"
+              height="10px"
+              radius="2xs"
+              flexShrink={0}
+              style={{background: band.color}}
+            />
             <Text size="sm" variant="muted">
               {t(
                 '%s %s (%s)',
-                segment.label,
-                formatTokens(segment.value),
-                `${percentages[index]}%`
+                band.label,
+                formatTokens(band.value),
+                `${band.percentage}%`
               )}
             </Text>
           </Flex>
@@ -121,14 +131,3 @@ export function LlmCacheTokenBar({
     </Stack>
   );
 }
-
-const Segment = styled('div')`
-  min-width: 2px;
-`;
-
-const Swatch = styled('div')`
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  flex-shrink: 0;
-`;

@@ -27,6 +27,8 @@ export function useCallSitePageFilters(
 
     const start = new Date(windowStart);
     const end = new Date(windowEnd);
+    // The parser only promises a string, not a parseable one, and an invalid
+    // date here would reach the API as an unbounded range.
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) {
       return;
     }

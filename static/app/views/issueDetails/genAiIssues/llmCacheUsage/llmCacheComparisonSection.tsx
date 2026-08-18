@@ -4,25 +4,37 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {LlmCacheEvidenceData} from './types';
 import {useCallSitePageFilters} from './useCallSitePageFilters';
-import {buildCallSiteQuery, formatRate, formatTokens, LLM_CACHE_REFERRER} from './utils';
+import {
+  buildCallSiteQuery,
+  formatCallSiteLabel,
+  formatRate,
+  formatTokens,
+  getCallSiteExploreUrl,
+} from './utils';
 
 interface LlmCacheComparisonSectionProps {
   evidenceData: LlmCacheEvidenceData;
 }
 
 interface CallSiteColumnProps {
+  avgInputTokens: number | null;
   callCount: number | null;
   exploreUrl: string | undefined;
   heading: string;
   hitRate: number | null;
   label: string;
   variant: 'danger' | 'success';
-  avgInputTokens?: number | null;
+}
+
+function formatCallVolume(callCount: number, avgInputTokens: number | null): string {
+  const calls = tn('%s call', '%s calls', callCount);
+  if (avgInputTokens === null) {
+    return calls;
+  }
+  return t('%s · %s avg tokens', calls, formatTokens(avgInputTokens));
 }
 
 function CallSiteColumn({
@@ -34,22 +46,18 @@ function CallSiteColumn({
   exploreUrl,
   variant,
 }: CallSiteColumnProps) {
+  const callSite = (
+    <Text monospace size="sm">
+      {label}
+    </Text>
+  );
+
   return (
     <Stack gap="xs">
       <Text size="sm" variant="muted" uppercase>
         {heading}
       </Text>
-      {exploreUrl ? (
-        <Link to={exploreUrl}>
-          <Text monospace size="sm">
-            {label}
-          </Text>
-        </Link>
-      ) : (
-        <Text monospace size="sm">
-          {label}
-        </Text>
-      )}
+      {exploreUrl ? <Link to={exploreUrl}>{callSite}</Link> : callSite}
       <Flex align="baseline" gap="sm">
         <Text size="xl" bold variant={variant}>
           {formatRate(hitRate)}
@@ -60,13 +68,7 @@ function CallSiteColumn({
       </Flex>
       {callCount !== null && (
         <Text size="sm" variant="muted">
-          {avgInputTokens === null || avgInputTokens === undefined
-            ? tn('%s call', '%s calls', callCount)
-            : t(
-                '%s · %s avg tokens',
-                tn('%s call', '%s calls', callCount),
-                formatTokens(avgInputTokens)
-              )}
+          {formatCallVolume(callCount, avgInputTokens)}
         </Text>
       )}
     </Stack>
@@ -81,25 +83,13 @@ export function LlmCacheComparisonSection({
   evidenceData,
 }: LlmCacheComparisonSectionProps) {
   const organization = useOrganization();
-  // Pinned to the detection window for the same reason the chart is: the two
-  // columns are only comparable over the period the finding measured.
+  // The two columns are only comparable over the period the finding measured.
   const selection = useCallSitePageFilters(evidenceData);
   const {anchor} = evidenceData;
 
   if (anchor === null) {
     return null;
   }
-
-  const toExploreUrl = (query: string | null) =>
-    query && selection
-      ? getExploreUrl({
-          organization,
-          selection,
-          mode: Mode.SAMPLES,
-          query,
-          referrer: LLM_CACHE_REFERRER,
-        })
-      : undefined;
 
   return (
     <Stack gap="md">
@@ -112,33 +102,28 @@ export function LlmCacheComparisonSection({
       >
         <CallSiteColumn
           heading={t('This call site')}
-          label={
-            [evidenceData.transaction, evidenceData.spanDescription]
-              .filter(Boolean)
-              .join(' | ') || t('Unknown')
-          }
+          label={formatCallSiteLabel(evidenceData)}
           hitRate={evidenceData.hitRate}
           callCount={evidenceData.callCount}
           avgInputTokens={evidenceData.avgInputTokens}
-          exploreUrl={toExploreUrl(buildCallSiteQuery(evidenceData))}
+          exploreUrl={getCallSiteExploreUrl({
+            organization,
+            selection,
+            query: buildCallSiteQuery(evidenceData),
+          })}
           variant="danger"
         />
         <CallSiteColumn
           heading={t('Caching normally')}
-          label={
-            [anchor.transaction, anchor.spanDescription].filter(Boolean).join(' | ') ||
-            t('Unknown')
-          }
+          label={formatCallSiteLabel(anchor)}
           hitRate={anchor.hitRate}
           callCount={anchor.callCount}
           avgInputTokens={anchor.avgInputTokens}
-          exploreUrl={toExploreUrl(
-            buildCallSiteQuery({
-              transaction: anchor.transaction,
-              spanDescription: anchor.spanDescription,
-              model: anchor.model,
-            })
-          )}
+          exploreUrl={getCallSiteExploreUrl({
+            organization,
+            selection,
+            query: buildCallSiteQuery(anchor),
+          })}
           variant="success"
         />
       </Grid>

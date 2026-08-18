@@ -1,6 +1,10 @@
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {EventOccurrence} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {
   LlmCacheContrastAnchor,
@@ -210,6 +214,47 @@ export function buildCallSiteQuery({
   search.addFilterValue('span.description', spanDescription, true);
   search.addFilterValue(MODEL_ATTRIBUTE, model, true);
   return search.formatString();
+}
+
+/**
+ * How a call site is written on the page. Either half can be missing on an
+ * older occurrence, so the label falls back to whichever one there is.
+ */
+export function formatCallSiteLabel({
+  transaction,
+  spanDescription,
+}: {
+  spanDescription: string | null;
+  transaction: string | null;
+}): string {
+  return [transaction, spanDescription].filter(Boolean).join(' | ') || t('Unknown');
+}
+
+/**
+ * A link to the spans a query matches, over the window the finding covers.
+ *
+ * Undefined without both, because a link that quietly answers a different
+ * question than the issue is making a claim about is worse than no link.
+ */
+export function getCallSiteExploreUrl({
+  organization,
+  selection,
+  query,
+}: {
+  organization: Organization;
+  query: string | null;
+  selection: PageFilters | undefined;
+}): string | undefined {
+  if (query === null || selection === undefined) {
+    return undefined;
+  }
+  return getExploreUrl({
+    organization,
+    selection,
+    mode: Mode.SAMPLES,
+    query,
+    referrer: LLM_CACHE_REFERRER,
+  });
 }
 
 export function formatTokens(tokens: number | null): string {

@@ -72,6 +72,33 @@ function deriveUncachedSeries(
   };
 }
 
+interface ActivityPlotProps {
+  hasError: boolean;
+  isPending: boolean;
+  plottables: Bars[];
+}
+
+function ActivityPlot({isPending, hasError, plottables}: ActivityPlotProps) {
+  if (isPending) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+  if (hasError) {
+    return <Text variant="danger">{t('Unable to load cache activity')}</Text>;
+  }
+  // The visualization throws rather than renders when it has nothing to draw,
+  // and every bucket comes back null once the call site stops reporting -- after
+  // a rename, after retention drops the window, or after the reader ships the
+  // fix. That is an ordinary outcome here, so it gets a sentence, not a crash.
+  if (plottables.every(plottable => plottable.isEmpty)) {
+    return (
+      <Text variant="muted">
+        {t('No cache activity recorded for this call site in this period.')}
+      </Text>
+    );
+  }
+  return <TimeSeriesWidgetVisualization plottables={plottables} />;
+}
+
 /**
  * How the call site's input tokens were billed over time.
  *
@@ -114,26 +141,14 @@ export function LlmCacheActivityChart({evidenceData}: LlmCacheActivityChartProps
     return null;
   }
 
-  // The visualization throws rather than renders when it has nothing to draw,
-  // and every bucket comes back null once the call site stops reporting -- after
-  // a rename, after retention drops the window, or after the reader ships the
-  // fix. That is an ordinary outcome here, so it gets a sentence, not a crash.
-  const hasSomethingToPlot = plottables.some(plottable => !plottable.isEmpty);
-
   return (
     <Stack gap="md">
       <Container height="190px">
-        {isPending ? (
-          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
-        ) : error ? (
-          <Text variant="danger">{t('Unable to load cache activity')}</Text>
-        ) : hasSomethingToPlot ? (
-          <TimeSeriesWidgetVisualization plottables={plottables} />
-        ) : (
-          <Text variant="muted">
-            {t('No cache activity recorded for this call site in this period.')}
-          </Text>
-        )}
+        <ActivityPlot
+          isPending={isPending}
+          hasError={error !== null}
+          plottables={plottables}
+        />
       </Container>
       <Text size="sm" variant="muted">
         {t(
