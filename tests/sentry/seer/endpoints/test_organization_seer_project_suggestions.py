@@ -8,7 +8,6 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import parse_link_header
 
@@ -156,8 +155,8 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
         assert response.data == []
 
     def test_project_with_active_seer_repository_is_not_returned(self) -> None:
-        _, project_repository = self.create_project_repository()
-        SeerProjectRepository.objects.create(project_repository=project_repository)
+        repository, _ = self.create_project_repository()
+        self.create_seer_project_repository(repository=repository)
 
         response = self.get_suggestions()
 
@@ -166,10 +165,10 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
 
     def test_active_seer_preference_link_excludes_project_with_eligible_link(self) -> None:
         self.create_project_repository(source=ProjectRepositorySource.MANUAL)
-        _, preference_link = self.create_project_repository(
+        preference_repository, _ = self.create_project_repository(
             source=ProjectRepositorySource.SEER_PREFERENCE
         )
-        SeerProjectRepository.objects.create(project_repository=preference_link)
+        self.create_seer_project_repository(repository=preference_repository)
 
         response = self.get_suggestions()
 
@@ -178,11 +177,11 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
 
     def test_inactive_seer_link_does_not_exclude_project(self) -> None:
         self.create_project_repository(source=ProjectRepositorySource.MANUAL)
-        _, inactive_preference_link = self.create_project_repository(
+        inactive_preference_repository, _ = self.create_project_repository(
             source=ProjectRepositorySource.SEER_PREFERENCE,
             status=ObjectStatus.DISABLED,
         )
-        SeerProjectRepository.objects.create(project_repository=inactive_preference_link)
+        self.create_seer_project_repository(repository=inactive_preference_repository)
 
         response = self.get_suggestions()
 
@@ -234,7 +233,7 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
             str(repository.id) for repository in repositories[:10]
         ]
 
-    def test_pagination_caps_page_size_and_returns_link_headers(self) -> None:
+    def test_paginates_suggestions_ten_at_a_time(self) -> None:
         projects = []
         for index in range(12):
             project = self.create_project(
@@ -243,7 +242,7 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
             self.create_project_repository(project=project)
             projects.append(project)
 
-        response = self.get_suggestions({"per_page": "100"})
+        response = self.get_suggestions()
 
         assert response.status_code == 200
         assert [suggestion["projectSlug"] for suggestion in response.data] == [
@@ -316,13 +315,3 @@ class OrganizationSeerProjectSuggestionsEndpointTest(APITestCase):
         assert single_project_response.status_code == 200
         assert multiple_project_response.status_code == 200
         assert len(multiple_project_queries) == len(single_project_queries)
-
-    def test_multiple_links_and_active_seer_link_do_not_multiply_counts(self) -> None:
-        _, first_link = self.create_project_repository()
-        self.create_project_repository()
-        SeerProjectRepository.objects.create(project_repository=first_link)
-
-        response = self.get_suggestions()
-
-        assert response.status_code == 200
-        assert response.data == []

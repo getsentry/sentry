@@ -115,25 +115,6 @@ class OrganizationSeerProjectSuggestionsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    def get_per_page(
-        self,
-        request: Request,
-        default_per_page: int | None = None,
-        max_per_page: int | None = None,
-    ) -> int:
-        requested_per_page = request.GET.get("per_page")
-        if requested_per_page is not None:
-            try:
-                if int(requested_per_page) > SUGGESTIONS_PER_PAGE:
-                    return SUGGESTIONS_PER_PAGE
-            except ValueError:
-                pass
-        return super().get_per_page(
-            request,
-            default_per_page=SUGGESTIONS_PER_PAGE,
-            max_per_page=SUGGESTIONS_PER_PAGE,
-        )
-
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:seer-autofix-quick-add",
@@ -158,16 +139,13 @@ class OrganizationSeerProjectSuggestionsEndpoint(OrganizationEndpoint):
                 linked_repos_count=Count(
                     "projectrepository",
                     filter=eligible_repository_filter,
-                    distinct=True,
                 ),
                 seer_repos_count=Count(
                     "projectrepository__seerprojectrepository",
                     filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),
-                    distinct=True,
                 ),
             )
             .filter(linked_repos_count__gt=0, seer_repos_count=0)
-            .order_by("slug")
         )
 
         return self.paginate(
