@@ -29,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewSort} from './types';
@@ -76,6 +77,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
       ?.value ?? 'seer';
+  const assignee = decodeScalar(location.query.assignee) ?? null;
 
   const {data, isPending, isError, enrichmentPending, isRefetching, refetch} =
     useAutofixOverview({
@@ -84,9 +86,12 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       sort,
       enabled: pageFiltersReady,
     });
+  const allRuns = Object.values(data?.runsByMilestone ?? {}).flat();
   const populatedSections = OVERVIEW_SECTIONS.map(section => ({
     ...section,
-    runs: data?.runsByMilestone[section.milestone] ?? [],
+    runs: (data?.runsByMilestone[section.milestone] ?? []).filter(
+      run => assignee === null || matchesAssignee(run, assignee)
+    ),
   })).filter(section => section.runs.length > 0);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
@@ -123,14 +128,39 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} size="sm" prefix={t('Sort')} />
           )}
         />
+        <AssigneeFilter
+          runs={allRuns}
+          value={assignee}
+          onChange={next =>
+            navigate(
+              {
+                pathname: location.pathname,
+                query: {...location.query, assignee: next ?? undefined},
+              },
+              {replace: true}
+            )
+          }
+        />
         {isRefetching && <LoadingIndicator mini />}
+        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
+          <Text size="sm" variant="muted">
+            {t('Some sections show only their most recent runs.')}
+          </Text>
+        )}
       </Flex>
       {isError ? (
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
       ) : populatedSections.length === 0 ? (
-        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
+        assignee === null ? (
+          <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
+        ) : (
+          <EmptyState
+            padding="3xl"
+            title={t('No Autofix runs match the selected assignee.')}
+          />
+        )
       ) : (
         <Stack gap="lg">
           {populatedSections.map(({key, runs}) => {

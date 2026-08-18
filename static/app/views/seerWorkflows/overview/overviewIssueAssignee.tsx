@@ -8,8 +8,11 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {AutofixOverviewResponse} from './types';
 
 interface OverviewIssueAssigneeProps {
   groupId: string;
@@ -36,6 +39,10 @@ export function OverviewIssueAssignee({
   const issueIndexUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
     path: {organizationIdOrSlug: organization.slug},
   });
+  const overviewUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
   const [assignedToOverride, setAssignedToOverride] = useState<{
     assignedTo: Group['assignedTo'];
     groupId: OverviewIssueAssigneeProps['groupId'];
@@ -62,9 +69,31 @@ export function OverviewIssueAssignee({
   const handleSuccess = useCallback(
     (nextAssignedTo: Group['assignedTo']) => {
       setAssignedToOverride({groupId, assignedTo: nextAssignedTo});
+      // Patch the cached overview payloads so payload-derived UI (the assignee
+      // filter options and counts) reflects the reassignment without a refetch.
+      queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
+        {queryKey: [overviewUrl]},
+        previous =>
+          previous && {
+            ...previous,
+            json: {
+              ...previous.json,
+              runsByMilestone: Object.fromEntries(
+                Object.entries(previous.json.runsByMilestone).map(([milestone, runs]) => [
+                  milestone,
+                  runs.map(run =>
+                    run.groupId === groupId
+                      ? {...run, issue: {...run.issue, assignedTo: nextAssignedTo}}
+                      : run
+                  ),
+                ])
+              ) as AutofixOverviewResponse['runsByMilestone'],
+            },
+          }
+      );
       void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
     },
-    [groupId, issueIndexUrl, queryClient]
+    [groupId, issueIndexUrl, overviewUrl, queryClient]
   );
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
