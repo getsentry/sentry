@@ -172,6 +172,35 @@ def test_gap_guard_skips_probe_for_positive_only_reporters() -> None:
     assert needs_cache_presence_probe(stats, outcome) is False
 
 
+@pytest.mark.parametrize(
+    "model",
+    ["o1", "o3-mini", "o4-mini", "openai/o3", "azure:o1-preview"],
+    ids=lambda model: model,
+)
+def test_gap_guard_skips_probe_for_openai_reasoning_models(model: str) -> None:
+    # The reasoning models go through the same OpenAI integration as the `gpt`
+    # ones, which drops zero cache-token values before recording them, so their
+    # absent attributes are a genuine 0% hit rate rather than a gap.
+    stats = make_stats(model=model, call_count=62_553, avg_input_tokens=35_225)
+    outcome = classify_call_site(stats)
+    assert outcome == CacheOutcome.NOT_CACHING
+    assert needs_cache_presence_probe(stats, outcome) is False
+
+
+@pytest.mark.parametrize(
+    "model",
+    ["claude-opus-4-5", "claude-3-opus-20240229", "prod-o3-deployment", "mistral-large-2"],
+    ids=lambda model: model,
+)
+def test_gap_guard_still_probes_models_outside_the_exemption(model: str) -> None:
+    # Anthropic records real zeros, and an arbitrary deployment name says
+    # nothing about which integration produced the span: both keep the guard.
+    stats = make_stats(model=model, call_count=62_553, avg_input_tokens=35_225)
+    outcome = classify_call_site(stats)
+    assert outcome == CacheOutcome.NOT_CACHING
+    assert needs_cache_presence_probe(stats, outcome) is True
+
+
 def test_gap_guard_keeps_finding_when_attribute_is_recorded() -> None:
     stats = make_stats(call_count=62_553, avg_input_tokens=35_225)
     outcome = classify_call_site(stats)

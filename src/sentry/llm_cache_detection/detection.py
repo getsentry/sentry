@@ -7,6 +7,7 @@ would wildly overstate cache hit rates.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -42,6 +43,11 @@ CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
 # Matching on model name is crude; a provider-reported capability would be
 # better if one ever reaches the span.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
+# The same OpenAI integration wraps the reasoning models, whose names carry no
+# `gpt` at all (`o3`, `o4-mini`, `openai/o1-preview`). Matched only at the start
+# of the id or of its provider-namespaced suffix, so that arbitrary deployment
+# names do not claim the exemption and lose their instrumentation-gap guard.
+POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN = re.compile(r"(?:^|[/:])o\d")
 
 
 @dataclass(frozen=True)
@@ -185,7 +191,9 @@ def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
 
 def reports_only_positive_cache_values(model: str) -> bool:
     normalized = model.lower()
-    return any(marker in normalized for marker in POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS)
+    if any(marker in normalized for marker in POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS):
+        return True
+    return POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN.search(normalized) is not None
 
 
 def needs_cache_presence_probe(stats: CallSiteStats, outcome: CacheOutcome) -> bool:
