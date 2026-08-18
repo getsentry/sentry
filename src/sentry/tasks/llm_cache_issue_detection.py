@@ -12,6 +12,7 @@ from sentry.llm_cache_detection.detection import (
     FLAGGED_OUTCOMES,
     CacheFinding,
     CacheOutcome,
+    DetectionWindow,
     classify_call_site,
     find_contrast_anchor,
     needs_cache_presence_probe,
@@ -22,10 +23,11 @@ from sentry.llm_cache_detection.issue_platform_adapter import (
     create_fingerprint,
     send_llm_cache_issue_to_platform,
 )
+from sentry.llm_cache_detection.pricing import ModelPricebook
 from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
-    fetch_sample_trace_ids,
+    fetch_sample_calls,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -151,7 +153,10 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         )
         return
 
-    all_stats = fetch_call_site_stats(project)
+    # One window for the whole run so the aggregates, the probes and the sampled
+    # calls all describe the same stretch of time.
+    window = DetectionWindow.ending_now()
+    all_stats = fetch_call_site_stats(project, window)
 
     candidates: list[CacheFinding] = []
     outcome_counts: Counter[CacheOutcome] = Counter()
@@ -188,7 +193,8 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             else:
                 probes_run += 1
                 resolved = resolve_with_cache_presence(
-                    candidate.outcome, count_spans_with_cache_attributes(project, candidate.stats)
+                    candidate.outcome,
+                    count_spans_with_cache_attributes(project, candidate.stats, window),
                 )
             if resolved != candidate.outcome:
                 outcome_counts[candidate.outcome] -= 1
@@ -209,10 +215,15 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             sample_rate=1.0,
         )
 
+    # Prices come from a single cache entry covering every model, so one load
+    # serves every finding in the run.
+    pricebook = ModelPricebook.load() if findings else None
+
     sent_count = 0
     for finding in findings:
-        sample_trace_ids = fetch_sample_trace_ids(project, finding.stats)
-        send_llm_cache_issue_to_platform(project, finding, sample_trace_ids)
+        sample_calls = fetch_sample_calls(project, finding.stats, window)
+        savings = pricebook.estimate(finding) if pricebook is not None else None
+        send_llm_cache_issue_to_platform(project, finding, sample_calls, window, savings)
         sent_count += 1
         metrics.incr(
             "llm_cache_issue_detection.issues.sent",

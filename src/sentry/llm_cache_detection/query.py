@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
 
-from sentry.llm_cache_detection.detection import DETECTION_WINDOW_DAYS, CallSiteStats
+from sentry.llm_cache_detection.detection import CallSiteStats, DetectionWindow
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -31,14 +31,33 @@ CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 # Sorting by total input tokens keeps the worst offenders inside the cap even
 # when a project has more distinct call sites than this.
 CALL_SITE_GROUPS_LIMIT = 300
-SAMPLE_TRACES_LIMIT = 3
+SAMPLE_CALLS_LIMIT = 3
+# Sampled rows are deduplicated by trace, so ask for enough of them that a call
+# site repeating within one trace still yields distinct examples.
+SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 
 
-def _build_snuba_params(project: Project) -> SnubaParams:
-    end_time = datetime.now(UTC)
+@dataclass(frozen=True)
+class SampleCall:
+    """One example call from a flagged call site.
+
+    Carries what a deep link into the trace needs -- the span itself, and the
+    timestamp the trace view resolves the trace by -- alongside the token counts
+    that make the example worth opening.
+    """
+
+    trace_id: str
+    span_id: str
+    timestamp: str
+    input_tokens: float
+    cache_read_tokens: float
+    cache_creation_tokens: float
+
+
+def _build_snuba_params(project: Project, window: DetectionWindow) -> SnubaParams:
     return SnubaParams(
-        start=end_time - timedelta(days=DETECTION_WINDOW_DAYS),
-        end=end_time,
+        start=window.start,
+        end=window.end,
         projects=[project],
         organization=project.organization,
     )
@@ -86,6 +105,7 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
 
 def _run_spans_query(
     project: Project,
+    window: DetectionWindow,
     *,
     query_string: str,
     selected_columns: list[str],
@@ -94,7 +114,7 @@ def _run_spans_query(
     referrer: Referrer,
 ) -> EAPResponse:
     return Spans.run_table_query(
-        params=_build_snuba_params(project),
+        params=_build_snuba_params(project, window),
         query_string=query_string,
         selected_columns=selected_columns,
         orderby=orderby,
@@ -106,10 +126,11 @@ def _run_spans_query(
     )
 
 
-def fetch_call_site_stats(project: Project) -> list[CallSiteStats]:
+def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[CallSiteStats]:
     """Aggregate gen-AI call spans per (transaction, span.description, model)."""
     result = _run_spans_query(
         project,
+        window,
         query_string=GEN_AI_CALL_FILTER,
         selected_columns=[
             "transaction",
@@ -147,7 +168,9 @@ def fetch_call_site_stats(project: Project) -> list[CallSiteStats]:
     return stats
 
 
-def count_spans_with_cache_attributes(project: Project, stats: CallSiteStats) -> int | None:
+def count_spans_with_cache_attributes(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> int | None:
     """Instrumentation-gap probe: how many of the group's spans carry any cache attribute.
 
     Returns None when the group cannot be queried, meaning presence is unknowable.
@@ -160,6 +183,7 @@ def count_spans_with_cache_attributes(project: Project, stats: CallSiteStats) ->
     )
     result = _run_spans_query(
         project,
+        window,
         query_string=f"{group_filter} ({cache_attribute_present})",
         selected_columns=["count()"],
         orderby=None,
@@ -172,23 +196,52 @@ def count_spans_with_cache_attributes(project: Project, stats: CallSiteStats) ->
     return int(data[0].get("count()") or 0)
 
 
-def fetch_sample_trace_ids(project: Project, stats: CallSiteStats) -> list[str]:
-    """Sample trace ids for a flagged group, largest input-token calls first."""
+def fetch_sample_calls(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> list[SampleCall]:
+    """Sample the group's largest calls, one per trace.
+
+    Ordering by input tokens surfaces the calls where the wasted spend is most
+    visible, which are also the most useful ones to open and compare.
+    """
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return []
     result = _run_spans_query(
         project,
+        window,
         query_string=group_filter,
-        selected_columns=["trace", INPUT_TOKENS],
+        selected_columns=[
+            "trace",
+            "id",
+            "timestamp",
+            INPUT_TOKENS,
+            *CACHE_TOKEN_ATTRIBUTES,
+        ],
         orderby=[f"-{INPUT_TOKENS}"],
-        limit=SAMPLE_TRACES_LIMIT,
+        limit=SAMPLE_CALLS_QUERY_LIMIT,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_TRACE_SAMPLES,
     )
 
-    trace_ids: list[str] = []
+    samples: list[SampleCall] = []
+    seen_trace_ids: set[str] = set()
     for row in result.get("data", []):
         trace_id = row.get("trace")
-        if trace_id and trace_id not in trace_ids:
-            trace_ids.append(trace_id)
-    return trace_ids
+        span_id = row.get("id")
+        timestamp = row.get("timestamp")
+        if not trace_id or not span_id or not timestamp or trace_id in seen_trace_ids:
+            continue
+        seen_trace_ids.add(trace_id)
+        samples.append(
+            SampleCall(
+                trace_id=trace_id,
+                span_id=span_id,
+                timestamp=timestamp,
+                input_tokens=float(row.get(INPUT_TOKENS) or 0),
+                cache_read_tokens=float(row.get(CACHE_READ_TOKENS) or 0),
+                cache_creation_tokens=float(row.get(CACHE_CREATION_TOKENS) or 0),
+            )
+        )
+        if len(samples) == SAMPLE_CALLS_LIMIT:
+            break
+    return samples

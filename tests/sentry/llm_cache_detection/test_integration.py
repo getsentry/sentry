@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from typing import Any
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from sentry.issues.grouptype import LLMCacheUsageGroupType
-from sentry.llm_cache_detection.detection import CallSiteStats
+from sentry.llm_cache_detection.detection import CallSiteStats, DetectionWindow
 from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
-    fetch_sample_trace_ids,
+    fetch_sample_calls,
 )
 from sentry.models.project import Project
 from sentry.tasks.llm_cache_issue_detection import (
@@ -44,6 +45,7 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
+        self.window = DetectionWindow.ending_now()
 
     def gen_ai_span(
         self,
@@ -112,7 +114,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             cache_read_tokens=3_000,
         )
 
-        stats = fetch_call_site_stats(self.project)
+        stats = fetch_call_site_stats(self.project, self.window)
 
         uncached = self.stats_for(stats, CLAUDE)
         assert uncached.transaction == "/chat"
@@ -142,7 +144,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             ]
         )
 
-        models = {entry.model for entry in fetch_call_site_stats(self.project)}
+        models = {entry.model for entry in fetch_call_site_stats(self.project, self.window)}
 
         assert CLAUDE in models
         assert not {model for model in models if model.startswith("excluded-")}
@@ -158,7 +160,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             deprecated_attribute_names=True,
         )
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
 
         assert stats.sum_cache_read_tokens == 1_200 * CALLS_PER_CALL_SITE
         assert stats.sum_cache_creation_tokens == 300 * CALLS_PER_CALL_SITE
@@ -176,7 +178,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             ]
         )
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
 
         assert stats.sum_cache_read_tokens == 1_500
 
@@ -185,9 +187,12 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         # here would suppress every finding from these integrations.
         self.store_call_site(model=CLAUDE, cache_read_tokens=0, deprecated_attribute_names=True)
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
 
-        assert count_spans_with_cache_attributes(self.project, stats) == CALLS_PER_CALL_SITE
+        assert (
+            count_spans_with_cache_attributes(self.project, stats, self.window)
+            == CALLS_PER_CALL_SITE
+        )
 
     def test_excludes_other_projects(self) -> None:
         other_project = self.create_project()
@@ -199,7 +204,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             count=2,
         )
 
-        models = {entry.model for entry in fetch_call_site_stats(self.project)}
+        models = {entry.model for entry in fetch_call_site_stats(self.project, self.window)}
 
         assert CLAUDE in models
         assert "excluded-other-project" not in models
@@ -211,18 +216,21 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
     def test_counts_spans_reporting_explicit_zero_cache_tokens(self) -> None:
         self.store_call_site(model=CLAUDE, cache_read_tokens=0, cache_creation_tokens=0)
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
 
         # A provider that reports a real zero must not look like missing
         # instrumentation, or every genuinely uncached call site is discarded.
-        assert count_spans_with_cache_attributes(self.project, stats) == CALLS_PER_CALL_SITE
+        assert (
+            count_spans_with_cache_attributes(self.project, stats, self.window)
+            == CALLS_PER_CALL_SITE
+        )
 
     def test_counts_zero_when_cache_attributes_are_absent(self) -> None:
         self.store_call_site(model=CLAUDE)
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
 
-        assert count_spans_with_cache_attributes(self.project, stats) == 0
+        assert count_spans_with_cache_attributes(self.project, stats, self.window) == 0
 
     def test_scopes_the_probe_to_its_own_call_site(self) -> None:
         # Both call sites share a model and transaction, so the description is
@@ -237,26 +245,52 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
 
         stats = next(
             entry
-            for entry in fetch_call_site_stats(self.project)
+            for entry in fetch_call_site_stats(self.project, self.window)
             if entry.span_description == "generate_content */chat"
         )
 
-        assert count_spans_with_cache_attributes(self.project, stats) == CALLS_PER_CALL_SITE
+        assert (
+            count_spans_with_cache_attributes(self.project, stats, self.window)
+            == CALLS_PER_CALL_SITE
+        )
 
 
-class FetchSampleTraceIdsTest(LLMCacheDetectionIntegrationTest):
-    def test_returns_trace_ids_from_the_call_site(self) -> None:
+class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
+    def test_returns_calls_from_the_call_site(self) -> None:
         spans = [
             self.gen_ai_span(model=CLAUDE, cache_read_tokens=0) for _ in range(CALLS_PER_CALL_SITE)
         ]
         self.store_spans(spans)
-        expected_trace_ids = {span["trace_id"] for span in spans}
+        spans_by_span_id = {span["span_id"]: span for span in spans}
 
-        stats = self.stats_for(fetch_call_site_stats(self.project), CLAUDE)
-        trace_ids = fetch_sample_trace_ids(self.project, stats)
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        samples = fetch_sample_calls(self.project, stats, self.window)
 
-        assert trace_ids
-        assert set(trace_ids) <= expected_trace_ids
+        assert samples
+        for sample in samples:
+            # The deep link is only correct if the span id identifies the gen-AI
+            # call itself, not some other span sharing its trace.
+            source_span = spans_by_span_id[sample.span_id]
+            assert sample.trace_id == source_span["trace_id"]
+            assert sample.input_tokens == INPUT_TOKENS
+            assert sample.cache_read_tokens == 0
+            assert sample.timestamp
+
+    def test_returns_one_call_per_trace(self) -> None:
+        # A call site that fires repeatedly inside one trace should still yield
+        # distinct examples rather than the same trace three times.
+        trace_id = uuid4().hex
+        self.store_spans(
+            [
+                self.gen_ai_span(model=CLAUDE, cache_read_tokens=0) | {"trace_id": trace_id}
+                for _ in range(CALLS_PER_CALL_SITE)
+            ]
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        samples = fetch_sample_calls(self.project, stats, self.window)
+
+        assert [sample.trace_id for sample in samples] == [trace_id]
 
 
 @patch("sentry.llm_cache_detection.detection.MIN_CALLS_PER_WINDOW", CALLS_PER_CALL_SITE)

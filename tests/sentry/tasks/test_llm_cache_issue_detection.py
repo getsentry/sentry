@@ -1,15 +1,18 @@
 from contextlib import AbstractContextManager
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db.models import F
 
+from sentry import features
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.issues.ingest import hash_fingerprint
 from sentry.llm_cache_detection.detection import CallSiteStats
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
+from sentry.llm_cache_detection.query import SampleCall
 from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -25,7 +28,25 @@ from sentry.testutils.cases import TestCase
 INGEST_FEATURE = LLMCacheUsageGroupType.build_ingest_feature_name()
 DETECTION_FEATURE = "organizations:llm-cache-detection"
 
-SAMPLE_TRACE_IDS = ["a" * 32, "b" * 32]
+SAMPLE_CALLS = [
+    SampleCall(
+        trace_id="a" * 32,
+        span_id="1" * 16,
+        timestamp="2026-08-10T00:00:00+00:00",
+        input_tokens=4_000,
+        cache_read_tokens=0,
+        cache_creation_tokens=0,
+    ),
+    SampleCall(
+        trace_id="b" * 32,
+        span_id="2" * 16,
+        timestamp="2026-08-11T00:00:00+00:00",
+        input_tokens=3_000,
+        cache_read_tokens=0,
+        cache_creation_tokens=0,
+    ),
+]
+SAMPLE_TRACE_IDS = [sample.trace_id for sample in SAMPLE_CALLS]
 
 # Not caching: near-zero hit rate at eligible volume.
 NOT_CACHING_STATS = CallSiteStats(
@@ -154,9 +175,9 @@ class RunLLMCacheIssueDetectionTest(TestCase):
             self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}),
             patch.object(llm_cache_issue_detection, "PROJECTS_PER_BATCH", 2),
             patch.object(
-                llm_cache_issue_detection.Organization.objects,
+                Organization.objects,
                 "filter",
-                wraps=llm_cache_issue_detection.Organization.objects.filter,
+                wraps=Organization.objects.filter,
             ) as mock_filter,
         ):
             run_llm_cache_issue_detection()
@@ -170,7 +191,7 @@ class RunLLMCacheIssueDetectionTest(TestCase):
         projects = [self.create_agent_project() for _ in range(3)]
         projects += [self.create_agent_project(organization=other_organization) for _ in range(2)]
 
-        with patch.object(llm_cache_issue_detection.features, "has", return_value=True) as mock_has:
+        with patch.object(features, "has", return_value=True) as mock_has:
             run_llm_cache_issue_detection()
 
         # One evaluation per organization, not per project.
@@ -179,7 +200,7 @@ class RunLLMCacheIssueDetectionTest(TestCase):
 
 
 @patch("sentry.llm_cache_detection.issue_platform_adapter.produce_occurrence_to_kafka")
-@patch("sentry.tasks.llm_cache_issue_detection.fetch_sample_trace_ids")
+@patch("sentry.tasks.llm_cache_issue_detection.fetch_sample_calls")
 @patch("sentry.tasks.llm_cache_issue_detection.count_spans_with_cache_attributes")
 @patch("sentry.tasks.llm_cache_issue_detection.fetch_call_site_stats")
 class DetectLLMCacheIssuesForProjectTest(TestCase):
@@ -200,7 +221,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             ANCHOR_STATS,
             INELIGIBLE_STATS,
         ]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -274,6 +295,166 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         important_names = [e.name for e in thrash_occurrence.evidence_display if e.important]
         assert important_names == ["Cache write:read ratio"]
 
+    def test_states_which_reading_each_finding_is(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # The title is copy and can be reworded; the outcome is the contract the
+        # issue page renders from.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [THRASH_STATS, NOT_CACHING_STATS, ANCHOR_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        outcomes = [
+            call.kwargs["occurrence"].evidence_data["outcome"]
+            for call in mock_produce.call_args_list
+        ]
+        assert outcomes == ["not_caching", "thrash"]
+
+    def test_emits_the_window_it_measured(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
+        start = datetime.fromisoformat(evidence["window_start"])
+        end = datetime.fromisoformat(evidence["window_end"])
+        assert end - start == timedelta(days=evidence["window_days"])
+        assert datetime.now(UTC) - end < timedelta(minutes=1)
+
+    def test_emits_each_sample_call_for_deep_linking(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # A trace id alone lands on the trace; the span id and timestamp are what
+        # land on the call within it.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
+        assert evidence["sample_traces"] == [
+            {
+                "trace_id": sample.trace_id,
+                "span_id": sample.span_id,
+                "timestamp": sample.timestamp,
+                "input_tokens": sample.input_tokens,
+                "cache_read_tokens": sample.cache_read_tokens,
+                "cache_creation_tokens": sample.cache_creation_tokens,
+            }
+            for sample in SAMPLE_CALLS
+        ]
+        assert evidence["sample_trace_ids"] == SAMPLE_TRACE_IDS
+
+    def test_emits_the_anchor_volume_alongside_its_hit_rate(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # A healthy comparison is only convincing if the reader can see it runs
+        # at comparable volume.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS, ANCHOR_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
+        assert evidence["contrast_call_count"] == ANCHOR_STATS.call_count
+        assert evidence["contrast_avg_input_tokens"] == ANCHOR_STATS.avg_input_tokens
+
+    @patch("sentry.llm_cache_detection.pricing.ai_model_metadata_config")
+    def test_prices_the_finding_when_the_model_costs_are_known(
+        self,
+        mock_metadata: MagicMock,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        project = self.create_project()
+        mock_metadata.return_value = {
+            "version": 1,
+            "models": {
+                "gemini-2.5-pro": {
+                    "costs": {
+                        "inputPerToken": 0.00000125,
+                        "outputPerToken": 0.00001,
+                        "outputReasoningPerToken": 0.00001,
+                        "inputCachedPerToken": 0.00000031,
+                        "inputCacheWritePerToken": 0.000001563,
+                    }
+                }
+            },
+        }
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        # The pricebook is loaded once per run, not once per finding.
+        assert mock_metadata.call_count == 1
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        evidence = occurrence.evidence_data
+        assert evidence["estimated_savings_usd"] == pytest.approx(
+            NOT_CACHING_STATS.uncached_tokens * (0.00000125 - 0.00000031)
+        )
+        assert evidence["price_per_input_token"] == 0.00000125
+        assert evidence["price_per_cached_input_token"] == 0.00000031
+        assert evidence["price_per_cache_write_token"] == 0.000001563
+        assert "Avoidable spend" in [row.name for row in occurrence.evidence_display]
+        # Still exactly one important row: the money figure informs, the
+        # diagnostic row is what integrations lead with.
+        assert [row.name for row in occurrence.evidence_display if row.important] == [
+            "Cache hit rate"
+        ]
+
+    def test_omits_pricing_when_the_model_is_unknown(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # No metadata is the normal case for air-gapped installs and self-hosted
+        # models, so the finding has to stand on its token counts alone.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert "estimated_savings_usd" not in occurrence.evidence_data
+        assert "Avoidable spend" not in [row.name for row in occurrence.evidence_display]
+
     def test_fingerprints_are_stable_across_runs(
         self,
         mock_fetch_stats: MagicMock,
@@ -283,7 +464,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
         mock_fetch_stats.return_value = [NOT_CACHING_STATS, ANCHOR_STATS]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -303,7 +484,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         project = self.create_project()
         mock_fetch_stats.return_value = [GAP_STATS]
         mock_count_cache_attrs.return_value = 0
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -321,7 +502,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         project = self.create_project()
         mock_fetch_stats.return_value = [GAP_STATS]
         mock_count_cache_attrs.return_value = 5
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -338,7 +519,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
         mock_fetch_stats.return_value = [GEMINI_ZERO_STATS]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -356,7 +537,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
         mock_fetch_stats.return_value = [NOT_CACHING_STATS]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         fingerprint = create_fingerprint(NOT_CACHING_STATS)
         group = self.create_group(project=project)
@@ -382,7 +563,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         # occurrence must carry a valid fallback instead.
         project = self.create_project(platform=None)
         mock_fetch_stats.return_value = [NOT_CACHING_STATS]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -402,7 +583,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             replace(NOT_CACHING_STATS, transaction=f"task-{i}")
             for i in range(FINDINGS_PER_PROJECT_LIMIT + 2)
         ]
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
@@ -429,7 +610,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             for i in range(FINDINGS_PER_PROJECT_LIMIT)
         ]
         mock_fetch_stats.return_value = open_stats + new_stats
-        mock_fetch_traces.return_value = SAMPLE_TRACE_IDS
+        mock_fetch_traces.return_value = SAMPLE_CALLS
 
         for stats in open_stats:
             group = self.create_group(project=project)

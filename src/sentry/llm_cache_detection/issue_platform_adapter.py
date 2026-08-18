@@ -16,7 +16,10 @@ from sentry.llm_cache_detection.detection import (
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
+    DetectionWindow,
 )
+from sentry.llm_cache_detection.pricing import SavingsEstimate
+from sentry.llm_cache_detection.query import SampleCall
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.tasks.llm_issue_detection.detection import get_base_platform
@@ -64,9 +67,22 @@ def _format_tokens(value: float) -> str:
     return f"~{value / 1_000_000:.1f}M"
 
 
+def _format_usd(value: float) -> str:
+    """Render an amount at the precision the estimate actually supports."""
+    if value < 0.01:
+        return "<$0.01"
+    if value < 1_000:
+        return f"${value:,.2f}"
+    return f"${value:,.0f}"
+
+
 @trace
 def send_llm_cache_issue_to_platform(
-    project: Project, finding: CacheFinding, sample_trace_ids: list[str]
+    project: Project,
+    finding: CacheFinding,
+    sample_calls: list[SampleCall],
+    window: DetectionWindow,
+    savings: SavingsEstimate | None,
 ) -> None:
     """Produce an occurrence for a flagged call-site group."""
     stats = finding.stats
@@ -79,7 +95,13 @@ def send_llm_cache_issue_to_platform(
     write_read_ratio = stats.write_read_ratio
 
     evidence_data: dict[str, Any] = {
+        # The two outcomes render differently and can swap between runs on one
+        # issue, so the reading has to be a field rather than inferred from the
+        # title, which is copy.
+        "outcome": finding.outcome.value,
         "window_days": DETECTION_WINDOW_DAYS,
+        "window_start": window.start.isoformat(),
+        "window_end": window.end.isoformat(),
         "transaction": stats.transaction,
         "span_description": stats.span_description,
         "model": stats.model,
@@ -91,8 +113,31 @@ def send_llm_cache_issue_to_platform(
         "sum_input_tokens": stats.sum_input_tokens,
         "sum_cache_read_tokens": stats.sum_cache_read_tokens,
         "sum_cache_creation_tokens": stats.sum_cache_creation_tokens,
-        "sample_trace_ids": sample_trace_ids,
+        "sample_trace_ids": [sample.trace_id for sample in sample_calls],
+        "sample_traces": [
+            {
+                "trace_id": sample.trace_id,
+                "span_id": sample.span_id,
+                "timestamp": sample.timestamp,
+                "input_tokens": sample.input_tokens,
+                "cache_read_tokens": sample.cache_read_tokens,
+                "cache_creation_tokens": sample.cache_creation_tokens,
+            }
+            for sample in sample_calls
+        ],
     }
+
+    if savings is not None:
+        evidence_data.update(
+            {
+                "estimated_savings_usd": savings.estimated_savings_usd,
+                "price_per_input_token": savings.price_per_input_token,
+                "price_per_cached_input_token": savings.price_per_cached_input_token,
+                "price_per_cache_write_token": savings.price_per_cache_write_token,
+            }
+        )
+        if savings.overpay_vs_no_cache_usd is not None:
+            evidence_data["overpay_vs_no_cache_usd"] = savings.overpay_vs_no_cache_usd
 
     # Exactly one row per outcome is important: integrations render only the
     # first important row, so it must carry the finding's distinguishing number.
@@ -111,6 +156,17 @@ def send_llm_cache_issue_to_platform(
                 f"{write_read_ratio:.1f}:1" if write_read_ratio is not None else "no cache reads"
             ),
             important=finding.outcome == CacheOutcome.THRASH,
+        ),
+        *(
+            [
+                IssueEvidence(
+                    name="Avoidable spend",
+                    value=_format_usd(savings.estimated_savings_usd),
+                    important=False,
+                )
+            ]
+            if savings is not None
+            else []
         ),
         IssueEvidence(
             name="Avg input tokens", value=_format_tokens(stats.avg_input_tokens), important=False
@@ -142,6 +198,8 @@ def send_llm_cache_issue_to_platform(
                 "contrast_transaction": anchor.transaction,
                 "contrast_span_description": anchor.span_description,
                 "contrast_hit_rate": anchor.hit_rate,
+                "contrast_call_count": anchor.call_count,
+                "contrast_avg_input_tokens": anchor.avg_input_tokens,
             }
         )
         evidence_display.append(
@@ -155,9 +213,13 @@ def send_llm_cache_issue_to_platform(
             )
         )
 
-    if sample_trace_ids:
+    if sample_calls:
         evidence_display.append(
-            IssueEvidence(name="Sample traces", value=", ".join(sample_trace_ids), important=False)
+            IssueEvidence(
+                name="Sample traces",
+                value=", ".join(sample.trace_id for sample in sample_calls),
+                important=False,
+            )
         )
 
     event_data: dict[str, Any] = {
@@ -172,10 +234,10 @@ def send_llm_cache_issue_to_platform(
             "gen_ai.request.model": stats.model,
         },
     }
-    if sample_trace_ids:
+    if sample_calls:
         event_data["contexts"] = {
             "trace": {
-                "trace_id": sample_trace_ids[0],
+                "trace_id": sample_calls[0].trace_id,
                 "type": "trace",
             }
         }

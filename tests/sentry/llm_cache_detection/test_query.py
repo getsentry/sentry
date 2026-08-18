@@ -7,12 +7,13 @@ import pytest
 from sentry.llm_cache_detection.detection import (
     CacheOutcome,
     CallSiteStats,
+    DetectionWindow,
     resolve_with_cache_presence,
 )
 from sentry.llm_cache_detection.query import (
     _build_group_filter,
     count_spans_with_cache_attributes,
-    fetch_sample_trace_ids,
+    fetch_sample_calls,
 )
 
 
@@ -72,9 +73,10 @@ def test_group_filter_none_for_unexpressible_values(value: str) -> None:
 def test_unexpressible_value_resolves_unknown_without_querying() -> None:
     stats = make_stats(model="model\\")
     project = MagicMock()
+    window = DetectionWindow.ending_now()
 
-    count = count_spans_with_cache_attributes(project, stats)
+    count = count_spans_with_cache_attributes(project, stats, window)
 
     assert count is None
     assert resolve_with_cache_presence(CacheOutcome.NOT_CACHING, count) == CacheOutcome.UNKNOWN
-    assert fetch_sample_trace_ids(project, stats) == []
+    assert fetch_sample_calls(project, stats, window) == []

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 DETECTION_WINDOW_DAYS = 7
@@ -41,6 +42,24 @@ CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
 # Matching on model name is crude; a provider-reported capability would be
 # better if one ever reaches the span.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
+
+
+@dataclass(frozen=True)
+class DetectionWindow:
+    """The span of time one detection run reads.
+
+    Fixed once per run and threaded through every query so the aggregates, the
+    instrumentation-gap probe and the sampled calls all describe the same window,
+    and so the issue can state the window it was derived from.
+    """
+
+    start: datetime
+    end: datetime
+
+    @classmethod
+    def ending_now(cls) -> DetectionWindow:
+        end = datetime.now(UTC)
+        return cls(start=end - timedelta(days=DETECTION_WINDOW_DAYS), end=end)
 
 
 class CacheOutcome(StrEnum):
@@ -119,6 +138,8 @@ class ContrastAnchor:
     span_description: str
     model: str
     hit_rate: float
+    call_count: int
+    avg_input_tokens: float
 
 
 @dataclass(frozen=True)
@@ -222,4 +243,6 @@ def find_contrast_anchor(
         span_description=best.span_description,
         model=best.model,
         hit_rate=best.hit_rate,
+        call_count=best.call_count,
+        avg_input_tokens=best.avg_input_tokens,
     )
