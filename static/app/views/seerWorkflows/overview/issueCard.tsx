@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -17,7 +18,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconBug,
   IconCheckmark,
-  IconCircle,
   IconClock,
   IconClose,
   IconCommit,
@@ -35,17 +35,12 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
-import {
-  ButtonSpinner,
-  getProcessingLabel,
-  OverviewCardAction,
-} from './overviewCardAction';
+import {OpenSeerButton} from './openSeerButton';
+import {getProcessingLabel} from './overviewActions';
+import {ButtonSpinner, OverviewCardAction} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -78,6 +73,27 @@ interface PullRequestStatusTagMeta {
   variant: TagProps['variant'];
 }
 
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// Inherits the tag's variant color via currentColor, like the other status icons.
+const ChecksSpinner = styled('span')`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  animation: ${spin} 0.6s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 2.4s;
+  }
+`;
+
 const CHECKS_STATUS_TAGS = {
   failure: {
     icon: <IconClose />,
@@ -85,7 +101,7 @@ const CHECKS_STATUS_TAGS = {
     variant: 'danger',
   },
   pending: {
-    icon: <IconCircle />,
+    icon: <ChecksSpinner aria-hidden />,
     label: t('Checks Running'),
     variant: 'warning',
   },
@@ -123,8 +139,6 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
-  const organization = useOrganization();
-  const location = useLocation();
   const {pullRequests, status} = run;
   if (status === 'processing') {
     return (
@@ -138,25 +152,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <Tooltip title={t('Open Seer')} skipWrapper>
-          <LinkButton
-            size="sm"
-            variant="secondary"
-            aria-label={t('Open Seer')}
-            icon={<IconSeer size="sm" />}
-            to={{
-              pathname: location.pathname,
-              query: {...location.query, seerDrawer: run.groupId},
-            }}
-            onClick={() =>
-              trackAnalytics('autofix.overview.open_seer_clicked', {
-                organization,
-                group_id: run.groupId,
-                run_id: run.seerRunId,
-              })
-            }
-          />
-        </Tooltip>
+        <OpenSeerButton run={run} size="sm" variant="secondary" />
       </ButtonBar>
     );
   }
@@ -167,13 +163,19 @@ function OverviewAction({
         <Stack gap="xs" align="end">
           {pullRequests.map(pullRequest => {
             const label = t('Merged #%s', pullRequest.number);
+            const title = t('The pull request for this fix was merged.');
+            if (!pullRequest.url) {
+              return (
+                <Tooltip key={pullRequest.id} title={title} skipWrapper>
+                  <Tag variant="muted" icon={<IconMerge />}>
+                    {label}
+                  </Tag>
+                </Tooltip>
+              );
+            }
             return (
-              <Tooltip
-                key={pullRequest.id}
-                title={t('The pull request for this fix was merged.')}
-                skipWrapper
-              >
-                {pullRequest.url ? (
+              <ButtonBar key={pullRequest.id}>
+                <Tooltip title={title} skipWrapper>
                   <LinkButton
                     size="sm"
                     variant="secondary"
@@ -183,12 +185,9 @@ function OverviewAction({
                   >
                     {label}
                   </LinkButton>
-                ) : (
-                  <Tag variant="muted" icon={<IconMerge />}>
-                    {label}
-                  </Tag>
-                )}
-              </Tooltip>
+                </Tooltip>
+                <OpenSeerButton run={run} size="sm" variant="secondary" />
+              </ButtonBar>
             );
           })}
         </Stack>
@@ -217,14 +216,17 @@ function OverviewAction({
 
     return (
       <Stack align="end" gap="xs">
-        <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-          <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
-            <Flex as="span" gap="xs" align="center">
-              {t('Review PR #%s', reviewPullRequest.number)}
-              <IconOpen size="xs" />
-            </Flex>
-          </LinkButton>
-        </Tooltip>
+        <ButtonBar>
+          <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
+              <Flex as="span" gap="xs" align="center">
+                {t('Review PR #%s', reviewPullRequest.number)}
+                <IconOpen size="xs" />
+              </Flex>
+            </LinkButton>
+          </Tooltip>
+          <OpenSeerButton run={run} size="sm" variant="primary" />
+        </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
           // typically fills in, so the row height doesn't jump on resolve.

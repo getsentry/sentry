@@ -8,11 +8,63 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {
   type AutofixOverviewResponse,
+  type MilestoneKey,
+  type OverviewRun,
+  OVERVIEW_SECTIONS,
   type OverviewSort,
+  PIPELINE,
   POLL_INTERVAL,
   QUERY_STALE_TIME,
   type RunStatus,
 } from './types';
+
+export interface MilestoneAdvance {
+  fromMilestone: MilestoneKey;
+  run: OverviewRun;
+  toMilestone: MilestoneKey;
+}
+
+const FILL_BY_SECTION = new Map(PIPELINE.map(stage => [stage.key, stage.fill]));
+const MILESTONE_RANK = new Map<MilestoneKey, number>(
+  OVERVIEW_SECTIONS.map(section => [
+    section.milestone,
+    FILL_BY_SECTION.get(section.key) ?? 0,
+  ])
+);
+
+function milestoneByRun(data: AutofixOverviewResponse): Map<string, MilestoneKey> {
+  const map = new Map<string, MilestoneKey>();
+  for (const [milestone, runs] of Object.entries(data.runsByMilestone)) {
+    for (const run of runs) {
+      map.set(run.seerRunId, milestone as MilestoneKey);
+    }
+  }
+  return map;
+}
+
+export function detectMilestoneAdvances(
+  prev: AutofixOverviewResponse | undefined,
+  next: AutofixOverviewResponse | undefined
+): MilestoneAdvance[] {
+  if (!prev || !next) {
+    return [];
+  }
+  const prevMilestones = milestoneByRun(prev);
+  const advances: MilestoneAdvance[] = [];
+  for (const [milestone, runs] of Object.entries(next.runsByMilestone)) {
+    const toMilestone = milestone as MilestoneKey;
+    for (const run of runs) {
+      const fromMilestone = prevMilestones.get(run.seerRunId);
+      if (
+        fromMilestone !== undefined &&
+        (MILESTONE_RANK.get(toMilestone) ?? 0) > (MILESTONE_RANK.get(fromMilestone) ?? 0)
+      ) {
+        advances.push({run, fromMilestone, toMilestone});
+      }
+    }
+  }
+  return advances;
+}
 
 function statusByRunId(
   data: AutofixOverviewResponse | undefined
@@ -148,6 +200,7 @@ export function useAutofixOverview({
     enrichmentPending: Boolean(data) && !enrichedQuery.data && !enrichedQuery.isError,
     // A later refetch keeps the list up; the caller shows a spinner meanwhile.
     isRefetching: enrichedQuery.isFetching && Boolean(enrichedQuery.data),
+    enrichedSettled: !enrichedQuery.isFetching && Boolean(enrichedQuery.data),
     refetch: () => {
       statusPollQuery.refetch();
       enrichedQuery.refetch();

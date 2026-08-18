@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -35,6 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
+import {useMilestoneAdvanceToasts} from './milestoneToast';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
@@ -103,13 +105,21 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       {replace: true}
     );
 
-  const {data, isPending, isError, enrichmentPending, isRefetching, refetch} =
-    useAutofixOverview({
-      organization,
-      selection,
-      sort,
-      enabled: pageFiltersReady,
-    });
+  const {
+    data,
+    isPending,
+    isError,
+    enrichmentPending,
+    isRefetching,
+    refetch,
+    enrichedSettled,
+  } = useAutofixOverview({
+    organization,
+    selection,
+    sort,
+    enabled: pageFiltersReady,
+  });
+  useMilestoneAdvanceToasts(data, enrichedSettled);
   const allRuns = useMemo(
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]
@@ -132,6 +142,20 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       expanded
         ? previous.filter(key => key !== groupKey)
         : [...previous.filter(key => key !== groupKey), groupKey]
+    );
+  };
+
+  const populatedKeys = populatedSections.map(section => section.key);
+  const allCollapsed =
+    populatedKeys.length > 0
+      ? populatedKeys.every(key => collapsedGroups.includes(key))
+      : collapsedGroups.length > 0;
+
+  const toggleAllGroups = () => {
+    setCollapsedGroups(previous =>
+      allCollapsed
+        ? previous.filter(key => !populatedKeys.includes(key))
+        : [...new Set([...previous, ...populatedKeys])]
     );
   };
 
@@ -169,6 +193,11 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             )}
           </Text>
         )}
+        <Flex marginLeft="auto">
+          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
+            {allCollapsed ? t('Expand All') : t('Collapse All')}
+          </Button>
+        </Flex>
       </Flex>
       {isError ? (
         <LoadingError onRetry={refetch} />

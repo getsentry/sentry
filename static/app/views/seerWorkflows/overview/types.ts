@@ -114,7 +114,7 @@ export interface OverviewIssue {
 export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
 
 // The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
-type MilestoneKey =
+export type MilestoneKey =
   | 'autofix_root_cause'
   | 'autofix_solution'
   | 'autofix_code_changes'
