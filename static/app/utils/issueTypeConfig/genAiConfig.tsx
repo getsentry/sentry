@@ -67,8 +67,8 @@ export const genAiConfig: IssueCategoryConfigMapping = {
     },
     // One synthesized event, no users.
     eventAndUserCounts: {enabled: false},
-    // The only tags are the transaction and the model, both of which the
-    // Problem section already shows as first-class rows.
+    // The only tags are the call site's own label and the model, both of which
+    // the Problem section already shows as first-class rows.
     tags: {enabled: false},
     contexts: {enabled: false},
     // The trace preview locates a trace by the event's timestamp, which here is

@@ -5,8 +5,9 @@ import type {LlmCacheEvidenceData} from './types';
 
 const evidence: LlmCacheEvidenceData = {
   outcome: 'not_caching',
-  transaction: 'agent.plan',
-  spanDescription: 'generate_content claude-sonnet-4',
+  agentLabel: 'Planner',
+  agentLabelSource: 'gen_ai.agent.name',
+  spanName: 'generate_content claude-sonnet-4',
   model: 'claude-sonnet-4',
   callCount: 2121,
   hitRate: 0.0487,
@@ -24,8 +25,9 @@ const evidence: LlmCacheEvidenceData = {
   sampleCalls: [],
   anchor: {
     model: 'claude-sonnet-4',
-    transaction: 'agent.summarize',
-    spanDescription: 'generate_content claude-sonnet-4',
+    agentLabel: 'Summarizer',
+    agentLabelSource: 'gen_ai.agent.name',
+    spanName: 'generate_content claude-sonnet-4',
     hitRate: 0.8301,
     callCount: 1743,
     avgInputTokens: 2900,
@@ -39,7 +41,7 @@ describe('LlmCacheComparisonSection', () => {
     expect(screen.getByText('4.87%')).toBeInTheDocument();
     expect(screen.getByText('83.01%')).toBeInTheDocument();
     expect(
-      screen.getByText('agent.summarize | generate_content claude-sonnet-4')
+      screen.getByText('Summarizer | generate_content claude-sonnet-4')
     ).toBeInTheDocument();
     expect(screen.getByText('1,743 calls · ~2.9K avg tokens')).toBeInTheDocument();
     expect(

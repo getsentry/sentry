@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {KeyValueData} from 'sentry/components/keyValueData';
@@ -21,6 +22,7 @@ import {
   formatUsd,
   formatWriteReadRatio,
   getCallSiteExploreUrl,
+  usesOperationNameFallback,
 } from './utils';
 
 interface LlmCacheProblemSectionProps {
@@ -140,7 +142,19 @@ export function LlmCacheProblemSection({evidenceData}: LlmCacheProblemSectionPro
             action: callSiteExploreUrl ? {link: callSiteExploreUrl} : undefined,
             key: 'call-site',
             subject: t('Call site'),
-            value: formatCallSiteLabel(evidenceData),
+            value: (
+              <Flex align="center" gap="xs">
+                <Text>{formatCallSiteLabel(evidenceData)}</Text>
+                {usesOperationNameFallback(evidenceData.agentLabelSource) && (
+                  <InfoTip
+                    size="xs"
+                    title={t(
+                      'These spans carry no gen_ai.agent.name, so this call site is named after the operation instead. Calls from more than one agent can land here — set the agent name to split them apart.'
+                    )}
+                  />
+                )}
+              </Flex>
+            ),
           }}
         />
         <KeyValueData.Content

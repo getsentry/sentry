@@ -7,6 +7,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {
+  LlmCacheAgentLabelSource,
   LlmCacheContrastAnchor,
   LlmCacheEvidenceData,
   LlmCacheOutcome,
@@ -22,6 +23,9 @@ export const INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.input_tokens';
 export const CACHE_READ_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read.input_tokens';
 export const CACHE_CREATION_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation.input_tokens';
 const MODEL_ATTRIBUTE = 'gen_ai.request.model';
+const SPAN_NAME_ATTRIBUTE = 'span.name';
+const AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
+const OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 /**
  * The detector's own span filter, verbatim -- any divergence means the page's
  * live queries answer a different question than the finding.
@@ -33,6 +37,17 @@ const GEN_AI_CALL_FILTER =
   'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens';
 
 export const LLM_CACHE_REFERRER = 'llm-cache-usage-issue';
+
+/**
+ * Whether the call site is named after its operation because its spans carry no
+ * agent name. Worth surfacing: the label reads like an agent but names none, and
+ * the group can hold calls from several.
+ */
+export function usesOperationNameFallback(
+  source: LlmCacheAgentLabelSource | null
+): boolean {
+  return source === OPERATION_NAME_ATTRIBUTE;
+}
 
 function getStringValue(value: unknown): string | null {
   if (typeof value !== 'string' || value.length === 0) {
@@ -50,6 +65,12 @@ function getNumberValue(value: unknown): number | null {
 
 function getOutcome(value: unknown): LlmCacheOutcome | null {
   return value === 'not_caching' || value === 'thrash' ? value : null;
+}
+
+function getAgentLabelSource(value: unknown): LlmCacheAgentLabelSource | null {
+  return value === AGENT_NAME_ATTRIBUTE || value === OPERATION_NAME_ATTRIBUTE
+    ? value
+    : null;
 }
 
 /**
@@ -116,23 +137,19 @@ function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[]
 
 function getAnchor(data: Record<string, unknown>): LlmCacheContrastAnchor | null {
   const model = getStringValue(data.contrastModel);
-  const transaction = getStringValue(data.contrastTransaction);
-  const spanDescription = getStringValue(data.contrastSpanDescription);
+  const agentLabel = getStringValue(data.contrastAgentLabel);
+  const spanName = getStringValue(data.contrastSpanName);
   const hitRate = getNumberValue(data.contrastHitRate);
 
-  if (
-    model === null ||
-    transaction === null ||
-    spanDescription === null ||
-    hitRate === null
-  ) {
+  if (model === null || agentLabel === null || spanName === null || hitRate === null) {
     return null;
   }
 
   return {
     model,
-    transaction,
-    spanDescription,
+    agentLabel,
+    agentLabelSource: getAgentLabelSource(data.contrastAgentLabelSource),
+    spanName,
     hitRate,
     callCount: getNumberValue(data.contrastCallCount),
     avgInputTokens: getNumberValue(data.contrastAvgInputTokens),
@@ -146,8 +163,9 @@ export function getLlmCacheEvidenceData(
 
   return {
     outcome: getOutcome(data.outcome),
-    transaction: getStringValue(data.transaction),
-    spanDescription: getStringValue(data.spanDescription),
+    agentLabel: getStringValue(data.agentLabel),
+    agentLabelSource: getAgentLabelSource(data.agentLabelSource),
+    spanName: getStringValue(data.spanName),
     model: getStringValue(data.model),
     callCount: getNumberValue(data.callCount),
     hitRate: getNumberValue(data.hitRate),
@@ -186,43 +204,59 @@ function isExpressible(value: string): boolean {
  * quietly matches the wrong spans is worse than no link at all.
  */
 export function buildCallSiteQuery({
-  transaction,
-  spanDescription,
+  agentLabel,
+  agentLabelSource,
+  spanName,
   model,
 }: {
+  agentLabel: string | null;
+  agentLabelSource: LlmCacheAgentLabelSource | null;
   model: string | null;
-  spanDescription: string | null;
-  transaction: string | null;
+  spanName: string | null;
 }): string | null {
-  if (transaction === null || spanDescription === null || model === null) {
+  if (agentLabel === null || agentLabelSource === null || spanName === null) {
     return null;
   }
-  if (![transaction, spanDescription, model].every(isExpressible)) {
+  if (model === null || ![agentLabel, spanName, model].every(isExpressible)) {
     return null;
   }
 
   const search = new MutableSearch(GEN_AI_CALL_FILTER);
-  // `transaction` and `span.description` are wildcard-allowed fields, so the
-  // usual helpers leave `*` unescaped in them. A transaction the clusterer
-  // rewrote to `/api/*/chat` would then match every sibling route.
-  search.addFilterValue('transaction', transaction, true);
-  search.addFilterValue('span.description', spanDescription, true);
+  if (agentLabelSource === OPERATION_NAME_ATTRIBUTE) {
+    // The operation name only stands in for an agent on spans that carry no
+    // agent name, so the absence is part of the group: without it the query
+    // also returns the named spans sharing the operation.
+    search.addFilterValue('!has', AGENT_NAME_ATTRIBUTE);
+  }
+  // Escaped rather than passed through: these are literals off a span, and an
+  // unescaped `*` in one would silently widen the match to its siblings.
+  search.addFilterValue(agentLabelSource, agentLabel, true);
+  search.addFilterValue(SPAN_NAME_ATTRIBUTE, spanName, true);
   search.addFilterValue(MODEL_ATTRIBUTE, model, true);
   return search.formatString();
 }
 
 /**
- * How a call site is written on the page. Either half can be missing on an
- * older occurrence, so the label falls back to whichever one there is.
+ * How a call site is written on the page, mirroring the issue's own subtitle.
+ *
+ * Gen-AI span names conventionally embed the agent (`invoke_agent Planner`), so
+ * naming it again just spends width on a duplicate. Either half can be missing
+ * on an older occurrence, so the label falls back to whichever one there is.
  */
 export function formatCallSiteLabel({
-  transaction,
-  spanDescription,
+  agentLabel,
+  spanName,
 }: {
-  spanDescription: string | null;
-  transaction: string | null;
+  agentLabel: string | null;
+  spanName: string | null;
 }): string {
-  return [transaction, spanDescription].filter(Boolean).join(' | ') || t('Unknown');
+  if (spanName === null) {
+    return agentLabel ?? t('Unknown');
+  }
+  if (agentLabel === null || spanName.toLowerCase().includes(agentLabel.toLowerCase())) {
+    return spanName;
+  }
+  return `${agentLabel} | ${spanName}`;
 }
 
 /**

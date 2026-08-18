@@ -1,5 +1,6 @@
 import {
   buildCallSiteQuery,
+  formatCallSiteLabel,
   formatRate,
   formatTokens,
   getCacheProvider,
@@ -10,8 +11,9 @@ describe('getLlmCacheEvidenceData', () => {
   it('reads a fully populated occurrence', () => {
     const parsed = getLlmCacheEvidenceData({
       outcome: 'thrash',
-      transaction: 'agent.execute_step',
-      spanDescription: 'generate_content claude-sonnet-4',
+      agentLabel: 'Executor',
+      agentLabelSource: 'gen_ai.agent.name',
+      spanName: 'generate_content claude-sonnet-4',
       model: 'claude-sonnet-4',
       callCount: 2121,
       hitRate: 0.0487,
@@ -37,8 +39,9 @@ describe('getLlmCacheEvidenceData', () => {
         },
       ],
       contrastModel: 'claude-sonnet-4',
-      contrastTransaction: 'agent.summarize',
-      contrastSpanDescription: 'generate_content claude-sonnet-4',
+      contrastAgentLabel: 'Summarizer',
+      contrastAgentLabelSource: 'gen_ai.agent.name',
+      contrastSpanName: 'generate_content claude-sonnet-4',
       contrastHitRate: 0.83,
       contrastCallCount: 1743,
       contrastAvgInputTokens: 2900,
@@ -49,12 +52,27 @@ describe('getLlmCacheEvidenceData', () => {
     expect(parsed.sampleCalls[0]!.spanId).toBe('1'.repeat(16));
     expect(parsed.anchor).toEqual({
       model: 'claude-sonnet-4',
-      transaction: 'agent.summarize',
-      spanDescription: 'generate_content claude-sonnet-4',
+      agentLabel: 'Summarizer',
+      agentLabelSource: 'gen_ai.agent.name',
+      spanName: 'generate_content claude-sonnet-4',
       hitRate: 0.83,
       callCount: 1743,
       avgInputTokens: 2900,
     });
+  });
+
+  it('reads an unrecognized label source as unknown provenance', () => {
+    // The source decides how the call site is queried, so a value the page does
+    // not understand must not be passed through as if it were an attribute.
+    const parsed = getLlmCacheEvidenceData({
+      agentLabel: 'Executor',
+      agentLabelSource: 'gen_ai.function_id',
+      spanName: 'generate_content claude-sonnet-4',
+      model: 'claude-sonnet-4',
+    });
+
+    expect(parsed.agentLabelSource).toBeNull();
+    expect(buildCallSiteQuery(parsed)).toBeNull();
   });
 
   it('falls back to bare trace ids from older occurrences', () => {
@@ -87,7 +105,7 @@ describe('getLlmCacheEvidenceData', () => {
   it('drops a partial contrast anchor rather than rendering half a comparison', () => {
     const parsed = getLlmCacheEvidenceData({
       contrastModel: 'claude-sonnet-4',
-      contrastTransaction: 'agent.summarize',
+      contrastAgentLabel: 'Summarizer',
     });
 
     expect(parsed.anchor).toBeNull();
@@ -124,36 +142,52 @@ describe('buildCallSiteQuery', () => {
   it('quotes values so a call site with spaces stays one term', () => {
     expect(
       buildCallSiteQuery({
-        transaction: 'agent.execute step',
-        spanDescription: 'chat claude sonnet',
+        agentLabel: 'Execute Step',
+        agentLabelSource: 'gen_ai.agent.name',
+        spanName: 'chat claude sonnet',
         model: 'claude-sonnet-4',
       })
     ).toBe(
-      'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens transaction:"agent.execute step" span.description:"chat claude sonnet" gen_ai.request.model:claude-sonnet-4'
+      'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens gen_ai.agent.name:"Execute Step" span.name:"chat claude sonnet" gen_ai.request.model:claude-sonnet-4'
     );
   });
 
-  it('escapes a wildcard so a clustered transaction cannot match its siblings', () => {
-    // `transaction` and `span.description` are wildcard-allowed fields, so an
-    // unescaped `*` from the transaction clusterer would silently become a LIKE
-    // and pull in every sibling route.
+  it('requires the agent name to be absent for an operation-name label', () => {
+    // Without the absence term the query also returns the spans that do name an
+    // agent and happen to share the operation, which are another call site.
+    expect(
+      buildCallSiteQuery({
+        agentLabel: 'generate_content',
+        agentLabelSource: 'gen_ai.operation.name',
+        spanName: 'generate_content gemini',
+        model: 'gemini-2.5-pro',
+      })
+    ).toBe(
+      'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens !has:gen_ai.agent.name gen_ai.operation.name:generate_content span.name:"generate_content gemini" gen_ai.request.model:gemini-2.5-pro'
+    );
+  });
+
+  it('escapes a wildcard so a call site cannot match its siblings', () => {
+    // An unescaped `*` would silently become a LIKE and pull in every sibling.
     const query = buildCallSiteQuery({
-      transaction: '/api/v1/*/chat',
-      spanDescription: 'chat gpt-4',
+      agentLabel: 'Chat',
+      agentLabelSource: 'gen_ai.agent.name',
+      spanName: 'chat */gpt-4',
       model: 'gpt-4',
     });
 
-    expect(query).toContain(String.raw`transaction:"/api/v1/\*/chat"`);
+    expect(query).toContain(String.raw`span.name:"chat \*/gpt-4"`);
   });
 
   it('escapes a quote so the term cannot be terminated early', () => {
     const query = buildCallSiteQuery({
-      transaction: 'say "hi"',
-      spanDescription: 'chat gpt-4',
+      agentLabel: 'say "hi"',
+      agentLabelSource: 'gen_ai.agent.name',
+      spanName: 'chat gpt-4',
       model: 'gpt-4',
     });
 
-    expect(query).toContain(String.raw`transaction:"say \"hi\""`);
+    expect(query).toContain(String.raw`gen_ai.agent.name:"say \"hi\""`);
   });
 
   it('declines a value the grammar cannot match exactly', () => {
@@ -161,15 +195,17 @@ describe('buildCallSiteQuery', () => {
     // before a star is an escaped wildcard however the star is written.
     expect(
       buildCallSiteQuery({
-        transaction: 'C:\\path\\',
-        spanDescription: 'chat gpt-4',
+        agentLabel: 'C:\\path\\',
+        agentLabelSource: 'gen_ai.agent.name',
+        spanName: 'chat gpt-4',
         model: 'gpt-4',
       })
     ).toBeNull();
     expect(
       buildCallSiteQuery({
-        transaction: String.raw`literal\*star`,
-        spanDescription: 'chat gpt-4',
+        agentLabel: String.raw`literal\*star`,
+        agentLabelSource: 'gen_ai.agent.name',
+        spanName: 'chat gpt-4',
         model: 'gpt-4',
       })
     ).toBeNull();
@@ -177,8 +213,37 @@ describe('buildCallSiteQuery', () => {
 
   it('declines when the call site is not fully known', () => {
     expect(
-      buildCallSiteQuery({transaction: null, spanDescription: 'chat', model: 'gpt-4'})
+      buildCallSiteQuery({
+        agentLabel: null,
+        agentLabelSource: 'gen_ai.agent.name',
+        spanName: 'chat gpt-4',
+        model: 'gpt-4',
+      })
     ).toBeNull();
+  });
+});
+
+describe('formatCallSiteLabel', () => {
+  it('does not repeat an agent the span name already carries', () => {
+    expect(
+      formatCallSiteLabel({
+        agentLabel: 'Lightweight RCA',
+        spanName: 'invoke_agent Lightweight RCA',
+      })
+    ).toBe('invoke_agent Lightweight RCA');
+  });
+
+  it('names the agent when the span name is only the SDK wrapper', () => {
+    expect(
+      formatCallSiteLabel({agentLabel: 'Explorer', spanName: 'generate_content gemini'})
+    ).toBe('Explorer | generate_content gemini');
+  });
+
+  it('renders whichever half an older occurrence carries', () => {
+    expect(formatCallSiteLabel({agentLabel: 'Explorer', spanName: null})).toBe(
+      'Explorer'
+    );
+    expect(formatCallSiteLabel({agentLabel: null, spanName: null})).toBe('Unknown');
   });
 });
 

@@ -14,16 +14,23 @@ export interface LlmCacheSampleCall {
 }
 
 /**
+ * How a call site got the name it is grouped and displayed under: an agent
+ * somebody named, or the operation name standing in where there is none.
+ */
+export type LlmCacheAgentLabelSource = 'gen_ai.agent.name' | 'gen_ai.operation.name';
+
+/**
  * A healthy call site on the same model in the same project. Its whole job is
  * to answer "maybe this model just doesn't cache well here".
  */
 export interface LlmCacheContrastAnchor {
+  agentLabel: string;
+  agentLabelSource: LlmCacheAgentLabelSource | null;
   avgInputTokens: number | null;
   callCount: number | null;
   hitRate: number;
   model: string;
-  spanDescription: string;
-  transaction: string;
+  spanName: string;
 }
 
 /**
@@ -33,6 +40,8 @@ export interface LlmCacheContrastAnchor {
  * rendering, they just render less.
  */
 export interface LlmCacheEvidenceData {
+  agentLabel: string | null;
+  agentLabelSource: LlmCacheAgentLabelSource | null;
   anchor: LlmCacheContrastAnchor | null;
   avgInputTokens: number | null;
   callCount: number | null;
@@ -42,11 +51,10 @@ export interface LlmCacheEvidenceData {
   outcome: LlmCacheOutcome | null;
   overpayVsNoCacheUsd: number | null;
   sampleCalls: LlmCacheSampleCall[];
-  spanDescription: string | null;
+  spanName: string | null;
   sumCacheCreationTokens: number | null;
   sumCacheReadTokens: number | null;
   sumInputTokens: number | null;
-  transaction: string | null;
   uncachedTokens: number | null;
   windowDays: number | null;
   windowEnd: string | null;

@@ -1,12 +1,13 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {LlmCacheProblemSection} from './llmCacheProblemSection';
 import type {LlmCacheEvidenceData} from './types';
 
 const baseEvidence: LlmCacheEvidenceData = {
   outcome: 'not_caching',
-  transaction: 'agent.plan',
-  spanDescription: 'generate_content claude-sonnet-4',
+  agentLabel: 'Planner',
+  agentLabelSource: 'gen_ai.agent.name',
+  spanName: 'generate_content claude-sonnet-4',
   model: 'claude-sonnet-4',
   callCount: 2121,
   hitRate: 0,
@@ -80,11 +81,36 @@ describe('LlmCacheProblemSection', () => {
     renderSection({hitRate: 0.0487});
 
     expect(
-      await screen.findByText('agent.plan | generate_content claude-sonnet-4')
+      await screen.findByText('Planner | generate_content claude-sonnet-4')
     ).toBeInTheDocument();
     expect(screen.getByText('claude-sonnet-4')).toBeInTheDocument();
     expect(screen.getByText('4.87%')).toBeInTheDocument();
     expect(screen.getByText('2,121')).toBeInTheDocument();
+  });
+
+  it('says when the call site is named after an operation rather than an agent', async () => {
+    // The label reads like an agent but names none, and the group can hold
+    // calls from several -- the reader has to be told before they go looking.
+    renderSection({
+      agentLabel: 'generate_content',
+      agentLabelSource: 'gen_ai.operation.name',
+      spanName: 'generate_content gemini',
+    });
+
+    const callSite = await screen.findByText('generate_content gemini');
+    await userEvent.hover(
+      within(callSite.parentElement!).getByLabelText('More information')
+    );
+
+    expect(await screen.findByText(/no gen_ai.agent.name/)).toBeInTheDocument();
+  });
+
+  it('does not explain the label when an agent named the call site', async () => {
+    renderSection({hitRate: 0.0487});
+
+    await screen.findByText('Planner | generate_content claude-sonnet-4');
+
+    expect(screen.queryByText(/no gen_ai.agent.name/)).not.toBeInTheDocument();
   });
 
   it('reads as a sentence when the occurrence carries no window length', async () => {

@@ -5,8 +5,9 @@ import type {LlmCacheEvidenceData} from './types';
 
 const evidence: LlmCacheEvidenceData = {
   outcome: 'not_caching',
-  transaction: 'agent.plan',
-  spanDescription: 'generate_content claude-sonnet-4',
+  agentLabel: 'Planner',
+  agentLabelSource: 'gen_ai.agent.name',
+  spanName: 'generate_content claude-sonnet-4',
   model: 'claude-sonnet-4',
   callCount: 2121,
   hitRate: 0,
