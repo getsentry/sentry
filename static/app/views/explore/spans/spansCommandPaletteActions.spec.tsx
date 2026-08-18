@@ -1,5 +1,21 @@
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {addSearchFilterToQuery} from 'sentry/views/explore/components/traceItemFilterActions';
+import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
+import {canCompareQueries} from 'sentry/views/explore/spans/spansCommandPaletteActions';
+
+describe('canCompareQueries', () => {
+  it('requires at least two chart queries', () => {
+    const chart = () => new VisualizeFunction(DEFAULT_VISUALIZATION);
+
+    expect(canCompareQueries([chart()])).toBe(false);
+    expect(canCompareQueries([chart(), new VisualizeEquation('#1 + #2')])).toBe(false);
+    expect(canCompareQueries([chart(), chart()])).toBe(true);
+  });
+});
 
 describe('addSearchFilterToQuery', () => {
   it('does not add the same filter twice', () => {

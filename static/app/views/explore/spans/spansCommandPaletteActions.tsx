@@ -12,10 +12,12 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   EQUATION_PREFIX,
@@ -25,6 +27,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -45,8 +48,10 @@ import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
+  useQueryParamsCrossEvents,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsQuery,
@@ -65,6 +70,10 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+export function canCompareQueries(visualizes: Visualize[]): boolean {
+  return visualizes.filter(isVisualizeFunction).length >= 2;
+}
 
 function SaveAsActions() {
   const organization = useOrganization();
@@ -578,12 +587,16 @@ function QueryValue({value}: {value: string}) {
 
 function QueryClauseActions() {
   const commandPaletteState = useCommandPaletteState();
+  const location = useLocation();
+  const organization = useOrganization();
   const setQueryParams = useSetQueryParams();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const query = useQueryParamsQuery();
+  const crossEvents = useQueryParamsCrossEvents();
+  const [caseInsensitive] = useCaseInsensitivity();
   const [draftQuery, setDraftQuery] = useState(query);
   const [draftVisualizes, setDraftVisualizes] = useState<Visualize[]>([...visualizes]);
   const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
@@ -624,6 +637,8 @@ function QueryClauseActions() {
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
   const draftSortBys =
     draftMode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
+  const draftVisualizeFunctions = draftVisualizes.filter(isVisualizeFunction);
+  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const setDraftSortBys =
     draftMode === Mode.SAMPLES ? setDraftSampleSortBys : setDraftAggregateSortBys;
   const sortBySummary = draftSortBys
@@ -681,6 +696,31 @@ function QueryClauseActions() {
               }
             />
           </Fragment>
+        )}
+        {canCompareQueries(draftVisualizes) && (
+          <CMDKAction
+            disabled={hasCrossEvents}
+            display={{label: t('Compare Queries')}}
+            keywords={['compare', 'queries', 'charts']}
+            to={generateExploreCompareRoute({
+              organization,
+              mode: draftMode,
+              location,
+              queries: draftVisualizeFunctions.map(visualize => ({
+                query: draftQuery,
+                groupBys: draftGroupBys,
+                sortBys: draftSortBys,
+                yAxes: [visualize.yAxis],
+                chartType: visualize.chartType,
+                caseInsensitive: caseInsensitive ? '1' : undefined,
+              })),
+            })}
+            onAction={() =>
+              trackAnalytics('trace_explorer.compare', {
+                organization,
+              })
+            }
+          />
         )}
         <SaveAsActions />
       </CMDKAction>
