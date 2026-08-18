@@ -370,6 +370,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/explorer-pr-groups/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/onboarding-check/'
+  | '/organizations/$organizationIdOrSlug/seer/project-suggestions/'
   | '/organizations/$organizationIdOrSlug/seer/projects/'
   | '/organizations/$organizationIdOrSlug/seer/runs/'
   | '/organizations/$organizationIdOrSlug/seer/setup-check/'
