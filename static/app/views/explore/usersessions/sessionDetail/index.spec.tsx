@@ -76,7 +76,7 @@ function mockEmptyDatasets(except: string[] = []) {
   }
 }
 
-/** The rail's items, excluding the quiet-period separators between them. */
+/** The rail's rows, one per telemetry item. */
 function railItems() {
   return screen.getAllByRole('listitem');
 }
@@ -187,9 +187,14 @@ describe('SessionDetailView', () => {
 
     expect(await screen.findByText('first log')).toBeInTheDocument();
 
-    // Counts: total is the sum of the four.
-    expect(screen.getByText('Telemetry')).toBeInTheDocument();
+    // The total sits on the identity row; the breakdown is on the lanes it
+    // describes, one exact count per telemetry type.
+    expect(screen.getByText('Items')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Metrics 3'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Spans 1'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Errors 1'})).toBeInTheDocument();
 
     // Ordered by timestamp descending across datasets. The span sits under a
     // trace row rather than on the rail itself.
@@ -200,13 +205,13 @@ describe('SessionDetailView', () => {
     expect(within(items[2]!).getByText('checkout.latency')).toBeInTheDocument();
     expect(within(items[3]!).getByText('first log')).toBeInTheDocument();
 
-    // Each row names its type in the singular, while the count tiles stay plural.
+    // Each row names its type in the singular, while the lane labels stay plural.
     expect(within(items[0]!).getByText('Error')).toBeInTheDocument();
     expect(within(items[1]!).getByText('Trace')).toBeInTheDocument();
     expect(within(items[2]!).getByText('Metric')).toBeInTheDocument();
     expect(within(items[3]!).getByText('Log')).toBeInTheDocument();
-    // The plural label belongs to the count tile and the scrubber lane, not to a row.
-    expect(screen.getAllByText('Logs')).toHaveLength(2);
+    // The plural label belongs to the scrubber lane, not to a row.
+    expect(screen.getByText('Logs')).toBeInTheDocument();
   });
 
   it('places rows by their offset from the session start, and only spans carry a duration', async () => {
@@ -242,7 +247,7 @@ describe('SessionDetailView', () => {
     expect(within(items[1]!).queryByText(/ms$/)).not.toBeInTheDocument();
   });
 
-  it('collapses a quiet stretch into a labelled break, and can be turned off', async () => {
+  it('reads a gap between items off their offsets rather than marking it', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
     mockDataset('logs', 'rows', [
@@ -252,15 +257,18 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    // A minute of nothing between two logs reads as a minute of nothing.
-    expect(await screen.findByText('1.0m quiet')).toBeInTheDocument();
-    // The break sits between the two items rather than counting as one of them.
+    // A minute of nothing between two logs is two rows and a minute between
+    // their offsets. What counts as quiet depends on how busy the session is,
+    // which is a judgement the scrubber above is in a position to make and a row
+    // separator is not.
+    expect(await screen.findByText('after the gap')).toBeInTheDocument();
     expect(railItems()).toHaveLength(2);
-
-    await userEvent.click(screen.getByRole('checkbox', {name: /Collapse quiet/}));
-    expect(screen.queryByText('1.0m quiet')).not.toBeInTheDocument();
-    // Both items are still there; only the break went away.
-    expect(railItems()).toHaveLength(2);
+    expect(screen.queryByText(/quiet/)).not.toBeInTheDocument();
+    // Nothing sits between the two rows, not even a separator the listitem query
+    // would skip over.
+    expect(railItems()[0]!.parentElement!.children).toHaveLength(2);
+    expect(within(railItems()[0]!).getByText('1:00.00')).toBeInTheDocument();
+    expect(within(railItems()[1]!).getByText('0:00.00')).toBeInTheDocument();
   });
 
   it('collapses a run of same-trace spans into one expandable trace row', async () => {
@@ -324,6 +332,11 @@ describe('SessionDetailView', () => {
       within(items[1]!).getByRole('button', {name: 'Collapse trace'})
     );
     expect(railItems()).toHaveLength(2);
+
+    // The row is a wider target for that same button, so a near miss expands the
+    // trace instead of navigating to it.
+    await userEvent.click(within(railItems()[1]!).getByText('2 spans'));
+    expect(railItems()).toHaveLength(4);
   });
 
   it('toggles the rail order, and asks the API for that order', async () => {
@@ -465,19 +478,23 @@ describe('SessionDetailView', () => {
     expect(await screen.findByText('first log')).toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
-    const logsLane = screen.getByRole('button', {name: 'Logs', pressed: true});
+    const logsLane = screen.getByRole('button', {name: 'Logs 1', pressed: true});
     await userEvent.click(logsLane);
 
     expect(router.location.query.telemetryType).toEqual(['metrics', 'spans', 'errors']);
     expect(screen.queryByText('first log')).not.toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
-    // The counts above the rail stay exact, whatever the rail shows.
-    expect(screen.getByText('Telemetry')).toBeInTheDocument();
+    // The counts stay exact, whatever the rail shows — a hidden type's lane label
+    // still reports what the session holds.
+    expect(screen.getByText('Items')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Logs 1', pressed: false})
+    ).toBeInTheDocument();
 
     // And back on again.
-    await userEvent.click(screen.getByRole('button', {name: 'Logs', pressed: false}));
+    await userEvent.click(screen.getByRole('button', {name: 'Logs 1', pressed: false}));
     expect(await screen.findByText('first log')).toBeInTheDocument();
   });
 
@@ -495,6 +512,9 @@ describe('SessionDetailView', () => {
 
     expect(await screen.findByText('early log')).toBeInTheDocument();
 
+    // The lane counts the whole session until a window narrows it.
+    expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
+
     // Squeezing the window from both ends drops the items at the edges of the
     // session; `ArrowUp` zooms in by an eighth from each side per press.
     const track = screen.getByRole('group', {name: 'Session time window'});
@@ -507,9 +527,16 @@ describe('SessionDetailView', () => {
     expect(screen.queryByText('late log')).not.toBeInTheDocument();
     expect(screen.getByText('Nothing in the selected time range.')).toBeInTheDocument();
 
+    // And the lane count follows the window down, while the session's own total
+    // stays put as the figure the window is read against.
+    expect(screen.getByRole('button', {name: 'Logs 0'})).toBeInTheDocument();
+    expect(screen.getByText('Items')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
     expect(await screen.findByText('early log')).toBeInTheDocument();
     expect(screen.getByText('late log')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
   });
 
   it('filters the rail by a free-text search over title and detail', async () => {

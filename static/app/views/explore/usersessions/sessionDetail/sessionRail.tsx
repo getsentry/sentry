@@ -1,8 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
+import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -16,11 +18,13 @@ import {t, tn} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getLogSeverityLevel, SeverityLevel} from 'sentry/views/explore/logs/utils';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
 import {getTraceLink, ROW_CONFIG} from './rowConfig';
 import {formatDurationMs, formatOffset} from './sessionTime';
+import {TelemetryTypeIcon} from './telemetryTypeIcon';
 import type {
   SessionEvent,
   SessionRange,
@@ -33,21 +37,29 @@ const DATASET_BY_KEY = Object.fromEntries(
 ) as Record<SessionDatasetKey, (typeof SESSION_DATASETS)[number]>;
 
 /**
- * Shortest run of nothing that is worth collapsing, and the fraction of the
- * session a gap has to reach to count as one.
- *
- * A fixed threshold cannot serve both a four-second session and a four-hour one:
- * five seconds is most of the first and noise in the second. Scaling with the
- * session keeps roughly the same handful of breaks either way.
+ * How a row is colored: `muted` unless it is carrying something worth
+ * interrupting for.
  */
-const MIN_QUIET_MS = 2000;
-const QUIET_FRACTION = 1 / 50;
+type SeverityVariant = 'danger' | 'warning' | 'muted';
+
+/**
+ * Log levels worth a color, and which one. Everything quieter stays muted, so red
+ * in the rail keeps meaning "something went wrong" rather than "this row is a
+ * log" — and a fatal log stops looking like a trace-level one, which is what
+ * happens when a whole dataset takes a single hue.
+ *
+ * The variants match the logs explorer's own severity colors, so a level reads
+ * the same here as it does there.
+ */
+const LOUD_LOG_LEVELS: Partial<Record<SeverityLevel, SeverityVariant>> = {
+  [SeverityLevel.FATAL]: 'danger',
+  [SeverityLevel.ERROR]: 'danger',
+  [SeverityLevel.WARN]: 'warning',
+};
 
 interface Props {
   /** Session extent, which every offset is measured from. */
   bounds: SessionRange | undefined;
-  /** Whether runs of nothing collapse into a single break. */
-  collapseQuiet: boolean;
   dateParams: Record<string, any>;
   isError: boolean;
   /** True when a filter is hiding rows, which changes what an empty rail means. */
@@ -78,19 +90,44 @@ function groupKey(group: SessionTraceGroup): string {
 }
 
 /**
- * The session read top to bottom: one row per telemetry item, offsets relative to
- * the session start, and a colored dot per type on a continuous spine.
+ * How bad a row is, which is the only thing the rail spends color on. The type is
+ * said by the row's icon instead, which leaves severity a hue of its own: on a
+ * screen of muted rows, the red ones are the answer to "what happened here".
  *
- * Two things separate this from the flat table it replaces. Dead time is drawn as
- * dead time — a run of nothing collapses into one labelled break, so scroll
- * distance tracks activity instead of row count. And duration is only drawn where
- * it exists: spans and trace runs get a bar, while logs, metrics and errors are
+ * Errors are always danger — an error event is a problem whatever its `level`
+ * says. Spans and metrics have no severity to report, and logs carry theirs in a
+ * field.
+ */
+function severityVariant(event: SessionEvent): SeverityVariant {
+  if (event.key === 'errors') {
+    return 'danger';
+  }
+  if (event.key !== 'logs') {
+    return 'muted';
+  }
+  const severity = typeof event.row.severity === 'string' ? event.row.severity : null;
+  return LOUD_LOG_LEVELS[getLogSeverityLevel(null, severity)] ?? 'muted';
+}
+
+/** The shape color for a variant: `graphics` for drawn things, not for text. */
+function graphicsColor(variant: SeverityVariant, theme: Theme): string {
+  return theme.tokens.graphics[variant === 'muted' ? 'neutral' : variant].vibrant;
+}
+
+/**
+ * The session read top to bottom: one row per telemetry item, offsets relative to
+ * the session start, and the item's own icon on a continuous spine.
+ *
+ * Two things separate this from the flat table it replaces. Type and severity are
+ * split across two channels — the icon says which lane above a row came from, the
+ * color says whether it is worth stopping at — so a wall of rows can be scanned
+ * for trouble rather than read in order. And duration is only drawn where it
+ * exists: spans and trace runs get a bar, while logs, metrics and errors are
  * instants and get none.
  */
 export function SessionRail({
   items,
   bounds,
-  collapseQuiet,
   isFiltered,
   isWindowed,
   isPending,
@@ -108,10 +145,6 @@ export function SessionRail({
       return next;
     });
   }
-
-  const quietThreshold = bounds
-    ? Math.max(MIN_QUIET_MS, (bounds.end - bounds.start) * QUIET_FRACTION)
-    : MIN_QUIET_MS;
 
   // The bar is scaled to the longest thing on screen, so it compares items with
   // each other rather than against the session, where a 40ms span would be
@@ -156,30 +189,15 @@ export function SessionRail({
   return (
     <Rail>
       {items.map((item, index) => {
-        const {timestamp} = positionOf(item);
-        const previous = index === 0 ? undefined : positionOf(items[index - 1]!);
-        // Signless: the same break reads as quiet time whichever way the rail is
-        // sorted.
-        const quiet =
-          previous?.timestamp === undefined || timestamp === undefined
-            ? 0
-            : Math.abs(timestamp - previous.timestamp);
-        const gap =
-          collapseQuiet && quiet >= quietThreshold ? (
-            <QuietBreak key={`quiet-${index}`} duration={quiet} />
-          ) : null;
-
         if (item.kind === 'event') {
           return (
-            <Fragment key={`event-${index}`}>
-              {gap}
-              <EventRow
-                event={item.event}
-                bounds={bounds}
-                dateParams={dateParams}
-                maxDuration={maxDuration}
-              />
-            </Fragment>
+            <EventRow
+              key={`event-${index}`}
+              event={item.event}
+              bounds={bounds}
+              dateParams={dateParams}
+              maxDuration={maxDuration}
+            />
           );
         }
 
@@ -187,7 +205,6 @@ export function SessionRail({
         const isExpanded = expanded.has(key);
         return (
           <Fragment key={`trace-${index}`}>
-            {gap}
             <TraceRow
               group={item.group}
               bounds={bounds}
@@ -215,8 +232,9 @@ export function SessionRail({
 
 /**
  * A run of same-trace spans. It links to the trace rather than to any single
- * span, and takes the chevron in place of a dot — the spine stays one column
- * wide, so every title still starts at the same edge.
+ * span, and its disclosure sits at the far end of the row — as far from that link
+ * as the row goes, since the two do very different things and a 20px miss between
+ * them used to cost a page navigation.
  */
 function TraceRow({
   group,
@@ -231,30 +249,32 @@ function TraceRow({
   maxDuration: number | undefined;
   onToggle: () => void;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const leadingSpan = group.spans[0]!;
   const link = getTraceLink(leadingSpan.row, {organization, location});
-  const color = theme.tokens.graphics[DATASET_BY_KEY.spans.graphicsVariant].vibrant;
 
   return (
-    <Row>
+    <Row
+      data-expandable
+      onClick={event => {
+        // The row is a wider target for the chevron rather than a control of its
+        // own: anything inside it that already does something keeps doing it, and
+        // the chevron remains what a screen reader and the keyboard address.
+        if (event.target instanceof Element && event.target.closest('a, button')) {
+          return;
+        }
+        onToggle();
+      }}
+    >
       <Offset timestamp={group.timestamp} bounds={bounds} />
       <Spine>
         <SpineLine />
-        <Chevron
-          type="button"
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? t('Collapse trace') : t('Expand trace')}
-          onClick={onToggle}
-          style={{color}}
-        >
-          <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
-        </Chevron>
+        {/* A trace run is spans, and it takes their marker. */}
+        <Marker type="spans" variant="muted" />
       </Spine>
       <Body
-        color={color}
+        variant="muted"
         kind={t('Trace')}
         title={t('Trace %s', getShortEventId(group.trace))}
         tooltip={group.trace}
@@ -264,6 +284,16 @@ function TraceRow({
         maxDuration={maxDuration}
       />
       <Meta duration={group.duration} />
+      <ToggleCell>
+        <Button
+          size="zero"
+          variant="transparent"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? t('Collapse trace') : t('Expand trace')}
+          onClick={onToggle}
+          icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />}
+        />
+      </ToggleCell>
     </Row>
   );
 }
@@ -281,7 +311,6 @@ function EventRow({
   maxDuration: number | undefined;
   isNested?: boolean;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const config = DATASET_BY_KEY[event.key];
@@ -290,7 +319,7 @@ function EventRow({
     location,
     dateParams,
   });
-  const color = theme.tokens.graphics[config.graphicsVariant].vibrant;
+  const variant = severityVariant(event);
 
   return (
     <Row>
@@ -298,20 +327,16 @@ function EventRow({
       <Spine>
         <SpineLine />
         {/*
-          Nested spans show no dot: they already sit under their trace's chevron,
-          and a dot would read as a peer of the rows above and below.
+          Nested spans show no marker: they already sit under their trace's, and a
+          second one would read as a peer of the rows above and below.
         */}
-        {!isNested && (
-          <DotWrap>
-            <Dot
-              style={{background: color, color}}
-              data-hollow={event.key === 'metrics'}
-            />
-          </DotWrap>
-        )}
+        {!isNested && <Marker type={event.key} variant={variant} />}
       </Spine>
       <Body
-        color={color}
+        variant={variant}
+        // Only a log's level is worth escalating in text. An error's reads
+        // `error`, which the icon and the label have already said twice.
+        detailVariant={event.key === 'logs' ? variant : 'muted'}
         kind={config.singularLabel}
         title={event.title}
         tooltip={event.title}
@@ -322,7 +347,21 @@ function EventRow({
         isNested={isNested}
       />
       <Meta duration={event.duration} />
+      <ToggleCell />
     </Row>
+  );
+}
+
+/**
+ * The row's marker: the lane icon for its type, in the color of its severity.
+ * Paints the row's own background behind itself, so the spine reads as passing
+ * behind the icon instead of through it.
+ */
+function Marker({type, variant}: {type: SessionDatasetKey; variant: SeverityVariant}) {
+  return (
+    <MarkerWrap>
+      <TelemetryTypeIcon type={type} size="sm" variant={variant} />
+    </MarkerWrap>
   );
 }
 
@@ -363,7 +402,8 @@ function Offset({
 }
 
 function Body({
-  color,
+  variant,
+  detailVariant = 'muted',
   kind,
   title,
   tooltip,
@@ -373,16 +413,19 @@ function Body({
   maxDuration,
   isNested,
 }: {
-  color: string;
   kind: string;
   maxDuration: number | undefined;
   title: string;
   tooltip: string;
+  variant: SeverityVariant;
   detail?: string;
+  detailVariant?: SeverityVariant;
   duration?: number;
   isNested?: boolean;
   link?: LocationDescriptor;
 }) {
+  const theme = useTheme();
+
   return (
     <BodyCell data-nested={isNested}>
       {link ? (
@@ -400,9 +443,11 @@ function Body({
         </Text>
       )}
       <Flex align="center" gap="xs" minWidth="0">
-        <KindLabel style={{color}}>{kind}</KindLabel>
+        <KindLabel size="xs" variant={variant}>
+          {kind}
+        </KindLabel>
         {detail && (
-          <Text size="xs" variant="muted" ellipsis>
+          <Text size="xs" variant={detailVariant} ellipsis>
             {detail}
           </Text>
         )}
@@ -412,7 +457,7 @@ function Body({
           <span
             style={{
               width: `${Math.max(2, (duration / maxDuration) * 100)}%`,
-              background: color,
+              background: graphicsColor(variant, theme),
             }}
           />
         </DurationBar>
@@ -433,30 +478,6 @@ function Meta({duration}: {duration: number | undefined}) {
   );
 }
 
-/**
- * A run of nothing, drawn as a run of nothing. This is the point of the rail: in
- * a table, ninety idle seconds and two back-to-back spans look identical, and the
- * idle stretch is often the more informative of the two.
- */
-function QuietBreak({duration}: {duration: number}) {
-  return (
-    // A separator rather than a list item: nothing happened here, so it is a
-    // break between items rather than one of them.
-    <Row role="separator">
-      <OffsetCell />
-      <Spine>
-        <SpineLine data-dashed />
-      </Spine>
-      <QuietCell>
-        <Text size="xs" variant="muted" tabular>
-          {t('%s quiet', formatDurationMs(duration))}
-        </Text>
-        <QuietRule />
-      </QuietCell>
-    </Row>
-  );
-}
-
 const Status = styled('div')`
   display: flex;
   align-items: center;
@@ -472,12 +493,18 @@ const Rail = styled('ul')`
   list-style: none;
 `;
 
+/**
+ * The offset column is sized to the widest thing it holds — `0:00.00` and its
+ * hour-long form — rather than to a round number, and the row's own padding stays
+ * narrow. Between them they used to open a gap wide enough to read as a margin,
+ * which pushed the whole rail away from the panel edge it belongs against.
+ */
 const Row = styled('li')`
   display: grid;
-  grid-template-columns: 72px 20px minmax(0, 1fr) auto;
+  grid-template-columns: 48px 20px minmax(0, 1fr) auto 24px;
   column-gap: ${p => p.theme.space.md};
   align-items: stretch;
-  padding: 0 ${p => p.theme.space.xl};
+  padding: 0 ${p => p.theme.space.lg};
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
@@ -487,9 +514,9 @@ const Row = styled('li')`
     text-decoration: underline;
   }
 
-  /* A quiet break is not a row you can act on, so it does not respond like one. */
-  &[role='separator']:hover {
-    background: none;
+  /* A row that expands where you click it has to look like it does. */
+  &[data-expandable] {
+    cursor: pointer;
   }
 `;
 
@@ -502,7 +529,7 @@ const OffsetCell = styled('div')`
 /**
  * The spine: one continuous hairline down the rail with the row's marker on top
  * of it. The line lives in the row rather than in the container so it cannot
- * drift out of alignment with the dots.
+ * drift out of alignment with the markers.
  */
 const Spine = styled('div')`
   position: relative;
@@ -517,58 +544,28 @@ const SpineLine = styled('div')`
   left: 50%;
   margin-left: -0.5px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
-
-  &[data-dashed] {
-    border-left-style: dashed;
-  }
 `;
 
-/**
- * Paints the row's own background behind the marker, so the spine reads as
- * passing behind the dot instead of through it.
- */
-const DotWrap = styled('div')`
+const MarkerWrap = styled('div')`
   position: relative;
-  margin-top: 6px;
-  padding: 3px;
-  border-radius: 50%;
-  background: ${p => p.theme.tokens.background.primary};
-
-  ${Row}:hover & {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
-const Dot = styled('div')`
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-
-  /* Metrics read as measurements rather than events, so their marker is open. */
-  &[data-hollow='true'] {
-    box-shadow: inset 0 0 0 2px currentColor;
-    background: transparent !important;
-  }
-`;
-
-const Chevron = styled('button')`
-  position: relative;
-  margin-top: 4px;
-  width: 20px;
-  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: ${p => p.theme.radius.xs};
-  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  margin-top: ${p => p.theme.space['2xs']};
   background: ${p => p.theme.tokens.background.primary};
 
   ${Row}:hover & {
     background: ${p => p.theme.tokens.background.secondary};
   }
+`;
+
+const ToggleCell = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: ${p => p.theme.space['2xs']} 0;
 `;
 
 const BodyCell = styled('div')`
@@ -583,8 +580,7 @@ const BodyCell = styled('div')`
   }
 `;
 
-const KindLabel = styled('span')`
-  font-size: ${p => p.theme.font.size.xs};
+const KindLabel = styled(Text)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -614,24 +610,6 @@ const MetaCell = styled('div')`
   align-items: flex-start;
   padding: ${p => p.theme.space.xs} 0;
   white-space: nowrap;
-`;
-
-const QuietCell = styled('div')`
-  grid-column: 3 / -1;
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.xs} 0;
-`;
-
-const QuietRule = styled('div')`
-  flex: 1;
-  height: 1px;
-  background: repeating-linear-gradient(
-    to right,
-    ${p => p.theme.tokens.graphics.neutral.muted} 0 3px,
-    transparent 3px 7px
-  );
 `;
 
 /**

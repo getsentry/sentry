@@ -162,7 +162,7 @@ export interface TimelineFilters {
  *
  * Filtering happens client-side, over the rows already fetched for the timeline.
  * The per-dataset queries are capped either way, so narrowing them server-side
- * would not surface more rows — and the counts above the timeline stay exact.
+ * would not surface more rows — and the scrubber's lane counts stay exact.
  */
 function useTimelineFilters(): TimelineFilters {
   const location = useLocation();

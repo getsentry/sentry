@@ -7,13 +7,14 @@ import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconFire, IconGraph, IconList, IconSpan} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
 import {formatOffset} from './sessionTime';
+import {TelemetryTypeIcon} from './telemetryTypeIcon';
 import type {SessionRange} from './useSessionDetail';
 
 /**
@@ -23,18 +24,6 @@ import type {SessionRange} from './useSessionDetail';
 const LANE_ORDER: SessionDatasetKey[] = ['errors', 'spans', 'logs', 'metrics'];
 
 const LANES = LANE_ORDER.map(key => SESSION_DATASETS.find(config => config.key === key)!);
-
-/**
- * A glyph per type, so a lane is identified before its label is read. The rail
- * below is scanned by color; up here color alone has to survive four lanes of it,
- * and a shape does that better than a swatch.
- */
-const LANE_ICONS: Record<SessionDatasetKey, React.ReactNode> = {
-  errors: <IconFire size="sm" />,
-  spans: <IconSpan size="sm" />,
-  logs: <IconList size="sm" />,
-  metrics: <IconGraph type="line" size="sm" />,
-};
 
 const HEADER_HEIGHT = 28;
 const LANE_HEIGHT = 40;
@@ -63,6 +52,16 @@ const MIN_DRAG_PX = 4;
 
 interface Props {
   bounds: SessionRange;
+  /**
+   * Exact per-type totals for the whole session. These come from the aggregates
+   * rather than from the plotted timestamps, so a capped lane's label still
+   * reports everything the session holds — which is what the truncation marker
+   * beside it is for.
+   *
+   * Only used while the whole session is in view. Narrow to a window and the
+   * labels count that window's markers instead; see {@link useLaneCounts}.
+   */
+  counts: Record<SessionDatasetKey, number>;
   onChangeWindow: (window: SessionRange | null) => void;
   onToggleType: (key: SessionDatasetKey) => void;
   /** Telemetry types currently shown. A type that is off dims its lane. */
@@ -83,6 +82,7 @@ interface Props {
  */
 export function SessionScrubber({
   bounds,
+  counts,
   timestampsByType,
   truncatedByType,
   selectedTypes,
@@ -105,6 +105,7 @@ export function SessionScrubber({
   const active = draft ?? window;
   const domain = bounds.end - bounds.start;
   const enabled = useMemo(() => new Set(selectedTypes), [selectedTypes]);
+  const laneCounts = useLaneCounts(counts, timestampsByType, active);
 
   const buckets =
     width > 0
@@ -255,24 +256,56 @@ export function SessionScrubber({
                 data-last={isLast}
                 style={{gridRow: String(row)}}
               >
+                {/*
+                  A glyph per lane, so a lane is identified before its label is
+                  read — and the same glyph the rail marks this type's rows with,
+                  which is what ties a row back to the lane it came from.
+                */}
                 <LaneIcon style={{color, opacity: isOn ? 1 : 0.4}}>
-                  {LANE_ICONS[config.key]}
+                  <TelemetryTypeIcon type={config.key} size="sm" />
                 </LaneIcon>
                 <Text size="sm" variant={isOn ? 'primary' : 'muted'}>
                   {config.label}
                 </Text>
-                {truncatedByType[config.key] && (
-                  <InfoText
-                    size="xs"
-                    variant="warning"
-                    title={tct(
-                      'Only the [limit] most recent items are plotted, so this lane is partial.',
-                      {limit: config.maxRows}
-                    )}
+                {/*
+                  The count belongs beside the shape it summarizes rather than in a
+                  row of tiles of its own: "83 spans" and where those 83 fell in the
+                  session are one thought, and the label column already carries this
+                  type's color and its toggle.
+                */}
+                <Flex flex="1" />
+                <Flex align="baseline" gap="2xs">
+                  <Text
+                    size="sm"
+                    tabular
+                    variant={isOn && laneCounts[config.key] > 0 ? 'primary' : 'muted'}
                   >
-                    {'*'}
-                  </InfoText>
-                )}
+                    {formatAbbreviatedNumber(laneCounts[config.key])}
+                  </Text>
+                  {/*
+                    A footnote on the count, which is what it qualifies — and what
+                    it qualifies differs by which count is showing.
+                  */}
+                  {truncatedByType[config.key] && (
+                    <InfoText
+                      size="xs"
+                      variant="warning"
+                      title={
+                        active
+                          ? tct(
+                              'This lane plots only the [limit] most recent items, so a count taken from a window can fall short.',
+                              {limit: config.maxRows}
+                            )
+                          : tct(
+                              'Only the [limit] most recent of these are plotted, so this lane is partial.',
+                              {limit: config.maxRows}
+                            )
+                      }
+                    >
+                      {'*'}
+                    </InfoText>
+                  )}
+                </Flex>
               </LaneToggle>
               <Lane
                 color={color}
@@ -338,6 +371,37 @@ export function SessionScrubber({
       </Flex>
     </Stack>
   );
+}
+
+/**
+ * What each lane label reports: the session's exact totals while the whole
+ * session is in view, and the markers inside the window once one is selected.
+ *
+ * A count that ignored the window would contradict the lane beside it — the veil
+ * makes it plain that most of those items are no longer in view. Counting the
+ * plotted timestamps is the only way to scope it, which costs the exactness the
+ * aggregates have: a lane capped at `maxRows` undercounts here, and says so
+ * through the marker already beside its count.
+ *
+ * Runs against the draft as well as the committed window, so the numbers move
+ * with the drag rather than snapping on release.
+ */
+function useLaneCounts(
+  counts: Record<SessionDatasetKey, number>,
+  timestampsByType: Record<SessionDatasetKey, number[]>,
+  active: SessionRange | null
+): Record<SessionDatasetKey, number> {
+  return useMemo(() => {
+    if (!active) {
+      return counts;
+    }
+    return Object.fromEntries(
+      LANE_ORDER.map(key => [
+        key,
+        timestampsByType[key].filter(at => at >= active.start && at <= active.end).length,
+      ])
+    ) as Record<SessionDatasetKey, number>;
+  }, [counts, timestampsByType, active]);
 }
 
 /**

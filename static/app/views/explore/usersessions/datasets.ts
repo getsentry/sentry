@@ -1,7 +1,7 @@
 import {SESSION_ID} from '@sentry/conventions/attributes';
 
 import {t} from 'sentry/locale';
-import type {GraphicsVariant, TagVariant} from 'sentry/utils/theme';
+import type {GraphicsVariant} from 'sentry/utils/theme';
 
 export type SessionDatasetKey = 'logs' | 'metrics' | 'spans' | 'errors';
 
@@ -13,13 +13,18 @@ export interface SessionDataset {
   /** Aggregate returning the earliest event in the group. */
   firstSeenField: string;
   /**
-   * Shape color for this type: the rail's dots and the scrubber's density bars.
-   * Paired with `tagVariant` so a type keeps one hue whether it is drawn or
-   * labelled. `graphics` has no `info`, so logs take `accent` — the same blue.
+   * Lane color for this type in the scrubber: its label icon and its density
+   * bars. `graphics` has no `info`, so logs take `accent` — the same blue.
+   *
+   * Only the scrubber sorts by type, so only the scrubber colors by it. The rail
+   * below colors a row by severity instead and says the type with
+   * `TelemetryTypeIcon`, which is also why spans are neutral here: with four
+   * lanes stacked, the pink they used to carry sat one lane from the red for
+   * errors, and at marker size the two were the same color.
    */
   graphicsVariant: GraphicsVariant;
   key: SessionDatasetKey;
-  /** Plural, for count columns and stat tiles. */
+  /** Plural, for count columns and the scrubber's lane labels. */
   label: string;
   /** Aggregate returning the latest event in the group. */
   lastSeenField: string;
@@ -34,11 +39,6 @@ export interface SessionDataset {
   pageSize: number;
   /** Singular, for labelling one item in the session timeline. */
   singularLabel: string;
-  /**
-   * Tag color for this type in the timeline. One hue per telemetry type so a
-   * long timeline can be scanned by color instead of read row by row.
-   */
-  tagVariant: TagVariant;
   /** Converts this dataset's raw timestamp representation into epoch ms. */
   toEpochMs: (value: unknown) => number | undefined;
 }
@@ -86,7 +86,6 @@ export const SESSION_DATASETS: SessionDataset[] = [
     key: 'logs',
     label: t('Logs'),
     singularLabel: t('Log'),
-    tagVariant: 'info',
     graphicsVariant: 'accent',
     dataset: 'logs',
     countField: 'count()',
@@ -100,7 +99,6 @@ export const SESSION_DATASETS: SessionDataset[] = [
     key: 'metrics',
     label: t('Metrics'),
     singularLabel: t('Metric'),
-    tagVariant: 'success',
     graphicsVariant: 'success',
     dataset: 'tracemetrics',
     countField: `count(${SESSION_ID})`,
@@ -114,8 +112,7 @@ export const SESSION_DATASETS: SessionDataset[] = [
     key: 'spans',
     label: t('Spans'),
     singularLabel: t('Span'),
-    tagVariant: 'promotion',
-    graphicsVariant: 'promotion',
+    graphicsVariant: 'neutral',
     dataset: 'spans',
     countField: 'count()',
     firstSeenField: 'min(precise.start_ts)',
@@ -128,7 +125,6 @@ export const SESSION_DATASETS: SessionDataset[] = [
     key: 'errors',
     label: t('Errors'),
     singularLabel: t('Error'),
-    tagVariant: 'danger',
     graphicsVariant: 'danger',
     dataset: 'errors',
     countField: 'count()',

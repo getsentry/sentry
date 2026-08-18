@@ -36,6 +36,13 @@ function SubjectGlyph({name}: {name: SessionName}) {
 
 interface Props {
   name: SessionName;
+  /**
+   * Rendered against the handle, for a control that acts on the id itself — a
+   * copy button, most usefully. It sits inside the badge rather than after it so
+   * its position is set by the handle's width, not by however wide the badge
+   * happens to be.
+   */
+  action?: React.ReactNode;
   /** Renders the subject as a placeholder while the naming attributes load. */
   isPending?: boolean;
   /** Extra detail appended to the secondary line. */
@@ -50,7 +57,7 @@ interface Props {
  * scan a list by; it is not unique, since one person has many sessions. The
  * handle is unique and is what you paste into a ticket, but it says nothing.
  */
-export function SessionBadge({name, isPending, trailing}: Props) {
+export function SessionBadge({name, isPending, action, trailing}: Props) {
   return (
     <Grid columns={`${AVATAR_SIZE}px minmax(0, 1fr)`} gap="md" align="center">
       <SubjectGlyph name={name} />
@@ -62,12 +69,19 @@ export function SessionBadge({name, isPending, trailing}: Props) {
             {name.subject}
           </Text>
         )}
-        <Flex gap="xs" align="center">
-          <Text size="sm" variant="muted" monospace>
+        {/*
+          The tokens on this line are short by construction, and `ellipsis` sets
+          `width: 100%` — two of them side by side would each claim the whole line
+          and leave a gap between them rather than truncating. The line clips as a
+          whole instead, which the grid column above already bounds.
+        */}
+        <Flex gap="xs" align="center" minWidth="0" overflow="hidden">
+          <Text size="sm" variant="muted" monospace wrap="nowrap">
             {name.handle}
           </Text>
+          {action}
           {name.context ? (
-            <Text size="sm" variant="muted" ellipsis>
+            <Text size="sm" variant="muted" wrap="nowrap">
               {name.context}
             </Text>
           ) : null}

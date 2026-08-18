@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -17,7 +17,9 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SessionBadge} from 'sentry/views/explore/usersessions/sessionBadge';
@@ -27,7 +29,6 @@ import {
 } from 'sentry/views/explore/usersessions/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import {SessionCounts} from './sessionCounts';
 import {SessionRail} from './sessionRail';
 import {SessionScrubber} from './sessionScrubber';
 import {TimelineFilters} from './timelineFilters';
@@ -56,10 +57,6 @@ export default function SessionDetailView() {
     setWindow,
   } = useSessionDetail(sessionId);
 
-  // A view preference, not a filter: it changes how the rail is drawn, not which
-  // items it contains, so it stays out of the URL alongside the rest.
-  const [collapseQuiet, setCollapseQuiet] = useState(true);
-
   const toggleType = useCallback(
     (key: (typeof filters.types)[number]) => {
       const next = filters.types.includes(key)
@@ -80,6 +77,7 @@ export default function SessionDetailView() {
   ) : bounds ? (
     <SessionScrubber
       bounds={bounds}
+      counts={counts}
       timestampsByType={timestampsByType}
       truncatedByType={truncatedByType}
       selectedTypes={filters.types}
@@ -118,38 +116,55 @@ export default function SessionDetailView() {
                     <DatePageFilter />
                   </StyledPageFilterBar>
 
-                  <Flex align="center" gap="sm">
+                  <Flex align="center" gap="md">
+                    {/* The handle names the session; the full id is what other tools
+                        take, so it stays one click away, against the handle. */}
                     <SessionBadge
                       name={name}
                       isPending={isPending}
+                      action={
+                        <CopyToClipboardButton
+                          text={sessionId}
+                          size="zero"
+                          variant="transparent"
+                          aria-label={t('Copy session ID')}
+                        />
+                      }
                       trailing={
                         name.release ? (
-                          <Text size="sm" variant="muted" ellipsis>
-                            {name.release}
+                          // Releases are often raw shas, and nothing reads forty
+                          // characters of one. The short form carries the full
+                          // value in its tooltip.
+                          <Text size="sm" variant="muted" wrap="nowrap">
+                            <Version
+                              version={name.release}
+                              anchor={false}
+                              tooltipRawVersion
+                            />
                           </Text>
                         ) : null
                       }
                     />
-                    {/* The handle names the session; the full id is what other
-                        tools take, so it stays one click away. */}
-                    <CopyToClipboardButton
-                      text={sessionId}
-                      size="zero"
-                      variant="transparent"
-                      aria-label={t('Copy session ID')}
-                    />
+                    <Flex flex="1" />
+                    {/* The scrubber's lane counts are the breakdown, and they scope
+                        to whatever window is selected. This one stays the whole
+                        session's size — the denominator those lanes read against. */}
+                    <CountPill radius="full" padding="sm xl">
+                      <Flex align="baseline" gap="xs">
+                        <Text size="sm" variant="muted">
+                          {t('Items')}
+                        </Text>
+                        <Text size="sm" bold tabular>
+                          {isPending ? '—' : formatAbbreviatedNumber(totalEvents)}
+                        </Text>
+                      </Flex>
+                    </CountPill>
                   </Flex>
-
-                  <SessionCounts
-                    counts={counts}
-                    totalEvents={totalEvents}
-                    isPending={isPending}
-                  />
 
                   {isTruncated && (
                     <Alert variant="info">
                       {t(
-                        'This timeline caps how many items it loads per telemetry type, so it may be incomplete. The counts above are exact.'
+                        'This timeline caps how many items it loads per telemetry type, so it may be incomplete. The lane counts are exact for the whole session.'
                       )}
                     </Alert>
                   )}
@@ -166,14 +181,11 @@ export default function SessionDetailView() {
                       filters={filters}
                       sortDirection={sortDirection}
                       onToggleSort={toggleSort}
-                      collapseQuiet={collapseQuiet}
-                      onToggleCollapseQuiet={setCollapseQuiet}
                     />
                     <Separator orientation="horizontal" border="primary" />
                     <SessionRail
                       items={items}
                       bounds={bounds}
-                      collapseQuiet={collapseQuiet}
                       isFiltered={isFiltered}
                       isWindowed={window !== null}
                       isPending={isPending}
@@ -197,4 +209,15 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 
 const Panel = styled(Container)`
   overflow: hidden;
+`;
+
+/**
+ * The embossed tokens the design system's own pills are built from. Reaching for
+ * them directly rather than for `Chip`, which carries the border and the drop
+ * shadow but also means "search filter token" everywhere else in the app.
+ */
+const CountPill = styled(Container)`
+  border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+  background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
+  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
 `;
