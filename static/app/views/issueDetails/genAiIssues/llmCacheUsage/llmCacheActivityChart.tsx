@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -114,17 +114,27 @@ export function LlmCacheActivityChart({evidenceData}: LlmCacheActivityChartProps
     return null;
   }
 
+  // The visualization throws rather than renders when it has nothing to draw,
+  // and every bucket comes back null once the call site stops reporting -- after
+  // a rename, after retention drops the window, or after the reader ships the
+  // fix. That is an ordinary outcome here, so it gets a sentence, not a crash.
+  const hasSomethingToPlot = plottables.some(plottable => !plottable.isEmpty);
+
   return (
     <Stack gap="md">
-      <div style={{height: 190}}>
+      <Container height="190px">
         {isPending ? (
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         ) : error ? (
           <Text variant="danger">{t('Unable to load cache activity')}</Text>
-        ) : (
+        ) : hasSomethingToPlot ? (
           <TimeSeriesWidgetVisualization plottables={plottables} />
+        ) : (
+          <Text variant="muted">
+            {t('No cache activity recorded for this call site in this period.')}
+          </Text>
         )}
-      </div>
+      </Container>
       <Text size="sm" variant="muted">
         {t(
           'Live data for this call site. It may differ slightly from the numbers captured when this issue was detected.'

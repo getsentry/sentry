@@ -31,6 +31,14 @@ export function useCallSitePageFilters(
       return;
     }
     start.setDate(start.getDate() - padDays);
+    // Padded forward as well as back, so the range can reach past detection and
+    // show whether a fix took. Clamped to now because a range ending in the
+    // future would draw a run of empty buckets after the real data.
+    end.setDate(end.getDate() + padDays);
+    const now = new Date();
+    if (end > now) {
+      end.setTime(now.getTime());
+    }
 
     return {
       ...selection,

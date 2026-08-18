@@ -25,7 +25,7 @@ const evidence: LlmCacheEvidenceData = {
   anchor: null,
 };
 
-function series(yAxis: string, values: number[]) {
+function series(yAxis: string, values: Array<number | null>) {
   return {
     yAxis,
     values: values.map((value, index) => ({
@@ -64,6 +64,46 @@ describe('LlmCacheActivityChart', () => {
         }),
       })
     );
+  });
+
+  it('says so when the call site reported nothing in the period', async () => {
+    // The backend emits null, not 0, for empty buckets. A call site that was
+    // renamed, fixed, or has aged past retention comes back entirely null --
+    // and the visualization throws rather than renders when it has nothing to
+    // draw, which would blank the section behind an error boundary.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          series('sum(gen_ai.usage.input_tokens)', [null, null]),
+          series('sum(gen_ai.usage.cache_read.input_tokens)', [null, null]),
+          series('sum(gen_ai.usage.cache_creation.input_tokens)', [null, null]),
+        ],
+      },
+    });
+
+    render(<LlmCacheActivityChart evidenceData={evidence} />);
+
+    expect(
+      await screen.findByText(
+        'No cache activity recorded for this call site in this period.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('says so when the response carries no series at all', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+
+    render(<LlmCacheActivityChart evidenceData={evidence} />);
+
+    expect(
+      await screen.findByText(
+        'No cache activity recorded for this call site in this period.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders nothing when the occurrence predates the emitted window', () => {
