@@ -56,14 +56,12 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 interface Props extends ModalRenderProps {
   title: string;
-  defaultProject?: Project;
 }
 
 export function ProjectAddRepoModal({
   Header,
   Body,
   Footer,
-  defaultProject,
   title,
   closeModal,
 }: Props) {
@@ -112,7 +110,7 @@ export function ProjectAddRepoModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      project: defaultProject?.id ?? '',
+      project: '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
@@ -219,7 +217,6 @@ export function ProjectAddRepoModal({
                             </OverlayTrigger.Button>
                           );
                         }}
-                        disabled={Boolean(defaultProject)}
                         emptyMessage={t('No projects found')}
                         onChange={option => field.handleChange(option?.value ?? '')}
                         options={projectOptions}

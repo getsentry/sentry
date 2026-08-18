@@ -95,12 +95,10 @@ type HoverHeaderProps = {
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
-  hideCopy?: boolean;
 };
 
 function HoverHeader({
   title,
-  hideCopy = false,
   copyLabel,
   copyContent,
   organization,
@@ -111,7 +109,7 @@ function HoverHeader({
       <Flex flex="1" align="center" justify="end" gap="xs">
         {copyLabel}
 
-        {!hideCopy && copyContent && (
+        {copyContent && (
           <CopyToClipboardButton
             variant="transparent"
             aria-label={t('Copy to clipboard')}

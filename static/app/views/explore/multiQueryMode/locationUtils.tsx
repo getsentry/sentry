@@ -315,7 +315,6 @@ type CompareRouteProps = {
   mode: Mode;
   organization: Organization;
   queries: WritableExploreQueryParts[];
-  referrer?: string;
 };
 
 export function generateExploreCompareRoute({
@@ -323,7 +322,6 @@ export function generateExploreCompareRoute({
   location,
   mode,
   queries,
-  referrer,
 }: CompareRouteProps): LocationDescriptorObject {
   const url = getCompareBaseUrl(organization);
   const compareQueries = queries.map(query => ({
@@ -346,10 +344,6 @@ export function generateExploreCompareRoute({
     [URL_PARAM.ENVIRONMENT]: location.query.environment,
     queries: getQueriesAsUrlParam(compareQueries),
   };
-
-  if (referrer) {
-    query.referrer = referrer;
-  }
 
   return {
     pathname: url,

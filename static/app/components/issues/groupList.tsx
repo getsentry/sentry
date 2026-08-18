@@ -70,7 +70,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -133,7 +132,6 @@ export function GroupList({
   onFetchSuccess,
   renderEmptyMessage,
   renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -391,7 +389,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

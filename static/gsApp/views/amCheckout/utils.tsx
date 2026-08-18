@@ -191,10 +191,6 @@ type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
   addOns?: CheckoutAddOns;
-  amount?: number;
-  creditCategory?: InvoiceItemType;
-  discountType?: string;
-  maxDiscount?: number;
 };
 
 /**
@@ -226,22 +222,9 @@ function getReservedPriceForReservedBudgetCategory({
 export function getReservedPriceCents({
   plan,
   reserved,
-  amount,
-  discountType,
-  maxDiscount,
-  creditCategory,
   addOns,
 }: ReservedTotalProps): number {
   let reservedCents = plan.basePrice;
-
-  if (amount && discountType && creditCategory) {
-    reservedCents = getDiscountedPrice({
-      basePrice: reservedCents,
-      amount,
-      discountType,
-      creditCategory,
-    });
-  }
 
   Object.entries(reserved).forEach(
     ([category, quantity]) =>
@@ -259,11 +242,6 @@ export function getReservedPriceCents({
       });
     }
   });
-
-  if (amount && maxDiscount) {
-    const discount = Math.min(maxDiscount, (reservedCents * amount) / 10000);
-    reservedCents -= discount;
-  }
 
   return reservedCents;
 }

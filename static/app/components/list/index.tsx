@@ -10,7 +10,6 @@ type Props = {
   children: ListItemChild | ListItemChild[];
   className?: string;
   'data-test-id'?: string;
-  initialCounterValue?: number;
   symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
@@ -19,7 +18,6 @@ export const List = styled(
     children,
     className,
     symbol,
-    initialCounterValue: _initialCounterValue,
     ...props
   }: Props) => {
     const getWrapperComponent = () => {
@@ -54,5 +52,5 @@ export const List = styled(
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&
-    getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
+    getListSymbolStyle(p.theme, p.symbol)}
 `;

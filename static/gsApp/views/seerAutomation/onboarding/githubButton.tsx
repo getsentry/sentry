@@ -3,7 +3,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -12,16 +11,11 @@ import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 interface GithubButtonProps {
   analyticsView: 'seer_onboarding_github' | 'seer_onboarding_code_review';
   onAddIntegration: () => void;
-  buttonProps?: Pick<
-    React.ComponentProps<typeof AddIntegrationButton>,
-    'size' | 'variant' | 'disabled' | 'style' | 'data-test-id' | 'icon' | 'buttonText'
-  >;
 }
 
 export function GithubButton({
   onAddIntegration,
   analyticsView,
-  buttonProps,
 }: GithubButtonProps) {
   const {provider, isProviderPending, installationData, isInstallationPending} =
     useSeerOnboardingContext();
@@ -55,15 +49,13 @@ export function GithubButton({
             userHasAccess={hasAccess}
             onAddIntegration={onAddIntegration}
             onExternalClick={() => {}}
-            buttonProps={
-              buttonProps ?? {
-                icon: githubInstallation ? <IconSettings /> : <IconAdd />,
-                buttonText: githubInstallation
-                  ? t('Manage GitHub Integration')
-                  : t('Connect GitHub'),
-                variant: 'primary',
-              }
-            }
+            buttonProps={{
+              icon: githubInstallation ? <IconSettings /> : <IconAdd />,
+              buttonText: githubInstallation
+                ? t('Manage GitHub Integration')
+                : t('Connect GitHub'),
+              variant: 'primary',
+            }}
           />
         )}
       </Access>

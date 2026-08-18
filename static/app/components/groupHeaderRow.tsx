@@ -23,8 +23,6 @@ import {EventTitleError} from './eventTitleError';
 interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
-  hideIcons?: boolean;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }
@@ -69,8 +67,6 @@ function usePreloadGroupOnHover({
 export function GroupHeaderRow({
   data,
   query,
-  onClick,
-  hideIcons,
   eventId,
   source,
 }: GroupHeaderRowProps) {
@@ -99,10 +95,9 @@ export function GroupHeaderRow({
           data-test-id={data.status === 'resolved' ? 'resolved-issue' : undefined}
           {...preloadHoverProps}
           to={to}
-          onClick={onClick}
           data-issue-title-link
         >
-          {!hideIcons && data.isBookmarked && (
+          {data.isBookmarked && (
             <IconWrapper>
               <IconStar isSolid variant="warning" />
             </IconWrapper>

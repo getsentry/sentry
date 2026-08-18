@@ -18,7 +18,6 @@ type Props = {
   firstEvent: boolean;
   project: Project;
   stats: ProjectStats | undefined;
-  onBarClick?: (data: {seriesName: string; timestamp: number; value: number}) => void;
   transactionStats?: ProjectStats;
 };
 
@@ -26,7 +25,6 @@ export function ProjectChart({
   firstEvent,
   stats,
   transactionStats,
-  onBarClick,
   project,
 }: Props) {
   const series: BaseChartProps['series'] = [];
@@ -39,14 +37,6 @@ export function ProjectChart({
   if (transactionStats) {
     const transactionSeries = transactionStats.map(([timestamp, value]) => ({
       value: [timestamp * 1000, value],
-      onClick: onBarClick
-        ? () =>
-            onBarClick({
-              timestamp,
-              value,
-              seriesName: 'Transactions',
-            })
-        : undefined,
     }));
 
     series.push({

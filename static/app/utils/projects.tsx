@@ -74,13 +74,6 @@ type RenderProps = {
 >;
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-type DefaultProps = {
-  /**
-   * If slugs is passed, forward placeholder objects with slugs while fetching
-   */
-  passthroughPlaceholderProject?: boolean;
-};
-
 type Props = {
   api: Client;
   children: RenderFunc;
@@ -111,13 +104,9 @@ type Props = {
    * otherwise fetch from API
    */
   slugs?: string[];
-} & DefaultProps;
+};
 
 class BaseProjects extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    passthroughPlaceholderProject: true,
-  };
-
   state: State = {
     fetchedProjects: [],
     projectsFromStore: [],
@@ -254,7 +243,7 @@ class BaseProjects extends Component<Props, State> {
    * These will fetch projects via API (using project slug) provided by `this.fetchQueue`
    */
   fetchSpecificProjects = async () => {
-    const {api, orgId, passthroughPlaceholderProject} = this.props;
+    const {api, orgId} = this.props;
 
     if (!this.fetchQueue.size) {
       return;
@@ -286,9 +275,7 @@ class BaseProjects extends Component<Props, State> {
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)
-          : passthroughPlaceholderProject
-            ? {slug}
-            : null
+          : {slug}
       )
       .filter(defined);
 

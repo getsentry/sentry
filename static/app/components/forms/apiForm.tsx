@@ -10,7 +10,6 @@ import {useApi} from 'sentry/utils/useApi';
 type Props = FormProps & {
   apiEndpoint: string;
   apiMethod: string;
-  hostOverride?: string;
   onSubmit?: (data: Record<string, any>) => any | void;
 };
 
@@ -24,7 +23,6 @@ export function ApiForm({
   onSubmit,
   apiMethod,
   apiEndpoint,
-  hostOverride,
   ...otherProps
 }: Props) {
   const api = useApi();
@@ -43,10 +41,6 @@ export function ApiForm({
         data: transformed ?? data,
       };
 
-      if (hostOverride) {
-        requestOptions.host = hostOverride;
-      }
-
       try {
         const response = await api.requestPromise(apiEndpoint, requestOptions);
         clearIndicators();
@@ -56,7 +50,7 @@ export function ApiForm({
         onError(error);
       }
     },
-    [api, onSubmit, apiMethod, apiEndpoint, hostOverride]
+    [api, onSubmit, apiMethod, apiEndpoint]
   );
 
   return <Form onSubmit={handleSubmit} {...otherProps} />;

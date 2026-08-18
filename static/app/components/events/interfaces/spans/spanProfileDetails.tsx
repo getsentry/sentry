@@ -44,7 +44,6 @@ export interface SpanProfileDetailsProps {
     start_timestamp: number;
     thread_id?: string;
   }>;
-  onNoProfileFound?: () => void;
 }
 
 export function useSpanProfileDetails(
@@ -209,7 +208,6 @@ export function useSpanProfileDetails(
 export function SpanProfileDetails({
   event,
   span,
-  onNoProfileFound,
 }: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -232,9 +230,6 @@ export function SpanProfileDetails({
   }
 
   if (!frames.length) {
-    if (onNoProfileFound) {
-      onNoProfileFound();
-    }
     return null;
   }
 

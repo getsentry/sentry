@@ -25,10 +25,6 @@ const LEFT_PANEL_WIDTH = 400;
 const RIGHT_PANEL_WIDTH = 500;
 const DRAWER_WIDTH = LEFT_PANEL_WIDTH + RIGHT_PANEL_WIDTH;
 
-interface UseTraceViewDrawerProps {
-  onClose?: () => void;
-}
-
 const TraceViewDrawer = memo(function TraceViewDrawerImpl({
   traceSlug,
   closeDrawer,
@@ -99,7 +95,7 @@ const TraceViewDrawer = memo(function TraceViewDrawerImpl({
   );
 });
 
-export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
+export function useTraceViewDrawer() {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, drawerUrlState, closeDrawer} = useUrlTraceDrawer();
 
@@ -119,7 +115,6 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
         ),
         {
           ariaLabel: t('Abbreviated Trace'),
-          onClose,
           shouldCloseOnInteractOutside: () => true,
           drawerWidth: `${DRAWER_WIDTH}px`,
           resizable: true,
@@ -130,7 +125,7 @@ export function useTraceViewDrawer({onClose}: UseTraceViewDrawerProps = {}) {
         }
       );
     },
-    [openDrawer, onClose, closeDrawer, organization]
+    [openDrawer, closeDrawer, organization]
   );
 
   useEffect(() => {
