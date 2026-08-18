@@ -56,6 +56,9 @@ export function SessionSearchBar({attributes, query, onSearch}: Props) {
     initialQuery: query,
     onSearch,
     searchSource: 'explore.usersessions',
+    // Spans rather than traces: a query is matched against individual telemetry
+    // items to *find* sessions, and any span in a trace counts — not just the
+    // segment span the trace's row is drawn from.
     placeholder: t('Search for spans, logs, metrics, errors, users, tags, and more'),
     stringAttributes,
     numberAttributes,
@@ -124,7 +127,7 @@ function useSessionAttributeValues({knownKeys}: SessionAttributes) {
       }
 
       const sources = [
-        knownKeys.spans.has(tag.key) ? getSpanValues : undefined,
+        knownKeys.traces.has(tag.key) ? getSpanValues : undefined,
         knownKeys.logs.has(tag.key) ? getLogValues : undefined,
         knownKeys.metrics.has(tag.key) ? getMetricValues : undefined,
         knownKeys.errors.has(tag.key) ? getErrorValues : undefined,

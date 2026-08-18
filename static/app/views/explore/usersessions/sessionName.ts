@@ -74,7 +74,7 @@ const ERROR_FIELDS: FieldMap = [
  * named by its handle alone.
  */
 const IDENTITY_FIELDS: Record<SessionDatasetKey, FieldMap> = {
-  spans: SPAN_FIELDS,
+  traces: SPAN_FIELDS,
   errors: ERROR_FIELDS,
   logs: [],
   metrics: [],

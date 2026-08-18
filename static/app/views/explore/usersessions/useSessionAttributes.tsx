@@ -134,10 +134,14 @@ export function useSessionAttributes(): SessionAttributes {
     const knownKeys: KnownKeysByDataset = {
       logs: keysOfDataset(logs),
       metrics: keysOfDataset(metrics),
-      spans: keysOfDataset(spans),
+      traces: keysOfDataset(spans),
       errors: keysOfDataset(errors),
     };
 
+    // `traces` is the spans dataset, so its searchable keys are the span ones —
+    // all of them, not just those of segment spans. A query is used to *find*
+    // sessions, and a session whose child span matches is still a match.
+    //
     // Spans last so their definitions win a key collision: they are the richest
     // dataset and the one most session searches are aimed at.
     const order = [errors, metrics, logs, spans];

@@ -270,7 +270,7 @@ export function useUserSessions({
         id,
         {
           id,
-          counts: {logs: 0, metrics: 0, spans: 0, errors: 0},
+          counts: {logs: 0, metrics: 0, traces: 0, errors: 0},
           firstSeen: undefined,
           lastSeen: undefined,
           totalEvents: 0,

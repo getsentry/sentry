@@ -18,7 +18,10 @@ import type {
   SessionDataset,
   SessionDatasetKey,
 } from 'sentry/views/explore/usersessions/datasets';
-import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
+import {
+  SESSION_DATASETS,
+  withDatasetFilter,
+} from 'sentry/views/explore/usersessions/datasets';
 import type {
   SessionIdentity,
   SessionName,
@@ -30,6 +33,7 @@ import {
   resolveSessionName,
 } from 'sentry/views/explore/usersessions/sessionName';
 
+import {itemKey} from './itemKey';
 import type {Row} from './rowConfig';
 import {ROW_CONFIG} from './rowConfig';
 
@@ -48,14 +52,14 @@ interface TimelineRows {
 
 /**
  * Reads up to `maxRows` rows for one dataset, following the `Link` header when
- * the dataset's page size can't cover that in a single request. Spans and errors
+ * the dataset's page size can't cover that in a single request. Traces and errors
  * are capped at 100 rows per request by the events endpoint, so they take ten
  * passes to reach the same depth logs and metrics get in one.
  *
  * Pages are fetched one at a time rather than fanned out: the endpoint allows 15
  * concurrent requests per org and the page already spends 8 of them on its first
  * paint. It also lets a dataset stop as soon as the session runs out of rows,
- * which is the common case — a session with under 100 spans still costs exactly
+ * which is the common case — a session with under 100 traces still costs exactly
  * one request.
  */
 function fetchTimelineRows(config: SessionDataset) {
@@ -206,15 +210,20 @@ function useTimelineFilters(): TimelineFilters {
   return {query, types, setQuery, setTypes};
 }
 
+/**
+ * One timeline item. Every row on the rail is one of these — a trace (via the
+ * segment span standing for it), a log, a metric or an error.
+ */
 export interface SessionEvent {
   detail: string | undefined;
   /**
-   * Duration in ms, for the datasets that report one. Logs, metrics and errors
-   * are instants and leave this undefined — which is what decides whether a rail
-   * row draws a duration bar.
+   * Duration in ms, for the kinds that report one. Only traces do: logs, metrics
+   * and errors are instants and leave this undefined, which is what decides
+   * whether a rail row draws a duration bar and whether a swimlane draws this
+   * item as a span of time rather than a dot.
    */
   duration: number | undefined;
-  /** Dataset this row came from. */
+  /** Telemetry kind this row came from. */
   key: SessionDatasetKey;
   row: Row;
   /** Epoch ms, parsed from the uniform `timestamp` field. */
@@ -222,29 +231,11 @@ export interface SessionEvent {
   title: string;
 }
 
-export interface SessionTraceGroup {
-  /** Wall-clock span from the run's first start to its last finish, in ms. */
-  duration: number | undefined;
-  /** Spans of one trace, contiguous in the timeline and in its sort order. */
-  spans: SessionEvent[];
-  /** The leading span's timestamp, which is where the group sits in the timeline. */
-  timestamp: number | undefined;
-  trace: string;
-}
-
 /** Epoch-ms range. Used both for the session's own extent and for a selection. */
 export interface SessionRange {
   end: number;
   start: number;
 }
-
-/**
- * One timeline row: a single telemetry item, or a run of same-trace spans
- * collapsed into one expandable trace row.
- */
-export type SessionTimelineItem =
-  | {event: SessionEvent; kind: 'event'}
-  | {group: SessionTraceGroup; kind: 'trace'};
 
 export interface SessionDetail {
   /**
@@ -254,20 +245,29 @@ export interface SessionDetail {
    */
   bounds: SessionRange | undefined;
   counts: Record<SessionDatasetKey, number>;
+  /**
+   * Every fetched item by {@link itemKey}, so a selection can be resolved from
+   * the URL. Indexes the same set as {@link eventsByType} — text-filtered, but
+   * not narrowed by the window or the type toggles, so a linked item still opens
+   * when its lane happens to be switched off.
+   */
+  eventsByKey: Map<string, SessionEvent>;
+  /**
+   * Every fetched item, per dataset, ascending by timestamp. Backs the
+   * scrubber's density lanes and the hit testing over them. Narrowed by the text
+   * filter — so searching also shows *where* in the session the matches are —
+   * but never by the selected window or the type toggles, since those are what
+   * the lanes are used to drive.
+   */
+  eventsByType: Record<SessionDatasetKey, SessionEvent[]>;
   /** True when a filter is hiding rows the session actually has. */
   isFiltered: boolean;
   /** True when any dataset returned a full page, so the timeline may be truncated. */
   isTruncated: boolean;
-  items: SessionTimelineItem[];
+  /** The rows the rail renders: what survived the filters and the window. */
+  items: SessionEvent[];
   /** What to call this session, resolved from the telemetry it carries. */
   name: SessionName;
-  /**
-   * Timestamps of every fetched item, per dataset, for the scrubber's density
-   * lanes. Narrowed by the text filter — so searching also shows *where* in the
-   * session the matches are — but never by the selected window or the type
-   * toggles, since those are what the lanes are used to drive.
-   */
-  timestampsByType: Record<SessionDatasetKey, number[]>;
   totalEvents: number;
   /** Per-dataset truncation, so a lane built from a capped page can say so. */
   truncatedByType: Record<SessionDatasetKey, boolean>;
@@ -286,6 +286,20 @@ function toCount(value: unknown): number {
  */
 const MIN_DOMAIN_MS = 1000;
 
+/** The range covering both, or whichever one exists. */
+function unionRanges(
+  a: SessionRange | undefined,
+  b: SessionRange | undefined
+): SessionRange | undefined {
+  if (a === undefined) {
+    return b;
+  }
+  if (b === undefined) {
+    return a;
+  }
+  return {start: Math.min(a.start, b.start), end: Math.max(a.end, b.end)};
+}
+
 function padRange({start, end}: SessionRange): SessionRange {
   return end - start >= MIN_DOMAIN_MS
     ? {start, end}
@@ -300,75 +314,7 @@ function parseTimestamp(value: unknown): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-/** The trace a row belongs to, when it carries one. */
-function traceOf(row: Row): string | undefined {
-  return typeof row.trace === 'string' && row.trace ? row.trace : undefined;
-}
-
-/**
- * Collapses each run of same-trace spans into a single trace row. One traced
- * interaction can emit dozens of spans, which would otherwise bury the logs and
- * errors around it, and the spans of a trace say more together than apart.
- *
- * Only spans group: the other datasets carry a trace id too, but they read as
- * individual items. A span with no trace id can't be addressed as a trace, so it
- * stays on its own row.
- */
-function groupByTrace(events: SessionEvent[]): SessionTimelineItem[] {
-  const items: SessionTimelineItem[] = [];
-
-  events.forEach(event => {
-    const trace = event.key === 'spans' ? traceOf(event.row) : undefined;
-    if (trace === undefined) {
-      items.push({kind: 'event', event});
-      return;
-    }
-
-    const previous = items.at(-1);
-    if (previous?.kind === 'trace' && previous.group.trace === trace) {
-      previous.group.spans.push(event);
-      return;
-    }
-
-    items.push({
-      kind: 'trace',
-      group: {
-        trace,
-        spans: [event],
-        timestamp: event.timestamp,
-        duration: undefined,
-      },
-    });
-  });
-
-  // A group's extent has to be measured after its members are known, and it is
-  // wall-clock — first start to last finish — not the sum of the spans, which
-  // would double-count anything concurrent.
-  items.forEach(item => {
-    if (item.kind !== 'trace') {
-      return;
-    }
-    const starts = item.group.spans
-      .map(span => span.timestamp)
-      .filter((value): value is number => value !== undefined);
-    if (starts.length === 0) {
-      return;
-    }
-    const ends = item.group.spans.map(span =>
-      span.timestamp === undefined ? 0 : span.timestamp + (span.duration ?? 0)
-    );
-    const start = Math.min(...starts);
-    const duration = Math.max(...ends) - start;
-    item.group.timestamp = start;
-    // A run with no measurable extent — one span, no reported duration — has no
-    // duration to show rather than a duration of zero.
-    item.group.duration = duration > 0 ? duration : undefined;
-  });
-
-  return items;
-}
-
-/** Where an item sits on the time axis, spans included. */
+/** Where an item sits on the time axis, its duration included. */
 function extentOf(event: SessionEvent): SessionRange | undefined {
   if (event.timestamp === undefined) {
     return undefined;
@@ -467,7 +413,10 @@ export function useSessionDetail(sessionId: string) {
         query: {
           ...commonQuery,
           dataset: config.dataset,
-          field: ['timestamp', ...ROW_CONFIG[config.key].fields],
+          // The rows are narrowed further than the counts above: `traces` renders
+          // one row per segment span, while its count stays over every span.
+          query: withDatasetFilter(config, commonQuery.query),
+          field: ['timestamp', 'project.id', ...ROW_CONFIG[config.key].fields],
           // Sorted server-side rather than only in the merge below, so a
           // truncated timeline keeps the end of the session the user is
           // actually looking at.
@@ -491,21 +440,22 @@ export function useSessionDetail(sessionId: string) {
     const counts: Record<SessionDatasetKey, number> = {
       logs: 0,
       metrics: 0,
-      spans: 0,
+      traces: 0,
       errors: 0,
     };
     const truncatedByType: Record<SessionDatasetKey, boolean> = {
       logs: false,
       metrics: false,
-      spans: false,
+      traces: false,
       errors: false,
     };
-    const timestampsByType: Record<SessionDatasetKey, number[]> = {
+    const eventsByType: Record<SessionDatasetKey, SessionEvent[]> = {
       logs: [],
       metrics: [],
-      spans: [],
+      traces: [],
       errors: [],
     };
+    const eventsByKey = new Map<string, SessionEvent>();
 
     let aggregateBounds: SessionRange | undefined;
     // Sifted across datasets rather than taken from one: a session whose spans
@@ -578,13 +528,21 @@ export function useSessionDetail(sessionId: string) {
     const matching = events.filter(event => needle === '' || matchesQuery(event, needle));
 
     matching.forEach(event => {
+      const key = itemKey(event);
+      if (key !== undefined) {
+        eventsByKey.set(key, event);
+      }
       if (event.timestamp !== undefined) {
-        timestampsByType[event.key].push(event.timestamp);
+        eventsByType[event.key].push(event);
       }
     });
 
-    // Aggregates are exact and survive truncation, so they win. The fetched rows
-    // are the fallback for a dataset that reports no extent aggregate.
+    // The merged list runs in whichever direction the user sorted; the lanes read
+    // left to right either way, and hit testing wants one stable order.
+    Object.values(eventsByType).forEach(lane =>
+      lane.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0))
+    );
+
     const eventBounds = matching.reduce<SessionRange | undefined>((range, event) => {
       const extent = extentOf(event);
       if (!extent) {
@@ -598,7 +556,19 @@ export function useSessionDetail(sessionId: string) {
           };
     }, undefined);
 
-    const rawBounds = aggregateBounds ?? eventBounds;
+    /**
+     * The union of both, not one or the other.
+     *
+     * The aggregates are exact and survive truncation, so they carry the session's
+     * real extent — a capped page's first and last row are not the session's. But
+     * they are read from different columns than the rows are plotted by:
+     * `precise.start_ts` is sub-second while a row's `timestamp` is coarser, so a
+     * row can sit a fraction of a second *outside* an extent taken from
+     * aggregates alone. Anything drawn has to be inside the domain it is
+     * positioned against, or it lands at a negative offset and a trace's bar
+     * reaches back over the lane labels.
+     */
+    const rawBounds = unionRanges(aggregateBounds, eventBounds);
     const bounds = rawBounds === undefined ? undefined : padRange(rawBounds);
 
     // Clamped rather than reset: page filters can move under a selection, and a
@@ -632,11 +602,12 @@ export function useSessionDetail(sessionId: string) {
     return {
       bounds,
       counts,
-      items: groupByTrace(visible),
+      eventsByKey,
+      eventsByType,
+      items: visible,
       isFiltered: visible.length < events.length,
       isTruncated,
       name: resolveSessionName(sessionId, mergeIdentities(identities)),
-      timestampsByType,
       truncatedByType,
       totalEvents: Object.values(counts).reduce((sum, count) => sum + count, 0),
       window,

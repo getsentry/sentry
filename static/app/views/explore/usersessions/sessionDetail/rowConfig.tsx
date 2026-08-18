@@ -17,7 +17,11 @@ export interface LinkContext {
 }
 
 interface RowConfig {
-  /** Fields to request per row. `timestamp` is added for every dataset. */
+  /**
+   * Fields to request per row. `timestamp` and `project.id` are added for every
+   * dataset — the first is what the timeline sorts and merges on, the second is
+   * what the detail panel resolves a project slug from.
+   */
   fields: string[];
   /** Where clicking the row navigates. `undefined` renders the row unlinked. */
   getLink: (row: Row, ctx: LinkContext) => LocationDescriptor | undefined;
@@ -43,9 +47,25 @@ function ms(value: unknown): number | undefined {
 }
 
 /**
- * Trace-level link for a run of spans: the waterfall with nothing preselected.
- * Takes the run's leading span, whose timestamp puts the trace view on a date
- * range that contains it. Individual spans still link to themselves.
+ * Query params that mean something only to this timeline: the open item, the lane
+ * and text filters, the sort. The trace-view link builders carry the whole current
+ * query across to their target, so these have to come off first — `item` most of
+ * all, since a target that still carries it would arrive with the details panel
+ * open over it.
+ */
+const SESSION_ONLY_PARAMS = ['item', 'query', 'sort', 'telemetryType'] as const;
+
+function withoutSessionParams(location: Location): Location {
+  const query = {...location.query};
+  SESSION_ONLY_PARAMS.forEach(param => {
+    delete query[param];
+  });
+  return {...location, query};
+}
+
+/**
+ * The trace waterfall, with nothing preselected. The row's timestamp puts the
+ * trace view on a date range that contains it.
  */
 export function getTraceLink(
   row: Row,
@@ -58,7 +78,7 @@ export function getTraceLink(
   }
   return generateLinkToEventInTraceView({
     organization,
-    location,
+    location: withoutSessionParams(location),
     traceSlug,
     timestamp,
   });
@@ -73,8 +93,9 @@ export function getTraceLink(
  * Link targets differ in how precisely they can address a single item:
  *
  * - **errors** → the issue's event detail page, addressing the exact event.
- * - **spans** → the trace waterfall with the span preselected via the `node`
- *   path, plus its enclosing transaction so the tree expands to it.
+ * - **traces** → the trace waterfall, at the trace rather than at the segment
+ *   span the row was built from. The row stands for the whole trace, so that is
+ *   what it opens.
  * - **logs** → the logs explorer filtered to `id:<logId>`. The trace view's logs
  *   tab can also highlight a row (`logsRowId`), but only when that row is
  *   already loaded, so filtering is the reliable target.
@@ -99,7 +120,7 @@ export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
       return `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`;
     },
   },
-  spans: {
+  traces: {
     fields: [
       'id',
       'span.description',
@@ -108,29 +129,19 @@ export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
       'trace',
       'project',
       'transaction',
-      'transaction.span_id',
     ],
+    // The transaction name is what a trace is called; the segment span's
+    // description and op are the fallbacks when it has none.
     getTitle: row =>
-      str(row['span.description']) ?? str(row['span.op']) ?? t('(unknown)'),
+      str(row.transaction) ??
+      str(row['span.description']) ??
+      str(row['span.op']) ??
+      t('(unknown)'),
     getDetail: row => str(row['span.op']),
-    // `span.duration` is already milliseconds.
+    // `span.duration` is already milliseconds. On a segment span this is the
+    // trace's own wall-clock duration, which is what the swimlane draws.
     getDuration: row => ms(row['span.duration']),
-    getLink: (row, {organization, location}) => {
-      const traceSlug = str(row.trace);
-      const spanId = str(row.id);
-      const timestamp = str(row.timestamp);
-      if (!traceSlug || !spanId || !timestamp) {
-        return;
-      }
-      return generateLinkToEventInTraceView({
-        organization,
-        location,
-        traceSlug,
-        spanId,
-        targetId: str(row['transaction.span_id']),
-        timestamp,
-      });
-    },
+    getLink: getTraceLink,
   },
   logs: {
     fields: ['id', 'message', 'severity', 'trace', 'project'],
@@ -162,7 +173,7 @@ export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
       // metrics tab instead.
       return generateLinkToEventInTraceView({
         organization,
-        location,
+        location: withoutSessionParams(location),
         traceSlug,
         timestamp,
         tab: TraceLayoutTabKeys.METRICS,

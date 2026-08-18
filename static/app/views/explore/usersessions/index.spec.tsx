@@ -50,6 +50,7 @@ describe('UserSessionsView', () => {
           {
             'session.id': A,
             'count()': 5,
+            'count_unique(trace)': 5,
             'count(session.id)': 5,
             'min(timestamp_precise)': EPOCH_NANOS,
             'max(timestamp_precise)': EPOCH_NANOS + 30 * 1e9,
@@ -88,7 +89,7 @@ describe('UserSessionsView', () => {
     expect(screen.getByTestId('search-query-builder')).toBeInTheDocument();
 
     // Column headers for each dataset.
-    for (const header of ['Logs', 'Metrics', 'Spans', 'Errors', 'Duration']) {
+    for (const header of ['Logs', 'Metrics', 'Traces', 'Errors', 'Duration']) {
       expect(screen.getByText(header)).toBeInTheDocument();
     }
   });

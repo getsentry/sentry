@@ -1,7 +1,10 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -10,6 +13,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {EntryType} from 'sentry/types/event';
 
 import SessionDetailView from './index';
 
@@ -17,6 +23,7 @@ jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const SESSION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const TRACE = '1'.repeat(32);
+const PROJECT = ProjectFixture();
 
 function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
   return MockApiClient.addMockResponse({
@@ -91,7 +98,13 @@ describe('SessionDetailView', () => {
   };
 
   beforeEach(() => {
+    // jsdom implements neither: the rail calls scrollIntoView to reveal a row
+    // selected from somewhere other than the rail, and the scrubber captures the
+    // pointer so a drag survives leaving the track.
+    Element.prototype.scrollIntoView = jest.fn();
+    Element.prototype.setPointerCapture = jest.fn();
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([PROJECT]);
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
@@ -137,7 +150,7 @@ describe('SessionDetailView', () => {
 
   it('shows per-dataset counts and a merged rail, newest first', async () => {
     mockDataset('logs', 'count', [{'count()': 2}]);
-    mockDataset('spans', 'count', [{'count()': 1}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
     mockDataset('tracemetrics', 'count', [{'count(session.id)': 3}]);
     mockDataset('errors', 'count', [{'count()': 1}]);
 
@@ -153,12 +166,12 @@ describe('SessionDetailView', () => {
     mockDataset('spans', 'rows', [
       {
         id: 'abc123def4567890',
+        transaction: '/checkout',
         'span.description': 'GET /api/thing',
-        'span.op': 'http.client',
+        'span.op': 'navigation',
         'span.duration': 250,
         timestamp: '2024-01-01T00:00:03+00:00',
         trace: TRACE,
-        'transaction.span_id': 'fedcba9876543210',
       },
     ]);
     mockDataset('tracemetrics', 'rows', [
@@ -193,15 +206,15 @@ describe('SessionDetailView', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Metrics 3'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Spans 1'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Traces 1'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Errors 1'})).toBeInTheDocument();
 
-    // Ordered by timestamp descending across datasets. The span sits under a
-    // trace row rather than on the rail itself.
+    // Ordered by timestamp descending across kinds. A trace row is named by its
+    // transaction, and sits on the rail like any other item.
     const items = railItems();
     expect(items).toHaveLength(4);
     expect(within(items[0]!).getByText('TypeError: boom')).toBeInTheDocument();
-    expect(within(items[1]!).getByText(`Trace ${TRACE.slice(0, 8)}`)).toBeInTheDocument();
+    expect(within(items[1]!).getByText('/checkout')).toBeInTheDocument();
     expect(within(items[2]!).getByText('checkout.latency')).toBeInTheDocument();
     expect(within(items[3]!).getByText('first log')).toBeInTheDocument();
 
@@ -214,10 +227,10 @@ describe('SessionDetailView', () => {
     expect(screen.getByText('Logs')).toBeInTheDocument();
   });
 
-  it('places rows by their offset from the session start, and only spans carry a duration', async () => {
+  it('places rows by their offset from the session start, and only traces carry a duration', async () => {
     mockEmptyDatasets(['logs', 'spans']);
     mockDataset('logs', 'count', [{'count()': 1}]);
-    mockDataset('spans', 'count', [{'count()': 1}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
     mockDataset('logs', 'rows', [
       {id: 'log1', message: 'first log', timestamp: '2024-01-01T00:00:00+00:00'},
     ]);
@@ -271,27 +284,24 @@ describe('SessionDetailView', () => {
     expect(within(railItems()[1]!).getByText('0:00.00')).toBeInTheDocument();
   });
 
-  it('collapses a run of same-trace spans into one expandable trace row', async () => {
+  it('renders one row per segment span, and asks the API for only those', async () => {
     const OTHER_TRACE = '2'.repeat(32);
     mockEmptyDatasets(['spans']);
-    mockDataset('spans', 'count', [{'count()': 3}]);
-    mockDataset('spans', 'rows', [
+    mockDataset('spans', 'count', [{'count_unique(trace)': 2}]);
+    const rowsRequest = mockDataset('spans', 'rows', [
       {
         id: '1111111111111111',
-        'span.description': 'first span',
+        transaction: '/checkout',
+        'span.op': 'navigation',
+        'span.duration': 1200,
         timestamp: '2024-01-01T00:00:01+00:00',
-        trace: TRACE,
-        'transaction.span_id': 'fedcba9876543210',
-      },
-      {
-        id: '2222222222222222',
-        'span.description': 'second span',
-        timestamp: '2024-01-01T00:00:02+00:00',
         trace: TRACE,
       },
       {
         id: '3333333333333333',
-        'span.description': 'span of another trace',
+        transaction: '/cart',
+        'span.op': 'navigation',
+        'span.duration': 300,
         timestamp: '2024-01-01T00:00:03+00:00',
         trace: OTHER_TRACE,
       },
@@ -299,44 +309,98 @@ describe('SessionDetailView', () => {
 
     render(<SessionDetailView />, {organization, initialRouterConfig});
 
-    // Two traces, so two rows — the two spans of one trace share theirs.
-    expect(
-      await screen.findByText(`Trace ${OTHER_TRACE.slice(0, 8)}`)
-    ).toBeInTheDocument();
-    let items = railItems();
+    expect(await screen.findByText('/cart')).toBeInTheDocument();
+
+    // One row per trace, named by its transaction and labelled as a trace rather
+    // than as the span it was built from.
+    const items = railItems();
     expect(items).toHaveLength(2);
-    expect(within(items[0]!).getByText('1 span')).toBeInTheDocument();
-    expect(within(items[1]!).getByText('2 spans')).toBeInTheDocument();
-    expect(screen.queryByText('second span')).not.toBeInTheDocument();
+    expect(within(items[0]!).getByText('/cart')).toBeInTheDocument();
+    expect(within(items[1]!).getByText('/checkout')).toBeInTheDocument();
+    expect(within(items[0]!).getAllByText('Trace')).not.toHaveLength(0);
 
-    // The trace row links to the waterfall, with no span preselected.
-    const traceHref = within(items[1]!).getByRole('link').getAttribute('href')!;
-    expect(traceHref).toContain(`/traces/trace/${TRACE}/`);
-    expect(traceHref).not.toContain('node=');
+    // The segment span's duration is the trace's, and it is shown.
+    expect(within(items[1]!).getByText('1.20s')).toBeInTheDocument();
 
-    await userEvent.click(within(items[1]!).getByRole('button', {name: 'Expand trace'}));
+    // Rows link to the whole trace, not to the span that named it.
+    const href = within(items[1]!).getByRole('link').getAttribute('href')!;
+    expect(href).toContain(`/traces/trace/${TRACE}/`);
+    expect(href).not.toContain('node=');
 
-    // Expanded: the spans appear under their trace, newest first, and each links
-    // to itself.
-    items = railItems();
-    expect(items).toHaveLength(4);
-    expect(within(items[2]!).getByText('second span')).toBeInTheDocument();
-    expect(within(items[3]!).getByText('first span')).toBeInTheDocument();
-    expect(within(items[2]!).getByText('Span')).toBeInTheDocument();
-    expect(within(items[3]!).getByRole('link')).toHaveAttribute(
-      'href',
-      expect.stringContaining('node=span-1111111111111111')
+    // Only segment spans are asked for — the individual spans of a trace are not
+    // what the timeline is made of.
+    expect(rowsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `session.id:${SESSION_ID} is_transaction:true`,
+        }),
+      })
     );
+  });
 
-    await userEvent.click(
-      within(items[1]!).getByRole('button', {name: 'Collapse trace'})
+  it('keeps the domain around rows that fall outside the extent aggregates', async () => {
+    mockEmptyDatasets(['spans']);
+    // `min(precise.start_ts)` is sub-second; a row's `timestamp` is a coarser
+    // column, so the row can sit slightly before an extent taken from the
+    // aggregate alone. Anything drawn has to be inside the domain it is
+    // positioned against — a trace at a negative offset used to reach its bar
+    // back over the lane labels.
+    mockDataset('spans', 'count', [
+      {
+        'count_unique(trace)': 1,
+        'min(precise.start_ts)': 1704067200.59,
+        'max(precise.finish_ts)': 1704067230,
+      },
+    ]);
+    mockDataset('spans', 'rows', [
+      {
+        id: 'segment1',
+        transaction: '/checkout',
+        'span.duration': 250,
+        timestamp: '2024-01-01T00:00:00+00:00',
+        trace: TRACE,
+      },
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // The domain runs from the row rather than from the aggregate, so the axis
+    // measures the full 30s to the aggregate's end instead of the 29.41s between
+    // the two aggregates — which is what left the row at a negative offset.
+    expect(await screen.findByText('/checkout')).toBeInTheDocument();
+    expect(within(railItems()[0]!).getByText('0:00.00')).toBeInTheDocument();
+    expect(screen.getByText('0:30.00')).toBeInTheDocument();
+    expect(screen.queryByText('0:29.41')).not.toBeInTheDocument();
+  });
+
+  it('counts distinct traces without narrowing to segment spans', async () => {
+    mockEmptyDatasets(['spans']);
+    // The extent aggregates come back even though no segment span does, which is
+    // exactly the case this is about: the lane knows more than the rail can draw.
+    const countRequest = mockDataset('spans', 'count', [
+      {
+        'count_unique(trace)': 9,
+        'min(precise.start_ts)': 1704067200,
+        'max(precise.finish_ts)': 1704067230,
+      },
+    ]);
+    mockDataset('spans', 'rows', []);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    // The lane reports every trace the session touched, which is more than the
+    // segment spans we can draw rows for.
+    expect(await screen.findByRole('button', {name: 'Traces 9'})).toBeInTheDocument();
+    expect(countRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `session.id:${SESSION_ID}`,
+          field: expect.arrayContaining(['count_unique(trace)']),
+        }),
+      })
     );
-    expect(railItems()).toHaveLength(2);
-
-    // The row is a wider target for that same button, so a near miss expands the
-    // trace instead of navigating to it.
-    await userEvent.click(within(railItems()[1]!).getByText('2 spans'));
-    expect(railItems()).toHaveLength(4);
   });
 
   it('toggles the rail order, and asks the API for that order', async () => {
@@ -369,10 +433,10 @@ describe('SessionDetailView', () => {
     });
   });
 
-  it('links an error to the issue event, and a span to the trace waterfall with the span preselected', async () => {
+  it('links an error to the issue event, and a trace to its waterfall', async () => {
     mockEmptyDatasets(['errors', 'spans']);
     mockDataset('errors', 'count', [{'count()': 1}]);
-    mockDataset('spans', 'count', [{'count()': 1}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
     mockDataset('errors', 'rows', [
       {
         id: 'deadbeefdeadbeefdeadbeefdeadbeef',
@@ -400,17 +464,12 @@ describe('SessionDetailView', () => {
       '/organizations/org-slug/issues/99/events/deadbeefdeadbeefdeadbeefdeadbeef/'
     );
 
-    // The span lives under its trace row, so reveal it first.
-    await userEvent.click(screen.getByRole('button', {name: 'Expand trace'}));
-
-    const spanHref = screen
+    const traceHref = screen
       .getByRole('link', {name: /GET \/api\/thing/})
       .getAttribute('href')!;
-    expect(spanHref).toContain(`/traces/trace/${TRACE}/`);
-    // The span is preselected via the node path, with its transaction so the
-    // waterfall expands down to it.
-    expect(spanHref).toContain('node=span-abc123def4567890');
-    expect(spanHref).toContain('node=txn-fedcba9876543210');
+    expect(traceHref).toContain(`/traces/trace/${TRACE}/`);
+    // The row stands for the whole trace, so nothing inside it is preselected.
+    expect(traceHref).not.toContain('node=');
   });
 
   it('links a log to the logs explorer filtered to that log id', async () => {
@@ -481,7 +540,7 @@ describe('SessionDetailView', () => {
     const logsLane = screen.getByRole('button', {name: 'Logs 1', pressed: true});
     await userEvent.click(logsLane);
 
-    expect(router.location.query.telemetryType).toEqual(['metrics', 'spans', 'errors']);
+    expect(router.location.query.telemetryType).toEqual(['metrics', 'traces', 'errors']);
     expect(screen.queryByText('first log')).not.toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
@@ -588,7 +647,7 @@ describe('SessionDetailView', () => {
 
   it('renders a row unlinked when it lacks the ids needed to build a target', async () => {
     mockEmptyDatasets(['spans']);
-    mockDataset('spans', 'count', [{'count()': 1}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
     // No trace id, so there is no waterfall to link into.
     mockDataset('spans', 'rows', [
       {
@@ -606,9 +665,9 @@ describe('SessionDetailView', () => {
 
   it('follows the cursor to read a dataset that spans several pages', async () => {
     mockEmptyDatasets(['spans']);
-    mockDataset('spans', 'count', [{'count()': 2}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 2}]);
 
-    // Spans are capped at 100 rows per request by the events endpoint, so the
+    // The spans dataset is capped at 100 rows per request by the events endpoint, so the
     // timeline reads them a page at a time.
     const firstPage = mockRowsPage('spans', {
       cursor: undefined,
@@ -646,7 +705,7 @@ describe('SessionDetailView', () => {
 
   it('stops paging at the row budget and says the timeline is partial', async () => {
     mockEmptyDatasets(['spans']);
-    mockDataset('spans', 'count', [{'count()': 5000}]);
+    mockDataset('spans', 'count', [{'count_unique(trace)': 5000}]);
 
     // Every page claims another one behind it, so paging stops on its own budget
     // rather than on the session running out of spans.
@@ -702,4 +761,434 @@ describe('SessionDetailView', () => {
     // minute in rather than at zero.
     expect(await screen.findByText('1:00.00')).toBeInTheDocument();
   });
+
+  describe('details panel', () => {
+    /** One log, and the attributes the panel fetches for it. */
+    function mockOneLog(id = 'log1', message = 'first log') {
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': 1}]);
+      mockDataset('logs', 'rows', [
+        {
+          id,
+          message,
+          severity: 'INFO',
+          timestamp: '2024-01-01T00:00:01+00:00',
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+      return mockTraceItem(id, [
+        {name: 'message', type: 'str', value: message},
+        {name: 'special_field', type: 'str', value: 'special value'},
+      ]);
+    }
+
+    function mockTraceItem(id: string, attributes: unknown[]) {
+      return MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/trace-items/${id}/`,
+        method: 'GET',
+        body: {itemId: id, timestamp: '2024-01-01T00:00:01+00:00', attributes, meta: {}},
+      });
+    }
+
+    it('opens a rail row in the panel, and keeps the selection in the URL', async () => {
+      const detailsRequest = mockOneLog();
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('first log')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Show details'}));
+
+      // The panel says what kind of thing it is, then the item's own attributes.
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+      expect(within(panel).getByText('Log')).toBeInTheDocument();
+      expect(await within(panel).findByText('special value')).toBeInTheDocument();
+      expect(detailsRequest).toHaveBeenCalled();
+
+      // Linkable, so a single item in a session can be handed to someone else.
+      expect(router.location.query.item).toBe('logs:log1');
+
+      // And the same button closes it again.
+      await userEvent.click(screen.getByRole('button', {name: 'Hide details'}));
+      await waitFor(() => {
+        expect(router.location.query.item).toBeUndefined();
+      });
+    });
+
+    it('opens the panel from a linked selection', async () => {
+      mockOneLog();
+
+      render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+        },
+      });
+
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+      expect(await within(panel).findByText('special value')).toBeInTheDocument();
+    });
+
+    it('clears the selection when the panel is closed', async () => {
+      mockOneLog();
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+      await waitFor(() => {
+        expect(router.location.query.item).toBeUndefined();
+      });
+    });
+
+    it("leaves the row's own deep link alone", async () => {
+      mockOneLog();
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Selecting the row is the row's job; the title is still a link out to the
+      // tool that owns the item.
+      await userEvent.click(await screen.findByText('first log'));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
+      });
+      expect(router.location.query.item).toBeUndefined();
+    });
+
+    it('opens an item clicked in a scrubber lane, and marks its row', async () => {
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': 3}]);
+      mockDataset('logs', 'rows', [
+        {
+          id: 'log1',
+          message: 'first log',
+          timestamp: '2024-01-01T00:00:01+00:00',
+          'project.id': Number(PROJECT.id),
+        },
+        {
+          id: 'log2',
+          message: 'second log',
+          timestamp: '2024-01-01T00:00:02+00:00',
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+        {
+          id: 'log3',
+          message: 'third log',
+          timestamp: '2024-01-01T00:00:03+00:00',
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+      mockTraceItem('log2', [{name: 'special_field', type: 'str', value: 'the middle'}]);
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('second log')).toBeInTheDocument();
+
+      // jsdom measures everything as zero, and the lanes are read by geometry:
+      // which lane from the pointer's y, which item from its x.
+      const track = trackWithGeometry();
+
+      // The session spans 1s to 3s over 1000px, so the middle log sits at 500px,
+      // and the logs lane is the third of four.
+      clickTrack(track, {clientX: 500, clientY: LANE_Y.logs});
+
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+      expect(await within(panel).findByText('the middle')).toBeInTheDocument();
+      expect(router.location.query.item).toBe('logs:log2');
+
+      // The rail marks the row the lane pointed at, so the two read as one view.
+      const selected = railItems().filter(
+        item => item.getAttribute('aria-current') === 'true'
+      );
+      expect(selected).toHaveLength(1);
+      expect(within(selected[0]!).getByText('second log')).toBeInTheDocument();
+    });
+
+    it('still resets the window when empty lane space is clicked', async () => {
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': 2}]);
+      mockDataset('logs', 'rows', [
+        {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
+        {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+      ]);
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('early log')).toBeInTheDocument();
+
+      const track = trackWithGeometry();
+      track.focus();
+      await userEvent.keyboard('{ArrowUp>5/}');
+      await waitFor(() => {
+        expect(
+          screen.getByText('Nothing in the selected time range.')
+        ).toBeInTheDocument();
+      });
+
+      // Halfway along a lane whose only items are at either end: nothing to open,
+      // so the click means what it always meant.
+      clickTrack(track, {clientX: 500, clientY: LANE_Y.logs});
+
+      expect(await screen.findByText('early log')).toBeInTheDocument();
+      expect(screen.getByText('late log')).toBeInTheDocument();
+      expect(router.location.query.item).toBeUndefined();
+    });
+
+    it('hits a trace anywhere along its duration, and shows its waterfall', async () => {
+      mockEmptyDatasets(['spans']);
+      mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
+      mockDataset('spans', 'rows', [
+        // Starts at the very beginning of the session and runs for half of it.
+        {
+          id: 'segment1',
+          transaction: '/checkout',
+          'span.op': 'navigation',
+          'span.duration': 1000,
+          timestamp: '2024-01-01T00:00:00+00:00',
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+        {
+          id: 'segment2',
+          transaction: '/done',
+          'span.op': 'navigation',
+          'span.duration': 10,
+          timestamp: '2024-01-01T00:00:02+00:00',
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+      // What the trace view's own waterfall reads, which is what the panel now
+      // hands the trace off to.
+      const traceRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events-trace/${TRACE}/`,
+        method: 'GET',
+        body: {transactions: [], orphan_errors: []},
+      });
+      const traceMetaRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/events-trace-meta/${TRACE}/`,
+        method: 'GET',
+        body: {
+          errors: 0,
+          performance_issues: 0,
+          projects: 0,
+          transactions: 0,
+          transaction_child_count_map: [],
+          span_count: 0,
+          span_count_map: {},
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/trace-items/segment1/`,
+        method: 'GET',
+        body: {itemId: 'segment1', timestamp: '', attributes: [], meta: {}},
+      });
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('/checkout')).toBeInTheDocument();
+
+      // The session spans 0s to 2.01s over 1000px, so a quarter of the way in is
+      // well past the trace's start but still inside its 1s duration. A dot-based
+      // lane would miss it.
+      const track = trackWithGeometry();
+      clickTrack(track, {clientX: 250, clientY: LANE_Y.traces});
+
+      expect(router.location.query.item).toBe('traces:segment1');
+
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+      // The waterfall's own toolbar, so the panel is showing the real thing rather
+      // than a preview of its own.
+      expect(
+        await within(panel).findByPlaceholderText('Search in trace')
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(traceRequest).toHaveBeenCalled();
+      });
+      expect(traceMetaRequest).toHaveBeenCalled();
+    });
+
+    it('shows an error with the sections the trace drawer gives an event', async () => {
+      mockEmptyDatasets(['errors']);
+      mockDataset('errors', 'count', [{'count()': 1}]);
+      mockDataset('errors', 'rows', [
+        {
+          id: 'deadbeefdeadbeefdeadbeefdeadbeef',
+          'issue.id': 99,
+          title: 'TypeError: boom',
+          level: 'error',
+          timestamp: '2024-01-01T00:00:01+00:00',
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+
+      const eventRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/99/events/deadbeefdeadbeefdeadbeefdeadbeef/',
+        method: 'GET',
+        body: EventFixture({
+          id: 'deadbeefdeadbeefdeadbeefdeadbeef',
+          projectSlug: PROJECT.slug,
+          culprit: 'checkout(app)',
+          tags: [{key: 'browser', value: 'Chrome 120.0.0'}],
+          entries: [
+            {
+              type: EntryType.BREADCRUMBS,
+              data: {
+                values: [
+                  {
+                    type: BreadcrumbType.UI,
+                    category: 'ui.click',
+                    message: 'pressed pay now',
+                    level: BreadcrumbLevelType.INFO,
+                    timestamp: '2024-01-01T00:00:00Z',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      });
+
+      // The highlights section reads the project's configured highlight fields.
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/`,
+        method: 'GET',
+        body: PROJECT,
+      });
+
+      render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {item: 'errors:deadbeefdeadbeefdeadbeefdeadbeef'},
+          },
+        },
+      });
+
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+
+      // Not just a stack trace: the same sections the waterfall's drawer gives an
+      // event, including what the user did before it went wrong.
+      // Their contents are measured against a container width and a scroll box,
+      // neither of which jsdom has, so the sections being there is what is
+      // assertable here.
+      expect(await within(panel).findByText('Highlights')).toBeInTheDocument();
+      expect(within(panel).getByText('Tags')).toBeInTheDocument();
+      expect(within(panel).getByText('Breadcrumbs')).toBeInTheDocument();
+      expect(eventRequest).toHaveBeenCalled();
+    });
+
+    it('takes the panel with it when a row link leaves the page', async () => {
+      mockOneLog();
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query: {item: 'logs:log1'}},
+        },
+      });
+
+      const panel = await screen.findByRole('complementary', {
+        name: 'Telemetry details',
+      });
+
+      // The header's own way out of the panel, which lands on another page.
+      await userEvent.click(
+        await within(panel).findByRole('button', {name: 'Open in Logs'})
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
+      });
+
+      // Gone with the page it belonged to, and without dragging the URL back to it.
+      expect(
+        screen.queryByRole('complementary', {name: 'Telemetry details'})
+      ).not.toBeInTheDocument();
+      expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
+    });
+  });
 });
+
+/** Lane geometry from the scrubber: a 28px axis row over four 40px lanes. */
+const LANE_Y = {errors: 48, traces: 88, logs: 128, metrics: 168};
+
+/**
+ * The scrubber's interactive track, given the size jsdom won't. Hit testing reads
+ * the pointer's offset within this rect, so without it every click lands at the
+ * session start.
+ */
+function trackWithGeometry(width = 1000) {
+  const track = screen.getByRole('group', {name: 'Session time window'});
+  jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+    left: 0,
+    top: 0,
+    right: width,
+    bottom: 188,
+    width,
+    height: 188,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
+  return track;
+}
+
+/**
+ * A press and release at one point, which is a click rather than a drag.
+ *
+ * Built from `MouseEvent` because jsdom has no `PointerEvent` constructor; React
+ * dispatches `onPointerDown` off the native event's type, and the coordinates the
+ * handler reads come from the mouse init either way.
+ */
+function clickTrack(track: HTMLElement, at: {clientX: number; clientY: number}) {
+  act(() => {
+    for (const type of ['pointerdown', 'pointerup']) {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ...at,
+      });
+      Object.defineProperty(event, 'pointerId', {value: 1});
+      track.dispatchEvent(event);
+    }
+  });
+}

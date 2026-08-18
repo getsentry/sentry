@@ -3,7 +3,7 @@ import {SESSION_ID} from '@sentry/conventions/attributes';
 import {t} from 'sentry/locale';
 import type {GraphicsVariant} from 'sentry/utils/theme';
 
-export type SessionDatasetKey = 'logs' | 'metrics' | 'spans' | 'errors';
+export type SessionDatasetKey = 'logs' | 'metrics' | 'traces' | 'errors';
 
 export interface SessionDataset {
   /** Aggregate that counts events in the group. */
@@ -18,7 +18,7 @@ export interface SessionDataset {
    *
    * Only the scrubber sorts by type, so only the scrubber colors by it. The rail
    * below colors a row by severity instead and says the type with
-   * `TelemetryTypeIcon`, which is also why spans are neutral here: with four
+   * `TelemetryTypeIcon`, which is also why traces are neutral here: with four
    * lanes stacked, the pink they used to carry sat one lane from the red for
    * errors, and at marker size the two were the same color.
    */
@@ -41,6 +41,19 @@ export interface SessionDataset {
   singularLabel: string;
   /** Converts this dataset's raw timestamp representation into epoch ms. */
   toEpochMs: (value: unknown) => number | undefined;
+  /**
+   * Extra filter narrowing the *rows* this kind renders, ANDed onto whatever else
+   * the page is asking for. Only `traces` needs one — see below.
+   *
+   * Deliberately not applied to the count and extent aggregates. Those answer
+   * "what does this session contain", which should stay the whole truth: a
+   * `count_unique(trace)` over every span counts a trace the session touched even
+   * when the segment span standing for it is missing, and the session's extent
+   * likewise shouldn't shrink to the part we can draw. It also keeps search from
+   * developing false negatives — a session whose *child* span matches the user's
+   * filter still gets found.
+   */
+  filter?: string;
 }
 
 function fromEpochNanos(value: unknown): number | undefined {
@@ -60,9 +73,9 @@ function fromIsoString(value: unknown): number | undefined {
 }
 
 /**
- * The four datasets that can carry a `session.id`. Every one of them is queried
- * through `/organizations/{org}/events/` with a `dataset` param, grouped by
- * `session.id`. The aggregate names differ per dataset:
+ * The four kinds of telemetry that can carry a `session.id`. Every one of them is
+ * queried through `/organizations/{org}/events/` with a `dataset` param, grouped
+ * by `session.id`. The aggregate names differ per dataset:
  *
  * - `timestamp` is a string-typed field in EAP, so `min`/`max` over it are
  *   rejected there. Each EAP dataset exposes a numeric precise-timestamp
@@ -70,13 +83,18 @@ function fromIsoString(value: unknown): number | undefined {
  *   for spans).
  * - `tracemetrics` requires an argument to `count`.
  *
+ * Note that a *kind* is not a dataset: `traces` is the spans dataset narrowed to
+ * segment spans and counted by distinct trace. There is no traces dataset on this
+ * endpoint, and a session's individual spans are not what anyone reads a session
+ * for.
+ *
  * `dataset` is a plain string rather than `DiscoverDatasets` because that enum
  * has no `'logs'` member — only `OURLOGS = 'ourlogs'`, which the backend still
  * accepts but logs a deprecation warning for on every request.
  *
- * Every dataset loads the same 1000 rows, but not in the same number of requests:
+ * Every kind loads the same 1000 rows, but not in the same number of requests:
  * the endpoint sets `max_per_page` to 9999 for logs and tracemetrics and leaves
- * everything else on the API-wide default of 100, so spans and errors have to be
+ * everything else on the API-wide default of 100, so traces and errors have to be
  * paged to get there. 1000 rather than the full 9999 because the rail renders
  * every row it is handed — the ceiling is what the page can draw, not what the
  * endpoint will serve.
@@ -109,14 +127,32 @@ export const SESSION_DATASETS: SessionDataset[] = [
     toEpochMs: fromEpochNanos,
   },
   {
-    key: 'spans',
-    label: t('Spans'),
-    singularLabel: t('Span'),
+    key: 'traces',
+    label: t('Traces'),
+    singularLabel: t('Trace'),
     graphicsVariant: 'neutral',
     dataset: 'spans',
-    countField: 'count()',
+    /**
+     * Distinct traces rather than spans. The rows this pairs with are segment
+     * spans (see `filter`), one of which stands in for its whole trace — so the
+     * count answers "how many traces did this session touch" while the rows are
+     * what there is to click.
+     *
+     * The two can disagree in both directions, and that is understood for now: a
+     * trace may hold more than one segment span (a pageload and the server
+     * transaction under it are both segments), and a trace the session touched
+     * only through a child span has no segment row to show at all.
+     */
+    countField: 'count_unique(trace)',
     firstSeenField: 'min(precise.start_ts)',
     lastSeenField: 'max(precise.finish_ts)',
+    /**
+     * Segment spans only — `is_transaction` is the public alias for
+     * `sentry.is_segment` on this dataset. A session's spans run into the
+     * thousands and read as noise individually; the segment span is the one that
+     * names the traced interaction and carries its wall-clock duration.
+     */
+    filter: 'is_transaction:true',
     maxRows: 1000,
     pageSize: 100,
     toEpochMs: fromEpochSeconds,
@@ -135,3 +171,16 @@ export const SESSION_DATASETS: SessionDataset[] = [
     toEpochMs: fromIsoString,
   },
 ];
+
+/**
+ * A dataset's own filter ANDed onto whatever the page is asking for.
+ *
+ * Callers are expected to have already parenthesized anything with a top-level
+ * `OR` in it — this appends, it does not group.
+ */
+export function withDatasetFilter(config: SessionDataset, query: string): string {
+  if (!config.filter) {
+    return query;
+  }
+  return query ? `${query} ${config.filter}` : config.filter;
+}

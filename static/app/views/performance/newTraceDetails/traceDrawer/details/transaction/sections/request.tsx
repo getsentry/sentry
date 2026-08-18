@@ -17,7 +17,7 @@ import {
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EntryRequest, type Event} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
@@ -30,7 +30,7 @@ type View = 'formatted' | 'curl';
 
 type Data = EntryRequest['data']['data'];
 
-export function Request({event}: {event: EventTransaction}) {
+export function Request({event}: {event: Event}) {
   const [view, setView] = useState<View>('formatted');
 
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
@@ -174,7 +174,7 @@ function RequestBodySection({
   meta,
 }: {
   data: EntryRequest['data'];
-  event: EventTransaction;
+  event: Event;
   meta: any;
 }) {
   if (!defined(data.data)) {

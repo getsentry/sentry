@@ -1,5 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
-import type {Theme} from '@emotion/react';
+import {useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -13,49 +12,24 @@ import {Text} from '@sentry/scraps/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
-import {getShortEventId} from 'sentry/utils/events';
+import {IconPanel} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getLogSeverityLevel, SeverityLevel} from 'sentry/views/explore/logs/utils';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
-import {getTraceLink, ROW_CONFIG} from './rowConfig';
+import {itemKey} from './itemKey';
+import {ROW_CONFIG} from './rowConfig';
 import {formatDurationMs, formatOffset} from './sessionTime';
+import type {SeverityVariant} from './severity';
+import {graphicsColor, severityVariant} from './severity';
 import {TelemetryTypeIcon} from './telemetryTypeIcon';
-import type {
-  SessionEvent,
-  SessionRange,
-  SessionTimelineItem,
-  SessionTraceGroup,
-} from './useSessionDetail';
+import type {SessionEvent, SessionRange} from './useSessionDetail';
 
 const DATASET_BY_KEY = Object.fromEntries(
   SESSION_DATASETS.map(config => [config.key, config])
 ) as Record<SessionDatasetKey, (typeof SESSION_DATASETS)[number]>;
-
-/**
- * How a row is colored: `muted` unless it is carrying something worth
- * interrupting for.
- */
-type SeverityVariant = 'danger' | 'warning' | 'muted';
-
-/**
- * Log levels worth a color, and which one. Everything quieter stays muted, so red
- * in the rail keeps meaning "something went wrong" rather than "this row is a
- * log" — and a fatal log stops looking like a trace-level one, which is what
- * happens when a whole dataset takes a single hue.
- *
- * The variants match the logs explorer's own severity colors, so a level reads
- * the same here as it does there.
- */
-const LOUD_LOG_LEVELS: Partial<Record<SeverityLevel, SeverityVariant>> = {
-  [SeverityLevel.FATAL]: 'danger',
-  [SeverityLevel.ERROR]: 'danger',
-  [SeverityLevel.WARN]: 'warning',
-};
 
 interface Props {
   /** Session extent, which every offset is measured from. */
@@ -67,51 +41,11 @@ interface Props {
   isPending: boolean;
   /** True when a scrubber selection is narrowing the rail. */
   isWindowed: boolean;
-  items: SessionTimelineItem[];
-}
-
-/** Where an item sits on the rail, and how long it lasted. */
-function positionOf(item: SessionTimelineItem): {
-  duration: number | undefined;
-  timestamp: number | undefined;
-} {
-  return item.kind === 'event'
-    ? {timestamp: item.event.timestamp, duration: item.event.duration}
-    : {timestamp: item.group.timestamp, duration: item.group.duration};
-}
-
-/**
- * Identifies a group by its members rather than by position, so expansion
- * survives a re-sort (which reverses a run but keeps its membership) and stays
- * unique when one trace shows up in more than one run.
- */
-function groupKey(group: SessionTraceGroup): string {
-  return [group.trace, ...group.spans.map(span => String(span.row.id)).sort()].join('-');
-}
-
-/**
- * How bad a row is, which is the only thing the rail spends color on. The type is
- * said by the row's icon instead, which leaves severity a hue of its own: on a
- * screen of muted rows, the red ones are the answer to "what happened here".
- *
- * Errors are always danger — an error event is a problem whatever its `level`
- * says. Spans and metrics have no severity to report, and logs carry theirs in a
- * field.
- */
-function severityVariant(event: SessionEvent): SeverityVariant {
-  if (event.key === 'errors') {
-    return 'danger';
-  }
-  if (event.key !== 'logs') {
-    return 'muted';
-  }
-  const severity = typeof event.row.severity === 'string' ? event.row.severity : null;
-  return LOUD_LOG_LEVELS[getLogSeverityLevel(null, severity)] ?? 'muted';
-}
-
-/** The shape color for a variant: `graphics` for drawn things, not for text. */
-function graphicsColor(variant: SeverityVariant, theme: Theme): string {
-  return theme.tokens.graphics[variant === 'muted' ? 'neutral' : variant].vibrant;
+  items: SessionEvent[];
+  /** Opens the details panel for a row. */
+  onSelect: (key: string) => void;
+  /** The row whose details are open, which may not be one of `items`. */
+  selectedKey: string | null;
 }
 
 /**
@@ -122,8 +56,11 @@ function graphicsColor(variant: SeverityVariant, theme: Theme): string {
  * split across two channels — the icon says which lane above a row came from, the
  * color says whether it is worth stopping at — so a wall of rows can be scanned
  * for trouble rather than read in order. And duration is only drawn where it
- * exists: spans and trace runs get a bar, while logs, metrics and errors are
- * instants and get none.
+ * exists: a trace gets a bar, while logs, metrics and errors are instants and get
+ * none.
+ *
+ * A row is also the way into the details panel. Clicking anywhere in it selects
+ * it; the deep link on its title keeps doing its own job.
  */
 export function SessionRail({
   items,
@@ -133,26 +70,28 @@ export function SessionRail({
   isPending,
   isError,
   dateParams,
+  selectedKey,
+  onSelect,
 }: Props) {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * Rendered rows by selection key, so a selection made somewhere else — a marker
+   * in the scrubber, a link into the page — can be scrolled to. Written only from
+   * ref callbacks and read only from effects.
+   */
+  const rowNodes = useRef(new Map<string, HTMLLIElement>());
 
-  function toggleGroup(key: string) {
-    setExpanded(current => {
-      const next = new Set(current);
-      if (!next.delete(key)) {
-        next.add(key);
-      }
-      return next;
-    });
-  }
+  useEffect(() => {
+    if (selectedKey === null) {
+      return;
+    }
+    rowNodes.current.get(selectedKey)?.scrollIntoView({block: 'nearest'});
+  }, [selectedKey, items]);
 
   // The bar is scaled to the longest thing on screen, so it compares items with
-  // each other rather than against the session, where a 40ms span would be
+  // each other rather than against the session, where a 40ms trace would be
   // invisible.
   const maxDuration = useMemo(
-    () =>
-      items.reduce((max, item) => Math.max(max, positionOf(item).duration ?? 0), 0) ||
-      undefined,
+    () => items.reduce((max, item) => Math.max(max, item.duration ?? 0), 0) || undefined,
     [items]
   );
 
@@ -186,130 +125,54 @@ export function SessionRail({
     );
   }
 
+  const registerRow = (key: string | undefined) => (node: HTMLLIElement | null) => {
+    if (key === undefined) {
+      return;
+    }
+    if (node) {
+      rowNodes.current.set(key, node);
+    } else {
+      rowNodes.current.delete(key);
+    }
+  };
+
   return (
     <Rail>
       {items.map((item, index) => {
-        if (item.kind === 'event') {
-          return (
-            <EventRow
-              key={`event-${index}`}
-              event={item.event}
-              bounds={bounds}
-              dateParams={dateParams}
-              maxDuration={maxDuration}
-            />
-          );
-        }
-
-        const key = groupKey(item.group);
-        const isExpanded = expanded.has(key);
+        const key = itemKey(item);
         return (
-          <Fragment key={`trace-${index}`}>
-            <TraceRow
-              group={item.group}
-              bounds={bounds}
-              isExpanded={isExpanded}
-              maxDuration={maxDuration}
-              onToggle={() => toggleGroup(key)}
-            />
-            {isExpanded &&
-              item.group.spans.map((span, spanIndex) => (
-                <EventRow
-                  key={`${key}-${spanIndex}`}
-                  event={span}
-                  bounds={bounds}
-                  dateParams={dateParams}
-                  maxDuration={maxDuration}
-                  isNested
-                />
-              ))}
-          </Fragment>
+          <EventRow
+            key={`${key ?? 'row'}-${index}`}
+            ref={registerRow(key)}
+            event={item}
+            bounds={bounds}
+            dateParams={dateParams}
+            maxDuration={maxDuration}
+            isSelected={key !== undefined && key === selectedKey}
+            onSelect={key === undefined ? undefined : () => onSelect(key)}
+          />
         );
       })}
     </Rail>
   );
 }
 
-/**
- * A run of same-trace spans. It links to the trace rather than to any single
- * span, and its disclosure sits at the far end of the row — as far from that link
- * as the row goes, since the two do very different things and a 20px miss between
- * them used to cost a page navigation.
- */
-function TraceRow({
-  group,
-  bounds,
-  isExpanded,
-  maxDuration,
-  onToggle,
-}: {
-  bounds: SessionRange | undefined;
-  group: SessionTraceGroup;
-  isExpanded: boolean;
-  maxDuration: number | undefined;
-  onToggle: () => void;
-}) {
-  const organization = useOrganization();
-  const location = useLocation();
-  const leadingSpan = group.spans[0]!;
-  const link = getTraceLink(leadingSpan.row, {organization, location});
-
-  return (
-    <Row
-      data-expandable
-      onClick={event => {
-        // The row is a wider target for the chevron rather than a control of its
-        // own: anything inside it that already does something keeps doing it, and
-        // the chevron remains what a screen reader and the keyboard address.
-        if (event.target instanceof Element && event.target.closest('a, button')) {
-          return;
-        }
-        onToggle();
-      }}
-    >
-      <Offset timestamp={group.timestamp} bounds={bounds} />
-      <Spine>
-        <SpineLine />
-        {/* A trace run is spans, and it takes their marker. */}
-        <Marker type="spans" variant="muted" />
-      </Spine>
-      <Body
-        variant="muted"
-        kind={t('Trace')}
-        title={t('Trace %s', getShortEventId(group.trace))}
-        tooltip={group.trace}
-        detail={tn('%s span', '%s spans', group.spans.length)}
-        link={link}
-        duration={group.duration}
-        maxDuration={maxDuration}
-      />
-      <Meta duration={group.duration} />
-      <ToggleCell>
-        <Button
-          size="zero"
-          variant="transparent"
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? t('Collapse trace') : t('Expand trace')}
-          onClick={onToggle}
-          icon={<IconChevron direction={isExpanded ? 'up' : 'down'} size="xs" />}
-        />
-      </ToggleCell>
-    </Row>
-  );
-}
-
 function EventRow({
+  ref,
   event,
   bounds,
   dateParams,
   maxDuration,
-  isNested,
+  isSelected,
+  onSelect,
 }: {
   bounds: SessionRange | undefined;
   dateParams: Record<string, any>;
   event: SessionEvent;
+  isSelected: boolean;
   maxDuration: number | undefined;
-  isNested?: boolean;
+  onSelect?: () => void;
+  ref?: React.Ref<HTMLLIElement>;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -322,15 +185,11 @@ function EventRow({
   const variant = severityVariant(event);
 
   return (
-    <Row>
+    <SelectableRow ref={ref} isSelected={isSelected} onSelect={onSelect}>
       <Offset timestamp={event.timestamp} bounds={bounds} />
       <Spine>
         <SpineLine />
-        {/*
-          Nested spans show no marker: they already sit under their trace's, and a
-          second one would read as a peer of the rows above and below.
-        */}
-        {!isNested && <Marker type={event.key} variant={variant} />}
+        <Marker type={event.key} variant={variant} />
       </Spine>
       <Body
         variant={variant}
@@ -344,10 +203,63 @@ function EventRow({
         link={link}
         duration={event.duration}
         maxDuration={maxDuration}
-        isNested={isNested}
       />
       <Meta duration={event.duration} />
-      <ToggleCell />
+    </SelectableRow>
+  );
+}
+
+/**
+ * The row as a selection target, and the button that makes that reachable without
+ * a pointer.
+ *
+ * The row is the wide target and the button is what the keyboard and a screen
+ * reader address — the same split the logs explorer uses for its expandable rows.
+ * Anything inside the row that already does something (the title's link) keeps
+ * doing it.
+ *
+ * Both toggle, so the row that opened the panel is also what closes it.
+ */
+function SelectableRow({
+  ref,
+  isSelected,
+  onSelect,
+  children,
+}: {
+  children: React.ReactNode;
+  isSelected: boolean;
+  onSelect: (() => void) | undefined;
+  ref?: React.Ref<HTMLLIElement>;
+}) {
+  return (
+    <Row
+      ref={ref}
+      aria-current={isSelected ? true : undefined}
+      data-selected={isSelected}
+      data-selectable={onSelect ? true : undefined}
+      onClick={event => {
+        if (!onSelect) {
+          return;
+        }
+        if (event.target instanceof Element && event.target.closest('a, button')) {
+          return;
+        }
+        onSelect();
+      }}
+    >
+      {children}
+      <ActionCell>
+        {onSelect && (
+          <Button
+            size="zero"
+            variant="transparent"
+            aria-pressed={isSelected}
+            aria-label={isSelected ? t('Hide details') : t('Show details')}
+            onClick={onSelect}
+            icon={<IconPanel direction="right" size="xs" />}
+          />
+        )}
+      </ActionCell>
     </Row>
   );
 }
@@ -411,7 +323,6 @@ function Body({
   link,
   duration,
   maxDuration,
-  isNested,
 }: {
   kind: string;
   maxDuration: number | undefined;
@@ -421,13 +332,12 @@ function Body({
   detail?: string;
   detailVariant?: SeverityVariant;
   duration?: number;
-  isNested?: boolean;
   link?: LocationDescriptor;
 }) {
   const theme = useTheme();
 
   return (
-    <BodyCell data-nested={isNested}>
+    <BodyCell>
       {link ? (
         // `variant="inherit"` matters: Text otherwise paints content.primary and
         // swallows the anchor's accent color, leaving the link looking like plain
@@ -498,6 +408,9 @@ const Rail = styled('ul')`
  * hour-long form — rather than to a round number, and the row's own padding stays
  * narrow. Between them they used to open a gap wide enough to read as a margin,
  * which pushed the whole rail away from the panel edge it belongs against.
+ *
+ * Selected is an opaque background rather than a tint, so the marker behind the
+ * spine can match it exactly, plus an accent edge that hover has no version of.
  */
 const Row = styled('li')`
   display: grid;
@@ -505,6 +418,10 @@ const Row = styled('li')`
   column-gap: ${p => p.theme.space.md};
   align-items: stretch;
   padding: 0 ${p => p.theme.space.lg};
+
+  &[data-selectable] {
+    cursor: pointer;
+  }
 
   &:hover {
     background: ${p => p.theme.tokens.background.secondary};
@@ -514,9 +431,10 @@ const Row = styled('li')`
     text-decoration: underline;
   }
 
-  /* A row that expands where you click it has to look like it does. */
-  &[data-expandable] {
-    cursor: pointer;
+  &[data-selected='true'],
+  &[data-selected='true']:hover {
+    background: ${p => p.theme.tokens.background.tertiary};
+    box-shadow: inset 3px 0 0 0 ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
 
@@ -559,13 +477,29 @@ const MarkerWrap = styled('div')`
   ${Row}:hover & {
     background: ${p => p.theme.tokens.background.secondary};
   }
+
+  ${Row}[data-selected='true'] & {
+    background: ${p => p.theme.tokens.background.tertiary};
+  }
 `;
 
-const ToggleCell = styled('div')`
+/**
+ * The details button's cell. It stays quiet until the row is hovered or the button
+ * is focused, so a screenful of rows doesn't read as a column of buttons — but a
+ * selected row keeps it visible, since that button is also the way to close.
+ */
+const ActionCell = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
   padding: ${p => p.theme.space['2xs']} 0;
+  opacity: 0;
+
+  ${Row}:hover &,
+  ${Row}[data-selected='true'] &,
+  &:focus-within {
+    opacity: 1;
+  }
 `;
 
 const BodyCell = styled('div')`
@@ -574,10 +508,6 @@ const BodyCell = styled('div')`
   gap: 1px;
   min-width: 0;
   padding: ${p => p.theme.space.xs} 0;
-
-  &[data-nested='true'] {
-    padding-left: ${p => p.theme.space.md};
-  }
 `;
 
 const KindLabel = styled(Text)`

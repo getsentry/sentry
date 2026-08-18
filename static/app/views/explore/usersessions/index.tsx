@@ -50,7 +50,7 @@ export default function UserSessionsView() {
               {USER_SESSIONS_TITLE}
               <InfoTip
                 title={t(
-                  'Distinct session.id values seen across logs, metrics, spans and errors, most recently active first.'
+                  'Distinct session.id values seen across logs, metrics, traces and errors, most recently active first.'
                 )}
               />
             </TopBar.Slot>

@@ -29,9 +29,11 @@ import {
 } from 'sentry/views/explore/usersessions/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {useSessionItemDrawer} from './detailPanel/useSessionItemDrawer';
 import {SessionRail} from './sessionRail';
 import {SessionScrubber} from './sessionScrubber';
 import {TimelineFilters} from './timelineFilters';
+import {useSelectedItem} from './useSelectedItem';
 import {useSessionDetail} from './useSessionDetail';
 
 export default function SessionDetailView() {
@@ -43,6 +45,8 @@ export default function SessionDetailView() {
     name,
     totalEvents,
     items,
+    eventsByKey,
+    eventsByType,
     filters,
     isFiltered,
     isTruncated,
@@ -51,11 +55,19 @@ export default function SessionDetailView() {
     dateParams,
     sortDirection,
     toggleSort,
-    timestampsByType,
     truncatedByType,
     window,
     setWindow,
   } = useSessionDetail(sessionId);
+
+  const selection = useSelectedItem({eventsByKey});
+  useSessionItemDrawer({
+    selection,
+    selectedEvent: selection.selectedEvent,
+    bounds,
+    dateParams,
+    isPending,
+  });
 
   const toggleType = useCallback(
     (key: (typeof filters.types)[number]) => {
@@ -78,12 +90,14 @@ export default function SessionDetailView() {
     <SessionScrubber
       bounds={bounds}
       counts={counts}
-      timestampsByType={timestampsByType}
+      eventsByType={eventsByType}
       truncatedByType={truncatedByType}
       selectedTypes={filters.types}
       onToggleType={toggleType}
       window={window}
       onChangeWindow={setWindow}
+      selectedKey={selection.selectedKey}
+      onSelectItem={selection.toggleItem}
     />
   ) : null;
 
@@ -191,6 +205,8 @@ export default function SessionDetailView() {
                       isPending={isPending}
                       isError={isError}
                       dateParams={dateParams}
+                      selectedKey={selection.selectedKey}
+                      onSelect={selection.toggleItem}
                     />
                   </Panel>
                 </Stack>

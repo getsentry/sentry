@@ -19,7 +19,7 @@ export function TelemetryTypeIcon({type, ...props}: Props) {
   switch (type) {
     case 'errors':
       return <IconFire {...props} />;
-    case 'spans':
+    case 'traces':
       return <IconSpan {...props} />;
     case 'logs':
       return <IconList {...props} />;

@@ -9,8 +9,8 @@ const SESSION_ID = 'aaaaaaaabbbbccccddddeeeeeeeeeeee';
 
 describe('identityFields', () => {
   it('asks the datasets that have an any() aggregate, and nothing of the ones that do not', () => {
-    expect(identityFields('spans')).toContain('any(user.email)');
-    expect(identityFields('spans')).toContain('any(browser.name)');
+    expect(identityFields('traces')).toContain('any(user.email)');
+    expect(identityFields('traces')).toContain('any(browser.name)');
 
     // Errors spells geo without the `user.` prefix, and has no aliased column
     // for browser/OS/device.
@@ -27,7 +27,7 @@ describe('identityFields', () => {
 describe('readIdentity', () => {
   it('reads the aggregate columns back out under dataset-independent names', () => {
     expect(
-      readIdentity('spans', {
+      readIdentity('traces', {
         'any(user.email)': 'lukas@example.com',
         'any(browser.name)': 'Chrome',
         'any(os.name)': 'macOS',
@@ -41,7 +41,7 @@ describe('readIdentity', () => {
 
   it('treats scrubbed and empty values as absent', () => {
     expect(
-      readIdentity('spans', {
+      readIdentity('traces', {
         'any(user.email)': '[Filtered]',
         'any(user.ip)': '[ip]',
         'any(user.username)': '   ',

@@ -4,7 +4,7 @@ import {datasetsForQuery, requiredKeys, unrecognizedKeys} from './queryRouting';
 const KNOWN_KEYS: KnownKeysByDataset = {
   logs: new Set(['message', 'severity', 'user.id']),
   metrics: new Set(['metric.name', 'unit']),
-  spans: new Set(['span.op', 'span.description', 'span.duration', 'user.id']),
+  traces: new Set(['span.op', 'span.description', 'span.duration', 'user.id']),
   errors: new Set(['level', 'user.id']),
 };
 
@@ -30,13 +30,13 @@ describe('datasetsForQuery', () => {
     expect(datasetsForQuery('', KNOWN_KEYS)).toEqual([
       'logs',
       'metrics',
-      'spans',
+      'traces',
       'errors',
     ]);
     expect(datasetsForQuery('   ', KNOWN_KEYS)).toEqual([
       'logs',
       'metrics',
-      'spans',
+      'traces',
       'errors',
     ]);
   });
@@ -45,30 +45,30 @@ describe('datasetsForQuery', () => {
     expect(datasetsForQuery('checkout', KNOWN_KEYS)).toEqual([
       'logs',
       'metrics',
-      'spans',
+      'traces',
       'errors',
     ]);
   });
 
   it('routes a dataset-specific key to that dataset alone', () => {
-    expect(datasetsForQuery('span.op:"pageload"', KNOWN_KEYS)).toEqual(['spans']);
-    expect(datasetsForQuery('has:span.op', KNOWN_KEYS)).toEqual(['spans']);
-    expect(datasetsForQuery('!span.op:pageload', KNOWN_KEYS)).toEqual(['spans']);
+    expect(datasetsForQuery('span.op:"pageload"', KNOWN_KEYS)).toEqual(['traces']);
+    expect(datasetsForQuery('has:span.op', KNOWN_KEYS)).toEqual(['traces']);
+    expect(datasetsForQuery('!span.op:pageload', KNOWN_KEYS)).toEqual(['traces']);
     expect(datasetsForQuery('severity:error', KNOWN_KEYS)).toEqual(['logs']);
   });
 
   it('routes a shared key to every dataset that knows it', () => {
     expect(datasetsForQuery('user.id:123', KNOWN_KEYS)).toEqual([
       'logs',
-      'spans',
+      'traces',
       'errors',
     ]);
   });
 
   it('requires a dataset to know every key in the query', () => {
-    // Only spans knows both.
+    // Only traces knows both.
     expect(datasetsForQuery('user.id:123 span.op:pageload', KNOWN_KEYS)).toEqual([
-      'spans',
+      'traces',
     ]);
     // No single dataset knows both, so no telemetry item can match.
     expect(datasetsForQuery('span.op:pageload severity:error', KNOWN_KEYS)).toEqual([]);
@@ -78,7 +78,7 @@ describe('datasetsForQuery', () => {
     expect(datasetsForQuery('environment:prod session.id:abc', KNOWN_KEYS)).toEqual([
       'logs',
       'metrics',
-      'spans',
+      'traces',
       'errors',
     ]);
   });

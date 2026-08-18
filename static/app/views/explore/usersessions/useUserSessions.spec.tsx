@@ -55,7 +55,7 @@ const ANONYMOUS_NAME = {
 const KNOWN_KEYS = {
   logs: new Set(['message', 'user.id']),
   metrics: new Set(['metric.name']),
-  spans: new Set(['span.op', 'user.id']),
+  traces: new Set(['span.op', 'user.id']),
   errors: new Set(['level', 'user.id']),
 };
 
@@ -79,7 +79,7 @@ describe('useUserSessions', () => {
     mockDataset('spans', 'discovery', [
       {
         'session.id': B,
-        'count()': 7,
+        'count_unique(trace)': 7,
         'min(precise.start_ts)': EPOCH_SECS + 60,
         'max(precise.finish_ts)': EPOCH_SECS + 90,
       },
@@ -105,7 +105,7 @@ describe('useUserSessions', () => {
     mockDataset('spans', 'counts', [
       {
         'session.id': B,
-        'count()': 7,
+        'count_unique(trace)': 7,
         'min(precise.start_ts)': EPOCH_SECS + 60,
         'max(precise.finish_ts)': EPOCH_SECS + 90,
       },
@@ -143,7 +143,7 @@ describe('useUserSessions', () => {
     expect(first!.counts).toEqual({
       logs: 11,
       metrics: 0,
-      spans: 7,
+      traces: 7,
       errors: 0,
     });
     expect(first!.totalEvents).toBe(18);
@@ -151,7 +151,7 @@ describe('useUserSessions', () => {
     expect(second!.counts).toEqual({
       logs: 3,
       metrics: 2,
-      spans: 0,
+      traces: 0,
       errors: 1,
     });
     expect(second!.totalEvents).toBe(6);
@@ -182,7 +182,7 @@ describe('useUserSessions', () => {
     mockDataset('spans', 'counts', [
       {
         'session.id': A,
-        'count()': 1,
+        'count_unique(trace)': 1,
         'min(precise.start_ts)': EPOCH_SECS - 30,
         'max(precise.finish_ts)': EPOCH_SECS + 30,
       },
@@ -240,7 +240,7 @@ describe('useUserSessions', () => {
     expect(result.current.sessions).toEqual([
       {
         id: A,
-        counts: {logs: 0, metrics: 4, spans: 0, errors: 0},
+        counts: {logs: 0, metrics: 4, traces: 0, errors: 0},
         firstSeen: undefined,
         lastSeen: undefined,
         totalEvents: 4,
@@ -276,7 +276,7 @@ describe('useUserSessions', () => {
     mockDataset('spans', 'counts', [
       {
         'session.id': A,
-        'count()': 1,
+        'count_unique(trace)': 1,
         'min(precise.start_ts)': EPOCH_SECS,
         'max(precise.finish_ts)': EPOCH_SECS,
         'any(user.email)': '[Filtered]',
@@ -364,7 +364,7 @@ describe('useUserSessions', () => {
       mockDataset('spans', 'counts', [
         {
           'session.id': A,
-          'count()': 7,
+          'count_unique(trace)': 7,
           'min(precise.start_ts)': EPOCH_SECS,
           'max(precise.finish_ts)': EPOCH_SECS + 30,
         },
@@ -386,7 +386,7 @@ describe('useUserSessions', () => {
       expect(result.current.sessions).toEqual([
         {
           id: A,
-          counts: {logs: 42, metrics: 0, spans: 7, errors: 0},
+          counts: {logs: 42, metrics: 0, traces: 7, errors: 0},
           firstSeen: EPOCH_MS,
           lastSeen: EPOCH_MS + 30_000,
           totalEvents: 49,
