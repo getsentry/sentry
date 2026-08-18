@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {IconCheckmark, IconSpan} from 'sentry/icons';
+import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -84,7 +84,7 @@ function SeriesActions({
       <CMDKAction
         id={`${seriesId}-source`}
         display={{
-          label: t('Edit Source'),
+          label: t('Source'),
           trailingItem: <QueryValue value={sourceSummary} />,
         }}
         prompt={t('Search for sources')}
@@ -94,7 +94,7 @@ function SeriesActions({
       <CMDKAction
         id={`${seriesId}-aggregate`}
         display={{
-          label: t('Edit Aggregate Function'),
+          label: t('Aggregate function'),
           trailingItem: <QueryValue value={aggregateSummary} />,
         }}
         prompt={t('Search for aggregate functions')}
@@ -154,12 +154,7 @@ function GroupByActions({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
-              icon: isSelected ? <IconCheckmark /> : undefined,
-              labelSuffix: (
-                <Text size="sm" variant="muted">
-                  {isSelected ? t('Selected') : t('Not selected')}
-                </Text>
-              ),
+              labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
                   ? option.trailingItems({
@@ -399,7 +394,7 @@ function QueryClauseActions() {
           </CMDKTerminalActionScope>
           <CMDKAction
             display={{
-              label: groupBySummary ? t('Edit Group by') : t('Add Group by'),
+              label: groupBySummary ? t('Group by') : t('Add Group by'),
               trailingItem: <QueryValue value={groupBySummary} />,
             }}
             prompt={t('Search for attribute')}
@@ -410,7 +405,7 @@ function QueryClauseActions() {
           <CMDKAction
             id="spans-sort"
             display={{
-              label: t('Edit Sort By'),
+              label: t('Sort by'),
               trailingItem: <QueryValue value={sortBySummary} />,
             }}
             prompt={t('Search for an attribute')}

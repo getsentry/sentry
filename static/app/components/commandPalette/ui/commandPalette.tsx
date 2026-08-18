@@ -266,6 +266,7 @@ export function CommandPalette({
 
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
+  const resultsListRef = useRef<HTMLDivElement>(null);
 
   const actionSections = useMemo(() => groupActionsBySection(actions), [actions]);
 
@@ -306,6 +307,14 @@ export function CommandPalette({
     return key ? treeState.collection.getItem(key) : null;
   }, [treeState.collection, treeState.selectionManager]);
 
+  const resetResultsNavigation = useCallback(() => {
+    mouseLeftResultsRef.current = false;
+    treeState.selectionManager.setFocusedKey(null);
+    if (resultsListRef.current) {
+      resultsListRef.current.scrollTop = 0;
+    }
+  }, [treeState.selectionManager]);
+
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
       return;
@@ -319,8 +328,6 @@ export function CommandPalette({
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
-
-  const resultsListRef = useRef<HTMLDivElement>(null);
 
   const delegate = useMemo(
     () =>
@@ -352,11 +359,7 @@ export function CommandPalette({
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch({type: 'set query', query: e.target.value});
-      mouseLeftResultsRef.current = false;
-      treeState.selectionManager.setFocusedKey(null);
-      if (resultsListRef.current) {
-        resultsListRef.current.scrollTop = 0;
-      }
+      resetResultsNavigation();
     },
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -391,6 +394,7 @@ export function CommandPalette({
       if (e.key === 'Backspace' && state.query.length === 0) {
         if (state.action) {
           animatePop();
+          resetResultsNavigation();
           dispatch({type: 'pop action'});
           e.preventDefault();
           return;
@@ -408,6 +412,7 @@ export function CommandPalette({
         }
         if (state.action) {
           animatePop();
+          resetResultsNavigation();
           dispatch({type: 'pop action'});
           e.preventDefault();
           e.stopPropagation();
@@ -441,6 +446,7 @@ export function CommandPalette({
 
       if (action.children.length > 0) {
         animatePress();
+        resetResultsNavigation();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -459,6 +465,7 @@ export function CommandPalette({
 
       if ('prompt' in action && action.prompt) {
         animatePress();
+        resetResultsNavigation();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -476,6 +483,7 @@ export function CommandPalette({
           dispatch({type: 'set query', query: ''});
         } else {
           action.onAction();
+          resetResultsNavigation();
           dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
         }
         return;
@@ -508,6 +516,7 @@ export function CommandPalette({
       closeModal,
       dispatch,
       navigate,
+      resetResultsNavigation,
       state.query,
     ]
   );
@@ -580,6 +589,7 @@ export function CommandPalette({
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
                               animatePop();
+                              resetResultsNavigation();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
@@ -1201,7 +1211,7 @@ function makeMenuItemFromAction(
       </Fragment>
     ) : undefined;
   const label = action.display.labelSuffix ? (
-    <Flex align="center" gap="xs">
+    <Flex align="baseline" gap="xs">
       <Text>{action.display.label}</Text>
       {action.display.labelSuffix}
     </Flex>

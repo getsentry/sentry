@@ -1384,6 +1384,26 @@ describe('CommandPalette', () => {
   });
 
   describe('query restoration', () => {
+    it('resets the results scroll position when drilling into a group', async () => {
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
+
+      const group = await screen.findByRole('option', {name: 'Parent Group Action'});
+      const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+      expect(scrollContainer).toBeInTheDocument();
+      scrollContainer!.scrollTop = 200;
+
+      await userEvent.click(group);
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(scrollContainer).toHaveProperty('scrollTop', 0);
+    });
+
     it('drilling into a group clears the active query', async () => {
       render(
         <GlobalActionsComponent>
