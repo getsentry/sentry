@@ -1,23 +1,32 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tn} from 'sentry/locale';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {
-  makePerformanceScoreColors,
-  type PerformanceScore,
-} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
-import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+import type {PillTone} from './metricPill';
+import {MetricPill} from './metricPill';
 import type {SessionVital, SessionVitals} from './useSessionVitals';
+
+/**
+ * A score's status in the pill vocabulary. Only the middle tier is renamed:
+ * "needs improvement" is a web vitals idea, and the pill beside this one reports
+ * session health, where the same colour means "errored".
+ */
+function scoreTone(score: number | undefined): PillTone {
+  if (score === undefined) {
+    return 'none';
+  }
+  const status = scoreToStatus(score);
+  return status === 'needsImprovement' ? 'warning' : status;
+}
 
 const VITAL_ACRONYM = {
   lcp: t('LCP'),
@@ -102,35 +111,6 @@ function scoreTooltip(coverage: number, measured: string[]) {
 }
 
 /**
- * One vital, as a split pill: a coloured name against a neutral value. Borrowed
- * from the trace view's context row, which is the other place in the app that
- * says "here is what this one thing scored".
- */
-function VitalPill({
-  name,
-  value,
-  status,
-  tooltip,
-  isLead,
-}: {
-  name: string;
-  status: PerformanceScore;
-  tooltip: React.ReactNode;
-  value: string;
-  /** Emphasises the value. The session's own score leads; the vitals break it down. */
-  isLead?: boolean;
-}) {
-  return (
-    <Pill>
-      <PillName status={status}>
-        <Tooltip title={tooltip}>{name}</Tooltip>
-      </PillName>
-      <PillValue isLead={isLead}>{value}</PillValue>
-    </Pill>
-  );
-}
-
-/**
  * The session's web vitals, averaged over everything it loaded.
  *
  * All five are always drawn, including the ones with no reading, which show a
@@ -162,91 +142,28 @@ export function SessionVitalsRow({
     // truncates, so there is a flexible neighbour to take the pressure, and five
     // pills that occasionally use two lines beat five that are usually hidden.
     <Flex align="center" gap="md" wrap="wrap" justify="end">
-      <VitalPill
+      <MetricPill
         isLead
         name={t('Score')}
         value={String(totalScore)}
-        status={scoreToStatus(totalScore)}
+        tone={scoreTone(totalScore)}
         tooltip={scoreTooltip(
           coverage,
           measured.map(key => VITAL_ACRONYM[key])
         )}
       />
       {vitals.map(vital => (
-        <VitalPill
+        <MetricPill
           key={vital.key}
           name={VITAL_ACRONYM[vital.key]}
           value={formatValue(vital)}
-          // `none` is the muted grey the design system keeps for exactly this:
-          // a vital with no reading is not a bad vital, so it must not borrow
-          // the red that means one.
-          status={vital.score === undefined ? 'none' : scoreToStatus(vital.score)}
+          // `none` is the muted grey kept for exactly this: a vital with no
+          // reading is not a bad vital, so it must not borrow the red that means
+          // one.
+          tone={scoreTone(vital.score)}
           tooltip={vitalTooltip(vital)}
         />
       ))}
     </Flex>
   );
 }
-
-/**
- * The emboss the item count next to these carries, on the whole pill rather than
- * on either half: the two halves are one control, and a shadow under each would
- * draw the seam between them.
- */
-const Pill = styled('div')`
-  display: inline-flex;
-  border-radius: ${p => p.theme.form.xs.borderRadius};
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-`;
-
-/**
- * Both halves are sized off `form.xs` rather than left to their line box. Every
- * other thing in this header row declares a height — the badge's avatar, the
- * item count's padding — so a pill that is only as tall as 12px of text renders
- * a third distinct height in a row that should have two.
- */
-const PillName = styled('div')<{status: PerformanceScore}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: ${p => p.theme.form.xs.height};
-  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
-  border-radius: ${p => p.theme.form.xs.borderRadius} 0 0
-    ${p => p.theme.form.xs.borderRadius};
-  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
-  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: ${p => p.theme.space['2xs']};
-  text-decoration-thickness: 1px;
-  padding: 0 ${p => p.theme.form.xs.paddingLeft}px;
-  white-space: nowrap;
-`;
-
-const PillValue = styled('div')<{isLead?: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: ${p => p.theme.form.xs.height};
-  /*
-   * Floored rather than left to the content. The values are a duration, a two
-   * decimal ratio and a bare score — "0.05" beside "340ms" beside "84" — and six
-   * pills each shrink-wrapped to its own string reads as ragged rather than as a
-   * set. Only a floor, so a value that needs the room still gets it.
-   */
-  min-width: 46px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-left: none;
-  border-radius: 0 ${p => p.theme.form.xs.borderRadius}
-    ${p => p.theme.form.xs.borderRadius} 0;
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p =>
-    p.isLead ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};
-  font-variant-numeric: tabular-nums;
-  padding: 0 ${p => p.theme.form.xs.paddingLeft}px;
-  white-space: nowrap;
-`;

@@ -40,6 +40,17 @@ function str(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
 }
 
+/**
+ * Whether an error went unhandled. The errors dataset resolves `error.unhandled`
+ * to an expression rather than a stored column, so it comes back as a number or a
+ * boolean depending on the path it took — both are accepted here rather than
+ * trusting one.
+ */
+export function isUnhandled(row: Row): boolean {
+  const value = row['error.unhandled'];
+  return value === true || value === 1;
+}
+
 function ms(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? value
@@ -104,9 +115,21 @@ export function getTraceLink(
  */
 export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
   errors: {
-    fields: ['id', 'issue', 'issue.id', 'title', 'level', 'trace', 'project'],
+    fields: [
+      'id',
+      'issue',
+      'issue.id',
+      'title',
+      'level',
+      'error.unhandled',
+      'trace',
+      'project',
+    ],
     getTitle: row => str(row.title) ?? str(row.issue) ?? t('(unknown)'),
-    getDetail: row => str(row.level),
+    // Unhandled outranks the level, because it is the one that decides the
+    // session's verdict: an unhandled error is what release health counts as a
+    // crash, and the header's Health pill is reporting on exactly these rows.
+    getDetail: row => (isUnhandled(row) ? t('unhandled') : str(row.level)),
     getLink: (row, {organization}) => {
       const rawGroupId = row['issue.id'];
       const groupId =
