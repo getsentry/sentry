@@ -29,6 +29,14 @@ from sentry.workflow_engine.types import ActionInvocation
 logger = logging.getLogger(__name__)
 
 
+def _activity_has_metric_evidence(activity: Activity) -> bool:
+    """True when activity.data looks like detector resolve evidence, not ticketing metadata."""
+    data = activity.data or {}
+    # Detector-authored resolve activities carry metric evidence keys. Manual
+    # resolves from integrations often only include provider metadata.
+    return "detector_id" in data and "data_packet_source_id" in data
+
+
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
     """
     Generic "notification action handler" this method will lookup which registry
@@ -44,11 +52,13 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
         # We'll need to update this in the future to read the notification configuration
         # from the Action, then get the template for the activity, and send it to that
         # integration.
-        # If it is a metric issue resolution, we need to execute the metric alert handler
-        # Else we can use the activity.send_notification() method to send the notification.
+        # If it is a metric issue resolution with detector evidence on the
+        # activity, execute the metric alert handler. Manual resolves (e.g.
+        # ticketing) may create SET_RESOLVED activities without evidence data.
         if (
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
             and invocation.event_data.group.type == MetricIssue.type_id
+            and _activity_has_metric_evidence(invocation.event_data.event)
         ):
             return execute_via_metric_alert_handler(invocation)
 
