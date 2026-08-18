@@ -5,6 +5,7 @@ import pytest
 from sentry.llm_cache_detection.detection import (
     MIN_AVG_INPUT_TOKENS,
     MIN_CALLS_PER_WINDOW,
+    AgentLabelSource,
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
@@ -17,8 +18,9 @@ from sentry.llm_cache_detection.detection import (
 
 def make_stats(
     *,
-    transaction: str = "seer.some_task",
-    span_description: str = "generate_content generate_structured",
+    agent_label: str = "Some Agent",
+    agent_label_source: AgentLabelSource = AgentLabelSource.AGENT_NAME,
+    span_name: str = "generate_content generate_structured",
     model: str = "model-x",
     call_count: int,
     avg_input_tokens: float,
@@ -30,8 +32,9 @@ def make_stats(
     sum_read = hit_rate * sum_input
     sum_creation = write_read_ratio * sum_read
     return CallSiteStats(
-        transaction=transaction,
-        span_description=span_description,
+        agent_label=agent_label,
+        agent_label_source=agent_label_source,
+        span_name=span_name,
         model=model,
         call_count=call_count,
         sum_input_tokens=sum_input,
@@ -152,7 +155,7 @@ def test_web_search_wrapper_flags_without_gap_guard() -> None:
     # A wrapper path that emits no cache attributes at all looks like a
     # confident 0%-hit finding by sums alone and must be probed.
     stats = make_stats(
-        span_description="generate_content anthropic_web_search",
+        span_name="generate_content anthropic_web_search",
         model="claude-haiku-4-5",
         call_count=62_553,
         avg_input_tokens=35_225,
@@ -226,22 +229,22 @@ def test_find_contrast_anchor_same_model_high_hit_rate() -> None:
     # A healthy call site on the same model anchors the flagged one; a healthy
     # call site on a different model does not.
     flagged = make_stats(
-        transaction="seer.code_review.pr_review_step.pr_review_task",
+        agent_label="PR Review",
         model="gemini-2.5-pro",
         call_count=169_000,
         avg_input_tokens=2_748,
         hit_rate=0.000088,
     )
     anchor_source = make_stats(
-        transaction="seer.automation.agent.explorer_main_task",
-        span_description="generate_content gemini_generation",
+        agent_label="Explorer",
+        span_name="generate_content gemini_generation",
         model="gemini-2.5-pro",
         call_count=21_000,
         avg_input_tokens=26_600,
         hit_rate=0.855,
     )
     other_model = make_stats(
-        transaction="seer.automation.agent.explorer_main_task",
+        agent_label="Explorer",
         model="gemini-3-flash-preview",
         call_count=70_000,
         avg_input_tokens=15_600,
@@ -252,22 +255,22 @@ def test_find_contrast_anchor_same_model_high_hit_rate() -> None:
 
     assert anchor is not None
     assert anchor.model == "gemini-2.5-pro"
-    assert anchor.transaction == "seer.automation.agent.explorer_main_task"
-    assert anchor.span_description == "generate_content gemini_generation"
+    assert anchor.agent_label == "Explorer"
+    assert anchor.span_name == "generate_content gemini_generation"
     assert anchor.hit_rate == pytest.approx(0.855)
 
 
 def test_find_contrast_anchor_prefers_highest_hit_rate() -> None:
     flagged = make_stats(model="gemini-2.5-pro", call_count=169_000, avg_input_tokens=2_748)
     lower = make_stats(
-        transaction="task-a",
+        agent_label="agent-a",
         model="gemini-2.5-pro",
         call_count=5_000,
         avg_input_tokens=2_000,
         hit_rate=0.6,
     )
     higher = make_stats(
-        transaction="task-b",
+        agent_label="agent-b",
         model="gemini-2.5-pro",
         call_count=5_000,
         avg_input_tokens=2_000,
@@ -277,21 +280,21 @@ def test_find_contrast_anchor_prefers_highest_hit_rate() -> None:
     anchor = find_contrast_anchor(flagged, [flagged, lower, higher])
 
     assert anchor is not None
-    assert anchor.transaction == "task-b"
+    assert anchor.agent_label == "agent-b"
     assert anchor.hit_rate == pytest.approx(0.9)
 
 
 def test_find_contrast_anchor_none_for_flash_lite() -> None:
     # No same-model call site clears the anchor hit-rate bar: no anchor.
     flagged = make_stats(
-        transaction="task-a",
+        agent_label="agent-a",
         model="gemini-2.5-flash-lite",
         call_count=22_750_000,
         avg_input_tokens=1_414,
         hit_rate=0.0221,
     )
     sibling = make_stats(
-        transaction="task-b",
+        agent_label="agent-b",
         model="gemini-2.5-flash-lite",
         call_count=1_180_000,
         avg_input_tokens=1_393,
@@ -303,10 +306,10 @@ def test_find_contrast_anchor_none_for_flash_lite() -> None:
 
 def test_find_contrast_anchor_ignores_low_volume_candidates() -> None:
     flagged = make_stats(
-        transaction="task-a", model="gemini-2.5-pro", call_count=169_000, avg_input_tokens=2_748
+        agent_label="agent-a", model="gemini-2.5-pro", call_count=169_000, avg_input_tokens=2_748
     )
     tiny_but_healthy = make_stats(
-        transaction="task-b",
+        agent_label="agent-b",
         model="gemini-2.5-pro",
         call_count=MIN_CALLS_PER_WINDOW - 1,
         avg_input_tokens=2_000,
@@ -324,8 +327,9 @@ def test_find_contrast_anchor_ignores_own_group() -> None:
 
 def test_uncached_tokens() -> None:
     stats = CallSiteStats(
-        transaction="t",
-        span_description="d",
+        agent_label="a",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="s",
         model="m",
         call_count=10_000,
         sum_input_tokens=1_000_000,
@@ -348,8 +352,9 @@ def test_uncached_tokens_floors_at_zero() -> None:
 
 def test_unrecouped_cache_write_tokens() -> None:
     stats = CallSiteStats(
-        transaction="t",
-        span_description="d",
+        agent_label="a",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="s",
         model="m",
         call_count=10_000,
         sum_input_tokens=1_000_000,

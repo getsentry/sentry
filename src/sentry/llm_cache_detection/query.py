@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Iterable
+from dataclasses import dataclass, replace
 
-from sentry.llm_cache_detection.detection import CallSiteStats, DetectionWindow
+from sentry.llm_cache_detection.detection import AgentLabelSource, CallSiteStats, DetectionWindow
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
@@ -25,6 +26,13 @@ GEN_AI_CALL_FILTER = (
 
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
+SPAN_NAME = "span.name"
+# `gen_ai.agent.name` names the agent a call belongs to, which is what a reader
+# can find in their own code; the span name alone is usually the SDK wrapper.
+# It is not universally emitted, so the operation name stands in where it is
+# missing -- see `_agent_label` for why that choice is made per span.
+AGENT_NAME = AgentLabelSource.AGENT_NAME.value
+OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
 
 # Most integrations emit the deprecated aliases (`gen_ai.usage.input_tokens.cached`
 # and `.cache_write`); only langchain writes these names directly. The resolver
@@ -93,15 +101,23 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
 
     Returns None when a group value cannot be expressed in the search grammar.
     """
-    values = (stats.transaction, stats.span_description, stats.model)
+    values = (stats.agent_label, stats.span_name, stats.model)
     if any(_is_unexpressible(value) for value in values):
         return None
-    transaction, span_description, model = (_escape_filter_value(value) for value in values)
+    agent_label, span_name, model = (_escape_filter_value(value) for value in values)
+    if stats.agent_label_source is AgentLabelSource.AGENT_NAME:
+        agent_terms = [f'{AGENT_NAME}:"{agent_label}"']
+    else:
+        # The operation name only stands in for an agent on spans that carry no
+        # agent name, so the absence defines the group as much as the operation
+        # does: without this term the filter would also collect the named spans
+        # sharing the operation, which are a different call site.
+        agent_terms = [f"!has:{AGENT_NAME}", f'{OPERATION_NAME}:"{agent_label}"']
     return " ".join(
         [
             GEN_AI_CALL_FILTER,
-            f'transaction:"{transaction}"',
-            f'span.description:"{span_description}"',
+            *agent_terms,
+            f'{SPAN_NAME}:"{span_name}"',
             f'{MODEL}:"{model}"',
         ]
     )
@@ -140,15 +156,91 @@ def _token_count(row: SnubaRow, column: str) -> float:
     return float(row.get(column) or 0)
 
 
+def _agent_label(row: SnubaRow) -> tuple[str, AgentLabelSource] | None:
+    """Read one row's agent label, falling back to its operation name.
+
+    The fallback is decided per row rather than once for the group because a
+    single (span.name, model) pair can hold spans that carry an agent name and
+    spans that do not, side by side. Those are kept apart: an unnamed span
+    merged into a named sibling would attribute calls to an agent that never
+    made them.
+
+    Returns None when a row carries neither, which leaves nothing to name the
+    call site by.
+    """
+    agent_name = row.get(AGENT_NAME)
+    if agent_name:
+        return agent_name, AgentLabelSource.AGENT_NAME
+    operation_name = row.get(OPERATION_NAME)
+    if operation_name:
+        return operation_name, AgentLabelSource.OPERATION_NAME
+    return None
+
+
+def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
+    """Add two aggregate rows describing the same call site.
+
+    The average is re-weighted by call count rather than averaged again, so the
+    result is the average over every call in the group.
+    """
+    call_count = left.call_count + right.call_count
+    weighted_input_tokens = (
+        left.avg_input_tokens * left.call_count + right.avg_input_tokens * right.call_count
+    )
+    return replace(
+        left,
+        call_count=call_count,
+        sum_input_tokens=left.sum_input_tokens + right.sum_input_tokens,
+        sum_cache_read_tokens=left.sum_cache_read_tokens + right.sum_cache_read_tokens,
+        sum_cache_creation_tokens=(
+            left.sum_cache_creation_tokens + right.sum_cache_creation_tokens
+        ),
+        avg_input_tokens=weighted_input_tokens / call_count if call_count else 0.0,
+    )
+
+
+def _to_call_sites(rows: Iterable[SnubaRow]) -> list[CallSiteStats]:
+    """Fold aggregate rows into call sites keyed by (agent label, span.name, model).
+
+    The query has to group by the agent name and the operation name separately
+    to resolve the fallback, which splits one call site in two whenever spans
+    under one agent report different operation names -- a split the key does not
+    make, so it is undone here.
+    """
+    call_sites: dict[tuple[str, str, str, str], CallSiteStats] = {}
+    for row in rows:
+        label = _agent_label(row)
+        span_name = row.get(SPAN_NAME)
+        model = row.get(MODEL)
+        if label is None or not span_name or not model:
+            continue
+        agent_label, agent_label_source = label
+        stats = CallSiteStats(
+            agent_label=agent_label,
+            agent_label_source=agent_label_source,
+            span_name=span_name,
+            model=model,
+            call_count=int(row.get("count()") or 0),
+            sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
+            sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
+            sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
+            avg_input_tokens=_token_count(row, AVG_INPUT_TOKENS),
+        )
+        seen = call_sites.get(stats.group_key)
+        call_sites[stats.group_key] = stats if seen is None else _combine(seen, stats)
+    return list(call_sites.values())
+
+
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[CallSiteStats]:
-    """Aggregate gen-AI call spans per (transaction, span.description, model)."""
+    """Aggregate gen-AI call spans per (agent label, span.name, model)."""
     result = _run_spans_query(
         project,
         window,
         query_string=GEN_AI_CALL_FILTER,
         selected_columns=[
-            "transaction",
-            "span.description",
+            AGENT_NAME,
+            OPERATION_NAME,
+            SPAN_NAME,
             MODEL,
             "count()",
             SUM_INPUT_TOKENS,
@@ -160,27 +252,7 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[Cal
         limit=CALL_SITE_GROUPS_LIMIT,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_CALL_SITES,
     )
-
-    stats: list[CallSiteStats] = []
-    for row in result.get("data", []):
-        transaction = row.get("transaction")
-        span_description = row.get("span.description")
-        model = row.get(MODEL)
-        if not transaction or not span_description or not model:
-            continue
-        stats.append(
-            CallSiteStats(
-                transaction=transaction,
-                span_description=span_description,
-                model=model,
-                call_count=int(row.get("count()") or 0),
-                sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
-                sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
-                sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
-                avg_input_tokens=_token_count(row, AVG_INPUT_TOKENS),
-            )
-        )
-    return stats
+    return _to_call_sites(result.get("data", []))
 
 
 def count_spans_with_cache_attributes(

@@ -10,7 +10,11 @@ from django.db.models import F
 from sentry import features
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.issues.ingest import hash_fingerprint
-from sentry.llm_cache_detection.detection import DETECTION_WINDOW_DAYS, CallSiteStats
+from sentry.llm_cache_detection.detection import (
+    DETECTION_WINDOW_DAYS,
+    AgentLabelSource,
+    CallSiteStats,
+)
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
 from sentry.llm_cache_detection.query import SampleCall
 from sentry.models.group import GroupStatus
@@ -52,8 +56,9 @@ SAMPLE_TRACE_IDS = [sample.trace_id for sample in SAMPLE_CALLS]
 
 # Not caching: near-zero hit rate at eligible volume.
 NOT_CACHING_STATS = CallSiteStats(
-    transaction="seer.code_review.pr_review_step.pr_review_task",
-    span_description="generate_content generate_structured",
+    agent_label="PR Review",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content generate_structured",
     model="gemini-2.5-pro",
     call_count=169_000,
     sum_input_tokens=464_412_000,
@@ -64,8 +69,9 @@ NOT_CACHING_STATS = CallSiteStats(
 
 # Healthy call site on the same model: the contrast anchor for NOT_CACHING_STATS.
 ANCHOR_STATS = CallSiteStats(
-    transaction="seer.automation.agent.explorer_main_task",
-    span_description="generate_content gemini_generation",
+    agent_label="Explorer",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content gemini_generation",
     model="gemini-2.5-pro",
     call_count=21_000,
     sum_input_tokens=558_600_000,
@@ -76,8 +82,9 @@ ANCHOR_STATS = CallSiteStats(
 
 # Thrash: cache writes vastly exceed reads.
 THRASH_STATS = CallSiteStats(
-    transaction="/v1/automation/malicious-issue-detection/classify",
-    span_description="generate_content anthropic_generation",
+    agent_label="Malicious Issue Detection",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content anthropic_generation",
     model="claude-sonnet-5",
     call_count=2_805,
     sum_input_tokens=15_149_805,
@@ -88,8 +95,9 @@ THRASH_STATS = CallSiteStats(
 
 # Ineligible: avg input below the cacheable minimum.
 INELIGIBLE_STATS = CallSiteStats(
-    transaction="seer.automation.summarization.supergroup_summarization",
-    span_description="generate_content generate_structured",
+    agent_label="Supergroup Summarization",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content generate_structured",
     model="gemini-3.1-flash-lite",
     call_count=1_760_000,
     sum_input_tokens=795_520_000,
@@ -100,8 +108,9 @@ INELIGIBLE_STATS = CallSiteStats(
 
 # Instrumentation gap candidate: no cache attributes recorded at all.
 GAP_STATS = CallSiteStats(
-    transaction="seer.code_review.pr_review_step.pr_review_task",
-    span_description="generate_content anthropic_web_search",
+    agent_label="PR Review",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content anthropic_web_search",
     model="claude-haiku-4-5",
     call_count=62_553,
     sum_input_tokens=2_203_429_425,
@@ -113,8 +122,9 @@ GAP_STATS = CallSiteStats(
 # Gemini never records zero cache values, so wholly-absent attributes on an
 # eligible workload are a genuine 0% hit rate, not an instrumentation gap.
 GEMINI_ZERO_STATS = CallSiteStats(
-    transaction="seer.automation.lightweight_rca",
-    span_description="generate_content generate_structured",
+    agent_label="Lightweight RCA",
+    agent_label_source=AgentLabelSource.AGENT_NAME,
+    span_name="generate_content generate_structured",
     model="gemini-3.1-flash-lite",
     call_count=5_236_000,
     sum_input_tokens=15_006_376_000,
@@ -250,10 +260,9 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         uncached_occurrence = call_args_list[0].kwargs["occurrence"]
         assert uncached_occurrence.issue_title == "Uncached LLM Prompts"
         assert uncached_occurrence.subtitle == (
-            "seer.code_review.pr_review_step.pr_review_task | "
-            "generate_content generate_structured | gemini-2.5-pro"
+            "PR Review | generate_content generate_structured | gemini-2.5-pro"
         )
-        assert uncached_occurrence.culprit == "seer.code_review.pr_review_step.pr_review_task"
+        assert uncached_occurrence.culprit == "PR Review"
         assert uncached_occurrence.fingerprint == [create_fingerprint(NOT_CACHING_STATS)]
         evidence = uncached_occurrence.evidence_data
         assert evidence["call_count"] == 169_000
@@ -264,7 +273,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert evidence["sum_cache_read_tokens"] == 40_868
         assert evidence["sum_cache_creation_tokens"] == 0
         assert evidence["contrast_model"] == "gemini-2.5-pro"
-        assert evidence["contrast_transaction"] == "seer.automation.agent.explorer_main_task"
+        assert evidence["contrast_agent_label"] == "Explorer"
         assert evidence["contrast_hit_rate"] == pytest.approx(0.855)
         anchor_evidence = [
             e for e in uncached_occurrence.evidence_display if e.name == "Healthy comparison"
@@ -276,17 +285,13 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         important_names = [e.name for e in uncached_occurrence.evidence_display if e.important]
         assert important_names == ["Cache hit rate"]
         uncached_event_data = call_args_list[0].kwargs["event_data"]
-        assert (
-            uncached_event_data["tags"]["transaction"]
-            == "seer.code_review.pr_review_step.pr_review_task"
-        )
+        assert uncached_event_data["tags"]["gen_ai.agent.name"] == "PR Review"
         assert uncached_event_data["tags"]["gen_ai.request.model"] == "gemini-2.5-pro"
 
         thrash_occurrence = call_args_list[1].kwargs["occurrence"]
         assert thrash_occurrence.issue_title == "LLM Cache Thrash"
         assert thrash_occurrence.subtitle == (
-            "/v1/automation/malicious-issue-detection/classify | "
-            "generate_content anthropic_generation | claude-sonnet-5"
+            "Malicious Issue Detection | generate_content anthropic_generation | claude-sonnet-5"
         )
         assert thrash_occurrence.fingerprint == [create_fingerprint(THRASH_STATS)]
         evidence = thrash_occurrence.evidence_data
@@ -476,7 +481,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         first, second = mock_produce.call_args_list
         assert first.kwargs["occurrence"].fingerprint == second.kwargs["occurrence"].fingerprint
 
-    def test_subtitle_keeps_a_model_the_span_description_does_not_carry(
+    def test_subtitle_keeps_a_model_the_span_name_does_not_carry(
         self,
         mock_fetch_stats: MagicMock,
         mock_count_cache_attrs: MagicMock,
@@ -489,8 +494,8 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [
             replace(
                 NOT_CACHING_STATS,
-                transaction="pr_review_task",
-                span_description="generate_content generate_structured",
+                agent_label="PR Review",
+                span_name="generate_content generate_structured",
                 model="gemini-2.5-pro",
             )
         ]
@@ -501,10 +506,10 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
 
         occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
         assert occurrence.subtitle == (
-            "pr_review_task | generate_content generate_structured | gemini-2.5-pro"
+            "PR Review | generate_content generate_structured | gemini-2.5-pro"
         )
 
-    def test_subtitle_does_not_repeat_a_model_the_span_description_already_carries(
+    def test_subtitle_does_not_repeat_a_model_the_span_name_already_carries(
         self,
         mock_fetch_stats: MagicMock,
         mock_count_cache_attrs: MagicMock,
@@ -518,8 +523,8 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_stats.return_value = [
             replace(
                 NOT_CACHING_STATS,
-                transaction="pr_review_task",
-                span_description="chat claude-sonnet-5",
+                agent_label="PR Review",
+                span_name="chat claude-sonnet-5",
                 model="claude-sonnet-5",
             )
         ]
@@ -529,7 +534,98 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             detect_llm_cache_issues_for_project(project.id)
 
         occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
-        assert occurrence.subtitle == "pr_review_task | chat claude-sonnet-5"
+        assert occurrence.subtitle == "PR Review | chat claude-sonnet-5"
+
+    def test_subtitle_does_not_repeat_an_agent_the_span_name_already_carries(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Agent spans are named "<operation> <agent>", so for the call sites that
+        # do carry an agent name -- the ones worth naming -- stating it twice
+        # would spend the issue stream's width on a duplicate.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [
+            replace(
+                NOT_CACHING_STATS,
+                agent_label="Lightweight RCA",
+                span_name="invoke_agent Lightweight RCA",
+                model="gemini-3.1-flash-lite",
+            )
+        ]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
+        assert occurrence.subtitle == "invoke_agent Lightweight RCA | gemini-3.1-flash-lite"
+
+    def test_evidence_states_a_fallback_label_is_not_an_agent_name(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # An operation name shown under an "Agent" heading reads as an agent
+        # someone named, and sends the reader looking for code that isn't there.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [
+            replace(
+                NOT_CACHING_STATS,
+                agent_label="generate_content",
+                agent_label_source=AgentLabelSource.OPERATION_NAME,
+            )
+        ]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
+        assert occurrence.evidence_data["agent_label_source"] == "gen_ai.operation.name"
+        assert [
+            evidence.value
+            for evidence in occurrence.evidence_display
+            if evidence.name == "Operation (no agent name)"
+        ] == ["generate_content"]
+        assert occurrence.evidence_data["agent_label"] == "generate_content"
+        event_data = mock_produce.call_args_list[0].kwargs["event_data"]
+        assert event_data["tags"] == {
+            "gen_ai.operation.name": "generate_content",
+            "gen_ai.request.model": "gemini-2.5-pro",
+        }
+
+    def test_fingerprints_distinguish_an_agent_from_an_operation_of_the_same_name(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Nothing stops an agent being named after the operation it runs. The
+        # spans that carry no agent name are still a different call site.
+        named = replace(NOT_CACHING_STATS, agent_label="generate_content")
+        unnamed = replace(
+            named,
+            agent_label_source=AgentLabelSource.OPERATION_NAME,
+        )
+        assert create_fingerprint(named) != create_fingerprint(unnamed)
+
+        project = self.create_project()
+        mock_fetch_stats.return_value = [named, unnamed]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        fingerprints = {
+            tuple(call.kwargs["occurrence"].fingerprint) for call in mock_produce.call_args_list
+        }
+        assert len(fingerprints) == 2
 
     def test_fingerprints_distinguish_call_sites_that_share_a_delimiter(
         self,
@@ -538,11 +634,11 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         mock_fetch_traces: MagicMock,
         mock_produce: MagicMock,
     ) -> None:
-        # Hyphens are ordinary characters in a transaction and in a span
-        # description, so two distinct call sites can agree on their
-        # concatenation. They must still be two issues.
-        first = replace(NOT_CACHING_STATS, transaction="chat", span_description="stream-tokens")
-        second = replace(NOT_CACHING_STATS, transaction="chat-stream", span_description="tokens")
+        # Hyphens are ordinary characters in an agent name and in a span name,
+        # so two distinct call sites can agree on their concatenation. They must
+        # still be two issues.
+        first = replace(NOT_CACHING_STATS, agent_label="chat", span_name="stream-tokens")
+        second = replace(NOT_CACHING_STATS, agent_label="chat-stream", span_name="tokens")
         assert create_fingerprint(first) != create_fingerprint(second)
 
         project = self.create_project()
@@ -569,10 +665,10 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         # nothing reads, leaving the new candidates unresolvable.
         project = self.create_project()
         open_stats = [
-            replace(GAP_STATS, transaction=f"open-task-{i}")
+            replace(GAP_STATS, agent_label=f"open-agent-{i}")
             for i in range(MAX_PRESENCE_PROBES_PER_PROJECT)
         ]
-        new_stats = [replace(GAP_STATS, transaction="new-task")]
+        new_stats = [replace(GAP_STATS, agent_label="new-agent")]
         mock_fetch_stats.return_value = open_stats + new_stats
         mock_fetch_traces.return_value = SAMPLE_CALLS
         mock_count_cache_attrs.return_value = 1_000
@@ -783,7 +879,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
     ) -> None:
         project = self.create_project()
         mock_fetch_stats.return_value = [
-            replace(NOT_CACHING_STATS, transaction=f"task-{i}")
+            replace(NOT_CACHING_STATS, agent_label=f"agent-{i}")
             for i in range(FINDINGS_PER_PROJECT_LIMIT + 2)
         ]
         mock_fetch_traces.return_value = SAMPLE_CALLS
@@ -805,11 +901,11 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         # by dedupe rejects.
         project = self.create_project()
         open_stats = [
-            replace(NOT_CACHING_STATS, transaction=f"open-task-{i}")
+            replace(NOT_CACHING_STATS, agent_label=f"open-agent-{i}")
             for i in range(FINDINGS_PER_PROJECT_LIMIT)
         ]
         new_stats = [
-            replace(NOT_CACHING_STATS, transaction=f"new-task-{i}")
+            replace(NOT_CACHING_STATS, agent_label=f"new-agent-{i}")
             for i in range(FINDINGS_PER_PROJECT_LIMIT)
         ]
         mock_fetch_stats.return_value = open_stats + new_stats
@@ -827,10 +923,11 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             detect_llm_cache_issues_for_project(project.id)
 
         assert mock_produce.call_count == FINDINGS_PER_PROJECT_LIMIT
-        produced_transactions = {
-            call.kwargs["event_data"]["tags"]["transaction"] for call in mock_produce.call_args_list
+        produced_agents = {
+            call.kwargs["event_data"]["tags"]["gen_ai.agent.name"]
+            for call in mock_produce.call_args_list
         }
-        assert produced_transactions == {stats.transaction for stats in new_stats}
+        assert produced_agents == {stats.agent_label for stats in new_stats}
 
     def test_caps_presence_probes_per_project(
         self,
@@ -843,7 +940,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         # once the probe budget is spent, the rest resolve UNKNOWN unqueried.
         project = self.create_project()
         mock_fetch_stats.return_value = [
-            replace(GAP_STATS, transaction=f"task-{i}")
+            replace(GAP_STATS, agent_label=f"agent-{i}")
             for i in range(MAX_PRESENCE_PROBES_PER_PROJECT + 5)
         ]
         mock_count_cache_attrs.return_value = 0

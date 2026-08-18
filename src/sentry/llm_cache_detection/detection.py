@@ -67,6 +67,18 @@ class DetectionWindow:
         return cls(start=end - timedelta(days=DETECTION_WINDOW_DAYS), end=end)
 
 
+class AgentLabelSource(StrEnum):
+    """Which span attribute a call site's agent label was read from.
+
+    Named for the attribute itself so evidence states the provenance rather than
+    a private code for it: a reader shown an operation name where they expected
+    an agent has to be able to tell a fallback from a mislabelled agent.
+    """
+
+    AGENT_NAME = "gen_ai.agent.name"
+    OPERATION_NAME = "gen_ai.operation.name"
+
+
 class CacheOutcome(StrEnum):
     HEALTHY = "healthy"
     NOT_CACHING = "not_caching"
@@ -80,10 +92,17 @@ FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
 @dataclass(frozen=True)
 class CallSiteStats:
-    """Aggregates for one call-site group (transaction x span.description x model)."""
+    """Aggregates for one call-site group (agent label x span.name x model).
 
-    transaction: str
-    span_description: str
+    The transaction is deliberately not part of this: one call site reached from
+    a task and from a request handler is one place in the code with one cache
+    configuration, and splitting it by entry point would file the same finding
+    twice.
+    """
+
+    agent_label: str
+    agent_label_source: AgentLabelSource
+    span_name: str
     model: str
     call_count: int
     sum_input_tokens: float
@@ -92,8 +111,17 @@ class CallSiteStats:
     avg_input_tokens: float
 
     @property
-    def group_key(self) -> tuple[str, str, str]:
-        return (self.transaction, self.span_description, self.model)
+    def group_key(self) -> tuple[str, str, str, str]:
+        # The label's source belongs to the identity rather than decorating it:
+        # an agent genuinely named `chat` and the fallback label for spans that
+        # carry no agent name are different call sites that would otherwise
+        # share a key.
+        return (
+            self.agent_label_source.value,
+            self.agent_label,
+            self.span_name,
+            self.model,
+        )
 
     @property
     def hit_rate(self) -> float:
@@ -139,8 +167,9 @@ class ContrastAnchor:
     well in this project, pointing at the flagged call site's configuration.
     """
 
-    transaction: str
-    span_description: str
+    agent_label: str
+    agent_label_source: AgentLabelSource
+    span_name: str
     model: str
     hit_rate: float
     call_count: int
@@ -243,8 +272,9 @@ def find_contrast_anchor(
     if best is None:
         return None
     return ContrastAnchor(
-        transaction=best.transaction,
-        span_description=best.span_description,
+        agent_label=best.agent_label,
+        agent_label_source=best.agent_label_source,
+        span_name=best.span_name,
         model=best.model,
         hit_rate=best.hit_rate,
         call_count=best.call_count,

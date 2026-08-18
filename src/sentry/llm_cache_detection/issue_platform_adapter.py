@@ -13,6 +13,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.llm_cache_detection.detection import (
     DETECTION_WINDOW_DAYS,
+    AgentLabelSource,
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
@@ -30,8 +31,19 @@ FINDING_TITLES: dict[CacheOutcome, str] = {
     CacheOutcome.THRASH: "LLM Cache Thrash",
 }
 
+# The row is named after where the label came from rather than carrying a
+# qualifier in its value: an "Agent" row that is really an operation name reads
+# as a mislabelled agent, and the distinction matters for finding the code.
+AGENT_LABEL_EVIDENCE_NAMES: dict[AgentLabelSource, str] = {
+    AgentLabelSource.AGENT_NAME: "Agent",
+    AgentLabelSource.OPERATION_NAME: "Operation (no agent name)",
+}
+
 # Versioned so grouping can change later without merging into existing issues.
-FINGERPRINT_VERSION = "v1"
+# v2 keys on the agent label and span name where v1 keyed on the transaction and
+# the span description, so every fingerprint moved: issues opened under v1 stop
+# matching and are superseded rather than continued.
+FINGERPRINT_VERSION = "v2"
 
 
 def create_fingerprint(stats: CallSiteStats) -> str:
@@ -40,13 +52,23 @@ def create_fingerprint(stats: CallSiteStats) -> str:
     The outcome is deliberately excluded: the two outcomes are alternative
     readings of the same call site, so including it would open a second issue
     whenever one shifted and orphan the first, which never auto-resolves.
+
+    The label's source is included because it distinguishes call sites rather
+    than describing one: without it, an agent named after an operation would
+    share an issue with the spans that have no agent name at all.
     """
     # The parts are arbitrary strings off a span, so they are length-prefixed
-    # rather than joined on a delimiter: any delimiter can occur inside a
-    # transaction or a span description, which would let two distinct call sites
-    # hash alike and share one issue.
+    # rather than joined on a delimiter: any delimiter can occur inside an agent
+    # name or a span name, which would let two distinct call sites hash alike
+    # and share one issue.
     call_site = "".join(
-        f"{len(part)}:{part}" for part in (stats.transaction, stats.span_description, stats.model)
+        f"{len(part)}:{part}"
+        for part in (
+            stats.agent_label_source.value,
+            stats.agent_label,
+            stats.span_name,
+            stats.model,
+        )
     )
     prehashed_fingerprint = f"llm-cache-detection-{FINGERPRINT_VERSION}-{call_site}"
     return hashlib.sha1(prehashed_fingerprint.encode()).hexdigest()
@@ -79,19 +101,27 @@ def _format_usd(value: float) -> str:
     return f"${value:,.0f}"
 
 
-def _format_call_site(stats: CallSiteStats) -> str:
-    """Name the call site for a human, without repeating itself.
+def _format_call_site_label(agent_label: str, span_name: str, model: str | None = None) -> str:
+    """Name a call site for a human, without repeating itself.
 
-    The model is a grouping dimension in its own right, so it has to appear when
-    the description does not already carry it. Gen-AI span descriptions
-    conventionally end in the model (``generate_content claude-sonnet-4``),
-    though, and appending it again spends the issue stream's limited width on a
+    Both the agent label and the model are grouping dimensions in their own
+    right, so each has to appear when the span name does not already carry it.
+    Gen-AI span names conventionally embed one or the other
+    (``invoke_agent Lightweight RCA``, ``generate_content claude-sonnet-4``),
+    though, and repeating one spends the issue stream's limited width on a
     duplicate -- which is exactly the part that then gets truncated away.
     """
-    parts = [stats.transaction, stats.span_description]
-    if stats.model.casefold() not in stats.span_description.casefold():
-        parts.append(stats.model)
+    normalized_span_name = span_name.casefold()
+    parts = [span_name]
+    if agent_label.casefold() not in normalized_span_name:
+        parts.insert(0, agent_label)
+    if model is not None and model.casefold() not in normalized_span_name:
+        parts.append(model)
     return " | ".join(parts)
+
+
+def _format_call_site(stats: CallSiteStats) -> str:
+    return _format_call_site_label(stats.agent_label, stats.span_name, stats.model)
 
 
 def _build_evidence_data(
@@ -110,8 +140,11 @@ def _build_evidence_data(
         "window_days": DETECTION_WINDOW_DAYS,
         "window_start": window.start.isoformat(),
         "window_end": window.end.isoformat(),
-        "transaction": stats.transaction,
-        "span_description": stats.span_description,
+        "agent_label": stats.agent_label,
+        # The attribute the label was read from, so a reader is not misled into
+        # taking an operation name for an agent someone actually named.
+        "agent_label_source": stats.agent_label_source.value,
+        "span_name": stats.span_name,
         "model": stats.model,
         "call_count": stats.call_count,
         "hit_rate": stats.hit_rate,
@@ -152,8 +185,9 @@ def _build_evidence_data(
         evidence_data.update(
             {
                 "contrast_model": anchor.model,
-                "contrast_transaction": anchor.transaction,
-                "contrast_span_description": anchor.span_description,
+                "contrast_agent_label": anchor.agent_label,
+                "contrast_agent_label_source": anchor.agent_label_source.value,
+                "contrast_span_name": anchor.span_name,
                 "contrast_hit_rate": anchor.hit_rate,
                 "contrast_call_count": anchor.call_count,
                 "contrast_avg_input_tokens": anchor.avg_input_tokens,
@@ -176,6 +210,11 @@ def _build_evidence_display(
 
     evidence_display = [
         IssueEvidence(name="Call site", value=_format_call_site(stats), important=False),
+        IssueEvidence(
+            name=AGENT_LABEL_EVIDENCE_NAMES[stats.agent_label_source],
+            value=stats.agent_label,
+            important=False,
+        ),
         IssueEvidence(name="Window", value=f"{DETECTION_WINDOW_DAYS}d", important=False),
         IssueEvidence(name="Calls", value=f"{stats.call_count:,}", important=False),
         IssueEvidence(
@@ -232,7 +271,7 @@ def _build_evidence_display(
                 name="Healthy comparison",
                 value=(
                     f"{anchor.model} reaches {_format_rate(anchor.hit_rate)} cache hit rate at "
-                    f"{anchor.transaction} | {anchor.span_description}"
+                    f"{_format_call_site_label(anchor.agent_label, anchor.span_name)}"
                 ),
                 important=False,
             )
@@ -264,8 +303,10 @@ def _build_event_data(
         "platform": get_base_platform(project.platform) or "other",
         "timestamp": detection_time.isoformat(),
         "received": detection_time.isoformat(),
+        # Tagged with the attribute the label came from, so filtering the issue
+        # stream by it reaches the same spans the finding was derived from.
         "tags": {
-            "transaction": stats.transaction,
+            stats.agent_label_source.value: stats.agent_label,
             "gen_ai.request.model": stats.model,
         },
     }
@@ -304,7 +345,7 @@ def send_llm_cache_issue_to_platform(
         evidence_display=_build_evidence_display(finding, sample_calls, savings),
         type=LLMCacheUsageGroupType,
         detection_time=now,
-        culprit=stats.transaction,
+        culprit=stats.agent_label,
         level="warning",
     )
 

@@ -12,7 +12,11 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.issues.grouptype import LLMCacheUsageGroupType
-from sentry.llm_cache_detection.detection import CallSiteStats, DetectionWindow
+from sentry.llm_cache_detection.detection import (
+    AgentLabelSource,
+    CallSiteStats,
+    DetectionWindow,
+)
 from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
@@ -51,14 +55,15 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         *,
         transaction: str = "/chat",
-        description: str = "generate_content claude",
+        span_name: str = "generate_content claude",
+        agent_name: str | None = None,
         model: str = CLAUDE,
         input_tokens: int = INPUT_TOKENS,
         cache_read_tokens: int | None = None,
         cache_creation_tokens: int | None = None,
         op: str = "gen_ai.chat",
         operation_type: str | None = "ai_client",
-        operation_name: str | None = "chat",
+        operation_name: str | None = "generate_content",
         project: Project | None = None,
         deprecated_attribute_names: bool = False,
     ) -> dict[str, Any]:
@@ -66,6 +71,11 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
 
         ``gen_ai.operation.type`` is normally added during ingestion from the op;
         these spans are written straight to EAP, so it is set explicitly here.
+        The name is written to the description as well, which is how gen-AI call
+        spans arrive in practice.
+
+        ``agent_name`` defaults to absent: plenty of SDK paths never emit one,
+        and that is the case the operation-name fallback exists for.
         """
         read_attribute, creation_attribute = (
             ("gen_ai.usage.input_tokens.cached", "gen_ai.usage.input_tokens.cache_write")
@@ -83,6 +93,8 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
             data["gen_ai.operation.type"] = operation_type
         if operation_name is not None:
             data["gen_ai.operation.name"] = operation_name
+        if agent_name is not None:
+            data["gen_ai.agent.name"] = agent_name
         if cache_read_tokens is not None:
             data[read_attribute] = cache_read_tokens
         if cache_creation_tokens is not None:
@@ -91,8 +103,8 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         return self.create_span(
             project=project or self.project,
             extra_data={
-                "description": description,
-                "sentry_tags": {"op": op, "transaction": transaction},
+                "description": span_name,
+                "sentry_tags": {"op": op, "transaction": transaction, "name": span_name},
                 "data": data,
             },
             start_ts=self.ten_mins_ago,
@@ -108,17 +120,67 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
 
 
 class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
+    def test_separates_two_agents_sharing_a_span_name_and_model(self) -> None:
+        # The span name is the SDK wrapper both agents call through. Keying on it
+        # alone would average a broken call site into a healthy one and report
+        # neither.
+        self.store_call_site(
+            agent_name="Explorer",
+            span_name="generate_content gemini",
+            model=GEMINI,
+            cache_read_tokens=1_800,
+        )
+        self.store_call_site(
+            agent_name="PR Review",
+            span_name="generate_content gemini",
+            model=GEMINI,
+            cache_read_tokens=0,
+        )
+
+        by_agent = {
+            entry.agent_label: entry for entry in fetch_call_site_stats(self.project, self.window)
+        }
+
+        assert set(by_agent) == {"Explorer", "PR Review"}
+        assert by_agent["Explorer"].hit_rate == 0.9
+        assert by_agent["PR Review"].hit_rate == 0
+
+    def test_keeps_spans_without_an_agent_name_as_their_own_call_site(self) -> None:
+        # One (span.name, model) pair holding both named and unnamed spans is
+        # what makes the fallback a per-span decision: merging the unnamed ones
+        # into their named sibling would credit an agent with calls it never made.
+        self.store_call_site(
+            agent_name="Explorer",
+            span_name="generate_content gemini",
+            model=GEMINI,
+            cache_read_tokens=1_800,
+        )
+        self.store_call_site(
+            span_name="generate_content gemini",
+            operation_name="generate_content",
+            model=GEMINI,
+            cache_read_tokens=0,
+        )
+
+        stats = fetch_call_site_stats(self.project, self.window)
+
+        assert {(entry.agent_label, entry.agent_label_source) for entry in stats} == {
+            ("Explorer", AgentLabelSource.AGENT_NAME),
+            ("generate_content", AgentLabelSource.OPERATION_NAME),
+        }
+        assert sum(entry.call_count for entry in stats) == 2 * CALLS_PER_CALL_SITE
+
     def test_aggregates_token_sums_per_call_site(self) -> None:
         self.store_call_site(
-            transaction="/chat",
-            description="generate_content claude",
+            agent_name="Chat",
+            span_name="generate_content claude",
             model=CLAUDE,
             cache_read_tokens=0,
             cache_creation_tokens=0,
         )
         self.store_call_site(
-            transaction="/summarize",
-            description="generate_content gemini",
+            agent_name="Summarizer",
+            span_name="generate_content gemini",
             model=GEMINI,
             input_tokens=4_000,
             cache_read_tokens=3_000,
@@ -127,8 +189,9 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         stats = fetch_call_site_stats(self.project, self.window)
 
         uncached = self.stats_for(stats, CLAUDE)
-        assert uncached.transaction == "/chat"
-        assert uncached.span_description == "generate_content claude"
+        assert uncached.agent_label == "Chat"
+        assert uncached.agent_label_source is AgentLabelSource.AGENT_NAME
+        assert uncached.span_name == "generate_content claude"
         assert uncached.call_count == CALLS_PER_CALL_SITE
         assert uncached.sum_input_tokens == INPUT_TOKENS * CALLS_PER_CALL_SITE
         assert uncached.sum_cache_read_tokens == 0
@@ -137,7 +200,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert uncached.hit_rate == 0
 
         cached = self.stats_for(stats, GEMINI)
-        assert cached.transaction == "/summarize"
+        assert cached.agent_label == "Summarizer"
         assert cached.sum_input_tokens == 4_000 * CALLS_PER_CALL_SITE
         assert cached.sum_cache_read_tokens == 3_000 * CALLS_PER_CALL_SITE
         assert cached.hit_rate == 0.75
@@ -190,7 +253,6 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
                 op=op,
                 operation_name=operation_name,
                 model=f"model-{index}",
-                transaction=f"/call-{index}",
                 cache_read_tokens=0,
                 cache_creation_tokens=0,
             )
@@ -283,26 +345,46 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
         assert count_spans_with_cache_attributes(self.project, stats, self.window) == 0
 
     def test_scopes_the_probe_to_its_own_call_site(self) -> None:
-        # Both call sites share a model and transaction, so the description is
-        # the only term that separates them: unescaped, the literal asterisk
-        # degrades it to a wildcard that also swallows the sibling call site.
-        self.store_call_site(
-            description="generate_content */chat", model=CLAUDE, cache_read_tokens=0
-        )
-        self.store_call_site(
-            description="generate_content x/chat", model=CLAUDE, cache_read_tokens=0
-        )
+        # Both call sites share a model and an agent, so the span name is the
+        # only term that separates them: unescaped, the literal asterisk degrades
+        # it to a wildcard that also swallows the sibling call site.
+        self.store_call_site(span_name="generate_content */chat", model=CLAUDE, cache_read_tokens=0)
+        self.store_call_site(span_name="generate_content x/chat", model=CLAUDE, cache_read_tokens=0)
 
         stats = next(
             entry
             for entry in fetch_call_site_stats(self.project, self.window)
-            if entry.span_description == "generate_content */chat"
+            if entry.span_name == "generate_content */chat"
         )
 
         assert (
             count_spans_with_cache_attributes(self.project, stats, self.window)
             == CALLS_PER_CALL_SITE
         )
+
+    def test_scopes_the_probe_to_spans_that_carry_no_agent_name(self) -> None:
+        # A fallback label covers exactly the spans without an agent name. The
+        # named sibling here does report cache attributes, so a filter missing
+        # the absence term would count them and call the gap instrumented.
+        self.store_call_site(
+            agent_name="Explorer",
+            span_name="generate_content claude",
+            model=CLAUDE,
+            cache_read_tokens=0,
+        )
+        self.store_call_site(
+            span_name="generate_content claude",
+            operation_name="generate_content",
+            model=CLAUDE,
+        )
+
+        unnamed = next(
+            entry
+            for entry in fetch_call_site_stats(self.project, self.window)
+            if entry.agent_label_source is AgentLabelSource.OPERATION_NAME
+        )
+
+        assert count_spans_with_cache_attributes(self.project, unnamed, self.window) == 0
 
 
 class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
@@ -348,8 +430,8 @@ class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
 class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
     def test_flags_a_call_site_that_never_caches(self, mock_produce: MagicMock) -> None:
         self.store_call_site(
-            transaction="/chat",
-            description="generate_content gemini",
+            agent_name="Summarizer",
+            span_name="generate_content gemini",
             model=GEMINI,
         )
 
@@ -360,8 +442,8 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         occurrence = mock_produce.call_args.kwargs["occurrence"]
         assert occurrence.type == LLMCacheUsageGroupType
         assert occurrence.issue_title == "Uncached LLM Prompts"
-        assert occurrence.culprit == "/chat"
-        assert occurrence.subtitle == f"/chat | generate_content gemini | {GEMINI}"
+        assert occurrence.culprit == "Summarizer"
+        assert occurrence.subtitle == f"Summarizer | generate_content gemini | {GEMINI}"
 
         evidence = occurrence.evidence_data
         assert evidence["model"] == GEMINI
@@ -373,15 +455,15 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
 
         event_data = mock_produce.call_args.kwargs["event_data"]
         assert event_data["project_id"] == self.project.id
-        assert event_data["tags"]["transaction"] == "/chat"
+        assert event_data["tags"]["gen_ai.agent.name"] == "Summarizer"
         assert event_data["contexts"]["trace"]["trace_id"] == evidence["sample_trace_ids"][0]
 
     def test_flags_a_call_site_that_thrashes_its_cache(self, mock_produce: MagicMock) -> None:
         # Writes dominate reads: the call site pays the cache-write premium on
         # nearly every call without collecting the reads back.
         self.store_call_site(
-            transaction="/agent",
-            description="generate_content claude",
+            agent_name="Malicious Issue Detection",
+            span_name="generate_content claude",
             model=CLAUDE,
             cache_read_tokens=100,
             cache_creation_tokens=1_500,
@@ -419,11 +501,11 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         self, mock_produce: MagicMock
     ) -> None:
         self.store_call_site(
-            transaction="/chat", description="generate_content gemini", model=GEMINI
+            agent_name="PR Review", span_name="generate_content gemini", model=GEMINI
         )
         self.store_call_site(
-            transaction="/summarize",
-            description="generate_content gemini",
+            agent_name="Explorer",
+            span_name="generate_content gemini",
             model=GEMINI,
             cache_read_tokens=1_800,
         )
@@ -433,9 +515,55 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
 
         assert mock_produce.call_count == 1
         evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
-        assert evidence["transaction"] == "/chat"
-        assert evidence["contrast_transaction"] == "/summarize"
+        assert evidence["agent_label"] == "PR Review"
+        assert evidence["contrast_agent_label"] == "Explorer"
         assert evidence["contrast_hit_rate"] == 0.9
+
+    def test_files_one_issue_per_agent_behind_a_shared_span_name(
+        self, mock_produce: MagicMock
+    ) -> None:
+        # Two agents, one SDK wrapper, both caching badly but not equally. Keyed
+        # on the wrapper they would be one issue naming code neither owns.
+        self.store_call_site(
+            agent_name="Explorer", span_name="generate_content gemini", model=GEMINI
+        )
+        self.store_call_site(
+            agent_name="PR Review",
+            span_name="generate_content gemini",
+            model=GEMINI,
+            cache_read_tokens=50,
+        )
+
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
+            detect_llm_cache_issues_for_project(self.project.id)
+
+        assert mock_produce.call_count == 2
+        occurrences = [call.kwargs["occurrence"] for call in mock_produce.call_args_list]
+        assert {occurrence.subtitle for occurrence in occurrences} == {
+            f"Explorer | generate_content gemini | {GEMINI}",
+            f"PR Review | generate_content gemini | {GEMINI}",
+        }
+        assert len({tuple(occurrence.fingerprint) for occurrence in occurrences}) == 2
+
+    def test_files_one_issue_per_label_when_only_some_spans_name_an_agent(
+        self, mock_produce: MagicMock
+    ) -> None:
+        self.store_call_site(
+            agent_name="Explorer", span_name="generate_content gemini", model=GEMINI
+        )
+        self.store_call_site(
+            span_name="generate_content gemini", operation_name="generate_content", model=GEMINI
+        )
+
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
+            detect_llm_cache_issues_for_project(self.project.id)
+
+        assert mock_produce.call_count == 2
+        evidence = [call.kwargs["occurrence"].evidence_data for call in mock_produce.call_args_list]
+        assert {(entry["agent_label"], entry["agent_label_source"]) for entry in evidence} == {
+            ("Explorer", "gen_ai.agent.name"),
+            ("generate_content", "gen_ai.operation.name"),
+        }
 
     def test_fan_out_reaches_a_project_that_sent_gen_ai_spans(
         self, mock_produce: MagicMock

@@ -4,7 +4,12 @@ from typing import Any
 
 import pytest
 
-from sentry.llm_cache_detection.detection import CacheFinding, CacheOutcome, CallSiteStats
+from sentry.llm_cache_detection.detection import (
+    AgentLabelSource,
+    CacheFinding,
+    CacheOutcome,
+    CallSiteStats,
+)
 from sentry.llm_cache_detection.pricing import ModelPricebook
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
 
@@ -45,8 +50,9 @@ def make_stats(
     sum_cache_creation_tokens: float = 0,
 ) -> CallSiteStats:
     return CallSiteStats(
-        transaction="agent.plan",
-        span_description="generate_content claude-sonnet-4",
+        agent_label="Planner",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content claude-sonnet-4",
         model=model,
         call_count=5_000,
         sum_input_tokens=sum_input_tokens,
