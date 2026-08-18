@@ -60,6 +60,20 @@ describe('MilestoneToast', () => {
     expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
   });
 
+  it('hides the next-action button while the run is processing', () => {
+    render(
+      <MilestoneToast
+        run={run({status: 'processing'})}
+        toMilestone="autofix_code_changes"
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('SEER-1 reached Code Changes')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
+  });
+
   it('triggers the next action when its button is clicked', async () => {
     const postRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/2/autofix/',

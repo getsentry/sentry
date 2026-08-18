@@ -91,7 +91,7 @@ export function MilestoneToast({
   return (
     <Flex align="center" gap="md">
       <Text>{t('%s reached %s', run.shortId, MILESTONE_LABELS[toMilestone])}</Text>
-      {isActionableSection(sectionKey) && (
+      {isActionableSection(sectionKey) && run.status !== 'processing' && (
         <NextActionButton run={run} sectionKey={sectionKey} />
       )}
       <OpenSeerButton run={run} size="xs" />
