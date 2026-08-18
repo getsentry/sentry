@@ -22,6 +22,14 @@ import SessionDetailView from './index';
 jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const SESSION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+/**
+ * Height the virtualized rail believes it has. Tall enough that every fixture in
+ * this file fits inside it, so a test asserting on rows is testing the rail
+ * rather than the virtualizer's window.
+ */
+const RAIL_VIEWPORT = 2000;
+/** Height every rail row reports, so offsets in these tests are predictable. */
+const RAIL_ROW_HEIGHT = 46;
 const TRACE = '1'.repeat(32);
 const PROJECT = ProjectFixture();
 
@@ -185,6 +193,23 @@ describe('SessionDetailView', () => {
     // pointer so a drag survives leaving the track.
     Element.prototype.scrollIntoView = jest.fn();
     Element.prototype.setPointerCapture = jest.fn();
+    // The rail is virtualized, and jsdom reports every element as zero high. A
+    // virtualizer whose viewport is zero high mounts no rows, and rows that
+    // measure zero all collapse onto one offset, so both have to report a size.
+    //
+    // `offsetHeight` rather than `getBoundingClientRect`, which is what
+    // `@tanstack/virtual-core` actually reads for both the scroll element and each
+    // measured row. Everything else keeps jsdom's zero, so the scrubber's own
+    // per-element `withGeometry` stubs stay in charge of its geometry.
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get(this: HTMLElement) {
+        if (this.dataset.testId === 'session-rail') {
+          return RAIL_VIEWPORT;
+        }
+        return this.dataset.index === undefined ? 0 : RAIL_ROW_HEIGHT;
+      },
+    });
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([PROJECT]);
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());

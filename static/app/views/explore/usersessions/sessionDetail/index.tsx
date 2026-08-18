@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -22,6 +21,7 @@ import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {SessionBadge} from 'sentry/views/explore/usersessions/sessionBadge';
 import {
   USER_SESSIONS_SUB_PATH,
@@ -113,7 +113,13 @@ export default function SessionDetailView() {
     <SentryDocumentTitle title={t('Session %s', name.handle)} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <AnalyticsArea name="explore.usersessions.detail">
-          <Stack flex={1}>
+          {/*
+            The page is sized to the viewport rather than to its content, so the
+            only thing that scrolls is the rail. A session timeline is read
+            against its chart — the swim lanes say where in the session you are —
+            and a chart that scrolls off the top takes that reference with it.
+          */}
+          <ViewportConstrainedPage hideFooter>
             <TopBar.Slot name="title">
               <Breadcrumbs
                 crumbs={[
@@ -127,105 +133,101 @@ export default function SessionDetailView() {
               />
             </TopBar.Slot>
 
-            <Layout.Body>
-              <Layout.Main width="full">
-                <Stack gap="xl">
-                  <StyledPageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </StyledPageFilterBar>
+            <Stack flex={1} minHeight="0" padding="lg xl" gap="xl">
+              <StyledPageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </StyledPageFilterBar>
 
-                  <Flex align="center" gap="md">
-                    {/* The handle names the session; the full id is what other tools
+              <Flex align="center" gap="md">
+                {/* The handle names the session; the full id is what other tools
                         take, so it stays one click away, against the handle. */}
-                    <SessionBadge
-                      name={name}
-                      isPending={isPending}
-                      action={
-                        <CopyToClipboardButton
-                          text={sessionId}
-                          size="zero"
-                          variant="transparent"
-                          aria-label={t('Copy session ID')}
-                        />
-                      }
-                      trailing={
-                        name.release ? (
-                          // Releases are often raw shas, and nothing reads forty
-                          // characters of one. The short form carries the full
-                          // value in its tooltip.
-                          <Text size="sm" variant="muted" wrap="nowrap">
-                            <Version
-                              version={name.release}
-                              anchor={false}
-                              tooltipRawVersion
-                            />
-                          </Text>
-                        ) : null
-                      }
+                <SessionBadge
+                  name={name}
+                  isPending={isPending}
+                  action={
+                    <CopyToClipboardButton
+                      text={sessionId}
+                      size="zero"
+                      variant="transparent"
+                      aria-label={t('Copy session ID')}
                     />
-                    <Flex flex="1" />
-                    {/* Beside the session's name rather than over the timeline: how
+                  }
+                  trailing={
+                    name.release ? (
+                      // Releases are often raw shas, and nothing reads forty
+                      // characters of one. The short form carries the full
+                      // value in its tooltip.
+                      <Text size="sm" variant="muted" wrap="nowrap">
+                        <Version
+                          version={name.release}
+                          anchor={false}
+                          tooltipRawVersion
+                        />
+                      </Text>
+                    ) : null
+                  }
+                />
+                <Flex flex="1" />
+                {/* Beside the session's name rather than over the timeline: how
                         this session felt to the person in it is part of who the
                         session is, not another lane of telemetry. */}
-                    <SessionVitalsRow {...vitals} />
-                    {/* The scrubber's lane counts are the breakdown, and they scope
+                <SessionVitalsRow {...vitals} />
+                {/* The scrubber's lane counts are the breakdown, and they scope
                         to whatever window is selected. This one stays the whole
                         session's size — the denominator those lanes read against. */}
-                    {/* Sized and rounded off `form.xs`, the same token the vital
+                {/* Sized and rounded off `form.xs`, the same token the vital
                         pills beside it use, so the header's chips read as one set
                         rather than as two unrelated widgets. */}
-                    <CountPill padding="0 md">
-                      <Flex align="center" gap="xs" height="100%">
-                        <Text size="sm" variant="muted">
-                          {t('Items')}
-                        </Text>
-                        <Text size="sm" bold tabular>
-                          {isPending ? '—' : formatAbbreviatedNumber(totalEvents)}
-                        </Text>
-                      </Flex>
-                    </CountPill>
+                <CountPill padding="0 md">
+                  <Flex align="center" gap="xs" height="100%">
+                    <Text size="sm" variant="muted">
+                      {t('Items')}
+                    </Text>
+                    <Text size="sm" bold tabular>
+                      {isPending ? '—' : formatAbbreviatedNumber(totalEvents)}
+                    </Text>
                   </Flex>
+                </CountPill>
+              </Flex>
 
-                  {isTruncated && (
-                    <Alert variant="info">
-                      {t(
-                        'This timeline caps how many items it loads per telemetry type, so it may be incomplete. The lane counts are exact for the whole session.'
-                      )}
-                    </Alert>
+              {isTruncated && (
+                <Alert variant="info">
+                  {t(
+                    'This timeline caps how many items it loads per telemetry type, so it may be incomplete. The lane counts are exact for the whole session.'
                   )}
+                </Alert>
+              )}
 
-                  {/*
+              {/*
                     Scrubber, controls and rail read as one instrument: the strip
                     aims, the rail is what it aims at, so they share a frame rather
                     than sitting in separate cards.
                   */}
-                  <Panel radius="md" border="primary" background="primary">
-                    {scrubber}
-                    {scrubber && <Separator orientation="horizontal" border="primary" />}
-                    <TimelineFilters
-                      filters={filters}
-                      sortDirection={sortDirection}
-                      onToggleSort={toggleSort}
-                    />
-                    <Separator orientation="horizontal" border="primary" />
-                    <SessionRail
-                      items={items}
-                      bounds={bounds}
-                      isFiltered={isFiltered}
-                      isWindowed={window !== null}
-                      isPending={isPending}
-                      isError={isError}
-                      dateParams={dateParams}
-                      selectedKey={selection.selectedKey}
-                      onSelect={selection.toggleItem}
-                    />
-                  </Panel>
-                </Stack>
-              </Layout.Main>
-            </Layout.Body>
-          </Stack>
+              <Panel radius="md" border="primary" background="primary">
+                {scrubber}
+                {scrubber && <Separator orientation="horizontal" border="primary" />}
+                <TimelineFilters
+                  filters={filters}
+                  sortDirection={sortDirection}
+                  onToggleSort={toggleSort}
+                />
+                <Separator orientation="horizontal" border="primary" />
+                <SessionRail
+                  items={items}
+                  bounds={bounds}
+                  isFiltered={isFiltered}
+                  isWindowed={window !== null}
+                  isPending={isPending}
+                  isError={isError}
+                  dateParams={dateParams}
+                  selectedKey={selection.selectedKey}
+                  onSelect={selection.toggleItem}
+                />
+              </Panel>
+            </Stack>
+          </ViewportConstrainedPage>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -236,7 +238,17 @@ const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
+/**
+ * Holds the chart, the filters and the rail as one column, and gives the rail
+ * whatever height is left. `min-height: 0` is what lets it: without it a flex
+ * item refuses to shrink below its content, so the rail would size to all four
+ * thousand rows and push the page into scrolling after all.
+ */
 const Panel = styled(Container)`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 `;
 

@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -73,19 +74,7 @@ export function SessionRail({
   selectedKey,
   onSelect,
 }: Props) {
-  /**
-   * Rendered rows by selection key, so a selection made somewhere else — a marker
-   * in the scrubber, a link into the page — can be scrolled to. Written only from
-   * ref callbacks and read only from effects.
-   */
-  const rowNodes = useRef(new Map<string, HTMLLIElement>());
-
-  useEffect(() => {
-    if (selectedKey === null) {
-      return;
-    }
-    rowNodes.current.get(selectedKey)?.scrollIntoView({block: 'nearest'});
-  }, [selectedKey, items]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // The bar is scaled to the longest thing on screen, so it compares items with
   // each other rather than against the session, where a 40ms trace would be
@@ -95,55 +84,71 @@ export function SessionRail({
     [items]
   );
 
-  if (isError) {
-    return (
-      <Status>
-        <LoadingError message={t('Failed to load session telemetry.')} />
-      </Status>
-    );
-  }
+  /**
+   * Only the rows in view are mounted. A session runs to four thousand items and
+   * every row carries a link, a tooltip and a button, so rendering the list whole
+   * cost tens of thousands of components — and paid for them again on every
+   * selection, filter and scrubber drag.
+   *
+   * Measured rather than assumed: a trace row draws a duration bar that the
+   * instants do not, so the rows are two heights, and `estimateSize` is only the
+   * opening guess for rows that have not been on screen yet.
+   */
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_ESTIMATE,
+    overscan: 12,
+  });
 
-  if (isPending) {
-    return (
-      <Status>
-        <LoadingIndicator />
-      </Status>
-    );
-  }
+  /**
+   * Where the open item sits in the list, so a selection made somewhere other
+   * than the rail — a marker in the scrubber, a link into the page — can be
+   * revealed. It is an index rather than a node now: the selected row is
+   * frequently not mounted, which is exactly the case a scroll into view has to
+   * handle.
+   */
+  const selectedIndex = useMemo(
+    () =>
+      selectedKey === null ? -1 : items.findIndex(item => itemKey(item) === selectedKey),
+    [items, selectedKey]
+  );
 
-  if (items.length === 0) {
-    return (
-      <Status>
-        <Text variant="muted" size="sm">
-          {isWindowed
-            ? t('Nothing in the selected time range.')
-            : isFiltered
-              ? t('No telemetry matches these filters.')
-              : t('No telemetry found for this session.')}
-        </Text>
-      </Status>
-    );
-  }
-
-  const registerRow = (key: string | undefined) => (node: HTMLLIElement | null) => {
-    if (key === undefined) {
-      return;
+  useEffect(() => {
+    if (selectedIndex >= 0) {
+      virtualizer.scrollToIndex(selectedIndex, {align: 'auto'});
     }
-    if (node) {
-      rowNodes.current.set(key, node);
-    } else {
-      rowNodes.current.delete(key);
-    }
-  };
+  }, [selectedIndex, virtualizer]);
 
-  return (
-    <Rail>
-      {items.map((item, index) => {
+  const content = isError ? (
+    <Status>
+      <LoadingError message={t('Failed to load session telemetry.')} />
+    </Status>
+  ) : isPending ? (
+    <Status>
+      <LoadingIndicator />
+    </Status>
+  ) : items.length === 0 ? (
+    <Status>
+      <Text variant="muted" size="sm">
+        {isWindowed
+          ? t('Nothing in the selected time range.')
+          : isFiltered
+            ? t('No telemetry matches these filters.')
+            : t('No telemetry found for this session.')}
+      </Text>
+    </Status>
+  ) : (
+    <Rail style={{height: virtualizer.getTotalSize()}}>
+      {virtualizer.getVirtualItems().map(row => {
+        const item = items[row.index]!;
         const key = itemKey(item);
         return (
           <EventRow
-            key={`${key ?? 'row'}-${index}`}
-            ref={registerRow(key)}
+            key={row.key}
+            index={row.index}
+            ref={virtualizer.measureElement}
+            style={{transform: `translateY(${row.start}px)`}}
             event={item}
             bounds={bounds}
             dateParams={dateParams}
@@ -155,10 +160,27 @@ export function SessionRail({
       })}
     </Rail>
   );
+
+  // The scroller is always the rail's root, empty states included, so the panel
+  // keeps one height and the page below it never moves.
+  return (
+    <RailScroller ref={scrollRef} data-test-id="session-rail">
+      {content}
+    </RailScroller>
+  );
 }
+
+/**
+ * Opening guess at a row's height: two lines of text plus the cell padding. Rows
+ * are measured once they mount, so this only has to be close enough that the
+ * scrollbar does not lurch on first paint.
+ */
+const ROW_ESTIMATE = 46;
 
 function EventRow({
   ref,
+  index,
+  style,
   event,
   bounds,
   dateParams,
@@ -169,10 +191,13 @@ function EventRow({
   bounds: SessionRange | undefined;
   dateParams: Record<string, any>;
   event: SessionEvent;
+  /** Position in the full list. The virtualizer reads it back off the DOM to measure. */
+  index: number;
   isSelected: boolean;
   maxDuration: number | undefined;
   onSelect?: () => void;
   ref?: React.Ref<HTMLLIElement>;
+  style?: React.CSSProperties;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -185,7 +210,13 @@ function EventRow({
   const variant = severityVariant(event);
 
   return (
-    <SelectableRow ref={ref} isSelected={isSelected} onSelect={onSelect}>
+    <SelectableRow
+      ref={ref}
+      index={index}
+      style={style}
+      isSelected={isSelected}
+      onSelect={onSelect}
+    >
       <Offset timestamp={event.timestamp} bounds={bounds} />
       <Spine>
         <SpineLine />
@@ -222,18 +253,24 @@ function EventRow({
  */
 function SelectableRow({
   ref,
+  index,
+  style,
   isSelected,
   onSelect,
   children,
 }: {
   children: React.ReactNode;
+  index: number;
   isSelected: boolean;
   onSelect: (() => void) | undefined;
   ref?: React.Ref<HTMLLIElement>;
+  style?: React.CSSProperties;
 }) {
   return (
     <Row
       ref={ref}
+      data-index={index}
+      style={style}
       aria-current={isSelected ? true : undefined}
       data-selected={isSelected}
       data-selectable={onSelect ? true : undefined}
@@ -395,11 +432,29 @@ const Status = styled('div')`
   padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
 `;
 
-const Rail = styled('ul')`
-  display: flex;
-  flex-direction: column;
+/**
+ * The rail's own scroll container, which is what makes the page around it stand
+ * still: the session's header, its chart and its filters stay put while only the
+ * list moves, and the window itself never scrolls.
+ */
+const RailScroller = styled('div')`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: ${p => p.theme.space.md} 0;
+`;
+
+/**
+ * Sized to the whole list rather than to the rows in it: the height is the
+ * virtualizer's total, and each row is absolutely positioned inside it, so the
+ * scrollbar describes every item while only a screenful is mounted.
+ */
+const Rail = styled('ul')`
+  position: relative;
+  width: 100%;
   margin: 0;
+  padding: 0;
   list-style: none;
 `;
 
@@ -413,6 +468,10 @@ const Rail = styled('ul')`
  * spine can match it exactly, plus an accent edge that hover has no version of.
  */
 const Row = styled('li')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   display: grid;
   grid-template-columns: 48px 20px minmax(0, 1fr) auto 24px;
   column-gap: ${p => p.theme.space.md};
