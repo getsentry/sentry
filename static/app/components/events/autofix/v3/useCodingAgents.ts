@@ -7,7 +7,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
+import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
@@ -18,11 +18,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface UseCodingAgentsOptions {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  group: Group;
+  autofix: Pick<ReturnType<typeof useExplorerAutofix>, 'triggerCodingAgentHandoff'>;
+  group: {id: string; project: AvatarProject};
   referrer: string | undefined;
   runId: SeerExplorerRunId;
-  step: 'root_cause' | 'solution';
+  step: 'root_cause' | 'solution' | 'code_changes';
   enabled?: boolean;
   onHandoff?: () => void;
 }

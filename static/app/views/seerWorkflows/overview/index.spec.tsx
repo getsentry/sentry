@@ -167,6 +167,15 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    // The card action dropdown self-fetches coding agents and Seer repos.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [{provider: 'github'}],
+    });
   });
 
   function renderPage(query: Record<string, string> = {}) {
