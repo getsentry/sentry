@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {IconSpan} from 'sentry/icons';
+import {IconCheckmark, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -154,6 +154,7 @@ function GroupByActions({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
+              icon: isSelected ? <IconCheckmark /> : undefined,
               labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
@@ -371,56 +372,54 @@ function QueryClauseActions() {
   };
 
   return (
-    <Fragment>
-      <CMDKChainedActionScope>
-        <CMDKAction display={{label: t('Commands')}}>
-          <CMDKTerminalActionScope>
-            <CMDKAction
-              display={{label: t('Apply Changes')}}
-              keywords={['apply', 'save', 'changes']}
-              onAction={() => {
-                setQueryParams({
-                  aggregateFields: [
-                    ...draftGroupBys.map(groupBy => ({groupBy})),
-                    ...draftVisualizes.map(visualize => visualize.serialize()),
-                  ],
-                  aggregateSortBys: draftAggregateSortBys,
-                  mode: draftMode,
-                  query: draftQuery,
-                  sortBys: draftSampleSortBys,
-                });
-              }}
-            />
-          </CMDKTerminalActionScope>
-          <CMDKAction
-            display={{
-              label: groupBySummary ? t('Group by') : t('Add Group by'),
-              trailingItem: <QueryValue value={groupBySummary} />,
-            }}
-            prompt={t('Search for attribute')}
-          >
-            <GroupByActions groupBys={draftGroupBys} setGroupBys={setDraftGroupBys} />
-          </CMDKAction>
-          <SpansFilterActions addSearchFilter={addSearchFilter} summary={draftQuery} />
-          <CMDKAction
-            id="spans-sort"
-            display={{
-              label: t('Sort by'),
-              trailingItem: <QueryValue value={sortBySummary} />,
-            }}
-            prompt={t('Search for an attribute')}
-          >
-            <SortActions
-              groupBys={draftGroupBys}
-              mode={draftMode}
-              setSortBys={setDraftSortBys}
-              sortBys={draftSortBys}
-              visualizes={draftVisualizes}
-            />
-          </CMDKAction>
+    <CMDKChainedActionScope>
+      <CMDKTerminalActionScope>
+        <CMDKAction
+          display={{label: t('Apply Changes')}}
+          keywords={['apply', 'save', 'changes']}
+          onAction={() => {
+            setQueryParams({
+              aggregateFields: [
+                ...draftGroupBys.map(groupBy => ({groupBy})),
+                ...draftVisualizes.map(visualize => visualize.serialize()),
+              ],
+              aggregateSortBys: draftAggregateSortBys,
+              mode: draftMode,
+              query: draftQuery,
+              sortBys: draftSampleSortBys,
+            });
+          }}
+        />
+      </CMDKTerminalActionScope>
+      <CMDKAction display={{label: t('Query')}}>
+        <CMDKAction
+          display={{
+            label: groupBySummary ? t('Group by') : t('Add Group by'),
+            trailingItem: <QueryValue value={groupBySummary} />,
+          }}
+          prompt={t('Search for attribute')}
+        >
+          <GroupByActions groupBys={draftGroupBys} setGroupBys={setDraftGroupBys} />
         </CMDKAction>
-      </CMDKChainedActionScope>
-      <CMDKChainedActionScope>
+        <SpansFilterActions addSearchFilter={addSearchFilter} summary={draftQuery} />
+        <CMDKAction
+          id="spans-sort"
+          display={{
+            label: t('Sort by'),
+            trailingItem: <QueryValue value={sortBySummary} />,
+          }}
+          prompt={t('Search for an attribute')}
+        >
+          <SortActions
+            groupBys={draftGroupBys}
+            mode={draftMode}
+            setSortBys={setDraftSortBys}
+            sortBys={draftSortBys}
+            visualizes={draftVisualizes}
+          />
+        </CMDKAction>
+      </CMDKAction>
+      <CMDKAction display={{label: t('Series')}}>
         {draftVisualizes.length < MAX_VISUALIZES && (
           <CMDKAction
             display={{label: t('Add Series')}}
@@ -459,8 +458,8 @@ function QueryClauseActions() {
             )}
           </CMDKAction>
         ))}
-      </CMDKChainedActionScope>
-    </Fragment>
+      </CMDKAction>
+    </CMDKChainedActionScope>
   );
 }
 

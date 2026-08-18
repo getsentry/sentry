@@ -14,6 +14,7 @@ import {
   negationOperators,
   TermOperator,
 } from 'sentry/components/searchSyntax/parser';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -129,6 +130,7 @@ export function TraceItemFilterActions({
     return {
       display: {
         label: value,
+        icon: isSelected ? <IconCheckmark /> : undefined,
         labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
       },
       onMultiSelect: () => {
@@ -232,7 +234,7 @@ export function TraceItemFilterActions({
   return (
     <CMDKAction
       display={{
-        label: summary ? t('Filter by') : t('Add Filter by'),
+        label: summary ? t('Filter by') : t('Add Filter'),
         trailingItem: <QueryValue value={summary} />,
       }}
       keywords={['search', 'filter', 'narrow', 'where', 'show', summary]}
