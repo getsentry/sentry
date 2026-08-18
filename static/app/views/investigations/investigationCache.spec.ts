@@ -13,6 +13,8 @@ const investigation: InvestigationDetail = {
   isFavorited: false,
   sourceType: 'manual',
   status: 'active',
+  summary: null,
+  summaryDescription: null,
   title: 'Investigate database latency',
   version: 1,
 };

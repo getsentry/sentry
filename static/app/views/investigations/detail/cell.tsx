@@ -67,6 +67,21 @@ export function InvestigationCell({
   const progressState = getCellProgressState(block, investigation.blocks ?? []);
   const waitingForDependencies =
     progressState === 'waiting' || progressState === 'blocked';
+  const executionId = block.currentExecution?.id;
+  const streamedTextQuery = useQuery({
+    ...investigationExecutionDetailQueryOptions({
+      organizationSlug,
+      investigationId: investigation.id,
+      blockId: block.id,
+      executionId: executionId ?? 'disabled',
+    }),
+    enabled:
+      block.kind === 'text' &&
+      Boolean(executionId) &&
+      isExecutionActive(block.currentExecution?.status),
+    refetchInterval: query =>
+      isExecutionActive(query.state.data?.json.status) ? 500 : false,
+  });
 
   const chartTitle =
     block.kind === 'query'
@@ -218,6 +233,7 @@ export function InvestigationCell({
             block={block}
             progressState={progressState}
             refinementButton={refinementButton}
+            streamedMarkdown={streamedTextQuery.data?.partialMarkdown}
           />
           {panel}
         </Fragment>
@@ -230,12 +246,14 @@ function CellResult({
   block,
   progressState,
   refinementButton,
+  streamedMarkdown,
 }: {
   block: InvestigationBlock;
   progressState: CellProgressState;
   refinementButton: React.ReactNode;
+  streamedMarkdown?: string | null;
 }) {
-  const markdown = getTextOutput(block.output);
+  const markdown = streamedMarkdown ?? getTextOutput(block.output);
   return (
     <TextResult data-test-id="text-cell-result" data-cell-variant="unbordered">
       <TextCellAction>{refinementButton}</TextCellAction>

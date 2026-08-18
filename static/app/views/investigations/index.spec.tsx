@@ -61,6 +61,8 @@ function InvestigationFixture(
     version: 3,
     blockCount: 4,
     isFavorited: false,
+    summary: null,
+    summaryDescription: null,
     ...overrides,
   };
 }

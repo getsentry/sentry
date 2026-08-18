@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -31,6 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   investigationDetailQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -81,7 +82,9 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
   } = useQuery({
     ...detailOptions,
     refetchInterval: query =>
-      query.state.data?.json.blocks?.some(block => isExecutionActive(block.outputStatus))
+      query.state.data?.json.blocks?.some(block =>
+        isExecutionActive(block.outputStatus)
+      ) || isTitleGenerationActive(query.state.data?.json.titleGeneration?.status)
         ? 2000
         : false,
   });
@@ -110,10 +113,56 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const {copy} = useCopyToClipboard();
   const [draftTitle, setDraftTitle] = useState(investigation.title);
   const persistedTitle = useRef(investigation.title);
+  const titleEditedByUser = useRef(false);
+  const titleGenerationSettled = useRef(false);
   const detailOptions = investigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+
+  useEffect(() => {
+    const generatedTitle = titleGenerationQuery.data?.preview;
+    if (!generatedTitle || titleEditedByUser.current) {
+      return;
+    }
+    setDraftTitle(generatedTitle);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: generatedTitle})
+    );
+    if (titleGenerationQuery.data?.status === 'completed') {
+      persistedTitle.current = generatedTitle;
+    }
+  }, [
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.preview,
+    titleGenerationQuery.data?.status,
+  ]);
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      titleGenerationSettled.current = false;
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      !titleGenerationSettled.current
+    ) {
+      titleGenerationSettled.current = true;
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    }
+  }, [detailOptions.queryKey, queryClient, titleGenerationQuery.data?.status]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -160,6 +209,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   function handleTitleChange(nextTitle: string) {
+    titleEditedByUser.current = true;
     setDraftTitle(nextTitle);
     updateInvestigationCache(
       queryClient,
@@ -416,6 +466,10 @@ function AddCellComposer({
 
 function isExecutionActive(status: string) {
   return ['pending', 'running', 'awaiting_input', 'stopping'].includes(status);
+}
+
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
 }
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {

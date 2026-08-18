@@ -7,6 +7,8 @@ export type InvestigationListItem = {
   isFavorited: boolean;
   sourceType: string;
   status: string;
+  summary: string | null;
+  summaryDescription: string | null;
   title: string;
   version: number;
 };
@@ -128,7 +130,14 @@ export type InvestigationDetail = InvestigationListItem & {
   projectIds?: number[];
   source?: Record<string, unknown>;
   template?: {key: string; version: number} | null;
-  titleGeneration?: Record<string, unknown>;
+  titleGeneration?: {
+    status: 'pending' | 'running' | 'completed' | 'failed' | null;
+  };
+};
+
+export type InvestigationTitleGeneration = {
+  preview: string | null;
+  status: 'pending' | 'running' | 'completed' | 'failed' | null;
 };
 
 export type MetricOpenPeriodInvestigationSource = {
