@@ -209,11 +209,14 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
                 # Out of probe budget: presence is unknowable, so be conservative.
                 resolved = CacheOutcome.UNKNOWN
             else:
-                probes_run += 1
-                resolved = resolve_with_cache_presence(
-                    candidate.outcome,
-                    count_spans_with_cache_attributes(project, candidate.stats, window),
-                )
+                presence = count_spans_with_cache_attributes(project, candidate.stats, window)
+                # None means the call site could not be queried at all, so no
+                # query was issued and the budget is intact. Charging for it
+                # would let a handful of unexpressible call sites spend the
+                # whole budget without asking EAP anything.
+                if presence is not None:
+                    probes_run += 1
+                resolved = resolve_with_cache_presence(candidate.outcome, presence)
             if resolved != candidate.outcome:
                 outcome_counts[candidate.outcome] -= 1
                 outcome_counts[resolved] += 1
