@@ -1053,24 +1053,115 @@ function useLaneCounts(
   eventsByType: Record<SessionDatasetKey, SessionEvent[]>,
   active: SessionRange | null
 ): Record<SessionDatasetKey, number> {
+  const index = useMemo(
+    () =>
+      Object.fromEntries(
+        LANE_ORDER.map(key => [key, indexLane(eventsByType[key])])
+      ) as Record<SessionDatasetKey, LaneIndex>,
+    [eventsByType]
+  );
+
   return useMemo(() => {
     if (!active) {
       return counts;
     }
     return Object.fromEntries(
-      LANE_ORDER.map(key => [
-        key,
-        eventsByType[key].filter(event => {
-          const extent = extentOf(event);
-          return (
-            extent !== undefined &&
-            extent.start <= active.end &&
-            extent.end >= active.start
-          );
-        }).length,
-      ])
+      LANE_ORDER.map(key => [key, countWithin(index[key], active)])
     ) as Record<SessionDatasetKey, number>;
-  }, [counts, eventsByType, active]);
+  }, [counts, index, active]);
+}
+
+/**
+ * A lane reduced to what counting a range needs: its extents, and how far back an
+ * overlap can possibly begin.
+ *
+ * Built once per lane rather than per range, because the range moves every frame
+ * of a zoom and the lane does not.
+ */
+interface LaneIndex {
+  /** Parallel to {@link starts}: where each item finished. */
+  ends: number[];
+  /**
+   * The longest item in the lane. An item overlaps a range only if it started no
+   * earlier than the range less this, which is what turns "scan the lane" into
+   * "scan the part of it that could possibly qualify".
+   */
+  maxDuration: number;
+  /** Ascending, which is the order the lane already arrives in. */
+  starts: number[];
+}
+
+function indexLane(events: SessionEvent[]): LaneIndex {
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let maxDuration = 0;
+  for (const event of events) {
+    const extent = extentOf(event);
+    if (extent === undefined) {
+      continue;
+    }
+    starts.push(extent.start);
+    ends.push(extent.end);
+    maxDuration = Math.max(maxDuration, extent.end - extent.start);
+  }
+  return {starts, ends, maxDuration};
+}
+
+/**
+ * How many of a lane's items overlap a range.
+ *
+ * Both ends of the candidate window are found by bisection rather than by walking
+ * the lane, so a deep zoom costs the items it is actually showing instead of every
+ * item the session holds. The lower bound leans on `maxDuration`: nothing that
+ * started earlier than that can still be running when the range opens, so nothing
+ * below it needs looking at.
+ *
+ * A lane of instants needs no scan at all — with no duration to reach forward, the
+ * window between the two bounds *is* the answer.
+ */
+function countWithin({starts, ends, maxDuration}: LaneIndex, active: SessionRange) {
+  const from = lowerBound(starts, active.start - maxDuration);
+  const to = upperBound(starts, active.end);
+  if (maxDuration === 0) {
+    return to - from;
+  }
+  let count = 0;
+  for (let index = from; index < to; index++) {
+    if (ends[index]! >= active.start) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/** First index holding a value at or after `target`. */
+function lowerBound(values: number[], target: number): number {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (values[mid]! < target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
+}
+
+/** First index holding a value after `target`. */
+function upperBound(values: number[], target: number): number {
+  let low = 0;
+  let high = values.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (values[mid]! <= target) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
 }
 
 /**
