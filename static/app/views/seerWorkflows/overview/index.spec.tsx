@@ -1376,7 +1376,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
-    expect(screen.queryByText('Code changes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Code Changes')).not.toBeInTheDocument();
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {

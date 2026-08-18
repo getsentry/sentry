@@ -50,8 +50,8 @@ export function ChangedFilesSection({
     <Stack gap="md">
       <Flex gap="xs" align="center">
         <IconCode size="xs" variant="secondary" aria-hidden />
-        <Text size="xs" bold uppercase variant="secondary">
-          {t('Code changes')}
+        <Text size="xs" bold variant="secondary">
+          {t('Code Changes')}
         </Text>
       </Flex>
       <Container border="primary" radius="md" overflow="hidden" background="secondary">
@@ -67,7 +67,7 @@ export function ChangedFilesSection({
               {group.repoName ? (
                 <Fragment>
                   <Tag variant="muted">{group.files.length}</Tag>
-                  <Text size="sm" monospace variant="secondary" ellipsis>
+                  <Text size="sm" bold variant="secondary" ellipsis>
                     {group.repoName}
                   </Text>
                 </Fragment>
