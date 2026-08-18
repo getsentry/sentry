@@ -31,7 +31,6 @@ from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
 
-
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
 
