@@ -7,6 +7,7 @@ from base64 import b64decode
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from django.core.cache import cache
 from requests import PreparedRequest, Response
 
 from sentry.integrations.cursor_origin.constants import (
@@ -238,9 +239,9 @@ class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
 class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
     """Client that authenticates as the app itself, with no stored integration.
 
-    Used during install (before an Integration row exists) and for local
-    verification. The installed-integration client persists its token on the
-    Integration; this one just keeps it in memory.
+    Used both during install, before an Integration row exists, and afterwards
+    by the installation's ``get_client()``. Installation tokens are shared
+    through the cache so repeated client construction does not re-mint them.
     """
 
     base_url = CURSOR_ORIGIN_API_BASE_URL
@@ -277,14 +278,28 @@ class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
     def get_access_token(self) -> str:
         """Mint or reuse an installation token.
 
-        Origin's tokens expire in under 15 minutes -- far shorter than GitHub's hour
-        -- so this refreshes aggressively rather than on the GitHub cadence.
+        Shared through the cache, not just this instance. A new client is built
+        on every ``get_installation().get_client()``, so an instance-only cache
+        meant a fresh token exchange per call site -- and token minting is
+        charged against the app-JWT budget, which is the smaller of the two.
+
+        The cache is deliberately given a shorter life than the token itself:
+        Origin's tokens last under 15 minutes and the response carries no usable
+        expiry, so a cached token is always refreshed well before it can expire
+        mid-request. Eviction is harmless -- it just costs one exchange.
         """
         if self.installation_id is None:
             raise ValueError("installation_id is required for installation-scoped calls")
 
         if self._access_token and time.time() < self._expires_at:
             return self._access_token
+
+        cache_key = self._token_cache_key(self.installation_id)
+        cached = cache.get(cache_key)
+        if cached:
+            self._access_token = cached
+            self._expires_at = time.time() + TOKEN_MINIMUM_VALIDITY_SECONDS
+            return cached
 
         response = self.post(f"/app/installations/{self.installation_id}/access_tokens")
         if not isinstance(response, dict):
@@ -298,10 +313,13 @@ class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
             raise ApiError("no installation token in Cursor Origin response")
 
         self._access_token = token
-        # Origin does not return a usable expiry, so assume the documented ceiling
-        # and refresh well before it.
         self._expires_at = time.time() + TOKEN_MINIMUM_VALIDITY_SECONDS
+        cache.set(cache_key, token, TOKEN_MINIMUM_VALIDITY_SECONDS)
         return token
+
+    @staticmethod
+    def _token_cache_key(installation_id: str) -> str:
+        return f"cursor-origin:token:{installation_id}"
 
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         if self._is_app_route(prepared_request.path_url):
