@@ -1,10 +1,31 @@
-from typing import cast
+import importlib
+from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
+
+
+def _cursor_origin_provider_cls() -> Any:
+    """The Cursor Origin provider class, when the installed scm build has one.
+
+    WIP. sentry-scm 1.5.0 predates the provider, so a plain import would take
+    down every SCM code path rather than just Origin. Resolved dynamically so
+    this module type-checks identically whether or not the newer build is
+    installed -- a guarded `import` flips between "unresolvable" and "unused
+    ignore" depending on which is present, which makes CI depend on install
+    order.
+
+    Remove this once the sentry-scm pin includes the provider.
+    """
+    try:
+        module = importlib.import_module("scm.providers.cursor_origin.provider")
+    except ImportError:
+        return None
+    return module.CursorOriginProvider
+
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
@@ -31,6 +52,9 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
         return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "cursor_origin":
+        provider_cls = _cursor_origin_provider_cls()
+        return provider_cls(client, organization_id, repository) if provider_cls else None
     else:
         return None
 
