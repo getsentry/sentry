@@ -40,13 +40,23 @@ export function useOverviewSeerDrawer() {
   const groupId = decodeScalar(location.query.seerDrawer);
 
   useEffect(() => {
-    if (!groupId || !hasSeerAccess) {
+    if (!groupId) {
+      return;
+    }
+    const pathname = locationRef.current.pathname;
+    const clearSeerDrawer = () =>
+      navigate(
+        {pathname, query: {...locationRef.current.query, seerDrawer: undefined}},
+        {replace: true, preventScrollReset: true}
+      );
+
+    if (!hasSeerAccess) {
+      clearSeerDrawer();
       return;
     }
     if (isAnyDrawerOpen && openGroupIdRef.current === groupId) {
       return;
     }
-    const pathname = locationRef.current.pathname;
     openGroupIdRef.current = groupId;
     openDrawer(() => <SeerDrawerLoader groupId={groupId} />, {
       ariaLabel: t('Seer drawer'),
@@ -58,10 +68,7 @@ export function useOverviewSeerDrawer() {
         decodeScalar(nextLocation.query.seerDrawer) !== groupId,
       onClose: () => {
         openGroupIdRef.current = undefined;
-        navigate(
-          {pathname, query: {...locationRef.current.query, seerDrawer: undefined}},
-          {replace: true, preventScrollReset: true}
-        );
+        clearSeerDrawer();
       },
     });
   }, [groupId, hasSeerAccess, isAnyDrawerOpen, openDrawer, navigate]);

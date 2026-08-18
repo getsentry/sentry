@@ -315,11 +315,11 @@ describe('AutofixOverview', () => {
       expect(groupRequest).toHaveBeenCalled();
     });
 
-    it('stays closed when the org lacks gen-ai access', async () => {
+    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       mockDrawerFor('2');
 
-      render(<AutofixOverview />, {
+      const {router} = render(<AutofixOverview />, {
         organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
         initialRouterConfig: {
           location: {pathname: basePath, query: {seerDrawer: '2'}},
@@ -330,6 +330,7 @@ describe('AutofixOverview', () => {
         await screen.findByRole('link', {name: 'TypeError in checkout cart'})
       ).toBeInTheDocument();
       expect(seerDrawer()).not.toBeInTheDocument();
+      await waitFor(() => expect(router.location.query.seerDrawer).toBeUndefined());
     });
 
     it('clears the param and closes when the drawer is dismissed', async () => {
