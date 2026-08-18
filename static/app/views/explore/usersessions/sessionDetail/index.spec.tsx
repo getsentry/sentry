@@ -62,6 +62,7 @@ function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
         !isVitalsQuery(options) &&
+        !isHealthQuery(options) &&
         // The counts query asks for aggregates only; the rows query asks for the
         // bare `timestamp` field plus the per-dataset row fields.
         (kind === 'count'
@@ -113,6 +114,7 @@ function mockRowsPage(
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
         !isVitalsQuery(options) &&
+        !isHealthQuery(options) &&
         options.query.field.includes('timestamp') &&
         options.query.cursor === cursor,
     ],
@@ -124,6 +126,28 @@ function mockRowsPage(
  * most sessions carry no browser telemetry, and the pills are absent unless a
  * test is about them.
  */
+/**
+ * The session-health query, which is a second `errors` read and so has to be told
+ * apart from the count pass. It is the only one narrowed to unhandled errors.
+ */
+function isHealthQuery(options: Record<string, any>) {
+  return String(options.query.query).includes('error.unhandled:true');
+}
+
+/**
+ * The unhandled-error count the Health pill's verdict comes from. Every test gets
+ * zero by default, so a session reads as healthy or errored unless a test is
+ * about a crash.
+ */
+function mockUnhandled(count: number) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {data: [{'count()': count}], meta: {fields: {}}},
+    match: [(_url: string, options: Record<string, any>) => isHealthQuery(options)],
+  });
+}
+
 function mockVitals(data: unknown[]) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
@@ -217,6 +241,7 @@ describe('SessionDetailView', () => {
     // overrides this by calling `mockRouteVisits` itself.
     mockRouteVisits([]);
     mockVitals([]);
+    mockUnhandled(0);
   });
 
   it('names the session from its telemetry, keeping the full id one click away', async () => {
@@ -311,10 +336,10 @@ describe('SessionDetailView', () => {
 
     expect(await screen.findByText('first log')).toBeInTheDocument();
 
-    // The total sits on the identity row; the breakdown is on the lanes it
-    // describes, one exact count per telemetry type.
-    expect(screen.getByText('Items')).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
+    // Two different numbers, on purpose. The lanes carry each type's exact
+    // aggregate, which sums to 7 here; the toolbar counts the rows actually in the
+    // list, which is 4. Pairing the two in one "of" is what read `53 of 36`.
+    expect(screen.getByText('4 items')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Metrics 3'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Traces 1'})).toBeInTheDocument();
@@ -656,9 +681,9 @@ describe('SessionDetailView', () => {
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
     // The counts stay exact, whatever the rail shows — a hidden type's lane label
-    // still reports what the session holds.
-    expect(screen.getByText('Items')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    // still reports what the session holds, and the toolbar says how much of the
+    // list is hidden rather than only how much is left.
+    expect(screen.getByText('1 of 2 items')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Logs 1', pressed: false})
     ).toBeInTheDocument();
@@ -700,8 +725,7 @@ describe('SessionDetailView', () => {
     // And the lane count follows the window down, while the session's own total
     // stays put as the figure the window is read against.
     expect(screen.getByRole('button', {name: 'Logs 0'})).toBeInTheDocument();
-    expect(screen.getByText('Items')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('0 of 2 items')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
     expect(await screen.findByText('early log')).toBeInTheDocument();
@@ -1417,6 +1441,95 @@ describe('SessionDetailView', () => {
     });
   });
 
+  describe('session health', () => {
+    /** A session holding `count` errors, one of which is on the rail. */
+    function mockErroredSession(count: number, unhandled: boolean) {
+      mockEmptyDatasets(['errors']);
+      mockDataset('errors', 'count', [
+        {
+          'count()': count,
+          'min(timestamp)': '2024-01-01T00:00:00+00:00',
+          'max(timestamp)': '2024-01-01T00:00:10+00:00',
+        },
+      ]);
+      mockDataset('errors', 'rows', [
+        {
+          id: 'e'.repeat(32),
+          timestamp: '2024-01-01T00:00:05+00:00',
+          title: 'TypeError: undefined is not a function',
+          level: 'error',
+          'error.unhandled': unhandled,
+          'issue.id': 42,
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+    }
+
+    it('calls a session with an unhandled error crashed', async () => {
+      mockErroredSession(3, true);
+      const unhandled = mockUnhandled(1);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Crashed')).toBeInTheDocument();
+
+      // The verdict comes from an aggregate over every error, not from the rail's
+      // rows: those are capped newest-first, so a crash early in a chatty session
+      // would not be among them.
+      expect(unhandled).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'errors',
+            query: `session.id:${SESSION_ID} error.unhandled:true`,
+            field: ['count()'],
+          }),
+        })
+      );
+
+      // And the row says which error it was, since that is the one to open.
+      expect(await screen.findByText('unhandled')).toBeInTheDocument();
+    });
+
+    it('calls a session that handled all of its errors errored', async () => {
+      mockErroredSession(2, false);
+      mockUnhandled(0);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Errored')).toBeInTheDocument();
+      expect(screen.queryByText('Crashed')).not.toBeInTheDocument();
+      // The level stands in for the detail when nothing went unhandled.
+      expect(screen.getByText('error')).toBeInTheDocument();
+      expect(screen.queryByText('unhandled')).not.toBeInTheDocument();
+    });
+
+    it('calls a session with no errors healthy', async () => {
+      mockEmptyDatasets();
+      mockUnhandled(0);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Healthy')).toBeInTheDocument();
+    });
+
+    it('withholds a verdict rather than flashing one while errors are counted', async () => {
+      mockEmptyDatasets();
+      mockUnhandled(0);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      // Nothing at all before the counts land: "Healthy" mid-load would turn red
+      // a moment later on any session that did error.
+      expect(screen.queryByText('Healthy')).not.toBeInTheDocument();
+      expect(screen.queryByText('Errored')).not.toBeInTheDocument();
+      expect(screen.queryByText('Crashed')).not.toBeInTheDocument();
+
+      expect(await screen.findByText('Healthy')).toBeInTheDocument();
+    });
+  });
+
   describe('web vitals', () => {
     it('shows the session score and a pill per vital it reported', async () => {
       mockEmptyDatasets();
@@ -1485,7 +1598,9 @@ describe('SessionDetailView', () => {
 
       // Waited on so the assertion is about a settled page rather than one that
       // simply hasn't rendered the pills yet.
-      expect(await screen.findByText('Items')).toBeInTheDocument();
+      expect(
+        await screen.findByText('No telemetry found for this session.')
+      ).toBeInTheDocument();
       expect(screen.queryByText('Score')).not.toBeInTheDocument();
       expect(screen.queryByText('LCP')).not.toBeInTheDocument();
     });

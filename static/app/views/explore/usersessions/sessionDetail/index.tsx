@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -18,7 +18,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -30,12 +29,14 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {useSessionItemDrawer} from './detailPanel/useSessionItemDrawer';
+import {SessionHealthText} from './sessionHealth';
 import {SessionRail} from './sessionRail';
 import {SessionScrubber} from './sessionScrubber';
 import {SessionVitalsRow} from './sessionVitals';
 import {TimelineFilters} from './timelineFilters';
 import {useSelectedItem} from './useSelectedItem';
 import {useSessionDetail} from './useSessionDetail';
+import {useSessionHealth} from './useSessionHealth';
 import {useSessionVitals} from './useSessionVitals';
 
 export default function SessionDetailView() {
@@ -45,8 +46,8 @@ export default function SessionDetailView() {
     bounds,
     counts,
     name,
-    totalEvents,
     items,
+    loadedEvents,
     eventsByKey,
     eventsByType,
     filters,
@@ -64,6 +65,12 @@ export default function SessionDetailView() {
   } = useSessionDetail(sessionId);
 
   const vitals = useSessionVitals(sessionId);
+  // The error total comes from the count pass rather than a second query of its
+  // own; only the unhandled half is new.
+  const health = useSessionHealth({
+    sessionId,
+    errorCount: isPending ? undefined : counts.errors,
+  });
 
   const selection = useSelectedItem({eventsByKey});
   useSessionItemDrawer({
@@ -155,41 +162,41 @@ export default function SessionDetailView() {
                     />
                   }
                   trailing={
-                    name.release ? (
-                      // Releases are often raw shas, and nothing reads forty
-                      // characters of one. The short form carries the full
-                      // value in its tooltip.
-                      <Text size="sm" variant="muted" wrap="nowrap">
-                        <Version
-                          version={name.release}
-                          anchor={false}
-                          tooltipRawVersion
-                        />
-                      </Text>
-                    ) : null
+                    <Fragment>
+                      {name.release ? (
+                        // Releases are often raw shas, and nothing reads forty
+                        // characters of one. The short form carries the full
+                        // value in its tooltip.
+                        <Text size="sm" variant="muted" wrap="nowrap">
+                          <Version
+                            version={name.release}
+                            anchor={false}
+                            tooltipRawVersion
+                          />
+                        </Text>
+                      ) : null}
+                      {/*
+                        Last on the identity line, after the browser and the
+                        release. How the session went is part of what it is, and a
+                        coloured word there is enough to find a crashed session by
+                        without giving one adjective a chip of its own.
+                      */}
+                      <SessionHealthText {...health} />
+                    </Fragment>
                   }
                 />
                 <Flex flex="1" />
-                {/* Beside the session's name rather than over the timeline: how
-                        this session felt to the person in it is part of who the
-                        session is, not another lane of telemetry. */}
+                {/*
+                  Beside the session's name rather than over the timeline: how fast
+                  this session felt to the person in it is part of who the session
+                  is, not another lane of telemetry.
+
+                  Health used to sit here as a pill too, and the item count before
+                  that. Both left: health is one word and reads better on the
+                  identity line above, and the count belongs to the rail's own
+                  toolbar. What is left is the one thing here that is a measurement.
+                */}
                 <SessionVitalsRow {...vitals} />
-                {/* The scrubber's lane counts are the breakdown, and they scope
-                        to whatever window is selected. This one stays the whole
-                        session's size — the denominator those lanes read against. */}
-                {/* Sized and rounded off `form.xs`, the same token the vital
-                        pills beside it use, so the header's chips read as one set
-                        rather than as two unrelated widgets. */}
-                <CountPill padding="0 md">
-                  <Flex align="center" gap="xs" height="100%">
-                    <Text size="sm" variant="muted">
-                      {t('Items')}
-                    </Text>
-                    <Text size="sm" bold tabular>
-                      {isPending ? '—' : formatAbbreviatedNumber(totalEvents)}
-                    </Text>
-                  </Flex>
-                </CountPill>
               </Flex>
 
               {isTruncated && (
@@ -212,6 +219,9 @@ export default function SessionDetailView() {
                   filters={filters}
                   sortDirection={sortDirection}
                   onToggleSort={toggleSort}
+                  loadedEvents={loadedEvents}
+                  visibleEvents={items.length}
+                  isPending={isPending}
                 />
                 <Separator orientation="horizontal" border="primary" />
                 <SessionRail
@@ -250,17 +260,4 @@ const Panel = styled(Container)`
   flex: 1;
   min-height: 0;
   overflow: hidden;
-`;
-
-/**
- * The embossed tokens the design system's own pills are built from. Reaching for
- * them directly rather than for `Chip`, which carries the border and the drop
- * shadow but also means "search filter token" everywhere else in the app.
- */
-const CountPill = styled(Container)`
-  height: ${p => p.theme.form.xs.height};
-  border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-  border-radius: ${p => p.theme.form.xs.borderRadius};
-  background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
 `;

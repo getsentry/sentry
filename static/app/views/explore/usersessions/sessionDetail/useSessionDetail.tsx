@@ -287,6 +287,14 @@ export interface SessionDetail {
   isTruncated: boolean;
   /** The rows the rail renders: what survived the filters and the window. */
   items: SessionEvent[];
+  /**
+   * Every row that was fetched, before any filter or window narrowed it. The
+   * denominator for `items`, and deliberately not `totalEvents`: that one is a sum
+   * of aggregates, and `count_unique(trace)` counts distinct traces while the rail
+   * draws one row per segment span. A trace with a pageload and a server
+   * transaction is one there and two here, so the two are not comparable.
+   */
+  loadedEvents: number;
   /** What to call this session, resolved from the telemetry it carries. */
   name: SessionName;
   totalEvents: number;
@@ -669,6 +677,7 @@ export function useSessionDetail(sessionId: string) {
       eventsByKey,
       eventsByType,
       items: visible,
+      loadedEvents: events.length,
       isFiltered: visible.length < events.length,
       isTruncated,
       name: resolveSessionName(sessionId, mergeIdentities(identities)),
