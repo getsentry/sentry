@@ -15,6 +15,30 @@ interface LlmCacheTokenBarProps {
 }
 
 /**
+ * Whole-percent shares that add up to exactly 100.
+ *
+ * Rounding each share on its own lets the three labels read 37/59/5 under a bar
+ * that visibly fills its track. The leftover percent goes to whichever shares
+ * were cut by the most, so the one that absorbs it is the one with the best
+ * claim to it.
+ */
+function toWholePercentages(values: number[], total: number): number[] {
+  const exact = values.map(value => (value / total) * 100);
+  const percentages = exact.map(Math.floor);
+  const leftover = 100 - percentages.reduce((sum, value) => sum + value, 0);
+
+  const byLargestRemainder = exact
+    .map((value, index) => ({index, remainder: value - Math.floor(value)}))
+    .sort((a, b) => b.remainder - a.remainder);
+
+  for (const {index} of byLargestRemainder.slice(0, leftover)) {
+    percentages[index]! += 1;
+  }
+
+  return percentages;
+}
+
+/**
  * The window's input tokens split by how they were billed.
  *
  * This is the finding in one picture: a call site that never caches is almost
@@ -64,6 +88,11 @@ export function LlmCacheTokenBar({
     },
   ].filter(segment => segment.value > 0);
 
+  const percentages = toWholePercentages(
+    segments.map(segment => segment.value),
+    total
+  );
+
   return (
     <Stack gap="sm">
       <Flex height="12px" radius="sm" overflow="hidden">
@@ -75,7 +104,7 @@ export function LlmCacheTokenBar({
         ))}
       </Flex>
       <Flex gap="lg" wrap="wrap">
-        {segments.map(segment => (
+        {segments.map((segment, index) => (
           <Flex key={segment.key} align="center" gap="xs">
             <Swatch style={{background: segment.color}} />
             <Text size="sm" variant="muted">
@@ -83,7 +112,7 @@ export function LlmCacheTokenBar({
                 '%s %s (%s)',
                 segment.label,
                 formatTokens(segment.value),
-                `${((segment.value / total) * 100).toFixed(0)}%`
+                `${percentages[index]}%`
               )}
             </Text>
           </Flex>
