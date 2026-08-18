@@ -4,17 +4,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  fireEvent,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {investigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import type {
+  InvestigationBlock,
+  InvestigationDetail,
+} from 'sentry/views/investigations/types';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -24,7 +29,9 @@ const organization = OrganizationFixture({
 });
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
 
-function InvestigationDetailFixture(overrides: Partial<InvestigationDetail> = {}) {
+function InvestigationDetailFixture(
+  overrides: Partial<InvestigationDetail> = {}
+): InvestigationDetail & {blocks: InvestigationBlock[]} {
   return {
     id: 'investigation-1',
     title: 'Investigate database latency',
@@ -124,14 +131,38 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
-    const debugPanel = screen.getByRole('button', {name: 'Investigation JSON'});
-    expect(screen.getByText(/"id": "investigation-1"/)).not.toBeVisible();
-
-    await userEvent.click(debugPanel);
-
-    expect(screen.getByText(/"id": "investigation-1"/)).toBeVisible();
-    expect(screen.getByText(/"blocks":/)).toBeVisible();
+    expect(
+      screen.getByRole('button', {name: 'Ask Seer about Summary'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
+    expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the refinement composer expanded while editing', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Ask Seer about Latency query',
+      })
+    );
+
+    const prompt = screen.getByLabelText('Instructions for Seer');
+    expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
+    expect(prompt).toHaveValue('Find slow spans');
+    expect(prompt).toBeVisible();
+    expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel Seer request'}));
+    expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
   });
 
   it('renders block output instead of block content', async () => {
@@ -157,6 +188,643 @@ describe('Investigation detail', () => {
     expect(
       screen.queryByText('Generated content that should not render')
     ).not.toBeInTheDocument();
+  });
+
+  it('uses compact breadcrumbs and renders text and table results without prompt data', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        title: '',
+        generationPrompt: 'Secret text-generation prompt',
+        output: {schemaVersion: 1, markdown: 'Rendered **analysis**'},
+      },
+      {
+        ...investigation.blocks[1]!,
+        title: 'Database latency',
+        generationPrompt: 'Secret query-generation prompt',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 | count |\n| --- | --- |\n| 820ms | 12 |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByText('Rendered')).toBeInTheDocument();
+    expect(screen.queryByText('Investigation step 1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('text-cell-result')).toHaveAttribute(
+      'data-cell-variant',
+      'unbordered'
+    );
+    expect(screen.getByTestId('query-cell-result')).toHaveAttribute(
+      'data-cell-variant',
+      'bordered'
+    );
+    expect(screen.getByTestId('query-cell-header')).toContainElement(
+      screen.getByRole('button', {name: 'Ask Seer about Database latency'})
+    );
+    expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
+      'data-has-divider',
+      'false'
+    );
+    expect(screen.getByTestId('investigation-cell-block-2')).toHaveAttribute(
+      'data-has-divider',
+      'true'
+    );
+    expect(screen.getByText('820ms')).toBeInTheDocument();
+    expect(screen.queryByText('Secret text-generation prompt')).not.toBeInTheDocument();
+    expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
+    expect(screen.getByTestId('investigation-breadcrumbs')).toHaveAttribute(
+      'data-text-size',
+      'md'
+    );
+
+    expect(screen.getByTestId('query-cell-title')).toHaveTextContent('Database latency');
+    expect(screen.queryByText('Evidence/Database latency')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('query-cell-title'));
+    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    expect(screen.getByText('820ms')).toBeVisible();
+  });
+
+  it('renders the outer query title as non-editable text', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
+    renderView();
+    expect(await screen.findByTestId('query-cell-title')).toHaveTextContent(
+      'Latency query'
+    );
+    expect(
+      screen.queryByLabelText('Cell title for Latency query')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a preferred chart and falls back to its table when unavailable', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        id: 'chart-block',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'chart',
+          tableMarkdown: '| fallback |\n| --- |\n| table |',
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+          chart: {
+            title: 'Latency over time',
+            visualization: 'line',
+            x_axis: 'time',
+            y_axis_unit: 'duration',
+            series: [
+              {
+                label: 'p95',
+                data: [
+                  {x: '2026-08-17T10:00:00Z', y: 400},
+                  {x: '2026-08-17T10:05:00Z', y: 800},
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        ...investigation.blocks[1]!,
+        id: 'fallback-block',
+        title: 'Unavailable chart',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'chart',
+          tableMarkdown: '| fallback |\n| --- |\n| shown |',
+          chart: null,
+          chartUnavailableReason: 'No numeric columns',
+          isEmpty: false,
+          queryLinks: [],
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(screen.getAllByTestId('query-cell-title')[0]).toHaveTextContent(
+      'Latency query'
+    );
+    expect(screen.getByText('Latency over time')).toBeInTheDocument();
+    expect(
+      within(screen.getAllByTestId('query-cell-header')[0]!).getByText(
+        /Aug 17.*1,200 total p95/
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('shown')).toBeInTheDocument();
+  });
+
+  it('renders chart metadata and reruns the query from the header', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = {
+      ...investigation.blocks[1]!,
+      outputStatus: 'completed' as const,
+      output: {
+        schemaVersion: 1,
+        preferredView: 'chart',
+        tableMarkdown: '| total |\n| ---: |\n| 363 |',
+        chartUnavailableReason: null,
+        isEmpty: false,
+        queryLinks: [],
+        chart: {
+          title: 'Top Issues in spike window',
+          subtitle: '3:57pm–4:12pm PST  |  363 Total Events',
+          visualization: 'line',
+          x_axis: 'time',
+          y_axis_unit: 'number',
+          series: [
+            {
+              label: 'Events',
+              data: [
+                {x: '2026-08-17T10:00:00Z', y: 120},
+                {x: '2026-08-17T10:05:00Z', y: 243},
+              ],
+            },
+          ],
+        },
+      },
+    };
+    investigation.blocks = [block];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const runUrl = `${detailUrl}blocks/${block.id}/executions/`;
+    const rerunRequest = MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'rerun-1', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}rerun-1/`,
+      body: {
+        id: 'rerun-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    const chartHeader = await screen.findByTestId('query-cell-header');
+    expect(
+      within(chartHeader).getByRole('heading', {
+        name: 'Top Issues in spike window',
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(chartHeader).getByText(/3:57pm–4:12pm PST\s+\|\s+363 Total Events/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Rerun Latency query'}));
+    await waitFor(() =>
+      expect(rerunRequest).toHaveBeenCalledWith(
+        runUrl,
+        expect.objectContaining({
+          data: {investigationVersion: 1, version: 1},
+        })
+      )
+    );
+  });
+
+  it('duplicates a query cell from its actions menu', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = investigation.blocks[1]!;
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const duplicateRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/`,
+      method: 'POST',
+      body: {...block, id: 'duplicated-block', position: 2},
+    });
+
+    renderView();
+    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
+
+    await waitFor(() =>
+      expect(duplicateRequest).toHaveBeenCalledWith(
+        `${detailUrl}blocks/`,
+        expect.objectContaining({
+          data: {
+            investigationVersion: 1,
+            kind: 'query',
+            title: 'Latency query',
+            content: '',
+            generationPrompt: 'Find slow spans',
+            config: {},
+            display: {type: 'table'},
+          },
+        })
+      )
+    );
+    expect(
+      screen
+        .getAllByTestId('query-cell-title')
+        .filter(element => element.textContent === 'Latency query')
+    ).toHaveLength(2);
+  });
+
+  it('deletes a query cell from its actions menu after confirmation', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = investigation.blocks[1]!;
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/${block.id}/`,
+      method: 'DELETE',
+    });
+
+    renderView();
+    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    expect(deleteRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith(
+        `${detailUrl}blocks/${block.id}/`,
+        expect.objectContaining({
+          data: {investigationVersion: 1, version: 1},
+        })
+      )
+    );
+    expect(screen.queryByDisplayValue('Latency query')).not.toBeInTheDocument();
+  });
+
+  it('adds text and query cells and starts a never-run cell from its stored prompt', async () => {
+    const fixture = InvestigationDetailFixture();
+    const textTemplate = fixture.blocks[0];
+    const queryTemplate = fixture.blocks[1];
+    if (!textTemplate || !queryTemplate) {
+      throw new Error('Expected text and query block fixtures.');
+    }
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({blocks: [], blockCount: 0}),
+    });
+    const blocksUrl = `${detailUrl}blocks/`;
+    const textBlock = {
+      ...textTemplate,
+      id: 'text-block',
+      title: 'Working theory',
+      generationPrompt: 'Summarize the current evidence',
+    };
+    const textRequest = MockApiClient.addMockResponse({
+      url: blocksUrl,
+      method: 'POST',
+      body: textBlock,
+    });
+
+    renderView();
+    await userEvent.click(await screen.findByRole('button', {name: 'Text cell'}));
+    await userEvent.type(screen.getByLabelText('Cell title'), 'Working theory');
+    await userEvent.type(
+      screen.getByLabelText('Cell instructions'),
+      'Summarize the current evidence'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
+
+    await waitFor(() =>
+      expect(textRequest).toHaveBeenCalledWith(
+        blocksUrl,
+        expect.objectContaining({
+          data: {
+            investigationVersion: 1,
+            kind: 'text',
+            title: 'Working theory',
+            generationPrompt: 'Summarize the current evidence',
+          },
+        })
+      )
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Ask Seer about Working theory'})
+    ).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
+
+    const queryBlock = {
+      ...queryTemplate,
+      id: 'query-block',
+      title: 'Error volume',
+      generationPrompt: 'Show errors over the last 24 hours',
+    };
+    const queryRequest = MockApiClient.addMockResponse({
+      url: blocksUrl,
+      method: 'POST',
+      body: queryBlock,
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Query cell'}));
+    await userEvent.type(screen.getByLabelText('Cell title'), 'Error volume');
+    await userEvent.type(
+      screen.getByLabelText('Cell instructions'),
+      'Show errors over the last 24 hours'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Add cell'}));
+
+    await waitFor(() =>
+      expect(queryRequest).toHaveBeenCalledWith(
+        blocksUrl,
+        expect.objectContaining({
+          data: {
+            investigationVersion: 2,
+            kind: 'query',
+            title: 'Error volume',
+            generationPrompt: 'Show errors over the last 24 hours',
+          },
+        })
+      )
+    );
+    expect(
+      (await screen.findAllByTestId('query-cell-title')).some(
+        element => element.textContent === 'Error volume'
+      )
+    ).toBe(true);
+
+    const updateUrl = `${blocksUrl}query-block/`;
+    const updateRequest = MockApiClient.addMockResponse({
+      url: updateUrl,
+      method: 'PUT',
+      body: queryBlock,
+    });
+    const runUrl = `${updateUrl}executions/`;
+    const runRequest = MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-1', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Ask Seer about Error volume'})
+    );
+    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue(
+      'Show errors over the last 24 hours'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitFor(() =>
+      expect(updateRequest).toHaveBeenCalledWith(
+        updateUrl,
+        expect.objectContaining({
+          data: {
+            investigationVersion: 3,
+            version: 1,
+            generationPrompt: 'Show errors over the last 24 hours',
+          },
+        })
+      )
+    );
+
+    await waitFor(() =>
+      expect(runRequest).toHaveBeenCalledWith(
+        runUrl,
+        expect.objectContaining({
+          data: {investigationVersion: 3, version: 1},
+        })
+      )
+    );
+  });
+
+  it('keeps the previous result visible while showing a timed completed transcript', async () => {
+    const investigation = InvestigationDetailFixture({version: 7});
+    const block = investigation.blocks[0]!;
+    investigation.blocks = [
+      {
+        ...block,
+        version: 3,
+        outputStatus: 'completed',
+        output: {schemaVersion: 1, markdown: 'Previous successful result'},
+        currentExecution: {
+          id: 'execution-2',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-1/`;
+    const updateRequest = MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[0]!, version: 4},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    const runRequest = MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-2', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-2/`,
+      body: {
+        id: 'execution-2',
+        status: 'completed',
+        blocks: [
+          {
+            id: 'internal-prompt',
+            timestamp: '2026-08-17T10:00:00Z',
+            loading: false,
+            message: {
+              role: 'user',
+              content:
+                'Private agent instructions\n<investigation_context>{}</investigation_context>',
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+          {
+            id: 'step-1',
+            timestamp: '2026-08-17T10:00:00Z',
+            loading: false,
+            message: {role: 'user', content: 'Compare against deploys'},
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+          {
+            id: 'empty-code-mode-step-1',
+            timestamp: '2026-08-17T10:00:02Z',
+            loading: false,
+            message: {
+              role: 'tool_use',
+              content: null,
+              tool_calls: [{id: 'empty-1', function: 'sentry_api_execute', args: '{}'}],
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: [
+              {
+                tool_call_id: 'empty-1',
+                tool_call_function: 'sentry_api_execute',
+                content: '',
+                structuredContent: {calls: []},
+              },
+            ],
+          },
+          {
+            id: 'step-2',
+            timestamp: '2026-08-17T10:00:04Z',
+            loading: false,
+            message: {role: 'assistant', content: 'The deploy lines up.'},
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+          {
+            id: 'empty-code-mode-step-2',
+            timestamp: '2026-08-17T10:00:07Z',
+            loading: false,
+            message: {
+              role: 'tool_use',
+              content: null,
+              tool_calls: [{id: 'empty-2', function: 'sentry_api_execute', args: '{}'}],
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: [
+              {
+                tool_call_id: 'empty-2',
+                tool_call_function: 'sentry_api_execute',
+                content: '',
+                structuredContent: {calls: []},
+              },
+            ],
+          },
+        ],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer about Summary'}));
+    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
+    const promptInput = screen.getByLabelText('Instructions for Seer');
+    await userEvent.type(promptInput, 'Compare against deploys');
+    fireEvent.keyDown(promptInput, {key: 'Enter'});
+
+    await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
+    expect(updateRequest).toHaveBeenCalledWith(
+      blockUrl,
+      expect.objectContaining({
+        data: {
+          investigationVersion: 7,
+          version: 3,
+          generationPrompt: 'Compare against deploys',
+        },
+      })
+    );
+    await waitFor(() => expect(runRequest).toHaveBeenCalledTimes(1));
+    expect(runRequest).toHaveBeenCalledWith(
+      runUrl,
+      expect.objectContaining({data: {investigationVersion: 8, version: 4}})
+    );
+    expect(screen.getByText('Previous successful result')).toBeInTheDocument();
+    expect(await screen.findByText('Compare against deploys')).toBeInTheDocument();
+    expect(screen.getByText('The deploy lines up.')).toBeInTheDocument();
+    expect(screen.queryByText(/Private agent instructions/)).not.toBeInTheDocument();
+    expect(screen.getByText('10.0s')).toBeInTheDocument();
+    expect(screen.getByText('4.0s')).toBeInTheDocument();
+    expect(screen.getByText('6.0s')).toBeInTheDocument();
+    expect(screen.queryByText('2.0s')).not.toBeInTheDocument();
+    expect(screen.queryByText('3.0s')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Ask Seer again'})).toBeInTheDocument();
+    expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer again'}));
+    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
+  });
+
+  it('stops an active refinement and leaves the rendered result visible', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        outputStatus: 'completed',
+        output: {schemaVersion: 1, markdown: 'Stable result'},
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-1/`;
+    MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[0]!, version: 2},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-running', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-running/`,
+      body: {
+        id: 'execution-running',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    const stopRequest = MockApiClient.addMockResponse({
+      url: `${runUrl}execution-running/`,
+      method: 'DELETE',
+    });
+
+    renderView();
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
+    );
+    await userEvent.type(
+      screen.getByLabelText('Instructions for Seer'),
+      'Try another angle'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Stop'}));
+
+    await waitFor(() => expect(stopRequest).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('Stable result')).toBeInTheDocument();
   });
 
   it('reuses an investigation prefetched before the detail page mounts', async () => {
@@ -213,7 +881,10 @@ describe('Investigation detail', () => {
   });
 
   it('duplicates and opens the duplicate from the title menu', async () => {
-    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
     MockApiClient.addMockResponse({
       url: `${detailUrl}duplicate/`,
       method: 'POST',
@@ -241,7 +912,10 @@ describe('Investigation detail', () => {
       value: {writeText},
       writable: true,
     });
-    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
 
     renderView();
     await userEvent.click(await screen.findByLabelText('Investigation actions'));
@@ -255,7 +929,10 @@ describe('Investigation detail', () => {
   });
 
   it('deletes after confirmation and returns to the list', async () => {
-    MockApiClient.addMockResponse({url: detailUrl, body: InvestigationDetailFixture()});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture(),
+    });
     const deleteRequest = MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'DELETE',
@@ -294,7 +971,10 @@ describe('Investigation detail', () => {
       headers: {},
       json: InvestigationDetailFixture(),
     });
-    const request = MockApiClient.addMockResponse({url: detailUrl, statusCode: 500});
+    const request = MockApiClient.addMockResponse({
+      url: detailUrl,
+      statusCode: 500,
+    });
 
     renderView(organization, queryClient);
     expect(screen.getByText('Investigate database latency')).toBeInTheDocument();
@@ -326,7 +1006,10 @@ describe('Investigation detail', () => {
     });
 
     renderView(
-      OrganizationFixture({features: ['investigations'], openMembership: false})
+      OrganizationFixture({
+        features: ['investigations'],
+        openMembership: false,
+      })
     );
 
     expect(

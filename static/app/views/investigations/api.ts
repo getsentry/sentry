@@ -8,7 +8,11 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
   InvestigationCandidate,
+  InvestigationBlock,
+  InvestigationBlockExecutionStart,
+  InvestigationBlockKind,
   InvestigationDetail,
+  InvestigationExecutionDetail,
   InvestigationListItem,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
@@ -50,6 +54,31 @@ export function investigationDetailQueryOptions(
   );
 }
 
+export function investigationExecutionDetailQueryOptions({
+  organizationSlug,
+  investigationId,
+  blockId,
+  executionId,
+}: {
+  blockId: string;
+  executionId: string;
+  investigationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<InvestigationExecutionDetail>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+        blockId,
+        executionId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
 export function investigationCandidatesQueryOptions({
   organizationSlug,
   sources,
@@ -75,6 +104,44 @@ export function investigationCandidatesQueryOptions({
 type FavoriteVariables = {
   investigation: InvestigationListItem;
   shouldFavorite: boolean;
+};
+
+type AddBlockVariables = {
+  investigation: InvestigationDetail;
+  kind: InvestigationBlockKind;
+  prompt: string;
+  title: string;
+};
+
+type RunBlockVariables = {
+  block: InvestigationBlock;
+  investigationVersion: number;
+};
+
+type UpdateBlockPromptVariables = {
+  block: InvestigationBlock;
+  investigationVersion: number;
+  prompt: string;
+};
+
+type RenameBlockVariables = {
+  blockId: string;
+  title: string;
+};
+
+type RenameBlockResult = {
+  block: InvestigationBlock;
+  requestedBlockVersion: number;
+  requestedInvestigationVersion: number;
+};
+
+type BlockIdVariables = {
+  blockId: string;
+};
+
+type StopExecutionVariables = {
+  blockId: string;
+  executionId: string;
 };
 
 type MutationOptions<TData, TVariables> = Omit<
@@ -182,6 +249,402 @@ export function useRenameInvestigationMutation(
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
       await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
+    },
+  });
+}
+
+export function useAddInvestigationBlockMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationBlock, AddBlockVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({investigation, kind, prompt, title}) =>
+      fetchMutation<InvestigationBlock>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/`,
+        method: 'POST',
+        data: {
+          investigationVersion: investigation.version,
+          kind,
+          title,
+          generationPrompt: prompt,
+        },
+      }),
+    onSuccess: async (block, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blockCount: current.json.blockCount + 1,
+                blocks: [...(current.json.blocks ?? []), block],
+                version: current.json.version + 1,
+              },
+            }
+          : current
+      );
+      await queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
+      });
+      await options?.onSuccess?.(block, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useDuplicateInvestigationBlockMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationBlock, BlockIdVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({blockId}) => {
+      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
+      const block = investigation?.blocks?.find(item => item.id === blockId);
+      if (!investigation || !block) {
+        throw new Error('Investigation block is not cached.');
+      }
+
+      return fetchMutation<InvestigationBlock>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/`,
+        method: 'POST',
+        data: {
+          investigationVersion: investigation.version,
+          kind: block.kind,
+          title: block.title,
+          content: block.content,
+          generationPrompt: block.generationPrompt,
+          config: block.config,
+          display: block.display,
+        },
+      });
+    },
+    onSuccess: async (duplicate, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blockCount: current.json.blockCount + 1,
+                blocks: [...(current.json.blocks ?? []), duplicate],
+                version: current.json.version + 1,
+              },
+            }
+          : current
+      );
+      await queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
+      });
+      await options?.onSuccess?.(duplicate, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useDeleteInvestigationBlockMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<void, BlockIdVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({blockId}) => {
+      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
+      const block = investigation?.blocks?.find(item => item.id === blockId);
+      if (!investigation || !block) {
+        throw new Error('Investigation block is not cached.');
+      }
+
+      return fetchMutation<void>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/`,
+        method: 'DELETE',
+        data: {
+          investigationVersion: investigation.version,
+          version: block.version,
+        },
+      });
+    },
+    onSuccess: async (_data, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blockCount: Math.max(0, current.json.blockCount - 1),
+                blocks: current.json.blocks?.filter(
+                  block => block.id !== variables.blockId
+                ),
+                version: current.json.version + 1,
+              },
+            }
+          : current
+      );
+      await queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
+      });
+      await options?.onSuccess?.(_data, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useRunInvestigationBlockMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationBlockExecutionStart, RunBlockVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({block, investigationVersion}) =>
+      fetchMutation<InvestigationBlockExecutionStart>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/executions/`,
+        method: 'POST',
+        data: {
+          investigationVersion,
+          version: block.version,
+        },
+      }),
+    onSuccess: async (execution, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blocks: current.json.blocks?.map(block =>
+                  block.id === variables.block.id
+                    ? {
+                        ...block,
+                        outputStatus: execution.status,
+                        currentExecution: {
+                          id: execution.id,
+                          status: execution.status,
+                          startedAt: null,
+                          completedAt: null,
+                          error: null,
+                        },
+                      }
+                    : block
+                ),
+              },
+            }
+          : current
+      );
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onSuccess?.(execution, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useUpdateInvestigationBlockPromptMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({block, investigationVersion, prompt}) =>
+      fetchMutation<InvestigationBlock>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${block.id}/`,
+        method: 'PUT',
+        data: {
+          investigationVersion,
+          version: block.version,
+          generationPrompt: prompt,
+        },
+      }),
+    onSuccess: async (updatedBlock, variables, onMutateResult, context) => {
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blocks: current.json.blocks?.map(block =>
+                  block.id === updatedBlock.id ? updatedBlock : block
+                ),
+                version:
+                  current.json.version +
+                  (updatedBlock.version === variables.block.version ? 0 : 1),
+              },
+            }
+          : current
+      );
+      await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useRenameInvestigationBlockMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<RenameBlockResult, RenameBlockVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    scope: {id: `rename-investigation-block-${investigationId}`},
+    mutationFn: async ({blockId, title}) => {
+      const investigation = queryClient.getQueryData(detailOptions.queryKey)?.json;
+      const block = investigation?.blocks?.find(item => item.id === blockId);
+      if (!investigation || !block) {
+        throw new Error('Investigation block is not cached.');
+      }
+
+      const updated = await fetchMutation<InvestigationBlock>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/`,
+        method: 'PUT',
+        data: {
+          investigationVersion: investigation.version,
+          version: block.version,
+          title: title.trim(),
+        },
+      });
+      return {
+        block: updated,
+        requestedBlockVersion: block.version,
+        requestedInvestigationVersion: investigation.version,
+      };
+    },
+    onMutate: async variables => {
+      await queryClient.cancelQueries({queryKey: detailOptions.queryKey});
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blocks: current.json.blocks?.map(block =>
+                  block.id === variables.blockId
+                    ? {...block, title: variables.title}
+                    : block
+                ),
+              },
+            }
+          : current
+      );
+    },
+    onSuccess: async (result, variables, onMutateResult, context) => {
+      const versionDelta = result.block.version === result.requestedBlockVersion ? 0 : 1;
+      queryClient.setQueryData(detailOptions.queryKey, current =>
+        current
+          ? {
+              ...current,
+              json: {
+                ...current.json,
+                blocks: current.json.blocks?.map(block =>
+                  block.id === result.block.id
+                    ? {
+                        ...result.block,
+                        // Keep a newer optimistic edit while this save was in flight.
+                        title:
+                          block.title === variables.title
+                            ? result.block.title
+                            : block.title,
+                      }
+                    : block
+                ),
+                version: Math.max(
+                  current.json.version,
+                  result.requestedInvestigationVersion + versionDelta
+                ),
+              },
+            }
+          : current
+      );
+      await options?.onSuccess?.(result, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
+export function useStopInvestigationExecutionMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<void, StopExecutionVariables>
+) {
+  const queryClient = useQueryClient();
+  const detailOptions = investigationDetailQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({blockId, executionId}) =>
+      fetchMutation<void>({
+        url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/executions/${executionId}/`,
+        method: 'DELETE',
+      }),
+    onSuccess: async (_data, variables, onMutateResult, context) => {
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({
+          queryKey: investigationExecutionDetailQueryOptions({
+            organizationSlug,
+            investigationId,
+            blockId: variables.blockId,
+            executionId: variables.executionId,
+          }).queryKey,
+        }),
+      ]);
+      await options?.onSuccess?.(_data, variables, onMutateResult, context);
     },
   });
 }
