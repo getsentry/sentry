@@ -574,9 +574,8 @@ interface UseExplorerAutofixOptions {
    */
   codingAgentAnalyticsSource?: 'explorer' | 'overview';
   /**
-   * Whether to fetch and poll run state. The action callbacks (startStep,
-   * createPR, triggerCodingAgentHandoff) stay live even when false — the
-   * Autofix overview relies on dispatching actions without polling.
+   * Whether to fetch and poll run state. Action callbacks (startStep, createPR,
+   * triggerCodingAgentHandoff) stay live even when false — used by the overview.
    */
   enabled?: boolean;
   /**

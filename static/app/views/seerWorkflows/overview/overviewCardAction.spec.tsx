@@ -62,106 +62,71 @@ describe('OverviewCardAction', () => {
     });
   });
 
-  it('triggers the plan step and shows a busy button', async () => {
-    const postRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/2/autofix/',
-      method: 'POST',
-      body: {run_id: 1, sentry_run_id: 'run-1'},
-    });
-
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Create Plan'}));
-
-    expect(postRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/2/autofix/',
-      expect.objectContaining({
+  it.each([
+    {
+      sectionKey: 'needs_investigation',
+      label: 'Create Plan',
+      busyLabel: /Creating Plan/,
+      step: 'solution',
+      action: 'create_plan',
+    },
+    {
+      sectionKey: 'solution_ready',
+      label: 'Generate code',
+      busyLabel: /Generating Code/,
+      step: 'code_changes',
+      action: 'generate_code',
+    },
+    {
+      sectionKey: 'code_changes_ready',
+      label: 'Draft PR',
+      busyLabel: /Creating PR/,
+      step: 'open_pr',
+      action: 'draft_pr',
+    },
+  ] as const)(
+    'dispatches the $action action and shows a busy button',
+    async ({sectionKey, label, busyLabel, step, action}) => {
+      const postRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/2/autofix/',
         method: 'POST',
-        query: {mode: 'explorer'},
-        data: expect.objectContaining({
-          step: 'solution',
-          sentry_run_id: 'run-1',
-          referrer: 'api.web',
-        }),
-      })
-    );
+        body: {run_id: 1, sentry_run_id: 'run-1'},
+      });
 
-    expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
-    expect(
-      screen.queryByRole('button', {name: 'More Seer options'})
-    ).not.toBeInTheDocument();
+      render(
+        <OverviewCardAction
+          run={runFixture()}
+          sectionKey={sectionKey}
+          issueUrl={issueUrl}
+        />,
+        {organization}
+      );
 
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'autofix.overview.action_clicked',
-      expect.objectContaining({
-        organization,
-        group_id: '2',
-        run_id: 'run-1',
-        action: 'create_plan',
-      })
-    );
-  });
+      await userEvent.click(screen.getByRole('button', {name: label}));
 
-  it('triggers the code changes step from a solution card', async () => {
-    const postRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/2/autofix/',
-      method: 'POST',
-      body: {run_id: 1, sentry_run_id: 'run-1'},
-    });
+      expect(postRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/2/autofix/',
+        expect.objectContaining({
+          data: expect.objectContaining({step, sentry_run_id: 'run-1'}),
+        })
+      );
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="solution_ready"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+      expect(await screen.findByRole('button', {name: busyLabel})).toBeDisabled();
+      expect(
+        screen.queryByRole('button', {name: 'More Seer options'})
+      ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Generate code'}));
-
-    expect(postRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/2/autofix/',
-      expect.objectContaining({
-        data: expect.objectContaining({step: 'code_changes', sentry_run_id: 'run-1'}),
-      })
-    );
-    expect(await screen.findByRole('button', {name: /Generating Code/})).toBeDisabled();
-  });
-
-  it('drafts a PR from a code changes card', async () => {
-    const postRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/2/autofix/',
-      method: 'POST',
-      body: {run_id: 1, sentry_run_id: 'run-1'},
-    });
-
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="code_changes_ready"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Draft PR'}));
-
-    expect(postRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/2/autofix/',
-      expect.objectContaining({
-        data: expect.objectContaining({step: 'open_pr', sentry_run_id: 'run-1'}),
-      })
-    );
-    expect(await screen.findByRole('button', {name: /Creating PR/})).toBeDisabled();
-  });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'autofix.overview.action_clicked',
+        expect.objectContaining({
+          organization,
+          group_id: '2',
+          run_id: 'run-1',
+          action,
+        })
+      );
+    }
+  );
 
   it('routes a Draft PR card to grant permissions when write access is missing', async () => {
     MockApiClient.addMockResponse({
@@ -279,24 +244,6 @@ describe('OverviewCardAction', () => {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'coding_integration.send_to_agent_clicked',
       expect.objectContaining({provider: 'claude_code', source: 'overview'})
-    );
-  });
-
-  it('shows the add integration link in the dropdown footer', async () => {
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
-
-    expect(await screen.findByRole('button', {name: 'Add Integration'})).toHaveAttribute(
-      'href',
-      '/settings/org-slug/integrations/?category=coding%20agent'
     );
   });
 

@@ -10,10 +10,8 @@ interface PermissionsTarget {
 }
 
 /**
- * Gate for creating a pull request from Autofix code changes. Resolves whether
- * any connected repo lacks write access and, if so, where to grant it — so a
- * caller can send the user to update permissions instead of firing a doomed
- * create-PR request. Shared by the Seer drawer and the Autofix overview.
+ * Gate for creating a PR from Autofix changes: resolves whether a connected repo
+ * lacks write access and where to grant it. Shared by the drawer and overview.
  */
 export function useAutofixCreatePrGate({
   group,
