@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
@@ -34,6 +36,47 @@ describe('Resource Subscriptions', () => {
       expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
       // preprod_artifact requires Project permission which is 'write' here, so it's enabled
       expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
+    });
+
+    it('disables deploy checkbox without Release permission', () => {
+      const org = OrganizationFixture({features: ['deploy-webhooks']});
+      render(
+        <Form>
+          <Subscriptions
+            events={[]}
+            permissions={{...basePermissions, Release: 'no-access'}}
+            onChange={jest.fn()}
+          />
+        </Form>,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'deploy'})).toBeDisabled();
+    });
+
+    it('enables deploy checkbox with Release permission', () => {
+      const org = OrganizationFixture({features: ['deploy-webhooks']});
+      render(
+        <Form>
+          <Subscriptions events={[]} permissions={basePermissions} onChange={jest.fn()} />
+        </Form>,
+        {organization: org}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'deploy'})).toBeEnabled();
+    });
+
+    it('hides deploy checkbox without deploy-webhooks flag', () => {
+      render(
+        <Form>
+          <Subscriptions events={[]} permissions={basePermissions} onChange={jest.fn()} />
+        </Form>
+      );
+
+      expect(screen.queryByRole('checkbox', {name: 'deploy'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: 'deploy.created'})
+      ).not.toBeInTheDocument();
     });
 
     it('updates events state when new permissions props is passed', () => {

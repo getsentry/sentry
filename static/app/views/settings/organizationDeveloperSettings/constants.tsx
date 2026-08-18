@@ -5,6 +5,7 @@ export const EVENT_CHOICES = [
   'issue',
   'error',
   'comment',
+  'deploy',
   'seer',
   'preprod_artifact',
 ] as const satisfies readonly WebhookEvent[];
@@ -21,6 +22,7 @@ export const RESOURCE_EVENTS = {
   ],
   error: ['error.created'],
   comment: ['comment.created', 'comment.updated', 'comment.deleted'],
+  deploy: ['deploy.created'],
   seer: [
     'seer.root_cause_started',
     'seer.root_cause_completed',
@@ -44,6 +46,7 @@ export const WEBHOOK_SUBSCRIPTION_CHOICES = [
   ...RESOURCE_EVENTS.issue,
   ...RESOURCE_EVENTS.error,
   ...RESOURCE_EVENTS.comment,
+  ...RESOURCE_EVENTS.deploy,
   ...RESOURCE_EVENTS.seer,
   ...RESOURCE_EVENTS.preprod_artifact,
 ] as const;
@@ -84,6 +87,7 @@ const RESOURCE_LABELS: Record<WebhookEvent, string> = {
   issue: 'Issues',
   error: 'Errors',
   comment: 'Comments',
+  deploy: 'Deploys',
   seer: 'Seer',
   preprod_artifact: 'Preprod Artifacts',
 };
@@ -96,6 +100,7 @@ export const PERMISSIONS_MAP = {
   issue: 'Event',
   error: 'Event',
   comment: 'Event',
+  deploy: 'Release',
   seer: 'Event',
   preprod_artifact: 'Project',
 } as const;
