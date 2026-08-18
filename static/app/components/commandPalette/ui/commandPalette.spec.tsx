@@ -40,7 +40,10 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
+import {
+  CMDKChainedActionScope,
+  CMDKTerminalActionScope,
+} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
@@ -281,7 +284,7 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{Backspace}');
 
     // // Back to main actions
-    expect(await screen.findByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
+    expect(await screen.findByText('Parent Label')).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Child Action'})).not.toBeInTheDocument();
 
     expect(closeSpy).not.toHaveBeenCalled();
@@ -322,14 +325,14 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    await userEvent.click(await screen.findByRole('option', {name: 'Query clauses'}));
+    expect(await screen.findByText('Query clauses')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Visualize'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Count spans'}));
 
     expect(onChainedAction).toHaveBeenCalledTimes(1);
     expect(closeSpy).not.toHaveBeenCalled();
-    expect(await screen.findByRole('option', {name: 'Visualize'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
+    expect(await screen.findByText('Visualize')).toBeInTheDocument();
+    expect(screen.getByText('Group by')).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
       'Search for commands'
@@ -348,18 +351,17 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Group by'}}>
               <CMDKAction
                 display={{label: 'Environment'}}
-                multiSelect
                 onAction={onAction}
                 onMultiSelect={onMultiSelect}
               />
-              <CMDKAction display={{label: 'Release'}} multiSelect onAction={() => {}} />
+              <CMDKAction display={{label: 'Release'}} onAction={() => {}} />
             </CMDKAction>
           </CMDKChainedActionScope>
         </CMDKAction>
       </GlobalActionsComponent>
     );
 
-    await userEvent.click(await screen.findByRole('option', {name: 'Commands'}));
+    expect(await screen.findByText('Commands')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
@@ -372,7 +374,7 @@ describe('CommandPalette', () => {
 
     expect(onAction).toHaveBeenCalledTimes(1);
     expect(onMultiSelect).toHaveBeenCalledTimes(1);
-    expect(await screen.findByRole('option', {name: 'Group by'})).toBeInTheDocument();
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
   });
 
   it('shows filter attributes immediately under their section heading', async () => {
@@ -390,7 +392,7 @@ describe('CommandPalette', () => {
 
     await userEvent.click(await screen.findByRole('option', {name: 'Add Filter by'}));
 
-    expect(screen.getByRole('option', {name: 'Attribute'})).toBeInTheDocument();
+    expect(screen.getByText('Attribute')).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
@@ -419,12 +421,12 @@ describe('CommandPalette', () => {
     );
 
     await userEvent.click(await screen.findByRole('option', {name: 'Commands'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Edit Sort By'}));
+    expect(await screen.findByText('Edit Sort By')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Descending'}));
 
     expect(closeSpy).not.toHaveBeenCalled();
-    expect(await screen.findByRole('option', {name: 'Commands'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Series A'})).toBeInTheDocument();
+    expect(await screen.findByText('Commands')).toBeInTheDocument();
+    expect(screen.getByText('Series A')).toBeInTheDocument();
   });
 
   it('closes for a terminal action inside a chained scope', async () => {
@@ -434,17 +436,15 @@ describe('CommandPalette', () => {
       <GlobalActionsComponent>
         <CMDKAction display={{label: 'Query clauses'}}>
           <CMDKChainedActionScope>
-            <CMDKAction
-              closeOnAction
-              display={{label: 'Apply Changes'}}
-              onAction={() => {}}
-            />
+            <CMDKTerminalActionScope>
+              <CMDKAction display={{label: 'Apply Changes'}} onAction={() => {}} />
+            </CMDKTerminalActionScope>
           </CMDKChainedActionScope>
         </CMDKAction>
       </GlobalActionsComponent>
     );
 
-    await userEvent.click(await screen.findByRole('option', {name: 'Query clauses'}));
+    expect(await screen.findByText('Query clauses')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
 
     expect(closeSpy).toHaveBeenCalledTimes(1);
@@ -527,7 +527,7 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Go to route'})
       ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Other'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
+      expect(screen.getByText('Parent Label')).toBeInTheDocument();
     });
 
     it('child actions are not shown when query is empty', async () => {
@@ -641,9 +641,11 @@ describe('CommandPalette', () => {
     it("searching within a drilled-in group filters that group's children", async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Theme'}}>
-            <CMDKAction onAction={jest.fn()} display={{label: 'Light'}} />
-            <CMDKAction onAction={jest.fn()} display={{label: 'Dark'}} />
+          <CMDKAction display={{label: 'Settings'}}>
+            <CMDKAction display={{label: 'Theme'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Light'}} />
+              <CMDKAction onAction={jest.fn()} display={{label: 'Dark'}} />
+            </CMDKAction>
           </CMDKAction>
         </GlobalActionsComponent>
       );
@@ -732,6 +734,35 @@ describe('CommandPalette', () => {
         display: {label: `Action ${i + 1}`},
         to: `/action-${i + 1}/`,
       }));
+
+    it('auto-renders composed groups returned by a resource', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            display={{label: 'Async Group'}}
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['test-resource-group'],
+                queryFn: (): CommandPaletteAction[] => [
+                  {
+                    display: {label: 'Values'},
+                    actions: [
+                      {display: {label: 'Alpha'}, onAction: jest.fn()},
+                      {display: {label: 'Beta'}, onAction: jest.fn()},
+                    ],
+                  },
+                ],
+              })
+            }
+          />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Values'}));
+
+      expect(await screen.findByRole('option', {name: 'Alpha'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Beta'})).toBeInTheDocument();
+    });
 
     it('limits async resource results to 4 by default', async () => {
       const actions = makeActions(6);
@@ -1226,7 +1257,7 @@ describe('CommandPalette', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Project'}));
       await userEvent.click(await screen.findByRole('option', {name: 'is'}));
 
-      expect(await screen.findByRole('option', {name: 'Value'})).toBeInTheDocument();
+      expect(await screen.findByText('Value')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'project-one'})).toBeInTheDocument();
     });
   });

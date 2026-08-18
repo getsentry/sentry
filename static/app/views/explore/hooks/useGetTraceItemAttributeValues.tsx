@@ -21,7 +21,7 @@ import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
-interface TraceItemAttributeValue {
+export interface TraceItemAttributeValue {
   count: number | null;
   firstSeen: string | null;
   key: string;
@@ -34,6 +34,54 @@ interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseP
   datetime?: PageFilterDatetime;
   projectIds?: PageFilters['projects'];
   query?: string;
+}
+
+interface TraceItemAttributeValuesQueryOptionsProps extends UseTraceItemAttributeBaseProps {
+  datetime: PageFilterDatetime;
+  organizationSlug: string;
+  projectIds: PageFilters['projects'];
+  searchQuery: string;
+  tagKey: string;
+  query?: string;
+}
+
+export function traceItemAttributeValuesQueryOptions({
+  datetime,
+  organizationSlug,
+  projectIds,
+  query,
+  searchQuery,
+  tagKey,
+  traceItemType,
+  type,
+}: TraceItemAttributeValuesQueryOptionsProps) {
+  const options = apiOptions.as<TraceItemAttributeValue[]>()(
+    '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, key: tagKey},
+      staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      query: {
+        itemType: traceItemType,
+        attributeType: type,
+        query: query || undefined,
+        substringMatch: searchQuery || undefined,
+        project: projectIds.map(String),
+        ...normalizeDateTimeParams(datetime),
+      },
+    }
+  );
+  const originalQueryFn = options.queryFn;
+
+  return typeof originalQueryFn === 'function'
+    ? queryOptions({
+        ...options,
+        queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) =>
+          findFreshEmptyPrefixSearchCacheMatch({
+            client: ctx.client,
+            currentKey: ctx.queryKey,
+          }) ?? originalQueryFn(ctx),
+      })
+    : options;
 }
 
 /**
@@ -58,47 +106,22 @@ export function useGetTraceItemAttributeValues({
         return Promise.resolve([]);
       }
 
-      const project =
-        projectIds && projectIds.length > 0
-          ? projectIds.map(String)
-          : selection.projects.map(String);
-      const datetimeParams = datetime
-        ? normalizeDateTimeParams(datetime)
-        : normalizeDateTimeParams(selection.datetime);
-
-      const options = apiOptions.as<TraceItemAttributeValue[]>()(
-        '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
-        {
-          path: {organizationIdOrSlug: organization.slug, key: tag.key},
-          staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
-          query: {
-            itemType: traceItemType,
-            attributeType: type,
-            query: filterQuery || undefined,
-            substringMatch: searchQuery || undefined,
-            project,
-            ...datetimeParams,
-          },
-        }
-      );
-      const originalQueryFn = options.queryFn;
-      const optionsWithPrefixCacheShortcut =
-        typeof originalQueryFn === 'function'
-          ? queryOptions({
-              ...options,
-              queryFn: (ctx: QueryFunctionContext<ApiQueryKey>) => {
-                return (
-                  findFreshEmptyPrefixSearchCacheMatch({
-                    client: ctx.client,
-                    currentKey: ctx.queryKey,
-                  }) ?? originalQueryFn(ctx)
-                );
-              },
-            })
-          : options;
+      const effectiveProjectIds =
+        projectIds && projectIds.length > 0 ? projectIds : selection.projects;
+      const effectiveDatetime = datetime ?? selection.datetime;
+      const options = traceItemAttributeValuesQueryOptions({
+        datetime: effectiveDatetime,
+        organizationSlug: organization.slug,
+        projectIds: effectiveProjectIds,
+        query: filterQuery,
+        searchQuery,
+        tagKey: tag.key,
+        traceItemType,
+        type,
+      });
 
       try {
-        const {json} = await queryClient.fetchQuery(optionsWithPrefixCacheShortcut);
+        const {json} = await queryClient.fetchQuery(options);
         return json.flatMap((item: TraceItemAttributeValue) =>
           defined(item.value) ? [{value: item.value, count: item.count ?? undefined}] : []
         );

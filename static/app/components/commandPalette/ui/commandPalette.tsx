@@ -4,8 +4,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
-import {Item} from '@react-stately/collections';
-import {useTreeState} from '@react-stately/tree';
+import {Item, Section} from '@react-stately/collections';
+import {useListState} from '@react-stately/list';
 import {useIsFetching} from '@tanstack/react-query';
 import {animate, AnimatePresence, motion} from 'framer-motion';
 
@@ -88,6 +88,11 @@ type CommandPaletteActionMenuItem = MenuListItemProps & {
 type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
   listItemType: 'action' | 'section';
 };
+
+interface CMDKActionSection {
+  header: CMDKFlatItem | undefined;
+  items: CMDKFlatItem[];
+}
 
 interface CommandPaletteScore {
   length: number;
@@ -262,95 +267,44 @@ export function CommandPalette({
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
 
-  const sectionKeys = useMemo(() => {
-    return new Set(
-      actions
-        .filter(action => action.listItemType === 'section')
-        .map(action => action.key)
-    );
-  }, [actions]);
-  const sectionSeparatorKeys = useMemo(() => {
-    return new Set(
-      actions
-        .filter(action => action.listItemType === 'section')
-        .slice(1)
-        .map(action => action.key)
-    );
-  }, [actions]);
+  const actionSections = useMemo(() => groupActionsBySection(actions), [actions]);
 
-  const treeState = useTreeState<CommandPaletteActionMenuItem>({
-    disabledKeys: sectionKeys,
-    children: actions.map(action => {
-      const menuItem = makeMenuItemFromAction(action, prefixMap);
-
-      if (action.listItemType === 'section') {
-        return (
-          <Item<CommandPaletteActionMenuItem & {hideCheck: boolean; label: string}>
-            {...menuItem}
-            key={action.key}
-            textValue={action.display.label}
-            {...{
-              leadingItems: null,
-              label: (
-                <Flex align="center" gap="md" width="100%" minWidth={0}>
-                  <IconDefaultsProvider size="sm">
-                    {action.display.icon}
-                  </IconDefaultsProvider>
-                  <Text size="sm" bold variant="primary" ellipsis>
-                    {action.display.label}
-                  </Text>
-                </Flex>
-              ),
-              details: action.display.details ? (
-                <Container style={{paddingLeft: '22px'}}>
-                  <Text size="sm" variant="muted">
-                    {action.display.details}
-                  </Text>
-                </Container>
-              ) : undefined,
-              hideCheck: true,
-              children: [],
-            }}
-          />
-        );
-      }
-
-      const prefix = prefixMap.get(action.key);
-      return (
-        <Item<CommandPaletteActionMenuItem>
-          {...menuItem}
-          key={action.key}
-          textValue={
-            prefix?.length
-              ? `${prefix.join(' ')} ${action.display.label}`
-              : action.display.label
-          }
-        >
-          {menuItem.label}
-        </Item>
-      );
+  const treeState = useListState<CommandPaletteActionMenuItem>({
+    children: actionSections.flatMap(section => {
+      const items = section.items.map(action => renderActionItem(action, prefixMap));
+      return section.header
+        ? [
+            <Section key={section.header.key} title={renderSectionTitle(section.header)}>
+              {items}
+            </Section>,
+          ]
+        : items;
     }),
   });
 
   const firstFocusableKey = useMemo(() => {
-    for (const item of treeState.collection) {
-      if (!sectionKeys.has(String(item.key))) {
-        return item;
-      }
+    let key = treeState.collection.getFirstKey();
+    while (
+      key &&
+      (treeState.collection.getItem(key)?.type === 'section' ||
+        treeState.selectionManager.isDisabled(key))
+    ) {
+      key = treeState.collection.getKeyAfter(key);
     }
-    return;
-  }, [treeState.collection, sectionKeys]);
+    return key ? treeState.collection.getItem(key) : null;
+  }, [treeState.collection, treeState.selectionManager]);
 
   const lastFocusableKey = useMemo(() => {
-    const items = [...treeState.collection];
-    for (let index = items.length - 1; index >= 0; index--) {
-      const item = items[index];
-      if (item && !sectionKeys.has(String(item.key))) {
-        return item;
-      }
+    let key = treeState.collection.getLastKey();
+    while (
+      key &&
+      (treeState.collection.getItem(key)?.type === 'section' ||
+        treeState.selectionManager.isDisabled(key))
+    ) {
+      key = treeState.collection.getKeyBefore(key);
     }
-    return;
-  }, [treeState.collection, sectionKeys]);
+    return key ? treeState.collection.getItem(key) : null;
+  }, [treeState.collection, treeState.selectionManager]);
 
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
@@ -517,12 +471,8 @@ export function CommandPalette({
       analytics.recordAction(action, resultIndex, '');
 
       if ('onAction' in action && action.chainedActionAnchor) {
-        if (action.multiSelect && options?.modifierKeys?.shiftKey) {
-          if (action.onMultiSelect) {
-            action.onMultiSelect();
-          } else {
-            action.onAction();
-          }
+        if (action.onMultiSelect && options?.modifierKeys?.shiftKey) {
+          action.onMultiSelect();
           dispatch({type: 'set query', query: ''});
         } else {
           action.onAction();
@@ -706,7 +656,6 @@ export function CommandPalette({
               overlayIsOpen
               virtualized
               virtualizedListPadding={0}
-              separatorBeforeKeys={sectionSeparatorKeys}
               size="sm"
               aria-label={t('Search results')}
               selectionMode="none"
@@ -726,7 +675,13 @@ export function CommandPalette({
           </ResultsList>
         )}
       </Stack>
-      <CommandPaletteHints showMultiSelect={actions.some(action => action.multiSelect)} />
+      <CommandPaletteHints>
+        {actions.some(
+          action => 'onMultiSelect' in action && action.onMultiSelect !== undefined
+        ) ? (
+          <CommandPaletteMultiSelectHint />
+        ) : null}
+      </CommandPaletteHints>
     </Stack>
   );
 
@@ -1158,6 +1113,68 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
   );
 }
 
+function groupActionsBySection(actions: CMDKFlatItem[]): CMDKActionSection[] {
+  const sections: CMDKActionSection[] = [];
+
+  for (const action of actions) {
+    if (action.listItemType === 'section') {
+      sections.push({header: action, items: []});
+      continue;
+    }
+
+    const currentSection = sections.at(-1);
+    if (currentSection?.header === undefined) {
+      const section = currentSection ?? {header: undefined, items: []};
+      if (currentSection === undefined) {
+        sections.push(section);
+      }
+      section.items.push(action);
+      continue;
+    }
+
+    currentSection.items.push(action);
+  }
+
+  return sections;
+}
+
+function renderActionItem(action: CMDKFlatItem, prefixMap: Map<string, string[]>) {
+  const menuItem = makeMenuItemFromAction(action, prefixMap);
+  const prefix = prefixMap.get(action.key);
+
+  return (
+    <Item<CommandPaletteActionMenuItem>
+      {...menuItem}
+      key={action.key}
+      textValue={
+        prefix?.length
+          ? `${prefix.join(' ')} ${action.display.label}`
+          : action.display.label
+      }
+    >
+      {menuItem.label}
+    </Item>
+  );
+}
+
+function renderSectionTitle(action: CMDKFlatItem) {
+  return (
+    <Stack width="100%" minWidth={0}>
+      <Flex align="center" gap="md" width="100%" minWidth={0}>
+        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+        <Text size="sm" bold variant="primary" ellipsis>
+          {action.display.label}
+        </Text>
+      </Flex>
+      {action.display.details ? (
+        <Text size="sm" variant="muted">
+          {action.display.details}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
 function makeMenuItemFromAction(
   action: CMDKFlatItem,
   prefixMap: Map<string, string[]>
@@ -1229,7 +1246,7 @@ function makeMenuItemFromAction(
   };
 }
 
-function CommandPaletteHints({showMultiSelect}: {showMultiSelect: boolean}) {
+function CommandPaletteHints({children}: {children?: React.ReactNode}) {
   return (
     <Stack borderTop="muted" padding="md xl">
       <Flex align="center" justify="between">
@@ -1249,14 +1266,7 @@ function CommandPaletteHints({showMultiSelect}: {showMultiSelect: boolean}) {
               {t('Select')}
             </Text>
           </Flex>
-          {showMultiSelect && (
-            <Flex align="center" gap="xs">
-              <Hotkey variant="debossed" value="shift+enter" />
-              <Text size="xs" variant="muted">
-                {t('Multi-Select')}
-              </Text>
-            </Flex>
-          )}
+          {children}
         </Flex>
         <Flex align="center" gap="xs">
           <Hotkey variant="debossed" value={VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} />
@@ -1266,6 +1276,17 @@ function CommandPaletteHints({showMultiSelect}: {showMultiSelect: boolean}) {
         </Flex>
       </Flex>
     </Stack>
+  );
+}
+
+function CommandPaletteMultiSelectHint() {
+  return (
+    <Flex align="center" gap="xs">
+      <Hotkey variant="debossed" value="shift+enter" />
+      <Text size="xs" variant="muted">
+        {t('Multi-Select')}
+      </Text>
+    </Flex>
   );
 }
 

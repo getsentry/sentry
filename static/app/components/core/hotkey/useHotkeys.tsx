@@ -35,13 +35,7 @@ type Hotkey = {
   skipPreventDefault?: boolean;
 };
 
-interface UseHotkeysOptions {
-  /**
-   * Listen during the capture phase so global shortcuts run before focused
-   * widgets can stop the event from propagating. Defaults to false.
-   */
-  capture?: boolean;
-}
+type HotkeyEventPhase = 'bubble' | 'capture';
 
 /**
  * Pass in the hotkey combinations under match and the corresponding callback
@@ -52,9 +46,9 @@ interface UseHotkeysOptions {
  *
  * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
-export function useHotkeys(hotkeys: Hotkey[], options?: UseHotkeysOptions): void {
+function useHotkeysForPhase(hotkeys: Hotkey[], phase: HotkeyEventPhase): void {
   const hotkeysRef = useRef(hotkeys);
-  const capture = options?.capture ?? false;
+  const capture = phase === 'capture';
 
   useEffect(() => {
     hotkeysRef.current = hotkeys;
@@ -106,4 +100,16 @@ export function useHotkeys(hotkeys: Hotkey[], options?: UseHotkeysOptions): void
       document.removeEventListener('keydown', onKeyDown, capture);
     };
   }, [capture]);
+}
+
+export function useHotkeys(hotkeys: Hotkey[]): void {
+  useHotkeysForPhase(hotkeys, 'bubble');
+}
+
+/**
+ * Registers application-wide shortcuts during event capture so focused widgets
+ * cannot prevent them from reaching the global handler.
+ */
+export function useGlobalHotkeys(hotkeys: Hotkey[]): void {
+  useHotkeysForPhase(hotkeys, 'capture');
 }

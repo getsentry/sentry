@@ -17,8 +17,6 @@ interface Action {
   keywords?: string[];
   /** Max results shown before a "See all" expansion item appears */
   limit?: number;
-  /** Allow Shift+Enter to run the action without leaving the current step */
-  multiSelect?: boolean;
 }
 
 type BaseCMDKQueryOptions<TData = unknown> = Omit<

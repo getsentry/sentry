@@ -128,7 +128,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       {organization}
     );
 
-    await userEvent.click(await screen.findByRole('option', {name: 'Help'}));
+    expect(await screen.findByText('Help')).toBeInTheDocument();
     await userEvent.click(
       await screen.findByRole('option', {name: 'View Keyboard Shortcuts'})
     );
@@ -446,9 +446,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, query);
 
-      expect(
-        await screen.findByRole('option', {name: expectedOption})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(expectedOption)).toBeInTheDocument();
     }
   );
 

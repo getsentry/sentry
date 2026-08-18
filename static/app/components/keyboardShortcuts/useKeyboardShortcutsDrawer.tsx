@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useGlobalHotkeys} from '@sentry/scraps/hotkey';
 import {useModal} from '@sentry/scraps/modal';
 
 import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
@@ -41,21 +41,18 @@ export function KeyboardShortcutsHotkeys() {
   const {closeModal, visible} = useModal();
   const {toggleKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
 
-  useHotkeys(
-    [
-      {
-        match: VIEW_KEYBOARD_SHORTCUTS_SHORTCUT,
-        includeInputs: true,
-        callback: () => {
-          if (visible) {
-            closeModal();
-          }
-          toggleKeyboardShortcutsDrawer();
-        },
+  useGlobalHotkeys([
+    {
+      match: VIEW_KEYBOARD_SHORTCUTS_SHORTCUT,
+      includeInputs: true,
+      callback: () => {
+        if (visible) {
+          closeModal();
+        }
+        toggleKeyboardShortcutsDrawer();
       },
-    ],
-    {capture: true}
-  );
+    },
+  ]);
 
   return null;
 }

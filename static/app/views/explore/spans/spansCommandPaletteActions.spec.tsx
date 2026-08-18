@@ -1,5 +1,5 @@
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import {addSearchFilterToQuery} from 'sentry/views/explore/spans/spansCommandPaletteActions';
+import {addSearchFilterToQuery} from 'sentry/views/explore/components/traceItemFilterActions';
 
 describe('addSearchFilterToQuery', () => {
   it('does not add the same filter twice', () => {

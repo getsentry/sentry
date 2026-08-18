@@ -79,8 +79,6 @@ interface ListBoxProps<T extends ListItemBase>
    * Whether the select has a search input field.
    */
   searchable?: boolean;
-  /** Keys of options that should have a visual separator rendered before them. */
-  separatorBeforeKeys?: ReadonlySet<SelectKey>;
   /**
    * When false, hides option details.
    */
@@ -141,7 +139,6 @@ export function ListBox<T extends ListItemBase>({
   virtualized,
   virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
-  separatorBeforeKeys = EMPTY_SET,
   className,
   ...props
 }: ListBoxProps<T>) {
@@ -196,7 +193,6 @@ export function ListBox<T extends ListItemBase>({
 
   const virtualizer = useVirtualizedItems({
     listItems,
-    separatorBeforeKeys,
     virtualized,
     size,
     listPadding: virtualizedListPadding,
@@ -212,7 +208,12 @@ export function ListBox<T extends ListItemBase>({
     }
 
     const focusedIndex = listItems.findIndex(
-      item => item.key === listState.selectionManager.focusedKey
+      item =>
+        item.key === listState.selectionManager.focusedKey ||
+        (item.type === 'section' &&
+          [...item.childNodes].some(
+            child => child.key === listState.selectionManager.focusedKey
+          ))
     );
     if (focusedIndex !== -1) {
       virtualizer.scrollToIndex(focusedIndex);
@@ -284,7 +285,6 @@ export function ListBox<T extends ListItemBase>({
                     key={item.key}
                     item={item}
                     listState={listState}
-                    separatorBefore={separatorBeforeKeys.has(item.key)}
                     size={size}
                     showDetails={showDetails}
                   />
@@ -318,14 +318,12 @@ const listPaddingVertical = 4;
 
 function useVirtualizedItems<T extends ListItemBase>({
   listItems,
-  separatorBeforeKeys,
   virtualized = false,
   size,
   listPadding,
 }: {
   listItems: Array<Node<T>>;
   listPadding: number;
-  separatorBeforeKeys: ReadonlySet<SelectKey>;
   size: FormSize;
   virtualized: boolean | undefined;
 }) {
@@ -347,10 +345,7 @@ function useVirtualizedItems<T extends ListItemBase>({
       if (item?.props?.details) {
         return heightEstimation.large;
       }
-      return (
-        heightEstimation.regular +
-        (item && separatorBeforeKeys.has(item.key) ? optionSeparatorHeight : 0)
-      );
+      return heightEstimation.regular;
     },
     enabled: virtualized,
   });
@@ -396,6 +391,3 @@ function useVirtualizedItems<T extends ListItemBase>({
     listWrapStyle: {},
   } as const;
 }
-
-/** Matches the separator rendered inside ListBoxOption (16px spacing + 1px border). */
-const optionSeparatorHeight = 17;

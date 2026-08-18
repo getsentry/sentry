@@ -92,7 +92,7 @@ export const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionTitle = styled('p')`
+export const SectionTitle = styled('div')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};

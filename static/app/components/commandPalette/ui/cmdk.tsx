@@ -40,7 +40,6 @@ interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
   limit?: number;
-  multiSelect?: boolean;
   ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
 }
@@ -88,8 +87,6 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
-  /** Close the palette after this callback, even when it is inside a chained scope. */
-  closeOnAction?: boolean;
   /**
    * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
    * guarantee the section always sorts last in search results regardless of score.
@@ -102,7 +99,6 @@ interface CMDKActionProps<TData = unknown> {
    * for static children there is no limit unless this prop is set explicitly.
    */
   limit?: number;
-  multiSelect?: boolean;
   onAction?: () => void;
   onMultiSelect?: () => void;
   prompt?: string;
@@ -135,14 +131,7 @@ function CMDKActionWithResource<TData = unknown>({
 
   const resolvedResourceNodes =
     typeof children !== 'function' && data
-      ? data.map((item, i) => {
-          // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
-          // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
-          if ('actions' in item) {
-            return null;
-          }
-          return <CMDKAction key={i} {...item} />;
-        })
+      ? data.map((item, index) => <CMDKActionFromData key={index} action={item} />)
       : null;
 
   return (
@@ -151,6 +140,21 @@ function CMDKActionWithResource<TData = unknown>({
       {resolvedResourceNodes}
     </CMDKCollection.Context.Provider>
   );
+}
+
+function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
+  if ('actions' in action) {
+    const {actions, ...props} = action;
+    return (
+      <CMDKAction {...props}>
+        {actions.map((child, index) => (
+          <CMDKActionFromData key={index} action={child} />
+        ))}
+      </CMDKAction>
+    );
+  }
+
+  return <CMDKAction {...action} />;
 }
 
 /**
@@ -163,7 +167,6 @@ export function CMDKAction<TData = unknown>({
   display,
   keywords,
   children,
-  closeOnAction,
   id,
   to,
   onAction,
@@ -171,7 +174,6 @@ export function CMDKAction<TData = unknown>({
   prompt,
   resource,
   limit,
-  multiSelect,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
   const slotName = useCommandPaletteSlotName();
@@ -194,7 +196,6 @@ export function CMDKAction<TData = unknown>({
               resource,
               prompt,
               limit: effectiveLimit,
-              multiSelect,
               slot: slotName ?? undefined,
             }
           : {
@@ -204,10 +205,7 @@ export function CMDKAction<TData = unknown>({
               onAction,
               onMultiSelect,
               limit: effectiveLimit,
-              multiSelect,
-              chainedActionAnchor: closeOnAction
-                ? undefined
-                : (chainedActionScope ?? undefined),
+              chainedActionAnchor: chainedActionScope ?? undefined,
               slot: slotName ?? undefined,
             }
         : {
@@ -216,16 +214,13 @@ export function CMDKAction<TData = unknown>({
             ref,
             to,
             limit: effectiveLimit,
-            multiSelect,
             slot: slotName ?? undefined,
           },
     [
       chainedActionScope,
-      closeOnAction,
       display,
       effectiveLimit,
       keywords,
-      multiSelect,
       onAction,
       onMultiSelect,
       prompt,

@@ -1,6 +1,6 @@
 import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useGlobalHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
@@ -233,28 +233,25 @@ export function CommandPaletteHotkeys() {
     dispatch({type: 'reset on open'});
   }, [location.pathname, dispatch]);
 
-  useHotkeys(
-    [
-      {
-        match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
-        includeInputs: true,
-        callback: () => {
-          if (!organization) {
-            return;
-          }
-          toggleCommandPalette(
-            {},
-            organization,
-            state,
-            dispatch,
-            'keyboard',
-            isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-          );
-        },
+  useGlobalHotkeys([
+    {
+      match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
+      includeInputs: true,
+      callback: () => {
+        if (!organization) {
+          return;
+        }
+        toggleCommandPalette(
+          {},
+          organization,
+          state,
+          dispatch,
+          'keyboard',
+          isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
+        );
       },
-    ],
-    {capture: true}
-  );
+    },
+  ]);
 
   return null;
 }

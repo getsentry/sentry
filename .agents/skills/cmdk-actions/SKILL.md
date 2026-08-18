@@ -119,6 +119,37 @@ import {IconIssues} from 'sentry/icons';
 />
 ```
 
+For a chained picker that supports Shift+Enter without leaving the current step,
+provide `onMultiSelect`. Its presence is the capability signal; do not add a
+separate boolean flag.
+
+```tsx
+<CMDKAction
+  display={{label: environment}}
+  onAction={() => commitEnvironment(environment)}
+  onMultiSelect={() => toggleEnvironment(environment)}
+/>
+```
+
+### Chained workflows
+
+Wrap related editing actions in `CMDKChainedActionScope` to keep the palette open
+and return to the enclosing action after a callback. If a terminal action inside
+that workflow must close the palette, wrap only that action in
+`CMDKTerminalActionScope`. The component structure defines the behavior; do not
+add close/stay-open boolean props to actions.
+
+```tsx
+<CMDKChainedActionScope>
+  <CMDKAction display={{label: t('Commands')}}>
+    <CMDKTerminalActionScope>
+      <CMDKAction display={{label: t('Apply Changes')}} onAction={applyChanges} />
+    </CMDKTerminalActionScope>
+    <CMDKAction display={{label: t('Edit Filter')}}>{/* editing actions */}</CMDKAction>
+  </CMDKAction>
+</CMDKChainedActionScope>
+```
+
 ### 3. Static group
 
 Nest `CMDKAction` children to create a drillable group. The parent label appears as a breadcrumb prefix in search results (e.g. `Set Priority > High`), so use a label that identifies the context.
@@ -208,10 +239,12 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 Use a render-prop when you need custom rendering or want to mix static and async items.
 
-`CommandPaletteAction` is a union that includes groups (which have `actions`, not `children`). Don't blindly spread items into `CMDKAction` — type-narrow to only handle `to` and `onAction` variants, as the codebase's own `renderAsyncResult` helper does:
+`CommandPaletteAction` is a union that includes groups (which have `actions`, not
+`children`). When manually rendering results, type-narrow before spreading them
+into `CMDKAction`:
 
 ```tsx
-// Type-safe helper — skip groups, which can't be spread into CMDKAction
+// Type-safe helper for a custom flat result layout.
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) return <CMDKAction key={index} {...item} />;
   if ('onAction' in item) return <CMDKAction key={index} {...item} />;
@@ -245,7 +278,10 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 </CMDKAction>;
 ```
 
-**Auto-render limitation**: when `children` is _not_ a render-prop (static children + `resource`), resource results that are `CommandPaletteActionGroup` items are silently skipped. Only `to` and `onAction` results are auto-rendered. Use the render-prop pattern if you need groups from a resource.
+When no render-prop is provided, resource results are rendered automatically.
+This includes nested `CommandPaletteActionGroup` results, so prefer returning a
+group from `select` when async results need a section label. Use a render-prop
+only for a genuinely custom mixture of static and dynamic content.
 
 ### 6. Static async children via hook
 

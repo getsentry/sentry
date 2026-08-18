@@ -24,6 +24,19 @@ export function CMDKChainedActionScope({children}: {children: React.ReactNode}) 
   );
 }
 
+/**
+ * Marks terminal actions nested inside a chained workflow. Callback actions in
+ * this subtree use the palette's normal close behavior instead of returning to
+ * the surrounding chain anchor.
+ */
+export function CMDKTerminalActionScope({children}: {children: React.ReactNode}) {
+  return (
+    <CMDKChainedActionScopeContext.Provider value={null}>
+      {children}
+    </CMDKChainedActionScopeContext.Provider>
+  );
+}
+
 export function useCMDKChainedActionScope(): CMDKChainedActionAnchor | null {
   return useContext(CMDKChainedActionScopeContext);
 }
