@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 import orjson
+from dateutil.parser import parse as parse_date
+from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.webhook_signature import (
     is_timestamp_fresh,
@@ -18,6 +22,10 @@ from sentry.integrations.cursor_origin.webhook_signature import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.repository import Repository
+from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
@@ -31,7 +39,7 @@ SIGNATURE_HEADER = "webhook-signature"
 INSTALLATION_ID_HEADER = "webhook-installation-id"
 
 
-@control_silo_endpoint
+@all_silo_endpoint
 class CursorOriginWebhookEndpoint(Endpoint):
     """Receives Cursor Origin webhook deliveries.
 
@@ -92,9 +100,11 @@ class CursorOriginWebhookEndpoint(Endpoint):
 
         if event_type == "installation.deleted":
             self._handle_installation_deleted(request, payload)
+        elif event_type == "repository.pushed":
+            self._handle_push(request, payload)
         else:
-            # Acknowledged so Origin stops retrying; handlers land with commit
-            # tracking and PR comments.
+            # Acknowledged so Origin stops retrying; handlers land with PR
+            # comment and review support.
             logger.info(
                 "cursor_origin.webhook.unhandled",
                 extra={"event_type": event_type, "delivery_id": delivery_id},
@@ -138,3 +148,136 @@ class CursorOriginWebhookEndpoint(Endpoint):
                 "integration_id": result.integration.id,
             },
         )
+
+    def _handle_push(self, request: HttpRequest, payload: Any) -> None:
+        """Record commits from a push.
+
+        Origin's push event carries only ``headCommit`` per ref update, not
+        GitHub's full ``commits[]``, so the range has to be fetched. That is what
+        the repository provider's compare walk already does.
+        """
+        event = (payload or {}).get("event") or {}
+        push = event.get("payload") or {}
+        repo_id = ((push.get("repository") or {}).get("id")) or None
+        ref_updates = push.get("refUpdates") or []
+
+        if not repo_id or not ref_updates:
+            logger.info("cursor_origin.webhook.push_without_refs")
+            return
+
+        repos = Repository.objects.filter(
+            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+            external_id=str(repo_id),
+            status=ObjectStatus.ACTIVE,
+        )
+        for repo in repos:
+            for ref_update in ref_updates:
+                self._record_ref_update(repo, ref_update)
+
+    def _record_ref_update(self, repo: Repository, ref_update: dict[str, Any]) -> None:
+        ref = ref_update.get("ref") or ""
+        # Tags do not carry commits worth associating.
+        if not ref.startswith("refs/heads/") or ref_update.get("deleted"):
+            return
+
+        head = ref_update.get("headCommit") or {}
+        head_sha = ref_update.get("after") or head.get("sha")
+        if not head_sha:
+            return
+
+        before = ref_update.get("before") or ""
+        if ref_update.get("created") or set(before) == {"0"}:
+            # A created ref has an all-zero `before`, which Origin's compare
+            # rejects outright ("revision not found"). Record just the tip rather
+            # than trying to walk a new branch's entire history.
+            commits: list[dict[str, Any]] = [head] if head.get("sha") else []
+        else:
+            provider = self._repository_provider()
+            try:
+                commits = provider.compare_commits(repo, before, head_sha)
+            except Exception:
+                logger.warning(
+                    "cursor_origin.webhook.push_compare_failed",
+                    extra={"repo_id": repo.id, "ref": ref},
+                    exc_info=True,
+                )
+                return
+            self._create_commits(repo, commits)
+            return
+
+        self._create_commits(repo, [self._as_internal_commit(c) for c in commits])
+
+    @staticmethod
+    def _repository_provider() -> Any:
+        from sentry.plugins.base import bindings
+
+        cls = bindings.get("integration-repository.provider").get(
+            f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}"
+        )
+        return cls(f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}")
+
+    @staticmethod
+    def _as_internal_commit(raw: dict[str, Any]) -> dict[str, Any]:
+        """Shape a raw Origin commit like the provider's compare output."""
+        author = raw.get("author") or {}
+        return {
+            "id": raw.get("sha"),
+            "message": raw.get("message") or "",
+            "author_email": author.get("email"),
+            "author_name": author.get("name"),
+            "timestamp": author.get("date"),
+            "patch_set": [],
+        }
+
+    def _create_commits(self, repo: Repository, commits: Sequence[Mapping[str, Any]]) -> None:
+        authors: dict[str, CommitAuthor] = {}
+        for commit in commits:
+            sha = commit.get("id")
+            message = commit.get("message") or ""
+            if not sha or IntegrationRepositoryProvider.should_ignore_commit(message):
+                continue
+
+            author = self._commit_author(repo, commit, authors)
+            try:
+                with transaction.atomic(router.db_for_write(Commit)):
+                    Commit.objects.create(
+                        repository_id=repo.id,
+                        organization_id=repo.organization_id,
+                        key=sha,
+                        message=message,
+                        author=author,
+                        date_added=self._commit_date(commit.get("timestamp")),
+                    )
+            except IntegrityError:
+                # Deliveries are at-least-once and pushes overlap, so seeing a
+                # commit twice is expected rather than an error.
+                pass
+
+    @staticmethod
+    def _commit_author(
+        repo: Repository, commit: Mapping[str, Any], cache: dict[str, CommitAuthor]
+    ) -> CommitAuthor | None:
+        email = commit.get("author_email")
+        if not email or len(email) > 75:
+            return None
+        if email in cache:
+            return cache[email]
+        author = CommitAuthor.objects.get_or_create(
+            organization_id=repo.organization_id,
+            email=email,
+            defaults={"name": commit.get("author_name")},
+        )[0]
+        cache[email] = author
+        return author
+
+    @staticmethod
+    def _commit_date(timestamp: Any) -> datetime:
+        """Commit date, defaulting to now when Origin gives something unusable."""
+        if isinstance(timestamp, datetime):
+            return timestamp.astimezone(timezone.utc)
+        if isinstance(timestamp, str):
+            try:
+                return parse_date(timestamp).astimezone(timezone.utc)
+            except (ValueError, OverflowError):
+                pass
+        return datetime.now(timezone.utc)
