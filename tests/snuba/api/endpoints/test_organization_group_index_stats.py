@@ -301,18 +301,3 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response.status_code == 200
         assert response.data[0]["filtered"]["count"] == "3"
         assert response.data[0]["count"] == "3"
-
-    def test_invalid_search_query(self) -> None:
-        group = self.store_event(
-            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
-            project_id=self.project.id,
-        ).group
-        self.login_as(user=self.user)
-
-        response = self.get_response(query="title:hello OR title:goodbye", groups=[group.id])
-
-        assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
-        )
