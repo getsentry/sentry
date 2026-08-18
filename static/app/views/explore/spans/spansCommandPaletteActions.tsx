@@ -760,7 +760,7 @@ function QueryClauseActions() {
         <CMDKAction
           key={`series-details-${index}`}
           id={`spans-series-details-${index}`}
-          display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+          display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
         >
           <SeriesActions
             index={index}
