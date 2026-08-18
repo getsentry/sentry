@@ -28,6 +28,8 @@ class InvestigationSerializerTest(TestCase):
         assert result == {
             "id": str(self.investigation.id),
             "title": "Latency spike",
+            "summary": None,
+            "summaryDescription": None,
             "status": self.investigation.status,
             "sourceType": "manual",
             "createdBy": str(self.user.id),
@@ -131,8 +133,16 @@ class InvestigationDetailsSerializerTest(TestCase):
             assert detail_items[key] == value
 
     def test_serializes_nested_collections(self) -> None:
+        self.investigation.update(
+            summary="Errors crossed alert threshold",
+            summary_description="Checkout failures increased.\nRoll back the latest release.",
+        )
         detail = self.serialize_detail()
 
+        assert detail["summary"] == "Errors crossed alert threshold"
+        assert detail["summaryDescription"] == (
+            "Checkout failures increased.\nRoll back the latest release."
+        )
         assert detail["projectIds"] == [self.project.id]
         assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
