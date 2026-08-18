@@ -842,3 +842,48 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert client.requested_keys == ["123"]
         assert pull_requests[0]["checksStatus"] == "success"
         assert "stats" not in serializer.call_args.kwargs["collapse"]
+
+
+class OrganizationSeerAutofixOverviewStatusExpandTest(APITestCase, SnubaTestCase):
+    endpoint = "sentry-api-0-organization-seer-autofix-overview"
+    _FETCH = "sentry.seer.endpoints.organization_seer_autofix_overview.fetch_run_statuses"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+    def _run_for_group(self, group, description, state_id):
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        reconcile_milestones(run, _root_cause_state(description))
+        run.update(seer_run_state_id=state_id)
+        return run
+
+    def _root_cause_runs(self, resp):
+        return resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+
+    def test_status_absent_without_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom", state_id=101)
+        with mock.patch(self._FETCH) as m:
+            resp = self.get_success_response(self.organization.slug)
+        assert m.call_count == 0
+        assert self._root_cause_runs(resp)[0]["status"] is None
+
+    def test_expand_status_attaches_status_by_state_id(self):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom", state_id=101)
+        with mock.patch(self._FETCH, return_value={101: "processing"}) as m:
+            resp = self.get_success_response(self.organization.slug, qs_params={"expand": "status"})
+        assert m.call_args.args[0] == [101]
+        serialized = self._root_cause_runs(resp)[0]
+        assert serialized["seerRunId"] == str(run.uuid)
+        assert serialized["status"] == "processing"
+
+    def test_expand_status_run_without_state_id_gets_null(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom", state_id=None)
+        with mock.patch(self._FETCH, return_value={}) as m:
+            resp = self.get_success_response(self.organization.slug, qs_params={"expand": "status"})
+        assert m.call_args.args[0] == []
+        assert self._root_cause_runs(resp)[0]["status"] is None

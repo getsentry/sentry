@@ -19,18 +19,15 @@ import {
   IconCircle,
   IconClock,
   IconClose,
-  IconCode,
   IconCommit,
   IconGraph,
   IconMerge,
   IconOpen,
   IconPullRequest,
-  IconSearch,
   IconSeer,
   IconThumb,
   IconUser,
 } from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {
@@ -40,6 +37,7 @@ import type {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {CodeChanges} from './codeChanges';
+import {OverviewCardAction} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -60,35 +58,10 @@ function selectReviewPullRequest(
   return actionable.at(-1) ?? pullRequests.at(-1);
 }
 
-interface ActionMeta {
-  Icon: React.ComponentType<SVGIconProps>;
-  description: string;
-  label: string;
-}
-
-// Live status overlays (Running/Retry/Add context) are intentionally omitted here.
-// The merged section has no action button, so it is excluded from the map.
-const ACTION_META: Record<Exclude<AutofixStateKey, 'merged'>, ActionMeta> = {
-  review_pr: {
-    Icon: IconPullRequest,
-    label: t('Review PR'),
-    description: t('Autofix opened a pull request. Review and merge it.'),
-  },
-  code_changes_ready: {
-    Icon: IconCommit,
-    label: t('Draft PR'),
-    description: t('Autofix wrote a diff. Review it and open a pull request.'),
-  },
-  solution_ready: {
-    Icon: IconCode,
-    label: t('Generate code'),
-    description: t('Autofix proposed a fix. Continue the pipeline to generate code.'),
-  },
-  needs_investigation: {
-    Icon: IconSearch,
-    label: t('Create Plan'),
-    description: t('Seer stopped at a diagnosis. Review the root cause to continue.'),
-  },
+const REVIEW_PR_META = {
+  Icon: IconPullRequest,
+  label: t('Review PR'),
+  description: t('Autofix opened a pull request. Review and merge it.'),
 };
 
 interface PullRequestStatusTagMeta {
@@ -131,17 +104,18 @@ const REVIEW_STATUS_TAGS = {
 
 function OverviewAction({
   sectionKey,
-  pullRequests,
+  run,
   reviewPullRequest,
   issueUrl,
   enrichmentPending,
 }: {
   enrichmentPending: boolean;
   issueUrl: string;
-  pullRequests: OverviewPullRequest[];
   reviewPullRequest: OverviewPullRequest | undefined;
+  run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const {pullRequests} = run;
   if (sectionKey === 'merged') {
     if (pullRequests.length > 0) {
       return (
@@ -198,7 +172,7 @@ function OverviewAction({
 
     return (
       <Stack align="end" gap="xs">
-        <Tooltip title={ACTION_META.review_pr.description} skipWrapper>
+        <Tooltip title={REVIEW_PR_META.description} skipWrapper>
           <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
             <Flex as="span" gap="xs" align="center">
               {t('Review PR #%s', reviewPullRequest.number)}
@@ -256,14 +230,22 @@ function OverviewAction({
     );
   }
 
-  const meta = ACTION_META[sectionKey];
-  return (
-    <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="sm" variant="secondary" icon={<meta.Icon />} to={issueUrl}>
-        {meta.label}
-      </LinkButton>
-    </Tooltip>
-  );
+  if (sectionKey === 'review_pr') {
+    return (
+      <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+        <LinkButton
+          size="sm"
+          variant="secondary"
+          icon={<REVIEW_PR_META.Icon />}
+          to={issueUrl}
+        >
+          {REVIEW_PR_META.label}
+        </LinkButton>
+      </Tooltip>
+    );
+  }
+
+  return <OverviewCardAction run={run} sectionKey={sectionKey} issueUrl={issueUrl} />;
 }
 
 const TitleLink = styled(Link)`
@@ -518,7 +500,7 @@ export function OverviewCard({
           <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
             <OverviewAction
               sectionKey={sectionKey}
-              pullRequests={run.pullRequests}
+              run={run}
               reviewPullRequest={reviewPullRequest}
               issueUrl={issueUrl}
               enrichmentPending={enrichmentPending}
