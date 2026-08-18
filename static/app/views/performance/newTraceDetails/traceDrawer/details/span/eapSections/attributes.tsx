@@ -3,6 +3,8 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {SESSION_ID} from '@sentry/conventions/attributes';
+
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -29,6 +31,7 @@ import type {AttributesFieldRendererProps} from 'sentry/views/explore/components
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {SessionIdLink} from 'sentry/views/explore/usersessions/sessionLink';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -187,6 +190,9 @@ export function AttributesContent({
       };
       return <StyledLink to={target}>{props.item.value}</StyledLink>;
     },
+    [SESSION_ID]: (props: CustomRenderersProps) => (
+      <SessionIdLink organization={organization} sessionId={String(props.item.value)} />
+    ),
     [SpanFields.GEN_AI_COST_INPUT_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },

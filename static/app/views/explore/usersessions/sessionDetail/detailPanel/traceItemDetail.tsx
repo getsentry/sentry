@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {SESSION_ID} from '@sentry/conventions/attributes';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -28,6 +29,7 @@ import {HiddenTraceMetricDetailFields} from 'sentry/views/explore/metrics/consta
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import type {SessionEvent} from 'sentry/views/explore/usersessions/sessionDetail/useSessionDetail';
+import {SessionIdLink} from 'sentry/views/explore/usersessions/sessionLink';
 
 const REFERRER = 'api.explore.user-session-item-details';
 
@@ -254,7 +256,7 @@ function LogAttributes({
   );
 }
 
-/** Span and metric attributes, which have no renderers of their own. */
+/** Span and metric attributes, with `session.id` linked back to its session. */
 function PlainAttributes({
   attributes,
   meta,
@@ -274,6 +276,11 @@ function PlainAttributes({
     <AttributesTree
       columnCount={1}
       attributes={attributes}
+      renderers={{
+        [SESSION_ID]: ({item}) => (
+          <SessionIdLink organization={organization} sessionId={String(item.value)} />
+        ),
+      }}
       rendererExtra={{
         location,
         navigate,
