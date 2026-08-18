@@ -10,10 +10,10 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.testutils.cases import TestCase
 
 REPO_PAYLOAD: dict[str, Any] = {
-    "id": "r_01m08sz0y6eny815ggv768qsjp",
+    "id": "r_01example000000000000repo",
     "name": "nuget-trends",
     "fullName": "sentry/nuget-trends",
-    "owner": {"slug": "sentry", "id": "ns_01kzygm43nfad9gfxqx3nxqvf4"},
+    "owner": {"slug": "sentry", "id": "ns_01example00000000000000ns"},
     "defaultBranch": "main",
     "cloneUrl": "https://origin.cursor.com/sentry/nuget-trends.git",
 }
@@ -26,7 +26,7 @@ class CursorOriginRepositoryProviderTest(TestCase):
             organization=self.organization,
             provider="cursor_origin",
             name="sentry",
-            external_id="i_01m08t5nksemgsd2agkna3xe1c",
+            external_id="i_01example00000000000inst",
         )
         self.provider = CursorOriginRepositoryProvider("integrations:cursor_origin")
 
@@ -43,7 +43,7 @@ class CursorOriginRepositoryProviderTest(TestCase):
 
     def test_get_repository_data_maps_origin_fields(self) -> None:
         data = self._get_repository_data()
-        assert data["external_id"] == "r_01m08sz0y6eny815ggv768qsjp"
+        assert data["external_id"] == "r_01example000000000000repo"
         assert data["name"] == "sentry/nuget-trends"
         assert data["default_branch"] == "main"
 
@@ -60,7 +60,7 @@ class CursorOriginRepositoryProviderTest(TestCase):
         data = self._get_repository_data()
         config = self.provider.build_repository_config(self.organization, data)
         assert config["name"] == "sentry/nuget-trends"
-        assert config["external_id"] == "r_01m08sz0y6eny815ggv768qsjp"
+        assert config["external_id"] == "r_01example000000000000repo"
         assert config["url"] == "https://cursor.com/codebase/sentry/nuget-trends"
         assert config["integration_id"] == self.integration.id
         assert config["config"]["default_branch"] == "main"
