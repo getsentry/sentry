@@ -208,7 +208,7 @@ describe('Explore Investigations', () => {
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('creates an untitled investigation and refreshes the list', async () => {
+  it('creates an untitled investigation and opens it', async () => {
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [],
@@ -231,6 +231,10 @@ describe('Explore Investigations', () => {
       url: listUrl,
       body: [InvestigationFixture({title: 'Untitled investigation'})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      body: InvestigationFixture({title: 'Untitled investigation'}),
+    });
     await userEvent.click(screen.getByRole('button', {name: 'Launch investigation'}));
 
     await waitFor(() =>
@@ -241,7 +245,7 @@ describe('Explore Investigations', () => {
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
+      '/organizations/org-slug/seer/investigation/1/'
     );
     expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
       unrelatedDetail
