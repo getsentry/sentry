@@ -51,6 +51,7 @@ interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
   limit?: number;
+  order?: number;
   ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
   textInput?: CMDKTextInput;
@@ -65,6 +66,7 @@ interface CMDKActionDataOnAction extends CMDKActionDataBase {
   chainedActionAnchor?: CMDKChainedActionAnchor;
   isSelected?: boolean;
   onMultiSelect?: () => void;
+  onReorder?: (direction: 'up' | 'down') => void;
 }
 
 interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
@@ -116,6 +118,9 @@ interface CMDKActionProps<TData = unknown> {
   limit?: number;
   onAction?: () => void;
   onMultiSelect?: () => void;
+  onReorder?: (direction: 'up' | 'down') => void;
+  /** Explicit sibling position for reorderable action lists. */
+  order?: number;
   prompt?: string;
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
   /** Turns this action into a free-text editor that submits on Enter. */
@@ -189,6 +194,8 @@ export function CMDKAction<TData = unknown>({
   to,
   onAction,
   onMultiSelect,
+  onReorder,
+  order,
   prompt,
   resource,
   textInput,
@@ -216,6 +223,7 @@ export function CMDKAction<TData = unknown>({
               prompt,
               textInput,
               limit: effectiveLimit,
+              order,
               slot: slotName ?? undefined,
             }
           : {
@@ -225,7 +233,9 @@ export function CMDKAction<TData = unknown>({
               isSelected,
               onAction,
               onMultiSelect,
+              onReorder,
               limit: effectiveLimit,
+              order,
               chainedActionAnchor: chainedActionScope ?? undefined,
               slot: slotName ?? undefined,
               textInput,
@@ -236,6 +246,7 @@ export function CMDKAction<TData = unknown>({
             ref,
             to,
             limit: effectiveLimit,
+            order,
             slot: slotName ?? undefined,
             textInput,
           },
@@ -247,6 +258,8 @@ export function CMDKAction<TData = unknown>({
       isSelected,
       onAction,
       onMultiSelect,
+      onReorder,
+      order,
       prompt,
       ref,
       resource,

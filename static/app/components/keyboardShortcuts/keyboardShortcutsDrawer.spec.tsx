@@ -29,6 +29,8 @@ describe('KeyboardShortcutsDrawer', () => {
     expect(screen.getByRole('heading', {name: 'Navigation'})).toBeInTheDocument();
     expect(screen.getByText('Open command palette')).toBeInTheDocument();
     expect(screen.getByText('Select command')).toBeInTheDocument();
+    expect(screen.getByText('Toggle selection')).toBeInTheDocument();
+    expect(screen.getByText('Reorder selected item')).toBeInTheDocument();
   });
 
   it('filters shortcuts by label and category', async () => {

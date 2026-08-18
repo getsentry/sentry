@@ -356,6 +356,10 @@ function GroupByActions({
     <CMDKAction display={{label: t('Attribute')}}>
       {options.map(option => {
         const isSelected = groupBys.includes(option.value);
+        const selectedGroupBys = groupBys.filter(Boolean);
+        const orderableGroupBys = isSelected
+          ? selectedGroupBys
+          : [...selectedGroupBys, option.value];
 
         return (
           <CMDKAction
@@ -388,7 +392,38 @@ function GroupByActions({
                   : [...groupBys.filter(Boolean), option.value]
               );
             }}
-          />
+          >
+            {orderableGroupBys.map((selectedGroupBy, selectedIndex) => {
+              const selectedOption = options.find(
+                candidate => candidate.value === selectedGroupBy
+              );
+
+              return (
+                <CMDKAction
+                  key={selectedGroupBy}
+                  display={{
+                    label: selectedOption?.textValue ?? selectedGroupBy,
+                  }}
+                  order={selectedIndex}
+                  onAction={() => {}}
+                  onReorder={direction => {
+                    const nextIndex =
+                      direction === 'up' ? selectedIndex - 1 : selectedIndex + 1;
+                    if (nextIndex < 0 || nextIndex >= orderableGroupBys.length) {
+                      return;
+                    }
+
+                    const reorderedGroupBys = [...orderableGroupBys];
+                    [reorderedGroupBys[selectedIndex], reorderedGroupBys[nextIndex]] = [
+                      reorderedGroupBys[nextIndex]!,
+                      reorderedGroupBys[selectedIndex]!,
+                    ];
+                    setGroupBys(reorderedGroupBys);
+                  }}
+                />
+              );
+            })}
+          </CMDKAction>
         );
       })}
     </CMDKAction>
@@ -627,7 +662,7 @@ function QueryClauseActions() {
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction
-              display={{label: t('Add Series')}}
+              display={{label: t('Add Chart')}}
               keywords={['add', 'chart', 'series', 'source', 'visualization']}
               onAction={() =>
                 setDraftVisualizes(currentVisualizes => [

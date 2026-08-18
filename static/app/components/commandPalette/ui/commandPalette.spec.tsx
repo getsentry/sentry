@@ -413,6 +413,59 @@ describe('CommandPalette', () => {
     expect(await screen.findByText('Group by')).toBeInTheDocument();
   });
 
+  it('supports selecting and then reordering a chained action', async () => {
+    const onAction = jest.fn();
+    const onMultiSelect = jest.fn();
+    const onReorder = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Commands'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction display={{label: 'Group by'}}>
+              <CMDKAction display={{label: 'Attribute'}}>
+                <CMDKAction
+                  display={{label: 'Environment'}}
+                  isSelected
+                  onAction={onAction}
+                  onMultiSelect={onMultiSelect}
+                >
+                  <CMDKAction
+                    display={{label: 'Environment'}}
+                    onAction={() => {}}
+                    onReorder={onReorder}
+                  />
+                  <CMDKAction
+                    display={{label: 'Project'}}
+                    onAction={() => {}}
+                    onReorder={onReorder}
+                  />
+                </CMDKAction>
+              </CMDKAction>
+            </CMDKAction>
+          </CMDKChainedActionScope>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+    await userEvent.keyboard('{ArrowDown}{Shift>}{Enter}{/Shift}');
+
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(onAction).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('{Enter}');
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole('option', {name: 'Environment'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Project'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}');
+    expect(onReorder).toHaveBeenCalledWith('down');
+
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+  });
+
   it('shows filter attributes immediately under their section heading', async () => {
     render(
       <GlobalActionsComponent>

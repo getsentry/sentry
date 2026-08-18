@@ -176,7 +176,7 @@ export function CommandPalette({
     const currentRootKey = currentTextInput
       ? (state.action?.previous?.value.key ?? null)
       : (state.action?.value.key ?? null);
-    const nodes = presortBySlotRef(store.tree(currentRootKey));
+    const nodes = presortBySlotRef(sortByExplicitOrder(store.tree(currentRootKey)));
     const contextualNodes = nodes.filter(isContextualNode);
 
     if (currentRootKey === null && state.query === '' && contextualNodes.length > 0) {
@@ -407,6 +407,20 @@ export function CommandPalette({
         return;
       }
 
+      if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        const action = actions.find(
+          candidate => candidate.key === treeState.selectionManager.focusedKey
+        );
+        if (action && 'onReorder' in action && action.onReorder) {
+          e.preventDefault();
+          action.onReorder(e.key === 'ArrowUp' ? 'up' : 'down');
+          // Arrow navigation freezes the visible collection to keep focus stable.
+          // Reordering changes the collection intentionally, so activate it again.
+          dispatch({type: 'set query', query: state.query});
+          return;
+        }
+      }
+
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         dispatch({type: 'freeze list'});
       }
@@ -488,6 +502,15 @@ export function CommandPalette({
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
+        if (
+          'onMultiSelect' in action &&
+          action.onMultiSelect &&
+          options?.modifierKeys?.shiftKey
+        ) {
+          action.onMultiSelect();
+          dispatch({type: 'set query', query: ''});
+          return;
+        }
         animatePress();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
@@ -763,6 +786,11 @@ export function CommandPalette({
           ) ? (
             <CommandPaletteMultiSelectHint />
           ) : null}
+          {actions.some(
+            action => 'onReorder' in action && action.onReorder !== undefined
+          ) ? (
+            <CommandPaletteReorderHint />
+          ) : null}
         </CommandPaletteHints>
       )}
     </Stack>
@@ -813,6 +841,14 @@ function presortBySlotRef(
     } // b has no slot ref → sort a before b
     return aEl.compareDocumentPosition(bEl) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
   });
+}
+
+function sortByExplicitOrder(
+  nodes: Array<CollectionTreeNode<CMDKActionData>>
+): Array<CollectionTreeNode<CMDKActionData>> {
+  return nodes
+    .map(node => ({...node, children: sortByExplicitOrder(node.children)}))
+    .toSorted((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 function isContextualNode(node: CollectionTreeNode<CMDKActionData>): boolean {
@@ -1419,6 +1455,18 @@ function CommandPaletteMultiSelectHint() {
       <Hotkey variant="debossed" value="shift+enter" />
       <Text size="xs" variant="muted">
         {t('Multi-Select')}
+      </Text>
+    </Flex>
+  );
+}
+
+function CommandPaletteReorderHint() {
+  return (
+    <Flex align="center" gap="xs">
+      <Hotkey variant="debossed" value="shift+up" />
+      <Hotkey variant="debossed" value="shift+down" />
+      <Text size="xs" variant="muted">
+        {t('Reorder')}
       </Text>
     </Flex>
   );

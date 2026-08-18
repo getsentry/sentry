@@ -49,6 +49,11 @@ export function getKeyboardShortcutGroups(): KeyboardShortcutGroup[] {
       shortcuts: [
         {label: t('Move through results'), keybindings: ['up', 'down']},
         {label: t('Select command'), keybindings: ['enter']},
+        {label: t('Toggle selection'), keybindings: ['shift+enter']},
+        {
+          label: t('Reorder selected item'),
+          keybindings: ['shift+up', 'shift+down'],
+        },
         {label: t('Open link in new tab'), keybindings: ['shift+enter']},
         {label: t('Go back'), keybindings: ['backspace']},
         {label: t('Clear search or go back'), keybindings: ['escape']},

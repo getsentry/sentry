@@ -17,6 +17,8 @@ interface Action {
   keywords?: string[];
   /** Max results shown before a "See all" expansion item appears */
   limit?: number;
+  /** Explicit sibling position for reorderable action lists. */
+  order?: number;
 }
 
 type BaseCMDKQueryOptions<TData = unknown> = Omit<
@@ -50,6 +52,8 @@ interface CommandPaletteActionCallback extends Action {
   isSelected?: boolean;
   /** Callback used for Shift+Enter while remaining in a multi-select picker. */
   onMultiSelect?: () => void;
+  /** Callback used for Shift+Arrow while reordering an item. */
+  onReorder?: (direction: 'up' | 'down') => void;
 }
 
 export type CommandPaletteAction =
