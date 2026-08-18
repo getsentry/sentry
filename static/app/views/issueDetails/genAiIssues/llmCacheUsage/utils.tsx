@@ -39,14 +39,19 @@ function getOutcome(value: unknown): LlmCacheOutcome | null {
   return value === 'not_caching' || value === 'thrash' ? value : null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[] {
   if (Array.isArray(value)) {
-    return value.flatMap(entry => {
-      const traceId = getStringValue((entry as Record<string, unknown>)?.traceId);
-      if (traceId === null) {
+    const samples: unknown[] = value;
+    return samples.flatMap(entry => {
+      const sample = isRecord(entry) ? entry : null;
+      const traceId = getStringValue(sample?.traceId);
+      if (sample === null || traceId === null) {
         return [];
       }
-      const sample = entry as Record<string, unknown>;
       return [
         {
           traceId,
@@ -63,7 +68,8 @@ function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[]
   // Occurrences produced before the detector emitted the richer samples carry
   // bare trace ids; they still link somewhere useful.
   if (Array.isArray(traceIds)) {
-    return traceIds.flatMap(entry => {
+    const ids: unknown[] = traceIds;
+    return ids.flatMap(entry => {
       const traceId = getStringValue(entry);
       return traceId === null
         ? []
@@ -111,7 +117,7 @@ function getAnchor(data: Record<string, unknown>): LlmCacheContrastAnchor | null
 export function getLlmCacheEvidenceData(
   evidenceData: EventOccurrence['evidenceData'] | null | undefined
 ): LlmCacheEvidenceData {
-  const data = (evidenceData ?? {}) as Record<string, unknown>;
+  const data = isRecord(evidenceData) ? evidenceData : {};
 
   return {
     outcome: getOutcome(data.outcome),
