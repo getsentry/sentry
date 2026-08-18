@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -135,6 +136,20 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  const populatedKeys = populatedSections.map(section => section.key);
+  const allCollapsed =
+    populatedKeys.length > 0
+      ? populatedKeys.every(key => collapsedGroups.includes(key))
+      : collapsedGroups.length > 0;
+
+  const toggleAllGroups = () => {
+    setCollapsedGroups(previous =>
+      allCollapsed
+        ? previous.filter(key => !populatedKeys.includes(key))
+        : [...new Set([...previous, ...populatedKeys])]
+    );
+  };
+
   return (
     <Stack gap="lg" padding="lg xl">
       <Flex gap="md" align="center" wrap="wrap">
@@ -169,6 +184,11 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             )}
           </Text>
         )}
+        <Flex marginLeft="auto">
+          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
+            {allCollapsed ? t('Expand All') : t('Collapse All')}
+          </Button>
+        </Flex>
       </Flex>
       {isError ? (
         <LoadingError onRetry={refetch} />
