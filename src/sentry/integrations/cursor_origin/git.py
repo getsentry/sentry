@@ -194,6 +194,18 @@ def commit_and_push(
     with cloned_repo(clone_url) as repo_dir:
         run = lambda *args: _run(["git", *args], cwd=repo_dir)
 
+        # Checked explicitly rather than left to the push, because the caller's recovery
+        # depends on recognizing this case: Seer retries with a suffixed branch name when
+        # the message says the branch already exists. Git's own rejection for a diverged
+        # ref says "Updates were rejected because the remote contains work..." instead,
+        # which Seer would not match, and it would surface as a hard failure.
+        try:
+            _run(["git", "rev-parse", "--verify", f"origin/{branch}"], cwd=repo_dir)
+        except CursorOriginGitError:
+            pass  # Expected: the branch does not exist yet, which is the normal case.
+        else:
+            raise CursorOriginGitError(f"Branch already exists: {branch}")
+
         # Detach at the base commit so the new branch starts exactly there, whatever the
         # clone happened to check out.
         run("checkout", "--quiet", "--detach", base_sha)

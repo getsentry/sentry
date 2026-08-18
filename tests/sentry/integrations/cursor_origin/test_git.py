@@ -143,7 +143,7 @@ class CommitAndPushTest(CursorOriginGitTestBase):
         ]
         self._push("seer/dupe", actions)
 
-        with pytest.raises(CursorOriginGitError):
+        with pytest.raises(CursorOriginGitError, match="Branch already exists"):
             self._push("seer/dupe", actions)
 
     def test_no_op_change_is_refused(self) -> None:
