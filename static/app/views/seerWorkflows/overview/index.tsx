@@ -14,6 +14,7 @@ import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -24,6 +25,7 @@ import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,6 +35,10 @@ import {OverviewCard} from './issueCard';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
+
+const SeerTrialCTA = OverrideOrDefault({
+  overrideName: 'component:seer-trial-cta',
+});
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
   {value: 'seer', label: t('Recent Seer Activity')},
@@ -56,7 +62,13 @@ export default function AutofixOverview() {
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
-          <AutofixOverviewContent organization={organization} />
+          {orgNeedsSeerTrial(organization) ? (
+            <Stack gap="lg" padding="lg xl">
+              <SeerTrialCTA />
+            </Stack>
+          ) : (
+            <AutofixOverviewContent organization={organization} />
+          )}
         </SentryDocumentTitle>
       </PageFiltersContainer>
     </Feature>
