@@ -53,6 +53,7 @@ export default function SessionDetailView() {
     isPending,
     isError,
     dateParams,
+    routes,
     sortDirection,
     toggleSort,
     truncatedByType,
@@ -91,6 +92,7 @@ export default function SessionDetailView() {
       bounds={bounds}
       counts={counts}
       eventsByType={eventsByType}
+      routes={routes}
       truncatedByType={truncatedByType}
       selectedTypes={filters.types}
       onToggleType={toggleType}

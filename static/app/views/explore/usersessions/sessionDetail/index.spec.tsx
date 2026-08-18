@@ -25,6 +25,14 @@ const SESSION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const TRACE = '1'.repeat(32);
 const PROJECT = ProjectFixture();
 
+/**
+ * The route band's own query, which is a `spans` read like the trace rows are and
+ * so has to be told apart from them. It is the only one narrowed by `span.op`.
+ */
+function isRouteQuery(options: Record<string, any>) {
+  return String(options.query.query).includes('span.op:[');
+}
+
 function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
@@ -33,12 +41,28 @@ function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
     match: [
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
+        !isRouteQuery(options) &&
         // The counts query asks for aggregates only; the rows query asks for the
         // bare `timestamp` field plus the per-dataset row fields.
         (kind === 'count'
           ? !options.query.field.includes('timestamp')
           : options.query.field.includes('timestamp')),
     ],
+  });
+}
+
+/**
+ * The `pageload`/`navigation` arrivals the route band is built from. Every test
+ * gets an empty one by default, so the band is absent unless a test is about it —
+ * its route labels are the same strings the rail's trace rows carry, and two of
+ * each would make every `getByText` over them ambiguous.
+ */
+function mockRouteVisits(data: unknown[]) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {data, meta: {fields: {}}},
+    match: [(_url: string, options: Record<string, any>) => isRouteQuery(options)],
   });
 }
 
@@ -67,6 +91,7 @@ function mockRowsPage(
     match: [
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
+        !isRouteQuery(options) &&
         options.query.field.includes('timestamp') &&
         options.query.cursor === cursor,
     ],
@@ -106,6 +131,9 @@ describe('SessionDetailView', () => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([PROJECT]);
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    // Mocks are matched most-recently-registered first, so a test about the band
+    // overrides this by calling `mockRouteVisits` itself.
+    mockRouteVisits([]);
   });
 
   it('names the session from its telemetry, keeping the full id one click away', async () => {
@@ -727,7 +755,9 @@ describe('SessionDetailView', () => {
       },
       match: [
         (_url: string, options: Record<string, any>) =>
-          options.query.dataset === 'spans' && options.query.field.includes('timestamp'),
+          options.query.dataset === 'spans' &&
+          !isRouteQuery(options) &&
+          options.query.field.includes('timestamp'),
       ],
     });
 
@@ -1145,25 +1175,310 @@ describe('SessionDetailView', () => {
       expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
     });
   });
+
+  describe('route band', () => {
+    /**
+     * A session running from 0s to 60s, so a visit's width is directly readable as
+     * a percentage of it. The extent comes from the aggregates, not from the rows,
+     * which is what lets the band be tested without any telemetry rows at all.
+     */
+    function mockSixtySecondSession() {
+      mockEmptyDatasets(['spans']);
+      mockDataset('spans', 'count', [
+        {
+          'count_unique(trace)': 3,
+          'min(precise.start_ts)': Date.parse('2024-01-01T00:00:00Z') / 1000,
+          'max(precise.finish_ts)': Date.parse('2024-01-01T00:01:00Z') / 1000,
+        },
+      ]);
+      mockDataset('spans', 'rows', []);
+    }
+
+    function routeSegments() {
+      return screen.getAllByTestId('route-visit');
+    }
+
+    it('draws one segment per stay, sized by how long the user stayed', async () => {
+      mockSixtySecondSession();
+      const arrivals = mockRouteVisits([
+        {
+          timestamp: '2024-01-01T00:00:00+00:00',
+          'span.op': 'pageload',
+          'span.name': '/',
+        },
+        {
+          timestamp: '2024-01-01T00:00:20+00:00',
+          'span.op': 'navigation',
+          'span.name': '/cart',
+        },
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Route')).toBeInTheDocument();
+
+      const segments = routeSegments();
+      expect(segments).toHaveLength(2);
+
+      // A third of the session on `/`, the remaining two thirds on `/cart` — from
+      // the gap between arrivals, not from either span's own duration.
+      expect(segments[0]).toHaveStyle({left: '0%', width: '33.33333333333333%'});
+      expect(segments[1]).toHaveStyle({
+        left: '33.33333333333333%',
+        width: '66.66666666666667%',
+      });
+
+      // The dwell time and how they got there ride along with the route, so a
+      // clipped or dropped label still says what the segment is.
+      expect(segments[0]).toHaveAttribute('title', '/ · 20.0s · 0:00.00 page load');
+      expect(segments[1]).toHaveAttribute('title', '/cart · 40.0s · 0:20.00 navigation');
+
+      // Arrivals are asked for on their own, narrowed by op — not filtered out of
+      // the trace rows, which are capped and sorted the other way.
+      expect(arrivals).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            // Narrowed by op alone. `is_transaction:true` would drop redirect
+            // arrivals, which the SDK records as child spans rather than segments;
+            // it is selected as a field instead, since it decides which field names
+            // a row's route.
+            query: `session.id:${SESSION_ID} span.op:[pageload,navigation,navigation.redirect]`,
+            sort: 'timestamp',
+          }),
+        })
+      );
+      expect(arrivals.mock.calls[0]![1].query.field).toContain('span.name');
+    });
+
+    it('draws a redirect arrival, which is a child span in someone else s trace', async () => {
+      // A trace whose root segment is a ui.action.click, with the arrival recorded
+      // inside it as `navigation.redirect`. Its `transaction` is the click's route,
+      // so naming it from that field would merge it away as "already there".
+      mockSixtySecondSession();
+      mockRouteVisits([
+        {
+          timestamp: '2024-01-01T00:00:00+00:00',
+          'span.op': 'pageload',
+          'span.name': '/products',
+          transaction: '/products',
+        },
+        // Stamped with the *other* segment's name in this trace, which is the route
+        // being left. Its own span name is where it went.
+        {
+          timestamp: '2024-01-01T00:00:20+00:00',
+          'span.op': 'navigation.redirect',
+          'span.name': '/cart',
+          transaction: '/products',
+        },
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Route')).toBeInTheDocument();
+
+      const segments = screen.getAllByTestId('route-visit');
+      expect(segments).toHaveLength(2);
+      expect(segments[1]).toHaveAttribute('title', '/cart · 40.0s · 0:20.00 redirect');
+    });
+
+    it('narrows the timeline to a route when its segment is clicked', async () => {
+      mockEmptyDatasets(['spans', 'logs']);
+      mockDataset('spans', 'count', [
+        {
+          'count_unique(trace)': 1,
+          'min(precise.start_ts)': Date.parse('2024-01-01T00:00:00Z') / 1000,
+          'max(precise.finish_ts)': Date.parse('2024-01-01T00:01:00Z') / 1000,
+        },
+      ]);
+      mockDataset('spans', 'rows', []);
+      mockDataset('logs', 'count', [{'count()': 2}]);
+      mockDataset('logs', 'rows', [
+        {id: 'log1', message: 'on the home page', timestamp: '2024-01-01T00:00:05+00:00'},
+        {id: 'log2', message: 'in the cart', timestamp: '2024-01-01T00:00:40+00:00'},
+      ]);
+      mockRouteVisits([
+        {
+          timestamp: '2024-01-01T00:00:00+00:00',
+          'span.op': 'pageload',
+          'span.name': '/',
+        },
+        {
+          timestamp: '2024-01-01T00:00:20+00:00',
+          'span.op': 'navigation',
+          'span.name': '/cart',
+        },
+      ]);
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('on the home page')).toBeInTheDocument();
+      expect(screen.getByText('in the cart')).toBeInTheDocument();
+
+      // A route already is a span of time, so clicking one performs the drag the
+      // user would otherwise have to aim by hand.
+      clickTrack(trackWithGeometry(1000, 218), {clientX: 100, clientY: ROUTE_Y});
+
+      await waitFor(() => {
+        expect(screen.queryByText('in the cart')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('on the home page')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
+
+      // And the lanes below have moved down by the band's row, so a click still
+      // finds the item it is pointed at rather than the lane above it.
+      clickTrack(trackWithGeometry(1000, 218), {
+        clientX: 83,
+        clientY: ROUTED_LANE_Y.logs,
+      });
+      await waitFor(() => {
+        expect(router.location.query.item).toBe('logs:log1');
+      });
+    });
+
+    it('asks for no more arrivals than the spans dataset will serve', async () => {
+      // The events endpoint *rejects* a per_page over a dataset's cap rather than
+      // clamping it, so asking for more 400s every request and the band silently
+      // never appears. Pinned here because the failure is invisible from the UI.
+      mockSixtySecondSession();
+      const arrivals = mockRouteVisits([]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      await waitFor(() => expect(arrivals).toHaveBeenCalled());
+      const [, options] = arrivals.mock.calls[0]!;
+      expect(options.query.per_page).toBeLessThanOrEqual(100);
+    });
+
+    it('says so when the band failed to load rather than showing nothing', async () => {
+      mockSixtySecondSession();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        statusCode: 400,
+        body: {detail: 'Invalid per_page value.'},
+        match: [(_url: string, options: Record<string, any>) => isRouteQuery(options)],
+      });
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      // The row stays: a band that broke and a session that never navigated are
+      // different answers, and only the row can tell them apart.
+      expect(await screen.findByText('Route')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('route-visit')).toHaveLength(0);
+
+      await userEvent.hover(screen.getByText('*'));
+      expect(
+        await screen.findByText('Routes failed to load, so this band is missing.')
+      ).toBeInTheDocument();
+
+      // And it stays a missing band, not a broken timeline.
+      expect(
+        screen.queryByText('Failed to load session telemetry.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('leaves the band out entirely when the session visited no routes', async () => {
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': 1}]);
+      mockDataset('logs', 'rows', [
+        {id: 'log1', message: 'a backend log', timestamp: '2024-01-01T00:00:00+00:00'},
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('a backend log')).toBeInTheDocument();
+
+      // An empty labelled row would read as "this session visited nothing" rather
+      // than "routes aren't a thing here".
+      expect(screen.queryByText('Route')).not.toBeInTheDocument();
+      expect(screen.queryAllByTestId('route-visit')).toHaveLength(0);
+    });
+
+    it('merges a re-arrival landing in the same instant into one stay', async () => {
+      mockSixtySecondSession();
+      mockRouteVisits([
+        {
+          timestamp: '2024-01-01T00:00:00+00:00',
+          'span.op': 'pageload',
+          'span.name': '/cart',
+        },
+        // A query-param change firing a second navigation span within the same
+        // instant. Not the user leaving and coming back, so not a second segment.
+        {
+          timestamp: '2024-01-01T00:00:00.400+00:00',
+          'span.op': 'navigation',
+          'span.name': '/cart',
+        },
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Route')).toBeInTheDocument();
+      const segments = routeSegments();
+      expect(segments).toHaveLength(1);
+      expect(segments[0]).toHaveAttribute('title', '/cart · 1.0m · 0:00.00 page load');
+    });
+
+    it('draws a navigation back to the route the user was already on', async () => {
+      // The reported bug. Every naming field on the arrival says `/`, and so did the
+      // route before it, so the old name-only merge discarded a real router.push and
+      // the band showed no arrival at the moment it happened.
+      mockSixtySecondSession();
+      mockRouteVisits([
+        {
+          timestamp: '2024-01-01T00:00:00+00:00',
+          'span.op': 'navigation',
+          'span.name': '/',
+          'span.description': '/',
+          transaction: '/',
+        },
+        {
+          timestamp: '2024-01-01T00:00:20+00:00',
+          'span.op': 'navigation',
+          'span.name': '/',
+          'span.description': '/',
+          transaction: '/',
+        },
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Route')).toBeInTheDocument();
+      const segments = routeSegments();
+      expect(segments).toHaveLength(2);
+      expect(segments[1]).toHaveAttribute('title', '/ · 40.0s · 0:20.00 navigation');
+    });
+  });
 });
 
 /** Lane geometry from the scrubber: a 28px axis row over four 40px lanes. */
 const LANE_Y = {errors: 48, traces: 88, logs: 128, metrics: 168};
 
 /**
+ * The same geometry with the route band present, which inserts a 30px row under
+ * the axis and pushes every lane down by it.
+ */
+const ROUTE_Y = 42;
+const ROUTED_LANE_Y = {errors: 78, traces: 118, logs: 158, metrics: 198};
+
+/**
  * The scrubber's interactive track, given the size jsdom won't. Hit testing reads
  * the pointer's offset within this rect, so without it every click lands at the
  * session start.
  */
-function trackWithGeometry(width = 1000) {
+function trackWithGeometry(width = 1000, height = 188) {
   const track = screen.getByRole('group', {name: 'Session time window'});
   jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
     left: 0,
     top: 0,
     right: width,
-    bottom: 188,
+    bottom: height,
     width,
-    height: 188,
+    height,
     x: 0,
     y: 0,
     toJSON: () => ({}),

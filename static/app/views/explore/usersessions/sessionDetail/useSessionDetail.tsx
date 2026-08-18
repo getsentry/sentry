@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import {SESSION_ID} from '@sentry/conventions/attributes';
 import type {QueryFunctionContext} from '@tanstack/react-query';
-import {skipToken, useQueries} from '@tanstack/react-query';
+import {skipToken, useQueries, useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -34,10 +34,31 @@ import {
 } from 'sentry/views/explore/usersessions/sessionName';
 
 import {itemKey} from './itemKey';
+import type {RouteBand} from './routeVisits';
+import {buildRouteVisits, ROUTE_OPS} from './routeVisits';
 import type {Row} from './rowConfig';
 import {ROW_CONFIG} from './rowConfig';
 
 const REFERRER = 'api.explore.user-session-detail';
+
+/**
+ * The spans config, which the route band borrows for its dataset and page size.
+ * Not for its `filter` — see the route query below for why arrivals cannot be
+ * narrowed to segments the way the trace rows are.
+ */
+const TRACES = SESSION_DATASETS.find(config => config.key === 'traces')!;
+
+/**
+ * How many route arrivals to load.
+ *
+ * Pinned to the spans page size rather than chosen: the events endpoint *rejects*
+ * a `per_page` over a dataset's cap instead of clamping it, so anything higher
+ * here 400s every request rather than returning fewer rows. A hundred route
+ * changes is a band of 10px segments anyway — far past what it can show — so this
+ * costs nothing real, but it does mean the band can be capped, and it says so
+ * when it is.
+ */
+const MAX_ARRIVALS = TRACES.pageSize;
 
 interface EventsResponse {
   data: Row[];
@@ -406,6 +427,49 @@ export function useSessionDetail(sessionId: string) {
     }),
   });
 
+  /**
+   * The session's route arrivals — the `pageload` and `navigation` segment spans
+   * the route band is built from.
+   *
+   * A query of its own rather than a filter over the trace rows already fetched,
+   * for two reasons. Those rows are capped at `maxRows` and sorted newest-first,
+   * so a chatty session would silently lose its *earliest* arrivals — and the
+   * first one is the one that establishes which route the session began on. They
+   * are also narrowed by the text filter, and the band is context for the whole
+   * session rather than a view of what matched a search. Arrivals are a few rows
+   * either way, so asking for them exactly is cheaper than it looks.
+   *
+   * Ascending, unlike the rows: if this ever does truncate, the beginning of the
+   * journey is the half worth keeping.
+   */
+  const routeQuery = useQuery(
+    apiOptions.as<EventsResponse>()('/organizations/$organizationIdOrSlug/events/', {
+      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query: {
+        ...commonQuery,
+        dataset: TRACES.dataset,
+        // Narrowed by op alone — deliberately *not* by `is_transaction:true` the
+        // way the trace rows are.
+        //
+        // A `navigation.redirect` is recorded as a plain child span rather than a
+        // segment (the SDK ends it inline instead of promoting it to a
+        // transaction), so a segment filter drops the very arrivals this band is
+        // missing. The op set is already the discriminator: nothing but a route
+        // span carries these ops, so `is_transaction` adds no precision here —
+        // only a blind spot. It comes back as a *field* instead, because how a row
+        // names its route depends on whether it is a segment.
+        query: `${commonQuery.query} span.op:[${ROUTE_OPS.join(',')}]`,
+        // `span.name` first among the naming fields because it is the only one that
+        // is per-span: `transaction` resolves to the *segment's* name and can belong
+        // to a different segment in the same trace. See `readRoute`.
+        field: ['timestamp', 'span.op', 'span.name', 'span.description', 'transaction'],
+        sort: 'timestamp',
+        per_page: MAX_ARRIVALS,
+      },
+      staleTime: 0,
+    })
+  );
+
   const rowQueries = useQueries({
     queries: SESSION_DATASETS.map(config => ({
       ...apiOptions.as<TimelineRows>()('/organizations/$organizationIdOrSlug/events/', {
@@ -622,14 +686,42 @@ export function useSessionDetail(sessionId: string) {
     selectedWindow,
   ]);
 
+  /**
+   * Derived here rather than in the scrubber because it needs `bounds`, which the
+   * pass above is what establishes — a visit's extent is only meaningful against
+   * the session's own.
+   */
+  const routes = useMemo((): RouteBand => {
+    const rows = routeQuery.data?.data ?? [];
+    return {
+      visits: buildRouteVisits(rows, detail.bounds),
+      // Inferred from the row count rather than read off the `Link` header, which
+      // would cost this query the pagination handling the row queries need. It can
+      // therefore cry truncation for a session holding exactly `MAX_ARRIVALS`
+      // arrivals — a hundred route changes, where an over-cautious marker is not
+      // the problem.
+      isTruncated: rows.length >= MAX_ARRIVALS,
+      isError: routeQuery.isError,
+    };
+  }, [routeQuery.data, routeQuery.isError, detail.bounds]);
+
   return {
     ...detail,
+    routes,
     dateParams,
     filters,
     sortDirection,
     toggleSort,
     setWindow: setSelectedWindow,
-    isPending: countQueries.isPending || rowQueries.isPending,
+    // The route query is in here so the chart is drawn at its final height once
+    // rather than growing a row under the pointer. It is the cheapest of the
+    // five — one page, no pagination loop — so it is rarely the straggler.
+    isPending: countQueries.isPending || rowQueries.isPending || routeQuery.isPending,
+    // Deliberately *not* in `isError`: a route band that failed to load is a
+    // missing band, not a broken timeline, and the rail below still reads fine.
+    // It is not swallowed either — the band's own label carries the failure, or a
+    // permanently broken query would look exactly like a session that never
+    // navigated anywhere.
     isError: countQueries.isError || rowQueries.isError,
   };
 }

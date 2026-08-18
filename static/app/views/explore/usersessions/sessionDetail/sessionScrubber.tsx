@@ -7,6 +7,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconWindow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -14,6 +15,7 @@ import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
 import {itemKey} from './itemKey';
+import type {RouteBand, RouteVisit} from './routeVisits';
 import {formatDurationMs, formatOffset} from './sessionTime';
 import {TelemetryTypeIcon} from './telemetryTypeIcon';
 import type {SessionEvent, SessionRange} from './useSessionDetail';
@@ -28,6 +30,24 @@ const LANES = LANE_ORDER.map(key => SESSION_DATASETS.find(config => config.key =
 
 const HEADER_HEIGHT = 28;
 const LANE_HEIGHT = 40;
+
+/**
+ * The route band. Shorter than a telemetry lane: it holds one row of text rather
+ * than markers that need vertical room to differ in size.
+ */
+const ROUTE_HEIGHT = 30;
+
+/**
+ * Which of the chart palettes the route band recycles. This one is eleven distinct
+ * hues, which is more distinct routes than a readable band holds anyway — past
+ * that they repeat, and two same-coloured segments far apart is a much smaller lie
+ * than two indistinguishable ones side by side. (The palettes are addressed by
+ * `length - 1`, hence 10 for eleven colors.)
+ */
+const ROUTE_PALETTE = 10;
+
+/** A route segment narrower than this has no room for its own name. */
+const ROUTE_LABEL_MIN_PX = 44;
 
 /**
  * Marker extremes for the density lanes. The floor is a dot rather than a sliver:
@@ -93,6 +113,12 @@ interface Props {
   onChangeWindow: (window: SessionRange | null) => void;
   onSelectItem: (key: string) => void;
   onToggleType: (key: SessionDatasetKey) => void;
+  /**
+   * The route the user was on over time, contiguous across the session. No visits
+   * and no failure means a session with no `pageload` or `navigation` spans — a
+   * backend service, say — and the band is left out rather than drawn empty.
+   */
+  routes: RouteBand;
   /** The item whose details are open, marked in its lane. */
   selectedKey: string | null;
   /** Telemetry types currently shown. A type that is off dims its lane. */
@@ -124,6 +150,15 @@ function extentOf(event: SessionEvent): {end: number; start: number} | undefined
  * which turns that lane into the shape of the session's activity rather than a row
  * of dots that happen to be near each other.
  *
+ * Over all of them sits the route band: which page the user was actually looking
+ * at, and for how long. It is the one lane that tiles rather than dots, because
+ * the user is always somewhere — and it is what makes the lanes below answerable
+ * as "this error happened on /checkout" rather than "this error happened at 4:12".
+ * The route is carried in three channels: the band's own coloured, labelled
+ * segments; a rule down every lane wherever it changed; and an alternating wash
+ * between those rules, so an item can be placed on one side or the other without
+ * tracing a line back up to the band.
+ *
  * The lanes are also an index into the rail: clicking an item opens its details
  * and selects its row below. That makes this a pointer affordance only — a
  * density marker is an aggregate shape, not one element per item — so the rail's
@@ -133,6 +168,7 @@ export function SessionScrubber({
   bounds,
   counts,
   eventsByType,
+  routes,
   truncatedByType,
   selectedTypes,
   onToggleType,
@@ -152,12 +188,43 @@ export function SessionScrubber({
   const [draft, setDraft] = useState<SessionRange | null>(null);
   const [hoverAt, setHoverAt] = useState<number | null>(null);
   const [hover, setHover] = useState<LaneHit | null>(null);
+  /** The route segment under the pointer, which is a different aim than an item. */
+  const [hoverRoute, setHoverRoute] = useState<RouteVisit | null>(null);
   const anchor = useRef<{clientX: number; timestamp: number} | null>(null);
 
   const active = draft ?? window;
   const domain = bounds.end - bounds.start;
   const enabled = useMemo(() => new Set(selectedTypes), [selectedTypes]);
   const laneCounts = useLaneCounts(counts, eventsByType, active);
+
+  /**
+   * A session with no browser telemetry has no routes to draw, and an empty
+   * labelled row is worse than no row — it reads as "this session visited
+   * nothing" rather than "we don't track routes here". Everything below shifts up
+   * by a row when the band is absent, which is why the offsets are derived rather
+   * than constant.
+   *
+   * A *failed* band still gets its row. Empty-because-nothing-happened and
+   * empty-because-the-query-broke are different answers, and only the row can say
+   * which one this is.
+   */
+  const routeVisits = routes.visits;
+  const hasRoutes = routeVisits.length > 0 || routes.isError;
+  const routeTop = HEADER_HEIGHT;
+  const laneTop = HEADER_HEIGHT + (hasRoutes ? ROUTE_HEIGHT : 0);
+  /** Row 1 is the axis, and row 2 the route band when there is one. */
+  const firstLaneRow = hasRoutes ? 3 : 2;
+
+  /**
+   * Categorical rather than semantic: a route is not good or bad, and borrowing
+   * `danger` for one would say it was. Indexed by the visit's own `colorIndex`, so
+   * a route keeps its color across every visit to it.
+   */
+  const routePalette = theme.chart.getColorPalette(ROUTE_PALETTE);
+  const routeColor = useCallback(
+    (visit: RouteVisit) => routePalette[visit.colorIndex % routePalette.length]!,
+    [routePalette]
+  );
 
   const buckets =
     width > 0
@@ -211,9 +278,9 @@ export function SessionScrubber({
         return null;
       }
 
-      const laneIndex = Math.floor((clientY - rect.top - HEADER_HEIGHT) / LANE_HEIGHT);
+      const laneIndex = Math.floor((clientY - rect.top - laneTop) / LANE_HEIGHT);
       const config = LANES[laneIndex];
-      if (!config || clientY < rect.top + HEADER_HEIGHT || !enabled.has(config.key)) {
+      if (!config || clientY < rect.top + laneTop || !enabled.has(config.key)) {
         return null;
       }
 
@@ -252,7 +319,31 @@ export function SessionScrubber({
       const key = itemKey(found);
       return key === undefined ? null : {event: found, key, laneIndex};
     },
-    [enabled, eventsByType, fromClientX, domain]
+    [enabled, eventsByType, fromClientX, domain, laneTop]
+  );
+
+  /**
+   * The route segment under the pointer, if the pointer is in the band's row.
+   *
+   * Deliberately not part of `hitAt`: the two are aiming at different kinds of
+   * thing, and mutually exclusive by geometry — the band's row is above every
+   * lane. Segments tile, so no tolerance is needed and there is nothing to
+   * disambiguate; the pointer is over exactly one of them or none.
+   */
+  const routeAt = useCallback(
+    (clientX: number, clientY: number): RouteVisit | null => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0 || !hasRoutes) {
+        return null;
+      }
+      const y = clientY - rect.top;
+      if (y < routeTop || y >= routeTop + ROUTE_HEIGHT) {
+        return null;
+      }
+      const at = fromClientX(clientX);
+      return routeVisits.find(visit => at >= visit.start && at <= visit.end) ?? null;
+    },
+    [fromClientX, hasRoutes, routeTop, routeVisits]
   );
 
   /** Where the open item sits, so its lane can mark it. */
@@ -285,10 +376,12 @@ export function SessionScrubber({
     const start = anchor.current;
     if (!start || Math.abs(event.clientX - start.clientX) < MIN_DRAG_PX) {
       setHover(hitAt(event.clientX, event.clientY));
+      setHoverRoute(routeAt(event.clientX, event.clientY));
       return;
     }
-    // Mid-drag the pointer is aiming at a range, not at an item.
+    // Mid-drag the pointer is aiming at a range, not at an item or a route.
     setHover(null);
+    setHoverRoute(null);
     const at = fromClientX(event.clientX);
     setDraft({
       start: Math.min(start.timestamp, at),
@@ -310,6 +403,17 @@ export function SessionScrubber({
 
     // A press with no drag either opens the item under it or, on empty track,
     // resets the view — which is how a click gets out of a window.
+    //
+    // On a route segment it narrows to that visit instead. A route already *is* a
+    // span of time, so the drag a user would otherwise have to perform by hand is
+    // one the data can perform exactly — and "show me only what happened while
+    // they were on /checkout" is most of why the band is here.
+    const visit = routeAt(event.clientX, event.clientY);
+    if (visit) {
+      onChangeWindow(clampWindow({start: visit.start, end: visit.end}, bounds));
+      return;
+    }
+
     const hit = hitAt(event.clientX, event.clientY);
     if (hit) {
       onSelectItem(hit.key);
@@ -366,7 +470,7 @@ export function SessionScrubber({
         explicitly positioned overlay below, which silently pushes the first
         lane's label onto a row of its own.
       */}
-      <Chart>
+      <Chart hasRoutes={hasRoutes}>
         <HeaderCell>
           <Text size="xs" variant="muted" uppercase>
             {t('Time')}
@@ -390,11 +494,123 @@ export function SessionScrubber({
           ))}
         </Axis>
 
+        {hasRoutes && (
+          <Fragment>
+            <RouteLabel>
+              <LaneIcon>
+                <IconWindow size="sm" />
+              </LaneIcon>
+              <Text size="sm">{t('Route')}</Text>
+              {/*
+                A footnote on the band, in the same place and the same shape the
+                lane counts use for theirs. An error and a cap are both "this band
+                is not the whole journey", and which one it is belongs in the
+                tooltip rather than in two different markers.
+              */}
+              {(routes.isError || routes.isTruncated) && (
+                <Fragment>
+                  <Flex flex="1" />
+                  <InfoText
+                    size="xs"
+                    variant="warning"
+                    title={
+                      routes.isError
+                        ? t('Routes failed to load, so this band is missing.')
+                        : tct(
+                            'Only the first [limit] route changes are plotted, so this band is partial.',
+                            {limit: routeVisits.length}
+                          )
+                    }
+                  >
+                    {'*'}
+                  </InfoText>
+                </Fragment>
+              )}
+            </RouteLabel>
+            <RouteTrack>
+              {routeVisits.map(visit => {
+                const left = toPercent(visit.start);
+                const widthPercent = toPercent(visit.end) - left;
+                return (
+                  <RouteSegment
+                    key={`${visit.route}-${visit.start}`}
+                    data-test-id="route-visit"
+                    data-hover={hoverRoute === visit ? true : undefined}
+                    // The same string the guide shows on hover, so a segment whose
+                    // label was dropped or clipped still says what it is — the way
+                    // the rail titles its own truncated text.
+                    title={describeRoute(visit, bounds.start)}
+                    style={{
+                      left: `${left}%`,
+                      width: `${widthPercent}%`,
+                      // `color-mix` rather than eleven hand-picked fill tokens: the
+                      // wash has to stay under body text at every one of the hues,
+                      // and mixing each toward the surface keeps that relationship
+                      // instead of hoping eleven literals hold it.
+                      background: `color-mix(in srgb, ${routeColor(visit)} 22%, transparent)`,
+                      borderLeftColor: routeColor(visit),
+                    }}
+                  >
+                    {/*
+                      Dropped rather than ellipsed once the segment is narrower than
+                      a name needs: two characters and a "…" is not a route, and the
+                      guide label says the whole thing on hover either way.
+                    */}
+                    {/* An unmeasured track shows every label: overflow is already
+                        hidden, so guessing "wide enough" costs a clipped name at
+                        worst, while guessing the other way blanks the band for a
+                        frame. */}
+                    {(width === 0 ||
+                      (widthPercent / 100) * width >= ROUTE_LABEL_MIN_PX) && (
+                      <RouteName>{visit.route}</RouteName>
+                    )}
+                  </RouteSegment>
+                );
+              })}
+            </RouteTrack>
+          </Fragment>
+        )}
+
+        {/*
+          The route's reach into the lanes, and the reason it reads as overarching
+          rather than as a fifth lane.
+
+          Neutral rather than route-coloured, on purpose. These sit directly behind
+          the markers — a magenta wash under an error dot would tint how bad the
+          error looks, and the band above is already where a route's identity is
+          said. What a wash means here is only "the same side of a boundary as its
+          neighbours", which is why alternating is enough and the parity of a
+          particular visit carries nothing.
+        */}
+        {hasRoutes && (
+          <Bands aria-hidden style={{gridRow: `${firstLaneRow} / -1`}}>
+            {routeVisits.map((visit, index) => {
+              const left = toPercent(visit.start);
+              return (
+                <Fragment key={`${visit.route}-${visit.start}`}>
+                  {index % 2 === 1 && (
+                    <BandTint
+                      style={{left: `${left}%`, width: `${toPercent(visit.end) - left}%`}}
+                    />
+                  )}
+                  {index > 0 && (
+                    <BandEdge
+                      style={{
+                        left: `${left}%`,
+                        borderLeftColor: `color-mix(in srgb, ${routeColor(visit)} 70%, transparent)`,
+                      }}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
+          </Bands>
+        )}
+
         {LANES.map((config, index) => {
           const isOn = enabled.has(config.key);
           const color = theme.tokens.graphics[config.graphicsVariant].vibrant;
-          // Row 1 is the axis, so the first lane starts at 2.
-          const row = index + 2;
+          const row = index + firstLaneRow;
           const isLast = index === LANES.length - 1;
           return (
             <Fragment key={config.key}>
@@ -475,13 +691,14 @@ export function SessionScrubber({
           tabIndex={0}
           role="group"
           aria-label={t('Session time window')}
-          data-hit={hover ? true : undefined}
+          data-hit={hover || hoverRoute ? true : undefined}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={() => {
             setHoverAt(null);
             setHover(null);
+            setHoverRoute(null);
           }}
           onKeyDown={handleKeyDown}
         >
@@ -497,18 +714,27 @@ export function SessionScrubber({
               />
             </Fragment>
           )}
-          {selected && <Highlight hit={selected} toPercent={toPercent} isSelected />}
+          {selected && (
+            <Highlight
+              hit={selected}
+              toPercent={toPercent}
+              laneTop={laneTop}
+              isSelected
+            />
+          )}
           {hover && hover.key !== selected?.key && (
-            <Highlight hit={hover} toPercent={toPercent} />
+            <Highlight hit={hover} toPercent={toPercent} laneTop={laneTop} />
           )}
           {hoverAt !== null && (
             <Guide style={{left: `${toPercent(hoverAt)}%`}}>
               {/* The item's name rides along with the time, so a shape can be
                   identified before it is clicked. */}
               <GuideLabel>
-                {hover
-                  ? describe(hover.event, hoverAt - bounds.start)
-                  : formatOffset(hoverAt - bounds.start)}
+                {hoverRoute
+                  ? describeRoute(hoverRoute, bounds.start)
+                  : hover
+                    ? describe(hover.event, hoverAt - bounds.start)
+                    : formatOffset(hoverAt - bounds.start)}
               </GuideLabel>
             </Guide>
           )}
@@ -523,9 +749,13 @@ export function SessionScrubber({
                 formatOffset(active.start - bounds.start),
                 formatOffset(active.end - bounds.start)
               )
-            : t(
-                'Click an item to open it, or drag across the lanes to narrow the timeline. Click a type to hide it.'
-              )}
+            : hasRoutes
+              ? t(
+                  'Click a route to narrow the timeline to it, or an item to open it. Drag across the lanes for any other range, and click a type to hide it.'
+                )
+              : t(
+                  'Click an item to open it, or drag across the lanes to narrow the timeline. Click a type to hide it.'
+                )}
         </Text>
         <Flex flex="1" />
         {active && (
@@ -545,6 +775,27 @@ function describe(event: SessionEvent, offset: number): string {
       ? formatOffset(offset)
       : `${formatOffset(offset)} · ${formatDurationMs(event.duration)}`;
   return `${time} · ${event.title}`;
+}
+
+/**
+ * The hovered route, in the same label.
+ *
+ * Leads with the dwell time rather than with the arrival offset: the question the
+ * band exists to answer is how long the user stayed, and the offset is already
+ * legible from where the segment sits on the axis. How they arrived comes last —
+ * it only matters when it is a pageload, which means a fresh document rather than
+ * a route change inside one.
+ */
+function describeRoute(visit: RouteVisit, sessionStart: number): string {
+  const arrival =
+    visit.op === 'pageload'
+      ? t('page load')
+      : visit.op === 'navigation.redirect'
+        ? t('redirect')
+        : t('navigation');
+  return `${visit.route} · ${formatDurationMs(visit.end - visit.start)} · ${formatOffset(
+    visit.start - sessionStart
+  )} ${arrival}`;
 }
 
 /**
@@ -611,9 +862,12 @@ function clampWindow(range: SessionRange, bounds: SessionRange): SessionRange | 
 function Highlight({
   hit,
   toPercent,
+  laneTop,
   isSelected,
 }: {
   hit: LaneHit;
+  /** Where the first lane starts, which the route band moves down when present. */
+  laneTop: number;
   toPercent: (timestamp: number) => number;
   isSelected?: boolean;
 }) {
@@ -622,7 +876,7 @@ function Highlight({
     return null;
   }
 
-  const top = HEADER_HEIGHT + hit.laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
+  const top = laneTop + hit.laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
 
   if (hit.event.duration === undefined) {
     return (
@@ -831,13 +1085,130 @@ function DensityMarkers({
  * The frame. Column gaps would break the row rules, so the two columns are
  * divided by a border and padded from the inside instead.
  */
-const Chart = styled('div')`
+const Chart = styled('div')<{hasRoutes: boolean}>`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  grid-template-rows: ${HEADER_HEIGHT}px repeat(${LANES.length}, ${LANE_HEIGHT}px);
+  grid-template-rows:
+    ${HEADER_HEIGHT}px ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')}repeat
+    (${LANES.length}, ${LANE_HEIGHT}px);
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
+`;
+
+/**
+ * The route band's label. A lane's is a button because a lane can be switched off;
+ * this one cannot — the route is the frame the other lanes are read inside, and a
+ * frame you can remove is just another lane.
+ */
+const RouteLabel = styled('div')`
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: 0 ${p => p.theme.space.lg};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+const RouteTrack = styled('div')`
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+
+/**
+ * One stay. Unlike every other shape in this chart these tile rather than sit at a
+ * point, so each carries a leading rule in the route's own colour at full strength
+ * over a washed fill — abutting segments of similar hue would otherwise read as
+ * one, and the boundary is the thing worth seeing.
+ */
+const RouteSegment = styled('div')`
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  /*
+   * Rounded on the trailing side only. The leading edge is a hard 3px rule at full
+   * strength against a 22% fill, so it reads as the moment of arrival rather than
+   * as the corner of a box — which is the difference between seeing two stays and
+   * seeing one, when both stays are on the same route and therefore the same colour.
+   */
+  border-radius: 0 ${p => p.theme.radius.xs} ${p => p.theme.radius.xs} 0;
+  border-left: 3px solid transparent;
+  padding: 0 ${p => p.theme.space['2xs']};
+
+  /*
+   * Brightened rather than outlined: the fill is one of eleven hues and set
+   * inline, so the only treatment that reads the same on all of them is one that
+   * works off whatever the segment already is.
+   */
+  &[data-hover] {
+    filter: brightness(1.35);
+  }
+`;
+
+const RouteName = styled('span')`
+  font-size: ${p => p.theme.font.size.xs};
+  color: ${p => p.theme.tokens.content.primary};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+/**
+ * The route's reach into the lanes. Spans every lane row as one element and paints
+ * before them in DOM order, so the lane markers — which sit on transparent tracks
+ * — draw on top without needing a stacking context of their own.
+ */
+const Bands = styled('div')`
+  grid-column: 2;
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+`;
+
+/**
+ * A hint, not a highlight. `neutral.muted` is built to lightly emphasize a block
+ * of content; here it is only marking which side of a boundary something is on,
+ * and the markers it sits behind are what the eye is meant to land on. Cut to a
+ * fraction of the token rather than swapped for a literal, so it still tracks the
+ * theme.
+ */
+const BandTint = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(
+    in srgb,
+    ${p => p.theme.tokens.background.transparent.neutral.muted} 35%,
+    transparent
+  );
+`;
+
+/**
+ * Where the route changed, run down every lane. The one channel that has to stay
+ * legible: it was `border.primary` — `opaque200`, the faintest token there is —
+ * which over 160px of lanes was invisible, and two stays on the *same* route have
+ * nothing else to tell them apart. Their fill matches, their colour matches, their
+ * label matches; without this line a navigation back to where you already were
+ * draws as one unbroken segment.
+ *
+ * Coloured by the route being entered, and a rule rather than a wash. That is what
+ * lets it be crisp without becoming the tint again — a hairline says "here",
+ * where a fill would say "this whole region is special".
+ */
+const BandEdge = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid ${p => p.theme.tokens.border.neutral.muted};
 `;
 
 const HeaderCell = styled('div')`
@@ -964,13 +1335,26 @@ const Veil = styled('div')`
   pointer-events: none;
 `;
 
+/**
+ * The selection, said with its edges rather than with its fill.
+ *
+ * `transparent.accent.muted` is a 58%-alpha blurple — sized for emphasizing a
+ * block of content, and laid over four lanes of coloured markers it repaints all
+ * of them purple. The veil outside already establishes where the window is, so the
+ * fill only has to confirm it: a whisper of accent, with the two crisp edges left
+ * at full strength doing the actual work.
+ */
 const Window = styled('div')`
   position: absolute;
   top: ${HEADER_HEIGHT}px;
   bottom: 0;
   border-left: 1.5px solid ${p => p.theme.tokens.border.accent.vibrant};
   border-right: 1.5px solid ${p => p.theme.tokens.border.accent.vibrant};
-  background: ${p => p.theme.tokens.background.transparent.accent.muted};
+  background: color-mix(
+    in srgb,
+    ${p => p.theme.tokens.background.transparent.accent.muted} 10%,
+    transparent
+  );
   pointer-events: none;
 `;
 
