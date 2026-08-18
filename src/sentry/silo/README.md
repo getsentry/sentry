@@ -39,8 +39,8 @@ $ bin/split-silo-database
 To spin up the silos, run:
 
 ```sh
-sentry devserver --silo=control --celery-beat --workers
-sentry devserver --silo=region --celery-beat --workers --ingest
+sentry devserver --silo=control --task-scheduler --workers
+sentry devserver --silo=region --task-scheduler --workers --ingest
 ```
 
 This will expose the following ports:
@@ -51,7 +51,8 @@ This will expose the following ports:
 | 8001 | HTTP API | Control |
 | 8010 | HTTP API | Region  |
 
-You can omit the `--celery-beat`, `--workers` and `--ingest` options if you don't want those services running.
+You can omit the `--task-scheduler`, `--workers` and `--ingest` options if you don't want those services running.
+Note that `--ingest` implicitly enables `--workers`, so omitting `--workers` won't disable them unless you omit `--ingest` too.
 If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
 
 ## Using Silos & ngrok
