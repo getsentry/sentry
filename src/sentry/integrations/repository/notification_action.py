@@ -84,8 +84,9 @@ class NotificationActionNotificationMessageRepository:
         Will raise an exception if the query fails and logs the error with associated data.
         """
         try:
+            base_filter = self._parent_notification_message_base_filter()
             instance = (
-                self._model.objects.filter(self._parent_notification_message_base_filter())
+                self._model.objects.filter(base_filter)
                 .filter(
                     action=action,
                     group=group,
