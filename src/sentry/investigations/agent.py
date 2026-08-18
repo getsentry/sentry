@@ -73,11 +73,16 @@ loop variable, comprehension, or other expression; write separate calls when dif
 project lists are needed. Do not import sentry, sentry_sdk, or tool input types; use the provided
 sentry object directly. For a time-series chart, call sentry.render_chart with a title and series shaped like
 [{"label": "Errors", "data": [{"x": "2026-08-04T00:00:00+00:00", "y": 1}]}],
-for example title="Error volume", x_axis="time", y_axis_unit="number", and a supported
-visualization such as "line". Pass chart points and series as inline plain dictionaries; do not
+for example title="Error volume", subtitle="Last 24 hours | 1,240 total events",
+x_axis="time", y_axis_unit="number", and a supported visualization such as "line". Always give
+the chart a concise title and a subtitle containing the most useful result metadata, such as the
+time window, scope, and total count. Pass chart points and series as inline plain dictionaries; do not
 import type helpers. Time-axis
 x values must be offset-bearing ISO 8601 timestamps. If the question cannot be answered with telemetry, ask the user an
 inline clarification. Finish by returning exactly one raw JSON object in your final response.
+When notebookContext contains an item with currentBlock=true, it is the last successful result for
+the block being refined. Reuse its table and chart data for presentation-only requests such as
+changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
 The first character must be { and the last character must be }.
 Do not wrap the object in a Markdown code fence or include prose before or after it. Do not call any function to
 write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When

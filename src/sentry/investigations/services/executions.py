@@ -55,9 +55,39 @@ def _compact_query_context(
     return {
         "schemaVersion": validated["schemaVersion"],
         "tableMarkdown": validated["tableMarkdown"][:max_text_chars],
+        "chart": validated.get("chart"),
+        "preferredView": validated["preferredView"],
         "isEmpty": validated["isEmpty"],
+        "chartUnavailableReason": validated.get("chartUnavailableReason"),
         "queryLinks": validated["queryLinks"],
     }
+
+
+def _has_usable_query_data(result: Any) -> bool:
+    try:
+        validated = validate_query_result(result)
+    except ValidationError:
+        return False
+    return not validated["isEmpty"] and bool(
+        validated.get("chart") or validated["tableMarkdown"].strip()
+    )
+
+
+def _query_refinement_context_execution(
+    block: InvestigationBlock,
+) -> InvestigationBlockExecution | None:
+    current = block.result_execution
+    if current is not None and _has_usable_query_data(current.result):
+        return current
+
+    for execution in (
+        block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
+        .exclude(id=current.id if current is not None else None)
+        .order_by("-date_added")[:20]
+    ):
+        if _has_usable_query_data(execution.result):
+            return execution
+    return current
 
 
 def _materialize_dependency_context(
@@ -263,6 +293,34 @@ def build_block_execution_snapshot(
         dependencies, context, context_project_ids = _materialize_dependency_context(
             block, accessible_project_ids=accessible_project_ids
         )
+        previous_execution = _query_refinement_context_execution(block)
+        if (
+            previous_execution is not None
+            and previous_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        ):
+            previous_project_ids = set(
+                previous_execution.data_projects.values_list("id", flat=True)
+            )
+            if not previous_project_ids.issubset(accessible_project_ids):
+                raise InvestigationValidationError(
+                    {"context": "The previous query result uses inaccessible project data."}
+                )
+            context.insert(
+                0,
+                {
+                    "block_id": str(block.id),
+                    "kind": block.kind,
+                    "title": block.title,
+                    "currentBlock": True,
+                    "visibleExecutionId": str(previous_execution.id),
+                    "result": _compact_query_context(previous_execution.result),
+                },
+            )
+            context_project_ids = sorted(set(context_project_ids).union(previous_project_ids))
+            if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
+                raise InvestigationValidationError(
+                    {"context": "The query context is too large to send to the agent."}
+                )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
         "source": investigation_source(block.investigation),
