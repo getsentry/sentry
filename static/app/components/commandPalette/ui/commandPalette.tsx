@@ -326,17 +326,35 @@ export function CommandPalette({
     resetResultsNavigation();
   }, [currentActionKey, resetResultsNavigation]);
 
+  const previousFirstFocusableKeyRef = useRef(firstFocusableKey?.key ?? null);
+  const previousCollectionRef = useRef(treeState.collection);
   useLayoutEffect(() => {
-    if (treeState.selectionManager.focusedKey !== null) {
+    const previousFirstFocusableKey = previousFirstFocusableKeyRef.current;
+    const nextFirstFocusableKey = firstFocusableKey?.key ?? null;
+    const collectionChanged = previousCollectionRef.current !== treeState.collection;
+    previousFirstFocusableKeyRef.current = nextFirstFocusableKey;
+    previousCollectionRef.current = treeState.collection;
+
+    if (mouseLeftResultsRef.current || nextFirstFocusableKey === null) {
       return;
     }
 
-    if (mouseLeftResultsRef.current) {
+    const focusedKey = treeState.selectionManager.focusedKey;
+    const wasFollowingFirstItem =
+      focusedKey === null || focusedKey === previousFirstFocusableKey;
+    if (!wasFollowingFirstItem) {
       return;
     }
 
-    if (firstFocusableKey) {
-      treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
+    if (
+      collectionChanged &&
+      previousFirstFocusableKey !== null &&
+      resultsListRef.current
+    ) {
+      resultsListRef.current.scrollTop = 0;
+    }
+    if (focusedKey !== nextFirstFocusableKey) {
+      treeState.selectionManager.setFocusedKey(nextFirstFocusableKey);
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 

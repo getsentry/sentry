@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -344,25 +344,38 @@ describe('CommandPalette', () => {
     const onAction = jest.fn();
     const onMultiSelect = jest.fn();
 
-    render(
-      <GlobalActionsComponent>
+    function MultiSelectActions() {
+      const [isEnvironmentSelected, setIsEnvironmentSelected] = useState(true);
+
+      return (
         <CMDKAction display={{label: 'Commands'}}>
           <CMDKChainedActionScope>
             <CMDKAction display={{label: 'Group by'}}>
-              <CMDKAction
-                display={{label: 'Environment'}}
-                isSelected
-                onAction={onAction}
-                onMultiSelect={onMultiSelect}
-              />
-              <CMDKAction
-                display={{label: 'Release'}}
-                onAction={() => {}}
-                onMultiSelect={() => {}}
-              />
+              <CMDKAction display={{label: 'Attribute'}}>
+                <CMDKAction
+                  display={{label: 'Environment'}}
+                  isSelected={isEnvironmentSelected}
+                  onAction={onAction}
+                  onMultiSelect={() => {
+                    onMultiSelect();
+                    setIsEnvironmentSelected(selected => !selected);
+                  }}
+                />
+                <CMDKAction
+                  display={{label: 'Release'}}
+                  onAction={() => {}}
+                  onMultiSelect={() => {}}
+                />
+              </CMDKAction>
             </CMDKAction>
           </CMDKChainedActionScope>
         </CMDKAction>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <MultiSelectActions />
       </GlobalActionsComponent>
     );
 
@@ -381,6 +394,7 @@ describe('CommandPalette', () => {
     expect(onMultiSelect).toHaveBeenCalledTimes(1);
     expect(scrollContainer).toHaveProperty('scrollTop', 0);
     expect(closeSpy).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('checkbox', {hidden: true})[0]).not.toBeChecked();
     expect(screen.getByRole('option', {name: 'Environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Release'})).toBeInTheDocument();
 
@@ -1398,6 +1412,47 @@ describe('CommandPalette', () => {
   });
 
   describe('query restoration', () => {
+    it('stays at the top when options load above the initially focused item', async () => {
+      function ProgressiveGroup({loaded}: {loaded: boolean}) {
+        return (
+          <GlobalActionsComponent>
+            <CMDKAction id="progressive-section" display={{label: 'Section'}}>
+              <CMDKAction id="progressive-group" display={{label: 'Group by'}}>
+                {loaded && (
+                  <CMDKAction
+                    id="progressive-first"
+                    display={{label: 'First Attribute'}}
+                    onAction={() => {}}
+                  />
+                )}
+                <CMDKAction
+                  id="progressive-current"
+                  display={{label: 'Current Attribute'}}
+                  onAction={() => {}}
+                />
+              </CMDKAction>
+            </CMDKAction>
+          </GlobalActionsComponent>
+        );
+      }
+
+      const {rerender} = render(<ProgressiveGroup loaded={false} />);
+      await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+      expect(
+        await screen.findByRole('option', {name: 'Current Attribute'})
+      ).toBeInTheDocument();
+      const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+      expect(scrollContainer).toBeInTheDocument();
+      scrollContainer!.scrollTop = 200;
+
+      rerender(<ProgressiveGroup loaded />);
+
+      expect(
+        await screen.findByRole('option', {name: 'First Attribute'})
+      ).toBeInTheDocument();
+      expect(scrollContainer).toHaveProperty('scrollTop', 0);
+    });
+
     it('resets the results scroll position when drilling into a group', async () => {
       render(
         <GlobalActionsComponent>
