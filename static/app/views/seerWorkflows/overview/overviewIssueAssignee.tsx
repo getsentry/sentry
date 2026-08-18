@@ -8,11 +8,8 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import type {AutofixOverviewResponse} from './types';
 
 interface OverviewIssueAssigneeProps {
   groupId: string;
@@ -22,24 +19,6 @@ interface OverviewIssueAssigneeProps {
   memberList?: User[];
   memberListLoading?: boolean;
   owners?: Group['owners'];
-}
-
-function withRunAssignee(
-  response: AutofixOverviewResponse,
-  groupId: string,
-  assignedTo: Group['assignedTo']
-): AutofixOverviewResponse {
-  return {
-    ...response,
-    runsByMilestone: Object.fromEntries(
-      Object.entries(response.runsByMilestone).map(([milestone, runs]) => [
-        milestone,
-        runs.map(run =>
-          run.groupId === groupId ? {...run, issue: {...run.issue, assignedTo}} : run
-        ),
-      ])
-    ) as AutofixOverviewResponse['runsByMilestone'],
-  };
 }
 
 // Intentionally duplicates static/app/utils/dashboards/issueAssignee.tsx for the Autofix Overview POC.
@@ -75,23 +54,12 @@ export function OverviewIssueAssignee({
     [assignedTo, groupId, owners, projectId, projectSlug]
   );
 
-  const handleSuccess = useCallback(
-    async (nextAssignedTo: Group['assignedTo']) => {
-      // Cancel in-flight overview fetches first so a stale response can't land
-      // after the patch and revert the assignee.
-      await queryClient.cancelQueries({queryKey: [overviewUrl]});
-      queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
-        {queryKey: [overviewUrl]},
-        previous =>
-          previous && {
-            ...previous,
-            json: withRunAssignee(previous.json, groupId, nextAssignedTo),
-          }
-      );
-      void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
-    },
-    [groupId, issueIndexUrl, overviewUrl, queryClient]
-  );
+  const handleSuccess = useCallback(() => {
+    // Refetch the overview so the assignee filter's options and counts pick up
+    // the reassignment from the server.
+    void queryClient.invalidateQueries({queryKey: [overviewUrl]});
+    void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
+  }, [issueIndexUrl, overviewUrl, queryClient]);
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     group,
