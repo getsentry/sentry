@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {type ComponentProps, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,6 +8,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -35,7 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
-import {OVERVIEW_SECTIONS, type OverviewSort} from './types';
+import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
 
 const SeerTrialCTA = OverrideOrDefault({
@@ -91,6 +92,14 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
       ?.value ?? 'seer';
   const assignee = decodeScalar(location.query.assignee) ?? null;
+  const view =
+    decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
+
+  const setQueryParam = (key: string, value: string | undefined) =>
+    navigate(
+      {pathname: location.pathname, query: {...location.query, [key]: value}},
+      {replace: true}
+    );
 
   const {data, isPending, isError, enrichmentPending, isRefetching, refetch} =
     useAutofixOverview({
@@ -103,10 +112,16 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]
   );
+  const passesAssignee = (run: OverviewRun) =>
+    assignee === null || matchesAssignee(run, assignee);
+  const assigneeRuns = allRuns.filter(passesAssignee);
+  // "In Progress" means the agent is actively working — the same definition as
+  // the card spinner, so a run awaiting user input is intentionally excluded.
+  const inProgressCount = assigneeRuns.filter(run => run.status === 'processing').length;
   const populatedSections = OVERVIEW_SECTIONS.map(section => ({
     ...section,
     runs: (data?.runsByMilestone[section.milestone] ?? []).filter(
-      run => assignee === null || matchesAssignee(run, assignee)
+      run => passesAssignee(run) && (view === 'all' || run.status === 'processing')
     ),
   })).filter(section => section.runs.length > 0);
 
@@ -129,16 +144,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           value={sort}
           options={SORT_OPTIONS}
           onChange={selected =>
-            navigate(
-              {
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  sort: selected.value === 'seer' ? undefined : selected.value,
-                },
-              },
-              {replace: true}
-            )
+            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
           }
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} size="sm" prefix={t('Sort')} />
@@ -147,15 +153,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <AssigneeFilter
           runs={allRuns}
           value={assignee}
-          onChange={next =>
-            navigate(
-              {
-                pathname: location.pathname,
-                query: {...location.query, assignee: next ?? undefined},
-              },
-              {replace: true}
-            )
-          }
+          onChange={next => setQueryParam('assignee', next ?? undefined)}
         />
         {isRefetching && <LoadingIndicator mini />}
         {(data?.truncatedMilestones?.length ?? 0) > 0 && (
@@ -170,59 +168,105 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
-      ) : populatedSections.length === 0 ? (
-        assignee === null ? (
-          <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
-        ) : (
-          <EmptyState
-            padding="3xl"
-            title={t('No Autofix runs match the selected assignee.')}
-          />
-        )
+      ) : allRuns.length === 0 ? (
+        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
+      ) : assigneeRuns.length === 0 ? (
+        <EmptyState
+          padding="3xl"
+          title={t('No Autofix runs match the selected assignee.')}
+        />
       ) : (
-        <Stack gap="lg">
-          {populatedSections.map(({key, runs}) => {
-            const meta = STATUS_GROUP_META[key];
-            const groupLabel =
-              key === 'needs_investigation' ? t('Create Plan') : meta.label;
-            const expanded = !collapsedGroups.includes(key);
-            return (
-              <StatusGroup
-                key={key}
-                size="sm"
-                expanded={expanded}
-                onExpandedChange={next => toggleGroup(key, next)}
-              >
-                <GroupHeader>
-                  <Disclosure.Title>
-                    <Flex gap="sm" align="center">
-                      <Tooltip title={<StatusGroupTooltip groupKey={key} />} skipWrapper>
-                        <meta.Icon size="sm" aria-hidden />
-                      </Tooltip>
-                      <Text bold>{groupLabel}</Text>
-                      <Badge variant="muted">{runs.length}</Badge>
-                    </Flex>
-                  </Disclosure.Title>
-                </GroupHeader>
-                <Disclosure.Content>
-                  <Stack gap="md" paddingTop="sm">
-                    {runs.map(run => (
-                      <OverviewCard
-                        key={run.seerRunId}
-                        run={run}
-                        orgSlug={organization.slug}
-                        sectionKey={key}
-                        statsPeriod={selection.datetime.period}
-                        enrichmentPending={enrichmentPending}
-                      />
-                    ))}
-                  </Stack>
-                </Disclosure.Content>
-              </StatusGroup>
-            );
-          })}
-        </Stack>
+        <Fragment>
+          <Tabs
+            value={view}
+            onChange={next => setQueryParam('view', next === 'all' ? undefined : next)}
+          >
+            <TabList>
+              <TabList.Item key="all">
+                {t('All Runs (%s)', assigneeRuns.length)}
+              </TabList.Item>
+              <TabList.Item key="in_progress">
+                {t('In Progress (%s)', inProgressCount)}
+              </TabList.Item>
+            </TabList>
+          </Tabs>
+          {populatedSections.length === 0 ? (
+            <EmptyState
+              padding="3xl"
+              title={t('No Autofix runs are currently in progress.')}
+            />
+          ) : (
+            <OverviewSectionList
+              sections={populatedSections}
+              collapsedGroups={collapsedGroups}
+              onToggle={toggleGroup}
+              orgSlug={organization.slug}
+              statsPeriod={selection.datetime.period}
+              enrichmentPending={enrichmentPending}
+            />
+          )}
+        </Fragment>
       )}
+    </Stack>
+  );
+}
+
+function OverviewSectionList({
+  sections,
+  collapsedGroups,
+  onToggle,
+  orgSlug,
+  statsPeriod,
+  enrichmentPending,
+}: {
+  collapsedGroups: StatusGroupKey[];
+  enrichmentPending: boolean;
+  onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
+  orgSlug: string;
+  sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
+  statsPeriod: ComponentProps<typeof OverviewCard>['statsPeriod'];
+}) {
+  return (
+    <Stack gap="lg">
+      {sections.map(({key, runs}) => {
+        const meta = STATUS_GROUP_META[key];
+        const groupLabel = key === 'needs_investigation' ? t('Create Plan') : meta.label;
+        const expanded = !collapsedGroups.includes(key);
+        return (
+          <StatusGroup
+            key={key}
+            size="sm"
+            expanded={expanded}
+            onExpandedChange={next => onToggle(key, next)}
+          >
+            <GroupHeader>
+              <Disclosure.Title>
+                <Flex gap="sm" align="center">
+                  <Tooltip title={<StatusGroupTooltip groupKey={key} />} skipWrapper>
+                    <meta.Icon size="sm" aria-hidden />
+                  </Tooltip>
+                  <Text bold>{groupLabel}</Text>
+                  <Badge variant="muted">{runs.length}</Badge>
+                </Flex>
+              </Disclosure.Title>
+            </GroupHeader>
+            <Disclosure.Content>
+              <Stack gap="md" paddingTop="sm">
+                {runs.map(run => (
+                  <OverviewCard
+                    key={run.seerRunId}
+                    run={run}
+                    orgSlug={orgSlug}
+                    sectionKey={key}
+                    statsPeriod={statsPeriod}
+                    enrichmentPending={enrichmentPending}
+                  />
+                ))}
+              </Stack>
+            </Disclosure.Content>
+          </StatusGroup>
+        );
+      })}
     </Stack>
   );
 }

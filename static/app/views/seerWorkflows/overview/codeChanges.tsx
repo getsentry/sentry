@@ -10,9 +10,9 @@ import {
 } from './changedFilesSection';
 import type {OverviewCodeChangeFile} from './types';
 
-const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag> = {
+const DIFF_TYPE_TAG: Record<DiffFileType, FileChangeTag | null> = {
   [DiffFileType.ADDED]: {label: t('Added'), variant: 'success'},
-  [DiffFileType.MODIFIED]: {label: t('Modified'), variant: 'muted'},
+  [DiffFileType.MODIFIED]: null,
   [DiffFileType.DELETED]: {label: t('Deleted'), variant: 'danger'},
 };
 

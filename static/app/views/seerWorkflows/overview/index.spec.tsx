@@ -82,6 +82,7 @@ describe('AutofixOverview', () => {
     seerRunId: 'run-1',
     lastTriggeredAt: '2026-07-14T09:00:00Z',
     pullRequests: [],
+    status: null,
     issue: issueFixture({count: '1200', userCount: 5}),
   };
 
@@ -96,6 +97,7 @@ describe('AutofixOverview', () => {
     seerRunId: 'run-2',
     lastTriggeredAt: '2026-07-14T10:00:00Z',
     pullRequests: [],
+    status: null,
     issue: issueFixture({project: {id: '3', slug: 'project-slug', platform: 'python'}}),
   };
 
@@ -114,7 +116,7 @@ describe('AutofixOverview', () => {
     enrichedStatusCode?: number;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
-    const baseRequest = MockApiClient.addMockResponse({
+    const statusPollRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       statusCode: baseStatusCode,
       body: {
@@ -124,7 +126,7 @@ describe('AutofixOverview', () => {
     });
     const enrichedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-      match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats']})],
+      match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats', 'status']})],
       asyncDelay: enrichedAsyncDelay,
       statusCode: enrichedStatusCode,
       body: {
@@ -132,7 +134,7 @@ describe('AutofixOverview', () => {
         truncatedMilestones: truncated ?? [],
       },
     });
-    return {baseRequest, enrichedRequest};
+    return {statusPollRequest, enrichedRequest};
   }
 
   // The un-expanded call cannot reach Snuba, so it nulls out the issue stats.
@@ -195,7 +197,7 @@ describe('AutofixOverview', () => {
   }
 
   it('gates the page and issues no requests when the feature is disabled', async () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -208,7 +210,7 @@ describe('AutofixOverview', () => {
       await screen.findByText("You don't have access to this feature")
     ).toBeInTheDocument();
     expect(screen.queryByText('Autofix Overview')).not.toBeInTheDocument();
-    expect(baseRequest).not.toHaveBeenCalled();
+    expect(statusPollRequest).not.toHaveBeenCalled();
     expect(enrichedRequest).not.toHaveBeenCalled();
   });
 
@@ -252,6 +254,100 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
     await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('renders All Runs and In Progress tabs with counts', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('tab', {name: 'All Runs (2)'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'In Progress (1)'})).toBeInTheDocument();
+  });
+
+  it('filters to only in-progress runs when the In Progress tab is selected', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Generate code changes 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (1)'}));
+
+    expect(screen.getByRole('button', {name: 'Create Plan 1'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state on the In Progress tab when nothing is processing', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (0)'}));
+
+    expect(
+      screen.getByText('No Autofix runs are currently in progress.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Create Plan 1'})).not.toBeInTheDocument();
+  });
+
+  it('persists the selected tab in the URL', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'In Progress (1)'}));
+    expect(router.location.query.view).toBe('in_progress');
+
+    await userEvent.click(screen.getByRole('tab', {name: 'All Runs (2)'}));
+    expect(router.location.query.view).toBeUndefined();
+  });
+
+  it('starts on the In Progress tab when the URL selects it', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage({view: 'in_progress'});
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', {name: 'In Progress (1)', selected: true})
+    ).toBeInTheDocument();
   });
 
   it('shows the empty state while keeping the query controls visible', async () => {
@@ -336,7 +432,7 @@ describe('AutofixOverview', () => {
 
   it('scopes the request to the selected project', async () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
-    const {baseRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -345,7 +441,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.objectContaining({project: [2]}),
@@ -354,7 +450,7 @@ describe('AutofixOverview', () => {
   });
 
   it('scopes the request to the selected time window', async () => {
-    const {baseRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -368,7 +464,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.objectContaining({statsPeriod: '7d'}),
@@ -377,7 +473,7 @@ describe('AutofixOverview', () => {
   });
 
   it('issues a cheap request and an enriched expand request', async () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
     // Overview reads everything from the overview endpoint; the legacy
@@ -400,13 +496,13 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.not.objectContaining({expand: expect.anything()}),
+        query: expect.objectContaining({expand: ['status']}),
       })
     );
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.not.objectContaining({environment: expect.anything()}),
@@ -416,13 +512,23 @@ describe('AutofixOverview', () => {
       expect(enrichedRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-overview/`,
         expect.objectContaining({
-          query: expect.objectContaining({expand: ['scmInfo', 'issueStats']}),
+          query: expect.objectContaining({expand: ['scmInfo', 'issueStats', 'status']}),
         })
       )
     );
     expect(runsRequest).not.toHaveBeenCalled();
     expect(autofixRequest).not.toHaveBeenCalled();
     expect(issuesRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows a working spinner for a run that is processing', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [{...rootCauseRun, status: 'processing' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Working…')).toBeInTheDocument();
   });
 
   it('shimmers the enriched slots until the expand request resolves', async () => {
@@ -483,7 +589,9 @@ describe('AutofixOverview', () => {
   });
 
   it('keeps the list up with a spinner while a sort change reloads', async () => {
-    const {baseRequest} = mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
 
     // The events sort returns a different run; hold its enrichment open to keep
     // the reloading state on screen.
@@ -491,7 +599,10 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [
-        MockApiClient.matchQuery({sort: 'events', expand: ['scmInfo', 'issueStats']}),
+        MockApiClient.matchQuery({
+          sort: 'events',
+          expand: ['scmInfo', 'issueStats', 'status'],
+        }),
       ],
       asyncDelay: eventsEnriched.promise,
       body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
@@ -502,18 +613,18 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledTimes(1);
+    expect(statusPollRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // Base does not refetch on a sort change; the old list stays up with a
-    // spinner while the single enriched request reloads.
+    // The status poll refetches for the new sort, but the old list stays up with
+    // a spinner (keepPreviousData) while the enriched request reloads.
     expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledTimes(1);
+    expect(statusPollRequest).toHaveBeenCalledTimes(2);
 
     eventsEnriched.resolve();
 
@@ -806,7 +917,7 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
   });
 
-  it('labels each changed file with its change type', async () => {
+  it('labels non-modified files with their change type', async () => {
     mockOverview({
       base: {
         has_pull_request: [
@@ -859,19 +970,18 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('src/sentry/new.py')).toBeInTheDocument();
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Deleted')).toBeInTheDocument();
-    expect(screen.getByText('Modified')).toBeInTheDocument();
     expect(screen.getByText('Renamed')).toBeInTheDocument();
+    expect(screen.queryByText('Modified')).not.toBeInTheDocument();
     expect(screen.getByText('+12')).toBeInTheDocument();
     expect(screen.getByText('-30')).toBeInTheDocument();
 
-    // Added and deleted keep their own color, rather than all six collapsing
-    // into the muted label used for the rest.
+    // Added and deleted keep their own color, while other non-modified states
+    // use the muted label.
     const tagClassName = (label: string) =>
       screen.getByText(label).closest('[data-test-id="tag-background"]')?.className;
     expect(tagClassName('Added')).not.toEqual(tagClassName('Deleted'));
-    expect(tagClassName('Added')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Renamed')).toEqual(tagClassName('Modified'));
+    expect(tagClassName('Added')).not.toEqual(tagClassName('Renamed'));
+    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Renamed'));
   });
 
   it('renders a file with an unknown change type without a tag', async () => {
@@ -906,7 +1016,10 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const fileRow = (await screen.findByText('src/sentry/mystery.py')).closest('div')!;
+    const fileToggle = await screen.findByRole('button', {
+      name: /src\/sentry\/mystery\.py/,
+    });
+    const fileRow = fileToggle.closest<HTMLElement>('[data-disclosure]')!;
 
     expect(within(fileRow).getByText('+4')).toBeInTheDocument();
     expect(within(fileRow).queryByTestId('tag-background')).not.toBeInTheDocument();
@@ -1076,7 +1189,9 @@ describe('AutofixOverview', () => {
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {
-    const {baseRequest} = mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
 
     renderPage();
 
@@ -1086,7 +1201,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent(
       'Recent Seer Activity'
     );
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.not.objectContaining({sort: expect.anything()}),
@@ -1167,6 +1282,8 @@ describe('AutofixOverview', () => {
       expect(
         screen.queryByText('You don’t have any Autofix runs...yet.')
       ).not.toBeInTheDocument();
+      // No tabs above the message when the filter matches nothing to switch between.
+      expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
 
     it('shows a truncation notice when the backend caps a section', async () => {
@@ -1270,7 +1387,7 @@ describe('AutofixOverview', () => {
   });
 
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -1284,7 +1401,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('Autofix Overview')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Sort/})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
-    expect(baseRequest).not.toHaveBeenCalled();
+    expect(statusPollRequest).not.toHaveBeenCalled();
     expect(enrichedRequest).not.toHaveBeenCalled();
   });
 

@@ -20,12 +20,12 @@ import {
   QUERY_STALE_TIME,
 } from './types';
 
-const FILE_CHANGE_TAG: Record<PullRequestFileChangeType, FileChangeTag> = {
+const FILE_CHANGE_TAG: Record<PullRequestFileChangeType, FileChangeTag | null> = {
   ADDED: {label: t('Added'), variant: 'success'},
-  CHANGED: {label: t('Changed'), variant: 'muted'},
+  CHANGED: null,
   COPIED: {label: t('Copied'), variant: 'muted'},
   DELETED: {label: t('Deleted'), variant: 'danger'},
-  MODIFIED: {label: t('Modified'), variant: 'muted'},
+  MODIFIED: null,
   RENAMED: {label: t('Renamed'), variant: 'muted'},
 };
 
