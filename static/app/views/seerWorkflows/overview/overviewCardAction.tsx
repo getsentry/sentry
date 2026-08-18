@@ -2,20 +2,19 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
+import {
+  CodingAgentMenuFooter,
+  useCodingAgentMenuItems,
+} from 'sentry/components/events/autofix/v3/codingAgentMenu';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconChevron, IconOpen, IconSeer} from 'sentry/icons';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
+import {IconChevron, IconOpen, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSeerLink} from './openSeerButton';
 import {type ActionableSectionKey, useNextAction} from './overviewActions';
@@ -28,7 +27,6 @@ export function OverviewCardAction({
   run: OverviewRun;
   sectionKey: ActionableSectionKey;
 }) {
-  const organization = useOrganization();
   // Defer agent-option fetches until the dropdown opens to avoid per-card repo pagination.
   const [menuOpened, setMenuOpened] = useState(false);
 
@@ -62,6 +60,12 @@ export function OverviewCardAction({
     enabled: isDraftPr,
   });
 
+  const agentItems = useCodingAgentMenuItems({
+    codingAgentIntegrations,
+    codingAgentDisabledReason,
+    onCodingAgentHandoff: handleCodingAgentHandoff,
+  });
+
   const menuItems = useMemo<MenuItemProps[]>(() => {
     if (isLoadingOptions) {
       return [
@@ -78,26 +82,6 @@ export function OverviewCardAction({
       ];
     }
 
-    const agentItems = (codingAgentIntegrations ?? []).map(integration => {
-      const actionLabel =
-        integration.requires_identity && !integration.has_identity
-          ? t('Setup %s', integration.name)
-          : t('Send to %s', integration.name);
-      return {
-        key: `agent:${integration.id ?? integration.provider}`,
-        textValue: actionLabel,
-        label: (
-          <Flex gap="md" align="center">
-            <PluginIcon pluginId={integration.provider} size={16} />
-            <span>{actionLabel}</span>
-          </Flex>
-        ),
-        disabled: defined(codingAgentDisabledReason),
-        tooltip: codingAgentDisabledReason,
-        onAction: () => handleCodingAgentHandoff(integration),
-      };
-    });
-
     return [
       {
         key: 'open-seer',
@@ -113,14 +97,7 @@ export function OverviewCardAction({
       },
       ...agentItems,
     ];
-  }, [
-    isLoadingOptions,
-    codingAgentIntegrations,
-    codingAgentDisabledReason,
-    handleCodingAgentHandoff,
-    openSeerTo,
-    trackOpen,
-  ]);
+  }, [isLoadingOptions, agentItems, openSeerTo, trackOpen]);
 
   if (isDispatched) {
     return (
@@ -179,16 +156,7 @@ export function OverviewCardAction({
         position="bottom-end"
         shouldCloseOnBlur={false}
         onOpenChange={isOpen => isOpen && setMenuOpened(true)}
-        menuFooter={
-          <DropdownMenuFooter>
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
-            >
-              {t('Add Integration')}
-            </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
-        }
+        menuFooter={<CodingAgentMenuFooter />}
       />
     </ButtonBar>
   );

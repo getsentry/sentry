@@ -1,14 +1,12 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
@@ -22,12 +20,14 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  CodingAgentMenuFooter,
+  useCodingAgentMenuItems,
+} from 'sentry/components/events/autofix/v3/codingAgentMenu';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconOpen} from 'sentry/icons/iconOpen';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -480,28 +480,11 @@ function NextStepTemplate({
   codingAgentDisabledReason,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
-  const organization = useOrganization();
-
-  const codingAgentOptions = useMemo(() => {
-    return (codingAgentIntegrations ?? []).map(integration => {
-      const actionLabel =
-        integration.requires_identity && !integration.has_identity
-          ? t('Setup %s', integration.name)
-          : t('Send to %s', integration.name);
-
-      return {
-        key: `agent:${integration.id ?? integration.provider}`,
-        textValue: actionLabel,
-        label: (
-          <Flex gap="md" align="center">
-            <PluginIcon pluginId={integration.provider} size={16} />
-            <span>{actionLabel}</span>
-          </Flex>
-        ),
-        onAction: () => onCodingAgentHandoff?.(integration),
-      };
-    });
-  }, [codingAgentIntegrations, onCodingAgentHandoff]);
+  const codingAgentOptions = useCodingAgentMenuItems({
+    codingAgentIntegrations,
+    codingAgentDisabledReason,
+    onCodingAgentHandoff: integration => onCodingAgentHandoff?.(integration),
+  });
 
   const [clickedNo, handleClickedNo] = useState(false);
   const [userContext, setUserContext] = useState('');
@@ -556,16 +539,7 @@ function NextStepTemplate({
               )}
               position="bottom-end"
               shouldCloseOnBlur={false}
-              menuFooter={
-                <DropdownMenuFooter>
-                  <MenuComponents.CTALinkButton
-                    icon={<IconAdd />}
-                    to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
-                  >
-                    {t('Add Integration')}
-                  </MenuComponents.CTALinkButton>
-                </DropdownMenuFooter>
-              }
+              menuFooter={<CodingAgentMenuFooter />}
             />
           )}
         </ButtonBar>
