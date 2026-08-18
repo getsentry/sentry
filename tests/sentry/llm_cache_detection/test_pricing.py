@@ -171,17 +171,37 @@ class TestSavingsEstimate:
 
         assert pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats())) is None
 
-    @pytest.mark.parametrize(
-        "zeroed",
-        [
-            pytest.param({"input_price": 0}, id="no-input-price"),
-            pytest.param({"cached_input_price": 0}, id="no-cached-price"),
-            pytest.param({"cache_write_price": 0}, id="no-write-price"),
-        ],
-    )
-    def test_returns_none_when_a_price_is_missing(self, zeroed: dict[str, float]) -> None:
-        # A zero means the feed carries no price for that token type, not that
-        # the tokens are free; pricing off it would invent savings.
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(**zeroed)}))
+    def test_returns_none_when_the_model_has_no_input_price(self) -> None:
+        # A zero input price means the feed carries no pricing for this model at
+        # all, not that the model is free.
+        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(input_price=0)}))
 
         assert pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats())) is None
+
+    def test_prices_a_provider_that_serves_cache_reads_for_free(self) -> None:
+        stats = make_stats(sum_input_tokens=1_000_000)
+        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cached_input_price=0)}))
+
+        estimate = pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
+
+        assert estimate is not None
+        assert estimate.estimated_savings_usd == pytest.approx(1_000_000 * INPUT_PRICE)
+
+    def test_prices_thrash_on_a_provider_that_does_not_charge_to_write(self) -> None:
+        # OpenAI writes the cache at no cost, so the write premium is not where
+        # the money goes -- the input billed at full rate is.
+        stats = make_stats(
+            sum_input_tokens=10_000_000,
+            sum_cache_read_tokens=200_000,
+            sum_cache_creation_tokens=8_000_000,
+        )
+        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cache_write_price=0)}))
+
+        estimate = pricebook.estimate(make_finding(CacheOutcome.THRASH, stats))
+
+        assert estimate is not None
+        assert estimate.estimated_savings_usd == pytest.approx(
+            stats.uncached_tokens * (INPUT_PRICE - CACHED_INPUT_PRICE)
+        )
+        # Nothing is overpaid when the writes were free.
+        assert estimate.overpay_vs_no_cache_usd is None

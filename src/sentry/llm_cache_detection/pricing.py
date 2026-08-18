@@ -71,14 +71,17 @@ def _estimate_from_costs(finding: CacheFinding, costs: AIModelCost) -> SavingsEs
     cached_input_price = costs["inputCachedPerToken"]
     cache_write_price = costs["inputCacheWritePerToken"]
 
-    # A zero input price means the feed has no real pricing for this model
-    # rather than that the model is free, and every difference below would
-    # collapse to zero or go negative.
-    if input_price <= 0 or cached_input_price <= 0 or cache_write_price <= 0:
+    # Only the plain input price is load-bearing: a zero there means the feed
+    # carries no pricing for this model at all, and every difference below would
+    # collapse. Zeros in the other two are real -- some providers serve cache
+    # reads or charge for cache writes at no cost.
+    if input_price <= 0:
         return None
 
     stats = finding.stats
-    if finding.outcome == CacheOutcome.THRASH:
+    charges_a_write_premium = cache_write_price > cached_input_price
+
+    if finding.outcome == CacheOutcome.THRASH and charges_a_write_premium:
         # The prefix is being written and then invalidated; a stable one would
         # have turned those writes into reads.
         savings = stats.sum_cache_creation_tokens * (cache_write_price - cached_input_price)
@@ -87,9 +90,10 @@ def _estimate_from_costs(finding: CacheFinding, costs: AIModelCost) -> SavingsEs
         ) - stats.sum_cache_read_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = overpay if overpay > 0 else None
     else:
-        # Nothing is cached, so the whole uncached volume was billed at the full
-        # input rate. This is an upper bound: how much of each prompt is a
-        # shared prefix is not knowable from the aggregates.
+        # Either nothing is cached, or the provider charges nothing extra to
+        # write the cache -- so the harm is the volume billed at the full input
+        # rate rather than a write premium. This is an upper bound: how much of
+        # each prompt is a shared prefix is not knowable from the aggregates.
         savings = stats.uncached_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = None
 
