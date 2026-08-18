@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import html
+import re
 from datetime import datetime
 from enum import StrEnum
 from functools import partial
@@ -63,6 +64,12 @@ class TitleGenerationStatus(StrEnum):
 
 
 IN_FLIGHT_TITLE_STATUSES = (TitleGenerationStatus.PENDING, TitleGenerationStatus.RUNNING)
+
+TITLE_WORD_LIMIT = 5
+SUMMARY_MIN_WORDS = 4
+SUMMARY_WORD_LIMIT = 5
+SUMMARY_DESCRIPTION_MAX_CHARS = 2000
+TITLE_PREVIEW_PATTERN = re.compile(r'"title"\s*:\s*"((?:\\.|[^"\\])*)')
 
 QUERY_INSTRUCTIONS = """You are answering a query block inside a Sentry investigation.
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
@@ -780,7 +787,17 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
 
 
 def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
-    if investigation.title != DEFAULT_INVESTIGATION_TITLE:
+    blocks = list(
+        investigation.blocks.filter(deleted_at__isnull=True)
+        .select_related("content_execution", "result_execution")
+        .order_by("position")
+    )
+    auto_run_blocks = [block for block in blocks if block.config.get("autoRun")]
+    if not auto_run_blocks and investigation.title != DEFAULT_INVESTIGATION_TITLE:
+        return
+    if auto_run_blocks and not all(_block_has_current_result(block) for block in auto_run_blocks):
+        return
+    if investigation.summary is not None and investigation.summary_description is not None:
         return
     user = user_service.get_user(user_id=user_id) if user_id else None
     client = SeerAgentClient(
@@ -794,17 +811,16 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         enable_streaming=True,
         max_iterations=3,
     )
-    block_context = "\n".join(
-        f"- {block.title}: {(block.prompt or block.content)[:1000]}"
-        for block in investigation.blocks.filter(deleted_at__isnull=True).order_by("position")
-    )
+    block_context = "\n".join(_completion_block_context(block) for block in blocks)
     prompt = (
-        "Write a concise, single-line title that identifies the specific incident being "
-        "investigated. Prefer concrete incident details such as the monitor or issue name, "
-        "affected project, breached threshold or direction, and relevant time window. Avoid "
-        "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
-        "Do not use tools. Return only the title text. Do not call any function to write or save "
-        "it.\n<source_context>\n"
+        "Describe a completed Sentry investigation. Do not use tools. Return exactly one raw JSON "
+        "object with the keys title, summary, and summary_description and no other text. title "
+        "must identify the incident in at most 5 words. summary must state what happened in 4 or "
+        "5 words. summary_description must be 2 or 3 newline-separated, concise lines covering "
+        "the investigation's key evidence and the most useful next steps for a human fixing the "
+        "issue. Distinguish established facts from hypotheses and do not invent a cause. Put title "
+        "first in the JSON object. Do not call any function to write or save the result.\n"
+        "<source_context>\n"
         f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
@@ -812,9 +828,8 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     database = router.db_for_write(Investigation)
     with transaction.atomic(using=database):
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
-        if (
-            locked.title != DEFAULT_INVESTIGATION_TITLE
-            or locked.title_generation_status in IN_FLIGHT_TITLE_STATUSES
+        if locked.title_generation_status in IN_FLIGHT_TITLE_STATUSES or (
+            locked.summary is not None and locked.summary_description is not None
         ):
             return
         locked.update(title_generation_status=TitleGenerationStatus.PENDING)
@@ -851,23 +866,98 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
         return
     if state.status in {"processing", "awaiting_user_input"}:
         return
-    title = next(
+    content = next(
         (
-            " ".join(block.message.content.split())[:255]
+            block.message.content
             for block in reversed(state.blocks)
             if block.message.role == "assistant" and block.message.content
         ),
         "",
     )
+    metadata = _parse_completion_metadata(content)
     updates: dict[str, Any] = {
         "title_generation_status": (
-            TitleGenerationStatus.COMPLETED if title else TitleGenerationStatus.FAILED
+            TitleGenerationStatus.COMPLETED if metadata else TitleGenerationStatus.FAILED
         )
     }
-    if title and investigation.title == DEFAULT_INVESTIGATION_TITLE:
-        updates["title"] = title
+    if metadata:
+        if investigation.title == DEFAULT_INVESTIGATION_TITLE:
+            updates["title"] = metadata["title"]
+        updates["summary"] = metadata["summary"]
+        updates["summary_description"] = metadata["summary_description"]
         updates["version"] = F("version") + 1
     investigation.update(**updates)
+
+
+def _block_has_current_result(block: InvestigationBlock) -> bool:
+    execution = (
+        block.result_execution
+        if block.kind == InvestigationBlockKind.QUERY
+        else block.content_execution
+    )
+    return (
+        execution is not None
+        and execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        and block.stale_at is None
+    )
+
+
+def _completion_block_context(block: InvestigationBlock) -> str:
+    if block.kind == InvestigationBlockKind.QUERY and block.result_execution is not None:
+        output = json.dumps(block.result_execution.result)
+    else:
+        output = block.content
+    return f"- {block.title}\n  Request: {block.prompt[:1000]}\n  Result: {output[:4000]}"
+
+
+def _parse_completion_metadata(content: str) -> dict[str, str] | None:
+    try:
+        payload = json.loads(content)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict) or set(payload) != {
+        "title",
+        "summary",
+        "summary_description",
+    }:
+        return None
+    if not all(isinstance(value, str) for value in payload.values()):
+        return None
+    title = " ".join(payload["title"].split())
+    summary = " ".join(payload["summary"].split())
+    description_lines = [
+        " ".join(line.split())
+        for line in payload["summary_description"].splitlines()
+        if line.strip()
+    ]
+    if not (
+        1 <= len(title.split()) <= TITLE_WORD_LIMIT
+        and SUMMARY_MIN_WORDS <= len(summary.split()) <= SUMMARY_WORD_LIMIT
+        and 2 <= len(description_lines) <= 3
+    ):
+        return None
+    summary_description = "\n".join(description_lines)
+    if len(summary_description) > SUMMARY_DESCRIPTION_MAX_CHARS:
+        return None
+    return {
+        "title": title[:255],
+        "summary": summary[:255],
+        "summary_description": summary_description,
+    }
+
+
+def title_generation_preview(content: str | None) -> str | None:
+    if not content:
+        return None
+    metadata = _parse_completion_metadata(content)
+    if metadata is not None:
+        return metadata["title"]
+    match = TITLE_PREVIEW_PATTERN.search(content)
+    if match is None:
+        return None
+    partial_title = match.group(1).replace(r"\"", '"').replace(r"\\", "\\")
+    words = partial_title.split()
+    return " ".join(words[:TITLE_WORD_LIMIT]) or None
 
 
 def interrupt_run(organization: Organization, run_id: int) -> None:

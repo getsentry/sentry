@@ -53,6 +53,8 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
+    summary: str | None
+    summaryDescription: str | None
     status: str
     sourceType: str
     createdBy: str | None
@@ -117,6 +119,8 @@ class InvestigationSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "summary": obj.summary,
+            "summaryDescription": obj.summary_description,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),

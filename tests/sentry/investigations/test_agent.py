@@ -9,6 +9,7 @@ from sentry.investigations.agent import (
     start_execution_run,
     synchronize_execution,
     synchronize_title,
+    title_generation_preview,
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
 from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
@@ -31,6 +32,21 @@ def state(*, blocks: list[MemoryBlock], status: str = "completed") -> SeerRunSta
         blocks=blocks,
         status=status,
         updated_at="2026-08-03T00:00:00Z",
+    )
+
+
+def completion_metadata(
+    *,
+    title: str = "Daily error volume spike",
+    summary: str = "Error volume crossed threshold",
+    description: str = "One endpoint drove most errors.\nRoll back the latest endpoint change.",
+) -> str:
+    return json.dumps(
+        {
+            "title": title,
+            "summary": summary,
+            "summary_description": description,
+        }
     )
 
 
@@ -720,7 +736,7 @@ class InvestigationAgentTest(TestCase):
                 MemoryBlock(
                     id="title",
                     timestamp="2026-08-03T00:00:00Z",
-                    message=Message(role="assistant", content="Daily error volume by project"),
+                    message=Message(role="assistant", content=completion_metadata()),
                 )
             ]
         )
@@ -728,7 +744,11 @@ class InvestigationAgentTest(TestCase):
         synchronize_title(self.investigation, run_state)
 
         self.investigation.refresh_from_db()
-        assert self.investigation.title == "Daily error volume by project"
+        assert self.investigation.title == "Daily error volume spike"
+        assert self.investigation.summary == "Error volume crossed threshold"
+        assert self.investigation.summary_description == (
+            "One endpoint drove most errors.\nRoll back the latest endpoint change."
+        )
         assert self.investigation.title_generation_status == "completed"
 
     @patch("sentry.investigations.agent.SeerAgentClient")
@@ -750,10 +770,29 @@ class InvestigationAgentTest(TestCase):
         _maybe_start_title_generation(self.investigation, None)
 
         prompt = mock_client.return_value.start_run.call_args.args[0]
-        assert "specific incident" in prompt
         assert "Checkout errors breached 100 events" in prompt
         assert "checkout-api" in prompt
-        assert "Avoid generic titles" in prompt
+        assert "at most 5 words" in prompt
+        assert "summary_description" in prompt
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_waits_for_every_auto_run_block(self, mock_client: MagicMock) -> None:
+        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+        self.block.update(config={"autoRun": True})
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        mock_client.return_value.start_run.assert_not_called()
+
+        self.execution.update(
+            status=InvestigationBlockExecutionStatus.COMPLETED,
+            result={"schemaVersion": 1},
+        )
+        self.block.update(result_execution=self.execution, stale_at=None)
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        mock_client.return_value.start_run.assert_called_once()
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:
@@ -796,7 +835,7 @@ class InvestigationAgentTest(TestCase):
                 MemoryBlock(
                     id="title",
                     timestamp="2026-08-03T00:00:00Z",
-                    message=Message(role="assistant", content="Checkout errors above threshold"),
+                    message=Message(role="assistant", content=completion_metadata()),
                 )
             ]
         )
@@ -805,3 +844,11 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.version == version + 1
         self.investigation.refresh_from_db()
         assert self.investigation.version == version + 1
+
+    def test_title_preview_streams_partial_metadata(self) -> None:
+        assert title_generation_preview('{"title":"Checkout errors above') == (
+            "Checkout errors above"
+        )
+        assert title_generation_preview(
+            '{"title":"Checkout errors above threshold today extra'
+        ) == ("Checkout errors above threshold today")
