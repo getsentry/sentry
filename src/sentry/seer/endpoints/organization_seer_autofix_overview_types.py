@@ -70,6 +70,7 @@ class RunPayload(TypedDict):
     pullRequests: list[PullRequestPayload]
     codeChanges: list[CodeChangeFilePayload]
     issue: IssuePayload
+    status: str | None
 
 
 class OverviewResponse(TypedDict):
