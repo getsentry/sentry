@@ -771,6 +771,7 @@ function getSeriesName(series: {label: string} | {name: string}) {
 
 const CellSection = styled('section')<{$withDivider: boolean}>`
   width: 100%;
+  margin-bottom: ${p => (p.$withDivider ? p.theme.space.xl : 0)};
   padding: ${p => (p.$withDivider ? p.theme.space.xl : 0)} 0;
   border-bottom: ${p =>
     p.$withDivider ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
