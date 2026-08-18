@@ -225,7 +225,7 @@ function OverviewAction({
                 disabled={failedChecks.length === 0}
                 title={
                   <Stack gap="xs" align="start">
-                    <Text size="sm" bold>
+                    <Text size="sm" bold align="left">
                       {t('Failing checks:')}
                     </Text>
                     <Stack gap="2xs" align="start">
@@ -234,7 +234,9 @@ function OverviewAction({
                           <Text size="sm" variant="muted">
                             •
                           </Text>
-                          <Text size="sm">{name}</Text>
+                          <Text size="sm" align="left">
+                            {name}
+                          </Text>
                         </Flex>
                       ))}
                     </Stack>
