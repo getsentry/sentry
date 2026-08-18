@@ -1,3 +1,4 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -53,6 +54,11 @@ describe('OverviewCardAction', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
       body: [{provider: 'github'}],
+    });
+    // Draft-PR cards fetch write-access via the shared create-PR gate.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/repos/',
+      body: {repos: [{has_write_access: true, integration_id: 5}]},
     });
   });
 
@@ -155,6 +161,39 @@ describe('OverviewCardAction', () => {
       })
     );
     expect(await screen.findByRole('button', {name: /Creating PR/})).toBeDisabled();
+  });
+
+  it('routes a Draft PR card to grant permissions when write access is missing', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/repos/',
+      body: {repos: [{has_write_access: false, integration_id: 42}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/42/',
+      body: GitHubIntegrationFixture({externalId: '654321', accountType: ''}),
+    });
+    const postRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <OverviewCardAction
+        run={runFixture()}
+        sectionKey="code_changes_ready"
+        issueUrl={issueUrl}
+      />,
+      {organization}
+    );
+
+    const permissionsLink = await screen.findByRole('button', {name: /permissions/i});
+    expect(permissionsLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('/permissions/update')
+    );
+    expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
+    expect(postRequest).not.toHaveBeenCalled();
   });
 
   it('restores the action button when the trigger fails', async () => {

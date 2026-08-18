@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
+import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,6 +19,7 @@ import {
   IconChevron,
   IconCode,
   IconCommit,
+  IconOpen,
   IconSearch,
   IconSeer,
 } from 'sentry/icons';
@@ -27,6 +29,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AutofixStateKey, OverviewRun} from './types';
@@ -117,6 +120,14 @@ export function OverviewCardAction({
       enabled: menuOpened,
     });
 
+  // Only Draft PR cards can create a PR; mirror the drawer's write-access gate
+  // so a missing-permissions repo sends the user to grant access.
+  const isDraftPr = sectionKey === 'code_changes_ready';
+  const {permissionsTarget} = useAutofixCreatePrGate({
+    group: {id: run.groupId},
+    enabled: isDraftPr,
+  });
+
   const menuItems = useMemo<MenuItemProps[]>(() => {
     const agentItems = (codingAgentIntegrations ?? []).map(integration => {
       const actionLabel =
@@ -195,26 +206,58 @@ export function OverviewCardAction({
           }),
         ],
       });
-    } catch (error: any) {
+    } catch (error) {
       if (config.errorFallback) {
-        addErrorMessage(error?.responseJSON?.detail ?? config.errorFallback);
+        const detail = (error as RequestError)?.responseJSON?.detail;
+        addErrorMessage(typeof detail === 'string' ? detail : config.errorFallback);
       }
+      // startStep writes an error into the shared explorer cache; drop it so a
+      // later drawer open doesn't briefly show this card's stale failure.
+      queryClient.removeQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: run.groupId},
+          }),
+        ],
+      });
       setDispatched(false);
     }
   };
 
+  const permissionsButton = permissionsTarget ? (
+    <Tooltip
+      title={t(
+        'You need to grant write permissions for your %s integration',
+        permissionsTarget.integration.provider.name
+      )}
+      skipWrapper
+    >
+      <LinkButton
+        size="sm"
+        variant="secondary"
+        icon={<IconOpen />}
+        href={permissionsTarget.url}
+        external
+      >
+        {t('Update permissions')}
+      </LinkButton>
+    </Tooltip>
+  ) : null;
+
   return (
     <ButtonBar>
-      <Tooltip title={config.description} skipWrapper>
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<config.Icon />}
-          onClick={handleTrigger}
-        >
-          {config.label}
-        </Button>
-      </Tooltip>
+      {permissionsButton ?? (
+        <Tooltip title={config.description} skipWrapper>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<config.Icon />}
+            onClick={handleTrigger}
+          >
+            {config.label}
+          </Button>
+        </Tooltip>
+      )}
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
