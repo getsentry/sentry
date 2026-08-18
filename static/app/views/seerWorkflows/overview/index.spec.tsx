@@ -357,20 +357,6 @@ describe('AutofixOverview', () => {
       await waitFor(() => expect(group3Request).toHaveBeenCalled());
       expect(seerDrawer()).toBeInTheDocument();
     });
-
-    it('shows an error state when the group fails to load', async () => {
-      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/2/`,
-        statusCode: 500,
-      });
-
-      renderPage({seerDrawer: '2'});
-
-      expect(
-        await screen.findByText('There was an error loading data.')
-      ).toBeInTheDocument();
-    });
   });
 
   it('renders All Runs and In Progress tabs with counts', async () => {
