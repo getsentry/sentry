@@ -26,6 +26,10 @@ class ErrorActionType(SentryAppActionType):
     CREATED = "created"
 
 
+class DeployActionType(SentryAppActionType):
+    CREATED = "created"
+
+
 class CommentActionType(SentryAppActionType):
     CREATED = "created"
     DELETED = "deleted"
@@ -73,6 +77,7 @@ class SentryAppResourceType(StrEnum):
     ISSUE = "issue"
     ERROR = "error"
     COMMENT = "comment"
+    DEPLOY = "deploy"
     INSTALLATION = "installation"
     METRIC_ALERT = "metric_alert"
     SEER = "seer"
@@ -100,6 +105,7 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.COMMENT_DELETED,
         SentryAppEventType.COMMENT_UPDATED,
     ],
+    SentryAppResourceType.DEPLOY: [SentryAppEventType.DEPLOY_CREATED],
     SentryAppResourceType.SEER: [
         SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
         SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,

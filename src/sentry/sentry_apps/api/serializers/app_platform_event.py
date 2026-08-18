@@ -89,6 +89,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             get_path(self.data, "issue", "permalink")  # issue.*
             or get_path(self.data, "event", "web_url")  # event_alert.triggered
             or get_path(self.data, "error", "web_url")  # error.created
+            or get_path(self.data, "deploy", "web_url")  # deploy.created
             or get_path(self.data, "web_url")  # metric_alert.*
         )
         if url:

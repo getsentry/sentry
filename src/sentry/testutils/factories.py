@@ -113,6 +113,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
 )
 from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
@@ -652,6 +653,18 @@ class Factories:
         env = Environment.objects.create(organization_id=organization_id, name=name)
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_deploy(release, environment, **kwargs) -> Deploy:
+        organization_id = kwargs.pop("organization_id", release.organization_id)
+
+        return Deploy.objects.create(
+            organization_id=organization_id,
+            release=release,
+            environment_id=environment.id,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

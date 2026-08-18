@@ -46,6 +46,7 @@ REQUIRED_EVENT_PERMISSIONS = {
     "team": "team:read",
     "comment": "event:read",
     "preprod_artifact": "project:read",
+    "deploy": "project:releases",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of

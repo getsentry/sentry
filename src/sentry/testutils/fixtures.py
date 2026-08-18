@@ -27,6 +27,7 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -246,6 +247,13 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
+
+    def create_deploy(self, release=None, environment=None, **kwargs) -> Deploy:
+        if release is None:
+            release = self.release
+        if environment is None:
+            environment = self.environment
+        return Factories.create_deploy(release=release, environment=environment, **kwargs)
 
     def create_project(self, **kwargs) -> Project:
         if "teams" not in kwargs:

@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -501,3 +502,44 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert not ReleaseProjectEnvironment.objects.filter(
             project=self.project, release=release, environment=environment
         ).exists()
+
+
+class ReleaseDeploysCreateWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.login_as(self.user)
+        self.release = self.create_release(project=self.project, version="1.0.0")
+        self.url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "version": self.release.version,
+            },
+        )
+
+    @patch("sentry.releases.deploy_webhooks.broadcast_webhooks_for_organization.delay")
+    def test_creating_a_deploy_enqueues_the_webhook(self, delay: MagicMock) -> None:
+        with self.feature("organizations:deploy-webhooks"):
+            response = self.client.post(self.url, data={"environment": "production"})
+
+        assert response.status_code == 201, response.content
+
+        delay.assert_called_once()
+        kwargs = delay.call_args.kwargs
+        assert kwargs["resource_name"] == "deploy"
+        assert kwargs["event_name"] == "created"
+        assert kwargs["organization_id"] == self.organization.id
+
+        deploy_payload = kwargs["payload"]["deploy"]
+        assert deploy_payload["environment"] == "production"
+        assert deploy_payload["release"] == {"version": "1.0.0"}
+        assert deploy_payload["projects"] == [{"slug": self.project.slug}]
+        # Datetimes must already be strings; the payload is JSON-encoded downstream.
+        assert isinstance(deploy_payload["dateFinished"], str)
+
+    @patch("sentry.releases.deploy_webhooks.broadcast_webhooks_for_organization.delay")
+    def test_no_webhook_without_the_feature(self, delay: MagicMock) -> None:
+        with self.feature({"organizations:deploy-webhooks": False}):
+            response = self.client.post(self.url, data={"environment": "production"})
+
+        assert response.status_code == 201, response.content
+        assert not delay.called

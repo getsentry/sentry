@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.models.deploy import Deploy
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.releases.deploy_webhooks import send_deploy_created_webhook
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
 from sentry.sentry_apps.utils.webhooks import is_subscribed
@@ -16,6 +18,7 @@ from sentry.signals import (
     comment_created,
     comment_deleted,
     comment_updated,
+    deploy_created,
     issue_assigned,
     issue_escalating,
     issue_ignored,
@@ -96,6 +99,13 @@ def send_issue_unresolved_webhook_helper(
         event="issue.unresolved",
         data=data,
     )
+
+
+@deploy_created.connect(weak=False)
+def send_deploy_created_webhook_receiver(
+    deploy: Deploy, projects: Sequence[Project] | None = None, **kwargs
+) -> None:
+    send_deploy_created_webhook(deploy, projects or [])
 
 
 @comment_created.connect(weak=False)
