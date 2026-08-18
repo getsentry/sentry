@@ -1086,41 +1086,19 @@ describe('AutofixOverview', () => {
       expect(router.location.query.assignee).toBeUndefined();
     });
 
-    it('reflects a reassignment in the filter options after refetch', async () => {
+    it('adds a newly assigned user to the filter options', async () => {
       const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
-      const nextActor: Actor = {
-        id: nextAssignee.id,
-        name: nextAssignee.name,
-        type: 'user',
-        email: '',
-      };
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/users/`,
         body: [MemberFixture({user: nextAssignee})],
       });
-      // The overview endpoint returns the new assignee only once the issue has
-      // been reassigned, mirroring the refetch that invalidation triggers.
-      let reassigned = false;
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-        body: () => ({
-          runsByMilestone: {
-            ...emptyMilestones,
-            autofix_root_cause: [
-              reassigned
-                ? {...rootCauseRun, issue: issueFixture({assignedTo: nextActor})}
-                : rootCauseRun,
-            ],
-          },
-          truncatedMilestones: [],
-        }),
-      });
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       const assignRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${rootCauseRun.groupId}/`,
         method: 'PUT',
-        body: () => {
-          reassigned = true;
-          return {...GroupFixture({id: rootCauseRun.groupId}), assignedTo: nextActor};
+        body: {
+          ...GroupFixture({id: rootCauseRun.groupId}),
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
         },
       });
 
