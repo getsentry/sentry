@@ -11,10 +11,22 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
-# Restricting to generate_content is mandatory: invoke_agent spans re-aggregate
-# the token usage of their child generate_content spans (double counting, null
-# model) and embeddings spans have no prompt-cache concept.
-GEN_AI_CALL_FILTER = "span.op:gen_ai.generate_content has:gen_ai.usage.input_tokens"
+# `ai_client` is the ingestion-normalized marker for an LLM call, so this matches
+# whatever op the SDK chose -- `gen_ai.chat`, `gen_ai.responses`,
+# `gen_ai.text_completion`, `generate_content`. Matching an op directly would
+# cover one integration: the op name varies per SDK and per provider.
+#
+# Agent spans carry their own operation type, which keeps the double counting out:
+# invoke_agent re-aggregates the token usage of its child calls, against a null
+# model. Embeddings are excluded by hand because they are LLM calls by this
+# classification but have no prompt cache -- and for a model that only reports
+# positive cache values, absent cache attributes would read as a genuine 0% hit
+# rate rather than as the absence of the feature.
+GEN_AI_CALL_FILTER = (
+    "gen_ai.operation.type:ai_client "
+    "!gen_ai.operation.name:embeddings "
+    "has:gen_ai.usage.input_tokens"
+)
 
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"

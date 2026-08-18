@@ -56,11 +56,17 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         input_tokens: int = INPUT_TOKENS,
         cache_read_tokens: int | None = None,
         cache_creation_tokens: int | None = None,
-        op: str = "gen_ai.generate_content",
+        op: str = "gen_ai.chat",
+        operation_type: str | None = "ai_client",
+        operation_name: str | None = "chat",
         project: Project | None = None,
         deprecated_attribute_names: bool = False,
     ) -> dict[str, Any]:
-        """Build a gen-AI call span. Omitted token kwargs are left off the span entirely."""
+        """Build a gen-AI call span. Omitted token kwargs are left off the span entirely.
+
+        ``gen_ai.operation.type`` is normally added during ingestion from the op;
+        these spans are written straight to EAP, so it is set explicitly here.
+        """
         read_attribute, creation_attribute = (
             ("gen_ai.usage.input_tokens.cached", "gen_ai.usage.input_tokens.cache_write")
             if deprecated_attribute_names
@@ -73,6 +79,10 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
             "gen_ai.request.model": model,
             "gen_ai.usage.input_tokens": input_tokens,
         }
+        if operation_type is not None:
+            data["gen_ai.operation.type"] = operation_type
+        if operation_name is not None:
+            data["gen_ai.operation.name"] = operation_name
         if cache_read_tokens is not None:
             data[read_attribute] = cache_read_tokens
         if cache_creation_tokens is not None:
@@ -138,9 +148,23 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         # ops have no prompt-cache concept at all.
         self.store_spans(
             [
-                self.gen_ai_span(op="gen_ai.invoke_agent", model="excluded-invoke-agent"),
-                self.gen_ai_span(op="gen_ai.embeddings", model="excluded-embeddings"),
-                self.gen_ai_span(op="db.query", model="excluded-db-query"),
+                self.gen_ai_span(
+                    op="gen_ai.invoke_agent",
+                    operation_type="agent",
+                    operation_name="invoke_agent",
+                    model="excluded-invoke-agent",
+                ),
+                self.gen_ai_span(
+                    op="gen_ai.embeddings",
+                    operation_name="embeddings",
+                    model="excluded-embeddings",
+                ),
+                self.gen_ai_span(
+                    op="db.query",
+                    operation_type=None,
+                    operation_name=None,
+                    model="excluded-db-query",
+                ),
             ]
         )
 
@@ -148,6 +172,32 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
 
         assert CLAUDE in models
         assert not {model for model in models if model.startswith("excluded-")}
+
+    def test_includes_every_op_an_sdk_emits_for_an_llm_call(self) -> None:
+        # No SDK agrees on the op: the Python integrations emit gen_ai.chat,
+        # gen_ai.responses and gen_ai.text_completion, and JS google-genai emits
+        # generate_content. Matching an op would cover one of them, which is why
+        # the filter keys on the ingestion-normalized operation type instead.
+        for index, (op, operation_name) in enumerate(
+            (
+                ("gen_ai.chat", "chat"),
+                ("gen_ai.responses", "chat"),
+                ("gen_ai.text_completion", "text_completion"),
+                ("gen_ai.generate_content", "generate_content"),
+            )
+        ):
+            self.store_call_site(
+                op=op,
+                operation_name=operation_name,
+                model=f"model-{index}",
+                transaction=f"/call-{index}",
+                cache_read_tokens=0,
+                cache_creation_tokens=0,
+            )
+
+        models = {entry.model for entry in fetch_call_site_stats(self.project, self.window)}
+
+        assert {"model-0", "model-1", "model-2", "model-3"} <= models
 
     def test_counts_spans_written_under_the_deprecated_attribute_names(self) -> None:
         # Only langchain writes the canonical names; the shared record_token_usage
