@@ -626,6 +626,159 @@ describe('SessionDetailView', () => {
     expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
   });
 
+  describe('zoom', () => {
+    /**
+     * A one-minute session whose only telemetry is logs at the given offsets. The
+     * extremes set the extent, so an offset in seconds is directly a percentage of
+     * the width — pass 0 and 60 and every other number below is round.
+     */
+    function mockLogsAtSeconds(offsets: number[]) {
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': offsets.length}]);
+      mockDataset(
+        'logs',
+        'rows',
+        offsets.map((offset, index) => ({
+          id: `log${index + 1}`,
+          message: `log at ${offset}s`,
+          timestamp: new Date(
+            Date.parse('2024-01-01T00:00:00Z') + offset * 1000
+          ).toISOString(),
+        }))
+      );
+    }
+
+    it('zooms the lanes around the pointer rather than their centre', async () => {
+      mockLogsAtSeconds([0, 15, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 15s')).toBeInTheDocument();
+
+      // A quarter of the way along, which is the 15s log. Anchoring is the whole
+      // claim here: a zoom about the *centre* would keep 30s and drop this, however
+      // hard it was scrolled, and a zoom about the pointer keeps it at whatever
+      // depth the wheel lands on.
+      wheelTrack(trackWithGeometry(), {
+        clientX: 250,
+        clientY: LANE_Y.logs,
+        deltaY: -400,
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('log at 15s')).toBeInTheDocument();
+      expect(screen.queryByText('log at 60s')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
+    });
+
+    it('leaves the page its scroll when there is no zoom left to take', async () => {
+      mockLogsAtSeconds([0, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 0s')).toBeInTheDocument();
+
+      const track = trackWithGeometry();
+      // Zooming out at the full extent moves nothing, so the gesture is not the
+      // chart's to swallow — otherwise the page cannot be scrolled past it.
+      expect(
+        wheelTrack(track, {clientX: 500, clientY: LANE_Y.logs, deltaY: 200})
+          .defaultPrevented
+      ).toBe(false);
+
+      // Zooming in does move something, so it is.
+      expect(
+        wheelTrack(track, {clientX: 500, clientY: LANE_Y.logs, deltaY: -200})
+          .defaultPrevented
+      ).toBe(true);
+    });
+
+    it('rescales the lanes to a dragged range, not just the rail', async () => {
+      mockLogsAtSeconds([0, 30, 60]);
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('log at 30s')).toBeInTheDocument();
+
+      // 100px to 600px of 1000px across a minute: 6s to 36s.
+      dragTrack(trackWithGeometry(), {from: 100, to: 600, clientY: LANE_Y.logs});
+
+      await waitFor(() => {
+        expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getByText(
+          'Showing 0:06.00 to 0:36.00. Scroll to zoom, or drag the highlighted range above to move it.'
+        )
+      ).toBeInTheDocument();
+
+      // And the lane redrawn to that range is what makes this the test: 30s is now
+      // four fifths of the way across rather than halfway, so a click at 800px
+      // finds it only because the axis moved under it.
+      clickTrack(trackWithGeometry(), {clientX: 800, clientY: LANE_Y.logs});
+      await waitFor(() => {
+        expect(router.location.query.item).toBe('logs:log2');
+      });
+    });
+
+    it('picks a range from the overview strip, which stays the whole session', async () => {
+      mockLogsAtSeconds([0, 30, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 30s')).toBeInTheDocument();
+
+      // The strip is drawn against the session however far the lanes are zoomed, so
+      // 700px of 1000px is 42s whatever else is going on.
+      dragTrack(withGeometry(overviewStrip()), {from: 700, to: 1000, clientY: 10});
+
+      await waitFor(() => {
+        expect(screen.queryByText('log at 30s')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('log at 60s')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Showing 0:42.00 to 1:00.00. Scroll to zoom, or drag the highlighted range above to move it.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('carries the range along when the strip drag starts inside it', async () => {
+      mockLogsAtSeconds([0, 30, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 30s')).toBeInTheDocument();
+
+      // The session's first half, taken the ordinary way.
+      dragTrack(withGeometry(overviewStrip()), {from: 0, to: 500, clientY: 10});
+      await waitFor(() => {
+        expect(screen.queryByText('log at 60s')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('log at 0s')).toBeInTheDocument();
+
+      // Now a drag that *starts* inside that range, which carries it instead of
+      // replacing it: 250px to 500px slides it 15s along rather than selecting the
+      // 15s-to-30s slice a fresh drag between those points would.
+      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 500, clientY: 10});
+
+      await waitFor(() => {
+        expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('log at 30s')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Showing 0:15.00 to 0:45.00. Scroll to zoom, or drag the highlighted range above to move it.'
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   it('filters the rail by a free-text search over title and detail', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);
@@ -957,7 +1110,7 @@ describe('SessionDetailView', () => {
       expect(within(selected[0]!).getByText('second log')).toBeInTheDocument();
     });
 
-    it('still resets the window when empty lane space is clicked', async () => {
+    it('keeps the zoom when empty lane space is clicked', async () => {
       mockEmptyDatasets(['logs']);
       mockDataset('logs', 'count', [{'count()': 2}]);
       mockDataset('logs', 'rows', [
@@ -982,12 +1135,17 @@ describe('SessionDetailView', () => {
       });
 
       // Halfway along a lane whose only items are at either end: nothing to open,
-      // so the click means what it always meant.
+      // and a zoom is too expensive to build to be thrown away by a stray click.
       clickTrack(track, {clientX: 500, clientY: LANE_Y.logs});
 
+      expect(screen.getByText('Nothing in the selected time range.')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
+      expect(router.location.query.item).toBeUndefined();
+
+      // Which leaves the button as the way back.
+      await userEvent.click(screen.getByRole('button', {name: 'Reset zoom'}));
       expect(await screen.findByText('early log')).toBeInTheDocument();
       expect(screen.getByText('late log')).toBeInTheDocument();
-      expect(router.location.query.item).toBeUndefined();
     });
 
     it('hits a trace anywhere along its duration, and shows its waterfall', async () => {
@@ -1328,10 +1486,11 @@ describe('SessionDetailView', () => {
       expect(screen.getByText('on the home page')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
 
-      // And the lanes below have moved down by the band's row, so a click still
-      // finds the item it is pointed at rather than the lane above it.
+      // And the lanes have rescaled to the visit rather than merely being veiled
+      // over: `/` ran for the session's first 20s, so the log at 5s now sits a
+      // quarter of the way across instead of a twelfth.
       clickTrack(trackWithGeometry(1000, 218), {
-        clientX: 83,
+        clientX: 250,
         clientY: ROUTED_LANE_Y.logs,
       });
       await waitFor(() => {
@@ -1469,10 +1628,25 @@ const ROUTED_LANE_Y = {errors: 78, traces: 118, logs: 158, metrics: 198};
  * The scrubber's interactive track, given the size jsdom won't. Hit testing reads
  * the pointer's offset within this rect, so without it every click lands at the
  * session start.
+ *
+ * The overview strip is deliberately *not* inside this element, so the lane
+ * offsets below are unaffected by it; reach for {@link overviewStrip} instead.
  */
 function trackWithGeometry(width = 1000, height = 188) {
-  const track = screen.getByRole('group', {name: 'Session time window'});
-  jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+  return withGeometry(
+    screen.getByRole('group', {name: 'Session time window'}),
+    width,
+    height
+  );
+}
+
+/** The overview strip, which is pointer-only and so has no role to query by. */
+function overviewStrip() {
+  return screen.getByTestId('session-overview');
+}
+
+function withGeometry(element: HTMLElement, width = 1000, height = 20) {
+  jest.spyOn(element, 'getBoundingClientRect').mockReturnValue({
     left: 0,
     top: 0,
     right: width,
@@ -1483,7 +1657,7 @@ function trackWithGeometry(width = 1000, height = 188) {
     y: 0,
     toJSON: () => ({}),
   });
-  return track;
+  return element;
 }
 
 /**
@@ -1506,4 +1680,50 @@ function clickTrack(track: HTMLElement, at: {clientX: number; clientY: number}) 
       track.dispatchEvent(event);
     }
   });
+}
+
+/**
+ * A press, a move and a release: a drag, which is what selects a range.
+ *
+ * One `act` per event, unlike {@link clickTrack}. The release reads the range the
+ * move built out of state, so the move has to have been rendered by then — batched
+ * together, the release still sees no drag at all.
+ */
+function dragTrack(track: HTMLElement, at: {clientY: number; from: number; to: number}) {
+  for (const [type, clientX] of [
+    ['pointerdown', at.from],
+    ['pointermove', at.to],
+    ['pointerup', at.to],
+  ] as const) {
+    act(() => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX,
+        clientY: at.clientY,
+      });
+      Object.defineProperty(event, 'pointerId', {value: 1});
+      track.dispatchEvent(event);
+    });
+  }
+}
+
+/**
+ * A wheel gesture over the lanes, and the event it dispatched — which is how the
+ * page's own scroll is asserted on.
+ *
+ * Dispatched natively because the scrubber binds its own non-passive listener:
+ * React's would be passive, where the `preventDefault` that keeps a zoom from also
+ * scrolling the page is ignored.
+ */
+function wheelTrack(
+  track: HTMLElement,
+  at: {clientX: number; clientY: number; deltaY: number; shiftKey?: boolean}
+) {
+  const event = new WheelEvent('wheel', {bubbles: true, cancelable: true, ...at});
+  act(() => {
+    track.dispatchEvent(event);
+  });
+  return event;
 }

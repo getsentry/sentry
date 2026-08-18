@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -30,6 +30,17 @@ const LANES = LANE_ORDER.map(key => SESSION_DATASETS.find(config => config.key =
 
 const HEADER_HEIGHT = 28;
 const LANE_HEIGHT = 40;
+/** Kept whole: split across lines by the formatter, `repeat (…)` is not CSS. */
+const LANE_ROWS = `repeat(${LANES.length}, ${LANE_HEIGHT}px)`;
+
+/**
+ * The overview strip: the whole session, however far the lanes are zoomed into it.
+ *
+ * Short on purpose. It is not a lane and has nothing to say about what happened —
+ * only where in the session the lanes below are currently pointed, and roughly
+ * where else there would be something worth pointing at.
+ */
+const OVERVIEW_HEIGHT = 20;
 
 /**
  * The route band. Shorter than a telemetry lane: it holds one row of text rather
@@ -78,8 +89,31 @@ const FALLBACK_BUCKETS = 60;
 const TICK_SPACING = 130;
 const MAX_TICKS = 7;
 
-/** A drag shorter than this is a click, which resets the selection. */
+/** A drag shorter than this is a click, which means something else. */
 const MIN_DRAG_PX = 4;
+
+/**
+ * How much of the viewport one pixel of wheel travel is worth, as an exponent — so
+ * a notch is the same *proportional* step at every scale, and zooming into a
+ * ten-minute session takes as many turns as zooming into a ten-second one.
+ */
+const ZOOM_PER_PIXEL = 0.0022;
+
+/** Firefox reports wheel deltas in lines rather than pixels. */
+const LINE_HEIGHT_PX = 16;
+
+/**
+ * The floor on a viewport. Small enough for one fast span to fill the width, large
+ * enough that the axis still has two distinguishable ends.
+ */
+const MIN_VIEW_MS = 5;
+
+/**
+ * How long the wheel has to go quiet before the viewport is handed up. A gesture is
+ * dozens of events and every committed one rebuilds the rail, so the lanes follow
+ * the wheel while the rail follows the gesture.
+ */
+const ZOOM_COMMIT_MS = 70;
 
 /**
  * How far outside an item a click still counts as hitting it. Sized to the
@@ -88,6 +122,13 @@ const MIN_DRAG_PX = 4;
  * it stands for, and a very short bar is smaller than a comfortable target.
  */
 const HIT_TOLERANCE_PX = 8;
+
+/**
+ * How far past the overview's frame a press still counts as grabbing it. Sized to
+ * the frame at its narrowest rather than to the pointer: a deep zoom draws it two
+ * pixels wide, which is legible and not aimable.
+ */
+const GRAB_TOLERANCE_PX = 5;
 
 /** An item under the pointer, and which lane it was found in. */
 interface LaneHit {
@@ -124,6 +165,15 @@ interface Props {
   /** Telemetry types currently shown. A type that is off dims its lane. */
   selectedTypes: SessionDatasetKey[];
   truncatedByType: Record<SessionDatasetKey, boolean>;
+  /**
+   * The range in view, or null for the whole session.
+   *
+   * One value doing two jobs, deliberately: it is the domain the lanes are drawn
+   * against *and* what the rail below is narrowed to. Zooming and selecting are the
+   * same act here — a selection you cannot see the inside of is not worth making,
+   * and a zoom that left the rail showing the whole session would put two different
+   * answers on one screen.
+   */
   window: SessionRange | null;
 }
 
@@ -136,13 +186,21 @@ function extentOf(event: SessionEvent): {end: number; start: number} | undefined
 }
 
 /**
- * The session at a glance: one lane per telemetry type across the session's full
- * extent, with a draggable window that narrows the rail below.
+ * The session at a glance: one lane per telemetry type across whatever range is in
+ * view, over a strip showing where in the session that range sits.
  *
  * The lanes answer "where in this session did anything happen" before a single
  * row has been read, which is the one question a flat list cannot answer. Time
  * runs horizontally only here, where the axis carries no text — the rail keeps
  * reading vertically, because that is where the payload is.
+ *
+ * Narrowing the range *rescales* the lanes rather than veiling the rest of them.
+ * A session is minutes long and the things worth looking at inside one last
+ * milliseconds, so a fixed scale can show you that a burst exists and never what
+ * is in it. Scroll to zoom, anchored on the pointer; drag across the lanes to take
+ * a range in one go; drag the strip to move the range you have. All three land on
+ * the same value, which is also what narrows the rail below — the chart and the
+ * list are always answering about the same slice of time.
  *
  * How a lane draws depends on what its items are. Logs, metrics and errors are
  * instants, so they get density: bucketed markers whose height is how much landed
@@ -186,16 +244,45 @@ export function SessionScrubber({
    * every pointer move; it is handed up on release.
    */
   const [draft, setDraft] = useState<SessionRange | null>(null);
+  /**
+   * The viewport a wheel gesture is still moving. Same reason as `draft`, but a
+   * gesture has no release to commit on, so it is flushed once the wheel is quiet.
+   */
+  const [pendingView, setPendingView] = useState<SessionRange | null>(null);
+  const flush = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoverAt, setHoverAt] = useState<number | null>(null);
   const [hover, setHover] = useState<LaneHit | null>(null);
   /** The route segment under the pointer, which is a different aim than an item. */
   const [hoverRoute, setHoverRoute] = useState<RouteVisit | null>(null);
   const anchor = useRef<{clientX: number; timestamp: number} | null>(null);
 
-  const active = draft ?? window;
-  const domain = bounds.end - bounds.start;
+  /**
+   * The domain everything here is drawn against — the whole session, until one is
+   * zoomed into. `bounds` stays what it always was: the session itself, which is
+   * what every range is clamped to and what the overview strip draws.
+   */
+  const view = pendingView ?? window ?? bounds;
+  const domain = view.end - view.start;
+  const isZoomed = view.start > bounds.start || view.end < bounds.end;
   const enabled = useMemo(() => new Set(selectedTypes), [selectedTypes]);
-  const laneCounts = useLaneCounts(counts, eventsByType, active);
+  /**
+   * What the lane counts and their truncation notes are talking about: a drag's own
+   * selection while it is being made, and otherwise whatever the zoom is showing.
+   * Null means the whole session, where the exact aggregates apply.
+   */
+  const scoped = draft ?? (isZoomed ? view : null);
+  const laneCounts = useLaneCounts(counts, eventsByType, scoped);
+
+  /**
+   * Every plotted item of every enabled type, for the overview strip's single row.
+   * Merged rather than laned: in twenty pixels the strip is answering "where in
+   * this session did anything happen at all", and four rows of five pixels each
+   * answers nothing.
+   */
+  const overviewEvents = useMemo(
+    () => LANE_ORDER.filter(key => enabled.has(key)).flatMap(key => eventsByType[key]),
+    [enabled, eventsByType]
+  );
 
   /**
    * A session with no browser telemetry has no routes to draw, and an empty
@@ -210,10 +297,14 @@ export function SessionScrubber({
    */
   const routeVisits = routes.visits;
   const hasRoutes = routeVisits.length > 0 || routes.isError;
+  /**
+   * Offsets within the *track*, which starts at the axis — the overview strip above
+   * it has its own pointer handling and is deliberately not under it.
+   */
   const routeTop = HEADER_HEIGHT;
   const laneTop = HEADER_HEIGHT + (hasRoutes ? ROUTE_HEIGHT : 0);
-  /** Row 1 is the axis, and row 2 the route band when there is one. */
-  const firstLaneRow = hasRoutes ? 3 : 2;
+  /** Row 1 is the strip, row 2 the axis, and row 3 the route band when there is one. */
+  const firstLaneRow = hasRoutes ? 4 : 3;
 
   /**
    * Categorical rather than semantic: a route is not good or bad, and borrowing
@@ -240,21 +331,129 @@ export function SessionScrubber({
   }, [width]);
 
   const toPercent = useCallback(
-    (timestamp: number) => ((timestamp - bounds.start) / domain) * 100,
-    [bounds.start, domain]
+    (timestamp: number) => ((timestamp - view.start) / domain) * 100,
+    [view.start, domain]
   );
 
   const fromClientX = useCallback(
     (clientX: number) => {
       const rect = trackRef.current?.getBoundingClientRect();
       if (!rect || rect.width === 0) {
-        return bounds.start;
+        return view.start;
       }
       const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      return bounds.start + ratio * domain;
+      return view.start + ratio * domain;
     },
-    [bounds.start, domain]
+    [view.start, domain]
   );
+
+  /**
+   * The one way the viewport changes.
+   *
+   * A wheel gesture is deferred and everything else commits at once, but both go
+   * through here — which is what stops a `pendingView` outliving the gesture that
+   * set it. A stale one would pin the lanes to a viewport the parent no longer
+   * holds, and the rail below would be answering a different question than the
+   * lanes above it.
+   */
+  const setView = useCallback(
+    (next: SessionRange | null, defer: boolean) => {
+      if (flush.current !== null) {
+        clearTimeout(flush.current);
+        flush.current = null;
+      }
+      if (!defer) {
+        setPendingView(null);
+        onChangeWindow(next);
+        return;
+      }
+      setPendingView(next ?? bounds);
+      flush.current = setTimeout(() => {
+        flush.current = null;
+        // Both in one batch, so no frame renders the pre-gesture viewport.
+        setPendingView(null);
+        onChangeWindow(next);
+      }, ZOOM_COMMIT_MS);
+    },
+    [bounds, onChangeWindow]
+  );
+
+  useEffect(
+    () => () => {
+      if (flush.current !== null) {
+        clearTimeout(flush.current);
+      }
+    },
+    []
+  );
+
+  /**
+   * Wheel zooms, anchored on the pointer.
+   *
+   * Horizontal travel — a trackpad's second axis, or shift held — pans instead.
+   * That is the gesture a zoomed viewport needs and the one the lanes cannot spare,
+   * since a drag across them means zoom.
+   */
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) {
+        return;
+      }
+      // Lines in Firefox, and screens on a page-sized gesture.
+      const scale =
+        event.deltaMode === 1 ? LINE_HEIGHT_PX : event.deltaMode === 2 ? rect.height : 1;
+      const dy = event.deltaY * scale;
+      const dx = event.deltaX * scale;
+
+      const next =
+        event.shiftKey || Math.abs(dx) > Math.abs(dy)
+          ? // Shift is reported as a horizontal delta by some browsers and a
+            // vertical one by others, so whichever axis arrived is the pan.
+            panView(view, bounds, ((dx === 0 ? dy : dx) / rect.width) * domain)
+          : zoomView(
+              view,
+              bounds,
+              fromClientX(event.clientX),
+              Math.exp(dy * ZOOM_PER_PIXEL)
+            );
+
+      // Only claim the gesture when it actually moves something. Zooming out at the
+      // full extent, or in at the floor, changes nothing — and swallowing the
+      // scroll there would leave the page unable to scroll past this chart, which
+      // is the failure mode every scroll-to-zoom surface is remembered for.
+      const settled = next ?? bounds;
+      if (settled.start === view.start && settled.end === view.end) {
+        return;
+      }
+      event.preventDefault();
+      setView(next, true);
+      // The zoom is centred on the pointer, so the guide belongs there to say so —
+      // read from the old scale, which by that same anchoring is the new one.
+      setHoverAt(fromClientX(event.clientX));
+    },
+    [bounds, domain, fromClientX, setView, view]
+  );
+
+  /**
+   * Bound by hand because React registers `wheel` passively, where
+   * `preventDefault` is ignored — and a zoom that scrolls the page as well is not a
+   * zoom. Subscribed once and dispatched through a ref, so a gesture does not
+   * rebind the listener on every notch.
+   */
+  const wheelRef = useRef(handleWheel);
+  useEffect(() => {
+    wheelRef.current = handleWheel;
+  }, [handleWheel]);
+  useEffect(() => {
+    const node = trackRef.current;
+    if (!node) {
+      return () => {};
+    }
+    const listener = (event: WheelEvent) => wheelRef.current(event);
+    node.addEventListener('wheel', listener, {passive: false});
+    return () => node.removeEventListener('wheel', listener);
+  }, []);
 
   /**
    * What the pointer is over, if anything.
@@ -396,66 +595,60 @@ export function SessionScrubber({
     anchor.current = null;
 
     if (draft) {
-      onChangeWindow(draft);
+      setView(clampWindow(draft, bounds), false);
       setDraft(null);
       return;
     }
 
-    // A press with no drag either opens the item under it or, on empty track,
-    // resets the view — which is how a click gets out of a window.
+    // A press with no drag opens the item under it, and on a route segment zooms to
+    // that visit. A route already *is* a span of time, so the drag a user would
+    // otherwise have to aim by hand is one the data can perform exactly — and "show
+    // me only what happened while they were on /checkout" is most of why the band
+    // is here.
     //
-    // On a route segment it narrows to that visit instead. A route already *is* a
-    // span of time, so the drag a user would otherwise have to perform by hand is
-    // one the data can perform exactly — and "show me only what happened while
-    // they were on /checkout" is most of why the band is here.
+    // On empty track it does nothing. It used to reset the view, which was cheap
+    // when a window was one drag away from being redrawn; a zoom is built up over
+    // several gestures, and throwing that away on a mis-aimed click is not a trade
+    // worth making. The strip above, `Escape`, and scrolling back out are the ways
+    // out, and unlike a click they are all things you meant.
     const visit = routeAt(event.clientX, event.clientY);
     if (visit) {
-      onChangeWindow(clampWindow({start: visit.start, end: visit.end}, bounds));
+      setView(clampWindow({start: visit.start, end: visit.end}, bounds), false);
       return;
     }
 
     const hit = hitAt(event.clientX, event.clientY);
     if (hit) {
       onSelectItem(hit.key);
-    } else {
-      onChangeWindow(null);
     }
   };
 
+  /**
+   * The keyboard's half of the same two gestures: the arrows pan and zoom, on the
+   * viewport's centre since there is no pointer to anchor on. Built on the helpers
+   * the wheel uses, so they inherit the minimum span and the slide-back-inside-the
+   * -session behaviour rather than reimplementing them a step out of date.
+   */
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const current = active ?? bounds;
-    const step = (current.end - current.start) / 8;
+    const step = domain / 8;
+    const centre = view.start + domain / 2;
 
     switch (event.key) {
       case 'ArrowRight':
-        onChangeWindow(
-          clampWindow({start: current.start + step, end: current.end + step}, bounds)
-        );
+        setView(panView(view, bounds, step), false);
         break;
       case 'ArrowLeft':
-        onChangeWindow(
-          clampWindow({start: current.start - step, end: current.end - step}, bounds)
-        );
+        setView(panView(view, bounds, -step), false);
         break;
       case 'ArrowUp':
-        onChangeWindow(
-          clampWindow(
-            {start: current.start + step / 2, end: current.end - step / 2},
-            bounds
-          )
-        );
+        setView(zoomView(view, bounds, centre, 0.75), false);
         break;
       case 'ArrowDown':
-        onChangeWindow(
-          clampWindow(
-            {start: current.start - step / 2, end: current.end + step / 2},
-            bounds
-          )
-        );
+        setView(zoomView(view, bounds, centre, 4 / 3), false);
         break;
       case 'Escape':
       case 'Home':
-        onChangeWindow(null);
+        setView(null, false);
         break;
       default:
         return;
@@ -471,6 +664,19 @@ export function SessionScrubber({
         lane's label onto a row of its own.
       */}
       <Chart hasRoutes={hasRoutes}>
+        <OverviewLabel>
+          <Text size="xs" variant="muted" uppercase>
+            {t('Session')}
+          </Text>
+        </OverviewLabel>
+        <Overview
+          bounds={bounds}
+          view={view}
+          events={overviewEvents}
+          buckets={buckets}
+          onChangeView={next => setView(next, false)}
+        />
+
         <HeaderCell>
           <Text size="xs" variant="muted" uppercase>
             {t('Time')}
@@ -487,8 +693,13 @@ export function SessionScrubber({
                 transform: `translate(${ratio === 0 ? '0%' : ratio === 1 ? '-100%' : '-50%'}, -50%)`,
               }}
             >
+              {/*
+                Offsets from the session's start, not from the viewport's. A zoomed
+                axis labelled 0 would be a different clock than the rail's, and the
+                whole point of the ticks once zoomed is saying *where* you are.
+              */}
               <Text size="xs" variant="muted" tabular>
-                {formatOffset(domain * ratio)}
+                {formatOffset(view.start - bounds.start + domain * ratio)}
               </Text>
             </Tick>
           ))}
@@ -529,8 +740,22 @@ export function SessionScrubber({
             </RouteLabel>
             <RouteTrack>
               {routeVisits.map(visit => {
-                const left = toPercent(visit.start);
-                const widthPercent = toPercent(visit.end) - left;
+                const from = toPercent(visit.start);
+                const to = toPercent(visit.end);
+                if (to <= 0 || from >= 100) {
+                  return null;
+                }
+                // Clamped to the viewport rather than left to overflow. A
+                // segment's name sits at its leading edge, so zooming into the
+                // middle of a long stay would otherwise leave an unnamed wash — the
+                // one place the band is most worth reading.
+                //
+                // The two channels that state a *moment* drop out when that moment
+                // is off-screen: the arrival rule, and the departure's rounded
+                // corner. Clamped geometry must not go on to claim the user arrived
+                // at the edge of the viewport.
+                const left = Math.max(0, from);
+                const widthPercent = Math.min(100, to) - left;
                 return (
                   <RouteSegment
                     key={`${visit.route}-${visit.start}`}
@@ -548,7 +773,8 @@ export function SessionScrubber({
                       // and mixing each toward the surface keeps that relationship
                       // instead of hoping eleven literals hold it.
                       background: `color-mix(in srgb, ${routeColor(visit)} 22%, transparent)`,
-                      borderLeftColor: routeColor(visit),
+                      borderLeftColor: from < 0 ? 'transparent' : routeColor(visit),
+                      borderRadius: to > 100 ? 0 : undefined,
                     }}
                   >
                     {/*
@@ -585,18 +811,25 @@ export function SessionScrubber({
         {hasRoutes && (
           <Bands aria-hidden style={{gridRow: `${firstLaneRow} / -1`}}>
             {routeVisits.map((visit, index) => {
-              const left = toPercent(visit.start);
+              const from = toPercent(visit.start);
+              const to = toPercent(visit.end);
+              if (to <= 0 || from >= 100) {
+                return null;
+              }
+              const left = Math.max(0, from);
               return (
                 <Fragment key={`${visit.route}-${visit.start}`}>
                   {index % 2 === 1 && (
                     <BandTint
-                      style={{left: `${left}%`, width: `${toPercent(visit.end) - left}%`}}
+                      style={{left: `${left}%`, width: `${Math.min(100, to) - left}%`}}
                     />
                   )}
-                  {index > 0 && (
+                  {/* Only where the change is actually in view — a rule pinned to
+                      the viewport's edge would invent a boundary there. */}
+                  {index > 0 && from >= 0 && (
                     <BandEdge
                       style={{
-                        left: `${left}%`,
+                        left: `${from}%`,
                         borderLeftColor: `color-mix(in srgb, ${routeColor(visit)} 70%, transparent)`,
                       }}
                     />
@@ -656,7 +889,7 @@ export function SessionScrubber({
                       size="xs"
                       variant="warning"
                       title={
-                        active
+                        scoped
                           ? tct(
                               'This lane plots only the [limit] most recent items, so a count taken from a window can fall short.',
                               {limit: config.maxRows}
@@ -677,7 +910,7 @@ export function SessionScrubber({
                 events={eventsByType[config.key]}
                 buckets={buckets}
                 domain={domain}
-                start={bounds.start}
+                start={view.start}
                 isOn={isOn}
                 row={row}
                 isLast={isLast}
@@ -702,14 +935,19 @@ export function SessionScrubber({
           }}
           onKeyDown={handleKeyDown}
         >
-          {active && (
+          {/*
+            The drag in progress, and only that. A committed range *is* the domain
+            the lanes are drawn against, so there is no longer an outside to veil —
+            where the viewport sits within the session is the strip's job.
+          */}
+          {draft && (
             <Fragment>
-              <Veil style={{left: 0, width: `${toPercent(active.start)}%`}} />
-              <Veil style={{left: `${toPercent(active.end)}%`, right: 0}} />
+              <Veil style={{left: 0, width: `${toPercent(draft.start)}%`}} />
+              <Veil style={{left: `${toPercent(draft.end)}%`, right: 0}} />
               <Window
                 style={{
-                  left: `${toPercent(active.start)}%`,
-                  width: `${toPercent(active.end) - toPercent(active.start)}%`,
+                  left: `${toPercent(draft.start)}%`,
+                  width: `${toPercent(draft.end) - toPercent(draft.start)}%`,
                 }}
               />
             </Fragment>
@@ -743,23 +981,23 @@ export function SessionScrubber({
 
       <Flex align="center" gap="md" wrap="wrap">
         <Text size="xs" variant="muted">
-          {active
+          {isZoomed
             ? t(
-                'Window: %s to %s. Click an item to open it, or empty space to reset.',
-                formatOffset(active.start - bounds.start),
-                formatOffset(active.end - bounds.start)
+                'Showing %s to %s. Scroll to zoom, or drag the highlighted range above to move it.',
+                formatOffset(view.start - bounds.start),
+                formatOffset(view.end - bounds.start)
               )
             : hasRoutes
               ? t(
-                  'Click a route to narrow the timeline to it, or an item to open it. Drag across the lanes for any other range, and click a type to hide it.'
+                  'Scroll to zoom, or drag across the lanes for a range. Click a route to zoom to it, an item to open it, or a type to hide it.'
                 )
               : t(
-                  'Click an item to open it, or drag across the lanes to narrow the timeline. Click a type to hide it.'
+                  'Scroll to zoom, or drag across the lanes for a range. Click an item to open it, or a type to hide it.'
                 )}
         </Text>
         <Flex flex="1" />
-        {active && (
-          <Button size="xs" onClick={() => onChangeWindow(null)}>
+        {isZoomed && (
+          <Button size="xs" onClick={() => setView(null, false)}>
             {t('Reset zoom')}
           </Button>
         )}
@@ -799,21 +1037,21 @@ function describeRoute(visit: RouteVisit, sessionStart: number): string {
 }
 
 /**
- * What each lane label reports: the session's exact totals while the whole
- * session is in view, and the items inside the window once one is selected.
+ * What each lane label reports: the session's exact totals while the whole session
+ * is in view, and the items inside the range once one is zoomed into.
  *
- * A count that ignored the window would contradict the lane beside it — the veil
- * makes it plain that most of those items are no longer in view. Counting the
- * plotted items is the only way to scope it, which costs the exactness the
- * aggregates have: a lane capped at `maxRows` undercounts here, and says so
- * through the marker already beside its count. For traces it also changes what is
- * being counted, from distinct traces to the segment spans standing for them.
+ * A count that ignored the range would contradict the lane beside it, which has
+ * been redrawn to hold only what is in it. Counting the plotted items is the only
+ * way to scope it, which costs the exactness the aggregates have: a lane capped at
+ * `maxRows` undercounts here, and says so through the marker already beside its
+ * count. For traces it also changes what is being counted, from distinct traces to
+ * the segment spans standing for them.
  *
- * An item that occupies time counts when it *overlaps* the window rather than
- * when it starts inside it — a trace running through the selection is in it.
+ * An item that occupies time counts when it *overlaps* the range rather than when
+ * it starts inside it — a trace running through the view is in it.
  *
- * Runs against the draft as well as the committed window, so the numbers move
- * with the drag rather than snapping on release.
+ * Runs against a drag in progress as well as the committed range, so the numbers
+ * move with the gesture rather than snapping on release.
  */
 function useLaneCounts(
   counts: Record<SessionDatasetKey, number>,
@@ -852,6 +1090,48 @@ function clampWindow(range: SessionRange, bounds: SessionRange): SessionRange | 
     return null;
   }
   return {start, end};
+}
+
+/**
+ * Scales the viewport about a point, and keeps it inside the session.
+ *
+ * `focus` holds its place in the viewport, which is what makes a wheel zoom feel
+ * aimed rather than approximate: the timestamp under the pointer is still under the
+ * pointer afterwards, so the thing being zoomed into does not slide out from under
+ * it on the way in.
+ *
+ * Near an edge the range slides back inside the session rather than being clipped,
+ * so zooming out beside the session's last error still widens by the whole step
+ * instead of stalling against the boundary.
+ */
+function zoomView(
+  view: SessionRange,
+  bounds: SessionRange,
+  focus: number,
+  factor: number
+): SessionRange | null {
+  const span = view.end - view.start;
+  const next = Math.max(MIN_VIEW_MS, Math.min(bounds.end - bounds.start, span * factor));
+  const ratio = span === 0 ? 0.5 : (focus - view.start) / span;
+  let start = focus - next * ratio;
+  if (start + next > bounds.end) {
+    start = bounds.end - next;
+  }
+  if (start < bounds.start) {
+    start = bounds.start;
+  }
+  return clampWindow({start, end: start + next}, bounds);
+}
+
+/** Slides the viewport without resizing it. */
+function panView(
+  view: SessionRange,
+  bounds: SessionRange,
+  byMs: number
+): SessionRange | null {
+  const span = view.end - view.start;
+  const start = Math.max(bounds.start, Math.min(view.start + byMs, bounds.end - span));
+  return clampWindow({start, end: start + span}, bounds);
 }
 
 /**
@@ -900,6 +1180,220 @@ function Highlight({
         height: BAR_HEIGHT + 4,
       }}
     />
+  );
+}
+
+/**
+ * The whole session, whatever the lanes are showing of it.
+ *
+ * Zooming costs the one thing a fixed chart had for free: knowing where you are.
+ * This is that, in the least height that can carry it — the session's activity as
+ * one merged row of ticks, with the viewport framed on top.
+ *
+ * It is also the only place the viewport can be *moved* rather than resized, which
+ * the lanes below cannot offer: a drag down there means zoom, and one gesture
+ * cannot mean two things. So the strip splits the drag by where it started —
+ * inside the framed range it carries that range along, and outside it picks a new
+ * one. A click outside jumps the range there in one go.
+ *
+ * Pointer-only, and hidden from assistive tech on the same grounds the lanes are:
+ * it does nothing the focusable track's own arrow keys do not already do, and a
+ * second stop that repeats the first is not an affordance.
+ */
+function Overview({
+  bounds,
+  view,
+  events,
+  buckets,
+  onChangeView,
+}: {
+  bounds: SessionRange;
+  buckets: number;
+  events: SessionEvent[];
+  onChangeView: (next: SessionRange | null) => void;
+  view: SessionRange;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState<SessionRange | null>(null);
+  /**
+   * The gesture in progress: where it started, and the range it started from — so a
+   * move is measured from the pointer's total travel rather than accumulated a
+   * fraction at a time, which drifts.
+   */
+  const anchor = useRef<{clientX: number; from: SessionRange; isMove: boolean} | null>(
+    null
+  );
+
+  const domain = bounds.end - bounds.start;
+  /**
+   * With the whole session in view the frame *is* the strip, so there is nothing to
+   * carry anywhere and every drag is a fresh selection. Grabbing only becomes a
+   * gesture once there is something to grab.
+   */
+  const isZoomed = view.start > bounds.start || view.end < bounds.end;
+
+  const fromClientX = useCallback(
+    (clientX: number) => {
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) {
+        return bounds.start;
+      }
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      return bounds.start + ratio * domain;
+    },
+    [bounds.start, domain]
+  );
+
+  const toPercent = useCallback(
+    (timestamp: number) => ((timestamp - bounds.start) / domain) * 100,
+    [bounds.start, domain]
+  );
+
+  /**
+   * Activity, graded by opacity rather than by height. Twenty pixels of row has no
+   * vertical range worth spending, and full height is what keeps a mark visible at
+   * one pixel wide. Rooted for the same reason the lanes' markers are: a bucket
+   * holding two should still register beside one holding fifty.
+   */
+  const ticks = useMemo(() => {
+    const counts = Array.from<number>({length: buckets}).fill(0);
+    events.forEach(event => {
+      if (event.timestamp === undefined) {
+        return;
+      }
+      const index = Math.min(
+        buckets - 1,
+        Math.max(0, Math.floor(((event.timestamp - bounds.start) / domain) * buckets))
+      );
+      counts[index]! += 1;
+    });
+
+    const max = Math.max(...counts, 1);
+    return counts
+      .map((count, index) => ({count, index}))
+      .filter(bucket => bucket.count > 0)
+      .map(({count, index}) => ({
+        index,
+        opacity: 0.35 + 0.65 * Math.pow(count / max, 0.55),
+      }));
+  }, [events, buckets, bounds.start, domain]);
+
+  /**
+   * Whether a press landed on the framed range, in pixels rather than in time. A
+   * deep zoom draws the frame a couple of pixels wide, which is a real thing on
+   * screen and an unaimable one — so the grab reaches a little past it, the way the
+   * lanes' own hit testing reaches past a very short bar.
+   */
+  const isOnViewport = useCallback(
+    (clientX: number) => {
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0 || !isZoomed) {
+        return false;
+      }
+      const from = rect.left + (toPercent(view.start) / 100) * rect.width;
+      const to = rect.left + (toPercent(view.end) / 100) * rect.width;
+      return clientX >= from - GRAB_TOLERANCE_PX && clientX <= to + GRAB_TOLERANCE_PX;
+    },
+    [isZoomed, toPercent, view.end, view.start]
+  );
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    anchor.current = {
+      clientX: event.clientX,
+      from: view,
+      isMove: isOnViewport(event.clientX),
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = anchor.current;
+    if (start === null || Math.abs(event.clientX - start.clientX) < MIN_DRAG_PX) {
+      return;
+    }
+    if (start.isMove) {
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) {
+        return;
+      }
+      // Measured raw rather than through `fromClientX`, which clamps to the strip:
+      // two clamped ends would quietly shorten every drag that overshoots an edge,
+      // and the range itself is already held inside the session by `panView`.
+      const by = ((event.clientX - start.clientX) / rect.width) * domain;
+      setDraft(panView(start.from, bounds, by) ?? bounds);
+      return;
+    }
+    const from = fromClientX(start.clientX);
+    const at = fromClientX(event.clientX);
+    setDraft({start: Math.min(from, at), end: Math.max(from, at)});
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = anchor.current;
+    if (start === null) {
+      return;
+    }
+    anchor.current = null;
+
+    if (draft) {
+      onChangeView(clampWindow(draft, bounds));
+      setDraft(null);
+      return;
+    }
+
+    // A press on the frame that went nowhere leaves it where it is: the gesture it
+    // began was a carry, and a carry of zero distance has no destination.
+    if (start.isMove) {
+      return;
+    }
+
+    // Elsewhere it jumps the range there, span intact — the same move as the drag,
+    // for when the distance is far enough that dragging it is a chore.
+    const span = view.end - view.start;
+    onChangeView(
+      panView(view, bounds, fromClientX(event.clientX) - (view.start + span / 2))
+    );
+  };
+
+  const shown = draft ?? view;
+  const left = toPercent(shown.start);
+  const right = toPercent(shown.end);
+
+  return (
+    <OverviewTrack
+      ref={ref}
+      aria-hidden
+      data-test-id="session-overview"
+      title={
+        isZoomed
+          ? t(
+              'Drag the highlighted range to move it, or drag elsewhere to pick a new one'
+            )
+          : t('Drag to pick a range')
+      }
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
+      {ticks.map(tick => (
+        <OverviewTick
+          key={tick.index}
+          style={{
+            left: `${((tick.index + 0.5) / buckets) * 100}%`,
+            opacity: tick.opacity,
+          }}
+        />
+      ))}
+      <OverviewShade style={{left: 0, width: `${left}%`}} />
+      <OverviewShade style={{left: `${right}%`, right: 0}} />
+      <OverviewViewport
+        data-grabbable={isZoomed || undefined}
+        style={{left: `${left}%`, width: `${right - left}%`}}
+      />
+    </OverviewTrack>
   );
 }
 
@@ -980,6 +1474,14 @@ function DurationMarkers({
           if (event.timestamp === undefined) {
             return null;
           }
+          // Clipped by the track either way, but a zoomed lane would otherwise keep
+          // every off-screen bar in the DOM.
+          if (
+            event.timestamp + (event.duration ?? 0) < start ||
+            event.timestamp > start + domain
+          ) {
+            return null;
+          }
           const left = ((event.timestamp - start) / domain) * 100;
           const width = ((event.duration ?? 0) / domain) * 100;
           return {index, left, width};
@@ -1032,8 +1534,17 @@ function DensityMarkers({
 }) {
   const markers = useMemo(() => {
     const counts = Array.from<number>({length: buckets}).fill(0);
+    const end = start + domain;
     events.forEach(event => {
-      if (event.timestamp === undefined) {
+      // Dropped rather than clamped. The index clamp below is there for the item
+      // landing exactly on `end`; letting it absorb everything *outside* the
+      // viewport as well would pile the session's other half into the first bucket
+      // and invent a burst at each edge of every zoom.
+      if (
+        event.timestamp === undefined ||
+        event.timestamp < start ||
+        event.timestamp > end
+      ) {
         return;
       }
       const index = Math.min(
@@ -1089,8 +1600,8 @@ const Chart = styled('div')<{hasRoutes: boolean}>`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   grid-template-rows:
-    ${HEADER_HEIGHT}px ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')}repeat
-    (${LANES.length}, ${LANE_HEIGHT}px);
+    ${OVERVIEW_HEIGHT}px ${HEADER_HEIGHT}px
+    ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${LANE_ROWS};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -1103,7 +1614,7 @@ const Chart = styled('div')<{hasRoutes: boolean}>`
  */
 const RouteLabel = styled('div')`
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
@@ -1115,7 +1626,7 @@ const RouteLabel = styled('div')`
 
 const RouteTrack = styled('div')`
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 3;
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1211,7 +1722,11 @@ const BandEdge = styled('div')`
   border-left: 1px solid ${p => p.theme.tokens.border.neutral.muted};
 `;
 
-const HeaderCell = styled('div')`
+/**
+ * The strip's label. Says "Session" rather than "Overview" because that is what it
+ * draws — the whole of it, which is the one thing the lanes beside it may not be.
+ */
+const OverviewLabel = styled('div')`
   grid-column: 1;
   grid-row: 1;
   display: flex;
@@ -1222,9 +1737,82 @@ const HeaderCell = styled('div')`
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
-const Axis = styled('div')`
+const OverviewTrack = styled('div')`
   grid-column: 2;
   grid-row: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+/** One bucket of the session's activity, at one pixel and full height. */
+const OverviewTick = styled('div')`
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
+`;
+
+/** Outside the viewport, which here is most of the strip most of the time. */
+const OverviewShade = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
+  pointer-events: none;
+`;
+
+/**
+ * The viewport: all edges, no fill. What it frames is the only part of the strip
+ * meant to be read, so tinting it would be tinting the answer — and the shade
+ * either side has already said where the boundary is.
+ */
+const OverviewViewport = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
+  border-radius: ${p => p.theme.radius.xs};
+  pointer-events: none;
+
+  /*
+   * The frame is also the handle, so it takes the pointer — but only once there is
+   * something to carry. Unzoomed it spans the whole strip, and a grab cursor over
+   * all of it would promise a gesture that does nothing.
+   *
+   * The events still reach the strip underneath by bubbling; this is here for the
+   * cursor, which is the only way the gesture announces itself. Hover-and-active
+   * rather than a piece of state: it survives the pointer leaving the frame
+   * mid-carry, which is exactly when the frame is moving out from under it.
+   */
+  &[data-grabbable] {
+    pointer-events: auto;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+`;
+
+const HeaderCell = styled('div')`
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  padding: 0 ${p => p.theme.space.lg};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+const Axis = styled('div')`
+  grid-column: 2;
+  grid-row: 2;
   position: relative;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.secondary};
@@ -1309,7 +1897,8 @@ const Bar = styled('div')`
  */
 const Track = styled('div')`
   grid-column: 2;
-  grid-row: 1 / -1;
+  /* From the axis down. The strip above it has pointer handling of its own. */
+  grid-row: 2 / -1;
   position: relative;
   cursor: crosshair;
   touch-action: none;
