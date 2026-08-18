@@ -24,10 +24,8 @@ function SeerDrawerLoader({groupId}: {groupId: string}) {
   return <SeerDrawer group={group} project={group.project} />;
 }
 
-// Opens the Seer drawer in place when ?seerDrawer=<groupId> is set, so the
-// overview stays put instead of navigating to the issue page.
 export function useOverviewSeerDrawer() {
-  const {openDrawer} = useDrawer();
+  const {openDrawer, isAnyDrawerOpen} = useDrawer();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,33 +33,36 @@ export function useOverviewSeerDrawer() {
   useEffect(() => {
     locationRef.current = location;
   });
+  const openGroupIdRef = useRef<string | undefined>(undefined);
 
   const hasSeerAccess =
     organization.features.includes('gen-ai-features') && !organization.hideAiFeatures;
   const groupId = decodeScalar(location.query.seerDrawer);
 
-  // The group id lives in the URL so a reload or a second card reopens the
-  // drawer for that run.
   useEffect(() => {
     if (!groupId || !hasSeerAccess) {
       return;
     }
+    if (isAnyDrawerOpen && openGroupIdRef.current === groupId) {
+      return;
+    }
     const pathname = locationRef.current.pathname;
+    openGroupIdRef.current = groupId;
     openDrawer(() => <SeerDrawerLoader groupId={groupId} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
       resizable: true,
       mode: 'passive',
-      // Close when leaving the overview or when the param stops pointing here, so
-      // browser back/forward can't orphan the drawer.
       shouldCloseOnLocationChange: nextLocation =>
         nextLocation.pathname !== pathname ||
         decodeScalar(nextLocation.query.seerDrawer) !== groupId,
-      onClose: () =>
+      onClose: () => {
+        openGroupIdRef.current = undefined;
         navigate(
           {pathname, query: {...locationRef.current.query, seerDrawer: undefined}},
           {replace: true, preventScrollReset: true}
-        ),
+        );
+      },
     });
-  }, [groupId, hasSeerAccess, openDrawer, navigate]);
+  }, [groupId, hasSeerAccess, isAnyDrawerOpen, openDrawer, navigate]);
 }

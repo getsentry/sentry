@@ -156,8 +156,6 @@ export function OverviewCardAction({
             <span>{t('Open Seer')}</span>
           </Flex>
         ),
-        // Stay on the overview and open the drawer in place; the group id lets
-        // a reload reopen the drawer for the same run.
         to: {
           pathname: location.pathname,
           query: {...location.query, seerDrawer: run.groupId},

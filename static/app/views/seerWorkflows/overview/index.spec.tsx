@@ -13,6 +13,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -25,6 +27,7 @@ import type {
   OverviewPullRequest,
   OverviewRunIssue,
 } from 'sentry/views/seerWorkflows/overview/types';
+import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
@@ -280,6 +283,22 @@ describe('AutofixOverview', () => {
       return screen.queryByRole('complementary', {name: 'Seer drawer'});
     }
 
+    // Drives the hook alongside a button that opens a second drawer, so a test
+    // can replace and dismiss the Seer drawer the way Seer Agent would.
+    function DrawerHarness() {
+      useOverviewSeerDrawer();
+      const {openDrawer} = useDrawer();
+      return (
+        <button
+          onClick={() =>
+            openDrawer(() => <div>Other drawer body</div>, {ariaLabel: 'Other drawer'})
+          }
+        >
+          open other
+        </button>
+      );
+    }
+
     it('opens in place when the URL carries a group id', async () => {
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       const groupRequest = mockDrawerFor('2');
@@ -356,6 +375,31 @@ describe('AutofixOverview', () => {
 
       await waitFor(() => expect(group3Request).toHaveBeenCalled());
       expect(seerDrawer()).toBeInTheDocument();
+    });
+
+    it('reopens after another drawer replaces and then closes it', async () => {
+      mockDrawerFor('2');
+
+      render(<DrawerHarness />, {
+        organization,
+        initialRouterConfig: {location: {pathname: basePath, query: {seerDrawer: '2'}}},
+      });
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'open other'}));
+      expect(
+        await screen.findByRole('complementary', {name: 'Other drawer'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
     });
   });
 
