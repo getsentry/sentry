@@ -108,6 +108,15 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
+   * The <div> that Replayer/VideoReplayer was mounted into via `setRoot`.
+   * This is the live, rendered player element (containing the rrweb iframe
+   * or the <video> element), sized to the on-screen scale of the replay.
+   * Useful for anything that needs to read pixels out of the player, e.g.
+   * capturing it to a video export.
+   */
+  rootEl: RootElem;
+
+  /**
    * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
@@ -143,6 +152,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isVideoReplay: false,
   removeHighlight: () => {},
   restart: () => {},
+  rootEl: null,
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
@@ -654,6 +664,7 @@ export function Provider({
           isPlaying,
           removeHighlight,
           restart,
+          rootEl,
           setCurrentTime,
           togglePlayPause,
           getMirror: () => replayerRef.current?.getMirror() ?? null,

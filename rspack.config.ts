@@ -334,7 +334,25 @@ const appConfig: Configuration = {
             // react-select: Ships pre-compiled ESM with emotion's keyframes already
             // compiled via swc. Re-processing with @swc/plugin-emotion causes
             // "illegal escape sequence" warnings in dev mode.
-            exclude: /node_modules[\\/](core-js|react-select)/,
+            // @ffmpeg/core: Emscripten-generated glue code with its own
+            // wasm-loading paths; must be served as a raw, unprocessed
+            // static file (see the asset rules below), not run through swc.
+            // @ffmpeg/ffmpeg: swcReactLoaderConfig() unconditionally enables
+            // React Fast Refresh (`refresh: SHOULD_HOT_MODULE_RELOAD`) for
+            // every file this rule touches. @ffmpeg/ffmpeg spawns its own
+            // Worker (classes.js/worker.js) to run the actual wasm core,
+            // and a worker's global scope has no `$RefreshReg$` global for
+            // any injected refresh registration calls to find.
+            // @rspack/core/hot: the actual source of those calls in
+            // practice — rspack's dev-server wires its own HMR runtime
+            // (an EventEmitter in emitter.js, plus only-dev-server.js /
+            // log-apply-result.js) into every async-loaded chunk so it can
+            // hot-swap them, including the ffmpeg worker's own chunk via
+            // splitChunks' default vendor grouping. Those hot/*.js files
+            // aren't excluded elsewhere, so they get refresh-instrumented
+            // too, and that's what actually throws inside the worker.
+            exclude:
+              /node_modules[\\/](core-js|react-select|@ffmpeg[\\/](core|ffmpeg)|@rspack[\\/]core[\\/]hot)/,
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
@@ -361,6 +379,16 @@ const appConfig: Configuration = {
             },
           },
         ],
+      },
+      {
+        // See build-utils/ffmpeg-worker-import-ignore-loader.ts for why this
+        // one file needs a targeted patch rather than just being excluded
+        // from the JS rule like the rest of @ffmpeg/ffmpeg.
+        test: /[\\/]node_modules[\\/]@ffmpeg[\\/]ffmpeg[\\/]dist[\\/]esm[\\/]worker\.js$/,
+        loader: path.resolve(
+          import.meta.dirname,
+          './build-utils/ffmpeg-worker-import-ignore-loader.ts'
+        ),
       },
       {
         test: /\.po$/,
@@ -392,8 +420,17 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4|wasm)$/,
         type: 'asset',
+      },
+      {
+        // @ffmpeg/core ships its wasm-loader glue as a .js file that must be
+        // served as-is (see the swc exclude above) rather than bundled —
+        // scoped narrowly to this one vendor path so it can't shadow any
+        // other .js file in node_modules.
+        test: /\.js$/,
+        include: /node_modules[\\/]@ffmpeg[\\/]core/,
+        type: 'asset/resource',
       },
     ],
   },
@@ -522,6 +559,29 @@ const appConfig: Configuration = {
         'ios-device-list',
         'dist',
         'ios-device-list.min.js'
+      ),
+      // @ffmpeg/core's package.json "exports" field only exposes '.' and
+      // './wasm' with conditional (import/require) mappings, which this
+      // project's `new URL(..., import.meta.url)` asset resolution doesn't
+      // satisfy. Aliasing straight to the files sidesteps package exports
+      // resolution entirely, the same way `ios-device-list` does above.
+      'ffmpeg-core.js': path.join(
+        import.meta.dirname,
+        'node_modules',
+        '@ffmpeg',
+        'core',
+        'dist',
+        'esm',
+        'ffmpeg-core.js'
+      ),
+      'ffmpeg-core.wasm': path.join(
+        import.meta.dirname,
+        'node_modules',
+        '@ffmpeg',
+        'core',
+        'dist',
+        'esm',
+        'ffmpeg-core.wasm'
       ),
     },
 
