@@ -409,11 +409,12 @@ function GroupByActions({
                         }
 
                         const reorderedGroupBys = [...selectedGroupBys];
+                        const nextGroupBy = reorderedGroupBys[nextIndex];
+                        if (nextGroupBy === undefined) {
+                          return;
+                        }
                         [reorderedGroupBys[selectedIndex], reorderedGroupBys[nextIndex]] =
-                          [
-                            reorderedGroupBys[nextIndex]!,
-                            reorderedGroupBys[selectedIndex]!,
-                          ];
+                          [nextGroupBy, selectedGroupBy];
                         setGroupBys(reorderedGroupBys);
                       }}
                     />
