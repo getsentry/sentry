@@ -42,10 +42,14 @@ def create_fingerprint(stats: CallSiteStats) -> str:
     readings of the same call site, so including it would open a second issue
     whenever one shifted and orphan the first, which never auto-resolves.
     """
-    prehashed_fingerprint = (
-        f"llm-cache-detection-{FINGERPRINT_VERSION}-"
-        f"{stats.transaction}-{stats.span_description}-{stats.model}"
+    # The parts are arbitrary strings off a span, so they are length-prefixed
+    # rather than joined on a delimiter: any delimiter can occur inside a
+    # transaction or a span description, which would let two distinct call sites
+    # hash alike and share one issue.
+    call_site = "".join(
+        f"{len(part)}:{part}" for part in (stats.transaction, stats.span_description, stats.model)
     )
+    prehashed_fingerprint = f"llm-cache-detection-{FINGERPRINT_VERSION}-{call_site}"
     return hashlib.sha1(prehashed_fingerprint.encode()).hexdigest()
 
 

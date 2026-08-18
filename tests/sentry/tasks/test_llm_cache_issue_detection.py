@@ -474,6 +474,32 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         first, second = mock_produce.call_args_list
         assert first.kwargs["occurrence"].fingerprint == second.kwargs["occurrence"].fingerprint
 
+    def test_fingerprints_distinguish_call_sites_that_share_a_delimiter(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Hyphens are ordinary characters in a transaction and in a span
+        # description, so two distinct call sites can agree on their
+        # concatenation. They must still be two issues.
+        first = replace(NOT_CACHING_STATS, transaction="chat", span_description="stream-tokens")
+        second = replace(NOT_CACHING_STATS, transaction="chat-stream", span_description="tokens")
+        assert create_fingerprint(first) != create_fingerprint(second)
+
+        project = self.create_project()
+        mock_fetch_stats.return_value = [first, second]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        fingerprints = {
+            tuple(call.kwargs["occurrence"].fingerprint) for call in mock_produce.call_args_list
+        }
+        assert len(fingerprints) == 2
+
     def test_gap_guard_suppresses_group_without_cache_attributes(
         self,
         mock_fetch_stats: MagicMock,
