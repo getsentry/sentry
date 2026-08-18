@@ -245,6 +245,118 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert runs[0]["rootCause"]["oneLineDescription"] == "rc text"
         assert runs[0]["proposedFix"]["oneLineSummary"] == "fix text"
 
+    def _code_changes_state(self, rc):
+        from sentry.seer.agent.client_models import (
+            AgentFilePatch,
+            Artifact,
+            DiffLine,
+            FilePatch,
+            Hunk,
+            MemoryBlock,
+            Message,
+            SeerRunState,
+        )
+
+        patch = AgentFilePatch(
+            repo_name="getsentry/sentry",
+            patch=FilePatch(
+                path="src/foo.py",
+                type="M",
+                added=1,
+                removed=1,
+                hunks=[
+                    Hunk(
+                        source_start=1,
+                        source_length=1,
+                        target_start=1,
+                        target_length=1,
+                        section_header="",
+                        lines=[
+                            DiffLine(
+                                line_type="-",
+                                value="old",
+                                source_line_no=1,
+                                target_line_no=None,
+                                diff_line_no=1,
+                            ),
+                            DiffLine(
+                                line_type="+",
+                                value="new",
+                                source_line_no=None,
+                                target_line_no=1,
+                                diff_line_no=2,
+                            ),
+                        ],
+                    )
+                ],
+            ),
+            diff="@@ -1 +1 @@\n-old\n+new",
+        )
+        return SeerRunState(
+            run_id=1,
+            blocks=[
+                MemoryBlock(
+                    id="b",
+                    message=Message(role="assistant", content="c"),
+                    timestamp="2026-02-10T00:00:00Z",
+                    artifacts=[
+                        Artifact(key="root_cause", data={"one_line_description": rc}, reason="r")
+                    ],
+                    merged_file_patches=[patch],
+                )
+            ],
+            status="completed",
+            updated_at="2026-02-10T00:00:00Z",
+        )
+
+    def _run_with_code_changes(self, group):
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        reconcile_milestones(run, self._code_changes_state("rc text"))
+        return run
+
+    def test_code_changes_returns_generated_diffs(self):
+        group = self.create_group()
+        self._run_with_code_changes(group)
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.CODE_CHANGES]
+        assert len(runs) == 1
+        files = runs[0]["codeChanges"]
+        assert len(files) == 1
+        assert files[0]["repoName"] == "getsentry/sentry"
+        patch = files[0]["patch"]
+        assert patch["path"] == "src/foo.py"
+        assert patch["type"] == "M"
+        assert patch["added"] == 1
+        assert patch["removed"] == 1
+        lines = patch["hunks"][0]["lines"]
+        assert lines[0]["line_type"] == "-"
+        assert lines[1]["line_type"] == "+"
+        assert lines[1]["value"] == "new"
+
+    def test_run_without_code_changes_has_empty_list(self):
+        group = self.create_group()
+        self._run_for_group(group, "no changes yet")
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert len(runs) == 1
+        assert runs[0]["codeChanges"] == []
+
+    def test_code_changes_excluded_once_a_pull_request_exists(self):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        state = self._code_changes_state("rc text")
+        state.blocks[0].pr_commit_shas = {"getsentry/sentry": "abc123"}
+        reconcile_milestones(run, state)
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
+        assert runs[0]["codeChanges"] == []
+
     def test_only_latest_run_per_group_is_shown(self):
         group = self.create_group()
         self._run_for_group(group, "old run")
@@ -308,13 +420,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             self.get_success_response(self.organization.slug, qs_params={"expand": "issueStats"})
         assert "stats" not in serializer.call_args.kwargs["collapse"]
 
-    def _pull_request_for_run(self, group, run, *, key="123", **updates):
+    def _pull_request_for_run(
+        self, group, run, *, key="123", name="getsentry/sentry", integration_id=123, **updates
+    ):
         repo = self.create_repo(
             project=group.project,
-            name="getsentry/sentry",
+            name=name,
             provider="integrations:github",
-            integration_id=123,
-            url="https://github.com/getsentry/sentry",
+            integration_id=integration_id,
+            url=f"https://github.com/{name}",
         )
         pull_request = self.create_pull_request(
             repository_id=repo.id, organization_id=self.organization.id, key=key
@@ -322,6 +436,14 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         pull_request.update(**updates)
         self.create_seer_run_pull_request(run=run, pull_request=pull_request)
         return pull_request
+
+    def _run_with_pull_request_milestone(self, group):
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        state = self._code_changes_state("rc text")
+        state.blocks[0].pr_commit_shas = {"getsentry/sentry": "abc123"}
+        reconcile_milestones(run, state)
+        return run
 
     def _set_provider_client(self, mock_get_integration, client):
         installation = mock.Mock()
@@ -362,7 +484,9 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 "status": "open",
                 "checksStatus": None,
                 "reviewStatus": None,
+                "repoName": "getsentry/sentry",
                 "files": [],
+                "failedChecks": [],
             }
         ]
 
@@ -429,7 +553,30 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
+        assert pull_requests[0]["failedChecks"] == []
         assert client.requested_keys == ["123"]
+
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_failing_pull_request_lists_failed_checks(self, mock_get_integration):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {
+                    "123": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.FAILURE,
+                        failed_checks=("build (3.12)", "mypy"),
+                    )
+                }
+            ),
+        )
+
+        pull_requests = self._pull_requests(expand="scmInfo")
+
+        assert pull_requests[0]["checksStatus"] == "failure"
+        assert pull_requests[0]["failedChecks"] == ["build (3.12)", "mypy"]
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_merged_pull_request_skips_provider_fetch(self, mock_get_integration):
@@ -547,6 +694,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert client.requested_keys == []
         assert pull_requests[0]["url"] is None
         assert pull_requests[0]["checksStatus"] is None
+        assert pull_requests[0]["repoName"] is None
 
     def test_run_without_pull_requests_has_empty_list(self):
         group = self.create_group()
@@ -554,6 +702,85 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         assert run_data["pullRequests"] == []
+
+    def test_closed_pull_request_is_excluded_from_the_list(self):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        resp = self.get_success_response(self.organization.slug)
+        run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        assert run_data["pullRequests"] == []
+
+    def test_unenriched_pull_request_is_kept_in_the_list(self):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        pull_request = self._pull_request_for_run(group, run, state=None)
+        resp = self.get_success_response(self.organization.slug)
+        run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        assert [pr["id"] for pr in run_data["pullRequests"]] == [str(pull_request.id)]
+
+    def test_run_with_only_closed_pull_request_is_hidden(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        resp = self.get_success_response(self.organization.slug)
+        assert resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST] == []
+
+    def test_run_with_only_unenriched_pull_request_is_shown(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=None)
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
+
+    def test_run_with_open_and_closed_pull_requests_shows_only_open(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
+        open_pr = self._pull_request_for_run(
+            group,
+            run,
+            key="456",
+            name="getsentry/other",
+            integration_id=456,
+            state=PullRequestLifecycleState.OPEN,
+            draft=False,
+        )
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
+        assert [pr["id"] for pr in runs[0]["pullRequests"]] == [str(open_pr.id)]
+
+    @mock.patch(
+        "sentry.seer.endpoints.organization_seer_autofix_overview._MAX_RUNS_PER_MILESTONE", 1
+    )
+    def test_closed_pull_request_run_is_dropped_before_the_cap(self):
+        open_group = self.create_group()
+        open_run = self._run_with_pull_request_milestone(open_group)
+        open_run.update(last_triggered_at=before_now(minutes=5))
+        open_pr = self._pull_request_for_run(
+            open_group, open_run, state=PullRequestLifecycleState.OPEN, draft=False
+        )
+
+        closed_group = self.create_group()
+        closed_run = self._run_with_pull_request_milestone(closed_group)
+        closed_run.update(last_triggered_at=before_now(minutes=1))
+        self._pull_request_for_run(
+            closed_group,
+            closed_run,
+            key="456",
+            name="getsentry/other",
+            integration_id=456,
+            state=PullRequestLifecycleState.CLOSED,
+        )
+
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        # Cap is 1 and the closed-PR run is newest; dropping it before the cap
+        # keeps the older open-PR run instead of yielding an empty section.
+        assert len(runs) == 1
+        assert [pr["id"] for pr in runs[0]["pullRequests"]] == [str(open_pr.id)]
 
     def test_runs_outside_stats_period_are_excluded(self):
         recent = self.create_group()
@@ -577,6 +804,24 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug)
 
         assert len(resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]) == 2
+
+    @mock.patch(
+        "sentry.seer.endpoints.organization_seer_autofix_overview._MAX_RUNS_PER_MILESTONE", 2
+    )
+    def test_truncated_milestones_reports_capped_sections(self):
+        for i in range(3):
+            self._run_for_group(self.create_group(), f"boom {i}")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data["truncatedMilestones"] == [SeerRunMilestoneType.ROOT_CAUSE]
+
+    def test_truncated_milestones_empty_when_under_cap(self):
+        self._run_for_group(self.create_group(), "boom")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data["truncatedMilestones"] == []
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_both_expands_enrich_pull_request_and_request_stats(self, mock_get_integration):
