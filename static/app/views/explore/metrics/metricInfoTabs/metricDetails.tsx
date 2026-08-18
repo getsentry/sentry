@@ -17,6 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {
+  ENCRYPTED_PII_ATTRIBUTE,
+  getEncryptedPii,
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
 import {
@@ -70,7 +74,6 @@ export function MetricDetails({
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const getActions = useMetricAttributesTreeActions();
   const project = useProjectFromId({
     project_id: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
   });
@@ -94,6 +97,11 @@ export function MetricDetails({
     traceId: String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? ''),
     timestamp,
     enabled: enableQueries,
+  });
+
+  const getActions = useMetricAttributesTreeActions({
+    encryptedPii: getEncryptedPii(traceDetailsData?.attributes ?? []),
+    traceItemMeta: traceDetailsData?.meta,
   });
 
   const traceSlug = String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? '');
@@ -133,7 +141,11 @@ export function MetricDetails({
   }
   const visibleAttributes =
     traceDetailsData?.attributes?.filter(
-      attribute => !HiddenTraceMetricDetailFields.includes(attribute.name)
+      attribute =>
+        !HiddenTraceMetricDetailFields.includes(attribute.name) &&
+        // The sealed payload behind the "Copy encrypted value" action is an opaque base64 blob
+        // that no one can read in the UI, so it gets no row of its own.
+        attribute.name !== ENCRYPTED_PII_ATTRIBUTE
     ) ?? [];
 
   return (

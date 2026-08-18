@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
+import {EncryptedPiiProvider} from 'sentry/views/explore/components/traceItemAttributes/encryptedPiiContext';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
@@ -128,27 +129,29 @@ function UptimeSpanNodeDetailsContent({
   const issues = node.uniqueIssues;
 
   return (
-    <TraceDrawerComponents.DetailContainer>
-      <UptimeNodeDetailsHeader
-        node={node}
-        organization={organization}
-        onTabScrollToNode={onTabScrollToNode}
-        hideNodeActions={hideNodeActions}
-      />
-      <TraceDrawerComponents.BodyContainer>
-        {issues.length > 0 ? (
-          <IssueList organization={organization} issues={issues} node={node} />
-        ) : null}
-        <AttributesSection
+    <EncryptedPiiProvider attributes={attributes} traceItemMeta={traceItemData.meta}>
+      <TraceDrawerComponents.DetailContainer>
+        <UptimeNodeDetailsHeader
           node={node}
-          attributes={attributes}
-          theme={theme}
-          location={location}
           organization={organization}
-          project={project}
-          traceItemMeta={traceItemData.meta}
+          onTabScrollToNode={onTabScrollToNode}
+          hideNodeActions={hideNodeActions}
         />
-      </TraceDrawerComponents.BodyContainer>
-    </TraceDrawerComponents.DetailContainer>
+        <TraceDrawerComponents.BodyContainer>
+          {issues.length > 0 ? (
+            <IssueList organization={organization} issues={issues} node={node} />
+          ) : null}
+          <AttributesSection
+            node={node}
+            attributes={attributes}
+            theme={theme}
+            location={location}
+            organization={organization}
+            project={project}
+            traceItemMeta={traceItemData.meta}
+          />
+        </TraceDrawerComponents.BodyContainer>
+      </TraceDrawerComponents.DetailContainer>
+    </EncryptedPiiProvider>
   );
 }

@@ -2,7 +2,9 @@ import {useCallback} from 'react';
 
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {getCopyEncryptedValueAction} from 'sentry/views/explore/components/traceItemAttributes/encryptedPiiContext';
 import {useAttributeTreeSearchActions} from 'sentry/views/explore/components/traceItemAttributes/useAttributeTreeSearchActions';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
@@ -13,7 +15,18 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
-export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
+export function useLogAttributesTreeActions({
+  embedded,
+  encryptedPii,
+  traceItemMeta,
+}: {
+  embedded: boolean;
+  /**
+   * The log's sealed PII payload, if any of its attributes were encrypted rather than scrubbed.
+   */
+  encryptedPii?: string;
+  traceItemMeta?: TraceItemDetailsMeta;
+}) {
   const getSearchActions = useAttributeTreeSearchActions();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
@@ -80,6 +93,16 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
         onAction: () => addGroupBy(content),
       }
     );
+
+    const encryptedValueAction = getCopyEncryptedValueAction({
+      attributeKey: key,
+      value: content.value,
+      encryptedPii,
+      traceItemMeta,
+    });
+    if (encryptedValueAction) {
+      items.push(encryptedValueAction);
+    }
 
     return items;
   };

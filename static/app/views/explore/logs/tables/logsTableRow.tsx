@@ -51,6 +51,10 @@ import {
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
+  ENCRYPTED_PII_ATTRIBUTE,
+  getEncryptedPii,
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -727,7 +731,6 @@ function LogRowDetails({
   });
   const projectSlug = project?.slug ?? '';
   const fields = useQueryParamsFields();
-  const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
@@ -749,6 +752,12 @@ function LogRowDetails({
   });
 
   const {data, isPending, isError} = fullLogDataResult;
+
+  const getActions = useLogAttributesTreeActions({
+    embedded,
+    encryptedPii: getEncryptedPii(data?.attributes ?? []),
+    traceItemMeta: data?.meta,
+  });
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -825,7 +834,11 @@ function LogRowDetails({
                 <AttributesTree<RendererExtra>
                   attributes={toSplicedSorted(
                     data.attributes.filter(
-                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                      attribute =>
+                        !HiddenLogDetailFields.includes(attribute.name) &&
+                        // The sealed payload behind the "Copy encrypted value" action is an opaque
+                        // base64 blob that no one can read in the UI, so it gets no row of its own.
+                        attribute.name !== ENCRYPTED_PII_ATTRIBUTE
                     ),
                     {
                       name: OurLogKnownFieldKey.TIMESTAMP,

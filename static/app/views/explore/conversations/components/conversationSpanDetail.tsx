@@ -18,6 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
@@ -220,7 +221,11 @@ export function ConversationSpanDetail({
                 <OutputTab node={node} attributes={attributes} />
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
-                <AttributesTab node={node} attributes={attributes} />
+                <AttributesTab
+                  node={node}
+                  attributes={attributes}
+                  traceItemMeta={data?.meta}
+                />
               </TabPanels.Item>
             </TabPanels>
           </Container>
@@ -443,9 +448,11 @@ function InputMessageContent({
 function AttributesTab({
   node,
   attributes,
+  traceItemMeta,
 }: {
   attributes: SpanAttributes;
   node: AITraceSpanNode;
+  traceItemMeta?: TraceItemDetailsMeta;
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -466,6 +473,7 @@ function AttributesTab({
       location={location}
       organization={organization}
       project={project}
+      traceItemMeta={traceItemMeta}
     />
   );
 }

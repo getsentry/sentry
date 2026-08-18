@@ -60,6 +60,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {
+  getCopyEncryptedValueAction,
+  useEncryptedPii,
+} from 'sentry/views/explore/components/traceItemAttributes/encryptedPiiContext';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -772,6 +776,7 @@ function KeyValueAction({
   const location = useLocation();
   const organization = useOrganization();
   const [isVisible, setIsVisible] = useState(false);
+  const {encryptedPii, traceItemMeta} = useEncryptedPii();
   const dropdownOptions = getTraceKeyValueActions({
     rowKey,
     rowValue,
@@ -780,6 +785,18 @@ function KeyValueAction({
     location,
     organization,
   });
+
+  // Rows such as the span description carry values an `encrypt` rule may have replaced. A row
+  // rendered as an element has no placeholder to match on, so those rely on the scrubbing meta.
+  const encryptedValueAction = getCopyEncryptedValueAction({
+    attributeKey: rowKey,
+    value: typeof rowValue === 'string' || typeof rowValue === 'number' ? rowValue : null,
+    encryptedPii,
+    traceItemMeta,
+  });
+  if (encryptedValueAction) {
+    dropdownOptions.push(encryptedValueAction);
+  }
 
   if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
     return null;

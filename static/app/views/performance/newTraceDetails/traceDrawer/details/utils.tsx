@@ -11,10 +11,8 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {
-  isEncryptedAttribute,
-  prettifyAttributeName,
-} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {getCopyEncryptedValueAction} from 'sentry/views/explore/components/traceItemAttributes/encryptedPiiContext';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
@@ -309,26 +307,14 @@ export function getTraceAttributesTreeActions(
       organization: params.organization,
     });
 
-    const encryptedPii = params.encryptedPii;
-    if (
-      encryptedPii &&
-      isEncryptedAttribute({
-        attributeKey: rowKey,
-        value: rowValue,
-        traceItemMeta: params.traceItemMeta,
-      })
-    ) {
-      actions.push({
-        key: 'copy-encrypted-value',
-        label: t('Copy encrypted value'),
-        details: t(
-          'Sealed with the public key configured for this organization. Only the matching private key can read it back.'
-        ),
-        onAction: () =>
-          copyToClipboard(encryptedPii, {
-            successMessage: t('Encrypted value copied to clipboard'),
-          }),
-      });
+    const encryptedValueAction = getCopyEncryptedValueAction({
+      attributeKey: rowKey,
+      value: rowValue,
+      encryptedPii: params.encryptedPii,
+      traceItemMeta: params.traceItemMeta,
+    });
+    if (encryptedValueAction) {
+      actions.push(encryptedValueAction);
     }
 
     return actions;

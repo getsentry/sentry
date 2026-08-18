@@ -25,6 +25,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
+import {EncryptedPiiProvider} from 'sentry/views/explore/components/traceItemAttributes/encryptedPiiContext';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -541,142 +542,151 @@ function EAPSpanNodeDetailsContent({
       !attributesMap.report_event);
 
   return (
-    <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.HeaderContainer>
-        <TraceDrawerComponents.Title>
-          <TraceDrawerComponents.LegacyTitleText>
-            <TraceDrawerComponents.TitleText>
-              {t('Span')}
-              {isSdkSentStreamedSpan && (
-                <Fragment>
-                  {' '}
-                  <Tooltip title={t('Streamed Span')}>
-                    <IconBroadcast size="xs" />
-                  </Tooltip>
-                </Fragment>
-              )}
-            </TraceDrawerComponents.TitleText>
-            <TraceDrawerComponents.SubtitleWithCopyButton
-              subTitle={`ID: ${node.id}`}
-              clipboardText={node.id}
+    <EncryptedPiiProvider
+      attributes={traceItemData.attributes}
+      traceItemMeta={traceItemData.meta}
+    >
+      <TraceDrawerComponents.DetailContainer>
+        <TraceDrawerComponents.HeaderContainer>
+          <TraceDrawerComponents.Title>
+            <TraceDrawerComponents.LegacyTitleText>
+              <TraceDrawerComponents.TitleText>
+                {t('Span')}
+                {isSdkSentStreamedSpan && (
+                  <Fragment>
+                    {' '}
+                    <Tooltip title={t('Streamed Span')}>
+                      <IconBroadcast size="xs" />
+                    </Tooltip>
+                  </Fragment>
+                )}
+              </TraceDrawerComponents.TitleText>
+              <TraceDrawerComponents.SubtitleWithCopyButton
+                subTitle={`ID: ${node.id}`}
+                clipboardText={node.id}
+              />
+            </TraceDrawerComponents.LegacyTitleText>
+          </TraceDrawerComponents.Title>
+          {!hideNodeActions && (
+            <TraceDrawerComponents.NodeActions
+              node={node}
+              organization={organization}
+              onTabScrollToNode={onTabScrollToNode}
+              showJSONLink={isTransaction}
+              profileId={node.profileId}
+              profilerId={node.profilerId}
+              threadId={threadId}
             />
-          </TraceDrawerComponents.LegacyTitleText>
-        </TraceDrawerComponents.Title>
-        {!hideNodeActions && (
-          <TraceDrawerComponents.NodeActions
+          )}
+        </TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.BodyContainer>
+          {issues.length > 0 ? (
+            <IssueList organization={organization} issues={issues} node={node} />
+          ) : null}
+          {node.hasHttpError && issues.length === 0 ? (
+            <HttpErrorCard node={node} />
+          ) : null}
+          <EAPSpanDescription
             node={node}
+            project={project}
             organization={organization}
-            onTabScrollToNode={onTabScrollToNode}
-            showJSONLink={isTransaction}
-            profileId={node.profileId}
-            profilerId={node.profilerId}
-            threadId={threadId}
+            location={location}
+            attributes={attributes}
+            avgSpanDuration={avgSpanDuration}
+            hideNodeActions={hideNodeActions}
           />
-        )}
-      </TraceDrawerComponents.HeaderContainer>
-      <TraceDrawerComponents.BodyContainer>
-        {issues.length > 0 ? (
-          <IssueList organization={organization} issues={issues} node={node} />
-        ) : null}
-        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
-        <EAPSpanDescription
-          node={node}
-          project={project}
-          organization={organization}
-          location={location}
-          attributes={attributes}
-          avgSpanDuration={avgSpanDuration}
-          hideNodeActions={hideNodeActions}
-        />
-        <AIIOAlert node={node} attributes={attributes} />
-        <AIInputSection
-          node={node}
-          attributes={attributes}
-          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
-        />
-        <AIOutputSection
-          node={node}
-          attributes={attributes}
-          initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
-        />
-        <MCPInputSection node={node} attributes={attributes} />
-        <MCPOutputSection node={node} attributes={attributes} />
-        <AttributesSection
-          node={node}
-          attributes={attributes}
-          theme={theme}
-          location={location}
-          organization={organization}
-          project={project}
-          traceItemMeta={traceItemData.meta}
-        />
-
-        {isTransaction && (contexts || extra) ? (
-          <Contexts contexts={contexts} extra={extra} project={project} />
-        ) : null}
-
-        <LogDetails />
-
-        {links?.length ? (
-          <TraceSpanLinks
-            tree={tree}
+          <AIIOAlert node={node} attributes={attributes} />
+          <AIInputSection
             node={node}
-            links={links}
+            attributes={attributes}
+            initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+          />
+          <AIOutputSection
+            node={node}
+            attributes={attributes}
+            initialCollapse={initiallyCollapseAiIO && getIsAiGenerationNode(node)}
+          />
+          <MCPInputSection node={node} attributes={attributes} />
+          <MCPOutputSection node={node} attributes={attributes} />
+          <AttributesSection
+            node={node}
+            attributes={attributes}
             theme={theme}
             location={location}
             organization={organization}
-            traceId={node.extra?.replayTraceSlug ?? traceId}
-            onTabScrollToNode={onTabScrollToNode}
-          />
-        ) : null}
-
-        {eventTransaction && organization.features.includes('profiling') ? (
-          <ProfileDetails
-            organization={organization}
             project={project}
-            event={eventTransaction}
-            span={span}
+            traceItemMeta={traceItemData.meta}
           />
-        ) : null}
 
-        {isTransaction ? (
-          <ReplayPreview
-            replayId={
-              findSpanAttributeValue(attributes, 'replay.id') ||
-              findSpanAttributeValue(attributes, 'replayId')
-            }
-            eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
-            organization={organization}
-          />
-        ) : null}
+          {isTransaction && (contexts || extra) ? (
+            <Contexts contexts={contexts} extra={extra} project={project} />
+          ) : null}
 
-        {isTransaction && eventTransaction && project ? (
-          <EventAttachments
-            event={eventTransaction}
-            project={project}
-            group={undefined}
-          />
-        ) : null}
+          <LogDetails />
 
-        {isTransaction && breadcrumbs ? <BreadCrumbs breadcrumbs={breadcrumbs} /> : null}
+          {links?.length ? (
+            <TraceSpanLinks
+              tree={tree}
+              node={node}
+              links={links}
+              theme={theme}
+              location={location}
+              organization={organization}
+              traceId={node.extra?.replayTraceSlug ?? traceId}
+              onTabScrollToNode={onTabScrollToNode}
+            />
+          ) : null}
 
-        {isTransaction && eventTransaction && project ? (
-          <EventViewHierarchy
-            event={eventTransaction}
-            project={project}
-            disableCollapsePersistence
-          />
-        ) : null}
+          {eventTransaction && organization.features.includes('profiling') ? (
+            <ProfileDetails
+              organization={organization}
+              project={project}
+              event={eventTransaction}
+              span={span}
+            />
+          ) : null}
 
-        {isTransaction && eventTransaction?.projectSlug ? (
-          <EventRRWebIntegration
-            event={eventTransaction}
-            orgId={organization.slug}
-            projectSlug={eventTransaction.projectSlug}
-            disableCollapsePersistence
-          />
-        ) : null}
-      </TraceDrawerComponents.BodyContainer>
-    </TraceDrawerComponents.DetailContainer>
+          {isTransaction ? (
+            <ReplayPreview
+              replayId={
+                findSpanAttributeValue(attributes, 'replay.id') ||
+                findSpanAttributeValue(attributes, 'replayId')
+              }
+              eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
+              organization={organization}
+            />
+          ) : null}
+
+          {isTransaction && eventTransaction && project ? (
+            <EventAttachments
+              event={eventTransaction}
+              project={project}
+              group={undefined}
+            />
+          ) : null}
+
+          {isTransaction && breadcrumbs ? (
+            <BreadCrumbs breadcrumbs={breadcrumbs} />
+          ) : null}
+
+          {isTransaction && eventTransaction && project ? (
+            <EventViewHierarchy
+              event={eventTransaction}
+              project={project}
+              disableCollapsePersistence
+            />
+          ) : null}
+
+          {isTransaction && eventTransaction?.projectSlug ? (
+            <EventRRWebIntegration
+              event={eventTransaction}
+              orgId={organization.slug}
+              projectSlug={eventTransaction.projectSlug}
+              disableCollapsePersistence
+            />
+          ) : null}
+        </TraceDrawerComponents.BodyContainer>
+      </TraceDrawerComponents.DetailContainer>
+    </EncryptedPiiProvider>
   );
 }
