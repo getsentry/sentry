@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
+from typing import Any
 
-from sentry.llm_cache_detection.detection import AgentLabelSource, CallSiteStats, DetectionWindow
+from sentry.llm_cache_detection.detection import (
+    CACHE_TTL_MINUTES,
+    AgentLabelSource,
+    CallSiteKey,
+    CallSiteStats,
+    CallSiteWarmth,
+    DetectionWindow,
+    call_site_key,
+)
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import SnubaTSResult
 
 # `ai_client` is added during ingestion from the op, so it matches an LLM call
 # whichever op the SDK chose; matching an op directly would cover one integration.
@@ -52,6 +63,17 @@ SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
 # Sorting by total input tokens keeps the worst offenders inside the cap even
 # when a project has more distinct call sites than this.
 CALL_SITE_GROUPS_LIMIT = 300
+
+# Warmth is read off calls counted per cache TTL, so the timeseries is bucketed
+# at the TTL itself: within a bucket, every call but the first had a predecessor
+# close enough to find the cache warm.
+WARMTH_GRANULARITY_SECS = CACHE_TTL_MINUTES * 60
+# Each group in that timeseries costs a bucket per TTL across the whole window,
+# so the number of groups is the only lever on how large it gets. Groups are
+# ranked by input tokens as the aggregate query is, which makes the budget a
+# prefix of that same ordering rather than a selection of its own; a call site
+# crowded out of it goes unevaluated rather than misjudged.
+WARMTH_GROUPS_LIMIT = 20
 SAMPLE_CALLS_LIMIT = 3
 # Sampled rows are deduplicated by trace, so ask for enough of them that a call
 # site repeating within one trace still yields distinct examples.
@@ -177,6 +199,17 @@ def _agent_label(row: SnubaRow) -> tuple[str, AgentLabelSource] | None:
     return None
 
 
+def _group_key(group_by: SnubaRow) -> CallSiteKey | None:
+    """Read a call site's identity off a grouped row, or None when it names none."""
+    label = _agent_label(group_by)
+    span_name = group_by.get(SPAN_NAME)
+    model = group_by.get(MODEL)
+    if label is None or not span_name or not model:
+        return None
+    agent_label, agent_label_source = label
+    return call_site_key(agent_label_source, agent_label, span_name, model)
+
+
 def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
     """Add two aggregate rows describing the same call site.
 
@@ -207,7 +240,7 @@ def _to_call_sites(rows: Iterable[SnubaRow]) -> list[CallSiteStats]:
     under one agent report different operation names -- a split the key does not
     make, so it is undone here.
     """
-    call_sites: dict[tuple[str, str, str, str], CallSiteStats] = {}
+    call_sites: dict[CallSiteKey, CallSiteStats] = {}
     for row in rows:
         label = _agent_label(row)
         span_name = row.get(SPAN_NAME)
@@ -231,8 +264,65 @@ def _to_call_sites(rows: Iterable[SnubaRow]) -> list[CallSiteStats]:
     return list(call_sites.values())
 
 
+def _to_call_site_warmth(groups: Iterable[SnubaTSResult]) -> dict[CallSiteKey, CallSiteWarmth]:
+    """Fold per-group bucket counts into per-call-site warmth.
+
+    Grouping by the agent name and the operation name separately splits a call
+    site exactly as the aggregate query does, so the counts are summed per
+    bucket across the rows that fold together *before* warmth is read off them:
+    a bucket holding one call under each of two operation names of the same
+    agent is a cold start followed by a warm call, not two cold starts.
+    """
+    bucket_counts: dict[CallSiteKey, dict[Any, float]] = defaultdict(lambda: defaultdict(float))
+    for group in groups:
+        group_by: SnubaRow = {
+            entry["key"]: entry["value"] for entry in group.data.get("groupby") or []
+        }
+        key = _group_key(group_by)
+        if key is None:
+            continue
+        for point in group.data.get("data", []):
+            bucket_counts[key][point.get("time")] += float(point.get("count()") or 0)
+    return {
+        key: CallSiteWarmth.from_bucket_counts(buckets.values())
+        for key, buckets in bucket_counts.items()
+    }
+
+
+def _fetch_call_site_warmth(
+    project: Project, window: DetectionWindow
+) -> dict[CallSiteKey, CallSiteWarmth]:
+    """Count the busiest call sites' calls per cache-TTL bucket across the window."""
+    result = Spans.run_top_events_timeseries_query(
+        params=SnubaParams(
+            start=window.start,
+            end=window.end,
+            projects=[project],
+            organization=project.organization,
+            granularity_secs=WARMTH_GRANULARITY_SECS,
+        ),
+        query_string=GEN_AI_CALL_FILTER,
+        # The ranking column has to be selected, and for a timeseries that means
+        # an axis: the input-token sum is asked for only to order the groups.
+        y_axes=["count()", SUM_INPUT_TOKENS],
+        raw_groupby=[AGENT_NAME, OPERATION_NAME, SPAN_NAME, MODEL],
+        orderby=[f"-{SUM_INPUT_TOKENS}"],
+        limit=WARMTH_GROUPS_LIMIT,
+        include_other=False,
+        referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_WARMTH.value,
+        config=SearchResolverConfig(auto_fields=True),
+        sampling_mode="NORMAL",
+    )
+    return _to_call_site_warmth(result.values())
+
+
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[CallSiteStats]:
-    """Aggregate gen-AI call spans per (agent label, span.name, model)."""
+    """Aggregate gen-AI call spans per (agent label, span.name, model).
+
+    Token sums and traffic shape come from separate queries -- one aggregate,
+    one bucketed at the cache TTL -- and are joined here, so a caller sees one
+    description of a call site rather than two halves to line up itself.
+    """
     result = _run_spans_query(
         project,
         window,
@@ -252,7 +342,11 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[Cal
         limit=CALL_SITE_GROUPS_LIMIT,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_CALL_SITES,
     )
-    return _to_call_sites(result.get("data", []))
+    call_sites = _to_call_sites(result.get("data", []))
+    if not call_sites:
+        return []
+    warmth = _fetch_call_site_warmth(project, window)
+    return [replace(stats, warmth=warmth.get(stats.group_key)) for stats in call_sites]
 
 
 def count_spans_with_cache_attributes(

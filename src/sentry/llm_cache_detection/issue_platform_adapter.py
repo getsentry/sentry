@@ -17,6 +17,7 @@ from sentry.llm_cache_detection.detection import (
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
+    CallSiteWarmth,
     DetectionWindow,
 )
 from sentry.llm_cache_detection.pricing import SavingsEstimate
@@ -165,6 +166,18 @@ def _build_evidence_data(
         ],
     }
 
+    warmth = stats.warmth
+    if warmth is not None:
+        evidence_data.update(
+            {
+                # The hit rate is read against every call, so the share of them
+                # a warm cache was available to is what says whether that rate
+                # is a fault or the arithmetic of isolated traffic.
+                "warm_call_count": warmth.warm_call_count,
+                "cacheable_share": warmth.cacheable_share,
+            }
+        )
+
     if savings is not None:
         evidence_data.update(
             {
@@ -194,6 +207,21 @@ def _build_evidence_data(
     return evidence_data
 
 
+def _cache_eligible_calls_evidence(warmth: CallSiteWarmth | None) -> list[IssueEvidence]:
+    """The calls that had a warm cache to hit, as a row -- or no row at all."""
+    if warmth is None:
+        return []
+    return [
+        IssueEvidence(
+            name="Cache-eligible calls",
+            value=(
+                f"{warmth.warm_call_count:,.0f} ({_format_rate(warmth.cacheable_share)} of calls)"
+            ),
+            important=False,
+        )
+    ]
+
+
 def _build_evidence_display(
     finding: CacheFinding, sample_calls: list[SampleCall], savings: SavingsEstimate | None
 ) -> list[IssueEvidence]:
@@ -214,6 +242,7 @@ def _build_evidence_display(
         ),
         IssueEvidence(name="Window", value=f"{DETECTION_WINDOW_DAYS}d", important=False),
         IssueEvidence(name="Calls", value=f"{stats.call_count:,}", important=False),
+        *_cache_eligible_calls_evidence(stats.warmth),
         IssueEvidence(
             name="Cache hit rate",
             value=_format_rate(stats.hit_rate),

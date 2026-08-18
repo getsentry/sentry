@@ -21,11 +21,14 @@ from sentry.llm_cache_detection.query import (
     SUM_CACHE_CREATION_TOKENS,
     SUM_CACHE_READ_TOKENS,
     SUM_INPUT_TOKENS,
+    WARMTH_GRANULARITY_SECS,
     _build_group_filter,
+    _to_call_site_warmth,
     _to_call_sites,
     count_spans_with_cache_attributes,
     fetch_sample_calls,
 )
+from sentry.utils.snuba import SnubaTSResult
 
 
 def make_stats(
@@ -69,6 +72,34 @@ def make_row(
         SUM_CACHE_CREATION_TOKENS: 0,
         AVG_INPUT_TOKENS: avg_input_tokens,
     }
+
+
+def make_series(
+    *,
+    agent_name: str | None = None,
+    operation_name: str | None = "generate_content",
+    span_name: str = "generate_content generate_structured",
+    model: str = "model-x",
+    bucket_counts: list[float],
+) -> SnubaTSResult:
+    """One group's call counts, bucketed at the cache TTL."""
+    return SnubaTSResult(
+        {
+            "groupby": [
+                {"key": AGENT_NAME, "value": agent_name},
+                {"key": OPERATION_NAME, "value": operation_name},
+                {"key": SPAN_NAME, "value": span_name},
+                {"key": MODEL, "value": model},
+            ],
+            "data": [
+                {"time": index * WARMTH_GRANULARITY_SECS, "count()": count}
+                for index, count in enumerate(bucket_counts)
+            ],
+        },
+        None,
+        None,
+        WARMTH_GRANULARITY_SECS,
+    )
 
 
 def test_group_filter_escapes_wildcard() -> None:
@@ -180,3 +211,58 @@ def test_merges_rows_one_agent_split_across_operation_names() -> None:
     assert call_sites[0].sum_input_tokens == 500
     # Re-weighted by call count rather than averaged again.
     assert call_sites[0].avg_input_tokens == 125
+
+
+def test_warmth_sums_buckets_before_counting_cold_starts() -> None:
+    # One agent reporting two operation names arrives as two groups. Counted
+    # apart, a bucket holding one call from each reads as two cold starts and
+    # the call site loses every warm call it has.
+    warmth = _to_call_site_warmth(
+        [
+            make_series(agent_name="Lightweight RCA", operation_name="chat", bucket_counts=[1, 1]),
+            make_series(
+                agent_name="Lightweight RCA",
+                operation_name="generate_content",
+                bucket_counts=[1, 1],
+            ),
+        ]
+    )
+
+    assert len(warmth) == 1
+    measured = next(iter(warmth.values()))
+    assert measured.total_call_count == 4
+    assert measured.warm_call_count == 2
+
+
+def test_warmth_keeps_spans_without_an_agent_name_apart() -> None:
+    warmth = _to_call_site_warmth(
+        [
+            make_series(agent_name="Lightweight RCA", bucket_counts=[3]),
+            make_series(agent_name=None, bucket_counts=[5]),
+        ]
+    )
+
+    assert {(key, measured.warm_call_count) for key, measured in warmth.items()} == {
+        (
+            (
+                AgentLabelSource.AGENT_NAME.value,
+                "Lightweight RCA",
+                "generate_content generate_structured",
+                "model-x",
+            ),
+            2,
+        ),
+        (
+            (
+                AgentLabelSource.OPERATION_NAME.value,
+                "generate_content",
+                "generate_content generate_structured",
+                "model-x",
+            ),
+            4,
+        ),
+    }
+
+
+def test_warmth_drops_a_group_naming_neither_an_agent_nor_an_operation() -> None:
+    assert _to_call_site_warmth([make_series(operation_name=None, bucket_counts=[4])]) == {}

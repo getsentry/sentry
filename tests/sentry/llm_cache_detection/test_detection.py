@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from sentry.llm_cache_detection.detection import (
     MIN_AVG_INPUT_TOKENS,
-    MIN_CALLS_PER_WINDOW,
+    MIN_CACHEABLE_SHARE,
+    MIN_CALLS_FOR_CONFIDENCE,
     AgentLabelSource,
     CacheFinding,
     CacheOutcome,
     CallSiteStats,
+    CallSiteWarmth,
     classify_call_site,
     find_contrast_anchor,
     needs_cache_presence_probe,
@@ -26,8 +30,13 @@ def make_stats(
     avg_input_tokens: float,
     hit_rate: float = 0.0,
     write_read_ratio: float = 0.0,
+    cacheable_share: float = 1.0,
 ) -> CallSiteStats:
-    """Build stats from hit-rate and write:read ratios rather than raw token sums."""
+    """Build stats from hit-rate and write:read ratios rather than raw token sums.
+
+    Traffic arrives in bursts unless a case says otherwise, so warmth follows the
+    call count and the cases below turn purely on the ratios.
+    """
     sum_input = call_count * avg_input_tokens
     sum_read = hit_rate * sum_input
     sum_creation = write_read_ratio * sum_read
@@ -41,6 +50,9 @@ def make_stats(
         sum_cache_read_tokens=sum_read,
         sum_cache_creation_tokens=sum_creation,
         avg_input_tokens=avg_input_tokens,
+        warmth=CallSiteWarmth(
+            total_call_count=call_count, warm_call_count=call_count * cacheable_share
+        ),
     )
 
 
@@ -106,15 +118,35 @@ def make_stats(
             id="ineligible-avg-input-borderline-1003",
         ),
         pytest.param(
-            # Ineligible: call volume under the per-window floor.
-            make_stats(call_count=1_100, avg_input_tokens=2_935, hit_rate=0.0025),
+            # Ineligible: too few cache-eligible calls to read a ratio off.
+            make_stats(call_count=120, avg_input_tokens=2_935, hit_rate=0.0025),
             CacheOutcome.INELIGIBLE,
-            id="ineligible-low-volume",
+            id="ineligible-below-the-confidence-floor",
         ),
         pytest.param(
-            make_stats(call_count=MIN_CALLS_PER_WINDOW, avg_input_tokens=MIN_AVG_INPUT_TOKENS),
+            # Ineligible: busy, but its calls almost always arrive alone, so a
+            # cache was never warm to hit and the hit rate is arithmetic.
+            make_stats(call_count=50_000, avg_input_tokens=2_935, cacheable_share=0.2),
+            CacheOutcome.INELIGIBLE,
+            id="ineligible-mostly-isolated-calls",
+        ),
+        pytest.param(
+            # Every eligibility floor met exactly.
+            make_stats(
+                call_count=int(MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE),
+                avg_input_tokens=MIN_AVG_INPUT_TOKENS,
+                cacheable_share=MIN_CACHEABLE_SHARE,
+            ),
             CacheOutcome.NOT_CACHING,
             id="eligibility-thresholds-inclusive",
+        ),
+        pytest.param(
+            # A burst workload: dozens of calls inside a minute and then nothing
+            # for hours, which averages far under one call per cache TTL yet
+            # keeps a cache warm for nearly all of them.
+            make_stats(call_count=600, avg_input_tokens=8_000, cacheable_share=0.95),
+            CacheOutcome.NOT_CACHING,
+            id="bursty-traffic-is-evaluated",
         ),
         pytest.param(
             make_stats(call_count=10_000, avg_input_tokens=2_000, hit_rate=0.05),
@@ -149,6 +181,33 @@ def make_stats(
 )
 def test_classify_call_site(stats: CallSiteStats, expected: CacheOutcome) -> None:
     assert classify_call_site(stats) == expected
+
+
+def test_warmth_charges_one_cold_start_per_bucket() -> None:
+    # Every call after the first in a bucket had a predecessor inside the TTL;
+    # empty buckets are not cold starts because nothing was called in them.
+    warmth = CallSiteWarmth.from_bucket_counts([5, 0, 3, 1, 0])
+
+    assert warmth.total_call_count == 9
+    assert warmth.warm_call_count == 6
+    assert warmth.cacheable_share == pytest.approx(6 / 9)
+
+
+def test_warmth_of_a_call_site_that_never_called() -> None:
+    warmth = CallSiteWarmth.from_bucket_counts([0, 0])
+
+    assert warmth.warm_call_count == 0
+    assert warmth.cacheable_share == 0
+
+
+def test_unmeasured_warmth_is_ineligible() -> None:
+    # Nothing is known about the gaps between this call site's calls, which is
+    # as good as knowing they are too wide to cache.
+    stats = replace(
+        make_stats(call_count=169_000, avg_input_tokens=2_748, hit_rate=0.000088), warmth=None
+    )
+
+    assert classify_call_site(stats) == CacheOutcome.INELIGIBLE
 
 
 def test_web_search_wrapper_flags_without_gap_guard() -> None:
@@ -218,7 +277,7 @@ def test_probe_not_needed_when_cache_activity_exists() -> None:
 
 
 def test_probe_not_needed_for_unflagged_outcomes() -> None:
-    ineligible = make_stats(call_count=1_100, avg_input_tokens=2_935)
+    ineligible = make_stats(call_count=120, avg_input_tokens=2_935)
     assert needs_cache_presence_probe(ineligible, classify_call_site(ineligible)) is False
 
     healthy = make_stats(call_count=21_000, avg_input_tokens=26_600, hit_rate=0.855)
@@ -311,7 +370,7 @@ def test_find_contrast_anchor_ignores_low_volume_candidates() -> None:
     tiny_but_healthy = make_stats(
         agent_label="agent-b",
         model="gemini-2.5-pro",
-        call_count=MIN_CALLS_PER_WINDOW - 1,
+        call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
         avg_input_tokens=2_000,
         hit_rate=0.9,
     )

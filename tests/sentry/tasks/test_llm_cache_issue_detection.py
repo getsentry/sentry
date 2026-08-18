@@ -14,6 +14,7 @@ from sentry.llm_cache_detection.detection import (
     DETECTION_WINDOW_DAYS,
     AgentLabelSource,
     CallSiteStats,
+    CallSiteWarmth,
 )
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
 from sentry.llm_cache_detection.query import SampleCall
@@ -54,83 +55,110 @@ SAMPLE_CALLS = [
 ]
 SAMPLE_TRACE_IDS = [sample.trace_id for sample in SAMPLE_CALLS]
 
+
+def measured_warm(stats: CallSiteStats) -> CallSiteStats:
+    """The same call site, with its calls measured as arriving in bursts.
+
+    What the eligibility floors let through is settled in the detection tests;
+    these ones are about what the pipeline does with a call site once they do.
+    """
+    return replace(
+        stats,
+        warmth=CallSiteWarmth(
+            total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.9
+        ),
+    )
+
+
 # Not caching: near-zero hit rate at eligible volume.
-NOT_CACHING_STATS = CallSiteStats(
-    agent_label="PR Review",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
-    model="gemini-2.5-pro",
-    call_count=169_000,
-    sum_input_tokens=464_412_000,
-    sum_cache_read_tokens=40_868,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=2_748,
+NOT_CACHING_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="PR Review",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content generate_structured",
+        model="gemini-2.5-pro",
+        call_count=169_000,
+        sum_input_tokens=464_412_000,
+        sum_cache_read_tokens=40_868,
+        sum_cache_creation_tokens=0,
+        avg_input_tokens=2_748,
+    )
 )
 
 # Healthy call site on the same model: the contrast anchor for NOT_CACHING_STATS.
-ANCHOR_STATS = CallSiteStats(
-    agent_label="Explorer",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content gemini_generation",
-    model="gemini-2.5-pro",
-    call_count=21_000,
-    sum_input_tokens=558_600_000,
-    sum_cache_read_tokens=477_603_000,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=26_600,
+ANCHOR_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="Explorer",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content gemini_generation",
+        model="gemini-2.5-pro",
+        call_count=21_000,
+        sum_input_tokens=558_600_000,
+        sum_cache_read_tokens=477_603_000,
+        sum_cache_creation_tokens=0,
+        avg_input_tokens=26_600,
+    )
 )
 
 # Thrash: cache writes vastly exceed reads.
-THRASH_STATS = CallSiteStats(
-    agent_label="Malicious Issue Detection",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content anthropic_generation",
-    model="claude-sonnet-5",
-    call_count=2_805,
-    sum_input_tokens=15_149_805,
-    sum_cache_read_tokens=1_302_883,
-    sum_cache_creation_tokens=13_940_848,
-    avg_input_tokens=5_401,
+THRASH_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="Malicious Issue Detection",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content anthropic_generation",
+        model="claude-sonnet-5",
+        call_count=2_805,
+        sum_input_tokens=15_149_805,
+        sum_cache_read_tokens=1_302_883,
+        sum_cache_creation_tokens=13_940_848,
+        avg_input_tokens=5_401,
+    )
 )
 
 # Ineligible: avg input below the cacheable minimum.
-INELIGIBLE_STATS = CallSiteStats(
-    agent_label="Supergroup Summarization",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
-    model="gemini-3.1-flash-lite",
-    call_count=1_760_000,
-    sum_input_tokens=795_520_000,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=452,
+INELIGIBLE_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="Supergroup Summarization",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content generate_structured",
+        model="gemini-3.1-flash-lite",
+        call_count=1_760_000,
+        sum_input_tokens=795_520_000,
+        sum_cache_read_tokens=0,
+        sum_cache_creation_tokens=0,
+        avg_input_tokens=452,
+    )
 )
 
 # Instrumentation gap candidate: no cache attributes recorded at all.
-GAP_STATS = CallSiteStats(
-    agent_label="PR Review",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content anthropic_web_search",
-    model="claude-haiku-4-5",
-    call_count=62_553,
-    sum_input_tokens=2_203_429_425,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=35_225,
+GAP_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="PR Review",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content anthropic_web_search",
+        model="claude-haiku-4-5",
+        call_count=62_553,
+        sum_input_tokens=2_203_429_425,
+        sum_cache_read_tokens=0,
+        sum_cache_creation_tokens=0,
+        avg_input_tokens=35_225,
+    )
 )
 
 # Gemini never records zero cache values, so wholly-absent attributes on an
 # eligible workload are a genuine 0% hit rate, not an instrumentation gap.
-GEMINI_ZERO_STATS = CallSiteStats(
-    agent_label="Lightweight RCA",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
-    model="gemini-3.1-flash-lite",
-    call_count=5_236_000,
-    sum_input_tokens=15_006_376_000,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=2_866,
+GEMINI_ZERO_STATS = measured_warm(
+    CallSiteStats(
+        agent_label="Lightweight RCA",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content generate_structured",
+        model="gemini-3.1-flash-lite",
+        call_count=5_236_000,
+        sum_input_tokens=15_006_376_000,
+        sum_cache_read_tokens=0,
+        sum_cache_creation_tokens=0,
+        avg_input_tokens=2_866,
+    )
 )
 
 
@@ -323,6 +351,32 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             for call in mock_produce.call_args_list
         ]
         assert outcomes == ["not_caching", "thrash"]
+
+    def test_emits_how_much_of_the_traffic_could_have_cached(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # The hit rate is read against every call, so how many of them had a
+        # warm cache to hit is what makes a low one a fault and not arithmetic.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert occurrence.evidence_data["warm_call_count"] == 152_100
+        assert occurrence.evidence_data["cacheable_share"] == pytest.approx(0.9)
+        eligible_rows = [
+            evidence
+            for evidence in occurrence.evidence_display
+            if evidence.name == "Cache-eligible calls"
+        ]
+        assert [row.value for row in eligible_rows] == ["152,100 (90.00% of calls)"]
 
     def test_emits_the_window_it_measured(
         self,

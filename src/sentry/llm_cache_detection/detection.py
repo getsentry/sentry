@@ -8,19 +8,34 @@ would wildly overstate cache hit rates.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
 DETECTION_WINDOW_DAYS = 7
 
-# Provider prompt caches expire on this order, so a call site has to average at
-# least one call per TTL to keep one warm; sparser traffic cannot.
+# Provider prompt caches expire on this order, so a call meets a warm cache only
+# when the same call site made an earlier one within this long.
 CACHE_TTL_MINUTES = 5
-MIN_CALLS_PER_WINDOW = DETECTION_WINDOW_DAYS * 24 * (60 // CACHE_TTL_MINUTES)
 # Provider minimum cacheable prefix; below this caching cannot engage.
 MIN_AVG_INPUT_TOKENS = 1024
+
+# How many calls a ratio has to be computed over before it is worth acting on.
+# A few hundred is where the token ratios settle: under it a handful of unusual
+# calls moves the rate around, over it the near-zero rates this flags stay far
+# away from the rates a working cache reaches. Cache mechanics ask for no more
+# than that; the number is a question about evidence, not about caching.
+MIN_CALLS_FOR_CONFIDENCE = 200
+
+# Whether a call site can cache at all is a property of the gaps between its
+# calls rather than of how many it makes: traffic spaced wider than the TTL
+# meets a cold cache however much of it there is. Hit rates still count every
+# call, since which of them a token sum came from is not recoverable, so this
+# floor is what bounds the resulting dilution: with most of the traffic
+# cache-eligible, a rate below NOT_CACHING_MAX_HIT_RATE cannot come from the
+# isolated calls weighing it down, the eligible ones have to be missing too.
+MIN_CACHEABLE_SHARE = 0.5
 
 # Hit rates are strongly bimodal: broken call sites sit near zero, healthy
 # ones far above. Any cutoff in the gap works; 5% is robust to drift.
@@ -89,6 +104,54 @@ class CacheOutcome(StrEnum):
 
 FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
+# The label's source belongs to a call site's identity rather than decorating
+# it: an agent genuinely named `chat` and the fallback label for spans that
+# carry no agent name are different call sites that would otherwise share a key.
+CallSiteKey = tuple[str, str, str, str]
+
+
+def call_site_key(
+    agent_label_source: AgentLabelSource, agent_label: str, span_name: str, model: str
+) -> CallSiteKey:
+    """Identify one call site, for lining up rows that describe it."""
+    return (agent_label_source.value, agent_label, span_name, model)
+
+
+@dataclass(frozen=True)
+class CallSiteWarmth:
+    """How much of a call site's traffic could have met a warm cache.
+
+    Read off calls bucketed at the cache TTL rather than off the gaps between
+    them, which EAP cannot express: inside a bucket every call after the first
+    has a predecessor closer than the TTL, and the first is charged as a cold
+    start. Two calls a second apart on either side of a bucket boundary
+    therefore read as two cold starts, which understates warmth -- the direction
+    that costs a finding rather than inventing one.
+    """
+
+    total_call_count: float
+    warm_call_count: float
+
+    @classmethod
+    def from_bucket_counts(cls, bucket_counts: Iterable[float]) -> CallSiteWarmth:
+        total_call_count = 0.0
+        cold_starts = 0
+        for count in bucket_counts:
+            if count <= 0:
+                continue
+            total_call_count += count
+            cold_starts += 1
+        return cls(
+            total_call_count=total_call_count,
+            warm_call_count=max(total_call_count - cold_starts, 0.0),
+        )
+
+    @property
+    def cacheable_share(self) -> float:
+        if self.total_call_count <= 0:
+            return 0.0
+        return self.warm_call_count / self.total_call_count
+
 
 @dataclass(frozen=True)
 class CallSiteStats:
@@ -109,19 +172,14 @@ class CallSiteStats:
     sum_cache_read_tokens: float
     sum_cache_creation_tokens: float
     avg_input_tokens: float
+    # None where the shape of the traffic was not measured. A call site whose
+    # gaps are unknown is treated exactly like one that cannot cache: nothing
+    # can be read off either.
+    warmth: CallSiteWarmth | None = None
 
     @property
-    def group_key(self) -> tuple[str, str, str, str]:
-        # The label's source belongs to the identity rather than decorating it:
-        # an agent genuinely named `chat` and the fallback label for spans that
-        # carry no agent name are different call sites that would otherwise
-        # share a key.
-        return (
-            self.agent_label_source.value,
-            self.agent_label,
-            self.span_name,
-            self.model,
-        )
+    def group_key(self) -> CallSiteKey:
+        return call_site_key(self.agent_label_source, self.agent_label, self.span_name, self.model)
 
     @property
     def hit_rate(self) -> float:
@@ -190,14 +248,25 @@ class CacheFinding:
 
 
 def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
-    """Classify a call-site group from its token sums.
+    """Classify a call-site group from its token sums and the shape of its traffic.
+
+    A group is read at all only once it can cache -- enough of its calls arriving
+    inside the TTL of an earlier one -- and once enough of them have, for the
+    ratios to carry any weight. Warmth that was never measured answers neither
+    question, and is read as the answer being no.
 
     Assumes cache attributes are recorded on the group's provider path; callers
     must apply ``resolve_with_cache_presence`` when ``needs_cache_presence_probe``
     is true, since a group whose spans never carry cache attributes at all is
     indistinguishable from a 0%-hit group by sums alone.
     """
-    if stats.call_count < MIN_CALLS_PER_WINDOW or stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS:
+    warmth = stats.warmth
+    if (
+        stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS
+        or warmth is None
+        or warmth.warm_call_count < MIN_CALLS_FOR_CONFIDENCE
+        or warmth.cacheable_share < MIN_CACHEABLE_SHARE
+    ):
         return CacheOutcome.INELIGIBLE
 
     creation_tokens = stats.sum_cache_creation_tokens
@@ -265,7 +334,10 @@ def find_contrast_anchor(
         for candidate in all_stats
         if candidate.group_key != stats.group_key
         and candidate.model == stats.model
-        and candidate.call_count >= MIN_CALLS_PER_WINDOW
+        # An anchor is only asked the sample-size question: a hit rate this high
+        # is itself the proof that its cache warms, so nothing further has to be
+        # measured about the shape of its traffic.
+        and candidate.call_count >= MIN_CALLS_FOR_CONFIDENCE
         and candidate.hit_rate >= CONTRAST_ANCHOR_MIN_HIT_RATE
     )
     best = max(candidates, key=lambda candidate: candidate.hit_rate, default=None)

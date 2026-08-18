@@ -7,6 +7,7 @@ that fail silently as "no findings" rather than as an error.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -66,6 +67,7 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         operation_name: str | None = "generate_content",
         project: Project | None = None,
         deprecated_attribute_names: bool = False,
+        start_ts: datetime | None = None,
     ) -> dict[str, Any]:
         """Build a gen-AI call span. Omitted token kwargs are left off the span entirely.
 
@@ -107,7 +109,7 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
                 "sentry_tags": {"op": op, "transaction": transaction, "name": span_name},
                 "data": data,
             },
-            start_ts=self.ten_mins_ago,
+            start_ts=start_ts or self.ten_mins_ago,
         )
 
     def store_call_site(self, *, count: int = CALLS_PER_CALL_SITE, **kwargs: Any) -> None:
@@ -306,6 +308,71 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             == CALLS_PER_CALL_SITE
         )
 
+    def test_measures_how_many_calls_met_a_warm_cache(self) -> None:
+        # Every call at one moment: the first meets a cold cache, the rest a
+        # cache the calls before them just filled.
+        self.store_call_site(agent_name="Explorer", model=CLAUDE, cache_read_tokens=0)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert stats.warmth is not None
+        assert stats.warmth.total_call_count == CALLS_PER_CALL_SITE
+        assert stats.warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
+
+    def test_counts_calls_spaced_wider_than_the_cache_ttl_as_cold(self) -> None:
+        # An hour between calls outlives any prompt cache, so no volume of them
+        # adds up to a call site that can cache.
+        self.store_spans(
+            [
+                self.gen_ai_span(
+                    agent_name="Explorer",
+                    model=CLAUDE,
+                    cache_read_tokens=0,
+                    start_ts=before_now(hours=hour + 1),
+                )
+                for hour in range(CALLS_PER_CALL_SITE)
+            ]
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert stats.warmth is not None
+        assert stats.warmth.total_call_count == CALLS_PER_CALL_SITE
+        assert stats.warmth.warm_call_count == 0
+
+    def test_measures_warmth_for_a_call_site_named_after_its_operation(self) -> None:
+        # The fallback label is a group of its own in both queries, and they only
+        # line up if a missing agent name reads the same way in each.
+        self.store_call_site(model=CLAUDE, operation_name="generate_content", cache_read_tokens=0)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert stats.agent_label_source is AgentLabelSource.OPERATION_NAME
+        assert stats.warmth is not None
+        assert stats.warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
+
+    def test_folds_operation_names_before_reading_warmth(self) -> None:
+        # One agent reporting two operation names comes back as two groups, and
+        # counted apart the pair reads as two cold starts instead of a cold call
+        # followed by a warm one.
+        self.store_spans(
+            [
+                self.gen_ai_span(
+                    agent_name="Explorer",
+                    operation_name=operation_name,
+                    model=CLAUDE,
+                    cache_read_tokens=0,
+                )
+                for operation_name in ("chat", "generate_content")
+            ]
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert stats.warmth is not None
+        assert stats.warmth.total_call_count == 2
+        assert stats.warmth.warm_call_count == 1
+
     def test_excludes_other_projects(self) -> None:
         other_project = self.create_project()
         self.store_call_site(model=CLAUDE, cache_read_tokens=0, cache_creation_tokens=0)
@@ -425,7 +492,9 @@ class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
         assert [sample.trace_id for sample in samples] == [trace_id]
 
 
-@patch("sentry.llm_cache_detection.detection.MIN_CALLS_PER_WINDOW", CALLS_PER_CALL_SITE)
+# Each seeded call site is a handful of spans; which volumes the eligibility
+# floors let through is settled in the detection tests.
+@patch("sentry.llm_cache_detection.detection.MIN_CALLS_FOR_CONFIDENCE", 1)
 @patch("sentry.llm_cache_detection.issue_platform_adapter.produce_occurrence_to_kafka")
 class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
     def test_flags_a_call_site_that_never_caches(self, mock_produce: MagicMock) -> None:
