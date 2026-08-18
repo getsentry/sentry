@@ -3,6 +3,7 @@ from urllib.parse import quote
 
 import phonenumbers
 import requests
+from django.conf import settings
 
 from sentry import options
 
@@ -43,7 +44,9 @@ def phone_number_as_e164(num: str) -> str:
 
 def sms_available() -> bool:
     backend = options.get("sms.backend")
-    return backend == "console" or (backend == "twilio" and bool(options.get("sms.twilio-account")))
+    return (backend == "console" and settings.DEBUG) or (
+        backend == "twilio" and bool(options.get("sms.twilio-account"))
+    )
 
 
 def send_sms(body: str, to: str, from_: str | None = None) -> bool:
@@ -51,6 +54,9 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     backend = options.get("sms.backend")
 
     if backend == "console":
+        if not settings.DEBUG:
+            raise RuntimeError("Console SMS backend is only available in debug mode.")
+
         logger.info("sms.console", extra={"phone_number": phone_number, "body": body})
         return True
     if backend != "twilio":
