@@ -14,7 +14,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/input');
 input for autofill, paste, keyboard navigation, and assistive technology.
 
 ```jsx
-<OTPInput length={6} onComplete={code => submit(code)} />
+<OTPInput format="000000" onComplete={code => submit(code)} />
 ```
 
 ## Sizes
@@ -22,45 +22,48 @@ input for autofill, paste, keyboard navigation, and assistive technology.
 Use the size that matches the surrounding form controls.
 
 <Storybook.Demo>
-  <OTPInput length={6} size="xs" onComplete={() => {}} />
-  <OTPInput length={6} size="sm" onComplete={() => {}} />
-  <OTPInput length={6} size="md" onComplete={() => {}} />
+  <OTPInput format="000000" size="xs" onComplete={() => {}} />
+  <OTPInput format="000000" size="sm" onComplete={() => {}} />
+  <OTPInput format="000000" size="md" onComplete={() => {}} />
 </Storybook.Demo>
 ```jsx
-<OTPInput length={6} size="xs" onComplete={handleComplete} />
-<OTPInput length={6} size="sm" onComplete={handleComplete} />
-<OTPInput length={6} size="md" onComplete={handleComplete} />
+<OTPInput format="000000" size="xs" onComplete={handleComplete} />
+<OTPInput format="000000" size="sm" onComplete={handleComplete} />
+<OTPInput format="000000" size="md" onComplete={handleComplete} />
 ```
 
 ## Disabled
 
 <Storybook.Demo>
-  <OTPInput disabled length={6} onComplete={() => {}} />
+  <OTPInput disabled format="000000" onComplete={() => {}} />
 </Storybook.Demo>
 ```jsx
-<OTPInput disabled length={6} onComplete={handleComplete} />
+<OTPInput disabled format="000000" onComplete={handleComplete} />
+```
+
+## Format
+
+Use `0` for numeric codes and `A` for alphanumeric codes. A format must use one token
+throughout. Add `-` between groups to render a visual separator; separators are omitted
+from the completed value.
+
+<Storybook.Demo>
+  <OTPInput format="000-000" onComplete={() => {}} />
+</Storybook.Demo>
+```jsx
+<OTPInput format="000-000" onComplete={handleComplete} />
 ```
 
 ## Alphanumeric Codes
 
-Use `characterSet="alphanumeric"` for codes containing letters and numbers. A `transform`
-can normalize input from typing, paste, and autofill before completion.
+Use an `A` format for codes containing letters and numbers. The `uppercase` prop
+normalizes input from typing, paste, and autofill before completion.
 
 <Storybook.Demo>
-  <OTPInput
-    characterSet="alphanumeric"
-    length={6}
-    onComplete={() => {}}
-    transform={value => value.toUpperCase()}
-  />
+  <OTPInput format="AAAAAA" onComplete={() => {}} uppercase />
 </Storybook.Demo>
 ```jsx
-<OTPInput
-  characterSet="alphanumeric"
-  length={6}
-  onComplete={handleComplete}
-  transform={value => value.toUpperCase()}
-/>
+<OTPInput format="AAAAAA" onComplete={handleComplete} uppercase />
 ```
 
 ## Accessibility
@@ -71,11 +74,10 @@ devices. The segmented slots are visual and hidden from the accessibility tree.
 
 ## Props
 
-| Prop           | Type                          | Default     | Description                                  |
-| -------------- | ----------------------------- | ----------- | -------------------------------------------- |
-| `length`       | `number`                      | —           | Number of characters in the code.            |
-| `onComplete`   | `(value: string) => void`     | —           | Called when every slot contains a character. |
-| `characterSet` | `'numeric' \| 'alphanumeric'` | `'numeric'` | Limits the characters accepted.              |
-| `transform`    | `(value: string) => string`   | —           | Normalizes the value as it changes.          |
-| `size`         | `'xs' \| 'sm' \| 'md'`        | `'md'`      | Size of each code slot.                      |
-| `disabled`     | `boolean`                     | `false`     | Disables code entry.                         |
+| Prop         | Type                      | Default | Description                                             |
+| ------------ | ------------------------- | ------- | ------------------------------------------------------- |
+| `format`     | `OTPFormat`               | —       | Defines the character set, length, and visual grouping. |
+| `onComplete` | `(value: string) => void` | —       | Called when every slot contains a character.            |
+| `uppercase`  | `boolean`                 | `false` | Converts alphanumeric input to uppercase.               |
+| `size`       | `'xs' \| 'sm' \| 'md'`    | `'md'`  | Size of each code slot.                                 |
+| `disabled`   | `boolean`                 | `false` | Disables code entry.                                    |
