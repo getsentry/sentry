@@ -19,7 +19,7 @@ from sentry.llm_cache_detection.detection import (
     resolve_with_cache_presence,
 )
 from sentry.llm_cache_detection.issue_platform_adapter import (
-    check_unresolved_llm_cache_issue_exists,
+    check_llm_cache_issue_already_speaks_for,
     create_fingerprint,
     send_llm_cache_issue_to_platform,
 )
@@ -199,7 +199,9 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         # under the cap nor produce an occurrence, so probing it would spend a
         # query -- and on a project with several open issues, the whole probe
         # budget -- resolving an outcome nothing goes on to read.
-        if check_unresolved_llm_cache_issue_exists(project, create_fingerprint(candidate.stats)):
+        if check_llm_cache_issue_already_speaks_for(
+            project, create_fingerprint(candidate.stats), window
+        ):
             rejected_already_exists_count += 1
             continue
         if needs_cache_presence_probe(candidate.stats, candidate.outcome):

@@ -10,9 +10,10 @@ from django.db.models import F
 from sentry import features
 from sentry.issues.grouptype import LLMCacheUsageGroupType
 from sentry.issues.ingest import hash_fingerprint
-from sentry.llm_cache_detection.detection import CallSiteStats
+from sentry.llm_cache_detection.detection import DETECTION_WINDOW_DAYS, CallSiteStats
 from sentry.llm_cache_detection.issue_platform_adapter import create_fingerprint
 from sentry.llm_cache_detection.query import SampleCall
+from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -24,6 +25,7 @@ from sentry.tasks.llm_cache_issue_detection import (
     run_llm_cache_issue_detection,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 INGEST_FEATURE = LLMCacheUsageGroupType.build_ingest_feature_name()
 DETECTION_FEATURE = "organizations:llm-cache-detection"
@@ -668,6 +670,90 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert not mock_produce.called
         # No trace query is spent on an already-open issue.
         assert not mock_fetch_traces.called
+
+    def test_does_not_reopen_an_issue_resolved_inside_the_window(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Detection runs hourly over a 7-day window, so for a week after someone
+        # fixes and resolves a call site the aggregates still describe the old
+        # code. The platform reads an occurrence against a resolved group as a
+        # regression, so producing one would reopen the issue every hour.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        fingerprint = create_fingerprint(NOT_CACHING_STATS)
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.RESOLVED,
+            first_seen=before_now(hours=2),
+            resolved_at=before_now(minutes=5),
+        )
+        GroupHash.objects.create(
+            project=project, group=group, hash=hash_fingerprint([fingerprint])[0]
+        )
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        assert not mock_produce.called
+
+    def test_reopens_an_issue_resolved_before_the_window(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Once the window no longer reaches back to the resolution, the finding
+        # is about traffic that postdates the fix -- a real regression.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        fingerprint = create_fingerprint(NOT_CACHING_STATS)
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.RESOLVED,
+            first_seen=before_now(days=DETECTION_WINDOW_DAYS + 2),
+            resolved_at=before_now(days=DETECTION_WINDOW_DAYS + 1),
+        )
+        GroupHash.objects.create(
+            project=project, group=group, hash=hash_fingerprint([fingerprint])[0]
+        )
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        assert mock_produce.call_count == 1
+
+    def test_does_not_resurrect_an_archived_issue(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # This type does not escalate, so archiving is the reader saying they
+        # do not want to hear about this call site again.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        fingerprint = create_fingerprint(NOT_CACHING_STATS)
+        group = self.create_group(project=project, status=GroupStatus.IGNORED)
+        GroupHash.objects.create(
+            project=project, group=group, hash=hash_fingerprint([fingerprint])[0]
+        )
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        assert not mock_produce.called
 
     def test_produces_occurrence_when_project_platform_is_none(
         self,

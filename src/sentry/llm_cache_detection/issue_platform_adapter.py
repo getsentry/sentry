@@ -282,11 +282,33 @@ def send_llm_cache_issue_to_platform(
     )
 
 
-def check_unresolved_llm_cache_issue_exists(project: Project, fingerprint: str) -> bool:
+def check_llm_cache_issue_already_speaks_for(
+    project: Project, fingerprint: str, window: DetectionWindow
+) -> bool:
+    """Whether an existing issue already covers this call site.
+
+    Detection runs far more often than its own window is long, so a finding
+    survives in the aggregates for the whole window after the code behind it
+    changed. An occurrence produced in that period is stale evidence, and the
+    issue platform reads one against a resolved group as a regression -- which
+    would reopen the issue every run for the rest of the window, right after
+    someone fixed and closed it.
+
+    So a resolved issue only reopens once the window no longer overlaps the
+    resolution, by which point the finding is about traffic that postdates the
+    fix. An archived issue is left alone entirely: this type does not escalate,
+    so archiving is the reader saying they do not want to hear about it again.
+    """
     fingerprint_hash = hash_fingerprint([fingerprint])[0]
 
-    return Group.objects.filter(
+    groups = Group.objects.filter(
         grouphash__project_id=project.id,
         grouphash__hash=fingerprint_hash,
-        status=GroupStatus.UNRESOLVED,
-    ).exists()
+    )
+    if groups.filter(status__in=(GroupStatus.UNRESOLVED, GroupStatus.IGNORED)).exists():
+        return True
+
+    # A null resolved_at is treated as a recent resolution: reopening on an
+    # unknown date is the failure that spams, and the finding returns anyway if
+    # the call site is still bad once a later window closes.
+    return groups.filter(status=GroupStatus.RESOLVED).exclude(resolved_at__lt=window.start).exists()
