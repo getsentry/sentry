@@ -364,6 +364,34 @@ export const LINK_RULES: LinkRule[] = [
   // seer read. ---
 
   {
+    // Raw Explore table/timeseries calls. Subject is in the query string (dataset/query), not the
+    // path; subjectFromCallRecord already splits that off resolved_path. Title text stays seer's.
+    id: 'organization_events',
+    match: ({kind, method, path}) =>
+      kind === 'api' &&
+      method === 'GET' &&
+      !!path &&
+      /\/organizations\/\{organization_id_or_slug\}\/events(?:-timeseries)?\/?$/.test(
+        path
+      ),
+    resolve: ({query, title}, {projects}) => {
+      const params = exploreApiSearchParams(query);
+      if (!params) {
+        return null;
+      }
+      const url = searchUrl(params, projects);
+      if (!url) {
+        return null;
+      }
+      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      return {
+        label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
+        url,
+      };
+    },
+  },
+
+  {
     id: 'telemetry_live_search',
     resolve: ({kind, params, title}, {projects}) => {
       // Arrives on both channels. The bus link always carries the translated query. The call row
@@ -495,6 +523,67 @@ function getStringArray(value: unknown): string[] {
   return typeof value === 'string' ? [value] : [];
 }
 
+/**
+ * Map a raw Explore API query string onto the param shape `searchUrl` already understands.
+ *
+ * Declines when there is no dataset: without one we cannot pick Discover vs Logs vs Traces, and a
+ * guessed destination is worse than an unlinked row.
+ */
+function exploreApiSearchParams(
+  query: Record<string, string> | undefined
+): Record<string, any> | null {
+  if (!query) {
+    return null;
+  }
+  const dataset = typeof query.dataset === 'string' ? query.dataset : undefined;
+  if (!dataset) {
+    return null;
+  }
+
+  const params: Record<string, any> = {
+    dataset,
+    query: typeof query.query === 'string' ? query.query : '',
+  };
+  if (typeof query.sort === 'string' && query.sort) {
+    params.sort = query.sort;
+  }
+  if (typeof query.statsPeriod === 'string' && query.statsPeriod) {
+    params.stats_period = query.statsPeriod;
+  }
+  if (typeof query.start === 'string' && query.start) {
+    params.start = query.start;
+  }
+  if (typeof query.end === 'string' && query.end) {
+    params.end = query.end;
+  }
+
+  // httpx/urlencode repeats `project=`; query-string may collapse that to a string or keep an array.
+  const project = query.project as string | string[] | undefined;
+  if (project !== undefined) {
+    params.project_ids = getStringArray(project);
+  }
+
+  const field = query.field as string | string[] | undefined;
+  const yAxis = query.yAxis as string | string[] | undefined;
+  const axes = [
+    ...getStringArray(field).filter(name => name.includes('(')),
+    ...getStringArray(yAxis),
+  ];
+  if (axes.length > 0) {
+    params.y_axes = axes;
+    params.mode = 'aggregates';
+  }
+
+  const groupBy = query.groupBy as string | string[] | undefined;
+  const groups = getStringArray(groupBy);
+  if (groups.length > 0) {
+    params.group_by = groups;
+    params.mode = 'aggregates';
+  }
+
+  return params;
+}
+
 /** Dataset noun for residual telemetry links, or undefined when unknown. */
 function telemetryDatasetLabel(dataset: unknown): string | undefined {
   switch (dataset) {
@@ -524,7 +613,8 @@ function searchUrl(
   params: Record<string, any>,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} =
+    params;
 
   const queryParams: Record<string, any> = {query: query || '', project: null};
   if (stats_period) {
@@ -540,7 +630,10 @@ function searchUrl(
   if (end) {
     queryParams.end = end.replace(/Z$/, '');
   }
-  if (project_slugs?.length && projects) {
+  if (project_ids?.length) {
+    // Raw Explore API already ships numeric project ids — keep them as-is.
+    queryParams.project = getStringArray(project_ids);
+  } else if (project_slugs?.length && projects) {
     const projectIds = project_slugs
       .map((slug: string) => projects.find(p => p.slug === slug)?.id)
       .filter((id: string | undefined) => id !== undefined);
