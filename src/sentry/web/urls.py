@@ -1358,6 +1358,10 @@ urlpatterns += [
                     include("sentry.integrations.github_enterprise.urls"),
                 ),
                 re_path(
+                    r"^cursor-origin/",
+                    include("sentry.integrations.cursor_origin.urls"),
+                ),
+                re_path(
                     r"^gitlab/",
                     include("sentry.integrations.gitlab.urls"),
                 ),
