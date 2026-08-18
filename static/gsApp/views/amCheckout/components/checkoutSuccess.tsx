@@ -615,7 +615,11 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
+            <FeedbackButton
+              variant="secondary"
+              feedbackOptions={checkoutSuccessFeedbackOptions}
+              size="md"
+            />
           </Flex>
         </Stack>
       </Stack>

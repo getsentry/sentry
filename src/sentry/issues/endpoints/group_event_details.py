@@ -3,16 +3,18 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -39,6 +41,12 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.formatting.formatter import FormattedResponse
+from sentry.issues.formatting.mixin import (
+    VALID_FORMATS,
+    FormattableResponseMixin,
+    format_event_response,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -125,12 +133,21 @@ def issue_search_query_to_conditions(
     return snql_conditions, resolved_legacy_conditions
 
 
+# total=False rather than NotRequired: this module uses `from __future__ import annotations`, so
+# NotRequired arrives as a string, TypedDict marks the key required, and the openapi schema then
+# fails the api-docs example validator. Inherited keys keep their own totality.
+class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False):
+    # present only when ``?llmFormat`` is requested and the formatter feature is on
+    formatted: FormattedResponse
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
-class GroupEventDetailsEndpoint(GroupEndpoint):
+class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    formatter_adapter = staticmethod(format_event_response)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -151,10 +168,21 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
             EventParams.EVENT_ID_EXTENDED,
+            OpenApiParameter(
+                name="llmFormat",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=list(VALID_FORMATS),
+                description=(
+                    "If set, adds a `formatted` field to the response with the event rendered "
+                    "as the requested format for LLM consumption."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "IssueEventDetailsResponse", GroupEventDetailsResponse
+                "IssueEventDetailsResponse", GroupEventDetailsFormattedResponse
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -171,7 +199,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
     def get(
         self, request: Request, group: Group, event_id: str
     ) -> (
-        Response[GroupEventDetailsResponse]
+        Response[GroupEventDetailsFormattedResponse]
         | Response[EventSerializerResponse]
         | Response[DetailResponse]
     ):
@@ -232,9 +260,19 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     return Response(error_response, status=400)
 
         elif event_id == "recommended":
+            verify_replay_exists = features.has(
+                "organizations:issue-details-verify-recommended-replay",
+                organization,
+                actor=request.user,
+            )
             with metrics.timer(metric, tags={"type": "helpful", "query": bool(query)}):
                 try:
-                    event = group.get_recommended_event(conditions=conditions, start=start, end=end)
+                    event = group.get_recommended_event(
+                        conditions=conditions,
+                        start=start,
+                        end=end,
+                        verify_replay_exists=verify_replay_exists,
+                    )
                 except ValueError:
                     return Response(error_response, status=400)
 
@@ -253,6 +291,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 else "No matching event found. Try changing the environments, date range, or query."
             )
             return Response({"detail": error_text}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:
@@ -273,4 +313,4 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)
-        return Response(data)
+        return Response(cast(GroupEventDetailsFormattedResponse, data))

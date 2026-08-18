@@ -21,11 +21,23 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry import audit_log, features
+from flagpole.conditions import glob_star_match
+from sentry import audit_log, features, options
+from sentry import ratelimits as ratelimiter
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.auth.exceptions import AuthIdentityUserMismatch, IdentityNotValid
+from sentry.auth.email_verification import (
+    hash_email,
+    is_email_verified_by_trusted_provider,
+    send_signup_verification_email,
+)
+from sentry.auth.exceptions import (
+    AuthIdentityUserMismatch,
+    IdentityNotValid,
+    PipelineStateExpired,
+    ProviderMismatch,
+)
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
     get_verification_value_from_key,
@@ -51,9 +63,12 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.pipeline.base import Pipeline
+from sentry.pipeline.constants import PIPELINE_STATE_TTL
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import cache
@@ -62,6 +77,11 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
+from sentry.web.frontend.signup_email_verification import (
+    PENDING_EXPIRY_TEXT_SESSION_KEY,
+    PENDING_VERIFICATION_SESSION_KEY,
+    _get_signup_url,
+)
 from sentry.web.helpers import render_to_response
 
 from . import manager
@@ -88,11 +108,32 @@ ERR_IDENTITY_CONFLICT = _(
     " Try logging in with your existing credentials instead."
 )
 
+ERR_NEW_USER_SETUP_FAILED = _("Something went wrong finishing your signup. Please try again.")
+
 ERR_USER_SUSPENDED = _("Your account has been suspended.")
 
 ERR_MERGE_FAILED = _(
     "Unable to merge accounts. Please verify your email address to link your SSO identity."
 )
+
+
+class NewUserTransactionFailed(Exception):
+    pass
+
+
+def _sso_verification_required(email: str) -> bool:
+    """Check if email verification at signup is required for this email"""
+    force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
+    in_allowlist = any(glob_star_match(p, email) for p in force_emails)
+
+    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
+
+
+def _sso_verification_send_rate_limited(email: str) -> bool:
+    """Throttle verification email sends per email address"""
+    return ratelimiter.backend.is_limited(
+        f"signup-verify-send:email:{hash_email(email)}", limit=5, window=300
+    )
 
 
 @dataclass
@@ -148,13 +189,7 @@ class AuthIdentityHandler:
             skip_internal=False,
         )
 
-        # Use the user's original destination (from _next) for 2FA redirect,
-        # falling back to current URL if not set or invalid
-        after_2fa_url = self.request.session.get("_next")
-        if not after_2fa_url or not auth.is_valid_redirect(
-            after_2fa_url, allowed_hosts=(self.request.get_host(),)
-        ):
-            after_2fa_url = self.request.build_absolute_uri()
+        after_2fa_url = self.request.build_absolute_uri(reverse("sentry-auth-sso"))
 
         user_was_logged_in = auth.login(
             self.request,
@@ -460,9 +495,11 @@ class AuthIdentityHandler:
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def _post_login_redirect(self) -> HttpResponseRedirect:
+    def _post_login_redirect(self, is_new_user: bool | None = None) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)
-        if self.request.POST.get("op") == "newuser":
+        if is_new_user is None:
+            is_new_user = self.request.POST.get("op") == "newuser"
+        if is_new_user:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
@@ -511,16 +548,65 @@ class AuthIdentityHandler:
 
     def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
+
         context = {
             "identity": self.identity,
             "provider": self.provider_name,
             "identity_display_name": self.identity.get("name") or self.identity.get("email"),
             "identity_identifier": self.identity.get("email") or self.identity.get("id"),
             "existing_user": existing_user,
+            "confirmation_url": reverse("sentry-auth-sso"),
         }
         if not self._logged_in_user:
             context["login_form"] = self._login_form
         return self._respond(f"sentry/{template}.html", context)
+
+    def _has_verified_signup_email(self, state: AuthHelperSessionStore) -> bool:
+        """Check if the pipeline has a verified email from the verification flow.
+
+        Consumes the marker on read so it can only be used once.
+        """
+        verified = getattr(state, "verified_email", None)
+        if not verified:
+            return False
+        state.verified_email = None
+        return verified.lower() == self.identity["email"].lower()
+
+    def _send_sso_verification_email_and_redirect(
+        self, email: str, state: AuthHelperSessionStore
+    ) -> HttpResponse:
+        """Send the SSO signup verification email (unless already sent for
+        this pipeline) and redirect to the pending-verification page.
+
+        If rate limited, match the rate limit response in BaseSignupVerificationView.
+        """
+        if not getattr(state, "verification_email_sent", False):
+            if _sso_verification_send_rate_limited(email):
+                logger.warning(
+                    "sso_signup.verification_send_rate_limited",
+                    extra={"email_hash": hash_email(email)},
+                )
+                return self._respond(
+                    "sentry/signup-verification-error.html",
+                    context={
+                        "title": "Too many attempts",
+                        "message": "Please wait a moment and try again.",
+                        "signup_url": _get_signup_url(),
+                    },
+                    status=400,
+                )
+            max_age_minutes = PIPELINE_STATE_TTL // 60
+            send_signup_verification_email(
+                email=email,
+                url_name="sentry-signup-verify-email-sso",
+                max_age_minutes=max_age_minutes,
+            )
+            self.request.session[PENDING_VERIFICATION_SESSION_KEY] = email
+            self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] = max_age_minutes
+            # Setting this refreshes the pipeline's TTL to match the link's max_age,
+            # and stops a resubmit from re-sending or re-extending the TTL.
+            state.verification_email_sent = True
+        return HttpResponseRedirect(reverse("sentry-signup-verify-email-pending"))
 
     def handle_unknown_identity(
         self,
@@ -534,8 +620,7 @@ class AuthIdentityHandler:
         - Unauthenticated user who proved email ownership via verification link: auto-link.
         - Otherwise: show a confirmation page to merge, create, or log in.
         """
-        # IdP POST includes SAMLResponse; op only comes from Sentry's own confirmation form.
-        op = self.request.POST.get("op") if "SAMLResponse" not in self.request.POST else None
+        op = self.request.POST.get("op")
 
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
@@ -602,6 +687,7 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
+        created_new_user = False
         try:
             if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
@@ -618,7 +704,25 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                auth_identity = self.handle_new_user()
+                is_trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                if not is_trusted and _sso_verification_required(self.identity["email"]):
+                    return self._send_sso_verification_email_and_redirect(
+                        self.identity["email"], state
+                    )
+                auth_identity = self.handle_new_user(email_verified=is_trusted)
+                created_new_user = True
+            elif op is None and self._has_verified_signup_email(state):
+                try:
+                    auth_identity = self.handle_new_user(email_verified=True)
+                except NewUserTransactionFailed:
+                    # Nothing durable was created. Reset this so a
+                    # resubmitted op=newuser can send a fresh verification
+                    # email instead of being stuck: otherwise
+                    # verification_email_sent stays True forever for this
+                    # pipeline and the retry silently bounces to signup.
+                    state.verification_email_sent = False
+                    raise
+                created_new_user = True
             elif op == "login" and not self._logged_in_user:
                 # confirm authentication, login
                 if self._login_form.is_valid():
@@ -658,21 +762,52 @@ class AuthIdentityHandler:
                 ERR_IDENTITY_CONFLICT,
             )
             return self._build_confirmation_response(is_new_account)
+        except NewUserTransactionFailed as e:
+            email = self.identity.get("email")
+            cause = e.__cause__
+            if isinstance(cause, IntegrityError):
+                error_message = ERR_IDENTITY_CONFLICT
+            else:
+                # IntegrityError here is an expected, benign race (duplicate
+                # account). Anything else is unexpected -- capture it so a
+                # real regression in this path still becomes a Sentry issue
+                # instead of failing quietly behind a generic retry message.
+                sentry_sdk.capture_exception(cause)
+                error_message = ERR_NEW_USER_SETUP_FAILED
+            logger.info(
+                "sso.login-pipeline.new-user-transaction-failed",
+                extra={
+                    "organization_id": self.organization.id,
+                    "email_hash": hash_email(email) if email else None,
+                    "op": op,
+                    "cause": type(cause).__name__ if cause else None,
+                },
+            )
+            messages.add_message(self.request, messages.ERROR, error_message)
+            return self._build_confirmation_response(is_new_account)
 
+        return self.complete_and_login(auth_identity, state, is_new_user=created_new_user)
+
+    def complete_and_login(
+        self,
+        auth_identity: AuthIdentity,
+        state: AuthHelperSessionStore,
+        is_new_user: bool = False,
+    ) -> HttpResponseRedirect:
+        """Log in a user after identity resolution and clean up pipeline state."""
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        # XXX(dcramer): this is repeated from above
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return self._post_login_redirect()
+            return self._post_login_redirect(is_new_user=is_new_user)
 
         state.clear()
 
         if not is_active_superuser(self.request):
             auth.set_active_org(self.request, self.organization.slug)
-        return self._post_login_redirect()
+        return self._post_login_redirect(is_new_user=is_new_user)
 
     @property
     def provider_name(self) -> str:
@@ -701,31 +836,57 @@ class AuthIdentityHandler:
         self.request.session.set_test_cookie()
         return None if is_new_account else self.user, "auth-confirm-identity"
 
-    def handle_new_user(self) -> AuthIdentity:
-        user = User.objects.create(
-            username=uuid4().hex,
-            email=self.identity["email"],
-            name=self.identity.get("name", "")[:200],
-        )
-
-        if settings.TERMS_URL and settings.PRIVACY_URL:
-            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
-
+    def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
         try:
-            with transaction.atomic(router.db_for_write(AuthIdentity)):
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user=user,
-                    ident=self.identity["id"],
-                    data=self.identity.get("data", {}),
+            with transaction.atomic(router.db_for_write(User)):
+                user = User.objects.create(
+                    username=uuid4().hex,
+                    email=self.identity["email"],
+                    name=self.identity.get("name", "")[:200],
                 )
-        except IntegrityError:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider_id=self.auth_provider.id, ident=self.identity["id"]
-            )
-            auth_identity.update(user=user, data=self.identity.get("data", {}))
 
-        user.send_confirm_emails(is_new_user=True)
+                if settings.TERMS_URL and settings.PRIVACY_URL:
+                    user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+
+                if email_verified:
+                    user_email_updated = user_service.verify_user_email(
+                        email=self.identity["email"], user_id=user.id
+                    )
+                    if not user_email_updated:
+                        # this is possible but should be very rare
+                        email_verified = False
+                        user_emails = UserEmail.objects.filter(user_id=user.id)
+                        logger.warning(
+                            "auth.handle_new_user.user_service.verify_user_email_failed",
+                            extra={
+                                "user_id": user.id,
+                                "email_hash": hash_email(self.identity["email"]),
+                                "num_user_emails": user_emails.count(),
+                                "num_verified_user_emails": user_emails.filter(
+                                    is_verified=True
+                                ).count(),
+                            },
+                        )
+
+                try:
+                    auth_identity = AuthIdentity.objects.get(
+                        auth_provider=self.auth_provider,
+                        ident=self.identity["id"],
+                    )
+                    # Use AuthIdentity's custom .update() to log field changes.
+                    auth_identity.update(user=user, data=self.identity.get("data", {}))
+                except AuthIdentity.DoesNotExist:
+                    auth_identity = AuthIdentity.objects.create(
+                        auth_provider=self.auth_provider,
+                        user=user,
+                        ident=self.identity["id"],
+                        data=self.identity.get("data", {}),
+                    )
+        except Exception as e:
+            raise NewUserTransactionFailed from e
+
+        if not email_verified:
+            user.send_confirm_emails(is_new_user=True)
         provider = self.auth_provider.provider if self.auth_provider else None
         user_signup.send_robust(
             sender=self.handle_new_user,
@@ -844,17 +1005,20 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
 
-    def finish_pipeline(self) -> HttpResponseBase:
-        data = self.fetch_state()
+    def resolve_identity(self) -> Mapping[str, Any]:
+        """Fetch pipeline state, validate provider, and build identity.
 
-        # The state data may have expired, in which case the state data will
-        # simply be None.
+        Raises PipelineStateExpired if state is missing/expired,
+        ProviderMismatch if the pipeline provider doesn't match the org's auth provider,
+        IdentityNotValid if the provider can't build a valid identity.
+        """
+        data: Mapping[str, Any] | None = self.fetch_state()
         if not data:
-            return self.error(ERR_INVALID_IDENTITY)
+            raise PipelineStateExpired()
 
-        # Check for provider mismatch - user authenticated with a different provider
-        # than what the organization requires. This can happen when a user has multiple
-        # SSO sessions in different tabs and completes the wrong one.
+        # Check for provider mismatch - user authenticated with a different
+        # provider than what the organization requires. Can happen when a user
+        # has multiple SSO sessions in different tabs.
         provider_key = data.get("provider_key")
         if (
             self.state.flow == FLOW_LOGIN
@@ -862,13 +1026,20 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             and provider_key
             and provider_key != self.provider_model.provider
         ):
-            return self._handle_provider_mismatch(
-                provider_key=provider_key,
-                expected_provider_key=self.provider_model.provider,
-            )
+            raise ProviderMismatch(actual=provider_key, expected=self.provider_model.provider)
 
+        return self.provider.build_identity(data)
+
+    def finish_pipeline(self) -> HttpResponseBase:
         try:
-            identity = self.provider.build_identity(data)
+            identity = self.resolve_identity()
+        except PipelineStateExpired:
+            return self.error(ERR_INVALID_IDENTITY)
+        except ProviderMismatch as e:
+            return self._handle_provider_mismatch(
+                provider_key=e.actual,
+                expected_provider_key=e.expected,
+            )
         except IdentityNotValid as error:
             return self.error(str(error) or ERR_INVALID_IDENTITY)
 

@@ -66,8 +66,6 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
-    // Will be fixed soon when we get rid of setApiQueryData.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
   };
 

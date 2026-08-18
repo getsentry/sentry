@@ -1,5 +1,3 @@
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
 import type {IssueConfigField} from './integrations';
 
 export const enum IssueAlertActionType {
@@ -44,181 +42,29 @@ export const enum IssueAlertConditionType {
   EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
 }
 
-export const enum IssueAlertFilterType {
-  AGE_COMPARISON = 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-  ISSUE_OCCURRENCES = 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter',
-  ASSIGNED_TO = 'sentry.rules.filters.assigned_to.AssignedToFilter',
-  LATEST_ADOPTED_RELEASE = 'sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter',
-  LATEST_RELEASE = 'sentry.rules.filters.latest_release.LatestReleaseFilter',
-  ISSUE_CATEGORY = 'sentry.rules.filters.issue_category.IssueCategoryFilter',
-  EVENT_ATTRIBUTE = 'sentry.rules.filters.event_attribute.EventAttributeFilter',
-  TAGGED_EVENT = 'sentry.rules.filters.tagged_event.TaggedEventFilter',
-  LEVEL = 'sentry.rules.filters.level.LevelFilter',
-}
-
-interface IssueAlertFormFieldChoice {
-  type: 'choice';
-  choices?: Array<[key: string | number, name: string]>;
-  initial?: string;
-  placeholder?: string;
-  resetsForm?: boolean;
-}
-
-interface IssueAlertFormFieldString {
-  type: 'string';
-  initial?: string;
-  placeholder?: string;
-}
-
-interface IssueAlertFormFieldNumber {
-  type: 'number';
-  initial?: string;
-  placeholder?: number | string;
-}
-
-interface IssueAlertFormFieldMailAction {
-  type: 'mailAction';
-  choices?: Array<[key: string | number, name: string]>;
-}
-
-interface IssueAlertFormFieldAssignee {
-  type: 'assignee';
-  choices?: Array<[key: string | number, name: string]>;
-}
-
-/**
- * The fields that are used to render the form for an action or condition.
- */
-export type IssueAlertRuleFormField =
-  | IssueAlertFormFieldChoice
-  | IssueAlertFormFieldString
-  | IssueAlertFormFieldNumber
-  | IssueAlertFormFieldMailAction
-  | IssueAlertFormFieldAssignee;
-
-/**
- * All issue alert configuration objects have these properties.
- */
-interface IssueAlertConfigBase {
-  enabled: boolean;
-  label: string;
-  /**
-   * "Send a Slack notification"
-   */
-  prompt?: string;
-}
-
-/**
- * Generic alert configuration. Do not add properties unless they are used by all filters.
- */
-interface IssueAlertGenericActionConfig extends IssueAlertConfigBase {
-  id:
-    | `${IssueAlertActionType.SLACK}`
-    | `${IssueAlertActionType.NOTIFY_EMAIL}`
-    | `${IssueAlertActionType.DISCORD}`
-    | `${IssueAlertActionType.SENTRY_APP}`
-    | `${IssueAlertActionType.MS_TEAMS}`
-    | `${IssueAlertActionType.PAGER_DUTY}`
-    | `${IssueAlertActionType.OPSGENIE}`
-    | `${IssueAlertActionType.NOTIFY_EVENT_ACTION}`
-    | `${IssueAlertActionType.NOTIFY_EVENT_SERVICE_ACTION}`;
-  formFields?: Record<string, IssueAlertRuleFormField>;
-}
-
-/**
- * Currently filters and conditions are basically the same, just with different IDs.
- * Do not add properties unless they are used by all filters.
- */
-interface IssueAlertGenericConditionConfig extends IssueAlertConfigBase {
-  id: `${IssueAlertConditionType}` | `${IssueAlertFilterType}`;
-  formFields?: Record<string, IssueAlertRuleFormField>;
-}
-
-/**
- * The object describing the options the slack action can use.
- */
-interface IssueAlertSlackConfig extends IssueAlertConfigBase {
-  formFields: {
-    channel: IssueAlertFormFieldString;
-    channel_id: IssueAlertFormFieldString;
-    tags: IssueAlertFormFieldString;
-    workspace: IssueAlertFormFieldChoice;
-  };
-  id: `${IssueAlertActionType.SLACK}`;
-}
-
-interface IssueAlertTicketIntegrationConfig extends IssueAlertConfigBase {
-  actionType: 'ticket';
-  formFields: SchemaFormConfig;
-  id:
-    | `${IssueAlertActionType.JIRA_CREATE_TICKET}`
-    | `${IssueAlertActionType.JIRA_SERVER_CREATE_TICKET}`
-    | `${IssueAlertActionType.GITHUB_CREATE_TICKET}`
-    | `${IssueAlertActionType.GITHUB_ENTERPRISE_CREATE_TICKET}`
-    | `${IssueAlertActionType.AZURE_DEVOPS_CREATE_TICKET}`;
-  link: string;
-  ticketType: string;
-}
-
-interface IssueAlertSentryAppIntegrationConfig extends IssueAlertConfigBase {
-  actionType: 'sentryapp';
-  formFields: SchemaFormConfig;
-  id: `${IssueAlertActionType.SENTRY_APP}`;
-  sentryAppInstallationUuid: string;
-}
-
-/**
- * The actions that an organization has enabled and can be used to create an issue alert.
- */
-type IssueAlertConfigurationAction =
-  | IssueAlertGenericActionConfig
-  | IssueAlertTicketIntegrationConfig
-  | IssueAlertSentryAppIntegrationConfig
-  | IssueAlertSlackConfig;
-
-/**
- * Describes the actions, filters, and conditions that can be used
- * to create an issue alert.
- */
-export interface IssueAlertConfiguration {
-  actions: IssueAlertConfigurationAction[];
-  conditions: IssueAlertGenericConditionConfig[];
-  filters: IssueAlertGenericConditionConfig[];
-}
-
 /**
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
  */
-export interface IssueAlertRuleActionTemplate {
-  enabled: boolean;
+interface IssueAlertRuleActionTemplate {
   id: string;
-  label: string;
   actionType?: 'ticket' | 'sentryapp';
-  formFields?: Record<string, IssueAlertRuleFormField> | SchemaFormConfig;
   link?: string;
   prompt?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
-type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
  * These are the action or condition data that the user is editing or has saved.
  */
-export interface IssueAlertRuleAction extends Omit<
-  IssueAlertRuleActionTemplate,
-  'formFields' | 'enabled' | 'label'
-> {
+export interface IssueAlertRuleAction extends IssueAlertRuleActionTemplate {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
   dynamic_form_fields?: IssueConfigField[];
 }
 
-export type IssueAlertRuleCondition = Omit<
-  IssueAlertRuleConditionTemplate,
-  'formFields' | 'enabled' | 'label'
-> & {
+type IssueAlertRuleCondition = IssueAlertRuleActionTemplate & {
   dynamic_form_fields?: IssueConfigField[];
 } & Record<string, number | string>;
 
@@ -250,7 +96,7 @@ interface MSTeamsAction {
 
 export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
 
-export interface UnsavedIssueAlertRule {
+interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
   actions: IssueAlertRuleAction[];
@@ -288,25 +134,6 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
   optOutEdit?: boolean;
   snoozeCreatedBy?: string;
   snoozeForEveryone?: boolean;
-}
-
-// Project's alert rule stats
-export type ProjectAlertRuleStats = {
-  count: number;
-  date: string;
-};
-
-export enum MailActionTargetType {
-  ISSUE_OWNERS = 'IssueOwners',
-  TEAM = 'Team',
-  MEMBER = 'Member',
-  RELEASE_MEMBERS = 'ReleaseMembers',
-}
-
-export enum AssigneeTargetType {
-  UNASSIGNED = 'Unassigned',
-  TEAM = 'Team',
-  MEMBER = 'Member',
 }
 
 export type NoteType = {

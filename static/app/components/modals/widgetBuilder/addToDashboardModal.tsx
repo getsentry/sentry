@@ -54,7 +54,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
-  eventViewFromWidget,
   getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
@@ -363,7 +362,7 @@ function AddToDashboardModal({
       widgets: [...selectedDashboard.widgets, ...normalizeWidgets(widgetsWithLayouts)],
     };
 
-    await updateDashboard(api, organization.slug, newDashboard);
+    await updateDashboard(organization.slug, newDashboard);
   }
 
   const canSubmit = selectedDashboardId !== null;
@@ -481,25 +480,7 @@ function AddToDashboardModal({
         </Container>
         {!hasMultipleWidgets && (
           <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventViewFromWidget(
-                newWidgetTitle,
-                widget.displayType === DisplayType.TEXT
-                  ? {
-                      name: '',
-                      fields: [],
-                      aggregates: [],
-                      columns: [],
-                      orderby: '',
-                      conditions: '',
-                    }
-                  : widget.queries[0]!,
-                selection
-              )}
-              location={location}
-              hideLoadingIndicator
-            >
+            <MetricsDataSwitcher location={location}>
               {metricsDataSide => (
                 <DashboardsMEPProvider>
                   <MEPSettingProvider

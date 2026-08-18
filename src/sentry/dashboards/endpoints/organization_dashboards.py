@@ -628,6 +628,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             order_by = ["title"]
 
+        # Entries with null last visited need a deterministic tiebreaker,
+        # hence adding id to serve this purpose.
+        if use_user_last_visited:
+            order_by.append("-id")
+
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(

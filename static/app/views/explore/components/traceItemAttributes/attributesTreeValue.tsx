@@ -98,9 +98,16 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
     return (
       <AttributeLinkText>
         <ExternalLink
+          tabIndex={0}
           onClick={e => {
             e.preventDefault();
             openNavigateToExternalLinkModal({linkText: value});
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              openNavigateToExternalLinkModal({linkText: value});
+            }
           }}
         >
           {defaultValue}

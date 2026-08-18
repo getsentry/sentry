@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import zipfile
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -39,13 +40,16 @@ class BuildSnapshotImagesZipTest(TestCase):
             preprod_artifact=self.artifact, image_count=1, extras={"manifest_key": "mk"}
         )
 
-    def _session(self, *, archive_exists: bool) -> MagicMock:
+    def _session(
+        self,
+        *,
+        existing_archive_key: str | None = None,
+    ) -> MagicMock:
         manifest_key = "mk"
-        archive_key = f"snapshot_archives/{self.artifact.id}.zip"
         image_key = f"{self.org.id}/{self.project.id}/hash_a"
         data = {manifest_key: _manifest_bytes(), image_key: b"PNGDATA"}
-        if archive_exists:
-            data[archive_key] = b"ZIPBYTES"
+        if existing_archive_key is not None:
+            data[existing_archive_key] = b"ZIPBYTES"
 
         def _get(key):
             if key not in data:
@@ -60,8 +64,8 @@ class BuildSnapshotImagesZipTest(TestCase):
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_builds_and_uploads_via_multipart_then_emails(self, mock_session, mock_email):
-        session = self._session(archive_exists=False)
+    def test_build_includes_manifest(self, mock_session, mock_email):
+        session = self._session()
         mock_session.return_value = session
         build_snapshot_images_zip(
             org_id=self.org.id,
@@ -77,14 +81,18 @@ class BuildSnapshotImagesZipTest(TestCase):
 
         upload = session.initiate_multipart_upload.return_value
         assert upload.put_part.call_count >= 1
+        archive_bytes = b"".join(call.args[0] for call in upload.put_part.call_args_list)
+        with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
+            assert sorted(archive.namelist()) == ["a.png", "manifest.json"]
+            assert archive.read("manifest.json") == _manifest_bytes()
         upload.complete.assert_called_once()
         mock_email.assert_called_once()
         assert mock_email.call_args.kwargs["ready"] is True
 
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
-    def test_skips_rebuild_when_archive_exists(self, mock_session, mock_email):
-        session = self._session(archive_exists=True)
+    def test_reuses_existing_archive(self, mock_session, mock_email):
+        session = self._session(existing_archive_key=f"snapshot_archives/{self.artifact.id}.zip")
         mock_session.return_value = session
         build_snapshot_images_zip(
             org_id=self.org.id,
@@ -99,7 +107,7 @@ class BuildSnapshotImagesZipTest(TestCase):
     @patch("sentry.preprod.snapshots.zip_tasks._send_archive_email")
     @patch(SESSION_TARGET)
     def test_emails_failure_when_upload_raises(self, mock_session, mock_email):
-        session = self._session(archive_exists=False)
+        session = self._session()
         session.initiate_multipart_upload.side_effect = RuntimeError("boom")
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -117,7 +125,7 @@ class BuildSnapshotImagesZipTest(TestCase):
     def test_emails_ready_when_failure_superseded_by_existing_archive(
         self, mock_session, mock_email, mock_available
     ):
-        session = self._session(archive_exists=False)
+        session = self._session()
         session.initiate_multipart_upload.side_effect = RuntimeError("boom")
         mock_session.return_value = session
         build_snapshot_images_zip(
@@ -133,7 +141,7 @@ class BuildSnapshotImagesZipTest(TestCase):
     @patch(SESSION_TARGET)
     def test_emails_failure_when_metrics_missing(self, mock_session, mock_email):
         self.artifact.preprodsnapshotmetrics.delete()
-        mock_session.return_value = self._session(archive_exists=False)
+        mock_session.return_value = self._session()
         build_snapshot_images_zip(
             org_id=self.org.id,
             project_id=self.project.id,

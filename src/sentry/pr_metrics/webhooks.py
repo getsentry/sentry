@@ -30,6 +30,10 @@ from django.utils.dateparse import parse_datetime
 from pydantic import ValidationError
 
 from sentry import features, options
+from sentry.integrations.github.check_payloads import (
+    is_own_repo_pull_request,
+    pull_request_base_repo_id,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -87,6 +91,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
@@ -101,7 +106,10 @@ from sentry.seer.autofix.utils import (
     MatchDelegatedAgentPrRequest,
     make_match_coding_agent_pr_request,
 )
+from sentry.seer.milestones import record_has_pull_request
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.pull_requests import link_resolved_pull_request_to_seer_run
 from sentry.seer.seer_setup import has_seer_access
 from sentry.utils import metrics
 
@@ -406,7 +414,9 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable; it is swept out of band
+    by ``sweep_unattributed_pr_activity``.
     """
     if event.get("action") != "closed":
         return
@@ -540,6 +550,11 @@ def handle_metrics(
     reflects the final counts. Gated by the emit flag, the sole consumer; it
     writes only the webhook-sourced counters, leaving the other columns to their
     own producers.
+
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -556,6 +571,19 @@ def handle_metrics(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if is_stale_github_pull_request_payload(pr, pull_request):
+        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        logger.info(
+            "pr_metrics.metrics.stale_snapshot",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "pull_request_id": pr.id,
+                "github_delivery_id": kwargs.get("github_delivery_id"),
+            },
+        )
         return
 
     PullRequestMetrics.objects.update_or_create(
@@ -903,7 +931,9 @@ def handle_check_suite(
                 payload,
                 provider_ts=check_suite.get("updated_at"),
                 head_sha=check_suite.get("head_sha"),
+                check_suite_id=check_suite.get("id"),
             )
+            _record_check_activity_metric(github_event)
 
 
 def handle_check_run(
@@ -951,7 +981,25 @@ def handle_check_run(
                 payload,
                 provider_ts=check_run.get("completed_at"),
                 head_sha=check_run.get("head_sha"),
+                check_suite_id=(check_run.get("check_suite") or {}).get("id"),
             )
+            _record_check_activity_metric(github_event)
+
+
+def _record_check_activity_metric(github_event: GithubWebhookType) -> None:
+    """Count the check activity this cell actually recorded.
+
+    The control parser drops check deliveries it predicts are no-ops here
+    (``ActionFilter.own_repo_pr_actions``). That prediction reads the payload alone,
+    and nothing else on this path is instrumented — ``_write_activity_row`` is a bare
+    insert — so a wrong prediction would silently stop work with no signal anywhere.
+    This is that signal: it must not move when a drop is enabled in control.
+
+    Left at the ambient sample rate rather than forced to 1.0: the question it
+    answers is "did the rate change", which any consistent sampling answers at this
+    volume (~90/s). Read it as a rate, never as an absolute count.
+    """
+    metrics.incr("pr_metrics.check.activity_recorded", tags={"github_event": github_event.value})
 
 
 def _prs_from_check_payload(
@@ -963,16 +1011,11 @@ def _prs_from_check_payload(
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
-    so ``pull_requests`` can include PRs that live in *other* repositories. The
-    common case: a PR opened to merge this repo's default branch into another
-    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
-    matches every default-branch check here — but the PR belongs to that other
-    repo and its ``number`` is scoped to it. Each entry carries its own
-    ``base.repo``, so an entry is only ours to resolve when its base repo is the
-    one this webhook is for. Resolving a foreign entry's number against ``repo``
-    would miss, or — on a number collision — attribute another repo's PR activity
-    to ours, so it is skipped.
+    ``pull_requests`` can include PRs based in *other* repositories, and a
+    ``number`` is scoped to its base repo, so resolving a foreign entry against
+    ``repo`` would miss or — on a number collision — attribute another repo's PR
+    activity to ours. ``is_own_repo_pull_request`` holds that rule, shared with the
+    other consumers of these payloads.
 
     Numbers are deduped before resolving each to its stored row; unknown PRs are
     dropped by ``_get_pull_request``.
@@ -983,11 +1026,7 @@ def _prs_from_check_payload(
         number = ref.get("number")
         if number is None or str(number) in seen:
             continue
-        # A PR's number is scoped to its own base repo; resolve it against
-        # ``repo`` only when the PR lives here. Entries whose base is another repo
-        # (a PR merging this repo's branch elsewhere) are not ours to record.
-        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
-        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+        if not is_own_repo_pull_request(pull_request_base_repo_id(ref), repo.external_id):
             metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
@@ -1355,7 +1394,79 @@ def _send_seer_delegated_agent_match(
             group_ids=request_body.group_ids,
         ).dict(),
     )
+    _link_matched_delegated_agent_pr(match, pr, provider_hint)
     _record_delegated_candidate(provider_hint, "sync_matched")
+
+
+def _link_matched_delegated_agent_pr(
+    match: DelegatedAgentMatch,
+    pr: PullRequest,
+    provider_hint: str,
+) -> None:
+    """Link a matched PR to the run that produced it, on the same 200 that attributes it.
+
+    A coding agent's PR is linked only from an observation of that agent that carries the
+    PR url - a Cursor webhook, or a Claude Code / Copilot poll, and those polls run only
+    while a user is loading the issue's autofix state. So an agent that goes terminal
+    before its PR is visible reports no PR, and one that finishes with nobody watching is
+    never observed at all; neither is ever looked at again. This webhook is the next time
+    anyone sees that PR, and Seer has just told us which run it came from -- so it is the
+    last chance to link it.
+
+    Attribution and the run link answer the same question and are trusted on the same
+    signal, so this fires wherever attribution does. Best-effort: a failure here must not
+    cost the attribution already recorded above.
+    """
+    log_extra = {
+        "pull_request_id": pr.id,
+        "organization_id": pr.organization_id,
+        "provider_hint": provider_hint,
+        "agent_id": match.agent_id,
+        "run_id": match.run_id,
+        "match_path": match.match_path,
+    }
+
+    def record_outcome(outcome: str) -> None:
+        metrics.incr(
+            "pr_metrics.delegated_agent.link",
+            tags={
+                "provider": provider_hint,
+                "outcome": outcome,
+                "match_path": match.match_path,
+            },
+        )
+
+    try:
+        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
+            agent_id=match.agent_id, seer_run__organization_id=pr.organization_id
+        )
+    except SeerRunCodingAgentHandoff.DoesNotExist:
+        # Seer knows agents whose handoff row we never wrote (a failed create, or a launch
+        # that predates the row). Nothing to link to, and not an error.
+        logger.info("pr_metrics.delegated_agent.handoff_not_found", extra=log_extra)
+        record_outcome("no_handoff")
+        return
+    except Exception:
+        logger.exception("pr_metrics.delegated_agent.handoff_lookup_failed", extra=log_extra)
+        record_outcome("lookup_failed")
+        return
+
+    linked = link_resolved_pull_request_to_seer_run(
+        seer_run=handoff.seer_run,
+        pull_request=pr,
+        log_context=log_extra,
+        coding_agent_handoff=handoff,
+    )
+    if linked is not None:
+        try:
+            # The run's furthest milestone drives which stage it appears under. Nothing
+            # else records this one for a PR that arrives after reconcile_milestones --
+            # the status sync records it for its own PRs, and this path is later still.
+            record_has_pull_request(handoff.seer_run)
+        except Exception:
+            logger.exception("pr_metrics.delegated_agent.milestone_failed", extra=log_extra)
+
+    record_outcome("linked" if linked is not None else "link_failed")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1450,24 +1561,30 @@ def _record_activity_event(
     event_at: str | None = None,
     provider_ts: str | None = None,
     head_sha: str | None = None,
+    check_suite_id: int | None = None,
     use_doc: bool | None = None,
 ) -> None:
     """Route one processed event to the document or a legacy row per this PR's store.
 
-    ``event_at``, ``provider_ts`` and ``head_sha`` only feed the document path; see
-    ``apply_activity`` for their per-family semantics (``head_sha`` keys the check
-    rollup's per-push groups, so the legacy row's payload is left exactly as
-    before). Callers that already resolved the routing decision — because the
-    payload's shape depends on it — pass it as ``use_doc``; otherwise it is
-    computed here.
+    ``event_at``, ``provider_ts``, ``head_sha`` and ``check_suite_id`` only feed the
+    document path; see ``apply_activity`` for their per-family semantics
+    (``head_sha`` and ``check_suite_id`` key the check rollup's per-push, per-suite
+    groups, so the legacy row's payload is left exactly as before). Callers that
+    already resolved the routing decision — because the payload's shape depends on
+    it — pass it as ``use_doc``; otherwise it is computed here.
     """
     if use_doc is None:
         use_doc = _use_activity_document(pr, organization)
     if use_doc:
+        doc_extras = {
+            key: value
+            for key, value in (("head_sha", head_sha), ("check_suite_id", check_suite_id))
+            if value is not None
+        }
         _apply_activity_into_doc(
             pr,
             event_type=event_type,
-            payload=payload if head_sha is None else {**payload, "head_sha": head_sha},
+            payload={**payload, **doc_extras} if doc_extras else payload,
             webhook_id=webhook_id,
             event_at=event_at,
             provider_ts=provider_ts,

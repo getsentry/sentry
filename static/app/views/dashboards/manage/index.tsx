@@ -8,7 +8,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -44,18 +44,29 @@ import {RouteError} from 'sentry/views/routeError';
 
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
-function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
+function getSortOptions({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
   const options = [];
 
   if (!isOnlyPrebuilt) {
     options.push({label: t('My Dashboards'), value: 'mydashboards'});
   }
-
   options.push(
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
-    {label: t('Dashboard Name (Z-A)'), value: '-title'},
-    {label: t('Date Created (Newest)'), value: '-dateCreated'},
-    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'}
+  );
+  if (!hasUserLastVisited || !isOnlyPrebuilt) {
+    options.push(
+      {label: t('Date Created (Newest)'), value: '-dateCreated'},
+      {label: t('Date Created (Oldest)'), value: 'dateCreated'}
+    );
+  }
+  options.push(
     {label: t('Most Popular'), value: 'mostPopular'},
     {label: t('Recently Viewed'), value: 'recentlyViewed'}
   );
@@ -63,12 +74,18 @@ function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   return options;
 }
 
-function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
-  if (isOnlyPrebuilt) {
+function getDefaultSort({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
+  if (isOnlyPrebuilt && !hasUserLastVisited) {
     return DEFAULT_PREBUILT_SORT;
   }
 
-  return 'mydashboards';
+  return hasUserLastVisited ? 'recentlyViewed' : 'mydashboards';
 }
 
 function ManageDashboards() {
@@ -89,7 +106,10 @@ function ManageDashboards() {
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  const sortOptions = getSortOptions({isOnlyPrebuilt});
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
+  const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
 
   const {
     data: dashboardsResponse,
@@ -130,6 +150,7 @@ function ManageDashboards() {
                 layout: widget.layout ?? null,
               })
             ),
+            description: PREBUILT_DASHBOARDS[dashboard.prebuiltId].description,
             projects: [],
           };
         }
@@ -142,7 +163,7 @@ function ManageDashboards() {
 
   useEffect(() => {
     const urlSort = decodeScalar(location.query.sort);
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
@@ -158,10 +179,11 @@ function ManageDashboards() {
     navigate,
     organization,
     sortOptions,
+    hasUserLastVisited,
   ]);
 
   function getActiveSort() {
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
     if (urlSort) {
@@ -211,7 +233,11 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions>
+      <Grid
+        columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+        gap="md"
+        marginBottom="xl"
+      >
         <SearchBar
           defaultQuery=""
           query={getQuery()}
@@ -297,7 +323,7 @@ function ManageDashboards() {
             )}
           </DashboardCreateLimitWrapper>
         )}
-      </StyledActions>
+      </Grid>
     );
   }
 
@@ -322,6 +348,7 @@ function ManageDashboards() {
         location={location}
         onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
+        isOnlyPrebuilt={isOnlyPrebuilt}
       />
     );
   }
@@ -440,17 +467,6 @@ function ManageDashboards() {
     </Feature>
   );
 }
-
-const StyledActions = styled('div')`
-  display: grid;
-  grid-template-columns: auto max-content max-content;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${p => p.theme.space['2xl']};

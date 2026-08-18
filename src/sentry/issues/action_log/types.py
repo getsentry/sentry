@@ -146,6 +146,7 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    EMAIL = "email"
     UNKNOWN = (
         "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
     )
@@ -777,6 +778,8 @@ class SeerPRCreatedAction(GroupAction):
 
 class SeerIterationStartedAction(GroupAction):
     user_visible = True
+    run_id: Optional[int] = None
+    referrer: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

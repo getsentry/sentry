@@ -3,13 +3,12 @@ import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -114,15 +113,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
                   </field.Layout.Row>
                 )}
               </form.AppField>
-
-              <Flex align="center" justify={accountCredit > 0 ? 'between' : 'end'}>
-                {accountCredit > 0 ? (
-                  <Text id="account-balance">
-                    {tct('Your account credit: $[credit]', {
-                      credit: String(accountCredit),
-                    })}
-                  </Text>
-                ) : null}
+              <Flex align="center" justify="end">
                 <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
               </Flex>
             </form.FieldGroup>

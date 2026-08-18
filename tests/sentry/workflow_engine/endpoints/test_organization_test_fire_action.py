@@ -6,6 +6,8 @@ from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.integrations.pagerduty.utils import PagerDutyServiceDict, add_service
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
+from sentry.issues.action_log import ActionSource, GroupActionActor
+from sentry.issues.action_log.types import CreateIssueAction
 from sentry.models.project import Project
 from sentry.notifications.notification_action.group_type_notification_registry import (
     IssueAlertRegistryHandler,
@@ -16,6 +18,7 @@ from sentry.notifications.notification_action.issue_alert_registry import (
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
@@ -187,6 +190,36 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         assert response.status_code == 400
         assert mock_create_issue.call_count == 1
         assert response.data == {"actions": ["An unexpected error occurred. Error ID: 'abc-1234'"]}
+
+    @mock.patch.object(JiraIntegration, "create_issue")
+    def test_ticket_creation_attributes_to_request_user(
+        self, mock_create_issue: mock.MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            jira_integration = self.create_provider_integration(
+                provider="jira", name="Jira", external_id="jira:1"
+            )
+            jira_integration.add_organization(self.organization, self.user)
+
+        mock_create_issue.return_value = {"key": "APP-123", "url": "https://example.com/APP-123"}
+
+        action_data = [
+            {
+                "type": Action.Type.JIRA.value,
+                "integration_id": jira_integration.id,
+                "data": {},
+                "config": {"target_type": "specific"},
+            }
+        ]
+
+        with capture_action_log() as log:
+            self.get_success_response(self.organization.slug, actions=action_data)
+
+        log.assert_logged(
+            CreateIssueAction,
+            source=ActionSource.WEB,
+            actor=GroupActionActor.user(self.user.id),
+        )
 
     def test_no_projects_available(self) -> None:
         """Test behavior when no projects are available for the organization"""

@@ -382,6 +382,7 @@ function AgentSelectCell({
               }
             }
             field.handleChange(newValue);
+            field.handleBlur();
           }}
           options={agentSelectOptions}
           // @ts-expect-error: Select component does not have a size prop defined

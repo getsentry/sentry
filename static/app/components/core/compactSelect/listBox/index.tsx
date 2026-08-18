@@ -37,7 +37,6 @@ interface ListBoxProps<T extends ListItemBase>
       | 'selectedKeys'
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
-      | 'autoFocus'
       | 'isVirtualized'
     > {
   /**
@@ -123,6 +122,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
 export function ListBox<T extends ListItemBase>({
   ref,
   listState,
+  autoFocus,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
@@ -143,11 +143,17 @@ export function ListBox<T extends ListItemBase>({
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const scrollElementRef = useRef<HTMLDivElement>(null);
   const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
 
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
+      // useListBox forwards this to useSelectableCollection, but omits it from its
+      // public options type. This identifies the element that actually owns overflow.
+      // @ts-expect-error React Aria supports scrollRef at runtime but does not expose it here.
+      scrollRef: scrollElementRef,
+      autoFocus,
       label,
       shouldFocusWrap,
       shouldFocusOnHover,
@@ -217,7 +223,12 @@ export function ListBox<T extends ListItemBase>({
 
       setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
     };
-    return mergeRefs(overflowTracker, virtualizer.scrollElementRef, scrollContainerRef);
+    return mergeRefs(
+      scrollElementRef,
+      overflowTracker,
+      virtualizer.scrollElementRef,
+      scrollContainerRef
+    );
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (

@@ -49,7 +49,7 @@ export function useBackActions({
       if (preserveOnboardingState) {
         onboardingContext.setCreatedProjectSlug(undefined);
       } else {
-        onboardingContext.setSelectedPlatform(undefined);
+        onboardingContext.resetOnboarding();
       }
 
       try {
@@ -106,7 +106,7 @@ export function useBackActions({
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
-        onboardingContext.setSelectedPlatform(undefined);
+        onboardingContext.resetOnboarding();
 
         if (!browserBackButton) {
           goToStep(prevStep);

@@ -48,7 +48,7 @@ describe('initializeSdk', () => {
 
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];
-  const stati = [200, 400, 401, 403, 404, 429];
+  const stati = [200, 400, 401, 402, 403, 404, 429];
 
   describe('matching error type, matching message', () => {
     for (const method of methods) {

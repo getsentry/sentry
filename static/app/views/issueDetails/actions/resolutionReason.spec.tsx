@@ -9,10 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import {
-  ActivityResolutionReason,
-  DefaultResolutionReason,
-} from 'sentry/views/issueDetails/actions/resolutionReason';
+import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
 
 const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});
@@ -39,18 +36,17 @@ const activity = {
 
 function renderReason({
   activities = [activity],
-  variant = 'activity',
   statusDetails,
 }: {
   statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
-  variant?: 'activity' | 'default';
 }) {
-  const Component =
-    variant === 'activity' ? ActivityResolutionReason : DefaultResolutionReason;
-
   return render(
-    <Component activities={activities} project={project} statusDetails={statusDetails} />,
+    <ActivityResolutionReason
+      activities={activities}
+      project={project}
+      statusDetails={statusDetails}
+    />,
     {organization: OrganizationFixture()}
   );
 }
@@ -65,17 +61,6 @@ describe('ResolutionReason', () => {
     expect(screen.getByRole('link', {name: '#1234'})).toHaveAttribute(
       'href',
       pullRequest.externalUrl
-    );
-  });
-
-  it('keeps the default release reason', () => {
-    const {container} = renderReason({
-      statusDetails: {actor, inRelease: release},
-      variant: 'default',
-    });
-
-    expect(container).toHaveTextContent(
-      'David Cramer marked this issue as resolved in version 1.2.3.'
     );
   });
 

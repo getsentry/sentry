@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -10,8 +10,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are used as series names for chart lookup - do not translate
-export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
-export const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
+const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
+const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
 
 interface AnomalyThresholdDataPoint {
   external_alert_id: number;
@@ -29,7 +29,6 @@ interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
   detectionType?: string;
   endTimestamp?: number;
-  isLegacyAlert?: boolean; // for Alerts, remove this once organizations:workflow-engine-ui is GAd
   series?: Series[];
   startTimestamp?: number;
 }
@@ -49,7 +48,6 @@ export function useMetricDetectorAnomalyThresholds({
   startTimestamp,
   endTimestamp,
   series = [],
-  isLegacyAlert = false,
 }: UseMetricDetectorAnomalyThresholdsProps): UseMetricDetectorAnomalyThresholdsResult {
   const organization = useOrganization();
   const theme = useTheme();
@@ -72,7 +70,6 @@ export function useMetricDetectorAnomalyThresholds({
         query: {
           start: startTimestamp,
           end: endTimestamp,
-          ...(isLegacyAlert && {legacy_alert: 'true'}),
         },
       },
     ],
@@ -116,7 +113,7 @@ export function useMetricDetectorAnomalyThresholds({
     const lineColor = theme.colors.red400;
 
     return [
-      LineSeries({
+      lineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
@@ -138,7 +135,7 @@ export function useMetricDetectorAnomalyThresholds({
         connectNulls: true,
         step: false,
       }),
-      LineSeries({
+      lineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {

@@ -3,7 +3,11 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {MOBILE_BUILDS_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
+import {
+  MOBILE_BUILDS_ALLOWED_KEYS,
+  MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS,
+  SNAPSHOT_ALLOWED_KEYS,
+} from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {IconDownload} from 'sentry/icons';
@@ -13,6 +17,8 @@ const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.SIZE, label: t('Size')},
   {value: PreprodBuildsDisplay.DISTRIBUTION, label: t('Distribution')},
 ];
+
+const DISTRIBUTION_FREEFORM_KEYS = ['install_groups'];
 
 interface PreprodBuildsSearchControlsProps {
   /**
@@ -32,11 +38,14 @@ interface PreprodBuildsSearchControlsProps {
    */
   projects: number[];
   /**
-   * List of attribute keys to show in the search bar. When provided, only these
-   * keys will be available. When omitted, all keys except HIDDEN_PREPROD_ATTRIBUTES
-   * are shown.
+   * Overrides the display-specific list of attribute keys shown in the search bar.
    */
   allowedKeys?: string[];
+  /**
+   * Overrides the display-specific list of attributes whose values are entered
+   * as free text.
+   */
+  freeformKeys?: string[];
   /**
    * Hide the display mode toggle
    */
@@ -63,48 +72,71 @@ export function PreprodBuildsSearchControls({
   initialQuery,
   display,
   projects,
-  allowedKeys = MOBILE_BUILDS_ALLOWED_KEYS,
+  allowedKeys,
+  freeformKeys,
   hideDisplayToggle,
   onChange,
   onSearch,
   onDisplayChange,
   onExportCsv,
 }: PreprodBuildsSearchControlsProps) {
+  const displayAllowedKeys =
+    display === PreprodBuildsDisplay.SNAPSHOT
+      ? SNAPSHOT_ALLOWED_KEYS
+      : display === PreprodBuildsDisplay.DISTRIBUTION
+        ? MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS
+        : MOBILE_BUILDS_ALLOWED_KEYS;
+  const displayFreeformKeys =
+    display === PreprodBuildsDisplay.DISTRIBUTION
+      ? DISTRIBUTION_FREEFORM_KEYS
+      : undefined;
+
   return (
     <Flex
-      align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
-      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+      align={{zero: 'stretch', md: 'center'}}
+      direction={{zero: 'column', md: 'row'}}
       gap="md"
       wrap="wrap"
     >
-      <Container flex="1">
+      <Container flex="1" minWidth="0" width="100%">
         <PreprodSearchBar
           initialQuery={initialQuery}
-          allowedKeys={allowedKeys}
+          allowedKeys={allowedKeys ?? displayAllowedKeys}
+          freeformKeys={freeformKeys ?? displayFreeformKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}
         />
       </Container>
       {onExportCsv && (
-        <Button icon={<IconDownload />} onClick={onExportCsv}>
-          {t('Download CSV')}
-        </Button>
+        <Container width={{zero: '100%', md: 'max-content'}}>
+          {containerProps => (
+            <Button {...containerProps} icon={<IconDownload />} onClick={onExportCsv}>
+              {t('Download CSV')}
+            </Button>
+          )}
+        </Container>
       )}
       {!hideDisplayToggle && (
-        <Container maxWidth="200px">
-          <CompactSelect
-            options={displaySelectOptions}
-            value={display}
-            onChange={option => onDisplayChange(option.value)}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                prefix={t('Display')}
-                style={{width: '100%', zIndex: 1}}
-              />
-            )}
-          />
+        <Container
+          maxWidth={{zero: 'none', md: '200px'}}
+          width={{zero: '100%', md: 'max-content'}}
+        >
+          {containerProps => (
+            <CompactSelect
+              {...containerProps}
+              options={displaySelectOptions}
+              value={display}
+              onChange={option => onDisplayChange(option.value)}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  prefix={t('Display')}
+                  style={{width: '100%', zIndex: 1}}
+                />
+              )}
+            />
+          )}
         </Container>
       )}
     </Flex>

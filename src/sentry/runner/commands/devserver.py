@@ -308,7 +308,6 @@ def devserver(
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
                 kafka_consumers.add("ingest-generic-metrics")
-                kafka_consumers.add("billing-metrics-consumer")
 
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")
@@ -478,11 +477,9 @@ def devserver(
                 "SENTRY_SILO_DEVSERVER": "1",
                 "SENTRY_SILO_MODE": "CONTROL",
                 "SENTRY_REGION": "",
-                "SENTRY_APIGW_ASYNC": "true",
                 "SENTRY_CONTROL_SILO_PORT": server_port,
                 "SENTRY_REGION_SILO_PORT": str(ports["region.server"]),
                 "SENTRY_DEVSERVER_BIND": f"127.0.0.1:{server_port}",
-                "SENTRY_GRANIAN_IFACE": "asginl",
                 "SENTRY_GRANIAN_PORT": str(ports["server"]),
                 "SENTRY_GRANIAN_WORKERS": "2",
             }
@@ -490,8 +487,6 @@ def devserver(
                 control_environ["SENTRY_CONTROL_SILO_PORT"] = str(int(server_port) + 1)
                 control_environ["SENTRY_DEVSERVER_BIND"] = f"127.0.0.1:{int(server_port) + 1}"
                 control_environ["SENTRY_GRANIAN_PORT"] = str(ports["server"] + 1)
-                control_environ.pop("SENTRY_APIGW_ASYNC")
-                control_environ.pop("SENTRY_GRANIAN_IFACE")
 
             merged_env = os.environ.copy()
             merged_env.update(control_environ)

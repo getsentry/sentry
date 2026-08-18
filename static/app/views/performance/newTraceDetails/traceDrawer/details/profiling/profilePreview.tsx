@@ -79,7 +79,7 @@ export function ProfilePreview({
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile || !profile) {
-      return FlamegraphModel.Example();
+      return FlamegraphModel.example();
     }
 
     return new FlamegraphModel(profile, {});

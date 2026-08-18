@@ -10,7 +10,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -24,17 +24,17 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -63,6 +63,7 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
+  aggregateSort?: string;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
   crossEvents?: CrossEvent[];
@@ -91,6 +92,7 @@ export function getExploreUrl({
   query,
   groupBy,
   sort,
+  aggregateSort,
   field,
   id,
   table,
@@ -115,6 +117,7 @@ export function getExploreUrl({
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
     sort,
+    aggregateSort,
     field,
     utc,
     id,
@@ -308,6 +311,9 @@ export function generateTargetQuery({
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
+    if (!groupBy) {
+      continue;
+    }
     const value = row[groupBy];
     // some fields require special handling so make sure to handle it here
     if (groupBy === 'project' && typeof value === 'string') {
@@ -641,21 +647,30 @@ export function prettifyAggregation(aggregation: string): string | null {
   return null;
 }
 
+// The hidden lists target Sentry-defined fields. A user-sent attribute is kept
+// even when its name collides with a reserved field (e.g. a custom
+// `organization.id`), so it stays selectable in search and the column editor.
+export const isHiddenAttribute = (tag: Tag, hiddenKeys: Set<string>): boolean => {
+  if (tag.attributeSource === 'user') {
+    return false;
+  }
+  // Hide by both the raw key and the display name. Explicitly-typed keys such as
+  // `tags[project_id,number]` carry a display name (`project_id`) that is what
+  // appears in the hidden lists.
+  return hiddenKeys.has(tag.key) || (!!tag.name && hiddenKeys.has(tag.name));
+};
+
 export const removeHiddenKeys = (
   tagCollection: TagCollection,
-  hiddenKeys: string[]
+  hiddenKeys: Set<string>
 ): TagCollection => {
-  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
     const tag = tagCollection[key];
     if (!key || !tag) {
       continue;
     }
-    // Hide by both the raw key and the display name, matching the column
-    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
-    // display name (`project_id`) that is what appears in the hidden lists.
-    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+    if (isHiddenAttribute(tag, hiddenKeys)) {
       continue;
     }
     result[key] = tag;
@@ -709,7 +724,7 @@ function getConversationsUrlFromSavedQueryUrl({
     queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
   }
   const basePath = normalizeUrl(
-    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+    `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
   );
   return `${basePath}?${queryString}`;
 }

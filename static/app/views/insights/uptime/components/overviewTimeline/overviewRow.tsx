@@ -23,7 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
