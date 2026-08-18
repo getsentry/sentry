@@ -395,3 +395,7 @@ class WebhookProviderIdentifier(IntEnum):
     DISCORD = 12
     VERCEL = 13
     GOOGLE = 14
+    # 15 is left to the in-flight Gitea integration, which claimed it first.
+    # These values are persisted on WebhookPayload rows, so two providers
+    # sharing one would misroute replays after both land.
+    CURSOR_ORIGIN = 16
