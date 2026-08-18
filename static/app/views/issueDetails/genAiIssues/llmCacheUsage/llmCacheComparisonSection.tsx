@@ -2,13 +2,13 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
 import type {LlmCacheEvidenceData} from './types';
+import {useCallSitePageFilters} from './useCallSitePageFilters';
 import {buildCallSiteQuery, formatRate, formatTokens, LLM_CACHE_REFERRER} from './utils';
 
 interface LlmCacheComparisonSectionProps {
@@ -61,10 +61,10 @@ function CallSiteColumn({
       {callCount !== null && (
         <Text size="sm" variant="muted">
           {avgInputTokens === null || avgInputTokens === undefined
-            ? t('%s calls', callCount.toLocaleString())
+            ? tn('%s call', '%s calls', callCount)
             : t(
-                '%s calls · %s avg tokens',
-                callCount.toLocaleString(),
+                '%s · %s avg tokens',
+                tn('%s call', '%s calls', callCount),
                 formatTokens(avgInputTokens)
               )}
         </Text>
@@ -81,7 +81,9 @@ export function LlmCacheComparisonSection({
   evidenceData,
 }: LlmCacheComparisonSectionProps) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  // Pinned to the detection window for the same reason the chart is: the two
+  // columns are only comparable over the period the finding measured.
+  const selection = useCallSitePageFilters(evidenceData);
   const {anchor} = evidenceData;
 
   if (anchor === null) {
@@ -89,7 +91,7 @@ export function LlmCacheComparisonSection({
   }
 
   const toExploreUrl = (query: string | null) =>
-    query
+    query && selection
       ? getExploreUrl({
           organization,
           selection,
@@ -110,9 +112,11 @@ export function LlmCacheComparisonSection({
       >
         <CallSiteColumn
           heading={t('This call site')}
-          label={[evidenceData.transaction, evidenceData.spanDescription]
-            .filter(Boolean)
-            .join(' | ')}
+          label={
+            [evidenceData.transaction, evidenceData.spanDescription]
+              .filter(Boolean)
+              .join(' | ') || t('Unknown')
+          }
           hitRate={evidenceData.hitRate}
           callCount={evidenceData.callCount}
           avgInputTokens={evidenceData.avgInputTokens}
@@ -121,7 +125,10 @@ export function LlmCacheComparisonSection({
         />
         <CallSiteColumn
           heading={t('Caching normally')}
-          label={[anchor.transaction, anchor.spanDescription].filter(Boolean).join(' | ')}
+          label={
+            [anchor.transaction, anchor.spanDescription].filter(Boolean).join(' | ') ||
+            t('Unknown')
+          }
           hitRate={anchor.hitRate}
           callCount={anchor.callCount}
           avgInputTokens={anchor.avgInputTokens}

@@ -87,6 +87,38 @@ describe('LlmCacheProblemSection', () => {
     expect(screen.getByText('2,121')).toBeInTheDocument();
   });
 
+  it('reads as a sentence when the occurrence carries no window length', async () => {
+    // Each variant supplies its own article, so the fallback has to be a bare
+    // noun -- "over the last the detection window" otherwise.
+    const {container} = renderSection({windowDays: null, estimatedSavingsUsd: null});
+    await screen.findByText(/almost never hits the prompt cache/);
+
+    expect(container).toHaveTextContent('Over the last detection window');
+    expect(container).not.toHaveTextContent('the last the detection window');
+  });
+
+  it('drops the quantity clause rather than reporting an Unknown token count', async () => {
+    const {container} = renderSection({estimatedSavingsUsd: null, uncachedTokens: null});
+    await screen.findByText(/almost never hits the prompt cache/);
+
+    expect(container).not.toHaveTextContent('Unknown');
+    expect(container).toHaveTextContent(
+      'cached input tokens typically cost a fraction of fresh ones'
+    );
+  });
+
+  it('drops the thrash quantity clause when the write total is missing', async () => {
+    const {container} = renderSection({
+      outcome: 'thrash',
+      estimatedSavingsUsd: null,
+      sumCacheCreationTokens: null,
+    });
+    await screen.findByText(/invalidates the cached prefix/);
+
+    expect(container).not.toHaveTextContent('Unknown of cache writes');
+    expect(container).toHaveTextContent('invalidates the cached prefix.');
+  });
+
   it('shows the token composition of the window', async () => {
     renderSection({
       sumInputTokens: 10_000_000,

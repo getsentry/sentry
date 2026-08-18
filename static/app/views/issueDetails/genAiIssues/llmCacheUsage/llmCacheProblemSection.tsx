@@ -4,8 +4,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {KeyValueData} from 'sentry/components/keyValueData';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -13,6 +12,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LlmCacheActualSpend} from './llmCacheActualSpend';
 import {LlmCacheTokenBar} from './llmCacheTokenBar';
 import type {LlmCacheEvidenceData} from './types';
+import {useCallSitePageFilters} from './useCallSitePageFilters';
 import {
   buildCallSiteQuery,
   formatRate,
@@ -29,32 +29,16 @@ interface LlmCacheProblemSectionProps {
 function ProblemStatement({evidenceData}: LlmCacheProblemSectionProps) {
   const {outcome, estimatedSavingsUsd, sumInputTokens, uncachedTokens, windowDays} =
     evidenceData;
+  // Every sentence below supplies the article, so this has to read as a bare
+  // noun: "over the last the detection window" otherwise.
   const windowLabel =
-    windowDays === null ? t('the detection window') : t('%s days', windowDays);
+    windowDays === null ? t('detection window') : tn('%s day', '%s days', windowDays);
   const priced = estimatedSavingsUsd !== null;
 
   if (outcome === 'thrash') {
     return (
       <Stack gap="sm">
-        <Text>
-          {priced
-            ? tct(
-                'This call site keeps paying to write the prompt cache but rarely reads it back — something near the start of the prompt changes between calls and invalidates the cached prefix. A stable prefix could have saved about [savings] over the last [window].',
-                {
-                  savings: <Text bold>{formatUsd(estimatedSavingsUsd)}</Text>,
-                  window: windowLabel,
-                }
-              )
-            : tct(
-                'This call site keeps paying to write the prompt cache but rarely reads it back — something near the start of the prompt changes between calls and invalidates the cached prefix. Over the last [window], [tokens] of cache writes were never paid back by reads.',
-                {
-                  tokens: (
-                    <Text bold>{formatTokens(evidenceData.sumCacheCreationTokens)}</Text>
-                  ),
-                  window: windowLabel,
-                }
-              )}
-        </Text>
+        <Text>{thrashStatement()}</Text>
         {evidenceData.overpayVsNoCacheUsd !== null && (
           <Text bold>{t('Right now, caching here costs more than turning it off.')}</Text>
         )}
@@ -62,31 +46,60 @@ function ProblemStatement({evidenceData}: LlmCacheProblemSectionProps) {
     );
   }
 
-  return (
-    <Text>
-      {priced
-        ? tct(
-            'Sentry found an LLM call site that almost never hits the prompt cache. Over the last [window] it sent [tokens] of input at the full rate — caching the repeated part of the prompt could have saved up to [savings].',
-            {
-              window: windowLabel,
-              tokens: <Text bold>{formatTokens(sumInputTokens)}</Text>,
-              savings: <Text bold>{formatUsd(estimatedSavingsUsd)}</Text>,
-            }
-          )
-        : tct(
-            'Sentry found an LLM call site that almost never hits the prompt cache. Over the last [window] it re-sent [tokens] that never came from cache, and cached input tokens typically cost a fraction of fresh ones.',
-            {
-              window: windowLabel,
-              tokens: <Text bold>{formatTokens(uncachedTokens)}</Text>,
-            }
-          )}
-    </Text>
-  );
+  return <Text>{notCachingStatement()}</Text>;
+
+  function thrashStatement() {
+    if (priced) {
+      return tct(
+        'This call site keeps paying to write the prompt cache but rarely reads it back — something near the start of the prompt changes between calls and invalidates the cached prefix. A stable prefix could have saved about [savings] over the last [window].',
+        {savings: <Text bold>{formatUsd(estimatedSavingsUsd)}</Text>, window: windowLabel}
+      );
+    }
+    // Without a quantity there is no clause to put it in: naming the shape of
+    // the problem beats reporting that its size is "Unknown".
+    if (evidenceData.sumCacheCreationTokens === null) {
+      return t(
+        'This call site keeps paying to write the prompt cache but rarely reads it back — something near the start of the prompt changes between calls and invalidates the cached prefix.'
+      );
+    }
+    return tct(
+      'This call site keeps paying to write the prompt cache but rarely reads it back — something near the start of the prompt changes between calls and invalidates the cached prefix. Over the last [window], [tokens] of cache writes were never paid back by reads.',
+      {
+        tokens: <Text bold>{formatTokens(evidenceData.sumCacheCreationTokens)}</Text>,
+        window: windowLabel,
+      }
+    );
+  }
+
+  function notCachingStatement() {
+    if (priced && sumInputTokens !== null) {
+      return tct(
+        'Sentry found an LLM call site that almost never hits the prompt cache. Over the last [window] it sent [tokens] of input at the full rate — caching the repeated part of the prompt could have saved up to [savings].',
+        {
+          window: windowLabel,
+          tokens: <Text bold>{formatTokens(sumInputTokens)}</Text>,
+          savings: <Text bold>{formatUsd(estimatedSavingsUsd)}</Text>,
+        }
+      );
+    }
+    if (uncachedTokens === null) {
+      return t(
+        'Sentry found an LLM call site that almost never hits the prompt cache, and cached input tokens typically cost a fraction of fresh ones.'
+      );
+    }
+    return tct(
+      'Sentry found an LLM call site that almost never hits the prompt cache. Over the last [window] it re-sent [tokens] that never came from cache, and cached input tokens typically cost a fraction of fresh ones.',
+      {window: windowLabel, tokens: <Text bold>{formatTokens(uncachedTokens)}</Text>}
+    );
+  }
 }
 
 export function LlmCacheProblemSection({evidenceData}: LlmCacheProblemSectionProps) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  // Pinned to the detection window, like the page's other live queries: the
+  // reader's own range would send them to an Explore view that answers a
+  // different question than the issue is making a claim about.
+  const selection = useCallSitePageFilters(evidenceData);
   const {
     transaction,
     spanDescription,
@@ -100,15 +113,16 @@ export function LlmCacheProblemSection({evidenceData}: LlmCacheProblemSectionPro
   } = evidenceData;
 
   const callSiteQuery = buildCallSiteQuery({transaction, spanDescription, model});
-  const callSiteExploreUrl = callSiteQuery
-    ? getExploreUrl({
-        organization,
-        selection,
-        mode: Mode.SAMPLES,
-        query: callSiteQuery,
-        referrer: LLM_CACHE_REFERRER,
-      })
-    : undefined;
+  const callSiteExploreUrl =
+    callSiteQuery && selection
+      ? getExploreUrl({
+          organization,
+          selection,
+          mode: Mode.SAMPLES,
+          query: callSiteQuery,
+          referrer: LLM_CACHE_REFERRER,
+        })
+      : undefined;
 
   return (
     <Stack gap="lg">
