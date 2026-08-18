@@ -687,12 +687,28 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
         assert run_data["pullRequests"] == []
 
+    def test_unenriched_pull_request_is_kept_in_the_list(self):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        pull_request = self._pull_request_for_run(group, run, state=None)
+        resp = self.get_success_response(self.organization.slug)
+        run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
+        assert [pr["id"] for pr in run_data["pullRequests"]] == [str(pull_request.id)]
+
     def test_run_with_only_closed_pull_request_is_hidden(self):
         group = self.create_group()
         run = self._run_with_pull_request_milestone(group)
         self._pull_request_for_run(group, run, state=PullRequestLifecycleState.CLOSED)
         resp = self.get_success_response(self.organization.slug)
         assert resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST] == []
+
+    def test_run_with_only_unenriched_pull_request_is_shown(self):
+        group = self.create_group()
+        run = self._run_with_pull_request_milestone(group)
+        self._pull_request_for_run(group, run, state=None)
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.HAS_PULL_REQUEST]
+        assert len(runs) == 1
 
     def test_run_with_open_and_closed_pull_requests_shows_only_open(self):
         group = self.create_group()

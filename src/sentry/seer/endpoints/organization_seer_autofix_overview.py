@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import cast
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from pydantic import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -74,6 +74,11 @@ _PIPELINE: tuple[str, ...] = (
 _MAX_RUNS_PER_MILESTONE = 100
 
 _HIDDEN_PULL_REQUEST_STATES = (PullRequestLifecycleState.CLOSED,)
+
+# `.exclude(state__in=...)` drops NULL states via SQL three-valued logic; NULL means unenriched (open), so keep it.
+_VISIBLE_PULL_REQUEST_FILTER = Q(pull_request__state__isnull=True) | ~Q(
+    pull_request__state__in=_HIDDEN_PULL_REQUEST_STATES
+)
 
 # The three issue-based sort params, mapped to their search-backend names.
 # Any other value (seer default, empty, unknown) keeps the default order.
@@ -149,7 +154,7 @@ def _pull_requests_by_seer_run_id(
     by_run: dict[int, list[PullRequestPayload]] = defaultdict(list)
     links = list(
         SeerRunPullRequest.objects.filter(seer_run_id__in=seer_run_ids)
-        .exclude(pull_request__state__in=_HIDDEN_PULL_REQUEST_STATES)
+        .filter(_VISIBLE_PULL_REQUEST_FILTER)
         .select_related("pull_request")
         .order_by("date_added")
     )
@@ -413,9 +418,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             .select_related("seer_run", "seer_run__agent")
             .annotate(
                 has_pull_request_link=Exists(pr_links),
-                has_unclosed_pull_request=Exists(
-                    pr_links.exclude(pull_request__state__in=_HIDDEN_PULL_REQUEST_STATES)
-                ),
+                has_unclosed_pull_request=Exists(pr_links.filter(_VISIBLE_PULL_REQUEST_FILTER)),
             )
             .order_by("-seer_run__last_triggered_at")
         )
