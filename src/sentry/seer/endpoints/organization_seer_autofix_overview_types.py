@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.seer.agent.client_models import FilePatch
 
@@ -29,6 +29,8 @@ class IssueProjectPayload(TypedDict):
     id: str
     slug: str
     platform: str | None
+    hasReposConnected: NotRequired[bool]
+    hasNonGithubRepo: NotRequired[bool]
 
 
 class IssuePayload(TypedDict):

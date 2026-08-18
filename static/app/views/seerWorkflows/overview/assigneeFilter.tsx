@@ -71,7 +71,7 @@ export function AssigneeFilter({
       value={value ?? undefined}
       onChange={selected => onChange(selected?.value ?? null)}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} size="sm" prefix={t('Assignee')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Assignee')} />
       )}
     />
   );

@@ -13,6 +13,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -25,10 +27,11 @@ import type {
   OverviewPullRequest,
   OverviewRunIssue,
 } from 'sentry/views/seerWorkflows/overview/types';
+import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui'],
+    features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
 
@@ -254,6 +257,151 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
     await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
+  });
+
+  describe('Seer drawer', () => {
+    // Holds setup open so the drawer sits in its loading state and fires no
+    // downstream content requests.
+    function mockDrawerFor(groupId: string) {
+      const groupRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/`,
+        body: GroupFixture({id: groupId}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+        asyncDelay: new Promise<void>(() => {}),
+        body: {},
+      });
+      return groupRequest;
+    }
+
+    function seerDrawer() {
+      return screen.queryByRole('complementary', {name: 'Seer drawer'});
+    }
+
+    // Drives the hook alongside a button that opens a second drawer, so a test
+    // can replace and dismiss the Seer drawer the way Seer Agent would.
+    function DrawerHarness() {
+      useOverviewSeerDrawer();
+      const {openDrawer} = useDrawer();
+      return (
+        <button
+          onClick={() =>
+            openDrawer(() => <div>Other drawer body</div>, {ariaLabel: 'Other drawer'})
+          }
+        >
+          open other
+        </button>
+      );
+    }
+
+    it('opens in place when the URL carries a group id', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      const groupRequest = mockDrawerFor('2');
+
+      renderPage({seerDrawer: '2'});
+
+      // The overview list stays mounted behind the drawer.
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(groupRequest).toHaveBeenCalled();
+    });
+
+    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = render(<AutofixOverview />, {
+        organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
+        initialRouterConfig: {
+          location: {pathname: basePath, query: {seerDrawer: '2'}},
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+      await waitFor(() => expect(router.location.query.seerDrawer).toBeUndefined());
+    });
+
+    it('clears the param and closes when the drawer is dismissed', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+      expect(router.location.query.seerDrawer).toBeUndefined();
+    });
+
+    it('closes when the group id leaves the URL (back navigation)', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      router.navigate(basePath);
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+    });
+
+    it('switches to another run when the URL group id changes', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+      const group3Request = mockDrawerFor('3');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(group3Request).not.toHaveBeenCalled();
+
+      router.navigate(`${basePath}?seerDrawer=3`);
+
+      await waitFor(() => expect(group3Request).toHaveBeenCalled());
+      expect(seerDrawer()).toBeInTheDocument();
+    });
+
+    it('reopens after another drawer replaces and then closes it', async () => {
+      mockDrawerFor('2');
+
+      render(<DrawerHarness />, {
+        organization,
+        initialRouterConfig: {location: {pathname: basePath, query: {seerDrawer: '2'}}},
+      });
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'open other'}));
+      expect(
+        await screen.findByRole('complementary', {name: 'Other drawer'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders All Runs and In Progress tabs with counts', async () => {

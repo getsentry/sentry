@@ -38,6 +38,7 @@ import {OverviewCard} from './issueCard';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
+import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 const SeerTrialCTA = OverrideOrDefault({
   overrideName: 'component:seer-trial-cta',
@@ -83,6 +84,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
+  useOverviewSeerDrawer();
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
     []
@@ -147,7 +149,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
           }
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} size="sm" prefix={t('Sort')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
         <AssigneeFilter

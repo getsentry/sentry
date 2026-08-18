@@ -257,7 +257,7 @@ function OverviewAction({
     );
   }
 
-  return <OverviewCardAction run={run} sectionKey={sectionKey} issueUrl={issueUrl} />;
+  return <OverviewCardAction run={run} sectionKey={sectionKey} />;
 }
 
 const TitleLink = styled(Link)`
