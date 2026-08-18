@@ -692,6 +692,24 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert len(resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]) == 2
 
+    @mock.patch(
+        "sentry.seer.endpoints.organization_seer_autofix_overview._MAX_RUNS_PER_MILESTONE", 2
+    )
+    def test_truncated_milestones_reports_capped_sections(self):
+        for i in range(3):
+            self._run_for_group(self.create_group(), f"boom {i}")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data["truncatedMilestones"] == [SeerRunMilestoneType.ROOT_CAUSE]
+
+    def test_truncated_milestones_empty_when_under_cap(self):
+        self._run_for_group(self.create_group(), "boom")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data["truncatedMilestones"] == []
+
     @mock.patch(_INTEGRATION_SERVICE)
     def test_both_expands_enrich_pull_request_and_request_stats(self, mock_get_integration):
         group = self.create_group()
