@@ -657,7 +657,7 @@ export function SessionScrubber({
   };
 
   return (
-    <Stack gap="sm" padding="lg xl">
+    <Stack>
       {/*
         Every cell is placed by hand. Grid auto-placement flows *around* the
         explicitly positioned overlay below, which silently pushes the first
@@ -979,7 +979,13 @@ export function SessionScrubber({
         </Track>
       </Chart>
 
-      <Flex align="center" gap="md" wrap="wrap">
+      {/*
+        Padded to line up with the search below it rather than with the chart,
+        which now runs to the panel's own edges. Without it the note sits flush
+        against both the last lane and the filter row and reads as part of
+        neither.
+      */}
+      <Flex align="center" gap="md" wrap="wrap" padding="md xl">
         <Text size="xs" variant="muted">
           {isZoomed
             ? t(
@@ -1602,8 +1608,13 @@ const Chart = styled('div')<{hasRoutes: boolean}>`
   grid-template-rows:
     ${OVERVIEW_HEIGHT}px ${HEADER_HEIGHT}px
     ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${LANE_ROWS};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
+  /*
+   * Bottom edge only. The chart used to be a bordered, rounded card floating
+   * inside the panel, which drew a second frame a few pixels in from the frame
+   * the panel already has. It now runs to the panel's edges and keeps just the
+   * rule that closes the last lane and separates it from the zoom note.
+   */
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;
 `;
 

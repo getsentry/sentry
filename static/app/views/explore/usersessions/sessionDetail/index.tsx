@@ -88,9 +88,9 @@ export default function SessionDetailView() {
   // session's extent arrives. A session with no telemetry at all has no extent to
   // draw, and gets no strip.
   const scrubber = isPending ? (
-    <Container padding="lg xl">
-      <Placeholder height="216px" />
-    </Container>
+    // Edge to edge like the chart it stands in for, so the panel does not
+    // reflow inward once the real one lands.
+    <Placeholder height="248px" />
   ) : bounds ? (
     <SessionScrubber
       bounds={bounds}
