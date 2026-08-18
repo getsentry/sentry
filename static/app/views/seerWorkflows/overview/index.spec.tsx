@@ -932,6 +932,10 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/2'
     );
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
     const approvedTag = getTagForText('Approved');
     const checksPassingTag = getTagForText('Checks Passing');
     expect(

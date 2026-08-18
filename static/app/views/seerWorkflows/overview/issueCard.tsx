@@ -217,14 +217,35 @@ function OverviewAction({
 
     return (
       <Stack align="end" gap="xs">
-        <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-          <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
-            <Flex as="span" gap="xs" align="center">
-              {t('Review PR #%s', reviewPullRequest.number)}
-              <IconOpen size="xs" />
-            </Flex>
-          </LinkButton>
-        </Tooltip>
+        <ButtonBar>
+          <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
+              <Flex as="span" gap="xs" align="center">
+                {t('Review PR #%s', reviewPullRequest.number)}
+                <IconOpen size="xs" />
+              </Flex>
+            </LinkButton>
+          </Tooltip>
+          <Tooltip title={t('Open Seer')} skipWrapper>
+            <LinkButton
+              size="sm"
+              variant="primary"
+              aria-label={t('Open Seer')}
+              icon={<IconSeer size="sm" />}
+              to={{
+                pathname: location.pathname,
+                query: {...location.query, seerDrawer: run.groupId},
+              }}
+              onClick={() =>
+                trackAnalytics('autofix.overview.open_seer_clicked', {
+                  organization,
+                  group_id: run.groupId,
+                  run_id: run.seerRunId,
+                })
+              }
+            />
+          </Tooltip>
+        </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
           // typically fills in, so the row height doesn't jump on resolve.
