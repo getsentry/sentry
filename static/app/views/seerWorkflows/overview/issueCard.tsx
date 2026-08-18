@@ -190,8 +190,12 @@ function OverviewAction({
     const reviewStatusTag = reviewPullRequest.reviewStatus
       ? REVIEW_STATUS_TAGS[reviewPullRequest.reviewStatus]
       : null;
+    // failedChecks is absent until the backend that populates it deploys, so
+    // guard the transition window where checksStatus is 'failure' without it.
     const failedChecks =
-      reviewPullRequest.checksStatus === 'failure' ? reviewPullRequest.failedChecks : [];
+      reviewPullRequest.checksStatus === 'failure'
+        ? (reviewPullRequest.failedChecks ?? [])
+        : [];
 
     return (
       <Stack align="end" gap="xs">

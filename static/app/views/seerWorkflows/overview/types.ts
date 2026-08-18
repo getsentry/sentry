@@ -143,13 +143,14 @@ export interface OverviewPullRequestFile {
 
 export interface OverviewPullRequest {
   checksStatus: PullRequestChecksStatus | null;
-  failedChecks: string[];
   files: OverviewPullRequestFile[];
   id: string;
   number: number;
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
+  // Absent from the payload until the backend that populates it deploys.
+  failedChecks?: string[];
   repoName?: string | null;
 }
 

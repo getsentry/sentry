@@ -674,6 +674,25 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText(/^\d+ Checks? Failing$/)).not.toBeInTheDocument();
   });
 
+  it('does not crash when a failing PR omits failedChecks entirely', async () => {
+    // Pre-backend-deploy the field is absent from the payload; the failing tag
+    // must fall back to the plain label rather than reading .length of undefined.
+    const {failedChecks: _omitted, ...withoutFailedChecks} = {
+      ...pullRequestFixture({number: 3, status: 'open'}),
+      checksStatus: 'failure' as const,
+    };
+    mockOverview({
+      base: {
+        has_pull_request: [{...rootCauseRun, pullRequests: [withoutFailedChecks]}],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Checks Failing')).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ Checks? Failing$/)).not.toBeInTheDocument();
+  });
+
   it('renders a draft pull request as the actionable one', async () => {
     mockOverview({
       base: {
