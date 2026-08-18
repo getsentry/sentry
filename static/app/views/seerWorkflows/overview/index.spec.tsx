@@ -1,7 +1,9 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -15,6 +17,7 @@ import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import type {
@@ -64,6 +67,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
+      failedChecks: [],
     };
   }
 
@@ -101,24 +105,32 @@ describe('AutofixOverview', () => {
     enrichedAsyncDelay,
     enrichedStatusCode,
     baseStatusCode,
+    truncated,
   }: {
     base: Partial<AutofixOverviewResponse['runsByMilestone']>;
     baseStatusCode?: number;
     enriched?: Partial<AutofixOverviewResponse['runsByMilestone']>;
     enrichedAsyncDelay?: number | Promise<void>;
     enrichedStatusCode?: number;
+    truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
     const baseRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       statusCode: baseStatusCode,
-      body: {runsByMilestone: {...emptyMilestones, ...base}},
+      body: {
+        runsByMilestone: {...emptyMilestones, ...base},
+        truncatedMilestones: truncated ?? [],
+      },
     });
     const enrichedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats']})],
       asyncDelay: enrichedAsyncDelay,
       statusCode: enrichedStatusCode,
-      body: {runsByMilestone: {...emptyMilestones, ...(enriched ?? base)}},
+      body: {
+        runsByMilestone: {...emptyMilestones, ...(enriched ?? base)},
+        truncatedMilestones: truncated ?? [],
+      },
     });
     return {baseRequest, enrichedRequest};
   }
@@ -157,10 +169,10 @@ describe('AutofixOverview', () => {
     });
   });
 
-  function renderPage() {
+  function renderPage(query: Record<string, string> = {}) {
     return render(<AutofixOverview />, {
       organization,
-      initialRouterConfig: {location: {pathname: basePath}},
+      initialRouterConfig: {location: {pathname: basePath, query}},
     });
   }
 
@@ -264,8 +276,32 @@ describe('AutofixOverview', () => {
 
     // The root-cause-only run has no plan, so only the solution card carries
     // the plan label.
-    expect(screen.getAllByText('Root cause')).toHaveLength(2);
+    expect(screen.getAllByText('Root Cause')).toHaveLength(2);
     expect(screen.getAllByText('Plan')).toHaveLength(1);
+  });
+
+  it('renders inline code in root cause and plan summaries', async () => {
+    mockOverview({
+      base: {
+        autofix_solution: [
+          {
+            ...solutionRun,
+            rootCause: {
+              oneLineDescription: 'The request is passed to `dateutil.parse()`.',
+            },
+            proposedFix: {
+              oneLineSummary: 'Wrap `parse_date()` in a try/catch.',
+            },
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await screen.findByRole('link', {name: 'KeyError in proxy handler'});
+    expect(screen.getByText('dateutil.parse()').tagName).toBe('CODE');
+    expect(screen.getByText('parse_date()').tagName).toBe('CODE');
   });
 
   it('scopes the request to the selected project', async () => {
@@ -471,6 +507,7 @@ describe('AutofixOverview', () => {
       reviewStatus: null,
       repoName: 'getsentry/sentry',
       files: [],
+      failedChecks: [],
     };
 
     const enriched = deferEnriched();
@@ -529,6 +566,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       repoName: null,
+      failedChecks: [],
       files: [
         {path: 'src/sentry/foo.py', additions: 1, deletions: 1, changeType: 'MODIFIED'},
         {path: 'src/sentry/bar.py', additions: 2, deletions: 0, changeType: 'ADDED'},
@@ -554,6 +592,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
+      failedChecks: [],
     };
     // The endpoint enriches open/draft links only, so the actionable PR is the
     // one carrying badges and files.
@@ -572,6 +611,7 @@ describe('AutofixOverview', () => {
           changeType: 'MODIFIED',
         },
       ],
+      failedChecks: [],
     };
     mockOverview({
       base: {
@@ -603,6 +643,7 @@ describe('AutofixOverview', () => {
       ...pullRequestFixture({number: 3, status: 'open'}),
       checksStatus: 'failure',
       reviewStatus: 'changes_requested',
+      failedChecks: ['build (3.12)', 'mypy'],
     };
     const pendingPullRequest: OverviewPullRequest = {
       ...pullRequestFixture({number: 4, status: 'open'}),
@@ -629,7 +670,7 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByText('Changes Requested')).toBeInTheDocument();
     const changesRequestedTag = getTagForText('Changes Requested');
-    const checksFailingTag = getTagForText('Checks Failing');
+    const checksFailingTag = getTagForText('2 Checks Failing');
     const checksRunningTag = getTagForText('Checks Running');
     expect(
       changesRequestedTag.compareDocumentPosition(checksFailingTag) &
@@ -637,8 +678,54 @@ describe('AutofixOverview', () => {
     ).toBeTruthy();
     expect(changesRequestedTag.className).toEqual(checksRunningTag.className);
     expect(checksFailingTag.className).not.toEqual(changesRequestedTag.className);
-    expect(screen.queryByText(/^\d+ Checks Failing$/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Checks Failing')).not.toBeInTheDocument();
     expect(screen.queryByText('Review Required')).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('2 Checks Failing'));
+    expect(await screen.findByText('build (3.12)')).toBeInTheDocument();
+    expect(screen.getByText('mypy')).toBeInTheDocument();
+  });
+
+  it('uses the singular label for a single failed check', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                ...pullRequestFixture({number: 3, status: 'open'}),
+                checksStatus: 'failure',
+                failedChecks: ['mypy'],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1 Check Failing')).toBeInTheDocument();
+  });
+
+  it('falls back to the plain failing label when a failing PR omits failedChecks', async () => {
+    // The field is absent until the backend deploys; the failing tag must fall
+    // back to the plain label rather than reading .length of undefined.
+    const {failedChecks: _omitted, ...withoutFailedChecks} = {
+      ...pullRequestFixture({number: 3, status: 'open'}),
+      checksStatus: 'failure' as const,
+    };
+    mockOverview({
+      base: {
+        has_pull_request: [{...rootCauseRun, pullRequests: [withoutFailedChecks]}],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Checks Failing')).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ Checks? Failing$/)).not.toBeInTheDocument();
   });
 
   it('renders a draft pull request as the actionable one', async () => {
@@ -703,6 +790,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/new.py',
@@ -770,6 +858,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/mystery.py',
@@ -807,6 +896,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/foo.py',
@@ -862,6 +952,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/gone.py',
@@ -999,6 +1090,136 @@ describe('AutofixOverview', () => {
       )
     );
     expect(router.location.query.sort).toBe(sort);
+  });
+
+  describe('assignee filter', () => {
+    const jane: Actor = {type: 'user', id: '7', name: 'Jane Doe', email: ''};
+    const assignedRun = {
+      ...rootCauseRun,
+      issue: issueFixture({assignedTo: jane, count: '1200', userCount: 5}),
+    };
+
+    it('derives options with counts and filters sections via the URL', async () => {
+      const {enrichedRequest} = mockOverview({
+        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
+      });
+
+      const {router} = renderPage();
+      await screen.findByRole('button', {name: 'Generate code changes 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+
+      const janeOption = await screen.findByRole('option', {name: /Jane Doe/});
+      expect(within(janeOption).getByText('1')).toBeInTheDocument();
+      const unassignedOption = screen.getByRole('option', {name: /Unassigned/});
+      expect(within(unassignedOption).getByText('1')).toBeInTheDocument();
+
+      await userEvent.click(janeOption);
+
+      expect(
+        await screen.findByRole('button', {name: 'Create Plan 1'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /Generate code changes/})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.assignee).toBe('user:7');
+      expect(enrichedRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a filtered empty state when no runs match the assignee', async () => {
+      mockOverview({base: {autofix_root_cause: [assignedRun]}});
+
+      renderPage({assignee: 'user:999'});
+
+      expect(
+        await screen.findByText('No Autofix runs match the selected assignee.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('You don’t have any Autofix runs...yet.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows a truncation notice when the backend caps a section', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [assignedRun]},
+        truncated: ['autofix_root_cause'],
+      });
+
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('formats team assignees with a # prefix', async () => {
+      const squad: Actor = {type: 'team', id: '9', name: 'squad'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {...rootCauseRun, issue: issueFixture({assignedTo: squad})},
+          ],
+        },
+      });
+
+      renderPage();
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+
+      expect(await screen.findByRole('option', {name: /#squad/})).toBeInTheDocument();
+    });
+
+    it('clears the filter and restores all sections', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
+      });
+
+      const {router} = renderPage({assignee: 'user:7'});
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+      expect(
+        screen.queryByRole('button', {name: /Generate code changes/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Clear'}));
+
+      expect(
+        await screen.findByRole('button', {name: 'Generate code changes 1'})
+      ).toBeInTheDocument();
+      expect(router.location.query.assignee).toBeUndefined();
+    });
+
+    it('adds a newly assigned user to the filter options', async () => {
+      const nextAssignee = UserFixture({id: '42', name: 'Next Assignee'});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [MemberFixture({user: nextAssignee})],
+      });
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      const assignRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${rootCauseRun.groupId}/`,
+        method: 'PUT',
+        body: {
+          ...GroupFixture({id: rootCauseRun.groupId}),
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+        },
+      });
+
+      renderPage();
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue assignee'}));
+      await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+      await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+      const newOption = await screen.findByRole('option', {name: /Next Assignee/});
+      expect(within(newOption).getByText('1')).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Unassigned/})).not.toBeInTheDocument();
+    });
   });
 
   it('shows an error state when the request fails', async () => {

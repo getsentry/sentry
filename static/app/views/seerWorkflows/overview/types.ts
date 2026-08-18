@@ -149,6 +149,7 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
+  failedChecks?: string[];
   repoName?: string | null;
 }
 
@@ -198,4 +199,5 @@ export interface OverviewRun {
 
 export interface AutofixOverviewResponse {
   runsByMilestone: Record<MilestoneKey, OverviewRun[]>;
+  truncatedMilestones?: MilestoneKey[];
 }
