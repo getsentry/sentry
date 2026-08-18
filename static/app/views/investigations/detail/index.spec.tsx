@@ -142,6 +142,55 @@ describe('Investigation detail', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it('shows running and dependency-waiting states for auto-run cells', async () => {
+    const investigation = InvestigationDetailFixture({
+      template: {key: 'breached_metric', version: 1},
+    });
+    const textBlock = investigation.blocks[0]!;
+    const queryBlock = investigation.blocks[1]!;
+    investigation.blocks = [
+      {
+        ...textBlock,
+        config: {autoRun: true},
+        outputStatus: 'running',
+        currentExecution: {
+          id: 'execution-1',
+          status: 'running',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+      },
+      {
+        ...queryBlock,
+        config: {autoRun: true},
+        outputStatus: 'pending',
+        currentExecution: {
+          id: 'execution-2',
+          status: 'pending',
+          startedAt: null,
+          completedAt: null,
+          error: null,
+        },
+      },
+      {
+        ...textBlock,
+        id: 'block-3',
+        position: 2,
+        title: 'Synthesis',
+        config: {autoRun: true},
+        dependencies: ['block-1', 'block-2'],
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findAllByText('Seer is working on this cell…')).toHaveLength(2);
+    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Ask Seer about Synthesis'})).toBeDisabled();
+  });
+
   it('keeps the refinement composer expanded while editing', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
