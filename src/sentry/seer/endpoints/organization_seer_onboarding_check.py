@@ -29,6 +29,9 @@ def has_supported_scm_integration(organization: Organization) -> bool:
     if features.has("organizations:seer-gitlab-support", organization):
         providers.append(IntegrationProviderSlug.GITLAB.value)
 
+    if features.has("organizations:seer-cursor-origin-support", organization):
+        providers.append(IntegrationProviderSlug.CURSOR_ORIGIN.value)
+
     organization_integrations = integration_service.get_organization_integrations(
         organization_id=organization.id,
         providers=providers,
