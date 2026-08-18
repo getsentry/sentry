@@ -430,16 +430,18 @@ describe('CommandPalette', () => {
                   onAction={onAction}
                   onMultiSelect={onMultiSelect}
                 >
-                  <CMDKAction
-                    display={{label: 'Environment'}}
-                    onAction={() => {}}
-                    onReorder={onReorder}
-                  />
-                  <CMDKAction
-                    display={{label: 'Project'}}
-                    onAction={() => {}}
-                    onReorder={onReorder}
-                  />
+                  <CMDKAction display={{label: 'Order by'}}>
+                    <CMDKAction
+                      display={{label: 'Environment'}}
+                      onAction={() => {}}
+                      onReorder={onReorder}
+                    />
+                    <CMDKAction
+                      display={{label: 'Project'}}
+                      onAction={() => {}}
+                      onReorder={onReorder}
+                    />
+                  </CMDKAction>
                 </CMDKAction>
               </CMDKAction>
             </CMDKAction>
@@ -456,6 +458,7 @@ describe('CommandPalette', () => {
 
     await userEvent.keyboard('{Enter}');
     expect(onAction).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Order by')).toBeInTheDocument();
     expect(await screen.findByRole('option', {name: 'Environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Project'})).toBeInTheDocument();
 

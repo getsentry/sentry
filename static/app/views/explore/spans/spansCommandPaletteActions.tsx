@@ -357,9 +357,6 @@ function GroupByActions({
       {options.map(option => {
         const isSelected = groupBys.includes(option.value);
         const selectedGroupBys = groupBys.filter(Boolean);
-        const orderableGroupBys = isSelected
-          ? selectedGroupBys
-          : [...selectedGroupBys, option.value];
 
         return (
           <CMDKAction
@@ -380,11 +377,7 @@ function GroupByActions({
             }}
             isSelected={isSelected}
             keywords={[option.value]}
-            onAction={() => {
-              if (!isSelected) {
-                setGroupBys([...groupBys.filter(Boolean), option.value]);
-              }
-            }}
+            onAction={() => {}}
             onMultiSelect={() => {
               setGroupBys(
                 isSelected
@@ -393,36 +386,41 @@ function GroupByActions({
               );
             }}
           >
-            {orderableGroupBys.map((selectedGroupBy, selectedIndex) => {
-              const selectedOption = options.find(
-                candidate => candidate.value === selectedGroupBy
-              );
+            {selectedGroupBys.length > 1 ? (
+              <CMDKAction display={{label: t('Order by')}}>
+                {selectedGroupBys.map((selectedGroupBy, selectedIndex) => {
+                  const selectedOption = options.find(
+                    candidate => candidate.value === selectedGroupBy
+                  );
 
-              return (
-                <CMDKAction
-                  key={selectedGroupBy}
-                  display={{
-                    label: selectedOption?.textValue ?? selectedGroupBy,
-                  }}
-                  order={selectedIndex}
-                  onAction={() => {}}
-                  onReorder={direction => {
-                    const nextIndex =
-                      direction === 'up' ? selectedIndex - 1 : selectedIndex + 1;
-                    if (nextIndex < 0 || nextIndex >= orderableGroupBys.length) {
-                      return;
-                    }
+                  return (
+                    <CMDKAction
+                      key={selectedGroupBy}
+                      display={{
+                        label: selectedOption?.textValue ?? selectedGroupBy,
+                      }}
+                      order={selectedIndex}
+                      onAction={() => {}}
+                      onReorder={direction => {
+                        const nextIndex =
+                          direction === 'up' ? selectedIndex - 1 : selectedIndex + 1;
+                        if (nextIndex < 0 || nextIndex >= selectedGroupBys.length) {
+                          return;
+                        }
 
-                    const reorderedGroupBys = [...orderableGroupBys];
-                    [reorderedGroupBys[selectedIndex], reorderedGroupBys[nextIndex]] = [
-                      reorderedGroupBys[nextIndex]!,
-                      reorderedGroupBys[selectedIndex]!,
-                    ];
-                    setGroupBys(reorderedGroupBys);
-                  }}
-                />
-              );
-            })}
+                        const reorderedGroupBys = [...selectedGroupBys];
+                        [reorderedGroupBys[selectedIndex], reorderedGroupBys[nextIndex]] =
+                          [
+                            reorderedGroupBys[nextIndex]!,
+                            reorderedGroupBys[selectedIndex]!,
+                          ];
+                        setGroupBys(reorderedGroupBys);
+                      }}
+                    />
+                  );
+                })}
+              </CMDKAction>
+            ) : null}
           </CMDKAction>
         );
       })}
