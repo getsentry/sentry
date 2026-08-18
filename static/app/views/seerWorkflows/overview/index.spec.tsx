@@ -276,8 +276,32 @@ describe('AutofixOverview', () => {
 
     // The root-cause-only run has no plan, so only the solution card carries
     // the plan label.
-    expect(screen.getAllByText('Root cause')).toHaveLength(2);
+    expect(screen.getAllByText('Root Cause')).toHaveLength(2);
     expect(screen.getAllByText('Plan')).toHaveLength(1);
+  });
+
+  it('renders inline code in root cause and plan summaries', async () => {
+    mockOverview({
+      base: {
+        autofix_solution: [
+          {
+            ...solutionRun,
+            rootCause: {
+              oneLineDescription: 'The request is passed to `dateutil.parse()`.',
+            },
+            proposedFix: {
+              oneLineSummary: 'Wrap `parse_date()` in a try/catch.',
+            },
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await screen.findByRole('link', {name: 'KeyError in proxy handler'});
+    expect(screen.getByText('dateutil.parse()').tagName).toBe('CODE');
+    expect(screen.getByText('parse_date()').tagName).toBe('CODE');
   });
 
   it('scopes the request to the selected project', async () => {
