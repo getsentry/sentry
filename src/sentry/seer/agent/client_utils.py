@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
@@ -60,6 +60,10 @@ agent_connection_pool = connection_from_url(
 class AgentStateRequest(TypedDict):
     run_id: int
     organization_id: int
+
+
+class RunsByIdsRequest(TypedDict):
+    run_ids: list[int]
 
 
 class AgentChatRequest(TypedDict):
@@ -148,6 +152,19 @@ def make_agent_state_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        viewer_context=viewer_context,
+    )
+
+
+def make_runs_by_ids_request(
+    body: RunsByIdsRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or agent_connection_pool,
+        "/v1/automation/explorer/runs/by-ids",
+        body=orjson.dumps(body),
         viewer_context=viewer_context,
     )
 
@@ -500,6 +517,33 @@ def fetch_run_status(
         raise ValueError(f"No session found for run_id {run_id}")
 
     return SeerRunState(**session)
+
+
+def fetch_run_statuses(
+    run_state_ids: Sequence[int],
+    organization: Organization,
+    viewer_context: SeerViewerContext | None = None,
+) -> dict[int, str]:
+    """Batch-fetch live Explorer run statuses. Best-effort: returns {} on failure."""
+    if not run_state_ids:
+        return {}
+    try:
+        response = make_runs_by_ids_request(
+            {"run_ids": list(run_state_ids)},
+            viewer_context=viewer_context or SeerViewerContext(organization_id=organization.id),
+        )
+        if response.status >= 400:
+            logger.warning("seer.run_statuses.error", extra={"status": response.status})
+            return {}
+        data = response.json()
+        return {
+            int(run_id): run["status"]
+            for run_id, run in data.get("data", {}).items()
+            if run.get("status") is not None
+        }
+    except Exception:
+        logger.warning("seer.run_statuses.request_failed", exc_info=True)
+        return {}
 
 
 def poll_until_done(
