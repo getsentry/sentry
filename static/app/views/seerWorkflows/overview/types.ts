@@ -184,7 +184,13 @@ export interface OverviewRunIssue {
   owners: SuggestedOwner[];
   priority: PriorityLevel | null;
   priorityLockedAt: string | null;
-  project: {id: string; slug: string; platform?: PlatformKey};
+  project: {
+    id: string;
+    slug: string;
+    hasNonGithubRepo?: boolean;
+    hasReposConnected?: boolean;
+    platform?: PlatformKey;
+  };
   substatus: string | null;
   userCount: number | null;
 }

@@ -17,6 +17,11 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
+interface RepoEligibility {
+  hasNonGithubRepo: boolean;
+  hasReposConnected: boolean;
+}
+
 interface UseCodingAgentsOptions {
   autofix: Pick<ReturnType<typeof useExplorerAutofix>, 'triggerCodingAgentHandoff'>;
   group: {id: string; project: AvatarProject};
@@ -25,6 +30,7 @@ interface UseCodingAgentsOptions {
   step: 'root_cause' | 'solution' | 'code_changes';
   enabled?: boolean;
   onHandoff?: () => void;
+  repoEligibility?: RepoEligibility;
 }
 
 export function useCodingAgents({
@@ -35,33 +41,42 @@ export function useCodingAgents({
   referrer,
   enabled = true,
   onHandoff,
+  repoEligibility,
 }: UseCodingAgentsOptions) {
   const organization = useOrganization();
   const {triggerCodingAgentHandoff} = autofix;
 
-  const {data: codingAgentResponse} = useQuery({
+  const {data: codingAgentResponse, isLoading: isAgentsLoading} = useQuery({
     ...organizationIntegrationsCodingAgents(organization),
     enabled,
   });
 
+  const reposEnabled = enabled && repoEligibility === undefined;
   const reposQuery = useInfiniteQuery({
     ...getSeerProjectReposInfiniteQueryOptions({organization, project: group.project}),
-    enabled,
+    enabled: reposEnabled,
     select: ({pages}) => pages.flatMap(page => page.json),
   });
-  useFetchAllPages({result: reposQuery, enabled});
+  useFetchAllPages({result: reposQuery, enabled: reposEnabled});
   const repos = reposQuery.data ?? [];
 
   // Wait until pagination is fully drained so the gate is computed over every repo.
   const isReposLoading =
-    reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
-  const hasNoRepos = repos.length === 0;
-  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
+    repoEligibility === undefined &&
+    (reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage);
+  const hasNoRepos = repoEligibility
+    ? !repoEligibility.hasReposConnected
+    : repos.length === 0;
+  const hasNonGithubRepo = repoEligibility
+    ? repoEligibility.hasNonGithubRepo
+    : repos.some(repo => !isGitHubProvider(repo.provider));
 
   const codingAgentIntegrations = useMemo(
     () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
     [codingAgentResponse?.integrations, isReposLoading]
   );
+
+  const isLoading = enabled && (isAgentsLoading || isReposLoading);
 
   const codingAgentDisabledReason = hasNoRepos
     ? t('Connect a GitHub repository to hand off to a coding agent.')
@@ -91,5 +106,10 @@ export function useCodingAgents({
     [triggerCodingAgentHandoff, organization, runId, group, step, referrer, onHandoff]
   );
 
-  return {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff};
+  return {
+    codingAgentIntegrations,
+    codingAgentDisabledReason,
+    handleCodingAgentHandoff,
+    isLoading,
+  };
 }
