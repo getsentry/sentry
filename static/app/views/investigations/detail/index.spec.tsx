@@ -28,6 +28,8 @@ const organization = OrganizationFixture({
   openMembership: true,
 });
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const titleGenerationUrl =
+  '/organizations/org-slug/investigations/investigation-1/title-generation/';
 
 function InvestigationDetailFixture(
   overrides: Partial<InvestigationDetail> = {}
@@ -43,6 +45,8 @@ function InvestigationDetailFixture(
     version: 1,
     blockCount: 2,
     isFavorited: false,
+    summary: null,
+    summaryDescription: null,
     blocks: [
       {
         id: 'block-1',
@@ -142,6 +146,62 @@ describe('Investigation detail', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it('renders partial text while an agent-written text cell is running', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks[0] = {
+      ...investigation.blocks[0]!,
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'running',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: 'Errors are concentrated in checkout.',
+        error: null,
+      },
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByText('Errors are concentrated in checkout.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders the streamed investigation title preview', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Checkout error rate spike'},
+    });
+
+    renderView();
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+        'Checkout error rate spike'
+      )
+    );
+  });
+
   it('shows running and dependency-waiting states for auto-run cells', async () => {
     const investigation = InvestigationDetailFixture({
       template: {key: 'breached_metric', version: 1},
@@ -185,6 +245,18 @@ describe('Investigation detail', () => {
       },
     ];
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
 
     renderView();
 
@@ -598,7 +670,9 @@ describe('Investigation detail', () => {
       )
     );
     expect(
-      await screen.findByRole('button', {name: 'Ask Seer about Working theory'})
+      await screen.findByRole('button', {
+        name: 'Ask Seer about Working theory',
+      })
     ).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
 

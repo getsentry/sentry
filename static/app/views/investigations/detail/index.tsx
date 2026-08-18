@@ -31,6 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -116,10 +117,56 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const {copy} = useCopyToClipboard();
   const [draftTitle, setDraftTitle] = useState(investigation.title);
   const persistedTitle = useRef(investigation.title);
+  const titleEditedByUser = useRef(false);
+  const titleGenerationSettled = useRef(false);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+
+  useEffect(() => {
+    const generatedTitle = titleGenerationQuery.data?.preview;
+    if (!generatedTitle || titleEditedByUser.current) {
+      return;
+    }
+    setDraftTitle(generatedTitle);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: generatedTitle})
+    );
+    if (titleGenerationQuery.data?.status === 'completed') {
+      persistedTitle.current = generatedTitle;
+    }
+  }, [
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.preview,
+    titleGenerationQuery.data?.status,
+  ]);
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      titleGenerationSettled.current = false;
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      !titleGenerationSettled.current
+    ) {
+      titleGenerationSettled.current = true;
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+    }
+  }, [detailOptions.queryKey, queryClient, titleGenerationQuery.data?.status]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -178,6 +225,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   function handleTitleChange(nextTitle: string) {
+    titleEditedByUser.current = true;
     setDraftTitle(nextTitle);
     updateInvestigationCache(
       queryClient,

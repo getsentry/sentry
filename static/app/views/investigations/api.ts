@@ -14,6 +14,7 @@ import type {
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
+  InvestigationTitleGeneration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -73,6 +74,22 @@ export function investigationExecutionDetailQueryOptions({
         investigationId,
         blockId,
         executionId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
+export function investigationTitleGenerationQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationTitleGeneration>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/title-generation/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
       },
       staleTime: 0,
     }
