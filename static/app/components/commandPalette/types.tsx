@@ -46,6 +46,8 @@ interface CommandPaletteActionLink extends Action {
 
 interface CommandPaletteActionCallback extends Action {
   onAction: () => void;
+  /** Whether this action is currently included in its multi-select value. */
+  isSelected?: boolean;
   /** Callback used for Shift+Enter while remaining in a multi-select picker. */
   onMultiSelect?: () => void;
 }

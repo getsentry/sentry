@@ -12,6 +12,7 @@ import {animate, AnimatePresence, motion} from 'framer-motion';
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
@@ -315,6 +316,16 @@ export function CommandPalette({
     }
   }, [treeState.selectionManager]);
 
+  const currentActionKey = state.action?.value.key ?? null;
+  const previousActionKeyRef = useRef(currentActionKey);
+  useLayoutEffect(() => {
+    if (previousActionKeyRef.current === currentActionKey) {
+      return;
+    }
+    previousActionKeyRef.current = currentActionKey;
+    resetResultsNavigation();
+  }, [currentActionKey, resetResultsNavigation]);
+
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
       return;
@@ -394,7 +405,6 @@ export function CommandPalette({
       if (e.key === 'Backspace' && state.query.length === 0) {
         if (state.action) {
           animatePop();
-          resetResultsNavigation();
           dispatch({type: 'pop action'});
           e.preventDefault();
           return;
@@ -412,7 +422,6 @@ export function CommandPalette({
         }
         if (state.action) {
           animatePop();
-          resetResultsNavigation();
           dispatch({type: 'pop action'});
           e.preventDefault();
           e.stopPropagation();
@@ -446,7 +455,6 @@ export function CommandPalette({
 
       if (action.children.length > 0) {
         animatePress();
-        resetResultsNavigation();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -465,7 +473,6 @@ export function CommandPalette({
 
       if ('prompt' in action && action.prompt) {
         animatePress();
-        resetResultsNavigation();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -479,11 +486,11 @@ export function CommandPalette({
 
       if ('onAction' in action && action.chainedActionAnchor) {
         if (action.onMultiSelect && options?.modifierKeys?.shiftKey) {
+          resetResultsNavigation();
           action.onMultiSelect();
           dispatch({type: 'set query', query: ''});
         } else {
           action.onAction();
-          resetResultsNavigation();
           dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
         }
         return;
@@ -589,7 +596,6 @@ export function CommandPalette({
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
                               animatePop();
-                              resetResultsNavigation();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
@@ -1218,6 +1224,8 @@ function makeMenuItemFromAction(
   ) : (
     action.display.label
   );
+  const isMultiSelectAction =
+    'onMultiSelect' in action && action.onMultiSelect !== undefined;
 
   return {
     key: action.key,
@@ -1237,7 +1245,11 @@ function makeMenuItemFromAction(
       label
     ),
     details: action.display.details,
-    leadingItems: action.display.icon ? (
+    leadingItems: isMultiSelectAction ? (
+      <Flex height="100%" align="center" justify="center" width="16px">
+        <Checkbox size="sm" checked={action.isSelected} readOnly />
+      </Flex>
+    ) : action.display.icon ? (
       <Flex
         height="100%"
         align="start"

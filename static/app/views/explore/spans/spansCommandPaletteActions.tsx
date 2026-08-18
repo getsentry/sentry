@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {IconCheckmark, IconSpan} from 'sentry/icons';
+import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -154,7 +154,6 @@ function GroupByActions({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
-              icon: isSelected ? <IconCheckmark /> : undefined,
               labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
@@ -165,6 +164,7 @@ function GroupByActions({
                     })
                   : option.trailingItems,
             }}
+            isSelected={isSelected}
             keywords={[option.value]}
             onAction={() => {
               if (!isSelected) {
@@ -373,24 +373,38 @@ function QueryClauseActions() {
 
   return (
     <CMDKChainedActionScope>
-      <CMDKTerminalActionScope>
-        <CMDKAction
-          display={{label: t('Apply Changes')}}
-          keywords={['apply', 'save', 'changes']}
-          onAction={() => {
-            setQueryParams({
-              aggregateFields: [
-                ...draftGroupBys.map(groupBy => ({groupBy})),
-                ...draftVisualizes.map(visualize => visualize.serialize()),
-              ],
-              aggregateSortBys: draftAggregateSortBys,
-              mode: draftMode,
-              query: draftQuery,
-              sortBys: draftSampleSortBys,
-            });
-          }}
-        />
-      </CMDKTerminalActionScope>
+      <CMDKAction display={{label: t('Commands')}}>
+        <CMDKTerminalActionScope>
+          <CMDKAction
+            display={{label: t('Apply Changes')}}
+            keywords={['apply', 'save', 'changes']}
+            onAction={() => {
+              setQueryParams({
+                aggregateFields: [
+                  ...draftGroupBys.map(groupBy => ({groupBy})),
+                  ...draftVisualizes.map(visualize => visualize.serialize()),
+                ],
+                aggregateSortBys: draftAggregateSortBys,
+                mode: draftMode,
+                query: draftQuery,
+                sortBys: draftSampleSortBys,
+              });
+            }}
+          />
+        </CMDKTerminalActionScope>
+        {draftVisualizes.length < MAX_VISUALIZES && (
+          <CMDKAction
+            display={{label: t('Add Series')}}
+            keywords={['add', 'chart', 'series', 'source', 'visualization']}
+            onAction={() =>
+              setDraftVisualizes(currentVisualizes => [
+                ...currentVisualizes,
+                new VisualizeFunction(DEFAULT_VISUALIZATION),
+              ])
+            }
+          />
+        )}
+      </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
         <CMDKAction
           display={{
@@ -419,46 +433,32 @@ function QueryClauseActions() {
           />
         </CMDKAction>
       </CMDKAction>
-      <CMDKAction display={{label: t('Series')}}>
-        {draftVisualizes.length < MAX_VISUALIZES && (
-          <CMDKAction
-            display={{label: t('Add Series')}}
-            keywords={['add', 'chart', 'series', 'source', 'visualization']}
-            onAction={() =>
-              setDraftVisualizes(currentVisualizes => [
-                ...currentVisualizes,
-                new VisualizeFunction(DEFAULT_VISUALIZATION),
-              ])
-            }
+      {draftVisualizes.map((visualize, index) => (
+        <CMDKAction
+          key={`series-details-${index}`}
+          id={`spans-series-details-${index}`}
+          display={{label: t('Series %s', String.fromCharCode(65 + index))}}
+        >
+          <SeriesActions
+            visualize={visualize}
+            onChange={nextVisualize => updateVisualize(index, nextVisualize)}
+            seriesId={`spans-series-${index}`}
           />
-        )}
-        {draftVisualizes.map((visualize, index) => (
-          <CMDKAction
-            key={`series-details-${index}`}
-            id={`spans-series-details-${index}`}
-            display={{label: t('Series %s', String.fromCharCode(65 + index))}}
-          >
-            <SeriesActions
-              visualize={visualize}
-              onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-              seriesId={`spans-series-${index}`}
-            />
-            {draftVisualizes.length > 1 && (
-              <CMDKAction
-                display={{label: t('Delete Series')}}
-                keywords={['delete', 'remove', 'series']}
-                onAction={() =>
-                  setDraftVisualizes(currentVisualizes =>
-                    currentVisualizes.filter(
-                      (_, visualizeIndex) => visualizeIndex !== index
-                    )
+          {draftVisualizes.length > 1 && (
+            <CMDKAction
+              display={{label: t('Delete Series')}}
+              keywords={['delete', 'remove', 'series']}
+              onAction={() =>
+                setDraftVisualizes(currentVisualizes =>
+                  currentVisualizes.filter(
+                    (_, visualizeIndex) => visualizeIndex !== index
                   )
-                }
-              />
-            )}
-          </CMDKAction>
-        ))}
-      </CMDKAction>
+                )
+              }
+            />
+          )}
+        </CMDKAction>
+      ))}
     </CMDKChainedActionScope>
   );
 }

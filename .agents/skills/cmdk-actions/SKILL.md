@@ -70,6 +70,8 @@ interface CMDKActionProps {
 
   // 2. Callback
   onAction?: () => void;
+  // Whether a multi-select action's checkbox is checked.
+  isSelected?: boolean;
 
   // 3. Group/resource — requires children or resource to render anything.
   //    Without at least one of those the component returns null.
@@ -126,10 +128,14 @@ separate boolean flag.
 ```tsx
 <CMDKAction
   display={{label: environment}}
+  isSelected={selectedEnvironments.includes(environment)}
   onAction={() => commitEnvironment(environment)}
   onMultiSelect={() => toggleEnvironment(environment)}
 />
 ```
+
+Actions with `onMultiSelect` automatically render a checkbox. Pass `isSelected`
+to control its checked state; do not add checkbox or checkmark icons manually.
 
 ### Chained workflows
 

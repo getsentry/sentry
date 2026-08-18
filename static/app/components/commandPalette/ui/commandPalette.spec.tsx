@@ -351,10 +351,15 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Group by'}}>
               <CMDKAction
                 display={{label: 'Environment'}}
+                isSelected
                 onAction={onAction}
                 onMultiSelect={onMultiSelect}
               />
-              <CMDKAction display={{label: 'Release'}} onAction={() => {}} />
+              <CMDKAction
+                display={{label: 'Release'}}
+                onAction={() => {}}
+                onMultiSelect={() => {}}
+              />
             </CMDKAction>
           </CMDKChainedActionScope>
         </CMDKAction>
@@ -363,9 +368,18 @@ describe('CommandPalette', () => {
 
     expect(await screen.findByText('Commands')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+    const checkboxes = screen.getAllByRole('checkbox', {hidden: true});
+    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
+    const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+    expect(scrollContainer).toBeInTheDocument();
+    scrollContainer!.scrollTop = 200;
+
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(scrollContainer).toHaveProperty('scrollTop', 0);
     expect(closeSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('option', {name: 'Environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Release'})).toBeInTheDocument();
@@ -1616,6 +1630,55 @@ describe('CommandPalette', () => {
   });
 
   describe('slot rendering', () => {
+    it('shows query controls and every series field in the page overview', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot name="page">
+            <CMDKAction display={{label: 'Traces'}}>
+              <CMDKAction display={{label: 'Commands'}}>
+                <CMDKAction display={{label: 'Apply Changes'}} onAction={jest.fn()} />
+                <CMDKAction display={{label: 'Add Series'}} onAction={jest.fn()} />
+              </CMDKAction>
+              <CMDKAction display={{label: 'Query'}}>
+                <CMDKAction display={{label: 'Group by'}} onAction={jest.fn()} />
+                <CMDKAction display={{label: 'Sort by'}} onAction={jest.fn()} />
+              </CMDKAction>
+              <CMDKAction display={{label: 'Series A'}}>
+                <CMDKAction display={{label: 'Source'}} onAction={jest.fn()} />
+                <CMDKAction
+                  display={{label: 'Aggregate function'}}
+                  onAction={jest.fn()}
+                />
+              </CMDKAction>
+            </CMDKAction>
+          </CommandPaletteSlot>
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      const commandsSection = await screen.findByText('Commands');
+      const querySection = screen.getByText('Query');
+      const seriesSection = screen.getByText('Series A');
+
+      expect(
+        commandsSection.compareDocumentPosition(querySection) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(
+        querySection.compareDocumentPosition(seriesSection) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(screen.getByRole('option', {name: 'Apply Changes'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Add Series'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Sort by'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Source'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: 'Aggregate function'})
+      ).toBeInTheDocument();
+    });
+
     it('task slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>

@@ -51,6 +51,7 @@ interface CMDKActionDataTo extends CMDKActionDataBase {
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
   onAction: () => void;
   chainedActionAnchor?: CMDKChainedActionAnchor;
+  isSelected?: boolean;
   onMultiSelect?: () => void;
 }
 
@@ -93,6 +94,8 @@ interface CMDKActionProps<TData = unknown> {
    * Example: id="cmdk:supplementary:help"
    */
   id?: string;
+  /** Whether this action is currently included in its multi-select value. */
+  isSelected?: boolean;
   keywords?: string[];
   /**
    * Maximum number of results to show. For async resources the default is 4;
@@ -168,6 +171,7 @@ export function CMDKAction<TData = unknown>({
   keywords,
   children,
   id,
+  isSelected,
   to,
   onAction,
   onMultiSelect,
@@ -202,6 +206,7 @@ export function CMDKAction<TData = unknown>({
               display,
               keywords,
               ref,
+              isSelected,
               onAction,
               onMultiSelect,
               limit: effectiveLimit,
@@ -221,6 +226,7 @@ export function CMDKAction<TData = unknown>({
       display,
       effectiveLimit,
       keywords,
+      isSelected,
       onAction,
       onMultiSelect,
       prompt,
