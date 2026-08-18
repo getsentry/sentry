@@ -1243,6 +1243,33 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         # Summary should NOT be in payload when cache is empty
         assert "summary" not in payload
 
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_returns_none_when_seer_returns_404(self, mock_generate):
+        """Test that 404 from Seer (no summary in Seer DB) returns None without raising."""
+        mock_generate.return_value = None
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result is None
+        # Group fixability score should not be updated
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score is None
+        mock_generate.assert_called_once()
+
+    @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
+    def test_seer_404_returns_none_end_to_end(self, mock_request):
+        """Test end-to-end that a 404 from Seer's fixability endpoint returns None."""
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_response.data = b""
+        mock_request.return_value = mock_response
+
+        result = get_and_update_group_fixability_score(self.group, force_generate=True)
+
+        assert result is None
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score is None
+
 
 @with_feature("organizations:gen-ai-features")
 class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
@@ -1332,6 +1359,13 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
         assert is_group_eligible_for_automation(self.group) is False
 
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_fixability_score_is_none(self, mock_fixability):
+        """Test that None fixability score (e.g. Seer 404) makes group ineligible."""
+        mock_fixability.return_value = None
+
+        assert is_group_eligible_for_automation(self.group) is False
+
 
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
 @with_feature({"organizations:gen-ai-features": True})
@@ -1360,3 +1394,12 @@ class TestGetAutomationStoppingPoint(TestCase):
         self.group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_none_when_fixability_score_is_none(
+        self, mock_fixability, mock_seat_based_tier
+    ):
+        """Test that None fixability score (e.g. Seer 404) returns None stopping point."""
+        mock_fixability.return_value = None
+
+        assert get_automation_stopping_point(self.group) is None
