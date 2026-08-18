@@ -501,7 +501,13 @@ export function OverviewCard({
             <Grid columns="max-content minmax(0, 1fr)" gap="sm">
               <LevelBar level={run.issue.level ?? undefined} />
               <Stack minWidth="0" gap="xs">
-                <Text bold display="block" textWrap="pretty" size="lg">
+                <Text
+                  bold
+                  display="block"
+                  textWrap="pretty"
+                  wordBreak="break-word"
+                  size="lg"
+                >
                   <TitleLink to={issueUrl}>{run.title}</TitleLink>
                 </Text>
                 <Flex wrap="wrap" gap="md" align="center">
