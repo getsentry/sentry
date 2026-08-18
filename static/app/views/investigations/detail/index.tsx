@@ -31,6 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   investigationDetailQueryOptions,
+  investigationListQueryOptions,
   investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
@@ -39,6 +40,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {InvestigationCell} from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
@@ -160,9 +162,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       !titleGenerationSettled.current
     ) {
       titleGenerationSettled.current = true;
-      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      void Promise.all([
+        queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
+        queryClient.invalidateQueries({
+          queryKey: investigationListQueryOptions({
+            organizationSlug: organization.slug,
+          }).queryKey,
+        }),
+      ]);
     }
-  }, [detailOptions.queryKey, queryClient, titleGenerationQuery.data?.status]);
+  }, [
+    detailOptions.queryKey,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.status,
+  ]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -342,6 +356,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+
               {summaryBlock ? (
                 <InvestigationCell
                   block={summaryBlock}
@@ -509,6 +528,10 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 const InvestigationCanvas = styled(Stack)`
   width: min(100%, 884px);
   margin: 0 auto;
+`;
+
+const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
