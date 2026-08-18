@@ -143,6 +143,7 @@ export interface OverviewPullRequestFile {
 
 export interface OverviewPullRequest {
   checksStatus: PullRequestChecksStatus | null;
+  failedChecks: string[];
   files: OverviewPullRequestFile[];
   id: string;
   number: number;
