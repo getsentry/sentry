@@ -89,11 +89,11 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         accessible_project_ids=project_ids,
                         title=values.get("title"),
                     )
+                    schedule_eligible_auto_run_blocks(
+                        investigation_id=investigation.id,
+                        user_id=user_id(request),
+                    )
                     if created:
-                        schedule_eligible_auto_run_blocks(
-                            investigation_id=investigation.id,
-                            user_id=user_id(request),
-                        )
                         investigation.refresh_from_db()
             else:
                 created = True

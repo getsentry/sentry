@@ -104,6 +104,57 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.input_snapshot["blockVersion"] == target.version
         assert "datasetHint" not in execution.input_snapshot
 
+    def test_query_refinement_snapshots_its_previous_chart(self) -> None:
+        block = self.create_block(title="Error volume")
+        previous = self.create_execution(
+            block,
+            result={
+                "schemaVersion": 1,
+                "tableMarkdown": "| day | errors |\n| --- | ---: |\n| Aug 11 | 17 |",
+                "chart": {
+                    "title": "Issue volume",
+                    "subtitle": "Last 7 days | 17 total errors",
+                    "visualization": "line",
+                    "x_axis": "time",
+                    "y_axis_unit": "number",
+                    "series": [
+                        {
+                            "name": "Errors",
+                            "data": [{"x": "2026-08-11T00:00:00+00:00", "y": 17}],
+                        }
+                    ],
+                },
+                "preferredView": "chart",
+                "isEmpty": False,
+                "chartUnavailableReason": None,
+                "queryLinks": [],
+            },
+        )
+        previous.data_projects.add(self.project)
+        empty_refinement = self.create_execution(
+            block,
+            result={
+                "schemaVersion": 1,
+                "tableMarkdown": "| Note |\n| --- |\n| No prior chart data found |",
+                "chart": None,
+                "preferredView": "table",
+                "isEmpty": True,
+                "chartUnavailableReason": "No prior chart data found.",
+                "queryLinks": [],
+            },
+        )
+        block.result_execution = empty_refinement
+        block.save(update_fields=["result_execution"])
+
+        execution, created = self.run_block(block)
+
+        assert created
+        current_context = execution.input_snapshot["context"][0]
+        assert current_context["currentBlock"] is True
+        assert current_context["visibleExecutionId"] == str(previous.id)
+        assert current_context["result"]["chart"]["visualization"] == "line"
+        assert execution.input_snapshot["contextDataProjectIds"] == [self.project.id]
+
     def test_rejects_invalid_query_dataset_hint(self) -> None:
         block = self.create_block(config={"datasetHint": "invalid"})
 
