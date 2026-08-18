@@ -57,6 +57,15 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
+    @patch("sentry.tasks.seer.autofix.logger")
+    def test_missing_organization_returns_without_retry(self, mock_logger: MagicMock) -> None:
+        configure_seer_for_existing_org(organization_id=0)
+
+        mock_logger.warning.assert_called_once_with(
+            "configure_seer_for_existing_org.organization_not_found",
+            extra={"organization_id": 0},
+        )
+
     def test_configures_org_and_project_settings(self) -> None:
         """Test that org and project settings are configured correctly."""
         project1 = self.create_project(organization=self.organization)

@@ -205,7 +205,14 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     - Org-level: enable_seer_coding
     """
 
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "configure_seer_for_existing_org.organization_not_found",
+            extra={"organization_id": organization_id},
+        )
+        return
 
     sentry_sdk.set_tag("organization_id", organization.id)
     sentry_sdk.set_attribute("organization_id", organization.id)
