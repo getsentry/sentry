@@ -574,9 +574,9 @@ interface UseExplorerAutofixOptions {
    */
   codingAgentAnalyticsSource?: 'explorer' | 'overview';
   /**
-   * Whether to enable the hook and make API calls.
-   * When false, the hook returns null state and no-op functions.
-   * Defaults to true.
+   * Whether to fetch and poll run state. The action callbacks (startStep,
+   * createPR, triggerCodingAgentHandoff) stay live even when false — the
+   * Autofix overview relies on dispatching actions without polling.
    */
   enabled?: boolean;
   /**

@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -24,6 +25,7 @@ import {PluginIcon} from 'sentry/icons/pluginIcon';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -36,13 +38,14 @@ interface ActionConfig {
   action: 'create_plan' | 'generate_code' | 'draft_pr';
   busyLabel: string;
   description: string;
-  errorFallback: string;
   handoffStep: 'root_cause' | 'solution' | 'code_changes';
   label: string;
   trigger: (
-    autofix: ReturnType<typeof useExplorerAutofix>,
+    autofix: Pick<ReturnType<typeof useExplorerAutofix>, 'startStep' | 'createPR'>,
     runId: string
   ) => Promise<unknown>;
+  // Absent when the trigger surfaces its own error toast.
+  errorFallback?: string;
 }
 
 const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
@@ -71,8 +74,6 @@ const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
     action: 'draft_pr',
     busyLabel: t('Creating PR…'),
     description: t('Autofix wrote a diff. Review it and open a pull request.'),
-    // createPR surfaces its own error toast.
-    errorFallback: '',
     handoffStep: 'code_changes',
     label: t('Draft PR'),
     trigger: (autofix, runId) => autofix.createPR(runId),
@@ -89,8 +90,12 @@ export function OverviewCardAction({
   sectionKey: ActionableSectionKey;
 }) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const config = ACTIONS[sectionKey];
   const [dispatched, setDispatched] = useState(false);
+  // Agent options are only needed once the dropdown opens; deferring the
+  // fetches avoids draining per-project repo pagination for every card.
+  const [menuOpened, setMenuOpened] = useState(false);
 
   const autofix = useExplorerAutofix(
     {id: run.groupId, shortId: run.shortId},
@@ -109,6 +114,7 @@ export function OverviewCardAction({
       runId: run.seerRunId,
       step: config.handoffStep,
       referrer: 'autofix-overview',
+      enabled: menuOpened,
     });
 
   const menuItems = useMemo<MenuItemProps[]>(() => {
@@ -180,6 +186,15 @@ export function OverviewCardAction({
     });
     try {
       await config.trigger(autofix, run.seerRunId);
+      // Mark the overview stale so mounted lists refetch and can re-bucket the
+      // card once the backend reflects the new milestone.
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/autofix-overview/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
+      });
     } catch (error: any) {
       if (config.errorFallback) {
         addErrorMessage(error?.responseJSON?.detail ?? config.errorFallback);
@@ -213,6 +228,7 @@ export function OverviewCardAction({
         )}
         position="bottom-end"
         shouldCloseOnBlur={false}
+        onOpenChange={isOpen => isOpen && setMenuOpened(true)}
         menuFooter={
           <DropdownMenuFooter>
             <MenuComponents.CTALinkButton

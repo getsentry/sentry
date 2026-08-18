@@ -233,6 +233,24 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
+  it('refetches the overview after a card action is dispatched', async () => {
+    const {enrichedRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {run_id: 1, sentry_run_id: 'run-1'},
+    });
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create Plan'}));
+
+    expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
+    await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
+  });
+
   it('shows the empty state while keeping the query controls visible', async () => {
     mockOverview({base: {}});
 

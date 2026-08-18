@@ -261,6 +261,39 @@ describe('OverviewCardAction', () => {
     );
   });
 
+  it('defers coding agent fetches until the dropdown is opened', async () => {
+    const agentsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {
+        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
+      },
+    });
+    const reposRequest = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [{provider: 'github'}],
+    });
+
+    render(
+      <OverviewCardAction
+        run={runFixture()}
+        sectionKey="needs_investigation"
+        issueUrl={issueUrl}
+      />,
+      {organization}
+    );
+
+    expect(agentsRequest).not.toHaveBeenCalled();
+    expect(reposRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Send to Claude Agent'})
+    ).toBeInTheDocument();
+    expect(agentsRequest).toHaveBeenCalled();
+    expect(reposRequest).toHaveBeenCalled();
+  });
+
   it('disables agent handoff without a connected GitHub repo', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
