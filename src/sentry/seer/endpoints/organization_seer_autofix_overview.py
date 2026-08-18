@@ -471,7 +471,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         milestone_rows = (
             SeerRunMilestone.objects.filter(
                 seer_run__organization=organization,
-                seer_run__agent__source="autofix",
+                seer_run__agent__source__in=("autofix", "autofix_rca"),
                 seer_run__agent__group_id__isnull=False,
                 seer_run__agent__project_id__in=project_ids,
                 seer_run__last_triggered_at__range=(start, end),
