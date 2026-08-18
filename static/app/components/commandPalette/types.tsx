@@ -10,11 +10,15 @@ interface Action {
     details?: string;
     /** Icon to render for this action */
     icon?: ReactNode;
+    /** Content rendered immediately after the primary text */
+    labelSuffix?: ReactNode;
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
   /** Max results shown before a "See all" expansion item appears */
   limit?: number;
+  /** Allow Shift+Enter to run the action without leaving the current step */
+  multiSelect?: boolean;
 }
 
 type BaseCMDKQueryOptions<TData = unknown> = Omit<
@@ -44,6 +48,8 @@ interface CommandPaletteActionLink extends Action {
 
 interface CommandPaletteActionCallback extends Action {
   onAction: () => void;
+  /** Callback used for Shift+Enter while remaining in a multi-select picker. */
+  onMultiSelect?: () => void;
 }
 
 export type CommandPaletteAction =

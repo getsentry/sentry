@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
@@ -32,6 +32,7 @@ interface DisplayProps {
   label: string;
   details?: string;
   icon?: React.ReactNode;
+  labelSuffix?: React.ReactNode;
   trailingItem?: React.ReactNode;
 }
 
@@ -39,6 +40,7 @@ interface CMDKActionDataBase {
   display: DisplayProps;
   keywords?: string[];
   limit?: number;
+  multiSelect?: boolean;
   ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
 }
@@ -50,6 +52,7 @@ interface CMDKActionDataTo extends CMDKActionDataBase {
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
   onAction: () => void;
   chainedActionAnchor?: CMDKChainedActionAnchor;
+  onMultiSelect?: () => void;
 }
 
 interface CMDKActionDataResource<TData = unknown> extends CMDKActionDataBase {
@@ -85,6 +88,8 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /** Close the palette after this callback, even when it is inside a chained scope. */
+  closeOnAction?: boolean;
   /**
    * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
    * guarantee the section always sorts last in search results regardless of score.
@@ -97,7 +102,9 @@ interface CMDKActionProps<TData = unknown> {
    * for static children there is no limit unless this prop is set explicitly.
    */
   limit?: number;
+  multiSelect?: boolean;
   onAction?: () => void;
+  onMultiSelect?: () => void;
   prompt?: string;
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
   to?: LocationDescriptor;
@@ -156,12 +163,15 @@ export function CMDKAction<TData = unknown>({
   display,
   keywords,
   children,
+  closeOnAction,
   id,
   to,
   onAction,
+  onMultiSelect,
   prompt,
   resource,
   limit,
+  multiSelect,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
   const slotName = useCommandPaletteSlotName();
@@ -173,53 +183,82 @@ export function CMDKAction<TData = unknown>({
   const effectiveLimit =
     limit ?? (resource && typeof children === 'function' ? 4 : undefined);
 
-  const nodeData: CMDKActionData<TData> =
-    to === undefined
-      ? onAction === undefined
-        ? {
-            display,
-            keywords,
-            ref,
-            resource,
-            prompt,
-            limit: effectiveLimit,
-            slot: slotName ?? undefined,
-          }
+  const nodeData = useMemo<CMDKActionData<TData>>(
+    () =>
+      to === undefined
+        ? onAction === undefined
+          ? {
+              display,
+              keywords,
+              ref,
+              resource,
+              prompt,
+              limit: effectiveLimit,
+              multiSelect,
+              slot: slotName ?? undefined,
+            }
+          : {
+              display,
+              keywords,
+              ref,
+              onAction,
+              onMultiSelect,
+              limit: effectiveLimit,
+              multiSelect,
+              chainedActionAnchor: closeOnAction
+                ? undefined
+                : (chainedActionScope ?? undefined),
+              slot: slotName ?? undefined,
+            }
         : {
             display,
             keywords,
             ref,
-            onAction,
+            to,
             limit: effectiveLimit,
-            chainedActionAnchor: chainedActionScope ?? undefined,
+            multiSelect,
             slot: slotName ?? undefined,
-          }
-      : {
-          display,
-          keywords,
-          ref,
-          to,
-          limit: effectiveLimit,
-          slot: slotName ?? undefined,
-        };
+          },
+    [
+      chainedActionScope,
+      closeOnAction,
+      display,
+      effectiveLimit,
+      keywords,
+      multiSelect,
+      onAction,
+      onMultiSelect,
+      prompt,
+      ref,
+      resource,
+      slotName,
+      to,
+    ]
+  );
 
   const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query, action: navAction} = useCommandPaletteState();
-  const state = navAction?.value.key === key ? 'selected' : undefined;
+  let matchingNavAction = navAction;
+  while (matchingNavAction && matchingNavAction.value.key !== key) {
+    matchingNavAction = matchingNavAction.previous;
+  }
+  // Keep resource-backed ancestors mounted while navigating their descendants.
+  // Otherwise selecting a child unmounts the resource that registered that child.
+  const state = matchingNavAction ? 'selected' : undefined;
+  const resourceQuery =
+    navAction?.value.key === key ? query : matchingNavAction?.value.query;
+
+  const enclosingAction = useMemo(
+    () => ({key, label: display.label, parentKey, prompt}),
+    [display.label, key, parentKey, prompt]
+  );
 
   if (!children && !resource) {
     return null;
   }
 
-  const enclosingAction = {
-    key,
-    label: display.label,
-    parentKey,
-    prompt,
-  };
-
   if (resource) {
-    const resourceOptions = resource(query, {state});
+    const resourceOptions = resource(resourceQuery ?? '', {state});
 
     // perf: an explicitly disabled resource still registers its action, but does not
     // need a disabled QueryObserver which can be expensive if registered for e.g. thousands of attributes

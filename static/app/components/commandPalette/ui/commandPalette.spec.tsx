@@ -264,11 +264,11 @@ describe('CommandPalette', () => {
       await screen.findByRole('option', {name: 'Parent Group Action'})
     );
 
-    // Textbox changes placeholder to parent Label label
+    // Textbox keeps the generic command-search placeholder
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
-        'Search inside Parent Group Action'
+        'Search for commands'
       );
     });
 
@@ -332,8 +332,122 @@ describe('CommandPalette', () => {
     expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
-      'Search inside Query clauses'
+      'Search for commands'
     );
+  });
+
+  it('keeps a multi-select chained action picker open on shift-enter', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const onAction = jest.fn();
+    const onMultiSelect = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Commands'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction display={{label: 'Group by'}}>
+              <CMDKAction
+                display={{label: 'Environment'}}
+                multiSelect
+                onAction={onAction}
+                onMultiSelect={onMultiSelect}
+              />
+              <CMDKAction display={{label: 'Release'}} multiSelect onAction={() => {}} />
+            </CMDKAction>
+          </CMDKChainedActionScope>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Commands'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('option', {name: 'Environment'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Release'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole('option', {name: 'Group by'})).toBeInTheDocument();
+  });
+
+  it('shows filter attributes immediately under their section heading', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Add Filter by'}} prompt="Search for attribute">
+          <CMDKAction display={{label: 'Attribute'}}>
+            <CMDKAction display={{label: 'environment'}} prompt="Search for operator">
+              <CMDKAction display={{label: 'is'}} onAction={() => {}} />
+            </CMDKAction>
+          </CMDKAction>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Filter by'}));
+
+    expect(screen.getByRole('option', {name: 'Attribute'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search for attribute'
+    );
+  });
+
+  it('returns to the outer anchor from an action nested under a section', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Query clauses'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction display={{label: 'Commands'}}>
+              <CMDKAction display={{label: 'Edit Sort By'}}>
+                <CMDKAction display={{label: 'Descending'}} onAction={() => {}} />
+              </CMDKAction>
+            </CMDKAction>
+            <CMDKAction display={{label: 'Series A'}}>
+              <CMDKAction display={{label: 'Edit Source'}} onAction={() => {}} />
+            </CMDKAction>
+          </CMDKChainedActionScope>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Commands'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Edit Sort By'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Descending'}));
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('option', {name: 'Commands'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Series A'})).toBeInTheDocument();
+  });
+
+  it('closes for a terminal action inside a chained scope', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Query clauses'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction
+              closeOnAction
+              display={{label: 'Apply Changes'}}
+              onAction={() => {}}
+            />
+          </CMDKChainedActionScope>
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Query clauses'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
+
+    expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
   it('onAction that opens a modal leaves the new modal open', async () => {
@@ -1062,6 +1176,58 @@ describe('CommandPalette', () => {
 
       await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
       expect(queryClient.getQueryCache().find({queryKey})).toBeDefined();
+    });
+
+    it('keeps an async resource mounted while navigating its descendants', async () => {
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GlobalActionsComponent>
+            <CMDKAction
+              display={{label: 'Project'}}
+              prompt="Search for operator"
+              resource={(_query, {state}) =>
+                cmdkQueryOptions({
+                  queryKey: ['test-filter-operators'],
+                  queryFn: () => [{display: {label: 'is'}, onAction: () => {}}],
+                  enabled: state === 'selected',
+                })
+              }
+            >
+              {() => (
+                <CMDKAction
+                  display={{label: 'is'}}
+                  prompt="Search for value"
+                  resource={(_query, {state}) =>
+                    cmdkQueryOptions({
+                      queryKey: ['test-filter-values'],
+                      queryFn: () => [
+                        {display: {label: 'project-one'}, onAction: () => {}},
+                      ],
+                      enabled: state === 'selected',
+                    })
+                  }
+                >
+                  {values => (
+                    <CMDKAction display={{label: 'Value'}}>
+                      {values.map((value, index) =>
+                        'onAction' in value ? <CMDKAction key={index} {...value} /> : null
+                      )}
+                    </CMDKAction>
+                  )}
+                </CMDKAction>
+              )}
+            </CMDKAction>
+          </GlobalActionsComponent>
+        </QueryClientProvider>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Project'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
+
+      expect(await screen.findByRole('option', {name: 'Value'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-one'})).toBeInTheDocument();
     });
   });
 

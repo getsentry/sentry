@@ -517,8 +517,17 @@ export function CommandPalette({
       analytics.recordAction(action, resultIndex, '');
 
       if ('onAction' in action && action.chainedActionAnchor) {
-        action.onAction();
-        dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
+        if (action.multiSelect && options?.modifierKeys?.shiftKey) {
+          if (action.onMultiSelect) {
+            action.onMultiSelect();
+          } else {
+            action.onAction();
+          }
+          dispatch({type: 'set query', query: ''});
+        } else {
+          action.onAction();
+          dispatch({type: 'return to anchor', anchor: action.chainedActionAnchor});
+        }
         return;
       }
 
@@ -642,12 +651,7 @@ export function CommandPalette({
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
-                  placeholder={
-                    state.action?.value.prompt ??
-                    (state.action?.value.label
-                      ? t('Search inside %s', state.action.value.label)
-                      : t('Search for commands'))
-                  }
+                  placeholder={state.action?.value.prompt ?? t('Search for commands')}
                   {...inputCollectionProps}
                 />
                 <InputGroup.TrailingItems>
@@ -722,7 +726,7 @@ export function CommandPalette({
           </ResultsList>
         )}
       </Stack>
-      <CommandPaletteHints />
+      <CommandPaletteHints showMultiSelect={actions.some(action => action.multiSelect)} />
     </Stack>
   );
 
@@ -1179,6 +1183,14 @@ function makeMenuItemFromAction(
         {linkIndicator}
       </Fragment>
     ) : undefined;
+  const label = action.display.labelSuffix ? (
+    <Flex align="center" gap="xs">
+      <Text>{action.display.label}</Text>
+      {action.display.labelSuffix}
+    </Flex>
+  ) : (
+    action.display.label
+  );
 
   return {
     key: action.key,
@@ -1192,10 +1204,10 @@ function makeMenuItemFromAction(
             </IconDefaultsProvider>
           </Fragment>
         ))}
-        <Text>{action.display.label}</Text>
+        {label}
       </Flex>
     ) : (
-      action.display.label
+      label
     ),
     details: action.display.details,
     leadingItems: action.display.icon ? (
@@ -1217,7 +1229,7 @@ function makeMenuItemFromAction(
   };
 }
 
-function CommandPaletteHints() {
+function CommandPaletteHints({showMultiSelect}: {showMultiSelect: boolean}) {
   return (
     <Stack borderTop="muted" padding="md xl">
       <Flex align="center" justify="between">
@@ -1237,6 +1249,14 @@ function CommandPaletteHints() {
               {t('Select')}
             </Text>
           </Flex>
+          {showMultiSelect && (
+            <Flex align="center" gap="xs">
+              <Hotkey variant="debossed" value="shift+enter" />
+              <Text size="xs" variant="muted">
+                {t('Multi-Select')}
+              </Text>
+            </Flex>
+          )}
         </Flex>
         <Flex align="center" gap="xs">
           <Hotkey variant="debossed" value={VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} />
@@ -1251,8 +1271,16 @@ function CommandPaletteHints() {
 
 function CommandPaletteNoResults() {
   return (
-    <Stack align="center" justify="center" gap="lg" padding="2xl lg" height="400px">
-      <Image src={errorIllustration} alt="No results" width="400px" />
+    <Stack
+      align="center"
+      justify="center"
+      gap="md"
+      padding="sm lg"
+      flex={1}
+      minHeight={0}
+      overflow="hidden"
+    >
+      <Image src={errorIllustration} alt="No results" width="auto" height="120px" />
       <Stack align="center" gap="md">
         <Container padding="0 2xl">
           <Stack gap="sm">
@@ -1264,7 +1292,7 @@ function CommandPaletteNoResults() {
             </Text>
           </Stack>
         </Container>
-        <Container paddingTop="xl">
+        <Container>
           <FeedbackButton
             variant="primary"
             feedbackOptions={{

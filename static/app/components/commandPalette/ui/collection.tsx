@@ -26,6 +26,7 @@ interface CollectionStore<T> {
   subscribe: (callback: () => void) => () => void;
   tree: (rootKey?: string | null) => Array<CollectionTreeNode<T>>;
   unregister: (key: string) => void;
+  update: (key: string) => void;
 }
 
 interface CollectionInstance<T> {
@@ -97,6 +98,14 @@ export function makeCollection<T>(): CollectionInstance<T> {
           listeners.current.forEach(l => l());
         },
 
+        update(key) {
+          if (!nodes.current.has(key)) {
+            return;
+          }
+          snapshot.current = new Map(nodes.current);
+          listeners.current.forEach(l => l());
+        },
+
         tree(rootKey = null): Array<CollectionTreeNode<T>> {
           const childKeys = childIndex.current.get(rootKey) ?? new Set<string>();
           return Array.from(childKeys, key => {
@@ -134,6 +143,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
         getSnapshot: store.getSnapshot,
         register: store.register,
         unregister: store.unregister,
+        update: store.update,
         // bind so that this.tree() works correctly in recursive calls
         tree: store.tree.bind(store),
       }),
@@ -168,6 +178,10 @@ export function makeCollection<T>(): CollectionInstance<T> {
         store.unregister(key);
       };
     }, [key, parentKey, store]);
+
+    useLayoutEffect(() => {
+      store.update(key);
+    }, [data, key, store]);
 
     return key;
   }

@@ -345,6 +345,12 @@ function useVirtualizedItems<T extends ListItemBase>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
+      if (item?.type === 'section') {
+        // Sections render their heading and all child options inside one virtual row.
+        // Estimating only a single option collapses the scroll range until the row is
+        // measured, which makes long command-palette sections jump or fail to scroll.
+        return heightEstimation.regular * (1 + [...item.childNodes].length);
+      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (item?.props?.details) {
         return heightEstimation.large;

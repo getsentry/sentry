@@ -1,6 +1,6 @@
 import {createRef, Fragment} from 'react';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {slot} from '@sentry/scraps/slot';
 
@@ -33,6 +33,11 @@ function StoreCapture({
 }) {
   storeRef.current = TestCollection.useStore();
   return null;
+}
+
+function TreeName() {
+  const store = TestCollection.useStore();
+  return <span>{store.tree()[0]?.name}</span>;
 }
 
 function makeStoreRef(): React.MutableRefObject<ReturnType<
@@ -233,6 +238,26 @@ describe('Collection', () => {
     );
 
     expect(storeRef.current!.tree()[0]!.name).toBe('updated');
+  });
+
+  it('notifies consumers when registered node data changes', () => {
+    const {rerender} = render(
+      <TestCollection.Provider>
+        <Item name="original" />
+        <TreeName />
+      </TestCollection.Provider>
+    );
+
+    expect(screen.getByText('original')).toBeInTheDocument();
+
+    rerender(
+      <TestCollection.Provider>
+        <Item name="updated" />
+        <TreeName />
+      </TestCollection.Provider>
+    );
+
+    expect(screen.getByText('updated')).toBeInTheDocument();
   });
 
   it('propagates parent keys correctly at 3+ levels of nesting', () => {
