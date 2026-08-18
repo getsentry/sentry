@@ -106,7 +106,7 @@ def run_llm_cache_issue_detection() -> None:
     # headline output, and a zero there is the signal that nothing went out.
     for reason, amount in (
         ("no_agent_spans", skipped["no_agent_spans"]),
-        ("feature_disabled", candidate_count - dispatched_count),
+        ("detection_disabled", candidate_count - dispatched_count),
     ):
         if amount > 0:
             metrics.incr(
@@ -144,13 +144,23 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         logger.warning("Project does not exist", extra={"project_id": project_id})
         return
 
-    if not (
-        features.has(LLM_CACHE_DETECTION_FEATURE, project.organization)
-        and LLMCacheUsageGroupType.allow_ingest(project.organization)
-    ):
+    # The two gates are tallied apart because they mean different things: the
+    # detection flag decides whether an organization is scanned at all, while
+    # the group type decides whether a finding may be filed. During rollout the
+    # first is on while the second is not, and one shared reason cannot tell
+    # that steady state from the rollout flag being off.
+    if not features.has(LLM_CACHE_DETECTION_FEATURE, project.organization):
         metrics.incr(
             "llm_cache_issue_detection.projects.skipped",
-            tags={"reason": "feature_disabled"},
+            tags={"reason": "detection_disabled"},
+            sample_rate=1.0,
+        )
+        return
+
+    if not LLMCacheUsageGroupType.allow_ingest(project.organization):
+        metrics.incr(
+            "llm_cache_issue_detection.projects.skipped",
+            tags={"reason": "ingest_disabled"},
             sample_rate=1.0,
         )
         return
