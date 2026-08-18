@@ -672,7 +672,7 @@ export function CommandPalette({
   );
 
   const content = (
-    <Stack height="430px" maxHeight="80vh">
+    <Stack height="450px" maxHeight="80vh">
       <Stack gap="md" padding="xl xl md xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
@@ -1314,7 +1314,9 @@ function renderSectionTitle(action: CMDKFlatItem) {
   return (
     <Stack width="100%" minWidth={0}>
       <Flex align="center" gap="md" width="100%" minWidth={0}>
-        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+        <Flex align="center" justify="center" width="14px" flexShrink={0}>
+          <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+        </Flex>
         <Text size="sm" bold variant="primary" ellipsis>
           {action.display.label}
         </Text>
@@ -1386,19 +1388,22 @@ function makeMenuItemFromAction(
       <Flex height="100%" align="center" justify="center" width="16px">
         <Checkbox size="sm" checked={action.isSelected} readOnly />
       </Flex>
-    ) : action.display.icon ? (
+    ) : (
       <Flex
         height="100%"
         align="start"
         justify="center"
         width="14px"
+        flexShrink={0}
         // This centers the icon vertically with the main text, regardless
         // of the icon details presence or not.
         paddingTop="2xs"
       >
-        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+        {action.display.icon ? (
+          <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
+        ) : null}
       </Flex>
-    ) : undefined,
+    ),
     trailingItems,
     children: [],
     hideCheck: true,
@@ -1539,6 +1544,8 @@ const ResultsList = styled(Flex)`
 
 export const modalCss = (theme: Theme) => {
   return css`
+    width: calc(720px + 2 * ${theme.space.xl});
+
     [role='document'] {
       padding: 0;
 
