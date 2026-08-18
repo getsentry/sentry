@@ -64,7 +64,7 @@ export default function AutofixOverview() {
     >
       <PageFiltersContainer
         skipInitializeUrlParams
-        defaultSelection={{datetime: {period: '14d', start: null, end: null, utc: null}}}
+        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
