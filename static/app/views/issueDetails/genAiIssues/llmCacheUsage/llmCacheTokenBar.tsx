@@ -16,10 +16,9 @@ interface LlmCacheTokenBarProps {
 /**
  * Whole-percent shares that add up to exactly 100.
  *
- * Rounding each share on its own lets the three labels read 37/59/5 under a bar
- * that visibly fills its track. The leftover percent goes to whichever shares
- * were cut by the most, so the one that absorbs it is the one with the best
- * claim to it.
+ * Rounding each share on its own lets the labels read 37/59/5 under a bar that
+ * visibly fills its track, so the leftover percent goes to whichever share was
+ * cut by the most.
  */
 function toWholePercentages(values: number[], total: number): number[] {
   const exact = values.map(value => (value / total) * 100);

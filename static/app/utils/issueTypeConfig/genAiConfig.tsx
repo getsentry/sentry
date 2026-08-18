@@ -52,11 +52,9 @@ export const genAiConfig: IssueCategoryConfigMapping = {
     usesIssuePlatform: true,
   },
   [IssueType.LLM_CACHE_USAGE]: {
-    // The issue page renders the finding itself -- the problem, a healthy
-    // comparison, live cache activity, example calls and the fix. The generic
-    // evidence table would repeat all of it as an unordered list of numbers.
-    // The category default keeps that table for contexts that resolve config by
-    // occurrence type alone, like the shared-issue page.
+    // The issue page renders the finding itself, so the generic evidence table
+    // would repeat it as an unordered list of numbers. The category default
+    // keeps that table for surfaces that resolve config without a group.
     evidence: null,
     header: {
       // One occurrence per open period, so an occurrence histogram is a single

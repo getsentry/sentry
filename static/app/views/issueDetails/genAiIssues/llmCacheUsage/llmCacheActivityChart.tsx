@@ -87,8 +87,7 @@ function ActivityPlot({isPending, hasError, plottables}: ActivityPlotProps) {
   }
   // The visualization throws rather than renders when it has nothing to draw,
   // and every bucket comes back null once the call site stops reporting -- after
-  // a rename, after retention drops the window, or after the reader ships the
-  // fix. That is an ordinary outcome here, so it gets a sentence, not a crash.
+  // a rename, past retention, or once the fix ships. All ordinary here.
   if (plottables.every(plottable => plottable.isEmpty)) {
     return (
       <Text variant="muted">

@@ -19,9 +19,8 @@ interface LlmCacheActualSpendProps {
  * What the call site actually spent on input tokens over the window.
  *
  * The avoidable figure beside it is an estimate; anchoring it against real
- * billed spend is what makes it credible. Renders nothing when the pipeline
- * never priced these spans, which is the case for models the metadata feed
- * does not know.
+ * billed spend is what makes it credible. Absent for models the metadata feed
+ * does not price.
  */
 export function LlmCacheActualSpend({evidenceData}: LlmCacheActualSpendProps) {
   const pageFilters = useCallSitePageFilters(evidenceData);

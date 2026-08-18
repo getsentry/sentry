@@ -23,11 +23,11 @@ export const CACHE_READ_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read.input_tokens
 export const CACHE_CREATION_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation.input_tokens';
 const MODEL_ATTRIBUTE = 'gen_ai.request.model';
 /**
- * The detector's own span filter, verbatim.
+ * The detector's own span filter, verbatim -- any divergence means the page's
+ * live queries answer a different question than the finding.
  *
  * `gen_ai.operation.type` is added during ingestion from the op, so it matches
- * an LLM call whichever op the SDK chose. Any divergence from the detector here
- * means the page's live queries answer a different question than the finding.
+ * an LLM call whichever op the SDK chose.
  */
 const GEN_AI_CALL_FILTER =
   'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens';
@@ -53,11 +53,8 @@ function getOutcome(value: unknown): LlmCacheOutcome | null {
 }
 
 /**
- * A timestamp only counts if it can be parsed.
- *
- * Consumers hand these to date helpers that throw on an unparseable value, and
- * a throw here blanks the whole issue body -- so an unusable timestamp has to
- * become null at the boundary, like every other malformed field.
+ * A timestamp only counts if it can be parsed: consumers hand these to date
+ * helpers that throw, and a throw here blanks the whole issue body.
  */
 function getTimestampValue(value: unknown): string | null {
   const timestamp = getStringValue(value);
@@ -206,10 +203,8 @@ export function buildCallSiteQuery({
 
   const search = new MutableSearch(GEN_AI_CALL_FILTER);
   // `transaction` and `span.description` are wildcard-allowed fields, so the
-  // usual helpers deliberately leave `*` unescaped in them. These values are
-  // exact call-site names -- a transaction the clusterer rewrote to `/api/*/chat`
-  // would otherwise match every sibling route and inflate every number on the
-  // page -- so each is escaped explicitly instead.
+  // usual helpers leave `*` unescaped in them. A transaction the clusterer
+  // rewrote to `/api/*/chat` would then match every sibling route.
   search.addFilterValue('transaction', transaction, true);
   search.addFilterValue('span.description', spanDescription, true);
   search.addFilterValue(MODEL_ATTRIBUTE, model, true);
@@ -232,9 +227,7 @@ export function formatCallSiteLabel({
 
 /**
  * A link to the spans a query matches, over the window the finding covers.
- *
- * Undefined without both, because a link that quietly answers a different
- * question than the issue is making a claim about is worse than no link.
+ * Undefined without both: a link to the wrong spans is worse than no link.
  */
 export function getCallSiteExploreUrl({
   organization,
