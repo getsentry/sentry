@@ -62,7 +62,7 @@ export type SeerProjectSettingResponse = {
   stoppingPoint: SeerAutofixStoppingPoint;
 };
 
-export type SuggestedRepositoryResponse = {
+type SuggestedRepositoryResponse = {
   name: string;
   provider: string;
   repositoryId: string;
