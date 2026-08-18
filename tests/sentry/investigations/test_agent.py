@@ -184,11 +184,53 @@ class InvestigationAgentTest(TestCase):
         assert "inline plain dictionaries" in prompt
         assert 'x_axis="time", y_axis_unit="number"' in prompt
         assert "offset-bearing ISO 8601 timestamps" in prompt
+        assert "source.snapshot" in prompt
+        assert "do not report them missing merely because parameters is empty" in prompt
         assert "first character must be { and the last character must be }" in prompt
         assert "Do not wrap the object in a Markdown code fence" in prompt
         assert "exactly these five keys and no others" in prompt
         assert "artifact_key" not in options
         assert "artifact_schema" not in options
+
+    def test_start_run_includes_resolved_source_context(self) -> None:
+        self.execution.input_snapshot.update(
+            {
+                "organizationSlug": self.organization.slug,
+                "source": {
+                    "type": "metric_open_period",
+                    "snapshot": {
+                        "analysisWindow": {
+                            "breachStart": "2026-08-14T23:56:02+00:00",
+                            "end": "2026-08-18T22:30:49+00:00",
+                        },
+                        "monitor": {
+                            "name": "Mobile API error volume",
+                            "query": "fixture_metric:mobile-api-errors",
+                            "direction": "above",
+                        },
+                    },
+                },
+            }
+        )
+        self.execution.save(update_fields=["input_snapshot"])
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        prompt = client.start_run.call_args.args[0]
+        serialized_context = prompt.split("<investigation_context>\n", 1)[1].split(
+            "\n</investigation_context>", 1
+        )[0]
+        context = json.loads(serialized_context)
+        assert context["organizationSlug"] == self.organization.slug
+        assert context["source"]["snapshot"]["monitor"] == {
+            "name": "Mobile API error volume",
+            "query": "fixture_metric:mobile-api-errors",
+            "direction": "above",
+        }
+        assert context["source"]["snapshot"]["analysisWindow"]["breachStart"] == (
+            "2026-08-14T23:56:02+00:00"
+        )
 
     def test_completed_query_accepts_strict_json_final_message(self) -> None:
         run_state = state(
@@ -714,6 +756,30 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.summary_description == (
             "One endpoint drove most errors.\nRoll back the latest endpoint change."
         )
+        assert self.investigation.title_generation_status == "completed"
+
+    def test_title_accepts_metadata_in_a_json_code_fence(self) -> None:
+        self.investigation.update(
+            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
+        )
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=f"```json\n{completion_metadata()}\n```",
+                    ),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Daily error volume spike"
+        assert self.investigation.summary == "Error volume crossed threshold"
         assert self.investigation.title_generation_status == "completed"
 
     @patch("sentry.investigations.agent.SeerAgentClient")

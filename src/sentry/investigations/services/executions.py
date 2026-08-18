@@ -321,6 +321,8 @@ def build_block_execution_snapshot(
                 )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
+        "organizationSlug": block.investigation.organization.slug,
+        "source": block.investigation.source,
         "filters": block.investigation.filters,
         "parameters": parameters,
         "dependencies": dependencies,

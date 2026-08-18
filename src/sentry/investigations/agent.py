@@ -86,6 +86,9 @@ time window, scope, and total count. Pass chart points and series as inline plai
 import type helpers. Time-axis
 x values must be offset-bearing ISO 8601 timestamps. If the question cannot be answered with telemetry, ask the user an
 inline clarification. Finish by returning exactly one raw JSON object in your final response.
+The source object in investigation_context is authoritative resolved source context, not a
+template parameter. Use source.snapshot for supplied monitor, project, threshold, condition,
+dataset, and analysis-window facts; do not report them missing merely because parameters is empty.
 When notebookContext contains an item with currentBlock=true, it is the last successful result for
 the block being refined. Reuse its table and chart data for presentation-only requests such as
 changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
@@ -119,6 +122,8 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
     )
     context = {
         "request": snapshot.get("prompt"),
+        "organizationSlug": snapshot.get("organizationSlug"),
+        "source": snapshot.get("source", {}),
         "projectSlugs": snapshot.get("projectSlugs", []),
         "filters": snapshot.get("filters", {}),
         "parameters": snapshot.get("parameters", {}),
@@ -889,6 +894,7 @@ def _completion_block_context(block: InvestigationBlock) -> str:
 
 
 def _parse_completion_metadata(content: str) -> dict[str, str] | None:
+    content = _strip_json_code_fence(content)
     try:
         payload = json.loads(content)
     except ValueError:
@@ -922,6 +928,18 @@ def _parse_completion_metadata(content: str) -> dict[str, str] | None:
         "summary": summary[:255],
         "summary_description": summary_description,
     }
+
+
+def _strip_json_code_fence(content: str) -> str:
+    stripped = content.strip()
+    lines = stripped.splitlines()
+    if (
+        len(lines) >= 3
+        and lines[0].strip().lower() in {"```", "```json"}
+        and lines[-1].strip() == "```"
+    ):
+        return "\n".join(lines[1:-1]).strip()
+    return stripped
 
 
 def title_generation_preview(content: str | None) -> str | None:
