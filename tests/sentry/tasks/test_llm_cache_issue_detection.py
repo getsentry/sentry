@@ -474,6 +474,61 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         first, second = mock_produce.call_args_list
         assert first.kwargs["occurrence"].fingerprint == second.kwargs["occurrence"].fingerprint
 
+    def test_subtitle_keeps_a_model_the_span_description_does_not_carry(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Hand-instrumented spans name themselves after the function they wrap,
+        # so the model is only visible if the subtitle states it.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [
+            replace(
+                NOT_CACHING_STATS,
+                transaction="pr_review_task",
+                span_description="generate_content generate_structured",
+                model="gemini-2.5-pro",
+            )
+        ]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
+        assert occurrence.subtitle == (
+            "pr_review_task | generate_content generate_structured | gemini-2.5-pro"
+        )
+
+    def test_subtitle_does_not_repeat_a_model_the_span_description_already_carries(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Every SDK gen-AI integration names the span "<operation> <model>", so
+        # for auto-instrumented call sites -- the common case -- appending the
+        # model again would spend the issue stream's width on a duplicate.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [
+            replace(
+                NOT_CACHING_STATS,
+                transaction="pr_review_task",
+                span_description="chat claude-sonnet-5",
+                model="claude-sonnet-5",
+            )
+        ]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args_list[0].kwargs["occurrence"]
+        assert occurrence.subtitle == "pr_review_task | chat claude-sonnet-5"
+
     def test_fingerprints_distinguish_call_sites_that_share_a_delimiter(
         self,
         mock_fetch_stats: MagicMock,

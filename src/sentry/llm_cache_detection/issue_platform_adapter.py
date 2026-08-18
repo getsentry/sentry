@@ -80,6 +80,21 @@ def _format_usd(value: float) -> str:
     return f"${value:,.0f}"
 
 
+def _format_call_site(stats: CallSiteStats) -> str:
+    """Name the call site for a human, without repeating itself.
+
+    The model is a grouping dimension in its own right, so it has to appear when
+    the description does not already carry it. Gen-AI span descriptions
+    conventionally end in the model (``generate_content claude-sonnet-4``),
+    though, and appending it again spends the issue stream's limited width on a
+    duplicate -- which is exactly the part that then gets truncated away.
+    """
+    parts = [stats.transaction, stats.span_description]
+    if stats.model.casefold() not in stats.span_description.casefold():
+        parts.append(stats.model)
+    return " | ".join(parts)
+
+
 @trace
 def send_llm_cache_issue_to_platform(
     project: Project,
@@ -95,7 +110,7 @@ def send_llm_cache_issue_to_platform(
     now = datetime.now(UTC)
     event_id = uuid4().hex
 
-    call_site = f"{stats.transaction} | {stats.span_description} | {stats.model}"
+    call_site = _format_call_site(stats)
     write_read_ratio = stats.write_read_ratio
 
     evidence_data: dict[str, Any] = {
