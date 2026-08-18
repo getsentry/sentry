@@ -19,6 +19,7 @@ export enum MethodType {
   REMOVE = 'remove',
   HASH = 'hash',
   REPLACE = 'replace',
+  ENCRYPT = 'encrypt',
 }
 
 export enum EventIdStatus {

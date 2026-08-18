@@ -69,6 +69,11 @@ function getMethodLabel(type: MethodType) {
         label: t('Replace'),
         description: t('Replace with Placeholder'),
       };
+    case MethodType.ENCRYPT:
+      return {
+        label: t('Encrypt'),
+        description: t('Encrypt with public key'),
+      };
     default:
       return {
         label: '',

@@ -122,6 +122,13 @@ def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -
         if not partial_config:
             continue
 
+        # Unlike rules, `vars` are resolved by well-known name (for example the
+        # `publicKey` that the `encrypt` redaction method reads), not by rule
+        # reference, so their names must not be prefixed or the lookup breaks.
+        # Later configs win, so a project-level value overrides the organization's.
+        for var_name, var_value in (partial_config.get("vars") or {}).items():
+            merged_config.setdefault("vars", {})[var_name] = var_value
+
         rules = partial_config.get("rules") or {}
         for rule_name, rule in rules.items():
             prefixed_rule_name = f"{prefix}{rule_name}"

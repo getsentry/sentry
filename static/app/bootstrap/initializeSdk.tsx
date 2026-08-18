@@ -91,8 +91,8 @@ function getSentryIntegrations() {
  */
 export function initializeSdk(config: Config) {
   // NOTE: This config is mutated by `commonInitialization`
-  const {apmSampling, customerDomain, sentryConfig, userIdentity} = config;
-  const tracesSampleRate = apmSampling ?? 0;
+  const {customerDomain, sentryConfig, userIdentity} = config;
+  const tracesSampleRate = 1;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
     : [...sentryConfig.tracePropagationTargets];
@@ -112,7 +112,7 @@ export function initializeSdk(config: Config) {
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
     integrations: getSentryIntegrations(),
-    tracesSampleRate,
+    tracesSampleRate: 1,
     profileSessionSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
