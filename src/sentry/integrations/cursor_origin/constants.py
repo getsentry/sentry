@@ -35,3 +35,11 @@ CURSOR_ORIGIN_SCOPES = (
     "repository:checks:read",
     "repository:checks:write",
 )
+
+# Origin publishes the Ed25519 public keys it signs webhooks with. Signatures
+# carry no key id, so all active keys are tried.
+CURSOR_ORIGIN_JWKS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/keys"
+CURSOR_ORIGIN_JWKS_CACHE_SECONDS = 3600
+
+# Origin's guidance for rejecting replayed deliveries.
+WEBHOOK_MAX_AGE_SECONDS = 300
