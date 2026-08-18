@@ -1,4 +1,10 @@
-import {getCacheProvider, getLlmCacheEvidenceData} from './utils';
+import {
+  buildCallSiteQuery,
+  formatRate,
+  formatTokens,
+  getCacheProvider,
+  getLlmCacheEvidenceData,
+} from './utils';
 
 describe('getLlmCacheEvidenceData', () => {
   it('reads a fully populated occurrence', () => {
@@ -111,5 +117,82 @@ describe('getCacheProvider', () => {
     ['some-self-hosted-model', 'unknown'],
   ])('maps %s to %s', (model, expected) => {
     expect(getCacheProvider(model)).toBe(expected);
+  });
+});
+
+describe('buildCallSiteQuery', () => {
+  it('quotes values so a call site with spaces stays one term', () => {
+    expect(
+      buildCallSiteQuery({
+        transaction: 'agent.execute step',
+        spanDescription: 'chat claude sonnet',
+        model: 'claude-sonnet-4',
+      })
+    ).toBe(
+      'span.op:gen_ai.generate_content transaction:"agent.execute step" span.description:"chat claude sonnet" gen_ai.request.model:claude-sonnet-4'
+    );
+  });
+
+  it('escapes a wildcard so a clustered transaction cannot match its siblings', () => {
+    // `transaction` and `span.description` are wildcard-allowed fields, so an
+    // unescaped `*` from the transaction clusterer would silently become a LIKE
+    // and pull in every sibling route.
+    const query = buildCallSiteQuery({
+      transaction: '/api/v1/*/chat',
+      spanDescription: 'chat gpt-4',
+      model: 'gpt-4',
+    });
+
+    expect(query).toContain(String.raw`transaction:"/api/v1/\*/chat"`);
+  });
+
+  it('escapes a quote so the term cannot be terminated early', () => {
+    const query = buildCallSiteQuery({
+      transaction: 'say "hi"',
+      spanDescription: 'chat gpt-4',
+      model: 'gpt-4',
+    });
+
+    expect(query).toContain(String.raw`transaction:"say \"hi\""`);
+  });
+
+  it('declines a value the grammar cannot match exactly', () => {
+    // A trailing backslash escapes the term's own closing quote; a backslash
+    // before a star is an escaped wildcard however the star is written.
+    expect(
+      buildCallSiteQuery({
+        transaction: 'C:\\path\\',
+        spanDescription: 'chat gpt-4',
+        model: 'gpt-4',
+      })
+    ).toBeNull();
+    expect(
+      buildCallSiteQuery({
+        transaction: String.raw`literal\*star`,
+        spanDescription: 'chat gpt-4',
+        model: 'gpt-4',
+      })
+    ).toBeNull();
+  });
+
+  it('declines when the call site is not fully known', () => {
+    expect(
+      buildCallSiteQuery({transaction: null, spanDescription: 'chat', model: 'gpt-4'})
+    ).toBeNull();
+  });
+});
+
+describe('formatTokens', () => {
+  it('rolls up to millions rather than printing 1000.0K', () => {
+    expect(formatTokens(999_999)).toBe('~1.0M');
+    expect(formatTokens(999_400)).toBe('~999.4K');
+  });
+});
+
+describe('formatRate', () => {
+  it('clamps a hit rate above 100%', () => {
+    // Providers that report input exclusive of cached tokens can drive reads
+    // past input.
+    expect(formatRate(2.5)).toBe('100.00%');
   });
 });

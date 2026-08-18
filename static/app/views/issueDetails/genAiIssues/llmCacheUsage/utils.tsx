@@ -18,6 +18,7 @@ export const INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.input_tokens';
 export const CACHE_READ_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read.input_tokens';
 export const CACHE_CREATION_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation.input_tokens';
 const GEN_AI_CALL_OP = 'gen_ai.generate_content';
+const MODEL_ATTRIBUTE = 'gen_ai.request.model';
 
 export const LLM_CACHE_REFERRER = 'llm-cache-usage-issue';
 
@@ -39,6 +40,21 @@ function getOutcome(value: unknown): LlmCacheOutcome | null {
   return value === 'not_caching' || value === 'thrash' ? value : null;
 }
 
+/**
+ * A timestamp only counts if it can be parsed.
+ *
+ * Consumers hand these to date helpers that throw on an unparseable value, and
+ * a throw here blanks the whole issue body -- so an unusable timestamp has to
+ * become null at the boundary, like every other malformed field.
+ */
+function getTimestampValue(value: unknown): string | null {
+  const timestamp = getStringValue(value);
+  if (timestamp === null || Number.isNaN(new Date(timestamp).valueOf())) {
+    return null;
+  }
+  return timestamp;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -56,7 +72,7 @@ function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[]
         {
           traceId,
           spanId: getStringValue(sample.spanId),
-          timestamp: getStringValue(sample.timestamp),
+          timestamp: getTimestampValue(sample.timestamp),
           inputTokens: getNumberValue(sample.inputTokens),
           cacheReadTokens: getNumberValue(sample.cacheReadTokens),
           cacheCreationTokens: getNumberValue(sample.cacheCreationTokens),
@@ -135,16 +151,30 @@ export function getLlmCacheEvidenceData(
     estimatedSavingsUsd: getNumberValue(data.estimatedSavingsUsd),
     overpayVsNoCacheUsd: getNumberValue(data.overpayVsNoCacheUsd),
     windowDays: getNumberValue(data.windowDays),
-    windowStart: getStringValue(data.windowStart),
-    windowEnd: getStringValue(data.windowEnd),
+    windowStart: getTimestampValue(data.windowStart),
+    windowEnd: getTimestampValue(data.windowEnd),
     sampleCalls: getSampleCalls(data.sampleTraces, data.sampleTraceIds),
     anchor: getAnchor(data),
   };
 }
 
 /**
+ * Whether the search grammar can match this value exactly.
+ *
+ * Mirrors the detector's own rule: a trailing backslash escapes the term's
+ * closing quote, and a backslash before a `*` reads as an escaped wildcard
+ * however the star is written, so the literal cannot be expressed at all.
+ */
+function isExpressible(value: string): boolean {
+  return !value.endsWith('\\') && !value.includes('\\*');
+}
+
+/**
  * The exact filter for one call site. The detector groups by this triple, so it
  * is also what makes live queries line up with the finding.
+ *
+ * Returns null when a value cannot be matched exactly, because a query that
+ * quietly matches the wrong spans is worse than no link at all.
  */
 export function buildCallSiteQuery({
   transaction,
@@ -158,13 +188,21 @@ export function buildCallSiteQuery({
   if (transaction === null || spanDescription === null || model === null) {
     return null;
   }
+  if (![transaction, spanDescription, model].every(isExpressible)) {
+    return null;
+  }
 
-  return MutableSearch.fromQueryObject({
-    'span.op': GEN_AI_CALL_OP,
-    transaction,
-    'span.description': spanDescription,
-    'gen_ai.request.model': model,
-  }).formatString();
+  const search = new MutableSearch('');
+  search.addFilterValue('span.op', GEN_AI_CALL_OP);
+  // `transaction` and `span.description` are wildcard-allowed fields, so the
+  // usual helpers deliberately leave `*` unescaped in them. These values are
+  // exact call-site names -- a transaction the clusterer rewrote to `/api/*/chat`
+  // would otherwise match every sibling route and inflate every number on the
+  // page -- so each is escaped explicitly instead.
+  search.addFilterValue('transaction', transaction, true);
+  search.addFilterValue('span.description', spanDescription, true);
+  search.addFilterValue(MODEL_ATTRIBUTE, model, true);
+  return search.formatString();
 }
 
 export function formatTokens(tokens: number | null): string {
@@ -174,8 +212,11 @@ export function formatTokens(tokens: number | null): string {
   if (tokens < 1000) {
     return tokens.toLocaleString(undefined, {maximumFractionDigits: 0});
   }
-  if (tokens < 1_000_000) {
-    return t('~%sK', (tokens / 1000).toFixed(1));
+  // Guard on the rounded figure, not the raw one: 999,999 tokens round to
+  // 1000.0K, which should read as 1.0M.
+  const thousands = (tokens / 1_000).toFixed(1);
+  if (Number(thousands) < 1_000) {
+    return t('~%sK', thousands);
   }
   return t('~%sM', (tokens / 1_000_000).toFixed(1));
 }
@@ -190,7 +231,9 @@ export function formatRate(rate: number | null): string {
   if (rate < 0.0001) {
     return t('<0.01%');
   }
-  return `${(rate * 100).toFixed(2)}%`;
+  // Providers that report input exclusive of cached tokens can drive reads past
+  // input; the detector clamps the token split the same way.
+  return `${(Math.min(rate, 1) * 100).toFixed(2)}%`;
 }
 
 export function formatWriteReadRatio(ratio: number | null): string {
