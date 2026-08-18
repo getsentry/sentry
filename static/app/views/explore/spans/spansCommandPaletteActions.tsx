@@ -3,6 +3,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   CMDKChainedActionScope,
@@ -10,11 +11,23 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  EQUATION_PREFIX,
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   addSearchFilterToQuery,
   type SearchFilter,
@@ -26,7 +39,9 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -48,6 +63,130 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+function SaveAsActions() {
+  const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+  const [interval] = useChartInterval();
+  const {addToDashboard} = useAddToDashboard();
+  const {saveQuery} = useSpansSaveQuery();
+  const query = useQueryParamsQuery();
+  const visualizes = useQueryParamsVisualizes().filter(isVisualizeFunction);
+  const visualizeYAxes = dedupeArray(visualizes.map(visualize => visualize.yAxis));
+  const project =
+    projects.length === 1
+      ? projects[0]
+      : projects.find(
+          candidate => candidate.id === `${pageFilters.selection.projects[0]}`
+        );
+  const canCreateMonitors = !getMetricAlertsUpsellTooltip(organization);
+  const canAddToDashboard = organization.features.includes('dashboards-edit');
+
+  return (
+    <CMDKAction display={{label: t('Save as')}}>
+      <CMDKTerminalActionScope>
+        <CMDKAction
+          display={{label: t('New Query')}}
+          onAction={() => {
+            trackAnalytics('trace_explorer.save_query_modal', {
+              action: 'open',
+              save_type: 'save_new_query',
+              ui_source: 'toolbar',
+              organization,
+            });
+            openSaveQueryModal({
+              organization,
+              saveQuery,
+              source: 'toolbar',
+              traceItemDataset: TraceItemDataset.SPANS,
+            });
+          }}
+        />
+      </CMDKTerminalActionScope>
+      {canCreateMonitors && visualizeYAxes.length > 0 && (
+        <CMDKAction
+          display={{label: t('Monitor for')}}
+          prompt={t('Select a series to monitor')}
+        >
+          {visualizeYAxes.map((yAxis, index) => {
+            const parsedFunction = parseFunction(yAxis);
+            const label = parsedFunction ? prettifyParsedFunction(parsedFunction) : yAxis;
+
+            return (
+              <CMDKAction
+                key={`${yAxis}-${index}`}
+                display={{label}}
+                to={getAlertsUrl({
+                  project,
+                  query,
+                  pageFilters: pageFilters.selection,
+                  aggregate: yAxis,
+                  organization,
+                  dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                  interval,
+                })}
+                onAction={() => {
+                  trackAnalytics('trace_explorer.save_as', {
+                    save_type: 'alert',
+                    ui_source: 'toolbar',
+                    organization,
+                  });
+                }}
+              />
+            );
+          })}
+        </CMDKAction>
+      )}
+      {canAddToDashboard && visualizeYAxes.length > 0 && (
+        <CMDKTerminalActionScope>
+          {visualizeYAxes.length === 1 ? (
+            <CMDKAction
+              display={{label: t('Dashboard widget')}}
+              onAction={() => {
+                trackAnalytics('trace_explorer.save_as', {
+                  save_type: 'dashboard',
+                  ui_source: 'toolbar',
+                  organization,
+                });
+                addToDashboard(0);
+              }}
+            />
+          ) : (
+            <CMDKAction
+              display={{label: t('Dashboard widget')}}
+              prompt={t('Select a series for the dashboard widget')}
+            >
+              {visualizeYAxes.map((yAxis, index) => {
+                const parsedFunction = parseFunction(yAxis);
+                return (
+                  <CMDKAction
+                    key={`${yAxis}-${index}`}
+                    display={{
+                      label: parsedFunction
+                        ? prettifyParsedFunction(parsedFunction)
+                        : yAxis,
+                    }}
+                    onAction={() => {
+                      trackAnalytics('trace_explorer.save_as', {
+                        save_type: 'dashboard',
+                        ui_source: 'toolbar',
+                        organization,
+                      });
+                      addToDashboard(index);
+                    }}
+                  />
+                );
+              })}
+            </CMDKAction>
+          )}
+        </CMDKTerminalActionScope>
+      )}
+    </CMDKAction>
+  );
+}
 
 function SpansFilterActions({
   addSearchFilter,
@@ -509,6 +648,7 @@ function QueryClauseActions() {
             />
           </Fragment>
         )}
+        <SaveAsActions />
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
         <CMDKAction
