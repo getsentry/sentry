@@ -256,6 +256,100 @@ describe('AutofixOverview', () => {
     await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
   });
 
+  it('renders All Runs and In Progress tabs with counts', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('tab', {name: 'All Runs (2)'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'In Progress (1)'})).toBeInTheDocument();
+  });
+
+  it('filters to only in-progress runs when the In Progress tab is selected', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Generate code changes 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (1)'}));
+
+    expect(screen.getByRole('button', {name: 'Create Plan 1'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state on the In Progress tab when nothing is processing', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (0)'}));
+
+    expect(
+      screen.getByText('No Autofix runs are currently in progress.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Create Plan 1'})).not.toBeInTheDocument();
+  });
+
+  it('persists the selected tab in the URL', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'In Progress (1)'}));
+    expect(router.location.query.view).toBe('in_progress');
+
+    await userEvent.click(screen.getByRole('tab', {name: 'All Runs (2)'}));
+    expect(router.location.query.view).toBeUndefined();
+  });
+
+  it('starts on the In Progress tab when the URL selects it', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage({view: 'in_progress'});
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', {name: 'In Progress (1)', selected: true})
+    ).toBeInTheDocument();
+  });
+
   it('shows the empty state while keeping the query controls visible', async () => {
     mockOverview({base: {}});
 
@@ -1186,6 +1280,8 @@ describe('AutofixOverview', () => {
       expect(
         screen.queryByText('You don’t have any Autofix runs...yet.')
       ).not.toBeInTheDocument();
+      // No tabs above the message when the filter matches nothing to switch between.
+      expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
 
     it('shows a truncation notice when the backend caps a section', async () => {
