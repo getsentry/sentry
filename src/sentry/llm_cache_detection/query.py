@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from sentry.llm_cache_detection.detection import CallSiteStats, DetectionWindow
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -40,6 +40,13 @@ CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
 CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 
+# An aggregate column doubles as the key its value comes back under, so the
+# query and the code reading the response share one name.
+SUM_INPUT_TOKENS = f"sum({INPUT_TOKENS})"
+AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
+SUM_CACHE_READ_TOKENS = f"sum({CACHE_READ_TOKENS})"
+SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
+
 # Sorting by total input tokens keeps the worst offenders inside the cap even
 # when a project has more distinct call sites than this.
 CALL_SITE_GROUPS_LIMIT = 300
@@ -64,15 +71,6 @@ class SampleCall:
     input_tokens: float
     cache_read_tokens: float
     cache_creation_tokens: float
-
-
-def _build_snuba_params(project: Project, window: DetectionWindow) -> SnubaParams:
-    return SnubaParams(
-        start=window.start,
-        end=window.end,
-        projects=[project],
-        organization=project.organization,
-    )
 
 
 def _escape_filter_value(value: str) -> str:
@@ -126,7 +124,12 @@ def _run_spans_query(
     referrer: Referrer,
 ) -> EAPResponse:
     return Spans.run_table_query(
-        params=_build_snuba_params(project, window),
+        params=SnubaParams(
+            start=window.start,
+            end=window.end,
+            projects=[project],
+            organization=project.organization,
+        ),
         query_string=query_string,
         selected_columns=selected_columns,
         orderby=orderby,
@@ -136,6 +139,11 @@ def _run_spans_query(
         config=SearchResolverConfig(auto_fields=True),
         sampling_mode="NORMAL",
     )
+
+
+def _token_count(row: SnubaRow, column: str) -> float:
+    """Read a token column, treating a missing or null value as zero."""
+    return float(row.get(column) or 0)
 
 
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[CallSiteStats]:
@@ -149,11 +157,12 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[Cal
             "span.description",
             MODEL,
             "count()",
-            f"sum({INPUT_TOKENS})",
-            *(f"sum({attribute})" for attribute in CACHE_TOKEN_ATTRIBUTES),
-            f"avg({INPUT_TOKENS})",
+            SUM_INPUT_TOKENS,
+            SUM_CACHE_READ_TOKENS,
+            SUM_CACHE_CREATION_TOKENS,
+            AVG_INPUT_TOKENS,
         ],
-        orderby=[f"-sum({INPUT_TOKENS})"],
+        orderby=[f"-{SUM_INPUT_TOKENS}"],
         limit=CALL_SITE_GROUPS_LIMIT,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_CALL_SITES,
     )
@@ -171,10 +180,10 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[Cal
                 span_description=span_description,
                 model=model,
                 call_count=int(row.get("count()") or 0),
-                sum_input_tokens=float(row.get(f"sum({INPUT_TOKENS})") or 0),
-                sum_cache_read_tokens=float(row.get(f"sum({CACHE_READ_TOKENS})") or 0),
-                sum_cache_creation_tokens=float(row.get(f"sum({CACHE_CREATION_TOKENS})") or 0),
-                avg_input_tokens=float(row.get(f"avg({INPUT_TOKENS})") or 0),
+                sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
+                sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
+                sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
+                avg_input_tokens=_token_count(row, AVG_INPUT_TOKENS),
             )
         )
     return stats
@@ -249,9 +258,9 @@ def fetch_sample_calls(
                 trace_id=trace_id,
                 span_id=span_id,
                 timestamp=timestamp,
-                input_tokens=float(row.get(INPUT_TOKENS) or 0),
-                cache_read_tokens=float(row.get(CACHE_READ_TOKENS) or 0),
-                cache_creation_tokens=float(row.get(CACHE_CREATION_TOKENS) or 0),
+                input_tokens=_token_count(row, INPUT_TOKENS),
+                cache_read_tokens=_token_count(row, CACHE_READ_TOKENS),
+                cache_creation_tokens=_token_count(row, CACHE_CREATION_TOKENS),
             )
         )
         if len(samples) == SAMPLE_CALLS_LIMIT:

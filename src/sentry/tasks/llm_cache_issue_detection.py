@@ -50,18 +50,24 @@ MAX_PRESENCE_PROBES_PER_PROJECT = 20
 PROJECTS_PER_BATCH = 1_000
 
 
-def _all_active_projects_with_flags() -> Generator[tuple[int, int, int]]:
-    yield from RangeQuerySetWrapper(
-        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list(
-            "id", "organization_id", "flags"
-        ),
-        result_value_getter=lambda item: item[0],
+def _record_projects_skipped(reason: str, amount: int = 1) -> None:
+    metrics.incr(
+        "llm_cache_issue_detection.projects.skipped",
+        amount=amount,
+        tags={"reason": reason},
+        sample_rate=1.0,
     )
 
 
 def _projects_with_agent_spans(skipped: Counter[str]) -> Generator[tuple[int, int]]:
     """Stream (project_id, organization_id) for projects that have sent gen-AI spans."""
-    for project_id, organization_id, flags in _all_active_projects_with_flags():
+    active_projects = RangeQuerySetWrapper(
+        Project.objects.filter(status=ObjectStatus.ACTIVE).values_list(
+            "id", "organization_id", "flags"
+        ),
+        result_value_getter=lambda item: item[0],
+    )
+    for project_id, organization_id, flags in active_projects:
         # Ingest sets this flag for any span whose op starts with `gen_ai`, so it
         # is a superset of the generate_content spans detection reads: a project
         # without it cannot produce a finding.
@@ -109,12 +115,7 @@ def run_llm_cache_issue_detection() -> None:
         ("detection_disabled", candidate_count - dispatched_count),
     ):
         if amount > 0:
-            metrics.incr(
-                "llm_cache_issue_detection.projects.skipped",
-                amount=amount,
-                tags={"reason": reason},
-                sample_rate=1.0,
-            )
+            _record_projects_skipped(reason, amount)
     metrics.incr(
         "llm_cache_issue_detection.projects.dispatched",
         amount=dispatched_count,
@@ -150,19 +151,11 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
     # first is on while the second is not, and one shared reason cannot tell
     # that steady state from the rollout flag being off.
     if not features.has(LLM_CACHE_DETECTION_FEATURE, project.organization):
-        metrics.incr(
-            "llm_cache_issue_detection.projects.skipped",
-            tags={"reason": "detection_disabled"},
-            sample_rate=1.0,
-        )
+        _record_projects_skipped("detection_disabled")
         return
 
     if not LLMCacheUsageGroupType.allow_ingest(project.organization):
-        metrics.incr(
-            "llm_cache_issue_detection.projects.skipped",
-            tags={"reason": "ingest_disabled"},
-            sample_rate=1.0,
-        )
+        _record_projects_skipped("ingest_disabled")
         return
 
     # One window for the whole run so the aggregates, the probes and the sampled
@@ -190,7 +183,7 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
     candidates.sort(key=lambda finding: finding.severity, reverse=True)
 
     findings: list[CacheFinding] = []
-    probes_run = 0
+    probes_remaining = MAX_PRESENCE_PROBES_PER_PROJECT
     rejected_already_exists_count = 0
     for candidate in candidates:
         if len(findings) >= FINDINGS_PER_PROJECT_LIMIT:
@@ -205,18 +198,18 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             rejected_already_exists_count += 1
             continue
         if needs_cache_presence_probe(candidate.stats, candidate.outcome):
-            if probes_run >= MAX_PRESENCE_PROBES_PER_PROJECT:
-                # Out of probe budget: presence is unknowable, so be conservative.
-                resolved = CacheOutcome.UNKNOWN
-            else:
-                presence = count_spans_with_cache_attributes(project, candidate.stats, window)
-                # None means the call site could not be queried at all, so no
-                # query was issued and the budget is intact. Charging for it
-                # would let a handful of unexpressible call sites spend the
-                # whole budget without asking EAP anything.
-                if presence is not None:
-                    probes_run += 1
-                resolved = resolve_with_cache_presence(candidate.outcome, presence)
+            # An unqueryable call site and an exhausted budget both leave presence
+            # unknown, which the resolver treats conservatively. Only a query that
+            # actually reached EAP is charged: charging for the rest would let a
+            # handful of unexpressible call sites spend the whole budget.
+            presence = (
+                count_spans_with_cache_attributes(project, candidate.stats, window)
+                if probes_remaining > 0
+                else None
+            )
+            if presence is not None:
+                probes_remaining -= 1
+            resolved = resolve_with_cache_presence(candidate.outcome, presence)
             if resolved != candidate.outcome:
                 outcome_counts[candidate.outcome] -= 1
                 outcome_counts[resolved] += 1
@@ -233,21 +226,19 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             sample_rate=1.0,
         )
 
-    # Prices come from a single cache entry covering every model, so one load
-    # serves every finding in the run.
-    pricebook = ModelPricebook.load() if findings else None
-
-    sent_count = 0
-    for finding in findings:
-        sample_calls = fetch_sample_calls(project, finding.stats, window)
-        savings = pricebook.estimate(finding) if pricebook is not None else None
-        send_llm_cache_issue_to_platform(project, finding, sample_calls, window, savings)
-        sent_count += 1
-        metrics.incr(
-            "llm_cache_issue_detection.issues.sent",
-            tags={"kind": finding.outcome.value},
-            sample_rate=1.0,
-        )
+    if findings:
+        # Prices come from a single cache entry covering every model, so one load
+        # serves every finding in the run.
+        pricebook = ModelPricebook.load()
+        for finding in findings:
+            sample_calls = fetch_sample_calls(project, finding.stats, window)
+            savings = pricebook.estimate(finding)
+            send_llm_cache_issue_to_platform(project, finding, sample_calls, window, savings)
+            metrics.incr(
+                "llm_cache_issue_detection.issues.sent",
+                tags={"kind": finding.outcome.value},
+                sample_rate=1.0,
+            )
 
     if rejected_already_exists_count:
         metrics.incr(
@@ -264,6 +255,6 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             "organization_id": project.organization_id,
             "call_site_count": len(all_stats),
             "outcome_counts": {outcome.value: count for outcome, count in outcome_counts.items()},
-            "issues_sent": sent_count,
+            "issues_sent": len(findings),
         },
     )

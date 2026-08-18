@@ -232,18 +232,15 @@ def find_contrast_anchor(
     stats: CallSiteStats, all_stats: Sequence[CallSiteStats]
 ) -> ContrastAnchor | None:
     """Find the best same-model, high-hit-rate call site elsewhere in the project."""
-    best: CallSiteStats | None = None
-    for candidate in all_stats:
-        if candidate.group_key == stats.group_key:
-            continue
-        if candidate.model != stats.model:
-            continue
-        if candidate.call_count < MIN_CALLS_PER_WINDOW:
-            continue
-        if candidate.hit_rate < CONTRAST_ANCHOR_MIN_HIT_RATE:
-            continue
-        if best is None or candidate.hit_rate > best.hit_rate:
-            best = candidate
+    candidates = (
+        candidate
+        for candidate in all_stats
+        if candidate.group_key != stats.group_key
+        and candidate.model == stats.model
+        and candidate.call_count >= MIN_CALLS_PER_WINDOW
+        and candidate.hit_rate >= CONTRAST_ANCHOR_MIN_HIT_RATE
+    )
+    best = max(candidates, key=lambda candidate: candidate.hit_rate, default=None)
     if best is None:
         return None
     return ContrastAnchor(

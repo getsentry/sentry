@@ -30,7 +30,6 @@ FINDING_TITLES: dict[CacheOutcome, str] = {
     CacheOutcome.THRASH: "LLM Cache Thrash",
 }
 
-
 # Versioned so grouping can change later without merging into existing issues.
 FINGERPRINT_VERSION = "v1"
 
@@ -95,24 +94,14 @@ def _format_call_site(stats: CallSiteStats) -> str:
     return " | ".join(parts)
 
 
-@trace
-def send_llm_cache_issue_to_platform(
-    project: Project,
+def _build_evidence_data(
     finding: CacheFinding,
     sample_calls: list[SampleCall],
     window: DetectionWindow,
     savings: SavingsEstimate | None,
-) -> None:
-    """Produce an occurrence for a flagged call-site group."""
+) -> dict[str, Any]:
+    """The machine-readable half of the occurrence, which the issue page renders from."""
     stats = finding.stats
-    fingerprint = create_fingerprint(stats)
-    anchor = finding.anchor
-    now = datetime.now(UTC)
-    event_id = uuid4().hex
-
-    call_site = _format_call_site(stats)
-    write_read_ratio = stats.write_read_ratio
-
     evidence_data: dict[str, Any] = {
         # The two outcomes render differently and can swap between runs on one
         # issue, so the reading has to be a field rather than inferred from the
@@ -126,7 +115,7 @@ def send_llm_cache_issue_to_platform(
         "model": stats.model,
         "call_count": stats.call_count,
         "hit_rate": stats.hit_rate,
-        "write_read_ratio": write_read_ratio,
+        "write_read_ratio": stats.write_read_ratio,
         "avg_input_tokens": stats.avg_input_tokens,
         "uncached_tokens": stats.uncached_tokens,
         "sum_input_tokens": stats.sum_input_tokens,
@@ -158,10 +147,35 @@ def send_llm_cache_issue_to_platform(
         if savings.overpay_vs_no_cache_usd is not None:
             evidence_data["overpay_vs_no_cache_usd"] = savings.overpay_vs_no_cache_usd
 
-    # Exactly one row per outcome is important: integrations render only the
-    # first important row, so it must carry the finding's distinguishing number.
+    anchor = finding.anchor
+    if anchor is not None:
+        evidence_data.update(
+            {
+                "contrast_model": anchor.model,
+                "contrast_transaction": anchor.transaction,
+                "contrast_span_description": anchor.span_description,
+                "contrast_hit_rate": anchor.hit_rate,
+                "contrast_call_count": anchor.call_count,
+                "contrast_avg_input_tokens": anchor.avg_input_tokens,
+            }
+        )
+
+    return evidence_data
+
+
+def _build_evidence_display(
+    finding: CacheFinding, sample_calls: list[SampleCall], savings: SavingsEstimate | None
+) -> list[IssueEvidence]:
+    """The human-readable half, as rows.
+
+    Exactly one row per outcome is important: integrations render only the first
+    important row, so it must carry the finding's distinguishing number.
+    """
+    stats = finding.stats
+    write_read_ratio = stats.write_read_ratio
+
     evidence_display = [
-        IssueEvidence(name="Call site", value=call_site, important=False),
+        IssueEvidence(name="Call site", value=_format_call_site(stats), important=False),
         IssueEvidence(name="Window", value=f"{DETECTION_WINDOW_DAYS}d", important=False),
         IssueEvidence(name="Calls", value=f"{stats.call_count:,}", important=False),
         IssueEvidence(
@@ -176,17 +190,18 @@ def send_llm_cache_issue_to_platform(
             ),
             important=finding.outcome == CacheOutcome.THRASH,
         ),
-        *(
-            [
-                IssueEvidence(
-                    name="Avoidable spend",
-                    value=_format_usd(savings.estimated_savings_usd),
-                    important=False,
-                )
-            ]
-            if savings is not None
-            else []
-        ),
+    ]
+
+    if savings is not None:
+        evidence_display.append(
+            IssueEvidence(
+                name="Avoidable spend",
+                value=_format_usd(savings.estimated_savings_usd),
+                important=False,
+            )
+        )
+
+    evidence_display += [
         IssueEvidence(
             name="Avg input tokens", value=_format_tokens(stats.avg_input_tokens), important=False
         ),
@@ -210,17 +225,8 @@ def send_llm_cache_issue_to_platform(
         ),
     ]
 
+    anchor = finding.anchor
     if anchor is not None:
-        evidence_data.update(
-            {
-                "contrast_model": anchor.model,
-                "contrast_transaction": anchor.transaction,
-                "contrast_span_description": anchor.span_description,
-                "contrast_hit_rate": anchor.hit_rate,
-                "contrast_call_count": anchor.call_count,
-                "contrast_avg_input_tokens": anchor.avg_input_tokens,
-            }
-        )
         evidence_display.append(
             IssueEvidence(
                 name="Healthy comparison",
@@ -241,13 +247,23 @@ def send_llm_cache_issue_to_platform(
             )
         )
 
+    return evidence_display
+
+
+def _build_event_data(
+    project: Project,
+    stats: CallSiteStats,
+    sample_calls: list[SampleCall],
+    event_id: str,
+    detection_time: datetime,
+) -> dict[str, Any]:
     event_data: dict[str, Any] = {
         "event_id": event_id,
         "project_id": project.id,
         # The occurrence consumer's event schema rejects a null platform.
         "platform": get_base_platform(project.platform) or "other",
-        "timestamp": now.isoformat(),
-        "received": now.isoformat(),
+        "timestamp": detection_time.isoformat(),
+        "received": detection_time.isoformat(),
         "tags": {
             "transaction": stats.transaction,
             "gen_ai.request.model": stats.model,
@@ -260,17 +276,32 @@ def send_llm_cache_issue_to_platform(
                 "type": "trace",
             }
         }
+    return event_data
+
+
+@trace
+def send_llm_cache_issue_to_platform(
+    project: Project,
+    finding: CacheFinding,
+    sample_calls: list[SampleCall],
+    window: DetectionWindow,
+    savings: SavingsEstimate | None,
+) -> None:
+    """Produce an occurrence for a flagged call-site group."""
+    stats = finding.stats
+    now = datetime.now(UTC)
+    event_id = uuid4().hex
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event_id,
         project_id=project.id,
-        fingerprint=[fingerprint],
+        fingerprint=[create_fingerprint(stats)],
         issue_title=FINDING_TITLES[finding.outcome],
-        subtitle=call_site,
+        subtitle=_format_call_site(stats),
         resource_id=None,
-        evidence_data=evidence_data,
-        evidence_display=evidence_display,
+        evidence_data=_build_evidence_data(finding, sample_calls, window, savings),
+        evidence_display=_build_evidence_display(finding, sample_calls, savings),
         type=LLMCacheUsageGroupType,
         detection_time=now,
         culprit=stats.transaction,
@@ -278,7 +309,9 @@ def send_llm_cache_issue_to_platform(
     )
 
     produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_data
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data=_build_event_data(project, stats, sample_calls, event_id, now),
     )
 
 
