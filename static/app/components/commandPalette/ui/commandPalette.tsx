@@ -294,6 +294,10 @@ export function CommandPalette({
   const resultsListRef = useRef<HTMLDivElement>(null);
 
   const actionSections = useMemo(() => groupActionsBySection(actions), [actions]);
+  const disabledKeys = useMemo(
+    () => actions.filter(action => action.disabled).map(action => action.key),
+    [actions]
+  );
 
   const treeState = useListState<CommandPaletteActionMenuItem>({
     children: actionSections.flatMap(section => {
@@ -306,6 +310,7 @@ export function CommandPalette({
           ]
         : items;
     }),
+    disabledKeys,
   });
 
   const firstFocusableKey = useMemo(() => {
@@ -493,7 +498,7 @@ export function CommandPalette({
       }
     ) => {
       const action = actions.find(a => a.key === key);
-      if (!action) {
+      if (!action || action.disabled) {
         return;
       }
 

@@ -729,19 +729,16 @@ function QueryClauseActions() {
             onChange={nextVisualize => updateVisualize(index, nextVisualize)}
             seriesId={`spans-series-${index}`}
           />
-          {draftVisualizes.length > 1 && (
-            <CMDKAction
-              display={{label: t('Delete Series')}}
-              keywords={['delete', 'remove', 'series']}
-              onAction={() =>
-                setDraftVisualizes(currentVisualizes =>
-                  currentVisualizes.filter(
-                    (_, visualizeIndex) => visualizeIndex !== index
-                  )
-                )
-              }
-            />
-          )}
+          <CMDKAction
+            disabled={draftVisualizes.length === 1}
+            display={{label: t('Delete Series')}}
+            keywords={['delete', 'remove', 'series']}
+            onAction={() =>
+              setDraftVisualizes(currentVisualizes =>
+                currentVisualizes.filter((_, visualizeIndex) => visualizeIndex !== index)
+              )
+            }
+          />
         </CMDKAction>
       ))}
     </CMDKChainedActionScope>

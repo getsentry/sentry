@@ -49,6 +49,7 @@ interface CMDKTextInput {
 
 interface CMDKActionDataBase {
   display: DisplayProps;
+  disabled?: boolean;
   keywords?: string[];
   limit?: number;
   order?: number;
@@ -102,6 +103,8 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /** Keeps the action visible while preventing selection. */
+  disabled?: boolean;
   /**
    * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
    * guarantee the section always sorts last in search results regardless of score.
@@ -186,6 +189,7 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
  * children function to fetch and populate async results.
  */
 export function CMDKAction<TData = unknown>({
+  disabled,
   display,
   keywords,
   children,
@@ -216,6 +220,7 @@ export function CMDKAction<TData = unknown>({
       to === undefined
         ? onAction === undefined
           ? {
+              disabled,
               display,
               keywords,
               ref,
@@ -227,6 +232,7 @@ export function CMDKAction<TData = unknown>({
               slot: slotName ?? undefined,
             }
           : {
+              disabled,
               display,
               keywords,
               ref,
@@ -241,6 +247,7 @@ export function CMDKAction<TData = unknown>({
               textInput,
             }
         : {
+            disabled,
             display,
             keywords,
             ref,
@@ -252,6 +259,7 @@ export function CMDKAction<TData = unknown>({
           },
     [
       chainedActionScope,
+      disabled,
       display,
       effectiveLimit,
       keywords,

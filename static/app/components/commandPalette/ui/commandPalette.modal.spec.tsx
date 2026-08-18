@@ -106,6 +106,33 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps disabled actions visible but prevents selection', async () => {
+    const closeModalSpy = jest.fn();
+    const disabledActionSpy = jest.fn();
+
+    render(
+      <CommandPaletteProvider>
+        <CommandPaletteSlot name="task">
+          <CMDKAction
+            disabled
+            display={{label: 'Delete Series'}}
+            onAction={disabledActionSpy}
+          />
+        </CommandPaletteSlot>
+        <SlotOutlets />
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    const action = await screen.findByRole('option', {name: 'Delete Series'});
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(action);
+
+    expect(disabledActionSpy).not.toHaveBeenCalled();
+    expect(closeModalSpy).not.toHaveBeenCalled();
+  });
+
   it('keeps the modal open when a prompt action is selected', async () => {
     const closeModalSpy = jest.fn();
 
