@@ -932,6 +932,10 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/2'
     );
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
     const approvedTag = getTagForText('Approved');
     const checksPassingTag = getTagForText('Checks Passing');
     expect(
@@ -1078,6 +1082,30 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/5'
     );
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
+  });
+
+  it('renders a Seer button alongside a merged pull request', async () => {
+    mockOverview({
+      base: {
+        pull_requests_merged: [
+          {
+            ...rootCauseRun,
+            pullRequests: [pullRequestFixture({number: 8, status: 'merged'})],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('button', {name: /Merged #8/})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/8'
+    );
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
   });
 
   it('labels non-modified files with their change type', async () => {
