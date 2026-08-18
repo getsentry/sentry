@@ -10,10 +10,6 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Version} from 'sentry/components/version';
@@ -118,6 +114,21 @@ export default function SessionDetailView() {
     // The handle rather than the subject: it comes from the id, so it is stable
     // from first paint instead of flashing "Anonymous" until the queries land.
     <SentryDocumentTitle title={t('Session %s', name.handle)} orgSlug={organization.slug}>
+      {/*
+        No filter bar. A session is already pinned to a project, an environment and
+        its own span of time, so there was nothing here worth setting: two of the
+        three could only subtract, and the third is worse than useless — a range
+        landing inside the session clips the `min`/`max` aggregates `bounds` comes
+        from, which moves the session's zero, so offsets, lane counts, the opening
+        route and the health verdict all quietly describe a slice.
+
+        Hidden rather than disconnected, for now. The params still scope every query
+        through `usePageFilters`, they just have no control — so a session older than
+        the persisted range still renders empty with nothing on screen to widen it.
+        Cutting the dependency is the real fix: querying every project over the
+        retention window broke the spans reads, so it is parked until that is pinned
+        down rather than shipped on a guess.
+      */}
       <PageFiltersContainer>
         <AnalyticsArea name="explore.usersessions.detail">
           {/*
@@ -141,12 +152,6 @@ export default function SessionDetailView() {
             </TopBar.Slot>
 
             <Stack flex={1} minHeight="0" padding="lg xl" gap="xl">
-              <StyledPageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </StyledPageFilterBar>
-
               <Flex align="center" gap="md">
                 {/* The handle names the session; the full id is what other tools
                         take, so it stays one click away, against the handle. */}
@@ -243,10 +248,6 @@ export default function SessionDetailView() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  width: auto;
-`;
 
 /**
  * Holds the chart, the filters and the rail as one column, and gives the rail
