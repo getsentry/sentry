@@ -580,7 +580,7 @@ class ArtifactBundlePostAssembler:
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(ArtifactBundle)):
             existing_artifact_bundles = list(
                 ArtifactBundle.objects.filter(
                     organization_id=self.organization.id, bundle_id=bundle_id
