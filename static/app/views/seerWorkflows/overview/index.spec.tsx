@@ -28,7 +28,7 @@ import type {
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui'],
+    features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
 
@@ -256,34 +256,121 @@ describe('AutofixOverview', () => {
     await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
   });
 
-  it('opens the Seer drawer in place when the URL carries a group id', async () => {
-    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
-    const groupRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/`,
-      body: GroupFixture({id: '2'}),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {autofix: null},
-    });
-    // Hold setup open so the drawer sits in its loading state and fires no
+  describe('Seer drawer', () => {
+    // Holds setup open so the drawer sits in its loading state and fires no
     // downstream content requests.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/setup/`,
-      asyncDelay: new Promise<void>(() => {}),
-      body: {},
+    function mockDrawerFor(groupId: string) {
+      const groupRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/`,
+        body: GroupFixture({id: groupId}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+        asyncDelay: new Promise<void>(() => {}),
+        body: {},
+      });
+      return groupRequest;
+    }
+
+    function seerDrawer() {
+      return screen.queryByRole('complementary', {name: 'Seer drawer'});
+    }
+
+    it('opens in place when the URL carries a group id', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      const groupRequest = mockDrawerFor('2');
+
+      renderPage({seerDrawer: '2'});
+
+      // The overview list stays mounted behind the drawer.
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(groupRequest).toHaveBeenCalled();
     });
 
-    renderPage({seerDrawer: '2'});
+    it('stays closed when the org lacks gen-ai access', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
 
-    // The overview list stays mounted behind the drawer.
-    expect(
-      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByRole('complementary', {name: 'Seer drawer'})
-    ).toBeInTheDocument();
-    expect(groupRequest).toHaveBeenCalled();
+      render(<AutofixOverview />, {
+        organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
+        initialRouterConfig: {
+          location: {pathname: basePath, query: {seerDrawer: '2'}},
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+    });
+
+    it('clears the param and closes when the drawer is dismissed', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+      expect(router.location.query.seerDrawer).toBeUndefined();
+    });
+
+    it('closes when the group id leaves the URL (back navigation)', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      router.navigate(basePath);
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+    });
+
+    it('switches to another run when the URL group id changes', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+      const group3Request = mockDrawerFor('3');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(group3Request).not.toHaveBeenCalled();
+
+      router.navigate(`${basePath}?seerDrawer=3`);
+
+      await waitFor(() => expect(group3Request).toHaveBeenCalled());
+      expect(seerDrawer()).toBeInTheDocument();
+    });
+
+    it('shows an error state when the group fails to load', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/2/`,
+        statusCode: 500,
+      });
+
+      renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByText('There was an error loading data.')
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders All Runs and In Progress tabs with counts', async () => {

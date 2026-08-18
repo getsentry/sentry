@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 function SeerDrawerLoader({groupId}: {groupId: string}) {
@@ -28,6 +29,7 @@ function SeerDrawerLoader({groupId}: {groupId: string}) {
 // a reload reopen the drawer for the same run.
 export function useOverviewSeerDrawer() {
   const {openDrawer} = useDrawer();
+  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const locationRef = useRef(location);
@@ -35,12 +37,14 @@ export function useOverviewSeerDrawer() {
     locationRef.current = location;
   });
 
+  const hasSeerAccess =
+    organization.features.includes('gen-ai-features') && !organization.hideAiFeatures;
   const groupId = decodeScalar(location.query.seerDrawer);
 
-  // Keyed on groupId so a fresh id (a reload, or a second card) reopens the
-  // drawer for that run; openDrawer replaces any drawer already open.
+  // The group id lives in the URL so a reload or a second card reopens the
+  // drawer for that run.
   useEffect(() => {
-    if (!groupId) {
+    if (!groupId || !hasSeerAccess) {
       return;
     }
     const pathname = locationRef.current.pathname;
@@ -49,15 +53,16 @@ export function useOverviewSeerDrawer() {
       drawerKey: 'seer-autofix-drawer',
       resizable: true,
       mode: 'passive',
-      shouldCloseOnLocationChange: nextLocation => nextLocation.pathname !== pathname,
+      // Close when leaving the overview or when the param stops pointing here, so
+      // browser back/forward can't orphan the drawer.
+      shouldCloseOnLocationChange: nextLocation =>
+        nextLocation.pathname !== pathname ||
+        decodeScalar(nextLocation.query.seerDrawer) !== groupId,
       onClose: () =>
         navigate(
-          {
-            pathname,
-            query: {...locationRef.current.query, seerDrawer: undefined},
-          },
+          {pathname, query: {...locationRef.current.query, seerDrawer: undefined}},
           {replace: true, preventScrollReset: true}
         ),
     });
-  }, [groupId, openDrawer, navigate]);
+  }, [groupId, hasSeerAccess, openDrawer, navigate]);
 }
