@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -310,8 +311,16 @@ export function SessionScrubber({
    * Categorical rather than semantic: a route is not good or bad, and borrowing
    * `danger` for one would say it was. Indexed by the visit's own `colorIndex`, so
    * a route keeps its color across every visit to it.
+   *
+   * Held by identity rather than rebuilt each render, because that identity is
+   * what keeps the band below memoized: a fresh palette would rebuild
+   * `routeColor`, and a fresh `routeColor` would rebuild every segment on every
+   * pointer move.
    */
-  const routePalette = theme.chart.getColorPalette(ROUTE_PALETTE);
+  const routePalette = useMemo(
+    () => theme.chart.getColorPalette(ROUTE_PALETTE),
+    [theme.chart]
+  );
   const routeColor = useCallback(
     (visit: RouteVisit) => routePalette[visit.colorIndex % routePalette.length]!,
     [routePalette]
@@ -376,6 +385,16 @@ export function SessionScrubber({
       }, ZOOM_COMMIT_MS);
     },
     [bounds, onChangeWindow]
+  );
+
+  /**
+   * The strip's own commit, hoisted out of the JSX so it keeps one identity. An
+   * inline arrow would be a new prop on every pointer move, which is enough on its
+   * own to re-render the strip's several hundred ticks.
+   */
+  const commitView = useCallback(
+    (next: SessionRange | null) => setView(next, false),
+    [setView]
   );
 
   useEffect(
@@ -674,7 +693,7 @@ export function SessionScrubber({
           view={view}
           events={overviewEvents}
           buckets={buckets}
-          onChangeView={next => setView(next, false)}
+          onChangeView={commitView}
         />
 
         <HeaderCell>
@@ -738,62 +757,14 @@ export function SessionScrubber({
                 </Fragment>
               )}
             </RouteLabel>
-            <RouteTrack>
-              {routeVisits.map(visit => {
-                const from = toPercent(visit.start);
-                const to = toPercent(visit.end);
-                if (to <= 0 || from >= 100) {
-                  return null;
-                }
-                // Clamped to the viewport rather than left to overflow. A
-                // segment's name sits at its leading edge, so zooming into the
-                // middle of a long stay would otherwise leave an unnamed wash — the
-                // one place the band is most worth reading.
-                //
-                // The two channels that state a *moment* drop out when that moment
-                // is off-screen: the arrival rule, and the departure's rounded
-                // corner. Clamped geometry must not go on to claim the user arrived
-                // at the edge of the viewport.
-                const left = Math.max(0, from);
-                const widthPercent = Math.min(100, to) - left;
-                return (
-                  <RouteSegment
-                    key={`${visit.route}-${visit.start}`}
-                    data-test-id="route-visit"
-                    data-hover={hoverRoute === visit ? true : undefined}
-                    // The same string the guide shows on hover, so a segment whose
-                    // label was dropped or clipped still says what it is — the way
-                    // the rail titles its own truncated text.
-                    title={describeRoute(visit, bounds.start)}
-                    style={{
-                      left: `${left}%`,
-                      width: `${widthPercent}%`,
-                      // `color-mix` rather than eleven hand-picked fill tokens: the
-                      // wash has to stay under body text at every one of the hues,
-                      // and mixing each toward the surface keeps that relationship
-                      // instead of hoping eleven literals hold it.
-                      background: `color-mix(in srgb, ${routeColor(visit)} 22%, transparent)`,
-                      borderLeftColor: from < 0 ? 'transparent' : routeColor(visit),
-                      borderRadius: to > 100 ? 0 : undefined,
-                    }}
-                  >
-                    {/*
-                      Dropped rather than ellipsed once the segment is narrower than
-                      a name needs: two characters and a "…" is not a route, and the
-                      guide label says the whole thing on hover either way.
-                    */}
-                    {/* An unmeasured track shows every label: overflow is already
-                        hidden, so guessing "wide enough" costs a clipped name at
-                        worst, while guessing the other way blanks the band for a
-                        frame. */}
-                    {(width === 0 ||
-                      (widthPercent / 100) * width >= ROUTE_LABEL_MIN_PX) && (
-                      <RouteName>{visit.route}</RouteName>
-                    )}
-                  </RouteSegment>
-                );
-              })}
-            </RouteTrack>
+            <RouteBand
+              visits={routeVisits}
+              hoverRoute={hoverRoute}
+              toPercent={toPercent}
+              routeColor={routeColor}
+              sessionStart={bounds.start}
+              width={width}
+            />
           </Fragment>
         )}
 
@@ -809,35 +780,12 @@ export function SessionScrubber({
           particular visit carries nothing.
         */}
         {hasRoutes && (
-          <Bands aria-hidden style={{gridRow: `${firstLaneRow} / -1`}}>
-            {routeVisits.map((visit, index) => {
-              const from = toPercent(visit.start);
-              const to = toPercent(visit.end);
-              if (to <= 0 || from >= 100) {
-                return null;
-              }
-              const left = Math.max(0, from);
-              return (
-                <Fragment key={`${visit.route}-${visit.start}`}>
-                  {index % 2 === 1 && (
-                    <BandTint
-                      style={{left: `${left}%`, width: `${Math.min(100, to) - left}%`}}
-                    />
-                  )}
-                  {/* Only where the change is actually in view — a rule pinned to
-                      the viewport's edge would invent a boundary there. */}
-                  {index > 0 && from >= 0 && (
-                    <BandEdge
-                      style={{
-                        left: `${from}%`,
-                        borderLeftColor: `color-mix(in srgb, ${routeColor(visit)} 70%, transparent)`,
-                      }}
-                    />
-                  )}
-                </Fragment>
-              );
-            })}
-          </Bands>
+          <BandWash
+            visits={routeVisits}
+            toPercent={toPercent}
+            routeColor={routeColor}
+            firstLaneRow={firstLaneRow}
+          />
         )}
 
         {LANES.map((config, index) => {
@@ -1190,6 +1138,144 @@ function Highlight({
 }
 
 /**
+ * The route band's segments.
+ *
+ * Memoized, and split out for exactly that reason. Its inputs only move when the
+ * viewport does or when the pointer crosses a segment boundary — which is a dozen
+ * times across a sweep, not once per pointer event — so leaving it inline made the
+ * band's hundred-odd elements re-serialize their styles on every move.
+ */
+const RouteBand = memo(function RouteBandImpl({
+  visits,
+  hoverRoute,
+  toPercent,
+  routeColor,
+  sessionStart,
+  width,
+}: {
+  hoverRoute: RouteVisit | null;
+  routeColor: (visit: RouteVisit) => string;
+  sessionStart: number;
+  toPercent: (timestamp: number) => number;
+  visits: RouteVisit[];
+  width: number;
+}) {
+  return (
+    <RouteTrack>
+      {visits.map(visit => {
+        const from = toPercent(visit.start);
+        const to = toPercent(visit.end);
+        if (to <= 0 || from >= 100) {
+          return null;
+        }
+        // Clamped to the viewport rather than left to overflow. A segment's name
+        // sits at its leading edge, so zooming into the middle of a long stay
+        // would otherwise leave an unnamed wash — the one place the band is most
+        // worth reading.
+        //
+        // The two channels that state a *moment* drop out when that moment is
+        // off-screen: the arrival rule, and the departure's rounded corner.
+        // Clamped geometry must not go on to claim the user arrived at the edge
+        // of the viewport.
+        const left = Math.max(0, from);
+        const widthPercent = Math.min(100, to) - left;
+        return (
+          <RouteSegment
+            key={`${visit.route}-${visit.start}`}
+            data-test-id="route-visit"
+            data-hover={hoverRoute === visit ? true : undefined}
+            // The same string the guide shows on hover, so a segment whose label
+            // was dropped or clipped still says what it is — the way the rail
+            // titles its own truncated text.
+            title={describeRoute(visit, sessionStart)}
+            style={{
+              left: `${left}%`,
+              width: `${widthPercent}%`,
+              // `color-mix` rather than eleven hand-picked fill tokens: the wash
+              // has to stay under body text at every one of the hues, and mixing
+              // each toward the surface keeps that relationship instead of hoping
+              // eleven literals hold it.
+              background: `color-mix(in srgb, ${routeColor(visit)} 22%, transparent)`,
+              borderLeftColor: from < 0 ? 'transparent' : routeColor(visit),
+              borderRadius: to > 100 ? 0 : undefined,
+            }}
+          >
+            {/*
+              Dropped rather than ellipsed once the segment is narrower than a name
+              needs: two characters and a "…" is not a route, and the guide label
+              says the whole thing on hover either way.
+            */}
+            {/* An unmeasured track shows every label: overflow is already hidden,
+                so guessing "wide enough" costs a clipped name at worst, while
+                guessing the other way blanks the band for a frame. */}
+            {(width === 0 || (widthPercent / 100) * width >= ROUTE_LABEL_MIN_PX) && (
+              <RouteName>{visit.route}</RouteName>
+            )}
+          </RouteSegment>
+        );
+      })}
+    </RouteTrack>
+  );
+});
+
+/**
+ * The route's reach into the lanes, and the reason the band reads as overarching
+ * rather than as a fifth lane.
+ *
+ * Neutral rather than route-coloured, on purpose. These sit directly behind the
+ * markers — a magenta wash under an error dot would tint how bad the error looks,
+ * and the band above is already where a route's identity is said. What a wash
+ * means here is only "the same side of a boundary as its neighbours", which is why
+ * alternating is enough and the parity of a particular visit carries nothing.
+ *
+ * Memoized for the same reason as {@link RouteBand}: nothing here reads the
+ * pointer, so nothing here should be rebuilt by it.
+ */
+const BandWash = memo(function BandWashImpl({
+  visits,
+  toPercent,
+  routeColor,
+  firstLaneRow,
+}: {
+  firstLaneRow: number;
+  routeColor: (visit: RouteVisit) => string;
+  toPercent: (timestamp: number) => number;
+  visits: RouteVisit[];
+}) {
+  return (
+    <Bands aria-hidden style={{gridRow: `${firstLaneRow} / -1`}}>
+      {visits.map((visit, index) => {
+        const from = toPercent(visit.start);
+        const to = toPercent(visit.end);
+        if (to <= 0 || from >= 100) {
+          return null;
+        }
+        const left = Math.max(0, from);
+        return (
+          <Fragment key={`${visit.route}-${visit.start}`}>
+            {index % 2 === 1 && (
+              <BandTint
+                style={{left: `${left}%`, width: `${Math.min(100, to) - left}%`}}
+              />
+            )}
+            {/* Only where the change is actually in view — a rule pinned to the
+                viewport's edge would invent a boundary there. */}
+            {index > 0 && from >= 0 && (
+              <BandEdge
+                style={{
+                  left: `${from}%`,
+                  borderLeftColor: `color-mix(in srgb, ${routeColor(visit)} 70%, transparent)`,
+                }}
+              />
+            )}
+          </Fragment>
+        );
+      })}
+    </Bands>
+  );
+});
+
+/**
  * The whole session, whatever the lanes are showing of it.
  *
  * Zooming costs the one thing a fixed chart had for free: knowing where you are.
@@ -1205,8 +1291,13 @@ function Highlight({
  * Pointer-only, and hidden from assistive tech on the same grounds the lanes are:
  * it does nothing the focusable track's own arrow keys do not already do, and a
  * second stop that repeats the first is not an affordance.
+ *
+ * Memoized, because it is the densest thing on the chart and the one with least
+ * reason to move: it draws the *whole* session, so it is unchanged by every hover,
+ * and it is only the viewport frame on top of it that a zoom shifts. Left inline
+ * it was several hundred ticks re-serializing their styles at pointer rate.
  */
-function Overview({
+const Overview = memo(function OverviewImpl({
   bounds,
   view,
   events,
@@ -1384,6 +1475,34 @@ function Overview({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
+      <OverviewTicks ticks={ticks} buckets={buckets} />
+      <OverviewShade style={{left: 0, width: `${left}%`}} />
+      <OverviewShade style={{left: `${right}%`, right: 0}} />
+      <OverviewViewport
+        data-grabbable={isZoomed || undefined}
+        style={{left: `${left}%`, width: `${right - left}%`}}
+      />
+    </OverviewTrack>
+  );
+});
+
+/**
+ * The strip's activity, which a zoom cannot change.
+ *
+ * Split from the strip and memoized because of that: the ticks are drawn against
+ * the *session*, while the frame over them is drawn against the viewport. Sharing
+ * one component made a wheel gesture redraw several hundred ticks per notch to
+ * move three elements.
+ */
+const OverviewTicks = memo(function OverviewTicksImpl({
+  ticks,
+  buckets,
+}: {
+  buckets: number;
+  ticks: Array<{index: number; opacity: number}>;
+}) {
+  return (
+    <Fragment>
       {ticks.map(tick => (
         <OverviewTick
           key={tick.index}
@@ -1393,15 +1512,9 @@ function Overview({
           }}
         />
       ))}
-      <OverviewShade style={{left: 0, width: `${left}%`}} />
-      <OverviewShade style={{left: `${right}%`, right: 0}} />
-      <OverviewViewport
-        data-grabbable={isZoomed || undefined}
-        style={{left: `${left}%`, width: `${right - left}%`}}
-      />
-    </OverviewTrack>
+    </Fragment>
   );
-}
+});
 
 /**
  * One type's presence over the session, drawn in whichever of the two ways suits
@@ -1411,8 +1524,12 @@ function Overview({
  * reporting a duration is drawn across it. Bars are one element per item because
  * that is the point of them — a bucketed bar would say nothing a dot doesn't —
  * while the density path stays aggregated so an empty stretch costs no DOM.
+ *
+ * Memoized on primitives, so the markers survive a pointer move untouched. The
+ * hover treatment a lane gets is drawn by the overlay above it rather than by the
+ * lane, which is what makes that possible.
  */
-function Lane({
+const Lane = memo(function LaneImpl({
   color,
   events,
   buckets,
@@ -1440,22 +1557,26 @@ function Lane({
     <LaneTrack
       aria-hidden
       data-last={isLast}
-      style={{gridRow: String(row), opacity: isOn ? 1 : 0.3}}
+      // The lane's colour is carried as a variable rather than set on each shape:
+      // it is the same for every marker in the lane and never changes while one is
+      // being drawn, so writing it per element was one inline style property per
+      // marker per zoom notch for a value that had not moved.
+      style={
+        {
+          gridRow: String(row),
+          opacity: isOn ? 1 : 0.3,
+          '--scrubber-lane-color': color,
+        } as CSSProperties
+      }
     >
       {hasDurations ? (
-        <DurationMarkers events={events} domain={domain} start={start} color={color} />
+        <DurationMarkers events={events} domain={domain} start={start} />
       ) : (
-        <DensityMarkers
-          events={events}
-          buckets={buckets}
-          domain={domain}
-          start={start}
-          color={color}
-        />
+        <DensityMarkers events={events} buckets={buckets} domain={domain} start={start} />
       )}
     </LaneTrack>
   );
-}
+});
 
 /**
  * A bar per item, across the time it occupied. Overlapping bars are drawn over
@@ -1466,9 +1587,7 @@ function DurationMarkers({
   events,
   domain,
   start,
-  color,
 }: {
-  color: string;
   domain: number;
   events: SessionEvent[];
   start: number;
@@ -1504,8 +1623,6 @@ function DurationMarkers({
           style={{
             left: `${bar.left}%`,
             width: `max(${BAR_MIN_PX}px, ${bar.width}%)`,
-            height: `${BAR_HEIGHT}px`,
-            background: color,
           }}
         />
       ))}
@@ -1530,10 +1647,8 @@ function DensityMarkers({
   buckets,
   domain,
   start,
-  color,
 }: {
   buckets: number;
-  color: string;
   domain: number;
   events: SessionEvent[];
   start: number;
@@ -1590,7 +1705,6 @@ function DensityMarkers({
             left: `${(marker.index + 0.5) * bucketWidth}%`,
             width: `max(${MARKER_MIN}px, ${bucketWidth}%)`,
             height: `${marker.height}px`,
-            background: color,
           }}
         />
       ))}
@@ -1641,6 +1755,11 @@ const RouteTrack = styled('div')`
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  /* Read by the segments and their names, so those stay static. */
+  --scrubber-route-radius: ${p => p.theme.radius.xs};
+  --scrubber-route-padding: ${p => p.theme.space['2xs']};
+  --scrubber-route-font-size: ${p => p.theme.font.size.xs};
+  --scrubber-route-color: ${p => p.theme.tokens.content.primary};
 `;
 
 /**
@@ -1662,9 +1781,9 @@ const RouteSegment = styled('div')`
    * as the corner of a box — which is the difference between seeing two stays and
    * seeing one, when both stays are on the same route and therefore the same colour.
    */
-  border-radius: 0 ${p => p.theme.radius.xs} ${p => p.theme.radius.xs} 0;
+  border-radius: 0 var(--scrubber-route-radius) var(--scrubber-route-radius) 0;
   border-left: 3px solid transparent;
-  padding: 0 ${p => p.theme.space['2xs']};
+  padding: 0 var(--scrubber-route-padding);
 
   /*
    * Brightened rather than outlined: the fill is one of eleven hues and set
@@ -1677,8 +1796,8 @@ const RouteSegment = styled('div')`
 `;
 
 const RouteName = styled('span')`
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.primary};
+  font-size: var(--scrubber-route-font-size);
+  color: var(--scrubber-route-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1694,6 +1813,13 @@ const Bands = styled('div')`
   position: relative;
   overflow: hidden;
   pointer-events: none;
+  /* Read by the tints and edges below, so those stay static. */
+  --scrubber-band-tint: color-mix(
+    in srgb,
+    ${p => p.theme.tokens.background.transparent.neutral.muted} 35%,
+    transparent
+  );
+  --scrubber-band-edge: ${p => p.theme.tokens.border.neutral.muted};
 `;
 
 /**
@@ -1707,11 +1833,7 @@ const BandTint = styled('div')`
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(
-    in srgb,
-    ${p => p.theme.tokens.background.transparent.neutral.muted} 35%,
-    transparent
-  );
+  background: var(--scrubber-band-tint);
 `;
 
 /**
@@ -1730,7 +1852,7 @@ const BandEdge = styled('div')`
   position: absolute;
   top: 0;
   bottom: 0;
-  border-left: 1px solid ${p => p.theme.tokens.border.neutral.muted};
+  border-left: 1px solid var(--scrubber-band-edge);
 `;
 
 /**
@@ -1757,6 +1879,8 @@ const OverviewTrack = styled('div')`
   touch-action: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.secondary};
+  /* Read by every tick inside, so those stay static. */
+  --scrubber-tick-color: ${p => p.theme.tokens.graphics.neutral.vibrant};
 `;
 
 /** One bucket of the session's activity, at one pixel and full height. */
@@ -1765,7 +1889,7 @@ const OverviewTick = styled('div')`
   top: 3px;
   bottom: 3px;
   width: 1px;
-  background: ${p => p.theme.tokens.graphics.neutral.vibrant};
+  background: var(--scrubber-tick-color);
 `;
 
 /** Outside the viewport, which here is most of the strip most of the time. */
@@ -1877,17 +2001,30 @@ const LaneTrack = styled('div')`
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  /* Read by every {@link Marker} and {@link Bar} inside, so those stay static. */
+  --scrubber-marker-radius: ${p => p.theme.radius.full};
+  --scrubber-bar-radius: ${p => p.theme.radius.xs};
 
   &[data-last='true'] {
     border-bottom: 0;
   }
 `;
 
+// The shapes below read their values from custom properties the lane sets rather
+// than interpolating the theme themselves, and it is worth saying why: a styled
+// component holding a `${p => p.theme…}` has to be re-serialized and re-hashed per
+// instance on every render, and a lane draws these by the hundred. Reading a
+// variable instead makes each one a static rule that emotion serializes once for
+// the whole page, while the value still tracks the theme. The same reasoning moves
+// the lane's colour and the bar's fixed height off the inline `style`: neither
+// changes while a lane is being drawn, so writing them per element per zoom notch
+// was work for a value that had not moved.
 const Marker = styled('div')`
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  border-radius: ${p => p.theme.radius.full};
+  border-radius: var(--scrubber-marker-radius);
+  background: var(--scrubber-lane-color);
 `;
 
 /**
@@ -1898,7 +2035,10 @@ const Bar = styled('div')`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  border-radius: ${p => p.theme.radius.xs};
+  border-radius: var(--scrubber-bar-radius);
+  /* Fixed, unlike a density marker's: see {@link BAR_HEIGHT}. */
+  height: ${BAR_HEIGHT}px;
+  background: var(--scrubber-lane-color);
   opacity: 0.75;
 `;
 
