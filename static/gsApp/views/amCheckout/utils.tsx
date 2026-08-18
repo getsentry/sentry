@@ -246,32 +246,6 @@ export function getReservedPriceCents({
   return reservedCents;
 }
 
-type DiscountedPriceProps = {
-  amount: number;
-  basePrice: number;
-  creditCategory: InvoiceItemType | null;
-  discountType: string;
-};
-
-/**
- * Gets the price in cents after the discount is applied.
- */
-export function getDiscountedPrice({
-  basePrice,
-  discountType,
-  amount,
-  creditCategory,
-}: DiscountedPriceProps): number {
-  let price = basePrice;
-  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
-    const discount = (basePrice * amount) / 10000;
-    price = basePrice - discount;
-  } else if (discountType === 'amountCents') {
-    price = basePrice - amount;
-  }
-  return price;
-}
-
 /**
  * Returns the short billing interval name.
  */

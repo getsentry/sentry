@@ -123,7 +123,7 @@ export function Content({
 
   let nRepeats = 0;
 
-  let convertedFrames = frames
+  const convertedFrames = frames
     .map((frame, frameIndex) => {
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);

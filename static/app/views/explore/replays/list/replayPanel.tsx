@@ -36,9 +36,9 @@ export function ReplayPanel({image, children, ...props}: Props) {
           flex={{xl: 2}}
           minWidth="0"
           style={
-            !image
-              ? {zIndex: 1, textAlign: 'center', maxWidth: '600px'}
-              : {zIndex: 1}
+            image
+              ? {zIndex: 1}
+              : {zIndex: 1, textAlign: 'center', maxWidth: '600px'}
           }
         >
           {children}

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -21,8 +21,7 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
       <div>
         <IntegrationIcon size={32} integration={integration} />
       </div>
-      <Flex
-        direction="column"
+      <Stack
         align={undefined}
         justify="center"
         paddingLeft="md"
@@ -53,7 +52,7 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
             {integration.domainName}
           </Text>
         </DomainName>
-      </Flex>
+      </Stack>
     </Flex>
   );
 }
