@@ -30,6 +30,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AutofixStateKey, OverviewRun} from './types';
@@ -86,13 +87,12 @@ const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
 export function OverviewCardAction({
   run,
   sectionKey,
-  issueUrl,
 }: {
-  issueUrl: string;
   run: OverviewRun;
   sectionKey: ActionableSectionKey;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const config = ACTIONS[sectionKey];
   const [dispatched, setDispatched] = useState(false);
@@ -156,7 +156,10 @@ export function OverviewCardAction({
             <span>{t('Open Seer')}</span>
           </Flex>
         ),
-        to: {pathname: issueUrl, query: {seerDrawer: 'true'}},
+        to: {
+          pathname: location.pathname,
+          query: {...location.query, seerDrawer: run.groupId},
+        },
         onAction: () =>
           trackAnalytics('autofix.overview.open_seer_clicked', {
             organization,
@@ -170,7 +173,8 @@ export function OverviewCardAction({
     codingAgentIntegrations,
     codingAgentDisabledReason,
     handleCodingAgentHandoff,
-    issueUrl,
+    location.pathname,
+    location.query,
     organization,
     run.groupId,
     run.seerRunId,
