@@ -251,6 +251,13 @@ export function SessionScrubber({
    */
   const [pendingView, setPendingView] = useState<SessionRange | null>(null);
   const flush = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Where a wheel gesture has reached, ahead of what has been drawn — and the guide
+   * position that goes with it. Null between gestures, which is what hands the next
+   * notch back to the rendered viewport.
+   */
+  const wheelView = useRef<{hoverAt: number; next: SessionRange | null} | null>(null);
+  const wheelFrame = useRef<number | null>(null);
   const [hoverAt, setHoverAt] = useState<number | null>(null);
   const [hover, setHover] = useState<LaneHit | null>(null);
   /** The route segment under the pointer, which is a different aim than an item. */
@@ -372,6 +379,10 @@ export function SessionScrubber({
         flush.current = null;
       }
       if (!defer) {
+        // Anything that settles the viewport outright ends the gesture the wheel
+        // was accumulating, so the next notch starts from what is on screen rather
+        // than from a viewport this just replaced.
+        wheelView.current = null;
         setPendingView(null);
         onChangeWindow(next);
         return;
@@ -379,6 +390,9 @@ export function SessionScrubber({
       setPendingView(next ?? bounds);
       flush.current = setTimeout(() => {
         flush.current = null;
+        // The gesture is over once the wheel has gone quiet, and what it reached is
+        // about to become the committed viewport.
+        wheelView.current = null;
         // Both in one batch, so no frame renders the pre-gesture viewport.
         setPendingView(null);
         onChangeWindow(next);
@@ -402,6 +416,9 @@ export function SessionScrubber({
       if (flush.current !== null) {
         clearTimeout(flush.current);
       }
+      if (wheelFrame.current !== null) {
+        cancelAnimationFrame(wheelFrame.current);
+      }
     },
     []
   );
@@ -412,6 +429,17 @@ export function SessionScrubber({
    * Horizontal travel — a trackpad's second axis, or shift held — pans instead.
    * That is the gesture a zoomed viewport needs and the one the lanes cannot spare,
    * since a drag across them means zoom.
+   *
+   * A notch does not render. A trackpad reports well above a hundred wheel events
+   * a second, and every one of them changes the domain the whole chart is drawn
+   * against — so rendering each one meant building two chart-fulls of geometry per
+   * displayed frame and throwing one away. Each notch instead folds into
+   * {@link wheelView} and one frame's worth is handed to React on the next
+   * animation frame.
+   *
+   * The gesture accumulates against its own latest viewport rather than the
+   * rendered one, so folding several notches into a frame lands exactly where
+   * applying them one at a time would have.
    */
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -425,33 +453,46 @@ export function SessionScrubber({
       const dy = event.deltaY * scale;
       const dx = event.deltaX * scale;
 
+      // Where the gesture has already reached, which is ahead of what is drawn
+      // whenever more than one notch landed inside a frame.
+      const from = wheelView.current ? (wheelView.current.next ?? bounds) : view;
+      const span = from.end - from.start;
+      const at = from.start + ((event.clientX - rect.left) / rect.width) * span;
+
       const next =
         event.shiftKey || Math.abs(dx) > Math.abs(dy)
           ? // Shift is reported as a horizontal delta by some browsers and a
             // vertical one by others, so whichever axis arrived is the pan.
-            panView(view, bounds, ((dx === 0 ? dy : dx) / rect.width) * domain)
-          : zoomView(
-              view,
-              bounds,
-              fromClientX(event.clientX),
-              Math.exp(dy * ZOOM_PER_PIXEL)
-            );
+            panView(from, bounds, ((dx === 0 ? dy : dx) / rect.width) * span)
+          : zoomView(from, bounds, at, Math.exp(dy * ZOOM_PER_PIXEL));
 
       // Only claim the gesture when it actually moves something. Zooming out at the
       // full extent, or in at the floor, changes nothing — and swallowing the
       // scroll there would leave the page unable to scroll past this chart, which
       // is the failure mode every scroll-to-zoom surface is remembered for.
       const settled = next ?? bounds;
-      if (settled.start === view.start && settled.end === view.end) {
+      if (settled.start === from.start && settled.end === from.end) {
         return;
       }
+      // Synchronous, and it has to be: a deferred `preventDefault` is ignored.
       event.preventDefault();
-      setView(next, true);
       // The zoom is centred on the pointer, so the guide belongs there to say so —
       // read from the old scale, which by that same anchoring is the new one.
-      setHoverAt(fromClientX(event.clientX));
+      wheelView.current = {next, hoverAt: at};
+
+      if (wheelFrame.current === null) {
+        wheelFrame.current = requestAnimationFrame(() => {
+          wheelFrame.current = null;
+          const pending = wheelView.current;
+          if (pending === null) {
+            return;
+          }
+          setView(pending.next, true);
+          setHoverAt(pending.hoverAt);
+        });
+      }
     },
-    [bounds, domain, fromClientX, setView, view]
+    [bounds, setView, view]
   );
 
   /**
