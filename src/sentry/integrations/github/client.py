@@ -1386,6 +1386,17 @@ def resolve_rate_limit_resource(path: str) -> str:
     return GITHUB_RESOURCE_CORE
 
 
+def _header_int(response: Response, header: str) -> int | None:
+    value = response.headers.get(header)
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 def is_rate_limit_response(response: Response) -> bool:
     """Return True if GitHub rejected the request because a rate limit was exhausted."""
     if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
@@ -1487,11 +1498,25 @@ class GitHubApiClient(GitHubBaseClient):
         response = super()._do_send(session, request, session_settings)
 
         try:
-            capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
-            self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
-        except KeyError:
-            # GitHub didn't return rate-limit headers for some unknown reason.
-            metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+            capacity = _header_int(response, GITHUB_RATE_LIMIT_CAPACITY)
+            used = _header_int(response, GITHUB_RATE_LIMIT_USED)
+            reset = _header_int(response, GITHUB_RATE_LIMIT_RESET)
+
+            if capacity is None:
+                # GitHub didn't return rate-limit headers for some unknown reason.
+                metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+            elif used is None or reset is None:
+                # Capacity alone still keeps the limit fresh, but without GitHub's own accounting
+                # we cannot align our window to theirs or correct for requests we mis-counted.
+                metrics.incr("sentry.scm.github.could_not_extract_rate_limit_window")
+                self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
+            else:
+                self.__rate_limiter.update_rate_limit_meta(
+                    capacity=capacity,
+                    consumed=used,
+                    next_window_start=reset,
+                    resource=resource,
+                )
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)

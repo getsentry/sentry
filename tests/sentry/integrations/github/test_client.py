@@ -228,6 +228,106 @@ class GitHubApiClientTest(TestCase):
         assert mock_is_rate_limited.call_args.kwargs["resource"] == "core"
         mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
 
+    @responses.activate
+    def test_rate_limit_window_is_recorded_from_response_headers(self) -> None:
+        """
+        GitHub reports its own accounting on every response. `used` corrects for requests we
+        mis-counted and `reset` tells us when GitHub's window -- which is not aligned to our clock
+        -- actually rolls over.
+        """
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={
+                "x-ratelimit-limit": "5000",
+                "x-ratelimit-used": "1234",
+                "x-ratelimit-reset": "1372700873",
+            },
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_update_meta.assert_called_once_with(
+            capacity=5000, consumed=1234, next_window_start=1372700873, resource="core"
+        )
+
+    @responses.activate
+    def test_capacity_is_still_recorded_without_window_headers(self) -> None:
+        """A response carrying only the limit must still refresh capacity."""
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            mock.patch("sentry.integrations.github.client.metrics") as mock_metrics,
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_update_meta.assert_not_called()
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
+        mock_metrics.incr.assert_any_call("sentry.scm.github.could_not_extract_rate_limit_window")
+
+    @responses.activate
+    def test_no_rate_limit_headers_records_nothing(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            mock.patch("sentry.integrations.github.client.metrics") as mock_metrics,
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_update_meta.assert_not_called()
+        mock_set_capacity.assert_not_called()
+        mock_metrics.incr.assert_any_call("sentry.scm.github.could_not_extract_rate_limit_headers")
+
+    @responses.activate
+    def test_unparseable_rate_limit_headers_record_nothing(self) -> None:
+        """A malformed header must be treated as absent rather than raising into the request path."""
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={
+                "x-ratelimit-limit": "not-a-number",
+                "x-ratelimit-used": "1234",
+                "x-ratelimit-reset": "1372700873",
+            },
+        )
+
+        with (
+            mock.patch.object(DynamicRateLimiter, "is_rate_limited", return_value=False),
+            mock.patch.object(DynamicRateLimiter, "update_rate_limit_meta") as mock_update_meta,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            mock.patch("sentry.integrations.github.client.metrics") as mock_metrics,
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        mock_update_meta.assert_not_called()
+        mock_set_capacity.assert_not_called()
+        mock_metrics.incr.assert_any_call("sentry.scm.github.could_not_extract_rate_limit_headers")
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt) -> None:
