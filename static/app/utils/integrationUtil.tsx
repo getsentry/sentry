@@ -238,6 +238,10 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
       return 'Jira Server';
     case 'perforce':
       return 'Perforce';
+    case 'cursor':
+      return 'Cursor';
+    case 'cursor_origin':
+      return 'Cursor Origin';
     case 'vsts':
       return 'Azure DevOps';
     default:
