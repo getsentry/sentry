@@ -84,6 +84,12 @@ const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
   },
 };
 
+export function getProcessingLabel(sectionKey: AutofixStateKey): string {
+  return sectionKey in ACTIONS
+    ? ACTIONS[sectionKey as ActionableSectionKey].busyLabel
+    : t('Working…');
+}
+
 export function OverviewCardAction({
   run,
   sectionKey,
@@ -285,6 +291,6 @@ export function OverviewCardAction({
   );
 }
 
-const ButtonSpinner = styled(LoadingIndicator)`
+export const ButtonSpinner = styled(LoadingIndicator)`
   margin: 0;
 `;

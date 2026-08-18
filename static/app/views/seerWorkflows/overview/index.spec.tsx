@@ -669,9 +669,22 @@ describe('AutofixOverview', () => {
     expect(issuesRequest).not.toHaveBeenCalled();
   });
 
-  it('shows a working spinner for a run that is processing', async () => {
+  it('shows a step-specific working button that opens Seer for a processing run', async () => {
     mockOverview({
       base: {autofix_root_cause: [{...rootCauseRun, status: 'processing' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Creating Plan…')).toBeInTheDocument();
+
+    const openSeer = screen.getByRole('button', {name: 'Open Seer'});
+    expect(openSeer).toHaveAttribute('href', expect.stringContaining('seerDrawer=2'));
+  });
+
+  it('falls back to a generic working label for a processing run past code changes', async () => {
+    mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, status: 'processing' as const}]},
     });
 
     renderPage();
