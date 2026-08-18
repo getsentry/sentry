@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -11,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
@@ -35,10 +35,17 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
-import {OverviewCardAction} from './overviewCardAction';
+import {
+  ButtonSpinner,
+  getProcessingLabel,
+  OverviewCardAction,
+} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -116,15 +123,41 @@ function OverviewAction({
   run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const organization = useOrganization();
+  const location = useLocation();
   const {pullRequests, status} = run;
   if (status === 'processing') {
     return (
-      <Flex align="center" gap="xs">
-        <LoadingIndicator mini />
-        <Text size="sm" variant="muted">
-          {t('Working…')}
-        </Text>
-      </Flex>
+      <ButtonBar>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled
+          aria-busy
+          icon={<ButtonSpinner size={14} />}
+        >
+          {getProcessingLabel(sectionKey)}
+        </Button>
+        <Tooltip title={t('Open Seer')} skipWrapper>
+          <LinkButton
+            size="sm"
+            variant="secondary"
+            aria-label={t('Open Seer')}
+            icon={<IconSeer size="sm" />}
+            to={{
+              pathname: location.pathname,
+              query: {...location.query, seerDrawer: run.groupId},
+            }}
+            onClick={() =>
+              trackAnalytics('autofix.overview.open_seer_clicked', {
+                organization,
+                group_id: run.groupId,
+                run_id: run.seerRunId,
+              })
+            }
+          />
+        </Tooltip>
+      </ButtonBar>
     );
   }
 
@@ -470,9 +503,17 @@ export function OverviewCard({
                   <TitleLink to={issueUrl}>{run.title}</TitleLink>
                 </Text>
                 <Flex wrap="wrap" gap="md" align="center">
-                  <Text size="sm" monospace variant="muted">
-                    {run.shortId}
-                  </Text>
+                  <Flex gap="xs" align="center">
+                    <ProjectAvatar
+                      project={run.issue.project}
+                      size={12}
+                      hasTooltip
+                      tooltip={run.issue.project.slug}
+                    />
+                    <Text size="sm" monospace variant="muted">
+                      {run.shortId}
+                    </Text>
+                  </Flex>
                   <IssueVitals
                     run={run}
                     statsPeriod={statsPeriod}

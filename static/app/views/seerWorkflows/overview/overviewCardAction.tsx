@@ -84,6 +84,12 @@ const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
   },
 };
 
+export function getProcessingLabel(sectionKey: AutofixStateKey): string {
+  return sectionKey in ACTIONS
+    ? ACTIONS[sectionKey as ActionableSectionKey].busyLabel
+    : t('Working…');
+}
+
 export function OverviewCardAction({
   run,
   sectionKey,
@@ -109,15 +115,26 @@ export function OverviewCardAction({
     }
   );
 
-  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      group: {id: run.groupId, project: run.issue.project},
-      runId: run.seerRunId,
-      step: config.handoffStep,
-      referrer: 'autofix-overview',
-      enabled: menuOpened,
-    });
+  const {hasReposConnected, hasNonGithubRepo} = run.issue.project;
+  const repoEligibility =
+    hasReposConnected === undefined
+      ? undefined
+      : {hasReposConnected, hasNonGithubRepo: hasNonGithubRepo ?? false};
+
+  const {
+    codingAgentIntegrations,
+    codingAgentDisabledReason,
+    handleCodingAgentHandoff,
+    isLoading: isLoadingOptions,
+  } = useCodingAgents({
+    autofix,
+    group: {id: run.groupId, project: run.issue.project},
+    runId: run.seerRunId,
+    step: config.handoffStep,
+    referrer: 'autofix-overview',
+    enabled: menuOpened,
+    repoEligibility,
+  });
 
   const isDraftPr = sectionKey === 'code_changes_ready';
   const {permissionsTarget, isPending: isCreatePrGatePending} = useAutofixCreatePrGate({
@@ -126,6 +143,21 @@ export function OverviewCardAction({
   });
 
   const menuItems = useMemo<MenuItemProps[]>(() => {
+    if (isLoadingOptions) {
+      return [
+        {
+          key: 'loading',
+          textValue: t('Loading'),
+          disabled: true,
+          label: (
+            <Flex justify="center" padding="sm">
+              <LoadingIndicator mini size={20} />
+            </Flex>
+          ),
+        },
+      ];
+    }
+
     const agentItems = (codingAgentIntegrations ?? []).map(integration => {
       const actionLabel =
         integration.requires_identity && !integration.has_identity
@@ -170,6 +202,7 @@ export function OverviewCardAction({
       ...agentItems,
     ];
   }, [
+    isLoadingOptions,
     codingAgentIntegrations,
     codingAgentDisabledReason,
     handleCodingAgentHandoff,
@@ -285,6 +318,6 @@ export function OverviewCardAction({
   );
 }
 
-const ButtonSpinner = styled(LoadingIndicator)`
+export const ButtonSpinner = styled(LoadingIndicator)`
   margin: 0;
 `;

@@ -48,7 +48,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install chromium --with-deps
+        timeout-minutes: 20
+        run: |
+          for i in 1 2 3; do
+            echo "::group::playwright install (attempt $i)"
+            timeout -k 30 4m pnpm exec playwright install chromium --with-deps && exit 0
+            echo "::endgroup::"
+            echo "Attempt $i failed or timed out; retrying in 15s..."
+            sleep 15
+          done
+          echo "playwright install failed after 3 attempts"
+          exit 1
 
       - name: Run snapshot tests
         env:

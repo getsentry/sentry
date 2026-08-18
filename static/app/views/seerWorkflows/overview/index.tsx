@@ -140,8 +140,17 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       <Flex gap="md" align="center" wrap="wrap">
         <PageFilterBar condensed>
           <ProjectPageFilter />
-          <DatePageFilter />
         </PageFilterBar>
+        <DatePageFilter
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
+          )}
+        />
+        <AssigneeFilter
+          runs={allRuns}
+          value={assignee}
+          onChange={next => setQueryParam('assignee', next ?? undefined)}
+        />
         <CompactSelect
           value={sort}
           options={SORT_OPTIONS}
@@ -151,11 +160,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
-        />
-        <AssigneeFilter
-          runs={allRuns}
-          value={assignee}
-          onChange={next => setQueryParam('assignee', next ?? undefined)}
         />
         {isRefetching && <LoadingIndicator mini />}
         {(data?.truncatedMilestones?.length ?? 0) > 0 && (
