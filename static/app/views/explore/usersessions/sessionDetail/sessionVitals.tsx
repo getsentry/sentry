@@ -121,12 +121,12 @@ function VitalPill({
   isLead?: boolean;
 }) {
   return (
-    <Flex>
+    <Pill>
       <PillName status={status}>
         <Tooltip title={tooltip}>{name}</Tooltip>
       </PillName>
       <PillValue isLead={isLead}>{value}</PillValue>
-    </Flex>
+    </Pill>
   );
 }
 
@@ -187,6 +187,17 @@ export function SessionVitalsRow({
     </Flex>
   );
 }
+
+/**
+ * The emboss the item count next to these carries, on the whole pill rather than
+ * on either half: the two halves are one control, and a shadow under each would
+ * draw the seam between them.
+ */
+const Pill = styled('div')`
+  display: inline-flex;
+  border-radius: ${p => p.theme.form.xs.borderRadius};
+  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
+`;
 
 /**
  * Both halves are sized off `form.xs` rather than left to their line box. Every
