@@ -15,7 +15,6 @@ jest.mock('sentry/utils/analytics');
 
 describe('OverviewCardAction', () => {
   const organization = OrganizationFixture();
-  const issueUrl = '/organizations/org-slug/issues/2/';
 
   function issueFixture(): OverviewRunIssue {
     return {
@@ -93,14 +92,9 @@ describe('OverviewCardAction', () => {
         body: {run_id: 1, sentry_run_id: 'run-1'},
       });
 
-      render(
-        <OverviewCardAction
-          run={runFixture()}
-          sectionKey={sectionKey}
-          issueUrl={issueUrl}
-        />,
-        {organization}
-      );
+      render(<OverviewCardAction run={runFixture()} sectionKey={sectionKey} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByRole('button', {name: label}));
 
@@ -143,14 +137,9 @@ describe('OverviewCardAction', () => {
       body: {},
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="code_changes_ready"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="code_changes_ready" />, {
+      organization,
+    });
 
     const permissionsLink = await screen.findByRole('button', {name: /permissions/i});
     expect(permissionsLink).toHaveAttribute(
@@ -168,14 +157,9 @@ describe('OverviewCardAction', () => {
       asyncDelay: 20,
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="code_changes_ready"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="code_changes_ready" />, {
+      organization,
+    });
 
     expect(screen.getByRole('button', {name: 'Draft PR'})).toBeDisabled();
     await waitFor(() =>
@@ -191,37 +175,34 @@ describe('OverviewCardAction', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="needs_investigation" />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Plan'}));
 
     expect(await screen.findByRole('button', {name: 'Create Plan'})).toBeEnabled();
   });
 
-  it('links to the issue with the Seer drawer open from the dropdown', async () => {
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+  it('opens the Seer drawer in place from the dropdown without leaving the overview', async () => {
+    render(<OverviewCardAction run={runFixture()} sectionKey="needs_investigation" />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/autofix/overview/',
+          query: {statsPeriod: '24h'},
+        },
+      },
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
 
     const openSeer = await screen.findByRole('menuitemradio', {name: 'Open Seer'});
-    expect(openSeer).toHaveAttribute(
-      'href',
-      expect.stringContaining('/organizations/org-slug/issues/2/?seerDrawer=true')
-    );
+    const href = openSeer.getAttribute('href') ?? '';
+    expect(href).toContain('/organizations/org-slug/issues/autofix/overview/');
+    expect(href).toContain('seerDrawer=2');
+    expect(href).toContain('statsPeriod=24h');
+    expect(href).not.toContain('/issues/2/');
 
     expect(trackAnalytics).not.toHaveBeenCalledWith(
       'autofix.overview.action_clicked',
@@ -236,14 +217,9 @@ describe('OverviewCardAction', () => {
       body: {failures: [], successes: [{}]},
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="needs_investigation" />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
     await userEvent.click(
@@ -281,14 +257,9 @@ describe('OverviewCardAction', () => {
       body: [{provider: 'github'}],
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="needs_investigation" />, {
+      organization,
+    });
 
     expect(agentsRequest).not.toHaveBeenCalled();
     expect(reposRequest).not.toHaveBeenCalled();
@@ -308,14 +279,9 @@ describe('OverviewCardAction', () => {
       body: [{provider: 'bitbucket'}],
     });
 
-    render(
-      <OverviewCardAction
-        run={runFixture()}
-        sectionKey="needs_investigation"
-        issueUrl={issueUrl}
-      />,
-      {organization}
-    );
+    render(<OverviewCardAction run={runFixture()} sectionKey="needs_investigation" />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'More Seer options'}));
 

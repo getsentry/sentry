@@ -256,6 +256,36 @@ describe('AutofixOverview', () => {
     await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
   });
 
+  it('opens the Seer drawer in place when the URL carries a group id', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/`,
+      body: GroupFixture({id: '2'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {autofix: null},
+    });
+    // Hold setup open so the drawer sits in its loading state and fires no
+    // downstream content requests.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/setup/`,
+      asyncDelay: new Promise<void>(() => {}),
+      body: {},
+    });
+
+    renderPage({seerDrawer: '2'});
+
+    // The overview list stays mounted behind the drawer.
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('complementary', {name: 'Seer drawer'})
+    ).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalled();
+  });
+
   it('renders All Runs and In Progress tabs with counts', async () => {
     mockOverview({
       base: {
