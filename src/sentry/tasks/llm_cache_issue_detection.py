@@ -101,18 +101,20 @@ def run_llm_cache_issue_detection() -> None:
             detect_llm_cache_issues_for_project.delay(project_id)
             dispatched_count += 1
 
-    metrics.incr(
-        "llm_cache_issue_detection.projects.skipped",
-        amount=skipped["no_agent_spans"],
-        tags={"reason": "no_agent_spans"},
-        sample_rate=1.0,
-    )
-    metrics.incr(
-        "llm_cache_issue_detection.projects.skipped",
-        amount=candidate_count - dispatched_count,
-        tags={"reason": "feature_disabled"},
-        sample_rate=1.0,
-    )
+    # Reason tallies are only emitted when they happened; a zero for a reason is
+    # noise. The dispatch count is emitted unconditionally: it is the fan-out's
+    # headline output, and a zero there is the signal that nothing went out.
+    for reason, amount in (
+        ("no_agent_spans", skipped["no_agent_spans"]),
+        ("feature_disabled", candidate_count - dispatched_count),
+    ):
+        if amount > 0:
+            metrics.incr(
+                "llm_cache_issue_detection.projects.skipped",
+                amount=amount,
+                tags={"reason": reason},
+                sample_rate=1.0,
+            )
     metrics.incr(
         "llm_cache_issue_detection.projects.dispatched",
         amount=dispatched_count,
