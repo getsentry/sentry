@@ -317,6 +317,11 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         }
         for group_id, run in latest_run_per_group.items():
             capped_runs_by_milestone[run.furthest_milestone].append((group_id, run))
+        truncated_milestones = [
+            milestone
+            for milestone, pairs in capped_runs_by_milestone.items()
+            if len(pairs) > _MAX_RUNS_PER_MILESTONE
+        ]
         for pairs in capped_runs_by_milestone.values():
             del pairs[_MAX_RUNS_PER_MILESTONE:]
 
@@ -367,7 +372,10 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                     )
                 )
 
-        response: OverviewResponse = {"runsByMilestone": runs_by_milestone}
+        response: OverviewResponse = {
+            "runsByMilestone": runs_by_milestone,
+            "truncatedMilestones": truncated_milestones,
+        }
         return Response(response)
 
     def _latest_run_per_group(
