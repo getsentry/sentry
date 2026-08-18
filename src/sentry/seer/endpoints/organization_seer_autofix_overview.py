@@ -145,6 +145,7 @@ def _serialize_pull_request(
             }
             for file in checks_and_review.files
         ],
+        "failedChecks": list(checks_and_review.failed_checks),
     }
 
 
