@@ -500,6 +500,42 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         }
         assert len(fingerprints) == 2
 
+    def test_open_issues_do_not_consume_probe_budget(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Every candidate needs a probe, and the highest-severity ones already
+        # have open issues. Probing those would spend the budget on outcomes
+        # nothing reads, leaving the new candidates unresolvable.
+        project = self.create_project()
+        open_stats = [
+            replace(GAP_STATS, transaction=f"open-task-{i}")
+            for i in range(MAX_PRESENCE_PROBES_PER_PROJECT)
+        ]
+        new_stats = [replace(GAP_STATS, transaction="new-task")]
+        mock_fetch_stats.return_value = open_stats + new_stats
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+        mock_count_cache_attrs.return_value = 1_000
+
+        for stats in open_stats:
+            group = self.create_group(project=project)
+            GroupHash.objects.create(
+                project=project,
+                group=group,
+                hash=hash_fingerprint([create_fingerprint(stats)])[0],
+            )
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        assert mock_count_cache_attrs.call_count == 1
+        assert mock_produce.call_count == 1
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert occurrence.fingerprint == [create_fingerprint(new_stats[0])]
+
     def test_gap_guard_suppresses_group_without_cache_attributes(
         self,
         mock_fetch_stats: MagicMock,

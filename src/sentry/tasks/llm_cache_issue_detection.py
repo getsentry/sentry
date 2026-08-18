@@ -173,19 +173,23 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
                 )
             )
 
-    # Probe the instrumentation-gap guard in severity order so the query budget
-    # is spent only on candidates that can still become findings.
+    # Consider candidates in severity order so both the findings cap and the
+    # probe budget are spent on the worst offenders first.
     candidates.sort(key=lambda finding: finding.severity, reverse=True)
 
-    # Dedupe before applying the findings cap: already-open issues must not
-    # consume slots, or the same top offenders would starve new findings on
-    # every subsequent run.
     findings: list[CacheFinding] = []
     probes_run = 0
     rejected_already_exists_count = 0
     for candidate in candidates:
         if len(findings) >= FINDINGS_PER_PROJECT_LIMIT:
             break
+        # Dedupe first: a candidate with an open issue can neither take a slot
+        # under the cap nor produce an occurrence, so probing it would spend a
+        # query -- and on a project with several open issues, the whole probe
+        # budget -- resolving an outcome nothing goes on to read.
+        if check_unresolved_llm_cache_issue_exists(project, create_fingerprint(candidate.stats)):
+            rejected_already_exists_count += 1
+            continue
         if needs_cache_presence_probe(candidate.stats, candidate.outcome):
             if probes_run >= MAX_PRESENCE_PROBES_PER_PROJECT:
                 # Out of probe budget: presence is unknowable, so be conservative.
@@ -200,9 +204,6 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
                 outcome_counts[candidate.outcome] -= 1
                 outcome_counts[resolved] += 1
                 continue
-        if check_unresolved_llm_cache_issue_exists(project, create_fingerprint(candidate.stats)):
-            rejected_already_exists_count += 1
-            continue
         findings.append(candidate)
 
     for outcome, count in outcome_counts.items():
