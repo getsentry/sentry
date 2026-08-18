@@ -30,7 +30,7 @@ import {
   IconUser,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {
   PullRequestChecksStatus,
@@ -190,6 +190,10 @@ function OverviewAction({
     const reviewStatusTag = reviewPullRequest.reviewStatus
       ? REVIEW_STATUS_TAGS[reviewPullRequest.reviewStatus]
       : null;
+    const failedChecks =
+      reviewPullRequest.checksStatus === 'failure'
+        ? (reviewPullRequest.failedChecks ?? [])
+        : [];
 
     return (
       <Stack align="end" gap="xs">
@@ -216,9 +220,27 @@ function OverviewAction({
               </Tag>
             )}
             {checksStatusTag && (
-              <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
-                {checksStatusTag.label}
-              </Tag>
+              <Tooltip
+                disabled={failedChecks.length === 0}
+                title={
+                  <Stack gap="xs" align="start">
+                    <Text size="sm" bold>
+                      {t('Failing checks:')}
+                    </Text>
+                    {failedChecks.map((name, index) => (
+                      <Text key={`${name}-${index}`} size="sm">
+                        {name}
+                      </Text>
+                    ))}
+                  </Stack>
+                }
+              >
+                <Tag variant={checksStatusTag.variant} icon={checksStatusTag.icon}>
+                  {failedChecks.length > 0
+                    ? tn('%s Check Failing', '%s Checks Failing', failedChecks.length)
+                    : checksStatusTag.label}
+                </Tag>
+              </Tooltip>
             )}
           </Fragment>
         )}

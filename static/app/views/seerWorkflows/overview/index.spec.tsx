@@ -64,6 +64,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
+      failedChecks: [],
     };
   }
 
@@ -471,6 +472,7 @@ describe('AutofixOverview', () => {
       reviewStatus: null,
       repoName: 'getsentry/sentry',
       files: [],
+      failedChecks: [],
     };
 
     const enriched = deferEnriched();
@@ -529,6 +531,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       repoName: null,
+      failedChecks: [],
       files: [
         {path: 'src/sentry/foo.py', additions: 1, deletions: 1, changeType: 'MODIFIED'},
         {path: 'src/sentry/bar.py', additions: 2, deletions: 0, changeType: 'ADDED'},
@@ -554,6 +557,7 @@ describe('AutofixOverview', () => {
       checksStatus: null,
       reviewStatus: null,
       files: [],
+      failedChecks: [],
     };
     // The endpoint enriches open/draft links only, so the actionable PR is the
     // one carrying badges and files.
@@ -572,6 +576,7 @@ describe('AutofixOverview', () => {
           changeType: 'MODIFIED',
         },
       ],
+      failedChecks: [],
     };
     mockOverview({
       base: {
@@ -603,6 +608,7 @@ describe('AutofixOverview', () => {
       ...pullRequestFixture({number: 3, status: 'open'}),
       checksStatus: 'failure',
       reviewStatus: 'changes_requested',
+      failedChecks: ['build (3.12)', 'mypy'],
     };
     const pendingPullRequest: OverviewPullRequest = {
       ...pullRequestFixture({number: 4, status: 'open'}),
@@ -629,7 +635,7 @@ describe('AutofixOverview', () => {
 
     expect(await screen.findByText('Changes Requested')).toBeInTheDocument();
     const changesRequestedTag = getTagForText('Changes Requested');
-    const checksFailingTag = getTagForText('Checks Failing');
+    const checksFailingTag = getTagForText('2 Checks Failing');
     const checksRunningTag = getTagForText('Checks Running');
     expect(
       changesRequestedTag.compareDocumentPosition(checksFailingTag) &
@@ -637,8 +643,54 @@ describe('AutofixOverview', () => {
     ).toBeTruthy();
     expect(changesRequestedTag.className).toEqual(checksRunningTag.className);
     expect(checksFailingTag.className).not.toEqual(changesRequestedTag.className);
-    expect(screen.queryByText(/^\d+ Checks Failing$/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Checks Failing')).not.toBeInTheDocument();
     expect(screen.queryByText('Review Required')).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('2 Checks Failing'));
+    expect(await screen.findByText('build (3.12)')).toBeInTheDocument();
+    expect(screen.getByText('mypy')).toBeInTheDocument();
+  });
+
+  it('uses the singular label for a single failed check', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                ...pullRequestFixture({number: 3, status: 'open'}),
+                checksStatus: 'failure',
+                failedChecks: ['mypy'],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1 Check Failing')).toBeInTheDocument();
+  });
+
+  it('falls back to the plain failing label when a failing PR omits failedChecks', async () => {
+    // The field is absent until the backend deploys; the failing tag must fall
+    // back to the plain label rather than reading .length of undefined.
+    const {failedChecks: _omitted, ...withoutFailedChecks} = {
+      ...pullRequestFixture({number: 3, status: 'open'}),
+      checksStatus: 'failure' as const,
+    };
+    mockOverview({
+      base: {
+        has_pull_request: [{...rootCauseRun, pullRequests: [withoutFailedChecks]}],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Checks Failing')).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ Checks? Failing$/)).not.toBeInTheDocument();
   });
 
   it('renders a draft pull request as the actionable one', async () => {
@@ -703,6 +755,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/new.py',
@@ -770,6 +823,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/mystery.py',
@@ -807,6 +861,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/foo.py',
@@ -862,6 +917,7 @@ describe('AutofixOverview', () => {
                 status: 'open',
                 checksStatus: null,
                 reviewStatus: null,
+                failedChecks: [],
                 files: [
                   {
                     path: 'src/sentry/gone.py',

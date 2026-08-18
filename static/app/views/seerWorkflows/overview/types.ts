@@ -149,6 +149,7 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
+  failedChecks?: string[];
   repoName?: string | null;
 }
 
