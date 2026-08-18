@@ -100,6 +100,15 @@ describe('MetricDetectorTriggeredSection', () => {
       method: 'POST',
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+        titleGeneration: {status: 'completed'},
+      },
+    });
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
       organization,
     });
@@ -107,11 +116,43 @@ describe('MetricDetectorTriggeredSection', () => {
     await screen.findByRole('region', {
       name: 'Seer Investigation',
     });
-    expect(await screen.findByText('Different investigation title')).toBeInTheDocument();
-    expect(screen.getByText('Different investigation summary text')).toBeInTheDocument();
+    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(
+      screen.getByText('All active releases increased together.')
+    ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
     ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/4567/');
+  });
+
+  it('hides an existing investigation summary until all summary fields are ready', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: null,
+        titleGeneration: {status: 'failed'},
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
   });
 
   it('launches an investigation for the selected open period', async () => {
@@ -133,6 +174,13 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
       organization,
     });
+
+    expect(
+      await screen.findByText(
+        'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Launch Investigation'})

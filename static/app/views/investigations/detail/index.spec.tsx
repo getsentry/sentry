@@ -14,7 +14,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {
+  getInvestigationDetailQueryOptions,
+  investigationListQueryOptions,
+} from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import type {
   InvestigationBlock,
@@ -144,6 +147,30 @@ describe('Investigation detail', () => {
     expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+  });
+
+  it('renders completed investigation metadata above the first block', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        summary: 'Errors rose across releases',
+        summaryDescription:
+          'All active releases increased together.\nCheck shared infrastructure and dependencies.',
+      }),
+    });
+
+    renderView();
+
+    const summary = await screen.findByTestId('investigation-summary');
+    expect(within(summary).getByText('Current understanding')).toBeInTheDocument();
+    expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/All active releases increased together/)
+    ).toBeInTheDocument();
+    expect(
+      summary.compareDocumentPosition(screen.getByTestId('investigation-cell-block-1'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('renders partial text while an agent-written text cell is running', async () => {
@@ -199,6 +226,34 @@ describe('Investigation detail', () => {
       expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
         'Checkout error rate spike'
       )
+    );
+  });
+
+  it('invalidates the investigations list when metadata generation settles', async () => {
+    const queryClient = makeTestQueryClient();
+    const listOptions = investigationListQueryOptions({
+      organizationSlug: 'org-slug',
+    });
+    queryClient.setQueryData(listOptions.queryKey, {
+      headers: {},
+      json: [],
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: 'Checkout error rate spike'},
+    });
+
+    renderView(organization, queryClient);
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(listOptions.queryKey)?.isInvalidated).toBe(true)
     );
   });
 
