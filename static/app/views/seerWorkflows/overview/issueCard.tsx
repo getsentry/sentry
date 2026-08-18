@@ -302,7 +302,7 @@ function NarrativeBlock({
     <Stack gap="xs">
       <Flex gap="xs" align="center">
         {icon}
-        <Text size="sm" bold tabular variant="secondary">
+        <Text size="xs" bold variant="secondary">
           {label}
         </Text>
       </Flex>
