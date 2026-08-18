@@ -75,6 +75,38 @@ export function canCompareQueries(visualizes: Visualize[]): boolean {
   return visualizes.filter(isVisualizeFunction).length >= 2;
 }
 
+export function canReorderCharts(visualizes: readonly Visualize[]): boolean {
+  return visualizes.length > 1;
+}
+
+export function reorderCharts(
+  visualizes: readonly Visualize[],
+  index: number,
+  direction: 'up' | 'down'
+): Visualize[] {
+  const nextIndex = direction === 'up' ? index - 1 : index + 1;
+  if (
+    index < 0 ||
+    index >= visualizes.length ||
+    nextIndex < 0 ||
+    nextIndex >= visualizes.length
+  ) {
+    return [...visualizes];
+  }
+
+  const reorderedVisualizes = [...visualizes];
+  const visualize = reorderedVisualizes[index];
+  const nextVisualize = reorderedVisualizes[nextIndex];
+  if (visualize === undefined || nextVisualize === undefined) {
+    return reorderedVisualizes;
+  }
+  [reorderedVisualizes[index], reorderedVisualizes[nextIndex]] = [
+    nextVisualize,
+    visualize,
+  ];
+  return reorderedVisualizes;
+}
+
 function SaveAsActions() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -696,6 +728,49 @@ function QueryClauseActions() {
               }
             />
           </Fragment>
+        )}
+        {canReorderCharts(draftVisualizes) && (
+          <CMDKAction
+            display={{label: t('Reorder Charts')}}
+            keywords={['reorder', 'move', 'charts', 'series']}
+          >
+            {draftVisualizes.map((visualize, index) => {
+              const duplicateIndex = draftVisualizes
+                .slice(0, index)
+                .filter(
+                  candidate =>
+                    candidate.kind === visualize.kind &&
+                    candidate.yAxis === visualize.yAxis
+                ).length;
+              const id = `spans-reorder-chart-${visualize.kind}-${visualize.yAxis}-${duplicateIndex}`;
+
+              return (
+                <CMDKAction
+                  key={id}
+                  id={id}
+                  display={{
+                    label: t('Chart %s', String.fromCharCode(65 + index)),
+                    trailingItem: (
+                      <QueryValue
+                        value={
+                          isVisualizeEquation(visualize)
+                            ? stripEquationPrefix(visualize.yAxis)
+                            : visualize.yAxis
+                        }
+                      />
+                    ),
+                  }}
+                  order={index}
+                  onAction={() => {}}
+                  onReorder={direction =>
+                    setDraftVisualizes(currentVisualizes =>
+                      reorderCharts(currentVisualizes, index, direction)
+                    )
+                  }
+                />
+              );
+            })}
+          </CMDKAction>
         )}
         {canCompareQueries(draftVisualizes) && (
           <CMDKAction

@@ -5,7 +5,11 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {canCompareQueries} from 'sentry/views/explore/spans/spansCommandPaletteActions';
+import {
+  canCompareQueries,
+  canReorderCharts,
+  reorderCharts,
+} from 'sentry/views/explore/spans/spansCommandPaletteActions';
 
 describe('canCompareQueries', () => {
   it('requires at least two chart queries', () => {
@@ -14,6 +18,34 @@ describe('canCompareQueries', () => {
     expect(canCompareQueries([chart()])).toBe(false);
     expect(canCompareQueries([chart(), new VisualizeEquation('#1 + #2')])).toBe(false);
     expect(canCompareQueries([chart(), chart()])).toBe(true);
+  });
+});
+
+describe('chart reordering', () => {
+  const charts = [
+    new VisualizeFunction('count(span.duration)'),
+    new VisualizeFunction('p95(span.duration)'),
+    new VisualizeEquation('#1 + #2'),
+  ];
+
+  it('is available only with multiple charts', () => {
+    expect(canReorderCharts(charts.slice(0, 1))).toBe(false);
+    expect(canReorderCharts(charts.slice(0, 2))).toBe(true);
+  });
+
+  it('moves a chart in either direction without mutating the input', () => {
+    expect(reorderCharts(charts, 0, 'down')).toEqual([charts[1], charts[0], charts[2]]);
+    expect(reorderCharts(charts, 2, 'up')).toEqual([charts[0], charts[2], charts[1]]);
+    expect(charts.map(chart => chart.yAxis)).toEqual([
+      'count(span.duration)',
+      'p95(span.duration)',
+      '#1 + #2',
+    ]);
+  });
+
+  it('does not move a chart beyond the list boundaries', () => {
+    expect(reorderCharts(charts, 0, 'up')).toEqual(charts);
+    expect(reorderCharts(charts, charts.length - 1, 'down')).toEqual(charts);
   });
 });
 
