@@ -651,6 +651,29 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('mypy')).toBeInTheDocument();
   });
 
+  it('uses the singular label for a single failed check', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                ...pullRequestFixture({number: 3, status: 'open'}),
+                checksStatus: 'failure',
+                failedChecks: ['mypy'],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('1 Check Failing')).toBeInTheDocument();
+  });
+
   it('falls back to the plain failing label when no check names are known', async () => {
     mockOverview({
       base: {
