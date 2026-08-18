@@ -33,6 +33,17 @@ function isRouteQuery(options: Record<string, any>) {
   return String(options.query.query).includes('span.op:[');
 }
 
+/**
+ * The web vitals query, which is the third read of the `spans` dataset and, like
+ * the route band's, has to be told apart from the trace rows. It is the only one
+ * asking for a performance score.
+ */
+function isVitalsQuery(options: Record<string, any>) {
+  return options.query.field.some((field: string) =>
+    field.startsWith('performance_score(')
+  );
+}
+
 function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
@@ -42,6 +53,7 @@ function mockDataset(dataset: string, kind: 'count' | 'rows', data: unknown[]) {
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
+        !isVitalsQuery(options) &&
         // The counts query asks for aggregates only; the rows query asks for the
         // bare `timestamp` field plus the per-dataset row fields.
         (kind === 'count'
@@ -92,10 +104,55 @@ function mockRowsPage(
       (_url: string, options: Record<string, any>) =>
         options.query.dataset === dataset &&
         !isRouteQuery(options) &&
+        !isVitalsQuery(options) &&
         options.query.field.includes('timestamp') &&
         options.query.cursor === cursor,
     ],
   });
+}
+
+/**
+ * The session's web vital aggregates. Every test gets an empty one by default:
+ * most sessions carry no browser telemetry, and the pills are absent unless a
+ * test is about them.
+ */
+function mockVitals(data: unknown[]) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/',
+    method: 'GET',
+    body: {data, meta: {fields: {}}},
+    match: [(_url: string, options: Record<string, any>) => isVitalsQuery(options)],
+  });
+}
+
+/** One aggregate row, as the events endpoint returns scores: 0-1 ratios. */
+function vitalsRow({
+  total,
+  lcp,
+  cls,
+}: {
+  cls?: {count: number; score: number; value: number};
+  lcp?: {count: number; score: number; value: number};
+  total?: number;
+}) {
+  return {
+    'performance_score(measurements.score.total)': total ?? 0,
+    'performance_score(measurements.score.lcp)': lcp?.score ?? 0,
+    'count_scores(measurements.score.lcp)': lcp?.count ?? 0,
+    'avg(browser.web_vital.lcp.value)': lcp?.value ?? 0,
+    'performance_score(measurements.score.cls)': cls?.score ?? 0,
+    'count_scores(measurements.score.cls)': cls?.count ?? 0,
+    'avg(browser.web_vital.cls.value)': cls?.value ?? 0,
+    'performance_score(measurements.score.fcp)': 0,
+    'count_scores(measurements.score.fcp)': 0,
+    'avg(browser.web_vital.fcp.value)': 0,
+    'performance_score(measurements.score.inp)': 0,
+    'count_scores(measurements.score.inp)': 0,
+    'avg(browser.web_vital.inp.value)': 0,
+    'performance_score(measurements.score.ttfb)': 0,
+    'count_scores(measurements.score.ttfb)': 0,
+    'avg(browser.web_vital.ttfb.value)': 0,
+  };
 }
 
 function mockEmptyDatasets(except: string[] = []) {
@@ -134,6 +191,7 @@ describe('SessionDetailView', () => {
     // Mocks are matched most-recently-registered first, so a test about the band
     // overrides this by calling `mockRouteVisits` itself.
     mockRouteVisits([]);
+    mockVitals([]);
   });
 
   it('names the session from its telemetry, keeping the full id one click away', async () => {
@@ -1331,6 +1389,108 @@ describe('SessionDetailView', () => {
         screen.queryByRole('complementary', {name: 'Telemetry details'})
       ).not.toBeInTheDocument();
       expect(router.location.pathname).toBe('/organizations/org-slug/explore/logs/');
+    });
+  });
+
+  describe('web vitals', () => {
+    it('shows the session score and a pill per vital it reported', async () => {
+      mockEmptyDatasets();
+      const vitals = mockVitals([
+        vitalsRow({
+          total: 0.84,
+          lcp: {score: 0.72, count: 3, value: 2500},
+          cls: {score: 0.96, count: 2, value: 0.045},
+        }),
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('Score')).toBeInTheDocument();
+      // Ratios out of one on the wire, out of a hundred on the page.
+      expect(screen.getByText('84')).toBeInTheDocument();
+
+      expect(screen.getByText('LCP')).toBeInTheDocument();
+      expect(screen.getByText('2.50s')).toBeInTheDocument();
+      expect(screen.getByText('CLS')).toBeInTheDocument();
+      expect(screen.getByText('0.05')).toBeInTheDocument();
+
+      // Every vital keeps its pill, measured or not: an absent one is
+      // indistinguishable from a broken query. The three with no reading show a
+      // dash rather than a zero, which would accuse the session of scoring badly.
+      expect(screen.getByText('INP')).toBeInTheDocument();
+      expect(screen.getByText('TTFB')).toBeInTheDocument();
+      expect(screen.getByText('FCP')).toBeInTheDocument();
+      expect(screen.getAllByText('\u2014')).toHaveLength(3);
+
+      // The score is renormalised over whatever was measured, so a session
+      // holding only LCP (30) and CLS (15) still reads out of 100 while covering
+      // 45 points of one. Saying the number without saying its coverage would
+      // overstate it every time, so the tooltip carries both.
+      await userEvent.hover(screen.getByText('Score'));
+      expect(
+        await screen.findByText(/which is 45 of the 100 points/)
+      ).toBeInTheDocument();
+
+      // One aggregate read over the whole session, not one per pageload.
+      expect(vitals).toHaveBeenCalledTimes(1);
+      expect(vitals).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            query: `session.id:${SESSION_ID}`,
+            field: expect.arrayContaining([
+              'performance_score(measurements.score.total)',
+              'performance_score(measurements.score.lcp)',
+              'count_scores(measurements.score.lcp)',
+              'avg(browser.web_vital.lcp.value)',
+            ]),
+          }),
+        })
+      );
+    });
+
+    it('says nothing at all for a session with no browser telemetry', async () => {
+      mockEmptyDatasets();
+      // What the endpoint actually answers for a session that has spans but no
+      // scored ones: a row of zeroes rather than no row.
+      mockVitals([vitalsRow({total: 0})]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      // Waited on so the assertion is about a settled page rather than one that
+      // simply hasn't rendered the pills yet.
+      expect(await screen.findByText('Items')).toBeInTheDocument();
+      expect(screen.queryByText('Score')).not.toBeInTheDocument();
+      expect(screen.queryByText('LCP')).not.toBeInTheDocument();
+    });
+
+    it('does not hold up the timeline when the vitals query fails', async () => {
+      mockEmptyDatasets(['spans']);
+      mockDataset('spans', 'count', [{'count_unique(trace)': 1}]);
+      mockDataset('spans', 'rows', [
+        {
+          id: 'a'.repeat(16),
+          timestamp: '2024-01-01T00:00:00+00:00',
+          transaction: '/checkout',
+          'span.op': 'pageload',
+          'span.duration': 120,
+          trace: TRACE,
+          'project.id': Number(PROJECT.id),
+        },
+      ]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        method: 'GET',
+        statusCode: 500,
+        body: {},
+        match: [(_url: string, options: Record<string, any>) => isVitalsQuery(options)],
+      });
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('/checkout')).toBeInTheDocument();
+      expect(screen.queryByText('Score')).not.toBeInTheDocument();
     });
   });
 
