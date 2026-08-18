@@ -1,10 +1,21 @@
+from scm.facade import Facade
+from scm.providers.gitea.provider import GiteaProvider
 from scm.providers.github.provider import GitHubProvider
-from scm.types import Repository
+from scm.types import (
+    GetPullRequestProtocol,
+    GetRepositoryProtocol,
+    GetReviewCommentReactionsProtocol,
+    ListCheckRunsForRefProtocol,
+    Repository,
+)
 
+from fixtures.gitea import BASE_URL, REPO_PATH, GiteaTestCase
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class TestFetchRepository(TestCase):
@@ -261,3 +272,73 @@ class TestFetchServiceProvider(TestCase):
             ),
         ):
             assert fetch_service_provider(self.organization.id, repository) is None
+
+
+class TestFetchGiteaRepository(GiteaTestCase):
+    """Gitea's ROOT_URL is free-form, so `web_base_url` cannot be rebuilt from a
+    hostname the way `github_enterprise`'s is."""
+
+    def test_fetch_gitea_repo_populates_web_base_url(self) -> None:
+        repo = self.create_gitea_repo()
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["provider_name"] == "gitea"
+        assert result["web_base_url"] == BASE_URL
+        # The provider addresses repositories by `{owner}/{name}` path segments.
+        assert result["name"] == REPO_PATH
+
+    def test_web_base_url_preserves_sub_path_install(self) -> None:
+        """`instance`/`domain_name` are hostname-only and would drop the sub-path."""
+        sub_path_url = f"{BASE_URL}/gitea"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(
+                metadata={**self.integration.metadata, "base_url": sub_path_url}
+            )
+        repo = self.create_gitea_repo()
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] == sub_path_url
+
+
+class TestFetchGiteaServiceProvider(GiteaTestCase):
+    def test_gitea_returns_gitea_provider(self) -> None:
+        repo = self.create_gitea_repo()
+        repository = fetch_repository(self.organization.id, repo.id)
+        assert repository is not None
+
+        provider = fetch_service_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GiteaProvider)
+        assert provider.web_base_url == BASE_URL
+        assert provider.repo_path == REPO_PATH
+        assert provider.build_url("/user") == f"{BASE_URL}/api/v1/user"
+
+    def test_gitea_exposes_the_seer_capabilities(self) -> None:
+        """The point of the wiring: Seer guards on these before acting."""
+        repo = self.create_gitea_repo()
+        repository = fetch_repository(self.organization.id, repo.id)
+        assert repository is not None
+        provider = fetch_service_provider(self.organization.id, repository)
+        assert provider is not None
+
+        facade = Facade(provider, record_count=lambda *a: None)
+
+        assert isinstance(facade, GetRepositoryProtocol)
+        assert isinstance(facade, GetPullRequestProtocol)
+        assert isinstance(facade, ListCheckRunsForRefProtocol)
+        # Gitea has no counterpart to GitHub's /pulls/comments/{id}/reactions,
+        # so this capability is absent and callers skip the behavior.
+        assert not isinstance(facade, GetReviewCommentReactionsProtocol)
+
+    def test_gitea_without_web_base_url_returns_none(self) -> None:
+        """A repository missing the base URL is unusable; fail into ProviderNotFound."""
+        repo = self.create_gitea_repo()
+        repository = fetch_repository(self.organization.id, repo.id)
+        assert repository is not None
+        repository["web_base_url"] = None
+
+        assert fetch_service_provider(self.organization.id, repository) is None

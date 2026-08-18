@@ -3,6 +3,7 @@ from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.providers.gitea.provider import GiteaProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.rate_limit import RateLimitProvider
@@ -47,6 +48,17 @@ def fetch_service_provider(
         return GitHubProvider(client, organization_id, repository, rate_limiter=rate_limiter)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "gitea":
+        # Gitea is always self-hosted and its ROOT_URL may carry a sub-path, so
+        # the provider cannot rebuild a base URL from a hostname the way the
+        # GitLab provider does -- it has to be handed the one `fetch_repository`
+        # derived. A repository missing it is unusable, so fail gracefully into
+        # `ProviderNotFound` rather than letting the provider raise.
+        web_base_url = repository["web_base_url"]
+        if not web_base_url:
+            return None
+
+        return GiteaProvider(client, organization_id, repository, web_base_url=web_base_url)
     else:
         return None
 
@@ -79,16 +91,23 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
     provider_name = repo.provider.removeprefix("integrations:")
     web_base_url: str | None = None
-    if provider_name == "github_enterprise":
+    if provider_name in ("github_enterprise", "gitea"):
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,
             organization_id=organization_id,
         )
         if integration:
-            domain_name = integration.metadata.get("domain_name")
-            if domain_name:
-                base_host = domain_name.split("/", 1)[0]
-                web_base_url = f"https://{base_host}"
+            if provider_name == "gitea":
+                # Gitea's ROOT_URL is free-form and may include a sub-path
+                # (`https://host/gitea/`), so the stored base URL is used
+                # verbatim. The `instance` and `domain_name` keys are
+                # hostname-only and would silently drop that sub-path.
+                web_base_url = integration.metadata.get("base_url") or None
+            else:
+                domain_name = integration.metadata.get("domain_name")
+                if domain_name:
+                    base_host = domain_name.split("/", 1)[0]
+                    web_base_url = f"https://{base_host}"
 
     return cast(
         Repository,
