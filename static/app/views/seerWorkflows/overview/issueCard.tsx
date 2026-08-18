@@ -6,6 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -273,6 +274,21 @@ const LevelBar = styled(ErrorLevel)`
   width: 4px;
 `;
 
+const NARRATIVE_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Paragraph: ({children}) => (
+    <Text
+      as="p"
+      size="sm"
+      variant="secondary"
+      bold={false}
+      tabular
+      wordBreak="break-word"
+    >
+      {children}
+    </Text>
+  ),
+};
+
 function NarrativeBlock({
   icon,
   label,
@@ -286,13 +302,11 @@ function NarrativeBlock({
     <Stack gap="xs">
       <Flex gap="xs" align="center">
         {icon}
-        <Text size="xs" bold uppercase variant="secondary">
+        <Text size="xs" bold variant="secondary">
           {label}
         </Text>
       </Flex>
-      <Text size={{xs: 'md', lg: 'lg'}} density="comfortable" wordBreak="break-word">
-        {children}
-      </Text>
+      <Markdown raw={children} components={NARRATIVE_MARKDOWN_COMPONENTS} />
     </Stack>
   );
 }
@@ -469,7 +483,7 @@ export function OverviewCard({
             {rootCause && (
               <NarrativeBlock
                 icon={<IconBug size="xs" variant="secondary" aria-hidden />}
-                label={t('Root cause')}
+                label={t('Root Cause')}
               >
                 {rootCause}
               </NarrativeBlock>
