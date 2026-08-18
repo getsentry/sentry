@@ -36,6 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
+import {useMilestoneAdvanceToasts} from './milestoneToast';
 import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
 import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
@@ -104,13 +105,21 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       {replace: true}
     );
 
-  const {data, isPending, isError, enrichmentPending, isRefetching, refetch} =
-    useAutofixOverview({
-      organization,
-      selection,
-      sort,
-      enabled: pageFiltersReady,
-    });
+  const {
+    data,
+    isPending,
+    isError,
+    enrichmentPending,
+    isRefetching,
+    refetch,
+    enrichedSettled,
+  } = useAutofixOverview({
+    organization,
+    selection,
+    sort,
+    enabled: pageFiltersReady,
+  });
+  useMilestoneAdvanceToasts(data, enrichedSettled);
   const allRuns = useMemo(
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]

@@ -78,6 +78,13 @@ export type SeerAnalyticsEventsParameters = {
     organization: Organization;
     run_id: string;
   };
+  'autofix.overview.milestone_advanced': {
+    from_milestone: string;
+    group_id: string;
+    organization: Organization;
+    run_id: string;
+    to_milestone: string;
+  };
   'autofix.overview.open_seer_clicked': {
     group_id: string;
     organization: Organization;
@@ -201,6 +208,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
   'autofix.overview.action_clicked': 'Autofix Overview: Action Clicked',
+  'autofix.overview.milestone_advanced': 'Autofix Overview: Milestone Advanced',
   'autofix.overview.open_seer_clicked': 'Autofix Overview: Open Seer Clicked',
   'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',

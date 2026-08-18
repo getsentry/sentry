@@ -35,17 +35,12 @@ import type {
   PullRequestChecksStatus,
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
-import {
-  ButtonSpinner,
-  getProcessingLabel,
-  OverviewCardAction,
-} from './overviewCardAction';
+import {OpenSeerButton} from './openSeerButton';
+import {getProcessingLabel} from './overviewActions';
+import {ButtonSpinner, OverviewCardAction} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -131,38 +126,6 @@ const REVIEW_STATUS_TAGS = {
   review_required: null,
 } satisfies Record<PullRequestReviewStatus, PullRequestStatusTagMeta | null>;
 
-function OpenSeerButton({
-  run,
-  variant,
-}: {
-  run: OverviewRun;
-  variant: 'primary' | 'secondary';
-}) {
-  const organization = useOrganization();
-  const location = useLocation();
-  return (
-    <Tooltip title={t('Open Seer')} skipWrapper>
-      <LinkButton
-        size="sm"
-        variant={variant}
-        aria-label={t('Open Seer')}
-        icon={<IconSeer size="sm" />}
-        to={{
-          pathname: location.pathname,
-          query: {...location.query, seerDrawer: run.groupId},
-        }}
-        onClick={() =>
-          trackAnalytics('autofix.overview.open_seer_clicked', {
-            organization,
-            group_id: run.groupId,
-            run_id: run.seerRunId,
-          })
-        }
-      />
-    </Tooltip>
-  );
-}
-
 function OverviewAction({
   sectionKey,
   run,
@@ -189,7 +152,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} variant="secondary" />
+        <OpenSeerButton run={run} size="sm" variant="secondary" />
       </ButtonBar>
     );
   }
@@ -223,7 +186,7 @@ function OverviewAction({
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton run={run} variant="secondary" />
+                <OpenSeerButton run={run} size="sm" variant="secondary" />
               </ButtonBar>
             );
           })}
@@ -262,7 +225,7 @@ function OverviewAction({
               </Flex>
             </LinkButton>
           </Tooltip>
-          <OpenSeerButton run={run} variant="primary" />
+          <OpenSeerButton run={run} size="sm" variant="primary" />
         </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
