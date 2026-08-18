@@ -1405,10 +1405,13 @@ def _link_matched_delegated_agent_pr(
 ) -> None:
     """Link a matched PR to the run that produced it, on the same 200 that attributes it.
 
-    A coding agent's PR is normally linked when the agent reports it, but an agent that
-    finished before its PR existed reported no PR, and the link is only ever written on a
-    status transition. This webhook is the next time anyone sees that PR, and Seer has
-    just told us which run it came from -- so it is the last chance to link it.
+    A coding agent's PR is linked only from an observation of that agent that carries the
+    PR url - a Cursor webhook, or a Claude Code / Copilot poll, and those polls run only
+    while a user is loading the issue's autofix state. So an agent that goes terminal
+    before its PR is visible reports no PR, and one that finishes with nobody watching is
+    never observed at all; neither is ever looked at again. This webhook is the next time
+    anyone sees that PR, and Seer has just told us which run it came from -- so it is the
+    last chance to link it.
 
     Attribution and the run link answer the same question and are trusted on the same
     signal, so this fires wherever attribution does. Best-effort: a failure here must not

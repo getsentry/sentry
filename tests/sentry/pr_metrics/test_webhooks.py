@@ -2582,7 +2582,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
         )
 
     def test_sync_match_links_pull_request_to_its_run(self) -> None:
-        """The agent finished before its PR existed, so nothing linked the PR when it
+        """No observation of the agent ever carried this PR, so nothing linked it when it
         opened. Seer has just named the run it came from -- this is the last chance."""
         handoff = self._create_handoff()
 
