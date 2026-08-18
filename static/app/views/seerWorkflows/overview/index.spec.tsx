@@ -674,32 +674,9 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('1 Check Failing')).toBeInTheDocument();
   });
 
-  it('falls back to the plain failing label when no check names are known', async () => {
-    mockOverview({
-      base: {
-        has_pull_request: [
-          {
-            ...rootCauseRun,
-            pullRequests: [
-              {
-                ...pullRequestFixture({number: 3, status: 'open'}),
-                checksStatus: 'failure',
-              },
-            ],
-          },
-        ],
-      },
-    });
-
-    renderPage();
-
-    expect(await screen.findByText('Checks Failing')).toBeInTheDocument();
-    expect(screen.queryByText(/^\d+ Checks? Failing$/)).not.toBeInTheDocument();
-  });
-
-  it('does not crash when a failing PR omits failedChecks entirely', async () => {
-    // Pre-backend-deploy the field is absent from the payload; the failing tag
-    // must fall back to the plain label rather than reading .length of undefined.
+  it('falls back to the plain failing label when a failing PR omits failedChecks', async () => {
+    // The field is absent until the backend deploys; the failing tag must fall
+    // back to the plain label rather than reading .length of undefined.
     const {failedChecks: _omitted, ...withoutFailedChecks} = {
       ...pullRequestFixture({number: 3, status: 'open'}),
       checksStatus: 'failure' as const,

@@ -149,7 +149,6 @@ export interface OverviewPullRequest {
   reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus | null;
   url: string | null;
-  // Absent from the payload until the backend that populates it deploys.
   failedChecks?: string[];
   repoName?: string | null;
 }
