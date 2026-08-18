@@ -469,6 +469,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     ) -> dict[int, _RunMilestones]:
         pr_links = SeerRunPullRequest.objects.filter(seer_run_id=OuterRef("seer_run_id"))
         milestone_rows = (
+            # writes for autofix_rca no longer happen, we should be able to remove this from the query by 11/11/2026 latest (data retention)
             SeerRunMilestone.objects.filter(
                 seer_run__organization=organization,
                 seer_run__agent__source__in=("autofix", "autofix_rca"),
