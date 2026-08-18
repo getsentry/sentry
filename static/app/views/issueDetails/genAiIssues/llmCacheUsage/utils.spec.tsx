@@ -1,5 +1,6 @@
 import {
   buildCallSiteQuery,
+  formatCacheEligibleCalls,
   formatCallSiteLabel,
   formatRate,
   formatTokens,
@@ -16,6 +17,8 @@ describe('getLlmCacheEvidenceData', () => {
       spanName: 'generate_content claude-sonnet-4',
       model: 'claude-sonnet-4',
       callCount: 2121,
+      warmCallCount: 1951,
+      cacheableShare: 0.92,
       hitRate: 0.0487,
       writeReadRatio: 12,
       avgInputTokens: 4096,
@@ -48,6 +51,8 @@ describe('getLlmCacheEvidenceData', () => {
     });
 
     expect(parsed.outcome).toBe('thrash');
+    expect(parsed.warmCallCount).toBe(1951);
+    expect(parsed.cacheableShare).toBe(0.92);
     expect(parsed.sampleCalls).toHaveLength(1);
     expect(parsed.sampleCalls[0]!.spanId).toBe('1'.repeat(16));
     expect(parsed.anchor).toEqual({
@@ -259,5 +264,19 @@ describe('formatRate', () => {
     // Providers that report input exclusive of cached tokens can drive reads
     // past input.
     expect(formatRate(2.5)).toBe('100.00%');
+  });
+});
+
+describe('formatCacheEligibleCalls', () => {
+  it('reads as a count against the whole workload', () => {
+    expect(formatCacheEligibleCalls(1951, 0.92)).toBe('1,951 (92.00% of calls)');
+  });
+
+  it('keeps the count when an occurrence carries no share', () => {
+    expect(formatCacheEligibleCalls(1951, null)).toBe('1,951');
+  });
+
+  it('has nothing to say without a count', () => {
+    expect(formatCacheEligibleCalls(null, 0.92)).toBe('Unknown');
   });
 });

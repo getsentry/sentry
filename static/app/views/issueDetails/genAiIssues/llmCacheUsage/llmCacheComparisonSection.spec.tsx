@@ -10,6 +10,8 @@ const evidence: LlmCacheEvidenceData = {
   spanName: 'generate_content claude-sonnet-4',
   model: 'claude-sonnet-4',
   callCount: 2121,
+  warmCallCount: 1951,
+  cacheableShare: 0.92,
   hitRate: 0.0487,
   writeReadRatio: null,
   avgInputTokens: 4096,

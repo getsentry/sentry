@@ -44,6 +44,8 @@ export interface LlmCacheEvidenceData {
   agentLabelSource: LlmCacheAgentLabelSource | null;
   anchor: LlmCacheContrastAnchor | null;
   avgInputTokens: number | null;
+  /** Share of all calls that had a warm cache to hit. */
+  cacheableShare: number | null;
   callCount: number | null;
   estimatedSavingsUsd: number | null;
   hitRate: number | null;
@@ -56,6 +58,13 @@ export interface LlmCacheEvidenceData {
   sumCacheReadTokens: number | null;
   sumInputTokens: number | null;
   uncachedTokens: number | null;
+  /**
+   * Calls that arrived within the cache TTL of an earlier one at the same call
+   * site, so a warm cache was there to hit. The hit rate is read against every
+   * call, which makes this the figure that separates a broken cache from
+   * traffic too sparse to have one.
+   */
+  warmCallCount: number | null;
   windowDays: number | null;
   windowEnd: string | null;
   windowStart: string | null;

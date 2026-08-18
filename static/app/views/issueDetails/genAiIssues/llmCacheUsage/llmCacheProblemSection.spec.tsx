@@ -10,6 +10,8 @@ const baseEvidence: LlmCacheEvidenceData = {
   spanName: 'generate_content claude-sonnet-4',
   model: 'claude-sonnet-4',
   callCount: 2121,
+  warmCallCount: 1951,
+  cacheableShare: 0.92,
   hitRate: 0,
   writeReadRatio: null,
   avgInputTokens: 4096,
@@ -86,6 +88,23 @@ describe('LlmCacheProblemSection', () => {
     expect(screen.getByText('claude-sonnet-4')).toBeInTheDocument();
     expect(screen.getByText('4.87%')).toBeInTheDocument();
     expect(screen.getByText('2,121')).toBeInTheDocument();
+  });
+
+  it('says how many calls had a warm cache to hit', async () => {
+    // The hit rate above it counts every call, so this row is what tells the
+    // reader the rate is a broken cache and not sparse traffic.
+    renderSection({hitRate: 0.0487});
+
+    expect(await screen.findByText('Cache-eligible calls')).toBeInTheDocument();
+    expect(screen.getByText('1,951 (92.00% of calls)')).toBeInTheDocument();
+  });
+
+  it('leaves out the eligible-calls row for an occurrence without one', async () => {
+    renderSection({warmCallCount: null, cacheableShare: null});
+
+    await screen.findByText('Planner | generate_content claude-sonnet-4');
+
+    expect(screen.queryByText('Cache-eligible calls')).not.toBeInTheDocument();
   });
 
   it('says when the call site is named after an operation rather than an agent', async () => {

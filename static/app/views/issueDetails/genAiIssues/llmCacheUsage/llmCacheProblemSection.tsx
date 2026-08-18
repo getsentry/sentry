@@ -16,6 +16,7 @@ import type {LlmCacheEvidenceData} from './types';
 import {useCallSitePageFilters} from './useCallSitePageFilters';
 import {
   buildCallSiteQuery,
+  formatCacheEligibleCalls,
   formatCallSiteLabel,
   formatRate,
   formatTokens,
@@ -118,6 +119,8 @@ export function LlmCacheProblemSection({evidenceData}: LlmCacheProblemSectionPro
     model,
     outcome,
     callCount,
+    warmCallCount,
+    cacheableShare,
     hitRate,
     writeReadRatio,
     avgInputTokens,
@@ -183,10 +186,18 @@ export function LlmCacheProblemSection({evidenceData}: LlmCacheProblemSectionPro
           id="calls"
           label={t('Calls')}
           value={callCount === null ? t('Unknown') : callCount.toLocaleString()}
-          tooltip={t(
-            'Calls in the detection window. Only call sites busy enough to keep a cache warm are evaluated.'
-          )}
+          tooltip={t('Calls this call site made over the detection window.')}
         />
+        {warmCallCount !== null && (
+          <CallSiteMetric
+            id="cache-eligible-calls"
+            label={t('Cache-eligible calls')}
+            value={formatCacheEligibleCalls(warmCallCount, cacheableShare)}
+            tooltip={t(
+              'Calls that arrived soon enough after an earlier one to find the cache still warm. The hit rate counts every call, so a call site whose calls mostly arrive in isolation is not evaluated at all: there was no warm cache for them to hit.'
+            )}
+          />
+        )}
         <CallSiteMetric
           id="avg-input-tokens"
           label={t('Avg input tokens')}

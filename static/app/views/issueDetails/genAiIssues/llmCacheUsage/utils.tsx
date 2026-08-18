@@ -168,6 +168,8 @@ export function getLlmCacheEvidenceData(
     spanName: getStringValue(data.spanName),
     model: getStringValue(data.model),
     callCount: getNumberValue(data.callCount),
+    warmCallCount: getNumberValue(data.warmCallCount),
+    cacheableShare: getNumberValue(data.cacheableShare),
     hitRate: getNumberValue(data.hitRate),
     writeReadRatio: getNumberValue(data.writeReadRatio),
     avgInputTokens: getNumberValue(data.avgInputTokens),
@@ -313,6 +315,26 @@ export function formatRate(rate: number | null): string {
   // Providers that report input exclusive of cached tokens can drive reads past
   // input; the detector clamps the token split the same way.
   return `${(Math.min(rate, 1) * 100).toFixed(2)}%`;
+}
+
+/**
+ * The calls a warm cache was available to, as a count and a share of all calls.
+ * The share carries the meaning -- a bare count says nothing about whether the
+ * rest of the traffic ever had a cache to hit -- so it is left out only when an
+ * occurrence does not carry one.
+ */
+export function formatCacheEligibleCalls(
+  warmCallCount: number | null,
+  cacheableShare: number | null
+): string {
+  if (warmCallCount === null) {
+    return t('Unknown');
+  }
+  const calls = Math.round(warmCallCount).toLocaleString();
+  if (cacheableShare === null) {
+    return calls;
+  }
+  return t('%s (%s of calls)', calls, formatRate(cacheableShare));
 }
 
 export function formatWriteReadRatio(ratio: number | null): string {
