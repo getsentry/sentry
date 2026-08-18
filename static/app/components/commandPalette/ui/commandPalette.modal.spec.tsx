@@ -33,6 +33,7 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
@@ -138,8 +139,7 @@ describe('CommandPaletteModal', () => {
     );
   });
 
-  it('invokes an expandable action callback once and keeps the modal open', async () => {
-    // Actions with children push into secondary actions — the modal stays open.
+  it('invokes a chained action callback once and keeps the modal open', async () => {
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();
 
@@ -147,9 +147,10 @@ describe('CommandPaletteModal', () => {
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
           <CMDKAction display={{label: 'Outer Group'}}>
-            <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>
+            <CMDKChainedActionScope>
+              <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy} />
               <CMDKAction display={{label: 'Child Action'}} onAction={jest.fn()} />
-            </CMDKAction>
+            </CMDKChainedActionScope>
           </CMDKAction>
         </CommandPaletteSlot>
         <SlotOutlets />

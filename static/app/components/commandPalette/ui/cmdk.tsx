@@ -36,7 +36,7 @@ interface DisplayProps {
   trailingItem?: React.ReactNode;
 }
 
-export interface CMDKTextInput {
+interface CMDKTextInput {
   /** Accessible label for the palette input while editing. */
   ariaLabel: string;
   /** Called with the raw input value when Enter is pressed. */

@@ -11,7 +11,7 @@ export const TOGGLE_SEER_SHORTCUTS = [
   'mod+shift+-',
 ] as const;
 
-export interface KeyboardShortcut {
+interface KeyboardShortcut {
   keybindings: readonly string[];
   label: string;
 }
