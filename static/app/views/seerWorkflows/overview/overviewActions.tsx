@@ -30,7 +30,7 @@ interface ActionConfig {
   errorFallback?: string;
 }
 
-export const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
+const ACTIONS: Record<ActionableSectionKey, ActionConfig> = {
   needs_investigation: {
     Icon: IconSearch,
     action: 'create_plan',
