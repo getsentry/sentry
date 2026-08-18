@@ -103,7 +103,10 @@ function SeriesActions({
           ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => (
             <CMDKAction
               key={aggregate}
-              display={{label: aggregate}}
+              display={{
+                label: aggregate,
+                trailingItem: getAggregateKind(aggregate),
+              }}
               onAction={() => {
                 const currentFunction = visualize.parsedFunction;
                 if (!currentFunction) {
@@ -300,6 +303,28 @@ function SourceActions({
       }
     />
   ));
+}
+
+function getAggregateKind(aggregate: string): React.ReactNode {
+  if (aggregate.startsWith('p') || aggregate === 'percentile') {
+    return (
+      <Text size="sm" variant="accent">
+        {t('Percentile')}
+      </Text>
+    );
+  }
+  if (aggregate === 'avg' || aggregate === 'count_unique') {
+    return (
+      <Text size="sm" variant="promotion">
+        {t('Algebraic')}
+      </Text>
+    );
+  }
+  return (
+    <Text size="sm" variant="success">
+      {t('Distributive')}
+    </Text>
+  );
 }
 
 function QueryValue({value}: {value: string}) {
