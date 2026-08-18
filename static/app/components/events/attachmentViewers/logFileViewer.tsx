@@ -2,6 +2,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
+import {decodeAttachmentPreview} from 'sentry/components/events/attachmentViewers/decodeAttachmentText';
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
@@ -11,15 +12,22 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 export function LogFileViewer(props: ViewerProps) {
-  const {data, isPending, isError} = useApiQuery<string>(
+  const {data, isPending, isError} = useApiQuery<ArrayBuffer | string>(
     [
       getAttachmentUrl(props),
-      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
+      {
+        headers: {Accept: '*/*'},
+        query: {download: true},
+        responseType: 'arraybuffer',
+      },
     ],
     {
       staleTime: Infinity,
     }
   );
+
+  const previewText =
+    data === undefined || data === null ? null : decodeAttachmentPreview(data);
 
   if (isError) {
     return <LoadingError message={t('Failed to download attachment.')} />;
@@ -29,10 +37,10 @@ export function LogFileViewer(props: ViewerProps) {
     return <LoadingIndicator />;
   }
 
-  return data ? (
+  return previewText ? (
     <PreviewPanelItem>
       <CodeWrapper>
-        <SentryStyleAnsi useClasses>{data}</SentryStyleAnsi>
+        <SentryStyleAnsi useClasses>{previewText}</SentryStyleAnsi>
       </CodeWrapper>
     </PreviewPanelItem>
   ) : null;

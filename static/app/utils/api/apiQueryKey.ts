@@ -14,6 +14,7 @@ export type QueryKeyEndpointOptions = {
   includeAllArgs?: boolean;
   method?: RequestMethod;
   query?: Record<string, unknown>;
+  responseType?: 'arraybuffer';
 };
 
 const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
