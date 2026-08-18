@@ -31,7 +31,13 @@ describe('SeerAutomationSCMRequired', () => {
       initialRouterConfig: {
         location: {pathname: `/settings/${organization.slug}/seer/projects/`},
         route: '/settings/:orgId/seer/',
-        children: [{path: 'projects/', element: <div>Autofix projects</div>}],
+        children: [
+          {
+            path: 'projects/',
+            handle: {seerSection: 'autofix'},
+            element: <div>Autofix projects</div>,
+          },
+        ],
       },
     });
 

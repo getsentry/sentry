@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
 import SeerConfigBug1 from 'sentry-images/spot/seer-config-bug-1.svg';
@@ -21,13 +21,11 @@ import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
-  const location = useLocation();
   const {hasFreeAutofixAccess, isLoading: isSetupLoading} = useOrganizationSeerSetup();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
@@ -58,7 +56,10 @@ export default function SeerAutomationSCMRequired() {
       ) ?? [],
   });
 
-  const isAutofixRoute = location.pathname.includes('/seer/projects/');
+  const isAutofixRoute = useMatches().some(
+    match =>
+      (match.handle as {seerSection?: string} | undefined)?.seerSection === 'autofix'
+  );
   if (isAutofixRoute) {
     if (isSetupLoading) {
       return <LoadingIndicator />;
