@@ -91,6 +91,7 @@ class NotificationActionNotificationMessageRepository:
                     group=group,
                     open_period_start=open_period_start,
                 )
+                # Order by open_period_start to encourage index use.
                 .order_by(F("open_period_start").asc(nulls_last=True), "-date_added")
                 .first()
             )
