@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {
@@ -24,6 +24,26 @@ interface OverviewIssueAssigneeProps {
   owners?: Group['owners'];
 }
 
+// Object.fromEntries widens the key type, so the milestone Record is restored
+// with a cast; the map itself never adds or drops keys.
+function withRunAssignee(
+  response: AutofixOverviewResponse,
+  groupId: string,
+  assignedTo: Group['assignedTo']
+): AutofixOverviewResponse {
+  return {
+    ...response,
+    runsByMilestone: Object.fromEntries(
+      Object.entries(response.runsByMilestone).map(([milestone, runs]) => [
+        milestone,
+        runs.map(run =>
+          run.groupId === groupId ? {...run, issue: {...run.issue, assignedTo}} : run
+        ),
+      ])
+    ) as AutofixOverviewResponse['runsByMilestone'],
+  };
+}
+
 // Intentionally duplicates static/app/utils/dashboards/issueAssignee.tsx for the Autofix Overview POC.
 export function OverviewIssueAssignee({
   groupId,
@@ -43,52 +63,30 @@ export function OverviewIssueAssignee({
     '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
     {path: {organizationIdOrSlug: organization.slug}}
   );
-  const [assignedToOverride, setAssignedToOverride] = useState<{
-    assignedTo: Group['assignedTo'];
-    groupId: OverviewIssueAssigneeProps['groupId'];
-  } | null>(null);
-
-  const currentAssignedTo =
-    assignedToOverride?.groupId === groupId
-      ? assignedToOverride.assignedTo
-      : (assignedTo ?? null);
 
   const group = useMemo(
     () => ({
       id: groupId,
-      assignedTo: currentAssignedTo,
+      assignedTo: assignedTo ?? null,
       owners,
       project: {
         id: projectId,
         slug: projectSlug,
       },
     }),
-    [currentAssignedTo, groupId, owners, projectId, projectSlug]
+    [assignedTo, groupId, owners, projectId, projectSlug]
   );
 
   const handleSuccess = useCallback(
     (nextAssignedTo: Group['assignedTo']) => {
-      setAssignedToOverride({groupId, assignedTo: nextAssignedTo});
-      // Patch the cached overview payloads so payload-derived UI (the assignee
-      // filter options and counts) reflects the reassignment without a refetch.
+      // The cached overview payload is the single source of truth: patching it
+      // re-renders this card and the payload-derived assignee filter alike.
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
         {queryKey: [overviewUrl]},
         previous =>
           previous && {
             ...previous,
-            json: {
-              ...previous.json,
-              runsByMilestone: Object.fromEntries(
-                Object.entries(previous.json.runsByMilestone).map(([milestone, runs]) => [
-                  milestone,
-                  runs.map(run =>
-                    run.groupId === groupId
-                      ? {...run, issue: {...run.issue, assignedTo: nextAssignedTo}}
-                      : run
-                  ),
-                ])
-              ) as AutofixOverviewResponse['runsByMilestone'],
-            },
+            json: withRunAssignee(previous.json, groupId, nextAssignedTo),
           }
       );
       void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});

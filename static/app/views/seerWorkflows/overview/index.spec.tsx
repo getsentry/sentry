@@ -1052,8 +1052,49 @@ describe('AutofixOverview', () => {
       renderPage();
 
       expect(
-        await screen.findByText('Some sections show only their most recent runs.')
+        await screen.findByText(
+          'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+        )
       ).toBeInTheDocument();
+    });
+
+    it('formats team assignees with a # prefix', async () => {
+      const squad: Actor = {type: 'team', id: '9', name: 'squad'};
+      mockOverview({
+        base: {
+          autofix_root_cause: [
+            {...rootCauseRun, issue: issueFixture({assignedTo: squad})},
+          ],
+        },
+      });
+
+      renderPage();
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+
+      const option = await screen.findByRole('option', {name: /#squad/});
+      expect(within(option).getByText('1')).toBeInTheDocument();
+    });
+
+    it('clears the filter and restores all sections', async () => {
+      mockOverview({
+        base: {autofix_root_cause: [assignedRun], autofix_solution: [solutionRun]},
+      });
+
+      const {router} = renderPage({assignee: 'user:7'});
+      await screen.findByRole('button', {name: 'Create Plan 1'});
+      expect(
+        screen.queryByRole('button', {name: /Generate code changes/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Assignee/}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Clear'}));
+
+      expect(
+        await screen.findByRole('button', {name: 'Generate code changes 1'})
+      ).toBeInTheDocument();
+      expect(router.location.query.assignee).toBeUndefined();
     });
 
     it('adds a newly assigned user to the filter options', async () => {

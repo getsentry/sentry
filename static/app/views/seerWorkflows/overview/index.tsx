@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -86,7 +87,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       sort,
       enabled: pageFiltersReady,
     });
-  const allRuns = Object.values(data?.runsByMilestone ?? {}).flat();
+  const allRuns = useMemo(
+    () => Object.values(data?.runsByMilestone ?? {}).flat(),
+    [data]
+  );
   const populatedSections = OVERVIEW_SECTIONS.map(section => ({
     ...section,
     runs: (data?.runsByMilestone[section.milestone] ?? []).filter(
@@ -144,7 +148,9 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         {isRefetching && <LoadingIndicator mini />}
         {(data?.truncatedMilestones?.length ?? 0) > 0 && (
           <Text size="sm" variant="muted">
-            {t('Some sections show only their most recent runs.')}
+            {t(
+              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
+            )}
           </Text>
         )}
       </Flex>
