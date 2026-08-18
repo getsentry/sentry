@@ -476,6 +476,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 "reviewStatus": None,
                 "repoName": "getsentry/sentry",
                 "files": [],
+                "failedChecks": [],
             }
         ]
 
@@ -542,7 +543,30 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
+        assert pull_requests[0]["failedChecks"] == []
         assert client.requested_keys == ["123"]
+
+    @mock.patch(_INTEGRATION_SERVICE)
+    def test_failing_pull_request_lists_failed_checks(self, mock_get_integration):
+        group = self.create_group()
+        run = self._run_for_group(group, "boom")
+        self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
+        self._set_provider_client(
+            mock_get_integration,
+            PullRequestStatusClientFake(
+                {
+                    "123": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.FAILURE,
+                        failed_checks=("build (3.12)", "mypy"),
+                    )
+                }
+            ),
+        )
+
+        pull_requests = self._pull_requests(expand="scmInfo")
+
+        assert pull_requests[0]["checksStatus"] == "failure"
+        assert pull_requests[0]["failedChecks"] == ["build (3.12)", "mypy"]
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_merged_pull_request_skips_provider_fetch(self, mock_get_integration):
