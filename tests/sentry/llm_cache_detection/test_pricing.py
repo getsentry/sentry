@@ -178,30 +178,45 @@ class TestSavingsEstimate:
 
         assert pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats())) is None
 
-    def test_prices_a_provider_that_serves_cache_reads_for_free(self) -> None:
-        stats = make_stats(sum_input_tokens=1_000_000)
+    def test_returns_none_when_the_cached_price_is_missing(self) -> None:
         pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cached_input_price=0)}))
+
+        assert pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats())) is None
+
+    def test_prices_an_uncached_finding_without_a_cache_write_price(self) -> None:
+        # Most models the feed prices carry no cache-write price, and the
+        # uncached formula never uses one -- refusing to price on its account
+        # would leave the common case unpriced for no reason.
+        stats = make_stats(sum_input_tokens=1_000_000)
+        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cache_write_price=0)}))
 
         estimate = pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
 
         assert estimate is not None
-        assert estimate.estimated_savings_usd == pytest.approx(1_000_000 * INPUT_PRICE)
+        assert estimate.estimated_savings_usd == pytest.approx(
+            1_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+        )
 
-    def test_prices_thrash_on_a_provider_that_does_not_charge_to_write(self) -> None:
-        # OpenAI writes the cache at no cost, so the write premium is not where
-        # the money goes -- the input billed at full rate is.
+    @pytest.mark.parametrize(
+        "write_price",
+        [
+            pytest.param(0, id="no-write-price"),
+            pytest.param(CACHED_INPUT_PRICE, id="write-price-not-above-the-cached-rate"),
+        ],
+    )
+    def test_leaves_thrash_unpriced_without_a_credible_write_price(
+        self, write_price: float
+    ) -> None:
+        # Thrash *is* the write premium. Without a price for it there is nothing
+        # to quantify, and pricing the uncached remainder instead would report a
+        # small number for a call site whose input is mostly cache traffic.
         stats = make_stats(
             sum_input_tokens=10_000_000,
             sum_cache_read_tokens=200_000,
             sum_cache_creation_tokens=8_000_000,
         )
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cache_write_price=0)}))
-
-        estimate = pricebook.estimate(make_finding(CacheOutcome.THRASH, stats))
-
-        assert estimate is not None
-        assert estimate.estimated_savings_usd == pytest.approx(
-            stats.uncached_tokens * (INPUT_PRICE - CACHED_INPUT_PRICE)
+        pricebook = ModelPricebook(
+            config({"claude-sonnet-4": costs(cache_write_price=write_price)})
         )
-        # Nothing is overpaid when the writes were free.
-        assert estimate.overpay_vs_no_cache_usd is None
+
+        assert pricebook.estimate(make_finding(CacheOutcome.THRASH, stats)) is None

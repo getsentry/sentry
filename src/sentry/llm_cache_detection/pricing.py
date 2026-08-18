@@ -71,29 +71,34 @@ def _estimate_from_costs(finding: CacheFinding, costs: AIModelCost) -> SavingsEs
     cached_input_price = costs["inputCachedPerToken"]
     cache_write_price = costs["inputCacheWritePerToken"]
 
-    # Only the plain input price is load-bearing: a zero there means the feed
-    # carries no pricing for this model at all, and every difference below would
-    # collapse. Zeros in the other two are real -- some providers serve cache
-    # reads or charge for cache writes at no cost.
-    if input_price <= 0:
+    # A zero is the feed saying it has no price, not that the tokens are free:
+    # most models it prices carry a zero cache-write price, including ones whose
+    # provider demonstrably charges a premium to write. So each formula requires
+    # the prices it actually uses, and declines rather than inventing a number.
+    if input_price <= 0 or cached_input_price <= 0:
         return None
 
     stats = finding.stats
-    charges_a_write_premium = cache_write_price > cached_input_price
 
-    if finding.outcome == CacheOutcome.THRASH and charges_a_write_premium:
-        # The prefix is being written and then invalidated; a stable one would
-        # have turned those writes into reads.
+    if finding.outcome == CacheOutcome.THRASH:
+        # The whole finding is that the prefix is written and then invalidated,
+        # so without a write price there is nothing to quantify. Pricing the
+        # uncached remainder instead would report a small number for a call site
+        # whose input is mostly cache traffic.
+        if cache_write_price <= cached_input_price:
+            return None
+        # A stable prefix would have turned those writes into reads.
         savings = stats.sum_cache_creation_tokens * (cache_write_price - cached_input_price)
         overpay = stats.sum_cache_creation_tokens * (
             cache_write_price - input_price
         ) - stats.sum_cache_read_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = overpay if overpay > 0 else None
     else:
-        # Either nothing is cached, or the provider charges nothing extra to
-        # write the cache -- so the harm is the volume billed at the full input
-        # rate rather than a write premium. This is an upper bound: how much of
-        # each prompt is a shared prefix is not knowable from the aggregates.
+        # Nothing is being cached, so the whole uncached volume was billed at the
+        # full input rate -- a formula that never touches the write price, which
+        # matters because providers that cache implicitly report no writes at
+        # all. This is an upper bound: how much of each prompt is a shared prefix
+        # is not knowable from the aggregates.
         savings = stats.uncached_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = None
 
