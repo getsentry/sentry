@@ -30,8 +30,10 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
 
-# Origin's delivery envelope wraps the event, so the type lives in both a header
-# and the body. The header is used, since it is available before parsing.
+# Only webhook-id, webhook-timestamp and the body are covered by the signature.
+# The event-type and installation-id headers are NOT, so they are usable for
+# routing and dispatch but never as the target of an action -- see
+# _signed_installation_id.
 EVENT_TYPE_HEADER = "webhook-event-type"
 DELIVERY_ID_HEADER = "webhook-id"
 TIMESTAMP_HEADER = "webhook-timestamp"
@@ -99,9 +101,9 @@ class CursorOriginWebhookEndpoint(Endpoint):
         metrics.incr("cursor_origin.webhook.received", tags={"event_type": event_type or "unknown"})
 
         if event_type == "installation.deleted":
-            self._handle_installation_deleted(request, payload)
+            self._handle_installation_deleted(payload)
         elif event_type == "repository.pushed":
-            self._handle_push(request, payload)
+            self._handle_push(payload)
         else:
             # Acknowledged so Origin stops retrying; handlers land with PR
             # comment and review support.
@@ -112,18 +114,38 @@ class CursorOriginWebhookEndpoint(Endpoint):
 
         return HttpResponse(status=204)
 
-    def _handle_installation_deleted(self, request: HttpRequest, payload: Any) -> None:
+    @staticmethod
+    def _signed_installation_id(payload: Any) -> str | None:
+        """The installation this delivery is about, from signed material only.
+
+        The signature covers webhook-id, webhook-timestamp and the body -- not
+        webhook-installation-id or webhook-event-type. So the headers are
+        attacker-controlled even on a delivery whose signature is genuine: capture
+        any real delivery, rewrite those two headers, and the signature still
+        verifies. Taking the target from the header let that replay disable an
+        arbitrary integration or attribute commits to another organization.
+
+        Returns None rather than falling back to the header. There is no signed
+        target in that case, so there is nothing safe to act on.
+        """
+        installation_id = payload.get("installationId") if isinstance(payload, dict) else None
+        return str(installation_id) if installation_id else None
+
+    def _handle_installation_deleted(self, payload: Any) -> None:
         """Disable the integration when the app is uninstalled.
 
         Without this the integration keeps trying to mint tokens for an
         installation that no longer exists, which surfaces as recurring auth
         failures rather than as "someone uninstalled it".
         """
-        installation_id = request.headers.get(INSTALLATION_ID_HEADER) or (
-            payload.get("installationId") if isinstance(payload, dict) else None
-        )
+        installation_id = self._signed_installation_id(payload)
         if not installation_id:
-            logger.warning("cursor_origin.webhook.deleted_without_installation_id")
+            # Deliberately not read from webhook-installation-id; see
+            # _signed_installation_id. If Origin turns out not to put
+            # installationId in the body, uninstalls stop being handled and this
+            # warning says so -- which is the failure we want, rather than acting
+            # on a value a replay can choose.
+            logger.warning("cursor_origin.webhook.deleted_without_signed_installation_id")
             return
 
         result = integration_service.organization_contexts(
@@ -149,7 +171,7 @@ class CursorOriginWebhookEndpoint(Endpoint):
             },
         )
 
-    def _handle_push(self, request: HttpRequest, payload: Any) -> None:
+    def _handle_push(self, payload: Any) -> None:
         """Record commits from a push.
 
         Origin's push event carries only ``headCommit`` per ref update, not
@@ -165,10 +187,32 @@ class CursorOriginWebhookEndpoint(Endpoint):
             logger.info("cursor_origin.webhook.push_without_refs")
             return
 
+        # Repository is unique on (organization_id, provider, external_id), so the
+        # same external_id legitimately exists in several organizations. Matching on
+        # external_id alone wrote commits into every one of them from a single
+        # delivery. Scope to the organizations that actually have this installation.
+        installation_id = self._signed_installation_id(payload)
+        if not installation_id:
+            logger.warning("cursor_origin.webhook.push_without_signed_installation_id")
+            return
+
+        context = integration_service.organization_contexts(
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            external_id=installation_id,
+        )
+        organization_ids = [oi.organization_id for oi in context.organization_integrations]
+        if context.integration is None or not organization_ids:
+            logger.warning(
+                "cursor_origin.webhook.push_missing_integration",
+                extra={"installation_id": installation_id},
+            )
+            return
+
         repos = Repository.objects.filter(
             provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
             external_id=str(repo_id),
             status=ObjectStatus.ACTIVE,
+            organization_id__in=organization_ids,
         )
         for repo in repos:
             for ref_update in ref_updates:
@@ -258,14 +302,19 @@ class CursorOriginWebhookEndpoint(Endpoint):
         repo: Repository, commit: Mapping[str, Any], cache: dict[str, CommitAuthor]
     ) -> CommitAuthor | None:
         email = commit.get("author_email")
-        if not email or len(email) > 75:
+        # Straight from untrusted JSON -- a webhook body, or an API response via
+        # the provider's _format_commits -- so not necessarily a string. len()
+        # raises TypeError on an int, and CommitAuthorManager.get_or_create calls
+        # .lower(), which raises for a list or dict short enough to survive len().
+        if not isinstance(email, str) or not email or len(email) > 75:
             return None
         if email in cache:
             return cache[email]
+        name = commit.get("author_name")
         author = CommitAuthor.objects.get_or_create(
             organization_id=repo.organization_id,
             email=email,
-            defaults={"name": commit.get("author_name")},
+            defaults={"name": name if isinstance(name, str) else None},
         )[0]
         cache[email] = author
         return author
