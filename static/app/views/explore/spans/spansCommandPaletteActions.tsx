@@ -76,7 +76,12 @@ export function canCompareQueries(visualizes: Visualize[]): boolean {
 }
 
 export function canReorderCharts(visualizes: readonly Visualize[]): boolean {
-  return visualizes.length > 1;
+  if (visualizes.length <= 1) {
+    return false;
+  }
+  return (
+    new Set(visualizes.map(visualize => JSON.stringify(visualize.serialize()))).size > 1
+  );
 }
 
 export function reorderCharts(

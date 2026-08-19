@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {
@@ -11,7 +11,11 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -29,6 +33,7 @@ import {
   IconAllProjects,
   IconBuilding,
   IconCompass,
+  IconCopy,
   IconDashboard,
   IconDiscord,
   IconDocs,
@@ -58,7 +63,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {AvatarProject, Project, ProjectKey} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -66,6 +71,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -259,6 +265,7 @@ function ResolvedIdentifierCommandPaletteAction() {
  */
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const user = useUser();
   const {projects} = useProjects();
@@ -289,6 +296,36 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  const currentDsnProject = currentProjects.length === 1 ? currentProjects[0] : undefined;
+  const dsnProjects = currentProjects.length > 0 ? currentProjects : projects;
+
+  const copyProjectDsn = async (project: Project) => {
+    addLoadingMessage(t('Loading DSN…'));
+    try {
+      const {json: projectKeys} = await queryClient.fetchQuery(
+        apiOptions.as<ProjectKey[]>()(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+            staleTime: 30_000,
+          }
+        )
+      );
+      const projectKey = projectKeys.find(key => key.isActive) ?? projectKeys[0];
+      if (!projectKey) {
+        addErrorMessage(t('This project has no client keys'));
+        return;
+      }
+      await copyToClipboard(projectKey.dsn.public, {
+        successMessage: t('DSN copied to clipboard'),
+      });
+    } catch {
+      addErrorMessage(t('Unable to load the project DSN'));
+    }
+  };
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
@@ -334,7 +371,10 @@ export function GlobalCommandPaletteActions() {
     useNotificationPermission();
   return (
     <CommandPaletteSlot name="global">
-      <CMDKAction display={{label: t('Go to...')}}>
+      <CMDKAction
+        display={{label: t('Go to')}}
+        keywords={[t('go'), t('go to'), t('navigate')]}
+      >
         <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
           <CMDKAction
             display={{label: t('Feed')}}
@@ -808,6 +848,47 @@ export function GlobalCommandPaletteActions() {
         display={{label: t('DSN')}}
         keywords={[t('client keys'), t('sentry dsn')]}
       >
+        {currentDsnProject ? (
+          <CMDKAction
+            display={{
+              label: t('Copy DSN - %s', currentDsnProject.slug),
+              icon: <IconCopy />,
+            }}
+            keywords={[t('copy dsn'), t('client key'), 'SENTRY_DSN']}
+            onAction={() => copyProjectDsn(currentDsnProject)}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: t('Copy project DSN'), icon: <IconCopy />}}
+            keywords={[t('copy dsn'), t('client key'), 'SENTRY_DSN']}
+            prompt={t('Select a project...')}
+            limit={6}
+            resource={(query, {state}) =>
+              cmdkQueryOptions({
+                queryKey: [
+                  'copy-project-dsn',
+                  organization.slug,
+                  [...queryProjectIds].join(','),
+                  query,
+                ],
+                queryFn: () =>
+                  dsnProjects
+                    .filter(project =>
+                      project.slug.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+                    )
+                    .map(project => ({
+                      display: {
+                        label: project.slug,
+                        icon: <ProjectAvatar project={project} size={16} />,
+                      },
+                      onAction: () => copyProjectDsn(project),
+                    })),
+                enabled: state === 'selected',
+                staleTime: Infinity,
+              })
+            }
+          />
+        )}
         <CMDKAction
           display={{
             label: t('Reverse DSN lookup'),

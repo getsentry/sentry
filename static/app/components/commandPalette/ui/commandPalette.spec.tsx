@@ -213,7 +213,7 @@ describe('CommandPalette', () => {
     openSpy.mockRestore();
   });
 
-  it('shows internal and external trailing link indicators for link actions', async () => {
+  it('shows a trailing indicator only for external link actions', async () => {
     render(
       <GlobalActionsComponent>
         <Fragment>
@@ -232,7 +232,7 @@ describe('CommandPalette', () => {
 
     expect(
       internalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
-    ).toHaveAttribute('data-link-type', 'internal');
+    ).not.toBeInTheDocument();
     expect(
       externalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
     ).toHaveAttribute('data-link-type', 'external');
@@ -242,7 +242,7 @@ describe('CommandPalette', () => {
     render(
       <GlobalActionsComponent>
         <CMDKAction
-          to="/target/"
+          to="https://docs.sentry.io/target/"
           display={{
             label: 'Action with trailing',
             trailingItem: <span data-testid="custom-trailing">Badge</span>,
@@ -658,6 +658,72 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
     });
 
+    it('does not expand unrelated children when only a group matches', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Go to...'}}>
+            <CMDKAction display={{label: 'Settings'}} limit={1}>
+              <CMDKAction display={{label: 'Auth'}} to="/settings/auth/" />
+              <CMDKAction
+                display={{label: 'Integrations'}}
+                to="/settings/integrations/"
+              />
+            </CMDKAction>
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(await screen.findByRole('option', {name: 'Settings'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Go to...'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Auth/})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /See all/})).not.toBeInTheDocument();
+    });
+
+    it('does not repeat a matching group below its own results section', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Go to...'}}>
+            <CMDKAction display={{label: 'Outgoing API Calls'}} to="/outgoing/" />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Outgoing API Calls'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Go to...'})).not.toBeInTheDocument();
+      expect(screen.getByText('Go to...')).toBeInTheDocument();
+    });
+
+    it('requires contiguous matches for very short queries', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Godot'}} to="/projects/godot/" />
+          <CMDKAction display={{label: 'Issue Grouping'}} to="/settings/grouping/" />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(await screen.findByRole('option', {name: 'Godot'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Issue Grouping'})
+      ).not.toBeInTheDocument();
+    });
+
     it('preserves spaces in typed query', async () => {
       render(
         <GlobalActionsComponent>
@@ -772,7 +838,7 @@ describe('CommandPalette', () => {
       expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
     });
 
-    it('shows a group preview when the group label matches but its children do not', async () => {
+    it('shows a compact preview when a top-level group matches', async () => {
       render(
         <GlobalActionsComponent>
           <CMDKAction display={{label: 'Help'}}>
@@ -791,6 +857,7 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Open Documentation'})
       ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Join Discord'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Help'})).not.toBeInTheDocument();
     });
   });
 

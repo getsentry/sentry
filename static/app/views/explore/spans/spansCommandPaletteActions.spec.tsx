@@ -28,9 +28,15 @@ describe('chart reordering', () => {
     new VisualizeEquation('#1 + #2'),
   ];
 
-  it('is available only with multiple charts', () => {
+  it('is available only with multiple distinguishable charts', () => {
     expect(canReorderCharts(charts.slice(0, 1))).toBe(false);
     expect(canReorderCharts(charts.slice(0, 2))).toBe(true);
+    expect(
+      canReorderCharts([
+        new VisualizeFunction('count(span.duration)'),
+        new VisualizeFunction('count(span.duration)'),
+      ])
+    ).toBe(false);
   });
 
   it('moves a chart in either direction without mutating the input', () => {

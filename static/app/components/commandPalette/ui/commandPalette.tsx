@@ -13,7 +13,7 @@ import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ListBox} from '@sentry/scraps/compactSelect';
+import {ListBox, SectionSeparator, SectionTitle} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {Input, InputGroup} from '@sentry/scraps/input';
@@ -41,7 +41,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   IconArrow,
   IconClose,
-  IconLink,
   IconMegaphone,
   IconOpen,
   IconSearch,
@@ -878,6 +877,23 @@ function scoreNode(
     if (!candidate) {
       continue;
     }
+    // Very short fuzzy queries create noisy subsequence matches (for example,
+    // "go" matching "Grouping"). Keep those searches predictable by requiring
+    // the characters to be contiguous, like Linear's quick search.
+    if (query.length <= 2) {
+      const index = candidate.toLocaleLowerCase().indexOf(query);
+      if (index !== -1) {
+        const score = query.length * 100 - index + (node.children.length > 0 ? 50 : 0);
+        if (score > best) {
+          best = score;
+          bestLength = candidate.length;
+        } else if (score === best) {
+          bestLength = Math.min(bestLength, candidate.length);
+        }
+        matched = true;
+      }
+      continue;
+    }
     const result = fzf(candidate, query, false);
     if (result.end !== -1 && result.score > best) {
       best = result.score;
@@ -1088,6 +1104,16 @@ function flattenActions(
   const seen = new Set<string>();
   const prefixMap = new Map<string, string[]>();
   const usedSectionHeaders = new Set<string>();
+  const matchedRootGroups = new Set(
+    collected
+      .filter(
+        item =>
+          item.parent === null &&
+          item.children.length > 0 &&
+          scores.get(item.key)?.matched
+      )
+      .map(item => item.key)
+  );
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
     if (seen.has(item.key)) {
@@ -1095,24 +1121,63 @@ function flattenActions(
     }
     seen.add(item.key);
 
+    const rootKey = nodeRootKey.get(item.key);
+    if (item.parent !== null && rootKey && matchedRootGroups.has(rootKey)) {
+      return [];
+    }
+
     if (item.children.length > 0) {
       const matched = item.children.filter(
         c => scores.get(c.key)?.matched && !isEmptyResourceNode(c) && !seen.has(c.key)
       );
-      const fallbackChildren = item.children.filter(
-        c => !isEmptyResourceNode(c) && !seen.has(c.key)
-      );
-      const shouldUseFallbackChildren =
-        matched.length === 0 && scores.get(item.key)?.matched;
-      const candidateChildren = shouldUseFallbackChildren ? fallbackChildren : matched;
+      const itemMatched = scores.get(item.key)?.matched;
+      if (matched.length === 0 && itemMatched) {
+        // A matching group is a single drill-in result. Expanding all of its
+        // unrelated children makes search look like browse mode and can surface
+        // synthetic entries such as "Settings → See all" for the query "go".
+        let root: CollectionTreeNode<CMDKActionData> = item;
+        while (root.parent !== null) {
+          const parent = nodeMap.get(root.parent);
+          if (!parent) {
+            break;
+          }
+          root = parent;
+        }
+        if (root.key === item.key) {
+          const previewChildren = item.children
+            .filter(child => !isEmptyResourceNode(child))
+            .slice(0, item.limit ?? 6);
+          for (const child of item.children) {
+            markSubtreeSeen(child, seen);
+          }
+          usedSectionHeaders.add(item.key);
+          return [
+            makeSectionAction(item),
+            ...previewChildren.map(child => ({
+              ...child,
+              children: [],
+              listItemType: 'action' as const,
+            })),
+          ];
+        }
+        const sectionHeader =
+          root.key === item.key || usedSectionHeaders.has(root.key)
+            ? []
+            : [makeSectionAction(root)];
+        usedSectionHeaders.add(root.key);
+        markSubtreeSeen(item, seen);
+        return [
+          ...sectionHeader,
+          {...item, children: [], listItemType: 'action' as const},
+        ];
+      }
+      const candidateChildren = matched;
       if (!candidateChildren.length) {
         return [];
       }
-      const sortedMatches = shouldUseFallbackChildren
-        ? candidateChildren
-        : candidateChildren.sort((a, b) =>
-            compareCommandPaletteScores(scores.get(a.key), scores.get(b.key))
-          );
+      const sortedMatches = candidateChildren.sort((a, b) =>
+        compareCommandPaletteScores(scores.get(a.key), scores.get(b.key))
+      );
       const limitedMatches = getLimitedChildren(sortedMatches, item.limit);
       // Mark every child and their entire subtrees as seen — including those
       // beyond the limit — so neither over-limit children nor any of their
@@ -1313,11 +1378,8 @@ function renderActionItem(action: CMDKFlatItem, prefixMap: Map<string, string[]>
 function renderSectionTitle(action: CMDKFlatItem) {
   return (
     <Stack width="100%" minWidth={0}>
-      <Flex align="center" gap="md" width="100%" minWidth={0}>
-        <Flex align="center" justify="center" width="14px" flexShrink={0}>
-          <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
-        </Flex>
-        <Text size="sm" bold variant="primary" ellipsis>
+      <Flex align="center" width="100%" minWidth={0}>
+        <Text size="sm" variant="muted" ellipsis>
           {action.display.label}
         </Text>
       </Flex>
@@ -1337,14 +1399,14 @@ function makeMenuItemFromAction(
   const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
   const linkIndicator =
-    'to' in action ? (
+    'to' in action && isExternal ? (
       <Flex
         align="center"
-        data-link-type={isExternal ? 'external' : 'internal'}
+        data-link-type="external"
         data-test-id="command-palette-link-indicator"
       >
         <IconDefaultsProvider size="xs" variant="muted">
-          {isExternal ? <IconOpen /> : <IconLink />}
+          <IconOpen />
         </IconDefaultsProvider>
       </Flex>
     ) : undefined;
@@ -1388,7 +1450,7 @@ function makeMenuItemFromAction(
       <Flex height="100%" align="center" justify="center" width="16px">
         <Checkbox size="sm" checked={action.isSelected} readOnly />
       </Flex>
-    ) : (
+    ) : action.display.icon ? (
       <Flex
         height="100%"
         align="start"
@@ -1399,11 +1461,9 @@ function makeMenuItemFromAction(
         // of the icon details presence or not.
         paddingTop="2xs"
       >
-        {action.display.icon ? (
-          <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
-        ) : null}
+        <IconDefaultsProvider size="sm">{action.display.icon}</IconDefaultsProvider>
       </Flex>
-    ),
+    ) : undefined,
     trailingItems,
     children: [],
     hideCheck: true,
@@ -1532,6 +1592,16 @@ const StyledInputGroupInput = styled(InputGroup.Input)<{
 `;
 
 const ResultsList = styled(Flex)`
+  ${SectionSeparator} {
+    display: none;
+  }
+
+  ${SectionTitle} {
+    color: ${p => p.theme.tokens.content.secondary};
+    font-weight: ${p => p.theme.font.weight.sans.regular};
+    text-transform: none;
+  }
+
   ul {
     padding: 0;
     margin: 0;
