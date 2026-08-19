@@ -16,6 +16,7 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Image} from '@sentry/scraps/image';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -33,7 +34,7 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -82,6 +83,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const estimateSize = () => 41;
+
+// Header and body rows are separate grids that each apply this template, so
+// suggestion rows must use the identical string to stay column-aligned.
+const TABLE_COLUMNS = 'max-content 2fr 74px repeat(2, 1fr)';
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -229,27 +234,28 @@ export function SeerProjectTable() {
           <AddProjectButton />
         </Flex>
       </Stack>
-      {suggestionsEnabled || failedSuggestionMutationVariables ? (
-        <SuggestedProjectsPanel
-          agentSelectOptions={agentSelectOptions}
-          failedMutationVariables={failedSuggestionMutationVariables}
-          result={suggestionsResult}
-          suggestionsEnabled={suggestionsEnabled}
-          onFailedMutationVariablesChange={setFailedSuggestionMutationVariables}
-        />
-      ) : null}
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
-        <InfiniteTable.Table columns="max-content 2fr 74px repeat(2, 1fr)">
+        <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
             onSortClick={setSort}
             mutableSearch={mutableSearch}
           />
+
+          {suggestionsEnabled || failedSuggestionMutationVariables ? (
+            <SuggestedProjectRows
+              agentSelectOptions={agentSelectOptions}
+              failedMutationVariables={failedSuggestionMutationVariables}
+              result={suggestionsResult}
+              suggestionsEnabled={suggestionsEnabled}
+              onFailedMutationVariablesChange={setFailedSuggestionMutationVariables}
+            />
+          ) : null}
 
           <InfiniteTable.Scrollable>
             {isPending ? (
@@ -365,7 +371,7 @@ export function SeerProjectTable() {
   );
 }
 
-interface SuggestedProjectsPanelProps {
+interface SuggestedProjectRowsProps {
   agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
   failedMutationVariables: AutofixProjectMutationVariables | null;
   onFailedMutationVariablesChange: (
@@ -375,13 +381,13 @@ interface SuggestedProjectsPanelProps {
   suggestionsEnabled: boolean;
 }
 
-function SuggestedProjectsPanel({
+function SuggestedProjectRows({
   agentSelectOptions,
   failedMutationVariables,
   onFailedMutationVariablesChange,
   result,
   suggestionsEnabled,
-}: SuggestedProjectsPanelProps) {
+}: SuggestedProjectRowsProps) {
   const organization = useOrganization();
   const projectsById = useProjectsById();
   const defaultAgentQuery = useQuery(orgDefaultAgentQueryOptions({organization}));
@@ -440,189 +446,206 @@ function SuggestedProjectsPanel({
     }
   }
 
-  const showPanel =
+  const showGroup =
     suggestionsEnabled && (result.isPending || result.isError || suggestions.length > 0);
-  if (!showPanel && !failedMutationVariables) {
+  if (!showGroup && !failedMutationVariables) {
     return null;
   }
 
   return (
-    <Stack gap="md">
+    <Fragment>
       {failedMutationVariables ? (
-        <Alert.Container>
-          <Alert
-            variant="warning"
-            trailingItems={
-              <Flex gap="sm">
-                <Alert.Button
-                  variant="secondary"
-                  busy={saveMutation.isPending}
-                  disabled={saveMutation.isPending}
-                  onClick={() => void retrySettings()}
-                >
-                  {t('Retry settings')}
-                </Alert.Button>
-                <Alert.Button
-                  variant="secondary"
-                  disabled={saveMutation.isPending}
-                  onClick={() => onFailedMutationVariablesChange(null)}
-                >
-                  {t('Dismiss')}
-                </Alert.Button>
-              </Flex>
-            }
+        <Alert
+          variant="warning"
+          system
+          trailingItems={
+            <Flex gap="sm">
+              <Alert.Button
+                variant="secondary"
+                busy={saveMutation.isPending}
+                disabled={saveMutation.isPending}
+                onClick={() => void retrySettings()}
+              >
+                {t('Retry settings')}
+              </Alert.Button>
+              <Alert.Button
+                variant="secondary"
+                disabled={saveMutation.isPending}
+                onClick={() => onFailedMutationVariablesChange(null)}
+              >
+                {t('Dismiss')}
+              </Alert.Button>
+            </Flex>
+          }
+        >
+          {t(
+            'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
+          )}
+        </Alert>
+      ) : null}
+
+      {showGroup ? (
+        <Fragment>
+          <Flex
+            align="center"
+            gap="xs"
+            padding="sm xl"
+            background="secondary"
+            borderBottom="muted"
           >
-            {t(
-              'Repositories were saved, but Autofix settings were not. Retry settings to finish setup.'
-            )}
-          </Alert>
-        </Alert.Container>
-      ) : null}
+            <Text size="sm" variant="muted" bold>
+              {t('Suggested')}
+            </Text>
+            <InfoTip
+              title={t(
+                'These projects have trusted repository links and are not yet configured for Autofix. Enable Autofix applies the defaults shown in the row.'
+              )}
+            />
+          </Flex>
 
-      {showPanel ? (
-        <Container border="primary" radius="md" padding="lg">
-          <Stack gap="lg">
-            <Stack gap="xs">
-              <Heading as="h3" size="md">
-                {t('Suggested Projects')}
-              </Heading>
-              <Text variant="muted">
-                {t(
-                  'These projects have trusted repository links and are not yet configured for Autofix.'
-                )}
+          {result.isError ? (
+            <Flex
+              align="center"
+              justify="center"
+              gap="md"
+              padding="md xl"
+              background="secondary"
+              borderBottom="muted"
+            >
+              <Text size="sm" variant="muted">
+                {t('Could not load suggestions.')}
               </Text>
-            </Stack>
+              <Button size="xs" onClick={() => void result.refetch()}>
+                {t('Retry')}
+              </Button>
+            </Flex>
+          ) : result.isPending ? (
+            <Flex
+              align="center"
+              justify="center"
+              padding="md xl"
+              background="secondary"
+              borderBottom="muted"
+            >
+              <LoadingIndicator mini />
+            </Flex>
+          ) : (
+            suggestions.map(suggestion => {
+              const project = projectsById.get(suggestion.projectId);
+              const hasOnlyGithubRepositories =
+                suggestion.linkedRepositories.length > 0 &&
+                suggestion.linkedRepositories.every(repository =>
+                  isGitHubProvider(repository.provider)
+                );
+              const effectiveAgent = hasOnlyGithubRepositories ? defaultAgent : 'seer';
+              const agentLabel = defaultAgentQuery.isPending
+                ? t('Loading')
+                : (agentSelectOptions.find(option => option.value === effectiveAgent)
+                    ?.label ?? t('Seer'));
+              const shouldConfigure =
+                suggestion.linkedReposCount > 10 || stoppingPoint === undefined;
+              const isCurrentMutation =
+                saveMutation.isPending &&
+                saveMutation.variables?.project.id === project?.id;
 
-            {result.isError ? (
-              <LoadingError
-                message={result.error?.message}
-                onRetry={() => void result.refetch()}
-              />
-            ) : null}
-
-            {result.isPending ? (
-              <Flex justify="center" align="center" padding="lg">
-                <LoadingIndicator />
-              </Flex>
-            ) : (
-              <Stack gap="sm">
-                {suggestions.map(suggestion => {
-                  const project = projectsById.get(suggestion.projectId);
-                  const hasOnlyGithubRepositories =
-                    suggestion.linkedRepositories.length > 0 &&
-                    suggestion.linkedRepositories.every(repository =>
-                      isGitHubProvider(repository.provider)
-                    );
-                  const effectiveAgent = hasOnlyGithubRepositories
-                    ? defaultAgent
-                    : 'seer';
-                  const agentLabel = defaultAgentQuery.isPending
-                    ? t('Loading')
-                    : (agentSelectOptions.find(option => option.value === effectiveAgent)
-                        ?.label ?? t('Seer'));
-                  const shouldConfigure =
-                    suggestion.linkedReposCount > 10 || stoppingPoint === undefined;
-                  const isCurrentMutation =
-                    saveMutation.isPending &&
-                    saveMutation.variables?.project.id === project?.id;
-
-                  return (
-                    <Container
-                      key={suggestion.projectId}
-                      border="primary"
-                      radius="md"
-                      padding="md"
-                    >
-                      <Grid
-                        columns={{
-                          zero: '1fr',
-                          xl: 'minmax(160px, 1fr) minmax(220px, 2fr) minmax(180px, 1fr) max-content',
-                        }}
-                        gap="md"
-                        align="center"
-                      >
-                        <ProjectBadge
-                          disableLink
-                          project={project ?? {slug: suggestion.projectSlug}}
-                          avatarSize={20}
-                        />
-                        <Stack gap="2xs" minWidth={0}>
-                          <Text size="sm">
-                            {suggestion.linkedRepositories.length > 0
-                              ? suggestion.linkedRepositories
-                                  .map(repository => repository.name)
-                                  .join(', ')
-                              : t('Repository details unavailable')}
-                          </Text>
-                          <Text variant="muted" size="sm">
-                            {tn(
-                              '%s linked repository',
-                              '%s linked repositories',
-                              suggestion.linkedReposCount
-                            )}
-                          </Text>
-                        </Stack>
-                        <Stack gap="2xs">
-                          <Text size="sm">{t('Agent: %s', agentLabel)}</Text>
-                          <Text size="sm">
-                            {t('Stopping point: %s', stoppingPointLabel)}
-                          </Text>
-                        </Stack>
-                        {project ? (
-                          shouldConfigure ? (
-                            <Button
-                              size="sm"
-                              busy={isLoadingModal}
-                              disabled={saveMutation.isPending || isLoadingModal}
-                              onClick={() => void openProjectModal(project)}
-                            >
-                              {t('Configure')}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              busy={isCurrentMutation}
-                              disabled={
-                                saveMutation.isPending ||
-                                defaultAgentQuery.isPending ||
-                                isLoadingModal
-                              }
-                              onClick={() =>
-                                void enableAutofix(suggestion, project, effectiveAgent)
-                              }
-                            >
-                              {t('Enable Autofix')}
-                            </Button>
-                          )
-                        ) : (
-                          <Button size="sm" disabled>
-                            {t('Unavailable')}
-                          </Button>
-                        )}
-                      </Grid>
-                    </Container>
-                  );
-                })}
-              </Stack>
-            )}
-
-            {result.hasNextPage ? (
-              <Flex justify="end">
-                <Button
-                  size="sm"
-                  busy={result.isFetchingNextPage}
-                  disabled={result.isFetchingNextPage}
-                  onClick={() => void result.fetchNextPage()}
+              return (
+                <Grid
+                  key={suggestion.projectId}
+                  columns={TABLE_COLUMNS}
+                  align="center"
+                  role="row"
+                  background="secondary"
+                  borderBottom="muted"
                 >
-                  {t('Show more')}
-                </Button>
-              </Flex>
-            ) : null}
-          </Stack>
-        </Container>
+                  <InfiniteTable.RowCell>
+                    {/* Sized to the sm checkbox box so this row's max-content
+                        first column matches the checkbox rows. */}
+                    <Container width="16px" />
+                  </InfiniteTable.RowCell>
+                  <InfiniteTable.RowCell>
+                    <ProjectBadge
+                      disableLink
+                      project={project ?? {slug: suggestion.projectSlug}}
+                      avatarSize={16}
+                    />
+                  </InfiniteTable.RowCell>
+                  <InfiniteTable.RowCell justify="end">
+                    <InfoText
+                      tabular
+                      title={
+                        suggestion.linkedRepositories.length > 0
+                          ? suggestion.linkedRepositories
+                              .map(repository => repository.name)
+                              .join(', ')
+                          : t('Repository details unavailable')
+                      }
+                    >
+                      {suggestion.linkedReposCount}
+                    </InfoText>
+                  </InfiniteTable.RowCell>
+                  <InfiniteTable.RowCell>
+                    <Text size="sm" variant="muted">
+                      {agentLabel}
+                    </Text>
+                  </InfiniteTable.RowCell>
+                  <InfiniteTable.RowCell justify="between" gap="md">
+                    <Text size="sm" variant="muted" ellipsis>
+                      {stoppingPointLabel}
+                    </Text>
+                    {project ? (
+                      shouldConfigure ? (
+                        <Button
+                          size="xs"
+                          busy={isLoadingModal}
+                          disabled={saveMutation.isPending || isLoadingModal}
+                          onClick={() => void openProjectModal(project)}
+                        >
+                          {t('Configure')}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="xs"
+                          busy={isCurrentMutation}
+                          disabled={
+                            saveMutation.isPending ||
+                            defaultAgentQuery.isPending ||
+                            isLoadingModal
+                          }
+                          onClick={() =>
+                            void enableAutofix(suggestion, project, effectiveAgent)
+                          }
+                        >
+                          {t('Enable Autofix')}
+                        </Button>
+                      )
+                    ) : (
+                      <Button size="xs" disabled>
+                        {t('Unavailable')}
+                      </Button>
+                    )}
+                  </InfiniteTable.RowCell>
+                </Grid>
+              );
+            })
+          )}
+
+          {result.hasNextPage ? (
+            <Flex justify="center" background="secondary" borderBottom="muted">
+              <Button
+                size="xs"
+                variant="transparent"
+                busy={result.isFetchingNextPage}
+                disabled={result.isFetchingNextPage}
+                onClick={() => void result.fetchNextPage()}
+              >
+                {t('Show more')}
+              </Button>
+            </Flex>
+          ) : null}
+        </Fragment>
       ) : null}
-    </Stack>
+    </Fragment>
   );
 }
 

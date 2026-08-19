@@ -2,7 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
@@ -328,9 +334,7 @@ describe('SeerProjectTable', () => {
 
         await screen.findByText(project.slug);
         expect(suggestionsRequest).not.toHaveBeenCalled();
-        expect(
-          screen.queryByRole('heading', {name: 'Suggested Projects'})
-        ).not.toBeInTheDocument();
+        expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
       }
     );
 
@@ -343,17 +347,20 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
+      expect(await screen.findByText('Suggested')).toBeInTheDocument();
+      const suggestionRow = (
+        await screen.findByText(suggestedProject.slug)
+      ).closest<HTMLElement>('[role="row"]')!;
+      // The effective agent and stopping point defaults, as plain text.
+      expect(await within(suggestionRow).findByText('Seer')).toBeInTheDocument();
       expect(
-        await screen.findByRole('heading', {name: 'Suggested Projects'})
+        within(suggestionRow).getByText('Stop after Root Cause')
       ).toBeInTheDocument();
+
+      // The repo names live in the tooltip on the linked repository count.
+      await userEvent.hover(within(suggestionRow).getByText('1'));
       expect(
         await screen.findByText('getsentry/suggested-repository')
-      ).toBeInTheDocument();
-      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
-      expect(screen.getByText('1 linked repository')).toBeInTheDocument();
-      expect(screen.getByText('Agent: Seer')).toBeInTheDocument();
-      expect(
-        screen.getByText('Stopping point: Stop after Root Cause')
       ).toBeInTheDocument();
       expect(allRepositoriesRequest).not.toHaveBeenCalled();
     });
@@ -397,16 +404,14 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(
-        await screen.findByText('getsentry/suggested-repository')
-      ).toBeInTheDocument();
-      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
+      expect(await screen.findByText(suggestedProject.slug)).toBeInTheDocument();
+      expect(screen.queryByText(secondSuggestedProject.slug)).not.toBeInTheDocument();
       expect(secondPageRequest).not.toHaveBeenCalled();
 
       await userEvent.click(screen.getByRole('button', {name: 'Show more'}));
 
-      expect(await screen.findByText('getsentry/second-repository')).toBeInTheDocument();
-      expect(screen.getByText(secondSuggestedProject.slug)).toBeInTheDocument();
+      expect(await screen.findByText(secondSuggestedProject.slug)).toBeInTheDocument();
+      expect(screen.getByText(suggestedProject.slug)).toBeInTheDocument();
       expect(firstPageRequest).toHaveBeenCalledTimes(1);
       expect(secondPageRequest).toHaveBeenCalledTimes(1);
     });
@@ -621,7 +626,7 @@ describe('SeerProjectTable', () => {
         )
       ).toBeInTheDocument();
       await waitFor(() =>
-        expect(screen.queryByText('Suggested Project')).not.toBeInTheDocument()
+        expect(screen.queryByText(suggestedProject.slug)).not.toBeInTheDocument()
       );
 
       await userEvent.click(await screen.findByText('All'));
@@ -650,9 +655,8 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(
-        await screen.findByRole('heading', {name: 'Suggested Projects'})
-      ).toBeInTheDocument();
+      expect(await screen.findByText('Suggested')).toBeInTheDocument();
+      expect(await screen.findByText(suggestedProject.slug)).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {name: 'Enable Autofix on a Project'})
       ).not.toBeInTheDocument();
@@ -670,9 +674,7 @@ describe('SeerProjectTable', () => {
       expect(
         await screen.findByRole('heading', {name: 'Enable Autofix on a Project'})
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('heading', {name: 'Suggested Projects'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
     });
 
     it('keeps the configured table usable when the suggestion query fails', async () => {
@@ -680,7 +682,8 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+      expect(await screen.findByText('Could not load suggestions.')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
       expect(screen.getByText(project.slug)).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Add Project'})).toBeInTheDocument();
     });
