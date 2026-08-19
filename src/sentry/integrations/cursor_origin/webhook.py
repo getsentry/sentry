@@ -41,6 +41,17 @@ SIGNATURE_HEADER = "webhook-signature"
 INSTALLATION_ID_HEADER = "webhook-installation-id"
 
 
+def _envelope_keys(payload: Any) -> list[str]:
+    """Top-level keys of the delivery envelope, for telemetry.
+
+    Key names only, never values, so this is safe to log. Both handlers depend on
+    Origin putting installationId in the signed body, which is inferred rather
+    than documented and could not be confirmed from the recorded deliveries. When
+    that lookup comes back empty, this says what the envelope did contain.
+    """
+    return sorted(payload.keys()) if isinstance(payload, dict) else []
+
+
 @all_silo_endpoint
 class CursorOriginWebhookEndpoint(Endpoint):
     """Receives Cursor Origin webhook deliveries.
@@ -145,7 +156,10 @@ class CursorOriginWebhookEndpoint(Endpoint):
             # installationId in the body, uninstalls stop being handled and this
             # warning says so -- which is the failure we want, rather than acting
             # on a value a replay can choose.
-            logger.warning("cursor_origin.webhook.deleted_without_signed_installation_id")
+            logger.warning(
+                "cursor_origin.webhook.deleted_without_signed_installation_id",
+                extra={"envelope_keys": _envelope_keys(payload)},
+            )
             return
 
         result = integration_service.organization_contexts(
@@ -193,7 +207,10 @@ class CursorOriginWebhookEndpoint(Endpoint):
         # delivery. Scope to the organizations that actually have this installation.
         installation_id = self._signed_installation_id(payload)
         if not installation_id:
-            logger.warning("cursor_origin.webhook.push_without_signed_installation_id")
+            logger.warning(
+                "cursor_origin.webhook.push_without_signed_installation_id",
+                extra={"envelope_keys": _envelope_keys(payload)},
+            )
             return
 
         context = integration_service.organization_contexts(
@@ -208,11 +225,26 @@ class CursorOriginWebhookEndpoint(Endpoint):
             )
             return
 
-        repos = Repository.objects.filter(
-            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
-            external_id=str(repo_id),
-            status=ObjectStatus.ACTIVE,
-            organization_id__in=organization_ids,
+        repos = list(
+            Repository.objects.filter(
+                provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+                external_id=str(repo_id),
+                status=ObjectStatus.ACTIVE,
+                organization_id__in=organization_ids,
+            )
+        )
+        # Positive confirmation that the signed body carried an installation we
+        # could resolve -- otherwise "push tracking works" is only inferrable from
+        # commits appearing. repository_count also shows the scoping doing its job:
+        # it should be the count for this installation, not every organization
+        # sharing the external id.
+        logger.info(
+            "cursor_origin.webhook.push_scoped",
+            extra={
+                "installation_id": installation_id,
+                "organization_count": len(organization_ids),
+                "repository_count": len(repos),
+            },
         )
         for repo in repos:
             for ref_update in ref_updates:
