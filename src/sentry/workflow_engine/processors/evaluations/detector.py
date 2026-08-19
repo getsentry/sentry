@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, TypedDict
 
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorResult
@@ -11,6 +12,11 @@ class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
     trigger_group_evaluation: DataConditionGroupEvaluation
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
+
+
+class DetectorEvaluationOutcome(StrEnum):
+    COMPLETED = "completed"
+    NO_RESULTS = "no_results"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -49,3 +55,35 @@ class DetectorEvaluation(
             "priority": self.priority.value,
             "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
         }
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProcessDetectorsResult:
+    detector_id: int
+    detector_type: str
+    project_id: int | None
+    evaluations: dict[DetectorGroupKey, DetectorEvaluation]
+
+    @property
+    def outcome(self) -> DetectorEvaluationOutcome:
+        if self.evaluations:
+            return DetectorEvaluationOutcome.COMPLETED
+        return DetectorEvaluationOutcome.NO_RESULTS
+
+    def to_artifact(self) -> dict[str, object]:
+        return {
+            "detector_id": self.detector_id,
+            "detector_type": self.detector_type,
+            "project_id": self.project_id,
+            "outcome": self.outcome,
+        }
+
+    def evaluation_artifacts(self) -> list[dict[str, object]]:
+        detector_artifact = self.to_artifact()
+        if not self.evaluations:
+            return [detector_artifact]
+
+        return [
+            {**detector_artifact, **evaluation.to_artifact()}
+            for evaluation in self.evaluations.values()
+        ]
