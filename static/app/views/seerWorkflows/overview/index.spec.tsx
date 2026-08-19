@@ -507,9 +507,7 @@ describe('AutofixOverview', () => {
       await screen.findByText('You don’t have any Autofix runs...yet.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Autofix Activity 14D'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Autofix Activity 7D'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
     expect(
@@ -1376,7 +1374,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
-    expect(screen.queryByText('Code changes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Code Changes')).not.toBeInTheDocument();
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {

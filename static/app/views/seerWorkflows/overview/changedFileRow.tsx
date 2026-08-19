@@ -47,7 +47,7 @@ export function ChangedFileRow({
         >
           <Flex gap="md" align="center" minWidth="0" width="100%">
             <Container minWidth="0" flexShrink={1}>
-              <FilePath size="sm" monospace ellipsis title={path}>
+              <FilePath size="sm" monospace variant="secondary" ellipsis title={path}>
                 {path}
               </FilePath>
             </Container>
