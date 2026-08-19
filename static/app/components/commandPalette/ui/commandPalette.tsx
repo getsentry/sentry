@@ -1726,20 +1726,42 @@ function makeMenuItemFromAction(
         </IconDefaultsProvider>
       </Flex>
     ) : undefined;
-  const trailingItems =
-    (action.display.trailingItem ?? linkIndicator) ? (
-      <Fragment>
-        {action.display.trailingItem}
-        {linkIndicator}
-      </Fragment>
-    ) : undefined;
-  const label = action.display.labelSuffix ? (
-    <Flex align="baseline" gap="xs">
-      <Text>{action.display.label}</Text>
-      {action.display.labelSuffix}
+  const labelWithSuffix = action.display.labelSuffix ? (
+    <Flex align="baseline" gap="xs" width="100%" minWidth={0}>
+      <Container flex={1} minWidth={0} overflow="hidden">
+        <Text as="div" ellipsis>
+          {action.display.label}
+        </Text>
+      </Container>
+      <Container flexShrink={0}>{action.display.labelSuffix}</Container>
     </Flex>
   ) : (
     action.display.label
+  );
+  const hasTrailingItem = Boolean(action.display.trailingItem);
+  const trailingItems = hasTrailingItem ? undefined : linkIndicator;
+  const label = hasTrailingItem ? (
+    <Flex align="center" gap="md" width="100%" minWidth={0}>
+      <Container flexShrink={0} maxWidth="100%" minWidth={0}>
+        {labelWithSuffix}
+      </Container>
+      <Flex
+        aria-hidden="true"
+        align="center"
+        flex={1}
+        gap="md"
+        justify="end"
+        minWidth={0}
+        overflow="hidden"
+      >
+        <Container maxWidth="100%" minWidth={0} overflow="hidden">
+          {action.display.trailingItem}
+        </Container>
+        {linkIndicator}
+      </Flex>
+    </Flex>
+  ) : (
+    labelWithSuffix
   );
   const isMultiSelectAction =
     'onMultiSelect' in action && action.onMultiSelect !== undefined;

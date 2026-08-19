@@ -403,6 +403,45 @@ describe('CommandPalette', () => {
     expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
+  it('keeps the suffix accessible for long labels', () => {
+    const longLabel = `gen_ai.input.messages.${'nested-value.'.repeat(20)}`;
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Group By'}}>
+          <CMDKAction
+            display={{label: longLabel, labelSuffix: 'Current'}}
+            onAction={() => {}}
+          />
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    expect(
+      screen.getByRole('option', {name: `${longLabel} Current`})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeVisible();
+  });
+
+  it('keeps the action label visible with a long trailing value', () => {
+    const longValue = `gen_ai.input.messages.${'nested-value.'.repeat(20)}`;
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          display={{
+            label: 'Filter By',
+            trailingItem: <span>{longValue}</span>,
+          }}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    expect(screen.getByRole('option', {name: 'Filter By'})).toBeInTheDocument();
+    expect(screen.getByText(longValue)).toBeVisible();
+  });
+
   it.each([
     ['Group By', 'group-by'],
     ['Filter By', 'filter-by'],

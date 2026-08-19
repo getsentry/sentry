@@ -452,11 +452,9 @@ function EquationFooter({
 }
 
 function GroupByActionsComponent({
-  appliedGroupBys,
   groupBys,
   setGroupBys,
 }: {
-  appliedGroupBys: readonly string[];
   groupBys: readonly string[];
   setGroupBys: (groupBys: string[]) => void;
 }) {
@@ -481,9 +479,7 @@ function GroupByActionsComponent({
             key={option.value}
             display={{
               label: option.textValue ?? option.value,
-              labelSuffix: appliedGroupBys.includes(option.value) ? (
-                <QueryValue value={t('Current')} />
-              ) : undefined,
+              labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
                   ? option.trailingItems({
@@ -813,11 +809,7 @@ function QueryClauseActions() {
           keywords={['add', 'group', 'by', 'attribute']}
           prompt={t('Search for attribute')}
         >
-          <GroupByActions
-            appliedGroupBys={groupBys}
-            groupBys={draftGroupBys}
-            setGroupBys={addGroupBy}
-          />
+          <GroupByActions groupBys={draftGroupBys} setGroupBys={addGroupBy} />
         </CMDKAction>
         <CMDKAction
           actionPanel={{
