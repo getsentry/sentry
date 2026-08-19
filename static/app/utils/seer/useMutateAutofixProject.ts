@@ -1,8 +1,15 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -23,6 +30,7 @@ import {
 import type {
   AutofixAgentSelectOption,
   SeerProjectSettingResponse,
+  SeerProjectSuggestionResponse,
   UserFacingStoppingPoint,
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -51,6 +59,92 @@ export class AutofixSettingsPartialSaveError extends Error {
     super('Repositories were saved, but Seer settings could not be updated.', options);
     this.name = 'AutofixSettingsPartialSaveError';
   }
+}
+
+// Mirrors the backend's STOPPING_POINT_HIERARCHY, which the stoppingPoint sort
+// orders by; an "off" automationTuning ranks 0 there ahead of every point.
+const STOPPING_POINT_SORT_RANK: Record<string, number> = {
+  root_cause: 1,
+  solution: 2,
+  code_changes: 3,
+  open_pr: 4,
+};
+
+function settingsSortValue(
+  row: SeerProjectSettingResponse,
+  field: string
+): string | number {
+  switch (field) {
+    case 'reposCount':
+      return row.reposCount;
+    case 'agent':
+      return row.agent;
+    case 'stoppingPoint':
+      return row.automationTuning === 'off'
+        ? 0
+        : (STOPPING_POINT_SORT_RANK[row.stoppingPoint] ?? 0);
+    default:
+      // The backend maps "name" (also its fallback) to the project slug.
+      return row.projectSlug;
+  }
+}
+
+/**
+ * Insert (or update in place) a settings row in the cached list pages at the
+ * position the backend's sort would give it, so the reconciling refetch after
+ * an optimistic insert does not visibly move the row.
+ */
+export function upsertSettingsRowSorted(
+  data: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>,
+  row: SeerProjectSettingResponse,
+  sortBy: string
+): InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> {
+  if (data.pages.length === 0) {
+    return data;
+  }
+
+  const exists = data.pages.some(page =>
+    page.json.some(item => item.projectId === row.projectId)
+  );
+  if (exists) {
+    return {
+      ...data,
+      pages: data.pages.map(page => ({
+        ...page,
+        json: page.json.map(item =>
+          item.projectId === row.projectId ? {...item, ...row} : item
+        ),
+      })),
+    };
+  }
+
+  const descending = sortBy.startsWith('-');
+  const field = descending ? sortBy.slice(1) : sortBy;
+  const rowValue = settingsSortValue(row, field);
+  const sortsAfterRow = (item: SeerProjectSettingResponse) => {
+    const itemValue = settingsSortValue(item, field);
+    return descending ? itemValue < rowValue : itemValue > rowValue;
+  };
+
+  // Pages are contiguous chunks of one sorted list, so the row belongs right
+  // before the first item that sorts after it; with no such item it goes at
+  // the end of the last loaded page.
+  const pageIndex = data.pages.findIndex(page => page.json.some(sortsAfterRow));
+  const insertPageIndex = pageIndex === -1 ? data.pages.length - 1 : pageIndex;
+  return {
+    ...data,
+    pages: data.pages.map((page, index) => {
+      if (index !== insertPageIndex) {
+        return page;
+      }
+      const itemIndex = pageIndex === -1 ? -1 : page.json.findIndex(sortsAfterRow);
+      const insertAt = itemIndex === -1 ? page.json.length : itemIndex;
+      return {
+        ...page,
+        json: [...page.json.slice(0, insertAt), row, ...page.json.slice(insertAt)],
+      };
+    }),
+  };
 }
 
 export function useMutateAutofixProject() {
@@ -136,6 +230,97 @@ export function useMutateAutofixProject() {
         });
       } catch (error) {
         throw new AutofixSettingsPartialSaveError({cause: error});
+      }
+    },
+    onMutate: async variables => {
+      const {project, repoEntries, agentOption, stoppingPoint} = variables;
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
+
+      // Move the project between the cached lists optimistically, so the
+      // table updates on click instead of after the two writes and the
+      // onSettled refetches. The refetches reconcile ordering and any
+      // server-derived fields; onError restores the snapshots.
+      const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
+      const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
+      const settingsRow: SeerProjectSettingResponse = {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent,
+        integrationId: integrationId ?? null,
+        stoppingPoint: stoppingPointValue ?? 'off',
+        autoCreatePr: null,
+        automationTuning: tuning,
+        scannerAutomation: false,
+        reposCount: repoEntries.filter(entry => Boolean(entry.repoId)).length,
+      };
+
+      const [suggestionsUrl] = getInfiniteSeerProjectSuggestionsQueryOptions({
+        organization,
+        enabled: true,
+      }).queryKey;
+      const [settingsListUrl] = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+
+      await queryClient.cancelQueries({queryKey: [suggestionsUrl], exact: false});
+      await queryClient.cancelQueries({queryKey: [settingsListUrl], exact: false});
+
+      const previousSuggestions = queryClient.getQueriesData({
+        queryKey: [suggestionsUrl],
+        exact: false,
+      });
+      const previousSettingsLists = queryClient.getQueriesData({
+        queryKey: [settingsListUrl],
+        exact: false,
+      });
+
+      queryClient.setQueriesData(
+        {queryKey: [suggestionsUrl], exact: false},
+        (
+          prev: InfiniteData<ApiResponse<SeerProjectSuggestionResponse[]>> | undefined
+        ) => {
+          if (prev) {
+            return {
+              ...prev,
+              pages: prev.pages.map(page => ({
+                ...page,
+                json: page.json.filter(item => item.projectId !== project.id),
+              })),
+            };
+          }
+          return;
+        }
+      );
+
+      for (const [queryKey, data] of previousSettingsLists) {
+        if (!data) {
+          continue;
+        }
+        const sortBy = safeParseQueryKey(queryKey)?.options?.query?.sortBy;
+        queryClient.setQueryData(
+          queryKey,
+          upsertSettingsRowSorted(
+            data as InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>,
+            settingsRow,
+            typeof sortBy === 'string' ? sortBy : 'name'
+          )
+        );
+      }
+
+      return {previousSuggestions, previousSettingsLists};
+    },
+    onError: (error, _variables, context) => {
+      // A partial save persisted the repositories, so the optimistic move is
+      // already the server state; the caller's retry warning owns the rest.
+      if (error instanceof AutofixSettingsPartialSaveError || !context) {
+        return;
+      }
+      for (const [queryKey, data] of context.previousSuggestions) {
+        queryClient.setQueryData(queryKey, data);
+      }
+      for (const [queryKey, data] of context.previousSettingsLists) {
+        queryClient.setQueryData(queryKey, data);
       }
     },
     onSuccess: (_data, variables) => {
