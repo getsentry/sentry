@@ -95,6 +95,55 @@ describe('WidgetBuilderGroupBySelector', () => {
     });
   });
 
+  it('renders explicitly-typed EAP attribute group by fields with prettified names', async () => {
+    const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          key: 'tags[my_number,number]',
+          name: 'my_number',
+          attributeType: 'number',
+        },
+        {
+          key: 'tags[my_boolean,boolean]',
+          name: 'my_boolean',
+          attributeType: 'boolean',
+        },
+      ],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderGroupBySelector validatedWidgetResponse={{} as any} />
+      </WidgetBuilderProvider>,
+      {
+        organization: logsOrganization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/dashboard/:dashboardId/',
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              dataset: WidgetType.LOGS,
+              displayType: DisplayType.LINE,
+              // Saved group by fields are stored with their explicit type, e.g.
+              // `tags[name,type]`.
+              field: ['tags[my_number,number]', 'tags[my_boolean,boolean]'],
+            },
+          },
+        },
+      }
+    );
+
+    // Saved group by fields should render with their prettified names rather
+    // than the raw `tags[name,type]` form (DAIN-1783).
+    expect(await screen.findByText('my_number')).toBeInTheDocument();
+    expect(await screen.findByText('my_boolean')).toBeInTheDocument();
+    expect(screen.queryByText('tags[my_number,number]')).not.toBeInTheDocument();
+    expect(screen.queryByText('tags[my_boolean,boolean]')).not.toBeInTheDocument();
+  });
+
   it('disables group by selector when transaction widget type and discover-saved-queries-deprecation feature flag', async () => {
     const organizationWithFeature = OrganizationFixture({
       features: ['discover-saved-queries-deprecation'],
