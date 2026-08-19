@@ -262,7 +262,8 @@ function TraceItemFilterActionsComponent({
 export const TraceItemFilterActions = memo(TraceItemFilterActionsComponent);
 
 function TraceItemFilterRowsComponent({
-  onRemoveFilter,
+  onClearFilter,
+  onDeleteFilter,
   orderStart,
   pendingRows,
   summary,
@@ -272,15 +273,14 @@ function TraceItemFilterRowsComponent({
   pendingRows: number;
   summary: string;
   targetAction: string;
-  onRemoveFilter?: (index: number) => void;
+  onClearFilter?: (index: number) => void;
+  onDeleteFilter?: (index: number) => void;
 }) {
   const filters = getFilterRows(summary);
   const rows = [...filters, ...Array.from({length: pendingRows}, () => '')];
 
   return rows.map((filter, index) => {
     const rowId = `trace-item-filter-${index}`;
-    const filterActionLabel =
-      rows.length > 1 ? t('Delete Filter') : filter ? t('Clear Filter') : null;
 
     return (
       <Fragment key={rowId}>
@@ -295,15 +295,26 @@ function TraceItemFilterRowsComponent({
           order={orderStart + index}
           targetAction={targetAction}
         />
-        {filterActionLabel && onRemoveFilter && (
+        {filter && onClearFilter && (
           <CMDKAction
             actionPanel={{
               context: `filter:${index}`,
-              label: filterActionLabel,
+              label: t('Clear Filter'),
               only: true,
             }}
-            display={{label: filterActionLabel}}
-            onAction={() => onRemoveFilter(index)}
+            display={{label: t('Clear Filter')}}
+            onAction={() => onClearFilter(index)}
+          />
+        )}
+        {rows.length > 1 && onDeleteFilter && (
+          <CMDKAction
+            actionPanel={{
+              context: `filter:${index}`,
+              label: t('Delete Filter'),
+              only: true,
+            }}
+            display={{label: t('Delete Filter')}}
+            onAction={() => onDeleteFilter(index)}
           />
         )}
       </Fragment>

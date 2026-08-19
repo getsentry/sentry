@@ -15,6 +15,7 @@ import {
   canCompareQueries,
   canDeleteChart,
   canReorderCharts,
+  clearFilterRow,
   deleteChart,
   EquationFooter,
   removeFilterRow,
@@ -268,5 +269,17 @@ describe('removeSearchFilterFromQuery', () => {
     expect(removeFilterRow({query: 'environment:production', pendingRows: 0}, 0)).toEqual(
       {query: '', pendingRows: 1}
     );
+  });
+
+  it('clears a filter while preserving its row', () => {
+    expect(
+      clearFilterRow(
+        {
+          query: 'environment:production gen_ai.response.model:gpt-4o',
+          pendingRows: 0,
+        },
+        0
+      )
+    ).toEqual({query: 'gen_ai.response.model:gpt-4o', pendingRows: 1});
   });
 });

@@ -137,6 +137,20 @@ export function removeFilterRow(
   return {pendingRows, query};
 }
 
+export function clearFilterRow(
+  filters: {pendingRows: number; query: string},
+  filterIndex: number
+): {pendingRows: number; query: string} {
+  if (filterIndex >= getFilterRows(filters.query).length) {
+    return filters;
+  }
+
+  return {
+    pendingRows: filters.pendingRows + 1,
+    query: removeSearchFilterFromQuery(filters.query, filterIndex),
+  };
+}
+
 export function reorderCharts<T>(
   charts: readonly T[],
   index: number,
@@ -754,6 +768,9 @@ function QueryClauseActions() {
   const removeSearchFilter = useCallback((filterIndex: number) => {
     setDraftFilters(current => removeFilterRow(current, filterIndex));
   }, []);
+  const clearSearchFilter = useCallback((filterIndex: number) => {
+    setDraftFilters(current => clearFilterRow(current, filterIndex));
+  }, []);
 
   const draftQuery = draftFilters.query;
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
@@ -957,7 +974,8 @@ function QueryClauseActions() {
           }
         )}
         <TraceItemFilterRows
-          onRemoveFilter={removeSearchFilter}
+          onClearFilter={clearSearchFilter}
+          onDeleteFilter={removeSearchFilter}
           orderStart={QUERY_ACTION_ORDER.filter}
           pendingRows={draftFilters.pendingRows}
           summary={draftQuery}
