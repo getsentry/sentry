@@ -58,6 +58,11 @@
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
+/src/sentry/sentry_metrics/indexer/                      @getsentry/owners-snuba
+/src/sentry/sentry_metrics/consumers/indexer/            @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/consumers/                  @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/limiters/                   @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/test_*indexer*.py           @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/extraction.py                  @getsentry/owners-snuba @getsentry/telemetry-experience
