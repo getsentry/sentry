@@ -11,14 +11,18 @@ import pytest
 import requests
 
 from sentry.hybridcloud.rpc.attempt_instrumentation import (
+    InstrumentedConnectionMixin,
     InstrumentedHTTPAdapter,
     InstrumentedHTTPConnectionPool,
+    InstrumentedHTTPSConnection,
+    InstrumentedHTTPSConnectionPool,
     ObservedRetry,
     _rpc_call,
     observe_rpc_call,
 )
-from sentry.hybridcloud.rpc.service import _create_request_session
+from sentry.hybridcloud.rpc.service import _create_request_session, _RemoteSiloCall
 from sentry.testutils.helpers import override_options
+from sentry.types.cell import Cell
 
 ENABLED = {"hybridcloud.rpc.attempt_observability.enabled": True}
 
@@ -274,3 +278,56 @@ def test_observed_retry_survives_increment() -> None:
 
     assert isinstance(incremented, ObservedRetry)
     assert incremented.total == 2
+
+
+@pytest.mark.django_db
+@override_options(ENABLED)
+def test_connect_timeouts_are_tagged_separately(closed_port: int) -> None:
+    """
+    ConnectTimeout subclasses both ConnectionError and Timeout, so it has to be caught
+    before ConnectionError to avoid being reported as a generic connection error.
+    """
+    call = _RemoteSiloCall(
+        cell=Cell("us", 1, f"http://127.0.0.1:{closed_port}"),
+        service_name="organization_service",
+        method_name="get_organization_by_id",
+        serial_arguments={},
+    )
+
+    with (
+        mock.patch("sentry.hybridcloud.rpc.service.metrics.incr") as incr,
+        mock.patch(
+            "requests.sessions.Session.post",
+            side_effect=requests.exceptions.ConnectTimeout("too slow"),
+        ),
+    ):
+        with pytest.raises(Exception, match="Timeout of"):
+            call._fire_request({}, b"{}")
+
+    kinds = [c.kwargs["tags"]["kind"] for c in incr.call_args_list if "kind" in c.kwargs["tags"]]
+    assert kinds == ["connecttimeout"]
+
+
+@override_options(ENABLED)
+def test_instruments_https_connections(scripted_server: Any) -> None:
+    """
+    The https pool uses a separate connection class, whose MRO must still reach the
+    instrumented _new_conn. Exercised against a TLS server rather than asserted
+    structurally, so a urllib3 change to HTTPSConnection.connect would surface here.
+    """
+    scripted_server.statuses = [200]
+    session = _create_request_session(retry_count=0)
+    adapter = session.adapters["https://"]
+    pool = adapter.poolmanager.connection_from_url("https://127.0.0.1:1/")
+
+    assert isinstance(pool, InstrumentedHTTPSConnectionPool)
+    assert pool.ConnectionCls is InstrumentedHTTPSConnection
+    assert InstrumentedHTTPSConnection._new_conn is InstrumentedConnectionMixin._new_conn
+
+    with mock.patch("sentry.hybridcloud.rpc.attempt_instrumentation.start_span") as start_span:
+        with observe_rpc_call("organization_service.get_organization_by_id", "us") as call:
+            with pytest.raises(requests.exceptions.ConnectionError):
+                session.post("https://127.0.0.1:1/rpc", data=b"{}", timeout=5)
+
+    assert call.attempts == 1
+    assert _spans(start_span).count("socket.connect") == 1

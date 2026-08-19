@@ -750,6 +750,14 @@ class _RemoteSiloCall:
                 response = http.post(url, headers=headers, data=data, timeout=timeout)
                 outcome = "success"
                 return response
+            # ConnectTimeout subclasses both ConnectionError and Timeout, so it has to
+            # be caught before ConnectionError to be tagged as a timeout at all.
+            except requests.exceptions.ConnectTimeout as e:
+                metrics.incr(
+                    "hybrid_cloud.dispatch_rpc.failure",
+                    tags=self._metrics_tags(kind="connecttimeout"),
+                )
+                raise self._remote_exception(f"Timeout of {timeout} exceeded connecting") from e
             except requests.exceptions.ConnectionError as e:
                 metrics.incr(
                     "hybrid_cloud.dispatch_rpc.failure",
