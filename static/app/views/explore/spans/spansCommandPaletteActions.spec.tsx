@@ -1,9 +1,45 @@
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({count}: {count: number}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, index) => ({
+        key: index,
+        index,
+        start: index * 48,
+        size: 48,
+        lane: 0,
+      })),
+    getTotalSize: () => count * 48,
+    measureElement: jest.fn(),
+    measure: jest.fn(),
+    scrollToIndex: jest.fn(),
+  }),
+}));
+
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
+
+import {closeModal} from 'sentry/actionCreators/modal';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
+import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   addSearchFilterToQuery,
   getSearchFilterAttribute,
@@ -17,18 +53,57 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {
+  addGroupByToDraftState,
   canCompareQueries,
   canDeleteChart,
   canReorderCharts,
   clearFilterRow,
   deleteChart,
   EquationFooter,
+  getEnvironmentScopeLabel,
+  getProjectScopeLabel,
   getProjectsForSelection,
   getToggledProjectSelection,
   isProjectSelectionLimitExceeded,
   removeFilterRow,
   reorderCharts,
+  SpansCommandPaletteActions,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
+import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+function SlotOutlets() {
+  return (
+    <div style={{display: 'none'}}>
+      <CommandPaletteSlot.Outlet name="task">
+        {props => <div {...props} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="page">
+        {props => <div {...props} />}
+      </CommandPaletteSlot.Outlet>
+      <CommandPaletteSlot.Outlet name="global">
+        {props => <div {...props} />}
+      </CommandPaletteSlot.Outlet>
+    </div>
+  );
+}
+
+function ProjectSelectionPalette() {
+  return (
+    <CommandPaletteProvider>
+      <SpansQueryParamsProvider>
+        <SpansCommandPaletteActions />
+      </SpansQueryParamsProvider>
+      <SlotOutlets />
+      <CommandPalette
+        Body={ModalBody}
+        CloseButton={makeCloseButton(closeModal)}
+        Footer={ModalFooter}
+        Header={makeClosableHeader(closeModal)}
+        closeModal={closeModal}
+      />
+    </CommandPaletteProvider>
+  );
+}
 
 describe('project scope selection', () => {
   const projects = [
@@ -66,11 +141,302 @@ describe('project scope selection', () => {
     expect(getToggledProjectSelection([1], 2)).toEqual([1, 2]);
   });
 
+  it('summarizes explicit projects like the PageFilterBar', () => {
+    expect(getProjectScopeLabel(projects, [1])).toBe('My Projects');
+    expect(getProjectScopeLabel(projects, [2])).toBe(projects[1]!.slug);
+    expect(getProjectScopeLabel(projects, [1, 2])).toBe('My Projects +1');
+    expect(getProjectScopeLabel(projects, [1, 2, 3])).toBe('My Projects +2');
+    expect(
+      getProjectScopeLabel(
+        [
+          ProjectFixture({id: '1', slug: 'frontend', isMember: false}),
+          ProjectFixture({id: '2', slug: 'backend', isMember: false}),
+          ProjectFixture({id: '3', slug: 'android', isMember: false}),
+        ],
+        [1, 2, 3]
+      )
+    ).toBe('frontend, backend, +1');
+  });
+
   it('applies the project limit only to explicit selections', () => {
     expect(isProjectSelectionLimitExceeded([ALL_ACCESS_PROJECTS])).toBe(false);
     expect(
       isProjectSelectionLimitExceeded(Array.from({length: 51}, (_, index) => index + 1))
     ).toBe(true);
+  });
+
+  it('uses the My Projects icon for the compact My Projects scope', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', isMember: true}),
+      ProjectFixture({id: '2', isMember: true}),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    const projectsOption = await screen.findByRole('option', {name: 'Projects'});
+    expect(within(projectsOption).getByTestId('icon-my-projects')).toBeInTheDocument();
+    expect(
+      within(projectsOption).queryByTestId(/^platform-icon-/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses the generic project icon for multiple explicit projects', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', platform: 'javascript'}),
+      ProjectFixture({id: '2', platform: 'python'}),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1, 2],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    const projectsOption = await screen.findByRole('option', {name: 'Projects'});
+    expect(within(projectsOption).getByTestId('icon-projects')).toBeInTheDocument();
+    expect(
+      within(projectsOption).queryByTestId(/^platform-icon-/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks only All Projects as Current for the all-projects scope', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend'}),
+      ProjectFixture({id: '2', slug: 'backend'}),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [ALL_ACCESS_PROJECTS],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+    await userEvent.click(await screen.findByRole('option', {name: 'Projects'}));
+
+    expect(
+      await screen.findByRole('option', {name: 'All Projects Current'})
+    ).toBeInTheDocument();
+    const frontend = screen.getByRole('option', {name: 'frontend'});
+    expect(within(frontend).queryByText('Current')).not.toBeInTheDocument();
+    expect(within(frontend).getByRole('checkbox', {hidden: true})).toBeChecked();
+  });
+
+  it('keeps a project added with Enter in the draft until changes are applied', async () => {
+    // React Aria's virtual focus schedules a passive update after the keyboard action.
+    jest.spyOn(console, 'error').mockImplementation();
+    const selectedProjects = [
+      ProjectFixture({
+        id: '1',
+        slug: 'frontend',
+        environments: ['production'],
+        isMember: true,
+      }),
+      ProjectFixture({
+        id: '2',
+        slug: 'backend',
+        environments: ['production'],
+        isMember: true,
+      }),
+      ProjectFixture({
+        id: '3',
+        slug: 'android',
+        environments: ['production'],
+        isMember: false,
+      }),
+    ];
+    ProjectsStore.loadInitialData(selectedProjects);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1, 2],
+      environments: ['production'],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            environment: 'production',
+            project: ['1', '2'],
+            statsPeriod: '24h',
+          },
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Projects'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'android'
+    );
+    await userEvent.keyboard('{ArrowDown}{Shift>}{Enter}{/Shift}');
+
+    const selectedAndroid = await screen.findByRole('option', {name: /android/});
+    expect(within(selectedAndroid).getByRole('checkbox', {hidden: true})).toBeChecked();
+    expect(within(selectedAndroid).queryByText('Current')).not.toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByText('My Projects +1')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+    expect(router.location.query.project).toEqual(['1', '2']);
+
+    await userEvent.keyboard('{Enter}');
+    const android = await screen.findByRole('option', {name: /android/});
+    expect(within(android).getByText('Current')).toBeInTheDocument();
+    expect(within(android).getByRole('checkbox', {hidden: true})).toBeChecked();
+
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Reset Project Selection',
+      })
+    );
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search for projects')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+    expect(router.location.query.project).toEqual(['1', '2']);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Return to previous action'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
+    expect(PageFiltersStore.getState().selection.projects).toEqual([]);
+    expect(PageFiltersStore.getState().selection.environments).toEqual([]);
+    await waitFor(() => expect(router.location.query.project).toBeUndefined());
+    expect(router.location.query.environment).toBeUndefined();
+    expect(router.location.query.statsPeriod).toBe('24h');
+  });
+});
+
+describe('environment scope selection', () => {
+  it('summarizes selected environments like the PageFilterBar', () => {
+    expect(getEnvironmentScopeLabel([])).toBe('All Environments');
+    expect(getEnvironmentScopeLabel(['prod', 'production'])).toBe('prod, production');
+    expect(getEnvironmentScopeLabel(['prod', 'production', 'staging'])).toBe(
+      'prod, production, +1'
+    );
+  });
+
+  it('keeps environments added with Enter in the draft until changes are applied', async () => {
+    // React Aria's virtual focus schedules a passive update after the keyboard action.
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        slug: 'frontend',
+        environments: ['prod', 'production'],
+      }),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: ['production'],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            environment: 'production',
+            project: '1',
+            statsPeriod: '24h',
+          },
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Environments'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'prod');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(await screen.findByText('production, prod')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['production']);
+    expect(router.location.query.environment).toBe('production');
+
+    await userEvent.keyboard('{Enter}');
+    const prod = await screen.findByRole('option', {name: 'prod Current'});
+    expect(
+      within(prod).getByRole('checkbox', {
+        hidden: true,
+      })
+    ).toBeChecked();
+    expect(
+      within(await screen.findByRole('option', {name: /^production/})).getByRole(
+        'checkbox',
+        {hidden: true}
+      )
+    ).toBeChecked();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'prod');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(await screen.findByText('production')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['production']);
+    expect(router.location.query.environment).toBe('production');
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Environments'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'prod');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(await screen.findByText('production, prod')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Reset Environment Selection',
+      })
+    );
+    expect(await screen.findByText('All Environments')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search for environments')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['production']);
+    expect(router.location.query.environment).toBe('production');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Return to previous action'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
+    expect(PageFiltersStore.getState().selection.environments).toEqual([]);
+    await waitFor(() => expect(router.location.query.environment).toBeUndefined());
+  });
+});
+
+describe('group by draft selection', () => {
+  it('replaces the pending row without adding a duplicate group by', () => {
+    const selected = addGroupByToDraftState(
+      {groupBys: [], pendingRows: 1},
+      'environment'
+    );
+
+    expect(selected).toEqual({groupBys: ['environment'], pendingRows: 0});
+    expect(addGroupByToDraftState(selected, 'environment')).toBe(selected);
   });
 });
 

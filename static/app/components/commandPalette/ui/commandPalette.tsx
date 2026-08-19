@@ -1,5 +1,6 @@
 import {
   Fragment,
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -340,7 +341,10 @@ export function CommandPalette({
     }),
     disabledKeys,
   });
-  const retainedFocusKeyRef = useRef<string | number | null>(null);
+  const retainedFocusRef = useRef<{
+    anchorKey: string;
+    focusKey: string | number;
+  } | null>(null);
   const hasUserNavigatedResultsRef = useRef(false);
   const focusedAction = actions.find(
     action => action.key === treeState.selectionManager.focusedKey
@@ -449,29 +453,34 @@ export function CommandPalette({
       return;
     }
     previousActionKeyRef.current = currentActionKey;
-    if (retainedFocusKeyRef.current !== null) {
+    if (retainedFocusRef.current !== null) {
       return;
     }
     resetResultsNavigation();
   }, [currentActionKey, resetResultsNavigation]);
 
   useLayoutEffect(() => {
-    const retainedFocusKey = retainedFocusKeyRef.current;
-    if (retainedFocusKey === null) {
+    const retainedFocus = retainedFocusRef.current;
+    if (retainedFocus?.anchorKey !== currentActionKey) {
       return;
     }
-    retainedFocusKeyRef.current = null;
+    retainedFocusRef.current = null;
     hasUserNavigatedResultsRef.current = true;
 
-    if (treeState.collection.getItem(retainedFocusKey) === null) {
+    if (treeState.collection.getItem(retainedFocus.focusKey) === null) {
       resetResultsNavigation();
       return;
     }
 
     mouseLeftResultsRef.current = false;
     treeState.selectionManager.setFocused(true);
-    treeState.selectionManager.setFocusedKey(retainedFocusKey);
-  }, [resetResultsNavigation, treeState.collection, treeState.selectionManager]);
+    treeState.selectionManager.setFocusedKey(retainedFocus.focusKey);
+  }, [
+    currentActionKey,
+    resetResultsNavigation,
+    treeState.collection,
+    treeState.selectionManager,
+  ]);
 
   useLayoutEffect(() => {
     if (
@@ -523,7 +532,7 @@ export function CommandPalette({
       if (e.key === 'Enter' && currentTextInput) {
         e.preventDefault();
         currentTextInput.onSubmit(state.query);
-        dispatch({type: 'pop action'});
+        startTransition(() => dispatch({type: 'pop action'}));
         return;
       }
 
@@ -708,18 +717,22 @@ export function CommandPalette({
       analytics.recordAction(action, resultIndex, '');
 
       if ('onAction' in action && action.chainedActionAnchor) {
+        const {chainedActionAnchor} = action;
         if (action.onMultiSelect && options?.modifierKeys?.shiftKey) {
           action.onMultiSelect();
           dispatch({type: 'set query', query: ''});
         } else {
-          retainedFocusKeyRef.current =
-            getChainedReturnFocusKey(state.action, action.chainedActionAnchor.key) ??
+          const retainedFocusKey =
+            getChainedReturnFocusKey(state.action, chainedActionAnchor.key) ??
             treeState.selectionManager.focusedKey;
+          retainedFocusRef.current =
+            retainedFocusKey === null
+              ? null
+              : {anchorKey: chainedActionAnchor.key, focusKey: retainedFocusKey};
           action.onAction();
-          dispatch({
-            type: 'return to anchor',
-            anchor: action.chainedActionAnchor,
-          });
+          startTransition(() =>
+            dispatch({type: 'return to anchor', anchor: chainedActionAnchor})
+          );
         }
         return;
       }

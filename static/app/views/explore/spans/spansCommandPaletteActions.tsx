@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useRef, useState} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +12,11 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {updateDateTime, updateProjects} from 'sentry/components/pageFilters/actions';
+import {
+  updateDateTime,
+  updateEnvironments,
+  updateProjects,
+} from 'sentry/components/pageFilters/actions';
 import {
   ALL_ACCESS_PROJECTS,
   PROJECT_SELECTION_COUNT_LIMIT,
@@ -20,7 +24,15 @@ import {
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PlatformList} from 'sentry/components/platformList';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconClock, IconGlobe, IconProject, IconSpan} from 'sentry/icons';
+import {
+  IconAllProjects,
+  IconClock,
+  IconGlobe,
+  IconMyProjects,
+  IconProject,
+  IconRefresh,
+  IconSpan,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
@@ -37,6 +49,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {trimSlug} from 'sentry/utils/string/trimSlug';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -364,7 +377,20 @@ export function isProjectSelectionLimitExceeded(selectedProjectIds: number[]): b
   );
 }
 
-function getProjectScopeLabel(
+export function addGroupByToDraftState(
+  current: {groupBys: string[]; pendingRows: number},
+  groupBy: string
+): {groupBys: string[]; pendingRows: number} {
+  if (current.groupBys.includes(groupBy)) {
+    return current;
+  }
+  return {
+    groupBys: [...current.groupBys, groupBy],
+    pendingRows: 0,
+  };
+}
+
+export function getProjectScopeLabel(
   projects: ReturnType<typeof useProjects>['projects'],
   ids: number[]
 ) {
@@ -374,40 +400,91 @@ function getProjectScopeLabel(
   if (ids.length === 0) {
     return t('My Projects');
   }
-  if (ids.length === 1) {
-    return (
-      projects.find(project => Number(project.id) === ids[0])?.slug ?? t('1 project')
-    );
+  const memberProjectIds = projects
+    .filter(project => project.isMember)
+    .map(project => Number(project.id));
+  const selectedProjectIds = new Set(ids);
+  const includesAllMemberProjects =
+    memberProjectIds.length > 0 &&
+    memberProjectIds.every(id => selectedProjectIds.has(id));
+  if (includesAllMemberProjects) {
+    const additionalProjectCount = ids.filter(
+      id => !memberProjectIds.includes(id)
+    ).length;
+
+    return additionalProjectCount > 0
+      ? t('My Projects +%s', additionalProjectCount)
+      : t('My Projects');
   }
-  return t('%s projects', ids.length);
+  const selectedProjects = ids
+    .map(id => projects.find(project => Number(project.id) === id))
+    .filter((project): project is Project => project !== undefined);
+  const projectsToShow =
+    (selectedProjects[0]?.slug.length ?? 0) + (selectedProjects[1]?.slug.length ?? 0) <=
+    23
+      ? selectedProjects.slice(0, 2)
+      : selectedProjects.slice(0, 1);
+  const label = projectsToShow.map(project => trimSlug(project.slug, 25)).join(', ');
+  const remainingCount = ids.length - projectsToShow.length;
+
+  return remainingCount > 0 ? `${label}, +${remainingCount}` : label;
 }
 
-function getEnvironmentScopeLabel(environments: string[]) {
+export function getEnvironmentScopeLabel(environments: string[]) {
   if (environments.length === 0) {
     return t('All Environments');
   }
-  if (environments.length === 1) {
-    return environments[0]!;
-  }
-  return t('%s environments', environments.length);
+  const environmentsToShow =
+    (environments[0]?.length ?? 0) + (environments[1]?.length ?? 0) <= 23
+      ? environments.slice(0, 2)
+      : environments.slice(0, 1);
+  const label = environmentsToShow
+    .map(environment => trimSlug(environment, 25))
+    .join(', ');
+  const remainingCount = environments.length - environmentsToShow.length;
+
+  return remainingCount > 0 ? `${label}, +${remainingCount}` : label;
 }
 
 function SpansScopeActions({
-  appliedPageFilters,
   draftPageFilters,
   setDraftPageFilters,
 }: {
-  appliedPageFilters: PageFilters;
   draftPageFilters: PageFilters;
   setDraftPageFilters: React.Dispatch<React.SetStateAction<PageFilters>>;
 }) {
   const {projects} = useProjects();
+  const commandPaletteState = useCommandPaletteState();
+  const [currentPageFilters, setCurrentPageFilters] = useState(draftPageFilters);
+  const lastMultiSelectedProjectRef = useRef<number | null>(null);
+  const lastMultiSelectedEnvironmentRef = useRef<string | null>(null);
   const isSuperuser = isActiveSuperuser();
   const {maxPickableDays} = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
   const selectedProjects = draftPageFilters.projects;
   const selectedEnvironments = draftPageFilters.environments;
+  let navigationAction = commandPaletteState.action;
+  let isScopePickerOpen = false;
+  while (navigationAction) {
+    if (
+      [t('Projects'), t('Environments'), t('Time range')].includes(
+        navigationAction.value.label
+      )
+    ) {
+      isScopePickerOpen = true;
+      break;
+    }
+    navigationAction = navigationAction.previous;
+  }
+  useEffect(() => {
+    if (!isScopePickerOpen) {
+      // This is an intentional step-0 snapshot, not derived render state. Picker edits
+      // should not become "Current" until the user returns to the scope summary.
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setCurrentPageFilters(draftPageFilters);
+    }
+  }, [draftPageFilters, isScopePickerOpen]);
   const projectsInDraftScope = getProjectsForSelection(
     projects,
     selectedProjects,
@@ -417,15 +494,28 @@ function SpansScopeActions({
   const effectiveSelectedProjectIds = projectsInDraftScope.map(project =>
     Number(project.id)
   );
+  const currentEffectiveProjectIds = getProjectsForSelection(
+    projects,
+    currentPageFilters.projects,
+    isSuperuser
+  ).map(project => Number(project.id));
   const availableEnvironments = [
     ...new Set(projectsInDraftScope.flatMap(project => project.environments)),
   ].toSorted();
+  const shouldShowProjectReset = selectedProjects.length > 0;
+  const shouldShowEnvironmentReset = selectedEnvironments.length > 0;
+  const hasExplicitCurrentProjectSelection =
+    currentPageFilters.projects.length > 0 &&
+    !currentPageFilters.projects.includes(ALL_ACCESS_PROJECTS);
   const timeRangeLabel =
     RELATIVE_TIME_RANGES.find(
       option => option.period === draftPageFilters.datetime.period
     )?.label ?? t('Custom');
 
-  const setProjects = (nextProjects: number[]) => {
+  const getPageFiltersWithProjects = (
+    current: PageFilters,
+    nextProjects: number[]
+  ): PageFilters => {
     const nextAvailableProjects = getProjectsForSelection(
       projects,
       nextProjects,
@@ -434,13 +524,38 @@ function SpansScopeActions({
     const nextEnvironmentSet = new Set(
       nextAvailableProjects.flatMap(project => project.environments)
     );
-    setDraftPageFilters(current => ({
+    return {
       ...current,
       projects: nextProjects,
       environments: current.environments.filter(environment =>
         nextEnvironmentSet.has(environment)
       ),
-    }));
+    };
+  };
+
+  const setProjects = (nextProjects: number[]) => {
+    setDraftPageFilters(current => getPageFiltersWithProjects(current, nextProjects));
+  };
+
+  const toggleProject = (projectId: number) => {
+    setDraftPageFilters(current => {
+      const currentProjectIds = getProjectsForSelection(
+        projects,
+        current.projects,
+        isSuperuser
+      ).map(project => Number(project.id));
+      const nextProjects = getToggledProjectSelection(currentProjectIds, projectId);
+
+      return nextProjects ? getPageFiltersWithProjects(current, nextProjects) : current;
+    });
+  };
+
+  const commitProject = (projectId: number) => {
+    if (lastMultiSelectedProjectRef.current === projectId) {
+      lastMultiSelectedProjectRef.current = null;
+      return;
+    }
+    toggleProject(projectId);
   };
 
   return (
@@ -457,27 +572,48 @@ function SpansScopeActions({
             />
           ),
           icon:
-            selectedProjectModels.length > 0 ? (
+            selectedProjects.length === 0 ? (
+              <IconMyProjects data-test-id="icon-my-projects" />
+            ) : selectedProjects.includes(ALL_ACCESS_PROJECTS) ? (
+              <IconAllProjects data-test-id="icon-all-projects" />
+            ) : selectedProjectModels.length === 1 ? (
               <PlatformList
-                max={2}
                 platforms={selectedProjectModels.map(
                   project => project.platform ?? 'other'
                 )}
                 size={16}
               />
             ) : (
-              <IconProject />
+              <IconProject data-test-id="icon-projects" />
             ),
         }}
         keywords={['scope', 'project', 'projects']}
         prompt={t('Search for projects')}
       >
+        <CMDKChainedActionScope>
+          <CMDKAction
+            actionPanel={{
+              context: 'project-selection',
+              label: t('Reset Project Selection'),
+              only: true,
+            }}
+            display={{label: t('Reset Project Selection'), icon: <IconRefresh />}}
+            onAction={() =>
+              setDraftPageFilters(current => ({
+                ...current,
+                projects: [],
+                environments: [],
+              }))
+            }
+          />
+        </CMDKChainedActionScope>
         <CMDKAction
+          actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
           display={{
             label: t('My Projects'),
-            icon: <IconProject />,
+            icon: <IconMyProjects />,
             labelSuffix:
-              appliedPageFilters.projects.length === 0 ? (
+              currentPageFilters.projects.length === 0 ? (
                 <QueryValue value={t('Current')} />
               ) : undefined,
           }}
@@ -485,10 +621,11 @@ function SpansScopeActions({
           onAction={() => setProjects([])}
         />
         <CMDKAction
+          actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
           display={{
             label: t('All Projects'),
-            icon: <IconProject />,
-            labelSuffix: appliedPageFilters.projects.includes(ALL_ACCESS_PROJECTS) ? (
+            icon: <IconAllProjects />,
+            labelSuffix: currentPageFilters.projects.includes(ALL_ACCESS_PROJECTS) ? (
               <QueryValue value={t('Current')} />
             ) : undefined,
           }}
@@ -505,22 +642,26 @@ function SpansScopeActions({
           return (
             <CMDKAction
               key={project.id}
+              actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
               disabled={toggledProjects === undefined}
               display={{
                 label: project.slug,
                 icon: <ProjectAvatar project={project} size={16} />,
-                labelSuffix: appliedPageFilters.projects.includes(projectId) ? (
-                  <QueryValue value={t('Current')} />
-                ) : undefined,
+                labelSuffix:
+                  hasExplicitCurrentProjectSelection &&
+                  currentEffectiveProjectIds.includes(projectId) ? (
+                    <QueryValue value={t('Current')} />
+                  ) : undefined,
               }}
               isSelected={isSelected}
-              onAction={() => {
-                if (toggledProjects) {
-                  setProjects(toggledProjects);
-                }
-              }}
+              onAction={() => commitProject(projectId)}
               onMultiSelect={
-                toggledProjects ? () => setProjects(toggledProjects) : undefined
+                toggledProjects
+                  ? () => {
+                      lastMultiSelectedProjectRef.current = projectId;
+                      toggleProject(projectId);
+                    }
+                  : undefined
               }
             />
           );
@@ -538,12 +679,29 @@ function SpansScopeActions({
         keywords={['scope', 'environment', 'environments']}
         prompt={t('Search for environments')}
       >
+        <CMDKChainedActionScope>
+          <CMDKAction
+            actionPanel={{
+              context: 'environment-selection',
+              label: t('Reset Environment Selection'),
+              only: true,
+            }}
+            display={{label: t('Reset Environment Selection'), icon: <IconRefresh />}}
+            onAction={() =>
+              setDraftPageFilters(current => ({
+                ...current,
+                environments: [],
+              }))
+            }
+          />
+        </CMDKChainedActionScope>
         <CMDKAction
+          actionContext={shouldShowEnvironmentReset ? 'environment-selection' : undefined}
           display={{
             label: t('All Environments'),
             icon: <IconGlobe />,
             labelSuffix:
-              appliedPageFilters.environments.length === 0 ? (
+              currentPageFilters.environments.length === 0 ? (
                 <QueryValue value={t('Current')} />
               ) : undefined,
           }}
@@ -561,20 +719,33 @@ function SpansScopeActions({
                 ? current.environments.filter(value => value !== environment)
                 : [...current.environments, environment],
             }));
+          const commitEnvironment = () => {
+            if (lastMultiSelectedEnvironmentRef.current === environment) {
+              lastMultiSelectedEnvironmentRef.current = null;
+              return;
+            }
+            toggleEnvironment();
+          };
 
           return (
             <CMDKAction
               key={environment}
+              actionContext={
+                shouldShowEnvironmentReset ? 'environment-selection' : undefined
+              }
               display={{
                 label: environment,
                 icon: <IconGlobe />,
-                labelSuffix: appliedPageFilters.environments.includes(environment) ? (
+                labelSuffix: currentPageFilters.environments.includes(environment) ? (
                   <QueryValue value={t('Current')} />
                 ) : undefined,
               }}
               isSelected={isSelected}
-              onAction={toggleEnvironment}
-              onMultiSelect={toggleEnvironment}
+              onAction={commitEnvironment}
+              onMultiSelect={() => {
+                lastMultiSelectedEnvironmentRef.current = environment;
+                toggleEnvironment();
+              }}
             />
           );
         })}
@@ -599,7 +770,7 @@ function SpansScopeActions({
                 display={{
                   label: option.label,
                   labelSuffix:
-                    appliedPageFilters.datetime.period === option.period ? (
+                    currentPageFilters.datetime.period === option.period ? (
                       <QueryValue value={t('Current')} />
                     ) : undefined,
                   icon: <IconClock />,
@@ -1172,15 +1343,7 @@ function QueryClauseActionsEditor() {
     });
   }, []);
   const addGroupBy = useCallback((groupBy: string) => {
-    setDraftGroupByState(current => {
-      if (current.groupBys.includes(groupBy)) {
-        return current;
-      }
-      return {
-        groupBys: [...current.groupBys, groupBy],
-        pendingRows: Math.max(0, current.pendingRows - 1),
-      };
-    });
+    setDraftGroupByState(current => addGroupByToDraftState(current, groupBy));
   }, []);
   const replaceGroupBy = (index: number, groupBy: string) => {
     setDraftGroupByState(current => {
@@ -1279,46 +1442,54 @@ function QueryClauseActionsEditor() {
       },
     ]);
   };
+  const latestDraftPageFiltersRef = useRef(draftPageFilters);
+  useEffect(() => {
+    latestDraftPageFiltersRef.current = draftPageFilters;
+  }, [draftPageFilters]);
+  const applyChanges = () => {
+    const latestDraftPageFilters = latestDraftPageFiltersRef.current;
+    updateProjects(latestDraftPageFilters.projects, undefined, undefined, {
+      environments: latestDraftPageFilters.environments,
+      save: true,
+    });
+    updateEnvironments(latestDraftPageFilters.environments, undefined, undefined, {
+      save: true,
+    });
+    updateDateTime(latestDraftPageFilters.datetime, undefined, undefined, {
+      save: true,
+    });
+    setQueryParams({
+      aggregateFields: [
+        ...draftGroupBys.map(groupBy => ({groupBy})),
+        ...draftVisualizes.map(visualize => visualize.serialize()),
+      ],
+      aggregateSortBys: draftAggregateSortBys,
+      mode: draftMode,
+      pageFilters: latestDraftPageFilters,
+      query: draftQuery,
+      sortBys: draftSampleSortBys,
+    });
+  };
   return (
     <CMDKChainedActionScope>
+      <CMDKTerminalActionScope>
+        <CMDKAction
+          disabled={projectSelectionLimitExceeded}
+          display={{
+            label: t('Apply Changes'),
+            details: projectSelectionLimitExceeded
+              ? t('Select up to %s projects', PROJECT_SELECTION_COUNT_LIMIT)
+              : undefined,
+          }}
+          keywords={['apply', 'save', 'changes']}
+          onAction={applyChanges}
+        />
+      </CMDKTerminalActionScope>
       <SpansScopeActions
-        appliedPageFilters={pageFilterSelection}
         draftPageFilters={draftPageFilters}
         setDraftPageFilters={setDraftPageFilters}
       />
       <CMDKAction display={{label: t('Commands')}}>
-        <CMDKTerminalActionScope>
-          <CMDKAction
-            disabled={projectSelectionLimitExceeded}
-            display={{
-              label: t('Apply Changes'),
-              details: projectSelectionLimitExceeded
-                ? t('Select up to %s projects', PROJECT_SELECTION_COUNT_LIMIT)
-                : undefined,
-            }}
-            keywords={['apply', 'save', 'changes']}
-            onAction={() => {
-              updateProjects(draftPageFilters.projects, undefined, undefined, {
-                environments: draftPageFilters.environments,
-                save: true,
-              });
-              updateDateTime(draftPageFilters.datetime, undefined, undefined, {
-                save: true,
-              });
-              setQueryParams({
-                aggregateFields: [
-                  ...draftGroupBys.map(groupBy => ({groupBy})),
-                  ...draftVisualizes.map(visualize => visualize.serialize()),
-                ],
-                aggregateSortBys: draftAggregateSortBys,
-                mode: draftMode,
-                pageFilters: draftPageFilters,
-                query: draftQuery,
-                sortBys: draftSampleSortBys,
-              });
-            }}
-          />
-        </CMDKTerminalActionScope>
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction

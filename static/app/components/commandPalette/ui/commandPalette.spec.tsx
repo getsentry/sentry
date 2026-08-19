@@ -442,6 +442,101 @@ describe('CommandPalette', () => {
     expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
+  it('shows updated chained action values immediately after returning to the anchor', async () => {
+    function ScopeActions() {
+      const [projects, setProjects] = useState([1, 2]);
+      const [groupBys, setGroupBys] = useState<string[]>([]);
+
+      return (
+        <CommandPaletteSlot name="page">
+          <CMDKAction display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction display={{label: 'Global'}}>
+                <CMDKAction
+                  display={{
+                    label: 'Projects',
+                    trailingItem: `${projects.length} projects`,
+                  }}
+                >
+                  {[1, 2, 3].map(project => (
+                    <CMDKAction
+                      key={project}
+                      display={{label: `Project ${project}`}}
+                      isSelected={projects.includes(project)}
+                      onAction={() =>
+                        setProjects(current =>
+                          current.includes(project) ? current : [...current, project]
+                        )
+                      }
+                      onMultiSelect={() => {}}
+                    />
+                  ))}
+                </CMDKAction>
+              </CMDKAction>
+              <CMDKAction display={{label: 'Commands'}}>
+                <CMDKAction
+                  id="add-group-by"
+                  display={{label: 'Add Group By'}}
+                  prompt="Search for attribute"
+                >
+                  <CMDKAction
+                    display={{label: 'environment'}}
+                    onAction={() =>
+                      setGroupBys(current =>
+                        current.includes('environment')
+                          ? current
+                          : [...current, 'environment']
+                      )
+                    }
+                  />
+                </CMDKAction>
+              </CMDKAction>
+              <CMDKAction display={{label: 'Query'}}>
+                {(groupBys.length > 0 ? groupBys : ['']).map((groupBy, index) => (
+                  <CMDKAction
+                    key={index}
+                    id={`group-by-${index}`}
+                    display={{label: 'Group By', trailingItem: groupBy}}
+                    targetAction="add-group-by"
+                  />
+                ))}
+              </CMDKAction>
+            </CMDKChainedActionScope>
+          </CMDKAction>
+        </CommandPaletteSlot>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <ScopeActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Projects'});
+    await userEvent.keyboard('{Enter}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}');
+
+    expect(await screen.findByText('3 projects')).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(
+      within(await screen.findByRole('option', {name: 'Project 3'})).getByRole(
+        'checkbox',
+        {hidden: true}
+      )
+    ).toBeChecked();
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await screen.findByRole('option', {name: 'Group By'}));
+    await screen.findByRole('option', {name: 'environment'});
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(await screen.findAllByRole('option', {name: 'Group By'})).toHaveLength(1);
+    expect(screen.getByText('environment')).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+  });
+
   it('keeps the suffix accessible for long labels', () => {
     const longLabel = `gen_ai.input.messages.${'nested-value.'.repeat(20)}`;
 
