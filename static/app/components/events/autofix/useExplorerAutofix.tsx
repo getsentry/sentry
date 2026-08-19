@@ -569,11 +569,20 @@ function isLastBlockOfSection(block?: Block): boolean {
 
 interface UseExplorerAutofixOptions {
   /**
-   * Whether to enable the hook and make API calls.
-   * When false, the hook returns null state and no-op functions.
-   * Defaults to true.
+   * The `source` reported on coding agent handoff analytics.
+   * Defaults to 'explorer'.
+   */
+  codingAgentAnalyticsSource?: 'explorer' | 'overview';
+  /**
+   * Whether to fetch and poll run state. Action callbacks (startStep, createPR,
+   * triggerCodingAgentHandoff) stay live even when false — used by the overview.
    */
   enabled?: boolean;
+  /**
+   * Called with coding agent launch failure messages. Defaults to
+   * accumulating them in `codingAgentErrors` for inline display.
+   */
+  onCodingAgentError?: (messages: string[]) => void;
   /**
    * Force fast polling while the drawer is mounted. Other observers can keep
    * their processing-aware intervals.
@@ -590,13 +599,18 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  group: Group,
+  group: Pick<Group, 'id' | 'shortId'>,
   options: UseExplorerAutofixOptions = {}
 ) {
   const groupId = group.id;
   const {openModal} = useModal();
 
-  const {enabled = true, pollPR = false} = options;
+  const {
+    enabled = true,
+    pollPR = false,
+    codingAgentAnalyticsSource = 'explorer',
+    onCodingAgentError,
+  } = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -621,6 +635,7 @@ export function useExplorerAutofix(
       ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
     ]);
   }, []);
+  const reportCodingAgentErrors = onCodingAgentError ?? appendCodingAgentErrors;
 
   const {
     data: apiData,
@@ -830,7 +845,7 @@ export function useExplorerAutofix(
         organization,
         group_id: groupId,
         provider: integration.provider,
-        source: 'explorer',
+        source: codingAgentAnalyticsSource,
         user_id: user.id,
       });
 
@@ -908,7 +923,7 @@ export function useExplorerAutofix(
           }
 
           if (otherFailures.length > 0) {
-            appendCodingAgentErrors(
+            reportCodingAgentErrors(
               otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
             );
           }
@@ -924,7 +939,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        appendCodingAgentErrors([
+        reportCodingAgentErrors([
           e?.responseJSON?.detail ?? 'Failed to launch coding agent',
         ]);
         throw e;
@@ -940,7 +955,8 @@ export function useExplorerAutofix(
       queryClient,
       organization,
       user.id,
-      appendCodingAgentErrors,
+      codingAgentAnalyticsSource,
+      reportCodingAgentErrors,
       openModal,
     ]
   );
