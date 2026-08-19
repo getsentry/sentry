@@ -19,6 +19,11 @@ import type {PlatformKey} from 'sentry/types/platform';
 // Shared staleTime for the overview's issue/run/state queries.
 export const QUERY_STALE_TIME = 30_000;
 
+// How often the `expand=status` poll refreshes live run status.
+export const POLL_INTERVAL = 10_000;
+
+export type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+
 // Runs filter: the explorer runs autofix creates. Combined with a
 // ``group:[...]`` filter so we only fetch runs for the issues on the page.
 export const RUNS_QUERY = 'type:explorer source:autofix';
@@ -109,7 +114,7 @@ export interface OverviewIssue {
 export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
 
 // The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
-type MilestoneKey =
+export type MilestoneKey =
   | 'autofix_root_cause'
   | 'autofix_solution'
   | 'autofix_code_changes'
@@ -179,7 +184,13 @@ export interface OverviewRunIssue {
   owners: SuggestedOwner[];
   priority: PriorityLevel | null;
   priorityLockedAt: string | null;
-  project: {id: string; slug: string; platform?: PlatformKey};
+  project: {
+    id: string;
+    slug: string;
+    hasNonGithubRepo?: boolean;
+    hasReposConnected?: boolean;
+    platform?: PlatformKey;
+  };
   substatus: string | null;
   userCount: number | null;
 }
@@ -193,6 +204,7 @@ export interface OverviewRun {
   rootCause: {oneLineDescription: string | null} | null;
   seerRunId: string;
   shortId: string;
+  status: RunStatus | null;
   title: string;
   codeChanges?: OverviewCodeChangeFile[];
 }

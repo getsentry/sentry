@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import cast
+from typing import NamedTuple, cast
 
 from django.db.models import Exists, OuterRef, Q
 from pydantic import ValidationError
@@ -39,15 +39,19 @@ from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
+from sentry.seer.agent.client_utils import fetch_run_statuses
+from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
     CodeChangeFilePayload,
     IssuePayload,
+    IssueProjectPayload,
     OverviewResponse,
     ProposedFixPayload,
     PullRequestPayload,
     RootCausePayload,
     RunPayload,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     CodeChangesArtifactExtras,
     RootCauseArtifactExtras,
@@ -58,6 +62,7 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SolutionArtifactExtras,
 )
+from sentry.seer.seer_setup import get_supported_scm_providers
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +223,45 @@ def _pull_requests_by_seer_run_id(
     return by_run
 
 
-def _serialize_issue(group: Group, serialized_group: dict) -> IssuePayload:
+class _RepoEligibility(NamedTuple):
+    has_repos_connected: bool
+    has_non_github_repo: bool
+
+
+def _coding_agent_repo_eligibility(
+    organization: Organization, project_ids: Collection[int]
+) -> dict[int, _RepoEligibility]:
+    github_providers = set(SEER_GITHUB_SCM_PROVIDERS)
+    eligibility = {pid: _RepoEligibility(False, False) for pid in project_ids}
+    rows = (
+        SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+            project_repository__repository__provider__in=get_supported_scm_providers(organization),
+        )
+        .values_list("project_repository__project_id", "project_repository__repository__provider")
+        .distinct()
+    )
+    for project_id, provider in rows:
+        prev = eligibility[project_id]
+        eligibility[project_id] = _RepoEligibility(
+            True, prev.has_non_github_repo or provider not in github_providers
+        )
+    return eligibility
+
+
+def _serialize_issue(
+    group: Group, serialized_group: dict, repo_eligibility: dict[int, _RepoEligibility] | None
+) -> IssuePayload:
+    project: IssueProjectPayload = {
+        "id": str(group.project_id),
+        "slug": group.project.slug,
+        "platform": group.project.platform,
+    }
+    if repo_eligibility is not None:
+        flags = repo_eligibility[group.project_id]
+        project["hasReposConnected"] = flags.has_repos_connected
+        project["hasNonGithubRepo"] = flags.has_non_github_repo
     return {
         "count": serialized_group.get("count"),
         "userCount": serialized_group.get("userCount"),
@@ -231,11 +274,7 @@ def _serialize_issue(group: Group, serialized_group: dict) -> IssuePayload:
         "issueCategory": serialized_group.get("issueCategory"),
         "assignedTo": serialized_group.get("assignedTo"),
         "owners": serialized_group.get("owners") or [],
-        "project": {
-            "id": str(group.project_id),
-            "slug": group.project.slug,
-            "platform": group.project.platform,
-        },
+        "project": project,
     }
 
 
@@ -262,6 +301,8 @@ def _serialize_run(
     run: _RunMilestones,
     serialized_group: dict,
     pull_requests: list[PullRequestPayload],
+    status: str | None,
+    repo_eligibility: dict[int, _RepoEligibility] | None,
 ) -> RunPayload:
     root_cause_artifact = run.root_cause_artifact
     root_cause: RootCausePayload | None = (
@@ -289,7 +330,8 @@ def _serialize_run(
         "lastTriggeredAt": run.seer_run.last_triggered_at,
         "pullRequests": pull_requests,
         "codeChanges": code_changes,
-        "issue": _serialize_issue(group, serialized_group),
+        "issue": _serialize_issue(group, serialized_group, repo_eligibility),
+        "status": status,
     }
 
 
@@ -311,6 +353,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand")
         include_scm_info = "scmInfo" in expand
         include_issue_stats = "issueStats" in expand
+        include_status = "status" in expand
         environments = self.get_environments(request, organization)
 
         sort = request.GET.get("sort")
@@ -379,6 +422,21 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             [run.seer_run.id for _, run in capped], include_scm_info=include_scm_info
         )
 
+        repo_eligibility_by_project: dict[int, _RepoEligibility] | None = None
+        if include_scm_info:
+            repo_eligibility_by_project = _coding_agent_repo_eligibility(
+                organization, {group.project_id for group in groups.values()}
+            )
+
+        status_by_state_id: dict[int, str] = {}
+        if include_status:
+            state_ids = [
+                run.seer_run.seer_run_state_id
+                for _, run in capped
+                if run.seer_run.seer_run_state_id is not None
+            ]
+            status_by_state_id = fetch_run_statuses(state_ids, organization)
+
         runs_by_milestone: dict[str, list[RunPayload]] = {milestone: [] for milestone in _PIPELINE}
         for milestone, pairs in capped_runs_by_milestone.items():
             for group_id, run in pairs:
@@ -391,6 +449,8 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                         run,
                         serialized_by_id[str(group_id)],
                         pull_requests_by_seer_run_id.get(run.seer_run.id, []),
+                        status_by_state_id.get(run.seer_run.seer_run_state_id),
+                        repo_eligibility_by_project,
                     )
                 )
 
@@ -409,9 +469,10 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     ) -> dict[int, _RunMilestones]:
         pr_links = SeerRunPullRequest.objects.filter(seer_run_id=OuterRef("seer_run_id"))
         milestone_rows = (
+            # writes for autofix_rca no longer happen, we should be able to remove this from the query by 11/11/2026 latest (data retention)
             SeerRunMilestone.objects.filter(
                 seer_run__organization=organization,
-                seer_run__agent__source="autofix",
+                seer_run__agent__source__in=("autofix", "autofix_rca"),
                 seer_run__agent__group_id__isnull=False,
                 seer_run__agent__project_id__in=project_ids,
                 seer_run__last_triggered_at__range=(start, end),

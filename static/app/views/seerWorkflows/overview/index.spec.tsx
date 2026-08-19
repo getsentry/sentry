@@ -13,6 +13,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -25,10 +27,11 @@ import type {
   OverviewPullRequest,
   OverviewRunIssue,
 } from 'sentry/views/seerWorkflows/overview/types';
+import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui'],
+    features: ['seer-night-shift-ui', 'gen-ai-features'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
 
@@ -82,6 +85,7 @@ describe('AutofixOverview', () => {
     seerRunId: 'run-1',
     lastTriggeredAt: '2026-07-14T09:00:00Z',
     pullRequests: [],
+    status: null,
     issue: issueFixture({count: '1200', userCount: 5}),
   };
 
@@ -96,6 +100,7 @@ describe('AutofixOverview', () => {
     seerRunId: 'run-2',
     lastTriggeredAt: '2026-07-14T10:00:00Z',
     pullRequests: [],
+    status: null,
     issue: issueFixture({project: {id: '3', slug: 'project-slug', platform: 'python'}}),
   };
 
@@ -114,7 +119,7 @@ describe('AutofixOverview', () => {
     enrichedStatusCode?: number;
     truncated?: AutofixOverviewResponse['truncatedMilestones'];
   }) {
-    const baseRequest = MockApiClient.addMockResponse({
+    const statusPollRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       statusCode: baseStatusCode,
       body: {
@@ -124,7 +129,7 @@ describe('AutofixOverview', () => {
     });
     const enrichedRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
-      match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats']})],
+      match: [MockApiClient.matchQuery({expand: ['scmInfo', 'issueStats', 'status']})],
       asyncDelay: enrichedAsyncDelay,
       statusCode: enrichedStatusCode,
       body: {
@@ -132,7 +137,7 @@ describe('AutofixOverview', () => {
         truncatedMilestones: truncated ?? [],
       },
     });
-    return {baseRequest, enrichedRequest};
+    return {statusPollRequest, enrichedRequest};
   }
 
   // The un-expanded call cannot reach Snuba, so it nulls out the issue stats.
@@ -167,6 +172,18 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [{provider: 'github'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/repos/',
+      body: {repos: [{has_write_access: true, integration_id: 5}]},
+    });
   });
 
   function renderPage(query: Record<string, string> = {}) {
@@ -183,7 +200,7 @@ describe('AutofixOverview', () => {
   }
 
   it('gates the page and issues no requests when the feature is disabled', async () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -196,7 +213,7 @@ describe('AutofixOverview', () => {
       await screen.findByText("You don't have access to this feature")
     ).toBeInTheDocument();
     expect(screen.queryByText('Autofix Overview')).not.toBeInTheDocument();
-    expect(baseRequest).not.toHaveBeenCalled();
+    expect(statusPollRequest).not.toHaveBeenCalled();
     expect(enrichedRequest).not.toHaveBeenCalled();
   });
 
@@ -224,6 +241,263 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No issues')).not.toBeInTheDocument();
   });
 
+  it('refetches the overview after a card action is dispatched', async () => {
+    const {enrichedRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/2/autofix/',
+      method: 'POST',
+      body: {run_id: 1, sentry_run_id: 'run-1'},
+    });
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create Plan'}));
+
+    expect(await screen.findByRole('button', {name: /Creating Plan/})).toBeDisabled();
+    await waitFor(() => expect(enrichedRequest).toHaveBeenCalledTimes(2));
+  });
+
+  describe('Seer drawer', () => {
+    // Holds setup open so the drawer sits in its loading state and fires no
+    // downstream content requests.
+    function mockDrawerFor(groupId: string) {
+      const groupRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/`,
+        body: GroupFixture({id: groupId}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+        asyncDelay: new Promise<void>(() => {}),
+        body: {},
+      });
+      return groupRequest;
+    }
+
+    function seerDrawer() {
+      return screen.queryByRole('complementary', {name: 'Seer drawer'});
+    }
+
+    // Drives the hook alongside a button that opens a second drawer, so a test
+    // can replace and dismiss the Seer drawer the way Seer Agent would.
+    function DrawerHarness() {
+      useOverviewSeerDrawer();
+      const {openDrawer} = useDrawer();
+      return (
+        <button
+          onClick={() =>
+            openDrawer(() => <div>Other drawer body</div>, {ariaLabel: 'Other drawer'})
+          }
+        >
+          open other
+        </button>
+      );
+    }
+
+    it('opens in place when the URL carries a group id', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      const groupRequest = mockDrawerFor('2');
+
+      renderPage({seerDrawer: '2'});
+
+      // The overview list stays mounted behind the drawer.
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(groupRequest).toHaveBeenCalled();
+    });
+
+    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = render(<AutofixOverview />, {
+        organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
+        initialRouterConfig: {
+          location: {pathname: basePath, query: {seerDrawer: '2'}},
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+      await waitFor(() => expect(router.location.query.seerDrawer).toBeUndefined());
+    });
+
+    it('clears the param and closes when the drawer is dismissed', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+      expect(router.location.query.seerDrawer).toBeUndefined();
+    });
+
+    it('closes when the group id leaves the URL (back navigation)', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      router.navigate(basePath);
+
+      await waitFor(() => expect(seerDrawer()).not.toBeInTheDocument());
+    });
+
+    it('switches to another run when the URL group id changes', async () => {
+      mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+      mockDrawerFor('2');
+      const group3Request = mockDrawerFor('3');
+
+      const {router} = renderPage({seerDrawer: '2'});
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+      expect(group3Request).not.toHaveBeenCalled();
+
+      router.navigate(`${basePath}?seerDrawer=3`);
+
+      await waitFor(() => expect(group3Request).toHaveBeenCalled());
+      expect(seerDrawer()).toBeInTheDocument();
+    });
+
+    it('reopens after another drawer replaces and then closes it', async () => {
+      mockDrawerFor('2');
+
+      render(<DrawerHarness />, {
+        organization,
+        initialRouterConfig: {location: {pathname: basePath, query: {seerDrawer: '2'}}},
+      });
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'open other'}));
+      expect(
+        await screen.findByRole('complementary', {name: 'Other drawer'})
+      ).toBeInTheDocument();
+      expect(seerDrawer()).not.toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Seer drawer'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders All Runs and In Progress tabs with counts', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('tab', {name: 'All Runs (2)'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'In Progress (1)'})).toBeInTheDocument();
+  });
+
+  it('filters to only in-progress runs when the In Progress tab is selected', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Generate code changes 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (1)'}));
+
+    expect(screen.getByRole('button', {name: 'Create Plan 1'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state on the In Progress tab when nothing is processing', async () => {
+    mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'In Progress (0)'}));
+
+    expect(
+      screen.getByText('No Autofix runs are currently in progress.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Create Plan 1'})).not.toBeInTheDocument();
+  });
+
+  it('persists the selected tab in the URL', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'In Progress (1)'}));
+    expect(router.location.query.view).toBe('in_progress');
+
+    await userEvent.click(screen.getByRole('tab', {name: 'All Runs (2)'}));
+    expect(router.location.query.view).toBeUndefined();
+  });
+
+  it('starts on the In Progress tab when the URL selects it', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [{...rootCauseRun, status: 'processing'}],
+        autofix_solution: [solutionRun],
+      },
+    });
+
+    renderPage({view: 'in_progress'});
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Plan 1'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate code changes 1'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', {name: 'In Progress (1)', selected: true})
+    ).toBeInTheDocument();
+  });
+
   it('shows the empty state while keeping the query controls visible', async () => {
     mockOverview({base: {}});
 
@@ -233,7 +507,7 @@ describe('AutofixOverview', () => {
       await screen.findByText('You don’t have any Autofix runs...yet.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: '14D'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Autofix Activity 7D'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: /Sort/})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
     expect(
@@ -306,7 +580,7 @@ describe('AutofixOverview', () => {
 
   it('scopes the request to the selected project', async () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
-    const {baseRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -315,7 +589,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.objectContaining({project: [2]}),
@@ -324,7 +598,7 @@ describe('AutofixOverview', () => {
   });
 
   it('scopes the request to the selected time window', async () => {
-    const {baseRequest} = mockOverview({
+    const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -338,7 +612,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.objectContaining({statsPeriod: '7d'}),
@@ -347,7 +621,7 @@ describe('AutofixOverview', () => {
   });
 
   it('issues a cheap request and an enriched expand request', async () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
     // Overview reads everything from the overview endpoint; the legacy
@@ -370,13 +644,13 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.not.objectContaining({expand: expect.anything()}),
+        query: expect.objectContaining({expand: ['status']}),
       })
     );
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.not.objectContaining({environment: expect.anything()}),
@@ -386,13 +660,36 @@ describe('AutofixOverview', () => {
       expect(enrichedRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-overview/`,
         expect.objectContaining({
-          query: expect.objectContaining({expand: ['scmInfo', 'issueStats']}),
+          query: expect.objectContaining({expand: ['scmInfo', 'issueStats', 'status']}),
         })
       )
     );
     expect(runsRequest).not.toHaveBeenCalled();
     expect(autofixRequest).not.toHaveBeenCalled();
     expect(issuesRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows a step-specific working button that opens Seer for a processing run', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [{...rootCauseRun, status: 'processing' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Creating Plan…')).toBeInTheDocument();
+
+    const openSeer = screen.getByRole('button', {name: 'Open Seer'});
+    expect(openSeer).toHaveAttribute('href', expect.stringContaining('seerDrawer=2'));
+  });
+
+  it('falls back to a generic working label for a processing run past code changes', async () => {
+    mockOverview({
+      base: {has_pull_request: [{...rootCauseRun, status: 'processing' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('Working…')).toBeInTheDocument();
   });
 
   it('shimmers the enriched slots until the expand request resolves', async () => {
@@ -453,7 +750,9 @@ describe('AutofixOverview', () => {
   });
 
   it('keeps the list up with a spinner while a sort change reloads', async () => {
-    const {baseRequest} = mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
 
     // The events sort returns a different run; hold its enrichment open to keep
     // the reloading state on screen.
@@ -461,7 +760,10 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [
-        MockApiClient.matchQuery({sort: 'events', expand: ['scmInfo', 'issueStats']}),
+        MockApiClient.matchQuery({
+          sort: 'events',
+          expand: ['scmInfo', 'issueStats', 'status'],
+        }),
       ],
       asyncDelay: eventsEnriched.promise,
       body: {runsByMilestone: {...emptyMilestones, autofix_solution: [solutionRun]}},
@@ -472,18 +774,18 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledTimes(1);
+    expect(statusPollRequest).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button', {name: /Sort/}));
     await userEvent.click(screen.getByRole('option', {name: 'Most events'}));
 
-    // Base does not refetch on a sort change; the old list stays up with a
-    // spinner while the single enriched request reloads.
+    // The status poll refetches for the new sort, but the old list stays up with
+    // a spinner (keepPreviousData) while the enriched request reloads.
     expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(baseRequest).toHaveBeenCalledTimes(1);
+    expect(statusPollRequest).toHaveBeenCalledTimes(2);
 
     eventsEnriched.resolve();
 
@@ -628,6 +930,10 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/2'
     );
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
     const approvedTag = getTagForText('Approved');
     const checksPassingTag = getTagForText('Checks Passing');
     expect(
@@ -776,7 +1082,31 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: /Review PR #1/})).not.toBeInTheDocument();
   });
 
-  it('labels each changed file with its change type', async () => {
+  it('renders a Seer button alongside a merged pull request', async () => {
+    mockOverview({
+      base: {
+        pull_requests_merged: [
+          {
+            ...rootCauseRun,
+            pullRequests: [pullRequestFixture({number: 8, status: 'merged'})],
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('button', {name: /Merged #8/})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/8'
+    );
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
+  });
+
+  it('labels non-modified files with their change type', async () => {
     mockOverview({
       base: {
         has_pull_request: [
@@ -829,19 +1159,18 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('src/sentry/new.py')).toBeInTheDocument();
     expect(screen.getByText('Added')).toBeInTheDocument();
     expect(screen.getByText('Deleted')).toBeInTheDocument();
-    expect(screen.getByText('Modified')).toBeInTheDocument();
     expect(screen.getByText('Renamed')).toBeInTheDocument();
+    expect(screen.queryByText('Modified')).not.toBeInTheDocument();
     expect(screen.getByText('+12')).toBeInTheDocument();
     expect(screen.getByText('-30')).toBeInTheDocument();
 
-    // Added and deleted keep their own color, rather than all six collapsing
-    // into the muted label used for the rest.
+    // Added and deleted keep their own color, while other non-modified states
+    // use the muted label.
     const tagClassName = (label: string) =>
       screen.getByText(label).closest('[data-test-id="tag-background"]')?.className;
     expect(tagClassName('Added')).not.toEqual(tagClassName('Deleted'));
-    expect(tagClassName('Added')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Modified'));
-    expect(tagClassName('Renamed')).toEqual(tagClassName('Modified'));
+    expect(tagClassName('Added')).not.toEqual(tagClassName('Renamed'));
+    expect(tagClassName('Deleted')).not.toEqual(tagClassName('Renamed'));
   });
 
   it('renders a file with an unknown change type without a tag', async () => {
@@ -876,7 +1205,10 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const fileRow = (await screen.findByText('src/sentry/mystery.py')).closest('div')!;
+    const fileToggle = await screen.findByRole('button', {
+      name: /src\/sentry\/mystery\.py/,
+    });
+    const fileRow = fileToggle.closest<HTMLElement>('[data-disclosure]')!;
 
     expect(within(fileRow).getByText('+4')).toBeInTheDocument();
     expect(within(fileRow).queryByTestId('tag-background')).not.toBeInTheDocument();
@@ -1042,11 +1374,13 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
-    expect(screen.queryByText('Code changes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Code Changes')).not.toBeInTheDocument();
   });
 
   it('defaults to Recent Seer Activity and omits the sort param', async () => {
-    const {baseRequest} = mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
 
     renderPage();
 
@@ -1056,7 +1390,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent(
       'Recent Seer Activity'
     );
-    expect(baseRequest).toHaveBeenCalledWith(
+    expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
         query: expect.not.objectContaining({sort: expect.anything()}),
@@ -1137,6 +1471,8 @@ describe('AutofixOverview', () => {
       expect(
         screen.queryByText('You don’t have any Autofix runs...yet.')
       ).not.toBeInTheDocument();
+      // No tabs above the message when the filter matches nothing to switch between.
+      expect(screen.queryByRole('tab', {name: /All Runs/})).not.toBeInTheDocument();
     });
 
     it('shows a truncation notice when the backend caps a section', async () => {
@@ -1240,7 +1576,7 @@ describe('AutofixOverview', () => {
   });
 
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
-    const {baseRequest, enrichedRequest} = mockOverview({
+    const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
@@ -1254,7 +1590,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('Autofix Overview')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Sort/})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Create Plan/})).not.toBeInTheDocument();
-    expect(baseRequest).not.toHaveBeenCalled();
+    expect(statusPollRequest).not.toHaveBeenCalled();
     expect(enrichedRequest).not.toHaveBeenCalled();
   });
 
