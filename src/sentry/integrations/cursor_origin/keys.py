@@ -49,16 +49,33 @@ def fetch_public_keys(force_refresh: bool = False) -> list[bytes]:
     try:
         response = safe_urlopen(CURSOR_ORIGIN_JWKS_URL, method="GET", timeout=5)
         response.raise_for_status()
-        payload: dict[str, Any] = response.json()
+        payload: Any = response.json()
     except Exception:
         logger.warning("cursor_origin.jwks_fetch_failed", exc_info=True)
         return []
 
-    keys = [
-        _b64url_decode(key["x"])
-        for key in payload.get("keys", [])
-        if key.get("crv") == "Ed25519" and key.get("x")
-    ]
+    # Everything below is shape-checked rather than assumed. This is an external
+    # document, and callers treat an empty list as "cannot verify" and fail closed
+    # -- so a malformed JWKS must return nothing, never raise. Raising would take
+    # the install pipeline down with a 500 instead of refusing the install.
+    if not isinstance(payload, dict):
+        logger.warning("cursor_origin.jwks_malformed", extra={"reason": "payload_not_object"})
+        return []
+
+    keys: list[bytes] = []
+    for key in payload.get("keys") or []:
+        if not isinstance(key, dict) or key.get("crv") != "Ed25519":
+            continue
+        material = key.get("x")
+        if not isinstance(material, str):
+            continue
+        try:
+            keys.append(_b64url_decode(material))
+        except (ValueError, TypeError):
+            # One unusable key must not discard the well-formed ones beside it;
+            # that is the difference between a rotation hiccup and an outage.
+            logger.warning("cursor_origin.jwks_key_undecodable", extra={"kid": key.get("kid")})
+
     if keys:
         cache.set(_JWKS_CACHE_KEY, keys, CURSOR_ORIGIN_JWKS_CACHE_SECONDS)
     return keys
