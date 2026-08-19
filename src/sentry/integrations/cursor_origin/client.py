@@ -111,6 +111,17 @@ class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
         """
         return self._paginate("/installation/repos", "repositories")
 
+    def get_repos(self) -> list[dict[str, Any]]:
+        """``get_repositories`` in the GitHub shape shared tasks expect.
+
+        Origin returns ``fullName`` where GitHub returns ``full_name``. Tasks
+        written against GitHub read the latter -- link_all_repos, which
+        post_install schedules, does ``repo["full_name"]`` -- so without this
+        alias every install raises AttributeError for the missing method and
+        then KeyError for the missing field.
+        """
+        return [{**repo, "full_name": repo["fullName"]} for repo in self.get_repositories()]
+
     def get_repo(self, repo_full_name: str) -> dict[str, Any]:
         return self.get(f"/repos/{repo_full_name}")
 
@@ -179,7 +190,15 @@ class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         contents = self.get_contents(repo.name, path, ref=ref)
-        return b64decode(contents["content"]).decode("utf-8")
+        # Origin answers a directory path with {"type": "dir", "entries": [...]},
+        # which has no "content". Raise ApiError rather than KeyError: callers such
+        # as source_context._fetch_file_from_scm and the CODEOWNERS lookup already
+        # handle ApiError, and check_file returns the truthy directory dict, so a
+        # directory sitting at a codeowners_locations path reaches here.
+        content = contents.get("content") if isinstance(contents, dict) else None
+        if not isinstance(content, str):
+            raise ApiError(f"No file content at {path!r} in {repo.name}")
+        return b64decode(content).decode("utf-8")
 
     # -- RepoTreesClient -----------------------------------------------------
 
@@ -198,7 +217,9 @@ class CursorOriginApiMixin(RepositoryClient, RepoTreesClient):
         An empty or inaccessible repository is an expected condition when
         walking an org's trees, not a sign the integration is broken.
         """
-        message = (error.json or {}).get("message") if error.json else error.text
+        # ApiError.json is whatever json.loads returned, which is not necessarily a
+        # dict -- a bare string or list body would make .get() an AttributeError.
+        message = error.json.get("message") if isinstance(error.json, dict) else error.text
         if message and (
             "not found" in message.lower()
             or "empty" in message.lower()
