@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
@@ -41,13 +42,13 @@ export function OldQueryTokens({
     : null;
   if (displayQuery && parsedQuery?.length) {
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="filter">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
         {parsedQuery
           .filter(({text}) => text.trim() !== '')
           .map(({text}) => (
             <FormattedQueryWrapper key={text}>
-              <ProvidedFormattedQuery query={text} />
+              <ProvidedFormattedQuery filterRenderer="chip" query={text} />
             </FormattedQueryWrapper>
           ))}
       </Flex>
@@ -56,14 +57,7 @@ export function OldQueryTokens({
 
   if (visualizations && visualizations.length > 0) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="visualization"
-      >
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         {visualizations.map((visualization, vIdx) =>
           visualization.yAxes.map(yAxis => (
@@ -76,14 +70,7 @@ export function OldQueryTokens({
 
   if (interval) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="interval"
-      >
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="interval">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
         <ExploreGroupBys>{interval}</ExploreGroupBys>
       </Flex>
@@ -92,7 +79,7 @@ export function OldQueryTokens({
 
   if (groupBys && groupBys.length > 0) {
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="groupBy">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
         {groupBys.map((groupBy, idx) => (
           <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
@@ -104,28 +91,14 @@ export function OldQueryTokens({
   // Display absolute date range if start and end are provided
   if (start && end) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="timeRange"
-      >
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
       </Flex>
     );
   } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="timeRange"
-      >
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
       </Flex>
@@ -138,14 +111,7 @@ export function OldQueryTokens({
       .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
     const overflowCount = selectedProjectIds.length - shownSlugs.length;
     tokens.push(
-      <Flex
-        as="span"
-        align="center"
-        wrap="wrap"
-        gap="xs"
-        overflow="hidden"
-        key="projects"
-      >
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="projects">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
         {shownSlugs.map(slug => (
           <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
@@ -159,7 +125,7 @@ export function OldQueryTokens({
 
   if (sort && sort.length > 0) {
     tokens.push(
-      <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="sort">
+      <Flex as="span" align="center" wrap="wrap" gap="xs" key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <ExploreGroupBys>
           {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
@@ -184,7 +150,6 @@ export function OldQueryTokens({
                 align="center"
                 wrap="wrap"
                 gap="xs"
-                overflow="hidden"
                 key={`${crossEvent.type}-${idx}`}
               >
                 <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
@@ -195,7 +160,7 @@ export function OldQueryTokens({
                   ?.filter(({text}) => text.trim() !== '')
                   .map(({text}) => (
                     <FormattedQueryWrapper key={text}>
-                      <ProvidedFormattedQuery query={text} />
+                      <ProvidedFormattedQuery filterRenderer="chip" query={text} />
                     </FormattedQueryWrapper>
                   ))}
               </Flex>
@@ -231,20 +196,11 @@ const ExploreParamTitle = styled('span')`
   height: 24px;
 `;
 
-const ExploreVisualizes = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  min-height: 24px;
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  display: inline-flex;
-  align-items: center;
-`;
+function ExploreValueChip({children}: {children: string}) {
+  return <Chip size="sm" value={children} />;
+}
+
+const ExploreVisualizes = ExploreValueChip;
 
 const ExploreGroupBys = ExploreVisualizes;
 

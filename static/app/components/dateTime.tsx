@@ -52,7 +52,21 @@ export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   year?: boolean;
 }
 
-export function DateTime({
+type DateTimeFormatOptions = Pick<
+  DateTimeProps,
+  | 'date'
+  | 'dateOnly'
+  | 'forcedTimezone'
+  | 'format'
+  | 'milliseconds'
+  | 'seconds'
+  | 'timeOnly'
+  | 'timeZone'
+  | 'utc'
+  | 'year'
+>;
+
+export function useFormattedDateTime({
   format,
   date,
   utc,
@@ -63,8 +77,7 @@ export function DateTime({
   seconds = false,
   milliseconds = false,
   forcedTimezone,
-  ...props
-}: DateTimeProps) {
+}: DateTimeFormatOptions): string {
   const user = useUser();
   const currentTimezone = useTimezone();
 
@@ -86,11 +99,36 @@ export function DateTime({
       clock24Hours: user?.options.clock24Hours,
     });
 
-  return (
-    <time {...props}>
-      {utc
-        ? moment.utc(date).format(formatString)
-        : moment.tz(date, tz).format(formatString)}
-    </time>
-  );
+  return utc
+    ? moment.utc(date).format(formatString)
+    : moment.tz(date, tz).format(formatString);
+}
+
+export function DateTime({
+  format,
+  date,
+  utc,
+  dateOnly,
+  timeOnly,
+  year,
+  timeZone,
+  seconds = false,
+  milliseconds = false,
+  forcedTimezone,
+  ...props
+}: DateTimeProps) {
+  const formattedDateTime = useFormattedDateTime({
+    format,
+    date,
+    utc,
+    dateOnly,
+    timeOnly,
+    year,
+    timeZone,
+    seconds,
+    milliseconds,
+    forcedTimezone,
+  });
+
+  return <time {...props}>{formattedDateTime}</time>;
 }

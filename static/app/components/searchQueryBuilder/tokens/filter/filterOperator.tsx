@@ -107,6 +107,7 @@ export function getOperatorInfo({
   disallowNegation?: boolean;
 }): {
   label: ReactNode;
+  labelText: string;
   operator: TermOperator;
   options: Array<SelectOption<TermOperator>>;
 } {
@@ -118,6 +119,7 @@ export function getOperatorInfo({
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
+      labelText: opLabel,
       options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
@@ -133,16 +135,19 @@ export function getOperatorInfo({
   const {operator} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
+    const operatorLabel = operator === TermOperator.NOT_EQUAL ? 'not' : '';
+
     return {
       operator,
       label: (
         <FilterKeyOperatorLabel
           keyValue={filterToken.key.value}
           keyLabel={filterToken.key.text}
-          opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
+          opLabel={operatorLabel || undefined}
           includeKeyLabel
         />
       ),
+      labelText: operatorLabel,
       options: [
         {
           value: TermOperator.DEFAULT,
@@ -176,15 +181,18 @@ export function getOperatorInfo({
   }
 
   if (filterToken.filter === FilterType.HAS) {
+    const operatorLabel = operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has';
+
     return {
       operator,
       label: (
         <FilterKeyOperatorLabel
           keyValue={filterToken.key.value}
-          keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+          keyLabel={operatorLabel}
           includeKeyLabel
         />
       ),
+      labelText: operatorLabel,
       options: [
         {
           value: TermOperator.DEFAULT,
@@ -221,11 +229,13 @@ export function getOperatorInfo({
     // membership and `!` negation reads as "does not include".
     const includesLabel = 'includes';
     const doesNotIncludeLabel = 'does not include';
-    const isNegated = operator === TermOperator.NOT_EQUAL;
+    const operatorLabel =
+      operator === TermOperator.NOT_EQUAL ? doesNotIncludeLabel : includesLabel;
 
     return {
       operator,
-      label: <OpLabel>{isNegated ? doesNotIncludeLabel : includesLabel}</OpLabel>,
+      label: <OpLabel>{operatorLabel}</OpLabel>,
+      labelText: operatorLabel,
       options: [
         {
           value: TermOperator.DEFAULT,
@@ -248,10 +258,12 @@ export function getOperatorInfo({
   const keyLabel = filterToken.key.text;
 
   const validOps = getValidOpsForFilter({filterToken, fieldDefinition});
+  const operatorLabel = OP_LABELS[operator] ?? operator;
 
   return {
     operator,
-    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    label: <OpLabel>{operatorLabel}</OpLabel>,
+    labelText: operatorLabel,
     options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))

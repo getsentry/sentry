@@ -4,7 +4,6 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -440,7 +439,7 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText(longValue)).not.toBeInTheDocument();
   });
 
-  it('sizes parameter chips to their content', async () => {
+  it('renders filters and parameters from the generated query', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -475,8 +474,10 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    const groupBy = await screen.findByText('span.name');
-    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
+    expect(await screen.findByText('span.duration')).toBeInTheDocument();
+    expect(screen.getByText('30s')).toBeInTheDocument();
+    expect(screen.getByText('span.name')).toBeInTheDocument();
+    expect(screen.getByText('browser.name')).toBeInTheDocument();
   });
 
   it('hides the feedback option when the rework is enabled', async () => {

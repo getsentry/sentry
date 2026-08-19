@@ -5,6 +5,7 @@ import {Chip} from '@sentry/scraps/chip';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useFormattedDateTime} from 'sentry/components/dateTime';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
@@ -12,7 +13,10 @@ import {
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getFilterValueDisplayParts,
+  isAggregateFilterToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -22,9 +26,10 @@ import {
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 export type FormattedQueryProps = {
   query: string;
@@ -32,10 +37,12 @@ export type FormattedQueryProps = {
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
+  filterRenderer?: 'chip' | 'formatted';
   getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
 type TokenProps = {
+  filterRenderer: NonNullable<FormattedQueryProps['filterRenderer']>;
   token: ParseResultToken;
 };
 
@@ -57,7 +64,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
-function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+function FormattedFilter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const label = useMemo(
     () =>
@@ -78,15 +85,117 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
+const FILTER_VALUE_MAX_LENGTH = 40;
+const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
+
+function getChipFilterProperty(
+  token: TokenResult<Token.FILTER>,
+  operatorLabel: string
+): string {
+  if (token.filter === FilterType.HAS) {
+    return operatorLabel;
+  }
+  if (token.filter === FilterType.IS) {
+    return token.key.text;
+  }
+  return isAggregateFilterToken(token)
+    ? getKeyName(token.key, {aggregateWithArgs: true})
+    : getKeyLabel(token.key);
+}
+
+function getChipFilterValue(
+  token: TokenResult<Token.FILTER>,
+  fieldDefinition: ReturnType<FieldDefinitionGetter>
+): string {
+  const display = getFilterValueDisplayParts({
+    token,
+    fieldDefinition,
+    maxItems: 3,
+  });
+  let value = display.values.join(display.joiner ? ` ${display.joiner} ` : '');
+
+  if (display.overflowCount) {
+    value += ` +${display.overflowCount}`;
+  }
+
+  return middleEllipsis(value, FILTER_VALUE_MAX_LENGTH, FILTER_VALUE_ELLIPSIS_DELIMITER);
+}
+
+function ChipFilter({token}: {token: TokenResult<Token.FILTER>}) {
+  const {getFieldDefinition} = useSearchQueryBuilderConfig();
+  const fieldDefinition = getFieldDefinition(getKeyName(token.key));
+  const {labelText: operatorLabel} = getOperatorInfo({
+    filterToken: token,
+    fieldDefinition,
+  });
+  const property = getChipFilterProperty(token, operatorLabel);
+  const operator =
+    token.filter === FilterType.HAS ? undefined : operatorLabel || undefined;
+
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    return (
+      <DateChipFilter
+        ariaLabel={token.text}
+        token={token.value}
+        property={property}
+        operator={operator}
+      />
+    );
+  }
+
+  return (
+    <Chip
+      size="sm"
+      property={property}
+      operator={operator}
+      value={getChipFilterValue(token, fieldDefinition)}
+      aria-label={token.text}
+    />
+  );
+}
+
+function DateChipFilter({
+  token,
+  property,
+  operator,
+  ariaLabel,
+}: {
+  ariaLabel: string;
+  property: string;
+  token: TokenResult<Token.VALUE_ISO_8601_DATE>;
+  operator?: string;
+}) {
+  const isUtc = token.tz?.toLowerCase() === 'z' || !token.tz;
+  const value = useFormattedDateTime({
+    date: token.value,
+    dateOnly: !token.time,
+    utc: isUtc,
+  });
+
+  return (
+    <Chip
+      size="sm"
+      property={property}
+      operator={operator}
+      value={value}
+      aria-label={ariaLabel}
+    />
+  );
+}
+
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
   return <Chip size="sm" value={label} aria-label={label} />;
 }
 
-function QueryToken({token}: TokenProps) {
+function QueryToken({token, filterRenderer}: TokenProps) {
   switch (token.type) {
     case Token.FILTER:
-      return <Filter token={token} />;
+      return filterRenderer === 'chip' ? (
+        <ChipFilter token={token} />
+      ) : (
+        <FormattedFilter token={token} />
+      );
     case Token.FREE_TEXT:
       if (token.value.trim()) {
         return <Text as="span">{token.value.trim()}</Text>;
@@ -119,6 +228,7 @@ export function FormattedQuery({
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  filterRenderer = 'formatted',
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
@@ -134,7 +244,7 @@ export function FormattedQuery({
   return (
     <QueryWrapper aria-label={query} className={className}>
       {parsedQuery.map((token: any, index: any) => {
-        return <QueryToken key={index} token={token} />;
+        return <QueryToken key={index} token={token} filterRenderer={filterRenderer} />;
       })}
     </QueryWrapper>
   );
@@ -156,6 +266,7 @@ export function ProvidedFormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
+  filterRenderer = 'formatted',
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -172,6 +283,7 @@ export function ProvidedFormattedQuery({
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}
         filterKeyAliases={filterKeyAliases}
+        filterRenderer={filterRenderer}
       />
     </SearchQueryBuilderProvider>
   );
