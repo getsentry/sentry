@@ -191,7 +191,7 @@ const Name = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['5xl']}) {
     line-height: 1.7;
   }
 `;

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
@@ -42,7 +42,12 @@ export function CardHeader({
     />
   );
   return (
-    <Header>
+    <Grid
+      columns={{'3xl': '1fr max-content'}}
+      rows={{'3xl': 'repeat(2, max-content)'}}
+      gap="2xs"
+      marginBottom="md"
+    >
       <KeyName>
         {name}
         {description && <QuestionTooltip position="top" size="sm" title={description} />}
@@ -50,7 +55,7 @@ export function CardHeader({
       <DateCreated>
         {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
-      <StyledButtonBar>
+      <Grid flow="column" align="center" gap="md" row={{'3xl': '1 / 3'}}>
         <Button
           size="sm"
           icon={<IconCopyId />}
@@ -82,8 +87,8 @@ export function CardHeader({
           </ConfirmDelete>
         )}
         {extraAction}
-      </StyledButtonBar>
-    </Header>
+      </Grid>
+    </Grid>
   );
 }
 
@@ -99,23 +104,4 @@ const DateCreated = styled('div')`
   grid-row: 2/3;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-row: 1/3;
-  }
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-row-gap: ${p => p.theme.space['2xs']};
-  margin-bottom: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr max-content;
-    grid-template-rows: repeat(2, max-content);
-  }
 `;

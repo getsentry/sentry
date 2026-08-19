@@ -211,7 +211,7 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
 }
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),

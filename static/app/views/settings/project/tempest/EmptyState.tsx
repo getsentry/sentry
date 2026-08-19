@@ -219,7 +219,7 @@ const Image = styled('img')`
   height: 120px;
   overflow: hidden;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: none;
   }
 `;

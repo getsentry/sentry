@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {
@@ -169,9 +170,20 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Fragment>
-          <Wrapper>
+          <Grid
+            columns={{zero: '1fr', xl: 'auto 1fr'}}
+            gap={{zero: '0', xl: '3xl'}}
+            align="center"
+            marginTop="3xl"
+            marginBottom="md"
+          >
             <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-            <Filters>
+            <Grid
+              columns={{zero: 'min-content 1fr', xl: 'min-content minmax(200px, 400px)'}}
+              align="center"
+              justify="end"
+              gap="xl"
+            >
               <Label>
                 <Checkbox
                   checked={showDetails}
@@ -187,8 +199,8 @@ export default function ProjectDebugSymbols() {
                 onSearch={handleSearch}
                 query={query}
               />
-            </Filters>
-          </Wrapper>
+            </Grid>
+          </Grid>
 
           <StyledPanelTable
             headers={[
@@ -235,29 +247,6 @@ const StyledPanelTable = styled(PanelTable)`
 
 const Actions = styled('div')`
   text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space['3xl']};
-  align-items: center;
-  margin-top: ${p => p.theme.space['3xl']};
-  margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: min-content minmax(200px, 400px);
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: min-content 1fr;
-  }
 `;
 
 const Label = styled('label')`
