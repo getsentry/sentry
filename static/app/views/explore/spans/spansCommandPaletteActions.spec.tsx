@@ -49,6 +49,24 @@ describe('chart reordering', () => {
     ]);
   });
 
+  it('moves the chart label together with its value', () => {
+    const chartRows = charts.map((visualize, index) => ({
+      label: `Chart ${String.fromCharCode(65 + index)}`,
+      visualize,
+    }));
+
+    expect(
+      reorderCharts(chartRows, 0, 'down').map(({label, visualize}) => [
+        label,
+        visualize.yAxis,
+      ])
+    ).toEqual([
+      ['Chart B', 'p95(span.duration)'],
+      ['Chart A', 'count(span.duration)'],
+      ['Chart C', '#1 + #2'],
+    ]);
+  });
+
   it('does not move a chart beyond the list boundaries', () => {
     expect(reorderCharts(charts, 0, 'up')).toEqual(charts);
     expect(reorderCharts(charts, charts.length - 1, 'down')).toEqual(charts);

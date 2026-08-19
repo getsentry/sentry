@@ -84,32 +84,29 @@ export function canReorderCharts(visualizes: readonly Visualize[]): boolean {
   );
 }
 
-export function reorderCharts(
-  visualizes: readonly Visualize[],
+export function reorderCharts<T>(
+  charts: readonly T[],
   index: number,
   direction: 'up' | 'down'
-): Visualize[] {
+): T[] {
   const nextIndex = direction === 'up' ? index - 1 : index + 1;
   if (
     index < 0 ||
-    index >= visualizes.length ||
+    index >= charts.length ||
     nextIndex < 0 ||
-    nextIndex >= visualizes.length
+    nextIndex >= charts.length
   ) {
-    return [...visualizes];
+    return [...charts];
   }
 
-  const reorderedVisualizes = [...visualizes];
-  const visualize = reorderedVisualizes[index];
-  const nextVisualize = reorderedVisualizes[nextIndex];
-  if (visualize === undefined || nextVisualize === undefined) {
-    return reorderedVisualizes;
+  const reorderedCharts = [...charts];
+  const chart = reorderedCharts[index];
+  const nextChart = reorderedCharts[nextIndex];
+  if (chart === undefined || nextChart === undefined) {
+    return reorderedCharts;
   }
-  [reorderedVisualizes[index], reorderedVisualizes[nextIndex]] = [
-    nextVisualize,
-    visualize,
-  ];
-  return reorderedVisualizes;
+  [reorderedCharts[index], reorderedCharts[nextIndex]] = [nextChart, chart];
+  return reorderedCharts;
 }
 
 function SaveAsActions() {
@@ -635,7 +632,9 @@ function QueryClauseActions() {
   const crossEvents = useQueryParamsCrossEvents();
   const [caseInsensitive] = useCaseInsensitivity();
   const [draftQuery, setDraftQuery] = useState(query);
-  const [draftVisualizes, setDraftVisualizes] = useState<Visualize[]>([...visualizes]);
+  const [draftCharts, setDraftCharts] = useState(() =>
+    visualizes.map((visualize, id) => ({id, visualize}))
+  );
   const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
@@ -647,7 +646,7 @@ function QueryClauseActions() {
   useEffect(() => {
     if (!commandPaletteState.open) {
       setDraftQuery(query);
-      setDraftVisualizes([...visualizes]);
+      setDraftCharts(visualizes.map((visualize, id) => ({id, visualize})));
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDraftGroupBys([...groupBys]);
       // The palette intentionally snapshots URL state when it closes so a new
@@ -672,6 +671,7 @@ function QueryClauseActions() {
 
   const groupBySummary = draftGroupBys.filter(Boolean).join(', ');
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
+  const draftVisualizes = draftCharts.map(chart => chart.visualize);
   const draftSortBys =
     draftMode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
   const draftVisualizeFunctions = draftVisualizes.filter(isVisualizeFunction);
@@ -682,11 +682,20 @@ function QueryClauseActions() {
     .map(sort => `${sort.field}, ${sort.kind}`)
     .join(', ');
   const updateVisualize = (index: number, nextVisualize: Visualize) => {
-    setDraftVisualizes(currentVisualizes =>
-      currentVisualizes.map((visualize, visualizeIndex) =>
-        visualizeIndex === index ? nextVisualize : visualize
+    setDraftCharts(currentCharts =>
+      currentCharts.map((chart, chartIndex) =>
+        chartIndex === index ? {...chart, visualize: nextVisualize} : chart
       )
     );
+  };
+  const addDraftChart = (visualize: Visualize) => {
+    setDraftCharts(currentCharts => [
+      ...currentCharts,
+      {
+        id: currentCharts.reduce((maxId, chart) => Math.max(maxId, chart.id), -1) + 1,
+        visualize,
+      },
+    ]);
   };
 
   return (
@@ -715,22 +724,12 @@ function QueryClauseActions() {
             <CMDKAction
               display={{label: t('Add Chart')}}
               keywords={['add', 'chart', 'series', 'source', 'visualization']}
-              onAction={() =>
-                setDraftVisualizes(currentVisualizes => [
-                  ...currentVisualizes,
-                  new VisualizeFunction(DEFAULT_VISUALIZATION),
-                ])
-              }
+              onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
             <CMDKAction
               display={{label: t('Add Equation')}}
               keywords={['add', 'chart', 'equation', 'series', 'visualization']}
-              onAction={() =>
-                setDraftVisualizes(currentVisualizes => [
-                  ...currentVisualizes,
-                  new VisualizeEquation(EQUATION_PREFIX),
-                ])
-              }
+              onAction={() => addDraftChart(new VisualizeEquation(EQUATION_PREFIX))}
             />
           </Fragment>
         )}
@@ -739,22 +738,16 @@ function QueryClauseActions() {
             display={{label: t('Reorder Charts')}}
             keywords={['reorder', 'move', 'charts', 'series']}
           >
-            {draftVisualizes.map((visualize, index) => {
-              const duplicateIndex = draftVisualizes
-                .slice(0, index)
-                .filter(
-                  candidate =>
-                    candidate.kind === visualize.kind &&
-                    candidate.yAxis === visualize.yAxis
-                ).length;
-              const id = `spans-reorder-chart-${visualize.kind}-${visualize.yAxis}-${duplicateIndex}`;
+            {draftCharts.map((chart, index) => {
+              const {id: chartId, visualize} = chart;
+              const id = `spans-reorder-chart-${chartId}`;
 
               return (
                 <CMDKAction
                   key={id}
                   id={id}
                   display={{
-                    label: t('Chart %s', String.fromCharCode(65 + index)),
+                    label: t('Chart %s', String.fromCharCode(65 + chartId)),
                     trailingItem: (
                       <QueryValue
                         value={
@@ -768,8 +761,8 @@ function QueryClauseActions() {
                   order={index}
                   onAction={() => {}}
                   onReorder={direction =>
-                    setDraftVisualizes(currentVisualizes =>
-                      reorderCharts(currentVisualizes, index, direction)
+                    setDraftCharts(currentCharts =>
+                      reorderCharts(currentCharts, index, direction)
                     )
                   }
                 />
@@ -854,10 +847,8 @@ function QueryClauseActions() {
               display={{label: t('Delete Chart')}}
               keywords={['delete', 'remove', 'chart', 'series']}
               onAction={() =>
-                setDraftVisualizes(currentVisualizes =>
-                  currentVisualizes.filter(
-                    (_, visualizeIndex) => visualizeIndex !== index
-                  )
+                setDraftCharts(currentCharts =>
+                  currentCharts.filter((_, chartIndex) => chartIndex !== index)
                 )
               }
             />
