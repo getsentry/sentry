@@ -44,7 +44,11 @@ jest.mock('sentry/data/platforms', () => {
     ...actual,
     platforms: actual.platforms.filter(
       (p: {id: string}) =>
-        p.id === 'javascript' || p.id === 'python' || p.id === 'python-django'
+        p.id === 'javascript' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        // Not in the curated popular list, so the picker gets both sections.
+        p.id === 'deno'
     ),
   };
 });
@@ -194,6 +198,17 @@ describe('ScmPlatformFeaturesCore', () => {
       'growth.select_platform',
       expect.anything()
     );
+  });
+
+  it('sections the manual picker dropdown into Popular and Other platforms', async () => {
+    render(<ScmPlatformFeaturesCore {...defaultProps({selectedPlatform: undefined})} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('textbox'));
+
+    expect(screen.getByText('Popular')).toBeInTheDocument();
+    expect(screen.getByText('Other platforms')).toBeInTheDocument();
   });
 
   it('tracks one debounced manual platform search with its result count', async () => {
