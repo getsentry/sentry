@@ -166,7 +166,14 @@ class CursorOriginIntegration(
     # -- stacktrace linking --------------------------------------------------
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(CURSOR_ORIGIN_WEB_BASE_URL)
+        # Scope to this installation's codebase, not just to origin.cursor.com.
+        # ProjectRepoPathParsingEndpoint takes matching_integrations[0], so a
+        # base-URL-only check lets an org's URL match a different org's
+        # integration first and report "Could not find repo". build_integration
+        # already stores domain_name as "{web base}/{codebase}"; fall back to the
+        # base URL for integrations installed before that was set.
+        base_url = self.model.metadata.get("domain_name") or CURSOR_ORIGIN_WEB_BASE_URL
+        return url.startswith(base_url)
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config.get("default_branch") or "main"
