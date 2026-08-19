@@ -1,6 +1,7 @@
 from typing import TypedDict
 
 from django.http import HttpRequest
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -18,9 +19,13 @@ from sentry.api.serializers.models.auth import (
     serialize_auth_mfa_required,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.models.organization import Organization
+from sentry.auth.services.access.service import access_service
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
@@ -30,11 +35,13 @@ from sentry.web.frontend.base import OrganizationMixin, determine_active_organiz
 class AuthLoginRequest(TypedDict):
     username: str
     password: str
+    org_slug: str | None
 
 
 class AuthLoginRequestSerializer(CamelSnakeSerializer[AuthLoginRequest]):
     username = serializers.CharField(allow_blank=True)
     password = serializers.CharField(allow_blank=True, trim_whitespace=False)
+    org_slug = serializers.CharField(allow_null=True, default=None, required=False)
 
 
 @extend_schema(tags=["Users"])
@@ -47,6 +54,44 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
+    def get_password_organization(
+        self,
+        user: User,
+        requested_slug: str | None,
+        organization_mappings: list[RpcOrganizationMapping],
+    ) -> RpcOrganization | None:
+        """Choose a destination that does not require an SSO-authenticated session.
+
+        The requested slug controls navigation only. Password authentication must never
+        satisfy an organization's SSO requirement.
+        """
+        ordered_mappings = sorted(
+            organization_mappings,
+            key=lambda mapping: mapping.slug != requested_slug,
+        )
+
+        for mapping in ordered_mappings:
+            organization_context = organization_service.get_organization_by_id(
+                id=mapping.id,
+                user_id=user.id,
+                include_projects=False,
+                include_teams=False,
+            )
+            if organization_context is None:
+                continue
+
+            auth_state = access_service.get_user_auth_state(
+                user_id=user.id,
+                organization_id=organization_context.organization.id,
+                is_superuser=user.is_superuser,
+                is_staff=user.is_staff,
+                org_member=organization_context.member,
+            )
+            if not auth_state.sso_state.is_required:
+                return organization_context.organization
+
+        return None
+
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
         self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
@@ -56,9 +101,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         request=AuthLoginRequestSerializer,
         responses={200: AuthSuccessSerializer, 202: AuthMfaRequiredSerializer},
     )
-    def post(
-        self, request: Request, organization: Organization | None = None, *args, **kwargs
-    ) -> Response:
+    def post(self, request: Request, *args, **kwargs) -> Response:
         """
         Process a login request via username/password. SSO login is handled
         elsewhere.
@@ -97,9 +140,19 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             auth.record_suspended_user_rejection("api_login")
             return self.respond_with_error({"__all__": ["Your account has been suspended."]})
 
-        login_completed = auth.login(
-            request, user, organization_id=organization.id if organization else None
-        )
+        org_slug = serializer.validated_data["org_slug"]
+        organizations = user_service.get_organizations(user_id=user.id, only_visible=True)
+        organization = self.get_password_organization(user, org_slug, organizations)
+        if organization:
+            auth.set_active_org(request, organization.slug)
+        else:
+            # An SSO-only membership still authenticates the user account. Keep the
+            # organization out of session context so it cannot be mistaken for SSO access.
+            auth.clear_active_org(request)
+            if organizations:
+                request.session["_next"] = reverse("sentry-account-settings")
+
+        login_completed = auth.login(request, user)
         metrics.incr("login.attempt", instance="success", skip_internal=True, sample_rate=1.0)
 
         if not user.is_active:
@@ -120,7 +173,13 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
                 status=202,
             )
 
-        return Response(get_auth_success_payload(request, user))
+        payload = get_auth_success_payload(request, user)
+        if organization is None and organizations:
+            # Payload generation resolves a default membership after login. Remove that
+            # fallback when every membership requires SSO.
+            auth.clear_active_org(request)
+
+        return Response(payload)
 
     def respond_with_error(self, errors):
         return Response({"detail": "Login attempt failed", "errors": errors}, status=400)
