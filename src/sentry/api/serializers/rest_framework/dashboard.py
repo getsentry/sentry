@@ -44,6 +44,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -285,7 +286,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context["projects"]],
+            "project_id": self._get_validation_project_ids(),
             "organization_id": self.context["organization"].id,
             "environment": self.context.get("environment", []),
         }
@@ -333,6 +334,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
+        except UnqualifiedQueryError:
+            # Fixed message: sibling SnubaError types leak Snuba internals.
+            data["discover_query_error"] = {
+                "conditions": ["Could not validate query: no project available."]
+            }
+            return data
 
         # TODO(dam): Add validation for metrics fields/queries
         try:
@@ -350,6 +357,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
+
+    def _get_validation_project_ids(self) -> list[int]:
+        """Project ids for the query builder. Non-request callers supply only `projects`."""
+        projects = self.context.get("validation_projects")
+        if projects is None:
+            projects = self.context["projects"]
+        return [p.id for p in projects]
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
