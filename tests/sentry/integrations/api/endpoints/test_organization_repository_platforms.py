@@ -219,17 +219,17 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         response = self.get_response(self.organization.slug, 99999)
         assert response.status_code == 404
 
-    def test_non_github_repo(self) -> None:
+    def test_unsupported_provider_repo(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
-            name="non-github-repo",
+            name="unsupported-provider-repo",
             provider="integrations:bitbucket",
             external_id="456",
         )
 
         response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
-        assert "only supported for GitHub" in response.data["detail"]
+        assert "not supported for this repository" in response.data["detail"]
 
     def test_github_enterprise_repo_rejected(self) -> None:
         repo = Repository.objects.create(
@@ -242,7 +242,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
 
         response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
-        assert "only supported for GitHub" in response.data["detail"]
+        assert "not supported for this repository" in response.data["detail"]
 
     def test_repo_without_integration(self) -> None:
         repo = Repository.objects.create(
