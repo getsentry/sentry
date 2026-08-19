@@ -29,6 +29,7 @@
 /src/sentry/db/models/                                  @getsentry/app-backend
 /src/sentry/models/                                     @getsentry/app-backend
 /src/sentry/deletions/                                  @getsentry/app-backend
+/tests/sentry/deletions/                                 @getsentry/app-backend
 /src/sentry/management/                                 @getsentry/app-backend
 /src/sentry/metrics/                                    @getsentry/app-backend
 /src/sentry/middleware/                                 @getsentry/app-backend
@@ -50,30 +51,24 @@
 /LICENSE.md                                              @getsentry/owners-legal
 
 ## Snuba
-/src/sentry/eventstream/                                 @getsentry/owners-snuba
-/src/sentry/consumers/                                   @getsentry/ops @getsentry/owners-snuba
-/tests/sentry/consumers/                                 @getsentry/ops @getsentry/owners-snuba
+/src/sentry/consumers/                                   @getsentry/ops
+/tests/sentry/consumers/                                 @getsentry/ops
 /src/sentry/snuba/                                       @getsentry/owners-snuba
-/src/sentry/post_process_forwarder/                      @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/data-browsing
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
-/src/sentry/sentry_metrics/                              @getsentry/owners-snuba
-/tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
+/src/sentry/sentry_metrics/indexer/                      @getsentry/owners-snuba
+/src/sentry/sentry_metrics/consumers/indexer/            @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/consumers/                  @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/limiters/                   @getsentry/owners-snuba
+/tests/sentry/sentry_metrics/test_*indexer*.py           @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/extraction.py                  @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics_layer/                         @getsentry/owners-snuba
-/src/sentry/search/events/datasets/metrics_layer.py      @getsentry/owners-snuba
 /tests/snuba/test_snql_snuba.py                          @getsentry/owners-snuba
 /tests/snuba/test_snuba.py                               @getsentry/owners-snuba
-/tests/sentry/deletions/                                 @getsentry/owners-snuba
-/src/sentry/services/nodestore/                          @getsentry/owners-snuba
-/src/sentry/nodestore/                                   @getsentry/owners-snuba
-/src/sentry/services/eventstore/                         @getsentry/owners-snuba
-/src/sentry/eventstore/                                  @getsentry/owners-snuba
-/src/sentry/filestore/                                   @getsentry/owners-snuba
 /tests/snuba/                                            @getsentry/owners-snuba
 
 
