@@ -500,6 +500,32 @@ describe('PageFiltersContainer', () => {
       );
     });
 
+    it('keeps a stats period measured in seconds', async () => {
+      render(<PageFiltersContainer maxPickableDays={7} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '3600'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '3600s',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+    });
+
     it('does not use maxPickableDays if the query parms do not exceed it', async () => {
       const {router} = render(<PageFiltersContainer maxPickableDays={7} />, {
         organization,
