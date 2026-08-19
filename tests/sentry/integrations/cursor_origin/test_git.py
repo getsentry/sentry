@@ -14,6 +14,7 @@ import io
 import os
 import subprocess
 import tarfile
+from pathlib import Path
 
 import pytest
 
@@ -55,7 +56,7 @@ class CursorOriginGitTestBase(TestCase):
         self.base_sha = _git("rev-parse", "HEAD", cwd=work)
 
     @pytest.fixture(autouse=True)
-    def _tmpdir(self, tmp_path):
+    def _tmpdir(self, tmp_path: Path) -> None:
         self.tmpdir = tmp_path
 
 
