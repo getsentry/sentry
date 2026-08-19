@@ -34,7 +34,7 @@ export const TextOverflow = styled(
     className,
     ellipsisDirection = 'right',
     isParagraph = false,
-    ['data-test-id']: dataTestId,
+    'data-test-id': dataTestId,
     style,
   }: Props) => {
     const Component = isParagraph ? 'p' : 'div';
