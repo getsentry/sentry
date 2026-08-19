@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
@@ -9,6 +11,7 @@ from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.web.frontend.auth_login import additional_context
 
 
 @control_silo_test
@@ -102,6 +105,38 @@ class AuthConfigEndpointTest(APITestCase):
             "mfaMethods": [{"id": "totp"}],
         }
 
+    def test_login_banner(self) -> None:
+        banner = 'Banner message <a href="https://example.com">Learn more</a>.'
+        with patch.object(
+            additional_context,
+            "_callbacks",
+            {lambda request: {"login_banner": banner}},
+        ):
+            response = self.client.get(self.path)
+
+        assert response.data["loginBanner"] == banner
+        assert "login_banner" not in response.data
+
+    def test_additional_context_keys_are_camelized(self) -> None:
+        with patch.object(
+            additional_context,
+            "_callbacks",
+            {
+                lambda request: {
+                    "github_login_link": "/identity/login/github/",
+                    "google_login_link": "/identity/login/google/",
+                    "vsts_login_link": "/identity/login/vsts/",
+                }
+            },
+        ):
+            response = self.client.get(self.path)
+
+        assert response.data["githubLoginLink"] == "/identity/login/github/"
+        assert response.data["googleLoginLink"] == "/identity/login/google/"
+        assert response.data["vstsLoginLink"] == "/identity/login/vsts/"
+        assert "github_login_link" not in response.data
+        assert "google_login_link" not in response.data
+        assert "vsts_login_link" not in response.data
     @pytest.mark.skipif(
         settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
         reason="Requires DummyNewsletter.",
