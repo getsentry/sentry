@@ -89,6 +89,11 @@ interface CMDKActionProps {
   // Default: 4 when resource is set and children is a render-prop function.
   // No default for static children.
   limit?: number;
+
+  // Exposes this action in the Ctrl+Shift+Enter More Actions panel.
+  // The label is independent from the action's normal list label.
+  // Set only to remove it from normal palette browsing and search.
+  actionPanel?: {label: string; only?: boolean; order?: number};
 }
 ```
 
@@ -709,6 +714,33 @@ Use `t('... %s', value)` (printf-style) rather than template literals so strings
 
 ---
 
+## Contextual Actions Panel
+
+Set `actionPanel` on an existing action to expose it in the compact More Actions panel
+opened with Ctrl+Shift+Enter. Registration follows the normal component
+lifetime, so a page action is available throughout that page's mounted command
+palette scope and disappears when the page unmounts.
+
+Use a separate overlay label when the regular action label reflects current state:
+
+```tsx
+<CMDKAction
+  display={{label: currentQuery ? t('Filter by') : t('Add Filter')}}
+  actionPanel={{label: t('Add Filter')}}
+  prompt={t('Search for attribute')}
+>
+  {/* filter picker actions */}
+</CMDKAction>
+```
+
+Selecting the overlay entry drills into the same action and preserves its prompt,
+children, and chained-action behavior. Do not register a duplicate callback solely
+for the panel. Set `only: true` to move an action into the panel and hide it from
+normal palette browsing and search. Set `order` when actions registered in different
+branches need an explicit order in the panel; lower values appear first.
+
+---
+
 ## Checklist
 
 - [ ] Wrap page-level actions in `<CommandPaletteSlot name="page">`; add global actions to `GlobalCommandPaletteActions`
@@ -726,6 +758,7 @@ Use `t('... %s', value)` (printf-style) rather than template literals so strings
 - [ ] `disabled` state gates the entire `<CommandPaletteSlot>`, not individual actions
 - [ ] Group icon reflects the current value of the setting it controls (priority, assignee, theme)
 - [ ] Dynamic action labels use `t('... %s', value)` not template literals, so strings stay translatable
+- [ ] Contextual panel actions reuse an existing action via `actionPanel`; they do not duplicate callback logic
 - [ ] Workflow action components extract state logic into a dedicated `use*State` hook and use a `canContinue` guard
 - [ ] Components that are not applicable return `null` early via a guard clause before rendering any JSX
 - [ ] Entity capability config (e.g. `getConfigForIssueType`) drives action availability rather than scattered type checks

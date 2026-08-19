@@ -7,13 +7,13 @@ describe('KeyboardShortcutsDrawer', () => {
   it('toggles from the global shortcut', async () => {
     render(<KeyboardShortcutsHotkeys />);
 
-    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.keyboard('{Control>}{Shift>}h{/Shift}{/Control}');
 
     expect(
       await screen.findByRole('heading', {name: 'Keyboard Shortcuts'})
     ).toBeInTheDocument();
 
-    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.keyboard('{Control>}{Shift>}h{/Shift}{/Control}');
 
     await waitFor(() => {
       expect(
@@ -29,6 +29,7 @@ describe('KeyboardShortcutsDrawer', () => {
     expect(screen.getByRole('heading', {name: 'Navigation'})).toBeInTheDocument();
     expect(screen.getByText('Open command palette')).toBeInTheDocument();
     expect(screen.getByText('Select command')).toBeInTheDocument();
+    expect(screen.getByText('More Actions')).toBeInTheDocument();
     expect(screen.getByText('Toggle selection')).toBeInTheDocument();
     expect(screen.getByText('Reorder selected item')).toBeInTheDocument();
   });

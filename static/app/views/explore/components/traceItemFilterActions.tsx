@@ -1,18 +1,19 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Text} from '@sentry/scraps/text';
 
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
   FilterType,
   filterTypeConfig,
   negationOperators,
+  parseSearch,
   TermOperator,
+  Token,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -79,6 +80,23 @@ export function addSearchFilterToQuery(
   return search.formatString();
 }
 
+export function getFilterRows(query: string): string[] {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    return [];
+  }
+
+  const tokens = parseSearch(trimmedQuery);
+  if (
+    !tokens ||
+    tokens.some(token => token.type !== Token.FILTER && token.type !== Token.SPACES)
+  ) {
+    return [trimmedQuery];
+  }
+
+  return tokens.flatMap(token => (token.type === Token.FILTER ? [token.text] : []));
+}
+
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
 
 const FILTER_OPERATORS = {
@@ -92,10 +110,12 @@ interface TraceItemFilterActionsProps {
   stringAttributes: TagCollection;
   summary: string;
   traceItemType: TraceItemDataset;
+  actionPanelOrder?: number;
 }
 
 export function TraceItemFilterActions({
   addSearchFilter,
+  actionPanelOrder,
   booleanAttributes,
   stringAttributes,
   summary,
@@ -103,15 +123,6 @@ export function TraceItemFilterActions({
 }: TraceItemFilterActionsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const commandPaletteState = useCommandPaletteState();
-  const [selectedValues, setSelectedValues] = useState<Record<string, string[]>>({});
-
-  useEffect(() => {
-    if (!commandPaletteState.open) {
-      setSelectedValues({});
-    }
-  }, [commandPaletteState.open]);
-
   const sortedStringAttributes = useMemo(
     () => orderBy(Object.values(stringAttributes), ['key']),
     [stringAttributes]
@@ -120,38 +131,12 @@ export function TraceItemFilterActions({
     () => orderBy(Object.values(booleanAttributes), ['key']),
     [booleanAttributes]
   );
+  const filterRows = getFilterRows(summary);
 
   const makeValueAction = (tag: Tag, operator: TermOperator, value: string) => {
-    const selectionKey = `${tag.key}:${operator}`;
-    const currentSelection = selectedValues[selectionKey] ?? [];
-    const isSelected = currentSelection.includes(value);
-
     return {
-      display: {
-        label: value,
-        labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
-      },
-      isSelected,
-      onMultiSelect: () => {
-        setSelectedValues(current => {
-          const values = current[selectionKey] ?? [];
-          return {
-            ...current,
-            [selectionKey]: values.includes(value)
-              ? values.filter(selectedValue => selectedValue !== value)
-              : [...values, value],
-          };
-        });
-      },
-      onAction: () => {
-        const valuesToCommit = isSelected
-          ? currentSelection
-          : [...currentSelection, value];
-        for (const selectedValue of valuesToCommit) {
-          addSearchFilter({key: tag.key, op: operator, value: selectedValue});
-        }
-        setSelectedValues(current => ({...current, [selectionKey]: []}));
-      },
+      display: {label: value},
+      onAction: () => addSearchFilter({key: tag.key, op: operator, value}),
     };
   };
 
@@ -230,13 +215,17 @@ export function TraceItemFilterActions({
     );
   };
 
-  return (
+  return (filterRows.length > 0 ? filterRows : ['']).map((filter, index) => (
     <CMDKAction
+      key={`${filter}-${index}`}
+      actionPanel={
+        index === 0 ? {label: t('Add Filter'), order: actionPanelOrder} : undefined
+      }
       display={{
-        label: summary ? t('Filter by') : t('Add Filter'),
-        trailingItem: <QueryValue value={summary} />,
+        label: t('Filter By'),
+        trailingItem: <QueryValue value={filter} />,
       }}
-      keywords={['search', 'filter', 'narrow', 'where', 'show', summary]}
+      keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
       prompt={t('Search for attribute')}
     >
       {sortedStringAttributes.length + sortedBooleanAttributes.length > 0 && (
@@ -246,7 +235,7 @@ export function TraceItemFilterActions({
         </CMDKAction>
       )}
     </CMDKAction>
-  );
+  ));
 }
 
 function QueryValue({value}: {value: string}) {

@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {preload} from 'react-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,7 +25,7 @@ import {ListBox, SectionSeparator, SectionTitle} from '@sentry/scraps/compactSel
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {Input, InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
@@ -36,7 +44,7 @@ import {
 } from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
+import {MORE_ACTIONS_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   IconArrow,
@@ -93,6 +101,8 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
   listItemType: 'action' | 'section';
 };
 
+const EMPTY_PREFIX_MAP = new Map<string, string[]>();
+
 interface CMDKActionSection {
   header: CMDKFlatItem | undefined;
   items: CMDKFlatItem[];
@@ -120,6 +130,7 @@ export function CommandPalette({
   const dispatch = useCommandPaletteDispatch();
   const seerExplorerEnabled = !!openSeerExplorer;
   const openForm = useFeedbackForm();
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
 
   const currentTextInput = useMemo(() => {
     const currentActionKey = state.action?.value.key;
@@ -175,7 +186,9 @@ export function CommandPalette({
     const currentRootKey = currentTextInput
       ? (state.action?.previous?.value.key ?? null)
       : (state.action?.value.key ?? null);
-    const nodes = presortBySlotRef(sortByExplicitOrder(store.tree(currentRootKey)));
+    const nodes = filterActionPanelOnlyNodes(
+      presortBySlotRef(sortByExplicitOrder(store.tree(currentRootKey)))
+    );
     const contextualNodes = nodes.filter(isContextualNode);
 
     if (currentRootKey === null && state.query === '' && contextualNodes.length > 0) {
@@ -186,6 +199,8 @@ export function CommandPalette({
 
     return nodes;
   }, [currentTextInput, store, state.action, state.query]);
+
+  const panelActions = useMemo(() => collectPanelActions(store.tree()), [store]);
 
   const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
@@ -311,6 +326,60 @@ export function CommandPalette({
     }),
     disabledKeys,
   });
+  const hasNoMatchingActions =
+    !currentTextInput && state.query.length > 0 && treeState.collection.size === 0;
+  const canOpenActionsPanel = panelActions.length > 0 && !hasNoMatchingActions;
+
+  const actionPanelState = useListState<CommandPaletteActionMenuItem>({
+    children: panelActions.map(action => renderActionItem(action, EMPTY_PREFIX_MAP)),
+    disabledKeys: panelActions
+      .filter(action => action.disabled)
+      .map(action => action.key),
+  });
+  const wasActionsOpenRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const panelSelectionManager = actionPanelState.selectionManager;
+
+    if (!isActionsOpen) {
+      panelSelectionManager.setFocused(false);
+      panelSelectionManager.setFocusedKey(null);
+
+      if (wasActionsOpenRef.current) {
+        const resultsSelectionManager = treeState.selectionManager;
+        const focusedKey = resultsSelectionManager.focusedKey;
+        if (focusedKey !== null && treeState.collection.getItem(focusedKey) === null) {
+          resultsSelectionManager.setFocusedKey(null);
+        }
+        resultsSelectionManager.setFocused(true);
+        state.input.current?.focus();
+      }
+      wasActionsOpenRef.current = false;
+      return;
+    }
+
+    wasActionsOpenRef.current = true;
+    panelSelectionManager.setFocused(true);
+    if (
+      panelSelectionManager.focusedKey === null ||
+      actionPanelState.collection.getItem(panelSelectionManager.focusedKey) === null
+    ) {
+      panelSelectionManager.setFocusedKey(actionPanelState.collection.getFirstKey());
+    }
+  }, [
+    actionPanelState.collection,
+    actionPanelState.selectionManager,
+    isActionsOpen,
+    state.input,
+    treeState.collection,
+    treeState.selectionManager,
+  ]);
+
+  useEffect(() => {
+    if (!canOpenActionsPanel) {
+      setIsActionsOpen(false);
+    }
+  }, [canOpenActionsPanel]);
 
   const firstFocusableKey = useMemo(() => {
     let key = treeState.collection.getFirstKey();
@@ -494,15 +563,21 @@ export function CommandPalette({
       key: string | number | null,
       options?: {
         modifierKeys?: {shiftKey: boolean};
+      },
+      selectionContext?: {
+        actions: CMDKFlatItem[];
+        prefixMap: Map<string, string[]>;
       }
     ) => {
-      const action = actions.find(a => a.key === key);
+      const selectionActions = selectionContext?.actions ?? actions;
+      const selectionPrefixMap = selectionContext?.prefixMap ?? prefixMap;
+      const action = selectionActions.find(a => a.key === key);
       if (!action || action.disabled) {
         return;
       }
 
-      const resultIndex = actions.indexOf(action);
-      const sourceAction = getSourceAction(action, actions, prefixMap);
+      const resultIndex = selectionActions.indexOf(action);
+      const sourceAction = getSourceAction(action, selectionActions, selectionPrefixMap);
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
@@ -602,6 +677,80 @@ export function CommandPalette({
     ]
   );
 
+  const closeActionsPanel = useCallback(() => {
+    setIsActionsOpen(false);
+  }, []);
+
+  const onPanelActionSelection = useCallback(
+    (key: string | number | null) => {
+      setIsActionsOpen(false);
+      resetResultsNavigation();
+      onActionSelection(key, undefined, {
+        actions: panelActions,
+        prefixMap: EMPTY_PREFIX_MAP,
+      });
+    },
+    [onActionSelection, panelActions, resetResultsNavigation]
+  );
+
+  const handleActionsKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    const isActionsShortcut = event.key === 'Enter' && event.ctrlKey && event.shiftKey;
+
+    if (isActionsShortcut) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (canOpenActionsPanel) {
+        if (isActionsOpen) {
+          closeActionsPanel();
+        } else {
+          setIsActionsOpen(true);
+        }
+      }
+      return;
+    }
+
+    if (!isActionsOpen) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeActionsPanel();
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      onPanelActionSelection(actionPanelState.selectionManager.focusedKey);
+      return;
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      event.stopPropagation();
+      const selectionManager = actionPanelState.selectionManager;
+      const focusedKey = selectionManager.focusedKey;
+      const nextKey =
+        event.key === 'ArrowDown'
+          ? focusedKey === null
+            ? actionPanelState.collection.getFirstKey()
+            : (actionPanelState.collection.getKeyAfter(focusedKey) ??
+              actionPanelState.collection.getFirstKey())
+          : focusedKey === null
+            ? actionPanelState.collection.getLastKey()
+            : (actionPanelState.collection.getKeyBefore(focusedKey) ??
+              actionPanelState.collection.getLastKey());
+      selectionManager.setFocused(true);
+      selectionManager.setFocusedKey(nextKey);
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   // Dispatch the deferred reset once the close animation finishes. framer-motion
   // only unmounts this component after the exit animation completes, so the
   // cleanup runs at exactly the right time. If the user re-opens the palette
@@ -671,7 +820,7 @@ export function CommandPalette({
   );
 
   const content = (
-    <Stack height="450px" maxHeight="80vh">
+    <Stack height="410px" maxHeight="80vh">
       <Stack gap="md" padding="xl xl md xl" flex={1} minHeight={0}>
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
@@ -719,9 +868,11 @@ export function CommandPalette({
                   data-1p-ignore
                   ref={currentTextInput ? undefined : state.input}
                   value={currentTextInput ? '' : state.query}
-                  readOnly={Boolean(currentTextInput)}
+                  readOnly={Boolean(currentTextInput) || isActionsOpen}
                   aria-label={t('Search commands')}
-                  placeholder={state.action?.value.prompt ?? t('Search for commands')}
+                  placeholder={
+                    state.action?.value.prompt ?? t('Type a command or search')
+                  }
                   {...(currentTextInput ? {} : inputCollectionProps)}
                 />
                 <InputGroup.TrailingItems>
@@ -764,6 +915,7 @@ export function CommandPalette({
               data-1p-ignore
               ref={state.input}
               value={state.query}
+              readOnly={isActionsOpen}
               aria-label={currentTextInput.ariaLabel}
               placeholder={t('Define Equation')}
               onChange={inputCollectionProps.onChange}
@@ -784,7 +936,7 @@ export function CommandPalette({
           {currentTextInput.footer}
         </CommandPaletteTextInputHints>
       ) : (
-        <CommandPaletteHints>
+        <CommandPaletteHints hasPanelActions={canOpenActionsPanel}>
           {actions.some(
             action => 'onMultiSelect' in action && action.onMultiSelect !== undefined
           ) ? (
@@ -800,7 +952,39 @@ export function CommandPalette({
     </Stack>
   );
 
-  return <Body>{content}</Body>;
+  return (
+    <Body>
+      <Container position="relative" onKeyDownCapture={handleActionsKeyDown}>
+        {content}
+        {isActionsOpen && canOpenActionsPanel ? (
+          <Surface
+            variant="overlay"
+            elevation="medium"
+            position="absolute"
+            right="16px"
+            bottom="48px"
+            width="320px"
+            maxWidth="calc(100% - 32px)"
+            maxHeight="min(280px, calc(100% - 88px))"
+            padding="xs"
+            radius="lg"
+            role="dialog"
+            aria-label={t('More Actions')}
+          >
+            <ListBox
+              listState={actionPanelState}
+              overlayIsOpen
+              size="sm"
+              aria-label={t('More Actions')}
+              selectionMode="none"
+              shouldUseVirtualFocus
+              onAction={onPanelActionSelection}
+            />
+          </Surface>
+        ) : null}
+      </Container>
+    </Body>
+  );
 }
 
 function findCollectionNode(
@@ -817,6 +1001,44 @@ function findCollectionNode(
     }
   }
   return undefined;
+}
+
+function filterActionPanelOnlyNodes(
+  nodes: Array<CollectionTreeNode<CMDKActionData>>
+): Array<CollectionTreeNode<CMDKActionData>> {
+  return nodes.flatMap(node =>
+    node.actionPanel?.only
+      ? []
+      : [{...node, children: filterActionPanelOnlyNodes(node.children)}]
+  );
+}
+
+function collectPanelActions(
+  nodes: Array<CollectionTreeNode<CMDKActionData>>
+): CMDKFlatItem[] {
+  return nodes
+    .flatMap(node => [
+      ...(node.actionPanel
+        ? [
+            {
+              ...node,
+              display: {
+                ...node.display,
+                label: node.actionPanel.label,
+                labelSuffix: undefined,
+                trailingItem: undefined,
+              },
+              listItemType: 'action' as const,
+            },
+          ]
+        : []),
+      ...collectPanelActions(node.children),
+    ])
+    .sort(
+      (firstAction, secondAction) =>
+        (firstAction.actionPanel?.order ?? Number.MAX_SAFE_INTEGER) -
+        (secondAction.actionPanel?.order ?? Number.MAX_SAFE_INTEGER)
+    );
 }
 
 /**
@@ -1470,7 +1692,13 @@ function makeMenuItemFromAction(
   };
 }
 
-function CommandPaletteHints({children}: {children?: React.ReactNode}) {
+function CommandPaletteHints({
+  children,
+  hasPanelActions,
+}: {
+  hasPanelActions: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <Stack borderTop="muted" padding="md xl">
       <Flex align="center" justify="between">
@@ -1492,12 +1720,14 @@ function CommandPaletteHints({children}: {children?: React.ReactNode}) {
           </Flex>
           {children}
         </Flex>
-        <Flex align="center" gap="xs">
-          <Hotkey variant="debossed" value={VIEW_KEYBOARD_SHORTCUTS_SHORTCUT} />
-          <Text size="xs" variant="muted">
-            {t('More Actions')}
-          </Text>
-        </Flex>
+        {hasPanelActions ? (
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value={MORE_ACTIONS_SHORTCUT} />
+            <Text size="xs" variant="muted">
+              {t('More Actions')}
+            </Text>
+          </Flex>
+        ) : null}
       </Flex>
     </Stack>
   );

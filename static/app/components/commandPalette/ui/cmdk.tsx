@@ -47,8 +47,15 @@ interface CMDKTextInput {
   initialValue?: string;
 }
 
+interface CMDKActionPanel {
+  label: string;
+  only?: boolean;
+  order?: number;
+}
+
 interface CMDKActionDataBase {
   display: DisplayProps;
+  actionPanel?: CMDKActionPanel;
   disabled?: boolean;
   keywords?: string[];
   limit?: number;
@@ -102,6 +109,8 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 
 interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
+  /** Exposes this action in the contextual More Actions panel. */
+  actionPanel?: CMDKActionPanel;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   /** Keeps the action visible while preventing selection. */
   disabled?: boolean;
@@ -204,6 +213,7 @@ export function CMDKAction<TData = unknown>({
   resource,
   textInput,
   limit,
+  actionPanel,
 }: CMDKActionProps<TData>) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
   const slotName = useCommandPaletteSlotName();
@@ -228,6 +238,7 @@ export function CMDKAction<TData = unknown>({
               prompt,
               textInput,
               limit: effectiveLimit,
+              actionPanel,
               order,
               slot: slotName ?? undefined,
             }
@@ -241,6 +252,7 @@ export function CMDKAction<TData = unknown>({
               onMultiSelect,
               onReorder,
               limit: effectiveLimit,
+              actionPanel,
               order,
               chainedActionAnchor: chainedActionScope ?? undefined,
               slot: slotName ?? undefined,
@@ -253,6 +265,7 @@ export function CMDKAction<TData = unknown>({
             ref,
             to,
             limit: effectiveLimit,
+            actionPanel,
             order,
             slot: slotName ?? undefined,
             textInput,
@@ -264,6 +277,7 @@ export function CMDKAction<TData = unknown>({
       effectiveLimit,
       keywords,
       isSelected,
+      actionPanel,
       onAction,
       onMultiSelect,
       onReorder,

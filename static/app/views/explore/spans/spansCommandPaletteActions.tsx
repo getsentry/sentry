@@ -71,6 +71,16 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
+const MORE_ACTIONS_ORDER = {
+  addChart: 10,
+  addEquation: 20,
+  addFilter: 30,
+  reorderCharts: 40,
+  deleteCharts: 50,
+  compareQueries: 60,
+  saveAs: 70,
+} as const;
+
 export function canCompareQueries(visualizes: Visualize[]): boolean {
   return visualizes.filter(isVisualizeFunction).length >= 2;
 }
@@ -82,6 +92,20 @@ export function canReorderCharts(visualizes: readonly Visualize[]): boolean {
   return (
     new Set(visualizes.map(visualize => JSON.stringify(visualize.serialize()))).size > 1
   );
+}
+
+export function canDeleteCharts(charts: readonly unknown[]): boolean {
+  return charts.length >= 2;
+}
+
+export function deleteCharts<T extends {id: number}>(
+  charts: readonly T[],
+  chartIds: readonly number[]
+): T[] {
+  const chartIdsToDelete = new Set(chartIds);
+  const remainingCharts = charts.filter(chart => !chartIdsToDelete.has(chart.id));
+
+  return remainingCharts.length > 0 ? remainingCharts : [...charts];
 }
 
 export function reorderCharts<T>(
@@ -129,7 +153,14 @@ function SaveAsActions() {
   const canAddToDashboard = organization.features.includes('dashboards-edit');
 
   return (
-    <CMDKAction display={{label: t('Save as')}}>
+    <CMDKAction
+      actionPanel={{
+        label: t('Save as'),
+        only: true,
+        order: MORE_ACTIONS_ORDER.saveAs,
+      }}
+      display={{label: t('Save as')}}
+    >
       <CMDKTerminalActionScope>
         <CMDKAction
           display={{label: t('New Query')}}
@@ -232,9 +263,11 @@ function SaveAsActions() {
 }
 
 function SpansFilterActions({
+  actionPanelOrder,
   addSearchFilter,
   summary,
 }: {
+  actionPanelOrder: number;
   addSearchFilter: (filter: SearchFilter) => void;
   summary: string;
 }) {
@@ -244,6 +277,7 @@ function SpansFilterActions({
   return (
     <TraceItemFilterActions
       addSearchFilter={addSearchFilter}
+      actionPanelOrder={actionPanelOrder}
       booleanAttributes={booleanAttributes}
       stringAttributes={stringAttributes}
       summary={summary}
@@ -635,6 +669,7 @@ function QueryClauseActions() {
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
   );
+  const [selectedChartIds, setSelectedChartIds] = useState<number[]>([]);
   const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
@@ -647,6 +682,9 @@ function QueryClauseActions() {
     if (!commandPaletteState.open) {
       setDraftQuery(query);
       setDraftCharts(visualizes.map((visualize, id) => ({id, visualize})));
+      setSelectedChartIds(currentChartIds =>
+        currentChartIds.length > 0 ? [] : currentChartIds
+      );
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDraftGroupBys([...groupBys]);
       // The palette intentionally snapshots URL state when it closes so a new
@@ -697,36 +735,50 @@ function QueryClauseActions() {
       },
     ]);
   };
+  const deleteDraftCharts = (chartIds: readonly number[]) => {
+    setDraftCharts(currentCharts => deleteCharts(currentCharts, chartIds));
+    setSelectedChartIds([]);
+  };
 
   return (
     <CMDKChainedActionScope>
+      <CMDKTerminalActionScope>
+        <CMDKAction
+          display={{label: t('Apply Changes')}}
+          keywords={['apply', 'save', 'changes']}
+          onAction={() => {
+            setQueryParams({
+              aggregateFields: [
+                ...draftGroupBys.map(groupBy => ({groupBy})),
+                ...draftVisualizes.map(visualize => visualize.serialize()),
+              ],
+              aggregateSortBys: draftAggregateSortBys,
+              mode: draftMode,
+              query: draftQuery,
+              sortBys: draftSampleSortBys,
+            });
+          }}
+        />
+      </CMDKTerminalActionScope>
       <CMDKAction display={{label: t('Commands')}}>
-        <CMDKTerminalActionScope>
-          <CMDKAction
-            display={{label: t('Apply Changes')}}
-            keywords={['apply', 'save', 'changes']}
-            onAction={() => {
-              setQueryParams({
-                aggregateFields: [
-                  ...draftGroupBys.map(groupBy => ({groupBy})),
-                  ...draftVisualizes.map(visualize => visualize.serialize()),
-                ],
-                aggregateSortBys: draftAggregateSortBys,
-                mode: draftMode,
-                query: draftQuery,
-                sortBys: draftSampleSortBys,
-              });
-            }}
-          />
-        </CMDKTerminalActionScope>
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction
+              actionPanel={{
+                label: t('Add Chart'),
+                only: true,
+                order: MORE_ACTIONS_ORDER.addChart,
+              }}
               display={{label: t('Add Chart')}}
               keywords={['add', 'chart', 'series', 'source', 'visualization']}
               onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
             <CMDKAction
+              actionPanel={{
+                label: t('Add Equation'),
+                only: true,
+                order: MORE_ACTIONS_ORDER.addEquation,
+              }}
               display={{label: t('Add Equation')}}
               keywords={['add', 'chart', 'equation', 'series', 'visualization']}
               onAction={() => addDraftChart(new VisualizeEquation(EQUATION_PREFIX))}
@@ -735,6 +787,11 @@ function QueryClauseActions() {
         )}
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction
+            actionPanel={{
+              label: t('Reorder Charts'),
+              only: true,
+              order: MORE_ACTIONS_ORDER.reorderCharts,
+            }}
             display={{label: t('Reorder Charts')}}
             keywords={['reorder', 'move', 'charts', 'series']}
           >
@@ -770,8 +827,64 @@ function QueryClauseActions() {
             })}
           </CMDKAction>
         )}
+        {canDeleteCharts(draftCharts) && (
+          <CMDKAction
+            actionPanel={{
+              label: t('Delete Charts'),
+              only: true,
+              order: MORE_ACTIONS_ORDER.deleteCharts,
+            }}
+            display={{label: t('Delete Charts')}}
+            keywords={['delete', 'remove', 'chart', 'series']}
+          >
+            {draftCharts.map((chart, index) => {
+              const isSelected = selectedChartIds.includes(chart.id);
+              const selectionLimitReached =
+                !isSelected && selectedChartIds.length >= draftCharts.length - 1;
+
+              return (
+                <CMDKAction
+                  key={`spans-delete-chart-${chart.id}`}
+                  id={`spans-delete-chart-${chart.id}`}
+                  disabled={selectionLimitReached}
+                  display={{
+                    label: t('Chart %s', String.fromCharCode(65 + index)),
+                    trailingItem: (
+                      <QueryValue
+                        value={
+                          isVisualizeEquation(chart.visualize)
+                            ? stripEquationPrefix(chart.visualize.yAxis)
+                            : chart.visualize.yAxis
+                        }
+                      />
+                    ),
+                  }}
+                  isSelected={isSelected}
+                  onAction={() =>
+                    deleteDraftCharts(
+                      isSelected ? selectedChartIds : [...selectedChartIds, chart.id]
+                    )
+                  }
+                  onMultiSelect={() =>
+                    setSelectedChartIds(currentChartIds => {
+                      const isCurrentlySelected = currentChartIds.includes(chart.id);
+                      return isCurrentlySelected
+                        ? currentChartIds.filter(chartId => chartId !== chart.id)
+                        : [...currentChartIds, chart.id];
+                    })
+                  }
+                />
+              );
+            })}
+          </CMDKAction>
+        )}
         {canCompareQueries(draftVisualizes) && (
           <CMDKAction
+            actionPanel={{
+              label: t('Compare Queries'),
+              only: true,
+              order: MORE_ACTIONS_ORDER.compareQueries,
+            }}
             disabled={hasCrossEvents}
             display={{label: t('Compare Queries')}}
             keywords={['compare', 'queries', 'charts']}
@@ -800,7 +913,7 @@ function QueryClauseActions() {
       <CMDKAction display={{label: t('Query')}}>
         <CMDKAction
           display={{
-            label: groupBySummary ? t('Group by') : t('Add Group by'),
+            label: t('Group By'),
             trailingItem: <QueryValue value={groupBySummary} />,
           }}
           prompt={t('Search for attribute')}
@@ -811,7 +924,11 @@ function QueryClauseActions() {
             setGroupBys={setDraftGroupBys}
           />
         </CMDKAction>
-        <SpansFilterActions addSearchFilter={addSearchFilter} summary={draftQuery} />
+        <SpansFilterActions
+          actionPanelOrder={MORE_ACTIONS_ORDER.addFilter}
+          addSearchFilter={addSearchFilter}
+          summary={draftQuery}
+        />
         <CMDKAction
           id="spans-sort"
           display={{
@@ -829,10 +946,10 @@ function QueryClauseActions() {
           />
         </CMDKAction>
       </CMDKAction>
-      {draftVisualizes.map((visualize, index) => (
+      {draftCharts.map(({id: chartId, visualize}, index) => (
         <CMDKAction
-          key={`series-details-${index}`}
-          id={`spans-series-details-${index}`}
+          key={`series-details-${chartId}`}
+          id={`spans-series-details-${chartId}`}
           display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
         >
           <SeriesActions
@@ -840,19 +957,8 @@ function QueryClauseActions() {
             visualize={visualize}
             visualizes={draftVisualizes}
             onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-            seriesId={`spans-series-${index}`}
+            seriesId={`spans-series-${chartId}`}
           />
-          {draftVisualizes.length > 1 && (
-            <CMDKAction
-              display={{label: t('Delete Chart')}}
-              keywords={['delete', 'remove', 'chart', 'series']}
-              onAction={() =>
-                setDraftCharts(currentCharts =>
-                  currentCharts.filter((_, chartIndex) => chartIndex !== index)
-                )
-              }
-            />
-          )}
         </CMDKAction>
       ))}
     </CMDKChainedActionScope>

@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 
 export const OPEN_COMMAND_PALETTE_SHORTCUTS = ['mod+k', 'mod+shift+p'] as const;
-export const VIEW_KEYBOARD_SHORTCUTS_SHORTCUT = 'control+shift+enter';
+export const MORE_ACTIONS_SHORTCUT = 'control+shift+enter';
+export const VIEW_KEYBOARD_SHORTCUTS_SHORTCUT = 'control+shift+h';
 export const TOGGLE_NAVIGATION_SHORTCUT = 'mod+b';
 export const TOGGLE_SEER_SHORTCUTS = [
   'mod+/',
@@ -49,6 +50,7 @@ export function getKeyboardShortcutGroups(): KeyboardShortcutGroup[] {
       shortcuts: [
         {label: t('Move through results'), keybindings: ['up', 'down']},
         {label: t('Select command'), keybindings: ['enter']},
+        {label: t('More Actions'), keybindings: [MORE_ACTIONS_SHORTCUT]},
         {label: t('Toggle selection'), keybindings: ['shift+enter']},
         {
           label: t('Reorder selected item'),

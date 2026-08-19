@@ -1,5 +1,8 @@
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import {addSearchFilterToQuery} from 'sentry/views/explore/components/traceItemFilterActions';
+import {
+  addSearchFilterToQuery,
+  getFilterRows,
+} from 'sentry/views/explore/components/traceItemFilterActions';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   VisualizeEquation,
@@ -7,7 +10,9 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {
   canCompareQueries,
+  canDeleteCharts,
   canReorderCharts,
+  deleteCharts,
   reorderCharts,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
 
@@ -70,6 +75,24 @@ describe('chart reordering', () => {
   it('does not move a chart beyond the list boundaries', () => {
     expect(reorderCharts(charts, 0, 'up')).toEqual(charts);
     expect(reorderCharts(charts, charts.length - 1, 'down')).toEqual(charts);
+  });
+});
+
+describe('chart deletion', () => {
+  const charts = [{id: 0}, {id: 1}, {id: 2}];
+
+  it('is available only with at least two charts', () => {
+    expect(canDeleteCharts(charts.slice(0, 1))).toBe(false);
+    expect(canDeleteCharts(charts.slice(0, 2))).toBe(true);
+  });
+
+  it('deletes multiple charts without mutating the input', () => {
+    expect(deleteCharts(charts, [0, 2])).toEqual([{id: 1}]);
+    expect(charts).toHaveLength(3);
+  });
+
+  it('keeps at least one chart', () => {
+    expect(deleteCharts(charts, [0, 1, 2])).toEqual(charts);
   });
 });
 
@@ -144,5 +167,35 @@ describe('addSearchFilterToQuery', () => {
     ).toBe(
       `span.description:checkout span.description:${WildcardOperators.CONTAINS}checkout`
     );
+  });
+});
+
+describe('getFilterRows', () => {
+  it('returns one row for each flat filter', () => {
+    expect(
+      getFilterRows(
+        'project:frontend-react tags[browser.name,string]:Chrome !span.op:http'
+      )
+    ).toEqual([
+      'project:frontend-react',
+      'tags[browser.name,string]:Chrome',
+      '!span.op:http',
+    ]);
+  });
+
+  it('keeps quoted and wildcard values intact', () => {
+    expect(
+      getFilterRows('span.description:"checkout request" transaction:*checkout*')
+    ).toEqual(['span.description:"checkout request"', 'transaction:*checkout*']);
+  });
+
+  it('returns no rows for an empty query', () => {
+    expect(getFilterRows('   ')).toEqual([]);
+  });
+
+  it('keeps complex search syntax together', () => {
+    const query = '(project:frontend-react OR project:backend-python) error';
+
+    expect(getFilterRows(query)).toEqual([query]);
   });
 });
