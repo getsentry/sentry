@@ -125,20 +125,23 @@ export function ConnectedMonitorsList({
 
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="type">
-            {t('Type')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-issue">
-            {t('Last Issue')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="owner">
-            {t('Assignee')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="type">
+              {t('Type')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-issue">
+              {t('Last Issue')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="owner">
+              {t('Assignee')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}

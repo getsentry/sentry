@@ -68,31 +68,34 @@ export function List({
         />
       </Flex>
 
-      <StyledSimpleTable hasMessageColumn={!hasSimilarityEmbeddingsFeature}>
-        <SimpleTable.Header>
-          <MergeHeaderCell>
-            <Confirm
-              disabled={mergeCount === 0}
-              message={tn(
-                'Merge %s issue into this one?',
-                'Merge %s issues into this one?',
-                mergeCount
-              )}
-              onConfirm={onMerge}
-            >
-              <Button size="xs">
-                {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
-              </Button>
-            </Confirm>
-          </MergeHeaderCell>
-          <CenteredHeaderCell>{t('Events')}</CenteredHeaderCell>
-          <CenteredHeaderCell>{t('Exception')}</CenteredHeaderCell>
-          {!hasSimilarityEmbeddingsFeature && (
-            <CenteredHeaderCell>{t('Message')}</CenteredHeaderCell>
-          )}
-          <SimpleTable.HeaderCell />
-        </SimpleTable.Header>
-
+      <StyledSimpleTable
+        hasMessageColumn={!hasSimilarityEmbeddingsFeature}
+        header={
+          <SimpleTable.HeaderRow>
+            <MergeHeaderCell>
+              <Confirm
+                disabled={mergeCount === 0}
+                message={tn(
+                  'Merge %s issue into this one?',
+                  'Merge %s issues into this one?',
+                  mergeCount
+                )}
+                onConfirm={onMerge}
+              >
+                <Button size="xs">
+                  {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
+                </Button>
+              </Confirm>
+            </MergeHeaderCell>
+            <CenteredHeaderCell>{t('Events')}</CenteredHeaderCell>
+            <CenteredHeaderCell>{t('Exception')}</CenteredHeaderCell>
+            {!hasSimilarityEmbeddingsFeature && (
+              <CenteredHeaderCell>{t('Message')}</CenteredHeaderCell>
+            )}
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
+      >
         {loading &&
           Array.from({length: 3}).map((_, i) => (
             <SimilarStackTraceItemSkeleton
