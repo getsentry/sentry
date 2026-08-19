@@ -170,7 +170,6 @@ export function makeCollection<T>(): CollectionInstance<T> {
     // needing to re-register when data changes. Structural changes (parentKey)
     // still cause a full re-registration via the effect deps.
     const dataRef = useRef(data);
-    dataRef.current = data;
 
     useLayoutEffect(() => {
       store.register({key, parent: parentKey, dataRef});
@@ -180,6 +179,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
     }, [key, parentKey, store]);
 
     useLayoutEffect(() => {
+      dataRef.current = data;
       store.update(key);
     }, [data, key, store]);
 

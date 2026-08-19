@@ -106,7 +106,7 @@ function commandPaletteReducer(
     case 'freeze list':
       return {...state, list: 'frozen'};
     case 'toggle modal':
-      if (!state.open && state.resetOnOpen) {
+      if (!state.open && (state.resetOnOpen || state.pendingReset)) {
         return {
           ...state,
           open: true,

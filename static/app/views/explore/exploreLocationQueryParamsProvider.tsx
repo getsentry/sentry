@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
 import type {Location} from 'history';
 
+import {getNewQueryParams} from 'sentry/components/pageFilters/actions';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -40,7 +41,9 @@ export function ExploreLocationQueryParamsProvider({
   // it in the dependency array. This makes setWritableQueryParams stable and
   // prevents unnecessary context updates.
   const locationRef = useRef(location);
-  locationRef.current = location;
+  useLayoutEffect(() => {
+    locationRef.current = location;
+  }, [location]);
 
   const _readableQueryParams = useMemo(
     () => getReadableQueryParamsFromLocation(location),
@@ -57,10 +60,26 @@ export function ExploreLocationQueryParamsProvider({
     (writableQueryParams: WritableQueryParams) => {
       onSetWritableQueryParams?.(writableQueryParams);
 
-      const target = getTargetWithReadableQueryParams(
+      const {pageFilters, ...exploreQueryParams} = writableQueryParams;
+
+      let target = getTargetWithReadableQueryParams(
         locationRef.current,
-        writableQueryParams
+        exploreQueryParams
       );
+
+      if (pageFilters) {
+        target = {
+          ...target,
+          query: getNewQueryParams(
+            {
+              project: pageFilters.projects,
+              environment: pageFilters.environments,
+              ...pageFilters.datetime,
+            },
+            target.query
+          ),
+        };
+      }
 
       navigateIfQueryChanged(navigate, locationRef.current, target);
     },

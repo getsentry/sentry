@@ -64,7 +64,6 @@ interface CMDKActionDataBase {
   keywords?: string[];
   limit?: number;
   order?: number;
-  ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
   /** Stable key of another action whose children this row opens. */
   targetAction?: string;
@@ -230,7 +229,6 @@ export function CMDKAction<TData = unknown>({
   limit,
   actionPanel,
 }: CMDKActionProps<TData>) {
-  const ref = CommandPaletteSlot.useSlotOutletRef();
   const slotName = useCommandPaletteSlotName();
   const parentKey = useContext(CMDKCollection.Context);
   const chainedActionScope = useCMDKChainedActionScope();
@@ -249,7 +247,6 @@ export function CMDKAction<TData = unknown>({
               disabled,
               display,
               keywords,
-              ref,
               resource,
               prompt,
               textInput,
@@ -264,7 +261,6 @@ export function CMDKAction<TData = unknown>({
               disabled,
               display,
               keywords,
-              ref,
               isSelected,
               onAction,
               onMultiSelect,
@@ -282,7 +278,6 @@ export function CMDKAction<TData = unknown>({
             disabled,
             display,
             keywords,
-            ref,
             to,
             limit: effectiveLimit,
             actionPanel,
@@ -305,7 +300,6 @@ export function CMDKAction<TData = unknown>({
       onReorder,
       order,
       prompt,
-      ref,
       resource,
       slotName,
       targetAction,

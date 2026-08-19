@@ -23,7 +23,9 @@ interface ListBoxSectionProps<T extends ListItemBase> extends AriaListBoxSection
   item: Node<T>;
   listState: ListState<T>;
   showSectionHeaders: boolean;
+  showSectionSeparators: boolean;
   size: ListBoxOptionProps['size'];
+  unstyledSectionTitles: boolean;
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -39,7 +41,9 @@ export function ListBoxSection<T extends ListItemBase>({
   size,
   hiddenOptions,
   showSectionHeaders,
+  showSectionSeparators,
   showDetails = true,
+  unstyledSectionTitles,
   ref,
   'data-index': dataIndex,
 }: ListBoxSectionProps<T>) {
@@ -61,12 +65,16 @@ export function ListBoxSection<T extends ListItemBase>({
 
   return (
     <Fragment>
-      {showSectionHeaders && <SectionSeparator {...separatorProps} />}
+      {showSectionHeaders && showSectionSeparators && (
+        <SectionSeparator {...separatorProps} />
+      )}
       <SectionWrap {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader>
             {item.rendered && (
-              <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
+              <SectionTitle {...headingProps} unstyled={unstyledSectionTitles}>
+                {item.rendered}
+              </SectionTitle>
             )}
             {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>

@@ -14,7 +14,10 @@ import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {
+  ALL_ACCESS_PROJECTS,
+  PROJECT_SELECTION_COUNT_LIMIT,
+} from 'sentry/components/pageFilters/constants';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
@@ -35,12 +38,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-/**
- * Maximum number of projects that can be selected at a time (due to server limits). This
- * does not apply to special values like "My Projects" and "All Projects".
- */
-const SELECTION_COUNT_LIMIT = 50;
 
 export interface ProjectPageFilterProps extends Partial<
   Omit<MultipleSelectProps<number>, 'onChange' | 'sizeLimit' | 'trigger' | 'emptyMessage'>
@@ -402,7 +399,7 @@ export function ProjectPageFilter({
     const realStagedValue = stagedValue.filter(
       v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
     );
-    return realStagedValue.length > SELECTION_COUNT_LIMIT;
+    return realStagedValue.length > PROJECT_SELECTION_COUNT_LIMIT;
   }, [stagedValue, urlProjectSelection, projects]);
 
   const onToggle = (newValue: number[]) => {
@@ -543,7 +540,7 @@ export function ProjectPageFilter({
             {tct(
               "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
               {
-                limit: SELECTION_COUNT_LIMIT,
+                limit: PROJECT_SELECTION_COUNT_LIMIT,
                 count: stagedSelect.value.length,
               }
             )}

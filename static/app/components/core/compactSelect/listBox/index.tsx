@@ -45,6 +45,10 @@ interface ListBoxProps<T extends ListItemBase>
    */
   listState: ListState<T>;
   children?: CollectionChildren<T>;
+  /** Removes the default vertical padding around the list. */
+  disablePadding?: boolean;
+  /** Draws a focus ring around the focused option. */
+  focusRing?: boolean;
   /**
    * Whether the list is filtered by search query or not.
    * Used to determine whether to show the size limit message or not.
@@ -88,6 +92,10 @@ interface ListBoxProps<T extends ListItemBase>
    */
   showSectionHeaders?: boolean;
   /**
+   * When false, hides separators between sections while keeping their headings.
+   */
+  showSectionSeparators?: boolean;
+  /**
    * Size of the list box and its items.
    */
   size?: FormSize;
@@ -95,6 +103,10 @@ interface ListBoxProps<T extends ListItemBase>
    * Message to be displayed when some options are hidden due to `sizeLimit`.
    */
   sizeLimitMessage?: string;
+  /**
+   * Removes CompactSelect typography from section headings rendered by the caller.
+   */
+  unstyledSectionTitles?: boolean;
 
   /**
    * If true, virtualization will be enabled for the list
@@ -131,10 +143,14 @@ export function ListBox<T extends ListItemBase>({
   label,
   hiddenOptions = EMPTY_SET,
   hasSearch,
+  focusRing = false,
   searchable,
   overlayIsOpen,
   showSectionHeaders = true,
+  showSectionSeparators = true,
   showDetails = true,
+  disablePadding = false,
+  unstyledSectionTitles = false,
   onAction,
   virtualized,
   virtualizedListPadding = listPaddingVertical,
@@ -255,6 +271,7 @@ export function ListBox<T extends ListItemBase>({
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
             {...mergedProps}
+            disablePadding={disablePadding}
             style={{
               ...mergedProps.style,
               ...virtualizer.listWrapStyle,
@@ -279,7 +296,9 @@ export function ListBox<T extends ListItemBase>({
                       hiddenOptions={hiddenOptions}
                       size={size}
                       showSectionHeaders={showSectionHeaders}
+                      showSectionSeparators={showSectionSeparators}
                       showDetails={showDetails}
+                      unstyledSectionTitles={unstyledSectionTitles}
                     />
                   );
                 }
@@ -291,6 +310,7 @@ export function ListBox<T extends ListItemBase>({
                     item={item}
                     listState={listState}
                     size={size}
+                    focusRing={focusRing}
                     showDetails={showDetails}
                   />
                 );

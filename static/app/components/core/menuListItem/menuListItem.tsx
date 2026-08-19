@@ -62,11 +62,12 @@ const StyledInnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
-    !['disabled', 'isFocused', 'priority'].includes(prop),
+    !['disabled', 'isFocused', 'priority', 'showFocusRing'].includes(prop),
 })<{
   disabled: boolean;
   isFocused: boolean;
   priority: Priority;
+  showFocusRing: boolean;
   size?: FormSize;
 }>`
   display: flex;
@@ -107,6 +108,13 @@ const StyledInnerWrap = styled('div', {
       ::before {
         background: ${p.theme.tokens.background.overlay};
       }
+    `}
+
+  ${p =>
+    p.isFocused &&
+    p.showFocusRing &&
+    css`
+      outline: 2px solid ${p.theme.tokens.focus.default};
     `}
 `;
 
@@ -185,6 +193,8 @@ export type MenuListItemProps = {
    * non-interactive).
    */
   disabled?: boolean;
+  /** Draws a focus ring around the item content when the item is focused. */
+  focusRing?: boolean;
   /**
    * Item label. Should preferably be a string. If not, make sure that
    * there are appropriate aria-labels.
@@ -243,6 +253,7 @@ function BaseMenuListItem({
   priority = 'default',
   size,
   disabled = false,
+  focusRing = false,
   leadingItems = false,
   trailingItems = false,
   isFocused = false,
@@ -284,6 +295,7 @@ function BaseMenuListItem({
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
+          showFocusRing={focusRing}
           size={size}
           {...innerWrapProps}
         >

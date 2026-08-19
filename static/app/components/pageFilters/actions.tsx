@@ -539,7 +539,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  * Preserves the old query params, except for `cursor` (can be overridden with
  * keepCursor option)
  */
-function getNewQueryParams(
+export function getNewQueryParams(
   obj: PageFiltersUpdate,
   currentQuery: Location['query'],
   options: Options = {}

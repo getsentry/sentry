@@ -44,21 +44,18 @@ export function Hotkey({value, variant}: HotkeyProps) {
 
   return (
     <WrapperKbd variant={variant}>
-      {finalKeys.map((glyph, i) =>
-        'icon' in glyph ? (
-          <StyledKbd
-            key={i}
-            aria-label={glyph.label}
-            data-key={canonicalize(finalKeyNames[i] ?? '')}
-          >
+      {finalKeys.map((glyph, i) => {
+        const Key =
+          canonicalize(finalKeyNames[i] ?? '') === 'backspace' ? BackspaceKbd : StyledKbd;
+
+        return 'icon' in glyph ? (
+          <Key key={i} aria-label={glyph.label}>
             {glyph.icon}
-          </StyledKbd>
+          </Key>
         ) : (
-          <StyledKbd key={i} data-key={canonicalize(finalKeyNames[i] ?? '')}>
-            {glyph.label}
-          </StyledKbd>
-        )
-      )}
+          <Key key={i}>{glyph.label}</Key>
+        );
+      })}
     </WrapperKbd>
   );
 }
@@ -82,10 +79,10 @@ const StyledKbd = styled('kbd')`
   border: 0;
   border-radius: 0;
   box-shadow: none;
+`;
 
-  &[data-key='backspace'] {
-    scale: 1;
-    font-size: ${p => p.theme.font.size.md};
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-  }
+const BackspaceKbd = styled(StyledKbd)`
+  scale: 1;
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

@@ -26,7 +26,6 @@ function CommandPaletteSlotConsumer({
 export const CommandPaletteSlot = Object.assign(CommandPaletteSlotConsumer, {
   Provider: BaseCommandPaletteSlot.Provider,
   Outlet: BaseCommandPaletteSlot.Outlet,
-  useSlotOutletRef: BaseCommandPaletteSlot.useSlotOutletRef,
 });
 
 export function useCommandPaletteSlotName() {

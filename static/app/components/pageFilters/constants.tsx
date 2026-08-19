@@ -33,6 +33,9 @@ export const ALL_DATE_TIME_QUERY_KEYS = [
 
 export const ALL_ACCESS_PROJECTS = -1;
 
+/** Maximum explicit project selection supported by backend queries. */
+export const PROJECT_SELECTION_COUNT_LIMIT = 50;
+
 /**
  * Make a default page filters selection object
  */

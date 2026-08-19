@@ -1,5 +1,7 @@
-import {Fragment, memo, useCallback, useEffect, useState} from 'react';
+import {Fragment, memo, useCallback, useState} from 'react';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,10 +13,19 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {updateDateTime, updateProjects} from 'sentry/components/pageFilters/actions';
+import {
+  ALL_ACCESS_PROJECTS,
+  PROJECT_SELECTION_COUNT_LIMIT,
+} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PlatformList} from 'sentry/components/platformList';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {IconSpan} from 'sentry/icons';
+import {IconClock, IconGlobe, IconProject, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
@@ -26,8 +37,10 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -301,6 +314,296 @@ function SaveAsActionsComponent() {
 }
 
 const SaveAsActions = memo(SaveAsActionsComponent);
+
+const RELATIVE_TIME_RANGES = [
+  {days: 1 / 24, label: t('Last hour'), period: '1h'},
+  {days: 1, label: t('Last 24 hours'), period: '24h'},
+  {days: 7, label: t('Last 7 days'), period: '7d'},
+  {days: 14, label: t('Last 14 days'), period: '14d'},
+  {days: 30, label: t('Last 30 days'), period: '30d'},
+  {days: 90, label: t('Last 90 days'), period: '90d'},
+] as const;
+
+export function getProjectsForSelection(
+  projects: Project[],
+  selectedProjects: number[],
+  isSuperuser = false
+): Project[] {
+  if (selectedProjects.includes(ALL_ACCESS_PROJECTS)) {
+    return projects.filter(project => project.hasAccess);
+  }
+  if (selectedProjects.length === 0) {
+    return projects.filter(project => project.isMember || isSuperuser);
+  }
+  return projects.filter(project => selectedProjects.includes(Number(project.id)));
+}
+
+export function getToggledProjectSelection(
+  selectedProjectIds: number[],
+  projectId: number
+): number[] | undefined {
+  if (selectedProjectIds.includes(projectId)) {
+    return selectedProjectIds.filter(id => id !== projectId);
+  }
+  return selectedProjectIds.length < PROJECT_SELECTION_COUNT_LIMIT
+    ? [...selectedProjectIds, projectId]
+    : undefined;
+}
+
+export function isProjectSelectionLimitExceeded(selectedProjectIds: number[]): boolean {
+  return (
+    !selectedProjectIds.includes(ALL_ACCESS_PROJECTS) &&
+    selectedProjectIds.length > PROJECT_SELECTION_COUNT_LIMIT
+  );
+}
+
+function getProjectScopeLabel(
+  projects: ReturnType<typeof useProjects>['projects'],
+  ids: number[]
+) {
+  if (ids.includes(ALL_ACCESS_PROJECTS)) {
+    return t('All Projects');
+  }
+  if (ids.length === 0) {
+    return t('My Projects');
+  }
+  if (ids.length === 1) {
+    return (
+      projects.find(project => Number(project.id) === ids[0])?.slug ?? t('1 project')
+    );
+  }
+  return t('%s projects', ids.length);
+}
+
+function getEnvironmentScopeLabel(environments: string[]) {
+  if (environments.length === 0) {
+    return t('All Environments');
+  }
+  if (environments.length === 1) {
+    return environments[0]!;
+  }
+  return t('%s environments', environments.length);
+}
+
+function SpansScopeActions({
+  appliedPageFilters,
+  draftPageFilters,
+  setDraftPageFilters,
+}: {
+  appliedPageFilters: PageFilters;
+  draftPageFilters: PageFilters;
+  setDraftPageFilters: React.Dispatch<React.SetStateAction<PageFilters>>;
+}) {
+  const {projects} = useProjects();
+  const isSuperuser = isActiveSuperuser();
+  const {maxPickableDays} = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
+  const selectedProjects = draftPageFilters.projects;
+  const selectedEnvironments = draftPageFilters.environments;
+  const selectedProjectModels = selectedProjects
+    .map(projectId => projects.find(project => Number(project.id) === projectId))
+    .filter(project => project !== undefined);
+  const availableProjects = getProjectsForSelection(
+    projects,
+    selectedProjects,
+    isSuperuser
+  );
+  const explicitSelectedProjectIds = availableProjects.map(project => Number(project.id));
+  const availableEnvironments = [
+    ...new Set(availableProjects.flatMap(project => project.environments)),
+  ].toSorted();
+  const timeRangeLabel =
+    RELATIVE_TIME_RANGES.find(
+      option => option.period === draftPageFilters.datetime.period
+    )?.label ?? t('Custom');
+
+  const setProjects = (nextProjects: number[]) => {
+    const nextAvailableProjects = getProjectsForSelection(
+      projects,
+      nextProjects,
+      isSuperuser
+    );
+    const nextEnvironmentSet = new Set(
+      nextAvailableProjects.flatMap(project => project.environments)
+    );
+    setDraftPageFilters(current => ({
+      ...current,
+      projects: nextProjects,
+      environments: current.environments.filter(environment =>
+        nextEnvironmentSet.has(environment)
+      ),
+    }));
+  };
+
+  return (
+    <CMDKAction
+      display={{label: t('Global')}}
+      keywords={['global', 'scope', 'selectors', 'project', 'environment', 'time']}
+    >
+      <CMDKAction
+        display={{
+          label: t(
+            'Projects: %s',
+            getProjectScopeLabel(projects, draftPageFilters.projects)
+          ),
+          icon:
+            selectedProjectModels.length > 0 ? (
+              <PlatformList
+                max={2}
+                platforms={selectedProjectModels.map(
+                  project => project.platform ?? 'other'
+                )}
+                size={16}
+              />
+            ) : (
+              <IconProject />
+            ),
+        }}
+        keywords={['scope', 'project', 'projects']}
+        prompt={t('Search for projects')}
+      >
+        <CMDKAction
+          display={{
+            label: t('My Projects'),
+            icon: <IconProject />,
+            trailingItem:
+              appliedPageFilters.projects.length === 0 ? (
+                <Tag variant="info">{t('Current')}</Tag>
+              ) : undefined,
+          }}
+          isSelected={selectedProjects.length === 0}
+          onAction={() => setProjects([])}
+        />
+        <CMDKAction
+          display={{
+            label: t('All Projects'),
+            icon: <IconProject />,
+            trailingItem: appliedPageFilters.projects.includes(ALL_ACCESS_PROJECTS) ? (
+              <Tag variant="info">{t('Current')}</Tag>
+            ) : undefined,
+          }}
+          isSelected={selectedProjects.includes(ALL_ACCESS_PROJECTS)}
+          onAction={() => setProjects([ALL_ACCESS_PROJECTS])}
+        />
+        {projects.map(project => {
+          const projectId = Number(project.id);
+          const isSelected = explicitSelectedProjectIds.includes(projectId);
+          const toggledProjects = getToggledProjectSelection(
+            explicitSelectedProjectIds,
+            projectId
+          );
+          return (
+            <CMDKAction
+              key={project.id}
+              disabled={toggledProjects === undefined}
+              display={{
+                label: project.slug,
+                icon: <ProjectAvatar project={project} size={16} />,
+                trailingItem: appliedPageFilters.projects.includes(projectId) ? (
+                  <Tag variant="info">{t('Current')}</Tag>
+                ) : undefined,
+              }}
+              isSelected={isSelected}
+              onAction={() => {
+                if (toggledProjects) {
+                  setProjects(toggledProjects);
+                }
+              }}
+              onMultiSelect={
+                toggledProjects ? () => setProjects(toggledProjects) : undefined
+              }
+            />
+          );
+        })}
+      </CMDKAction>
+
+      <CMDKAction
+        display={{
+          label: t(
+            'Environments: %s',
+            getEnvironmentScopeLabel(draftPageFilters.environments)
+          ),
+          icon: <IconGlobe />,
+        }}
+        keywords={['scope', 'environment', 'environments']}
+        prompt={t('Search for environments')}
+      >
+        <CMDKAction
+          display={{
+            label: t('All Environments'),
+            icon: <IconGlobe />,
+            trailingItem:
+              appliedPageFilters.environments.length === 0 ? (
+                <Tag variant="info">{t('Current')}</Tag>
+              ) : undefined,
+          }}
+          isSelected={selectedEnvironments.length === 0}
+          onAction={() =>
+            setDraftPageFilters(current => ({...current, environments: []}))
+          }
+        />
+        {availableEnvironments.map(environment => {
+          const isSelected = selectedEnvironments.includes(environment);
+          return (
+            <CMDKAction
+              key={environment}
+              display={{
+                label: environment,
+                icon: <IconGlobe />,
+                trailingItem: appliedPageFilters.environments.includes(environment) ? (
+                  <Tag variant="info">{t('Current')}</Tag>
+                ) : undefined,
+              }}
+              isSelected={isSelected}
+              onAction={() =>
+                setDraftPageFilters(current => ({
+                  ...current,
+                  environments: [environment],
+                }))
+              }
+              onMultiSelect={() =>
+                setDraftPageFilters(current => ({
+                  ...current,
+                  environments: isSelected
+                    ? current.environments.filter(value => value !== environment)
+                    : [...current.environments, environment],
+                }))
+              }
+            />
+          );
+        })}
+      </CMDKAction>
+
+      <CMDKAction
+        display={{label: t('Time range: %s', timeRangeLabel), icon: <IconClock />}}
+        keywords={['scope', 'time', 'date', 'range', 'period']}
+        prompt={t('Select a time range')}
+      >
+        {RELATIVE_TIME_RANGES.filter(option => option.days <= maxPickableDays).map(
+          option => (
+            <CMDKAction
+              key={option.period}
+              display={{
+                label: option.label,
+                icon: <IconClock />,
+              }}
+              onAction={() =>
+                setDraftPageFilters(current => ({
+                  ...current,
+                  datetime: {
+                    end: null,
+                    period: option.period,
+                    start: null,
+                    utc: null,
+                  },
+                }))
+              }
+            />
+          )
+        )}
+      </CMDKAction>
+    </CMDKAction>
+  );
+}
 
 function SpansFilterActionsComponent({
   addSearchFilter,
@@ -748,8 +1051,30 @@ function QueryValue({value}: {value: string}) {
 
 function QueryClauseActions() {
   const commandPaletteState = useCommandPaletteState();
+  const {selection: pageFilterSelection} = usePageFilters();
+  const visualizes = useQueryParamsVisualizes();
+  const groupBys = useQueryParamsGroupBys();
+  const sampleSortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const query = useQueryParamsQuery();
+  const draftKey = commandPaletteState.open
+    ? 'open'
+    : JSON.stringify({
+        aggregateSortBys,
+        groupBys,
+        pageFilterSelection,
+        query,
+        sampleSortBys,
+        visualizes: visualizes.map(visualize => visualize.serialize()),
+      });
+
+  return <QueryClauseActionsEditor key={draftKey} />;
+}
+
+function QueryClauseActionsEditor() {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection: pageFilterSelection} = usePageFilters();
   const setQueryParams = useSetQueryParams();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
@@ -761,6 +1086,12 @@ function QueryClauseActions() {
   const [draftFilters, setDraftFilters] = useState(() => ({
     pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
     query,
+  }));
+  const [draftPageFilters, setDraftPageFilters] = useState<PageFilters>(() => ({
+    ...pageFilterSelection,
+    datetime: {...pageFilterSelection.datetime},
+    environments: [...pageFilterSelection.environments],
+    projects: [...pageFilterSelection.projects],
   }));
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
@@ -774,31 +1105,6 @@ function QueryClauseActions() {
   ]);
   const [draftAggregateSortBys, setDraftAggregateSortBys] = useState<Sort[]>([
     ...aggregateSortBys,
-  ]);
-
-  useEffect(() => {
-    if (!commandPaletteState.open) {
-      setDraftFilters({
-        pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
-        query,
-      });
-      setDraftCharts(visualizes.map((visualize, id) => ({id, visualize})));
-      setDraftGroupBys([...groupBys]);
-      setPendingGroupByRows(groupBys.length === 0 ? 1 : 0);
-      // The palette intentionally snapshots URL state when it closes so a new
-      // editing session starts from the latest applied values.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftSampleSortBys([...sampleSortBys]);
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftAggregateSortBys([...aggregateSortBys]);
-    }
-  }, [
-    aggregateSortBys,
-    commandPaletteState.open,
-    groupBys,
-    query,
-    sampleSortBys,
-    visualizes,
   ]);
 
   const addSearchFilter = useCallback((filter: SearchFilter) => {
@@ -837,6 +1143,9 @@ function QueryClauseActions() {
     draftMode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
   const draftVisualizeFunctions = draftVisualizes.filter(isVisualizeFunction);
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
+  const projectSelectionLimitExceeded = isProjectSelectionLimitExceeded(
+    draftPageFilters.projects
+  );
   const setDraftSortBys =
     draftMode === Mode.SAMPLES ? setDraftSampleSortBys : setDraftAggregateSortBys;
   const sortBySummary = draftSortBys
@@ -860,12 +1169,30 @@ function QueryClauseActions() {
   };
   return (
     <CMDKChainedActionScope>
+      <SpansScopeActions
+        appliedPageFilters={pageFilterSelection}
+        draftPageFilters={draftPageFilters}
+        setDraftPageFilters={setDraftPageFilters}
+      />
       <CMDKAction display={{label: t('Commands')}}>
         <CMDKTerminalActionScope>
           <CMDKAction
-            display={{label: t('Apply Changes')}}
+            disabled={projectSelectionLimitExceeded}
+            display={{
+              label: t('Apply Changes'),
+              details: projectSelectionLimitExceeded
+                ? t('Select up to %s projects', PROJECT_SELECTION_COUNT_LIMIT)
+                : undefined,
+            }}
             keywords={['apply', 'save', 'changes']}
             onAction={() => {
+              updateProjects(draftPageFilters.projects, undefined, undefined, {
+                environments: draftPageFilters.environments,
+                save: true,
+              });
+              updateDateTime(draftPageFilters.datetime, undefined, undefined, {
+                save: true,
+              });
               setQueryParams({
                 aggregateFields: [
                   ...draftGroupBys.map(groupBy => ({groupBy})),
@@ -873,6 +1200,7 @@ function QueryClauseActions() {
                 ],
                 aggregateSortBys: draftAggregateSortBys,
                 mode: draftMode,
+                pageFilters: draftPageFilters,
                 query: draftQuery,
                 sortBys: draftSampleSortBys,
               });

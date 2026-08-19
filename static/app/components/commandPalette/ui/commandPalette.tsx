@@ -21,12 +21,11 @@ import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ListBox, SectionSeparator, SectionTitle} from '@sentry/scraps/compactSelect';
+import {ListBox} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {Input, InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack, Surface} from '@sentry/scraps/layout';
-import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
@@ -148,7 +147,9 @@ export function CommandPalette({
   const dispatch = useCommandPaletteDispatch();
   const seerExplorerEnabled = !!openSeerExplorer;
   const openForm = useFeedbackForm();
-  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [actionsPanelTargetKey, setActionsPanelTargetKey] = useState<
+    string | number | null
+  >(null);
 
   const currentTextInput = useMemo(() => {
     const currentActionKey = state.action?.value.key;
@@ -205,7 +206,7 @@ export function CommandPalette({
       ? (state.action?.previous?.value.key ?? null)
       : (state.action?.value.key ?? null);
     const nodes = filterActionPanelOnlyNodes(
-      presortBySlotRef(sortByExplicitOrder(store.tree(currentRootKey)))
+      presortBySlot(sortByExplicitOrder(store.tree(currentRootKey)))
     );
     const contextualNodes = nodes.filter(isContextualNode);
 
@@ -304,30 +305,20 @@ export function CommandPalette({
     openForm,
   ]);
 
-  const frozenRef = useRef({
+  const [frozenList, setFrozenList] = useState({
     actions: computedActions,
     prefixMap: computedPrefixMap,
     isSeerFallback: computedIsSeerFallback,
   });
 
-  useEffect(() => {
-    if (state.list === 'active') {
-      frozenRef.current = {
-        actions: computedActions,
-        prefixMap: computedPrefixMap,
-        isSeerFallback: computedIsSeerFallback,
-      };
-    }
-  }, [state.list, computedActions, computedPrefixMap, computedIsSeerFallback]);
-
-  const actions = state.list === 'active' ? computedActions : frozenRef.current.actions;
-  const prefixMap =
-    state.list === 'active' ? computedPrefixMap : frozenRef.current.prefixMap;
+  const actions = state.list === 'active' ? computedActions : frozenList.actions;
+  const prefixMap = state.list === 'active' ? computedPrefixMap : frozenList.prefixMap;
   const isSeerFallback =
-    state.list === 'active' ? computedIsSeerFallback : frozenRef.current.isSeerFallback;
+    state.list === 'active' ? computedIsSeerFallback : frozenList.isSeerFallback;
 
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
+  const shouldResetOnUnmountRef = useRef(false);
   const resultsListRef = useRef<HTMLDivElement>(null);
 
   const actionSections = useMemo(() => groupActionsBySection(actions), [actions]);
@@ -366,6 +357,8 @@ export function CommandPalette({
   const hasNoMatchingActions =
     !currentTextInput && state.query.length > 0 && treeState.collection.size === 0;
   const canOpenActionsPanel = panelActions.length > 0 && !hasNoMatchingActions;
+  const isActionsOpen =
+    canOpenActionsPanel && actionsPanelTargetKey === focusedAction?.key;
 
   const actionPanelState = useListState<CommandPaletteActionMenuItem>({
     children: panelActions.map(action => renderActionItem(action, EMPTY_PREFIX_MAP)),
@@ -411,12 +404,6 @@ export function CommandPalette({
     treeState.collection,
     treeState.selectionManager,
   ]);
-
-  useEffect(() => {
-    if (!canOpenActionsPanel) {
-      setIsActionsOpen(false);
-    }
-  }, [canOpenActionsPanel]);
 
   const firstFocusableKey = useMemo(() => {
     let key = treeState.collection.getFirstKey();
@@ -552,6 +539,11 @@ export function CommandPalette({
       }
 
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        setFrozenList({
+          actions: computedActions,
+          prefixMap: computedPrefixMap,
+          isSeerFallback: computedIsSeerFallback,
+        });
         dispatch({type: 'freeze list'});
       }
 
@@ -572,6 +564,7 @@ export function CommandPalette({
 
       if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled && !currentTextInput) {
         e.preventDefault();
+        shouldResetOnUnmountRef.current = true;
         dispatch({type: 'trigger action'});
         closeModal?.();
         openSeerExplorer({
@@ -727,6 +720,7 @@ export function CommandPalette({
         return;
       }
 
+      shouldResetOnUnmountRef.current = true;
       dispatch({type: 'trigger action'});
 
       // Close the palette before running the action. ModalStore is a single-slot
@@ -762,12 +756,12 @@ export function CommandPalette({
   );
 
   const closeActionsPanel = useCallback(() => {
-    setIsActionsOpen(false);
+    setActionsPanelTargetKey(null);
   }, []);
 
   const onPanelActionSelection = useCallback(
     (key: string | number | null) => {
-      setIsActionsOpen(false);
+      setActionsPanelTargetKey(null);
       onActionSelection(key, undefined, {
         actions: panelActions,
         prefixMap: EMPTY_PREFIX_MAP,
@@ -786,7 +780,7 @@ export function CommandPalette({
         if (isActionsOpen) {
           closeActionsPanel();
         } else {
-          setIsActionsOpen(true);
+          setActionsPanelTargetKey(focusedAction?.key ?? null);
         }
       }
       return;
@@ -834,15 +828,12 @@ export function CommandPalette({
     event.stopPropagation();
   };
 
-  // Dispatch the deferred reset once the close animation finishes. framer-motion
-  // only unmounts this component after the exit animation completes, so the
-  // cleanup runs at exactly the right time. If the user re-opens the palette
-  // before the animation ends, the component stays mounted and nothing fires.
-  const pendingResetRef = useRef(state.pendingReset);
-  pendingResetRef.current = state.pendingReset;
+  // Reset only after the exit animation unmounts the palette. Updating the ref
+  // from the selection handler keeps render pure and preserves the current list
+  // during the animation.
   useEffect(() => {
     return () => {
-      if (pendingResetRef.current) {
+      if (shouldResetOnUnmountRef.current) {
         dispatch({type: 'reset'});
       }
     };
@@ -874,7 +865,7 @@ export function CommandPalette({
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
   const resultsList = (
-    <ResultsList direction="column" width="100%" flex={1} minHeight={0} overflow="hidden">
+    <Stack width="100%" flex={1} minHeight={0} overflow="hidden">
       <ListBox
         key={listActionKey === null ? 'root' : `action:${listActionKey}`}
         scrollContainerRef={resultsListRef}
@@ -885,8 +876,12 @@ export function CommandPalette({
         virtualizedListPadding={0}
         size="sm"
         aria-label={t('Search results')}
+        disablePadding
+        focusRing
         selectionMode="none"
+        showSectionSeparators={false}
         shouldUseVirtualFocus
+        unstyledSectionTitles
         onMouseEnter={() => {
           mouseLeftResultsRef.current = false;
         }}
@@ -899,7 +894,7 @@ export function CommandPalette({
           });
         }}
       />
-    </ResultsList>
+    </Stack>
   );
 
   const content = (
@@ -1135,31 +1130,17 @@ function matchesActionContext(
 }
 
 /**
- * Pre-sorts the root-level nodes by DOM position of their slot outlet element.
- * Outlets are declared in priority order inside CommandPalette (task → page → global),
- * so compareDocumentPosition gives the correct ordering for free.
- * Nodes sharing the same outlet (same slot) retain their existing relative order.
- * Nodes without a slot ref are not reordered relative to each other.
+ * Pre-sorts root-level nodes according to their command-palette slot.
  */
-function presortBySlotRef(
+function presortBySlot(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
-  return nodes.toSorted((a, b) => {
-    const aEl = a.ref?.current ?? null;
-    const bEl = b.ref?.current ?? null;
-
-    if (aEl === bEl) {
-      return 0;
-    } // both null, or same outlet element — preserve order
-
-    if (!aEl) {
-      return 1;
-    } // a has no slot ref → sort after b
-    if (!bEl) {
-      return -1;
-    } // b has no slot ref → sort a before b
-    return aEl.compareDocumentPosition(bEl) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-  });
+  const slotOrder = {task: 0, page: 1, global: 2} as const;
+  return nodes.toSorted(
+    (a, b) =>
+      (a.slot === undefined ? Number.MAX_SAFE_INTEGER : slotOrder[a.slot]) -
+      (b.slot === undefined ? Number.MAX_SAFE_INTEGER : slotOrder[b.slot])
+  );
 }
 
 function sortByExplicitOrder(
@@ -1583,7 +1564,6 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     parent: node.parent,
     listItemType: 'action',
     limit: node.limit,
-    ref: node.ref,
     keywords: node.keywords,
     display: {
       details: node.display.details,
@@ -1935,27 +1915,6 @@ const StyledInputGroupInput = styled(InputGroup.Input)<{
 }>`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
   padding-right: ${p => (p.seerEnabled ? '104px' : '38px')};
-`;
-
-const ResultsList = styled(Flex)`
-  ${SectionSeparator} {
-    display: none;
-  }
-
-  ${SectionTitle} {
-    color: ${p => p.theme.tokens.content.secondary};
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-    text-transform: none;
-  }
-
-  ul {
-    padding: 0;
-    margin: 0;
-  }
-
-  li[data-focused] > ${InnerWrap} {
-    outline: 2px solid ${p => p.theme.tokens.focus.default};
-  }
 `;
 
 export const modalCss = (theme: Theme) => {

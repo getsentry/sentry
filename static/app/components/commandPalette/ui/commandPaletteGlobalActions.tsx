@@ -259,11 +259,42 @@ function ResolvedIdentifierCommandPaletteAction() {
   );
 }
 
+function KeyboardShortcutsCommandPaletteAction({
+  openKeyboardShortcutsDrawer,
+}: {
+  openKeyboardShortcutsDrawer?: () => void;
+}) {
+  return openKeyboardShortcutsDrawer ? (
+    <KeyboardShortcutsAction onAction={openKeyboardShortcutsDrawer} />
+  ) : (
+    <KeyboardShortcutsActionWithLocalDrawer />
+  );
+}
+
+function KeyboardShortcutsActionWithLocalDrawer() {
+  const {openKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
+  return <KeyboardShortcutsAction onAction={openKeyboardShortcutsDrawer} />;
+}
+
+function KeyboardShortcutsAction({onAction}: {onAction: () => void}) {
+  return (
+    <CMDKAction
+      display={{label: t('View Keyboard Shortcuts')}}
+      keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
+      onAction={onAction}
+    />
+  );
+}
+
 /**
  * Registers globally-available actions into the CMDK collection via JSX.
  * Must be mounted inside CMDKProvider (which requires CommandPaletteStateProvider).
  */
-export function GlobalCommandPaletteActions() {
+export function GlobalCommandPaletteActions({
+  openKeyboardShortcutsDrawer: openKeyboardShortcutsDrawerProp,
+}: {
+  openKeyboardShortcutsDrawer?: () => void;
+}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -274,7 +305,6 @@ export function GlobalCommandPaletteActions() {
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
-  const {openKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
@@ -1104,10 +1134,8 @@ export function GlobalCommandPaletteActions() {
           });
         }}
       >
-        <CMDKAction
-          display={{label: t('View Keyboard Shortcuts')}}
-          keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
-          onAction={openKeyboardShortcutsDrawer}
+        <KeyboardShortcutsCommandPaletteAction
+          openKeyboardShortcutsDrawer={openKeyboardShortcutsDrawerProp}
         />
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}

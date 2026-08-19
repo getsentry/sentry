@@ -1,5 +1,8 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   addSearchFilterToQuery,
@@ -20,9 +23,56 @@ import {
   clearFilterRow,
   deleteChart,
   EquationFooter,
+  getProjectsForSelection,
+  getToggledProjectSelection,
+  isProjectSelectionLimitExceeded,
   removeFilterRow,
   reorderCharts,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
+
+describe('project scope selection', () => {
+  const projects = [
+    ProjectFixture({id: '1', isMember: true, hasAccess: true}),
+    ProjectFixture({id: '2', isMember: false, hasAccess: true}),
+    ProjectFixture({id: '3', isMember: false, hasAccess: false}),
+  ];
+
+  it('expands compact project selections before editing them', () => {
+    expect(getProjectsForSelection(projects, []).map(project => project.id)).toEqual([
+      '1',
+    ]);
+    expect(
+      getProjectsForSelection(projects, [ALL_ACCESS_PROJECTS]).map(project => project.id)
+    ).toEqual(['1', '2']);
+    expect(getProjectsForSelection(projects, [2]).map(project => project.id)).toEqual([
+      '2',
+    ]);
+    expect(
+      getProjectsForSelection(projects, [], true).map(project => project.id)
+    ).toEqual(['1', '2', '3']);
+  });
+
+  it('prevents adding more than 50 explicit projects while allowing removal', () => {
+    const fiftyProjects = Array.from({length: 50}, (_, index) => index + 1);
+    const fiftyTwoProjects = Array.from({length: 52}, (_, index) => index + 1);
+
+    expect(getToggledProjectSelection(fiftyProjects, 51)).toBeUndefined();
+    expect(getToggledProjectSelection(fiftyTwoProjects, 52)).toEqual(
+      fiftyTwoProjects.slice(0, -1)
+    );
+  });
+
+  it('adds a project without replacing the existing explicit selection', () => {
+    expect(getToggledProjectSelection([1], 2)).toEqual([1, 2]);
+  });
+
+  it('applies the project limit only to explicit selections', () => {
+    expect(isProjectSelectionLimitExceeded([ALL_ACCESS_PROJECTS])).toBe(false);
+    expect(
+      isProjectSelectionLimitExceeded(Array.from({length: 51}, (_, index) => index + 1))
+    ).toBe(true);
+  });
+});
 
 describe('canCompareQueries', () => {
   it('requires at least two chart queries', () => {

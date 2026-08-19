@@ -37,9 +37,35 @@ export function useKeyboardShortcutsDrawer() {
   return {openKeyboardShortcutsDrawer, toggleKeyboardShortcutsDrawer};
 }
 
-export function KeyboardShortcutsHotkeys() {
-  const {closeModal, visible} = useModal();
+export function KeyboardShortcutsHotkeys({
+  toggleKeyboardShortcutsDrawer,
+}: {
+  toggleKeyboardShortcutsDrawer?: () => void;
+}) {
+  return toggleKeyboardShortcutsDrawer ? (
+    <KeyboardShortcutsHotkeyHandler
+      toggleKeyboardShortcutsDrawer={toggleKeyboardShortcutsDrawer}
+    />
+  ) : (
+    <KeyboardShortcutsHotkeysWithLocalDrawer />
+  );
+}
+
+function KeyboardShortcutsHotkeysWithLocalDrawer() {
   const {toggleKeyboardShortcutsDrawer} = useKeyboardShortcutsDrawer();
+  return (
+    <KeyboardShortcutsHotkeyHandler
+      toggleKeyboardShortcutsDrawer={toggleKeyboardShortcutsDrawer}
+    />
+  );
+}
+
+function KeyboardShortcutsHotkeyHandler({
+  toggleKeyboardShortcutsDrawer,
+}: {
+  toggleKeyboardShortcutsDrawer: () => void;
+}) {
+  const {closeModal, visible} = useModal();
 
   useGlobalHotkeys([
     {

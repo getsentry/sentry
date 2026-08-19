@@ -2,15 +2,18 @@
 // Styled components used by both ListBox and GridList
 //
 
+import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export const ListWrap = styled('ul')`
+export const ListWrap = styled('ul', {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disablePadding',
+})<{disablePadding?: boolean}>`
   margin: 0;
-  padding: ${p => p.theme.space.xs} 0;
+  padding: ${p => (p.disablePadding ? 0 : `${p.theme.space.xs} 0`)};
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
@@ -92,16 +95,22 @@ export const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionTitle = styled('div')`
+export const SectionTitle = styled('div', {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'unstyled',
+})<{unstyled?: boolean}>`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-  white-space: nowrap;
-
   margin: 0;
   padding-right: ${p => p.theme.space['3xl']};
+
+  ${p =>
+    !p.unstyled &&
+    css`
+      font-weight: ${p.theme.font.weight.sans.medium};
+      font-size: ${p.theme.font.size.xs};
+      color: ${p.theme.tokens.content.secondary};
+      text-transform: uppercase;
+      white-space: nowrap;
+    `}
 `;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
