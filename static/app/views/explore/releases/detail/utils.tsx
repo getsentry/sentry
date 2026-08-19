@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
@@ -175,7 +175,7 @@ function generateReleaseMarkLine(
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
     color: theme.colors.gray400,
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {

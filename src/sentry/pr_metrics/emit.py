@@ -31,6 +31,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
+from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_ABANDONED,
     CLOSE_ACTION_CLOSED,
@@ -224,10 +225,60 @@ CI_FAILED_AT_OPEN = "ci_failed_at_open"
 # for this PR
 NO_CI_EVENTS = "no_ci_events"
 
-# Conclusions that unambiguously mean the check errored out, as opposed to
-# cancelled/skipped/stale (never ran to completion, not a failure verdict),
-# neutral (a soft pass), or action_required (blocked on approval, not broken).
-_FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
+    """Whether any attribution means we actually wrote code on this PR.
+
+    ``JUDGE_ELIGIBLE_SIGNAL_TYPES`` (delegated ∪ ``SENTRY_APP``) is exactly the
+    direct-agent-authorship set; the weaker signals it excludes — MCP issue
+    views, bare issue references — correlate a PR to an issue someone looked at
+    through us without any of our commits landing on it.
+    """
+    authoring = {signal.value for signal in JUDGE_ELIGIBLE_SIGNAL_TYPES}
+    return any((row.get("signal_type") or "") in authoring for row in attributions)
+
+
+def _ci_head_results_json(
+    attributions: list[dict[str, Any]],
+    *,
+    doc: activity_doc.ActivityDoc | None,
+) -> str | None:
+    """Ordered per-head CI results as JSON, or ``None`` when unavailable.
+
+    The JSON list follows ``sync_chain`` insertion order and retains SHA,
+    predecessor, derived actor, whole-head outcome, and whether CI was observed.
+    Consumers can derive actor groups and iteration sequences without losing
+    ordering at collection time. The webhook sender's login and type stay in the
+    activity document: they classify the head into ``actor`` and are deliberately
+    not forwarded to the warehouse (see ``CiHeadResult``).
+
+    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug,
+    check_suite_id)``, falling back to ``(head_sha, app_slug)`` for groups stored
+    before suite IDs existed, none of which the legacy ``CHECK_SUITE_COMPLETED``
+    rows carry. A null
+    (rather than a zeroed matrix) marks "summary unavailable" so warehouse queries
+    don't conflate legacy PRs with doc-path PRs that genuinely had no CI.
+
+    Also nulled when no attribution says we authored anything here (i.e. every
+    valid signal is weak, such as an MCP-only PR): no check head is ours, so an
+    actor breakdown would describe someone else's CI rather than our iteration.
+    That is "unavailable" in the same sense as the legacy path, not a genuine
+    zero. A PR carrying a weak signal *alongside* an authoring one still emits —
+    the authoring signal makes the heads meaningful.
+
+    ``doc``: mandatory rather than loaded here, since its only caller
+    (``build_pr_metrics_row``) loads the activity document once and threads it
+    through to every reader on the row instead of each re-issuing an identical
+    query. ``None`` means the PR is on the legacy store, i.e. summary
+    unavailable.
+    """
+    if not _has_authoring_attribution(attributions):
+        return None
+
+    if doc is None:
+        return None
+
+    return json.dumps(activity_doc.ci_head_results_from_doc(doc))
 
 
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
@@ -237,7 +288,9 @@ def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
     suite (a rerun overwrites its own suite's conclusion only), so one workflow's
     late green never masks another workflow's standing failure.
     """
-    return any(group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS for group in groups)
+    return any(
+        group.get("suite_conclusion") in activity_doc.FAILING_CHECK_CONCLUSIONS for group in groups
+    )
 
 
 def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
@@ -251,7 +304,8 @@ def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
     """
     latest_conclusion_by_app: dict[str, str] = dict(rows)
     return any(
-        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+        conclusion in activity_doc.FAILING_CHECK_CONCLUSIONS
+        for conclusion in latest_conclusion_by_app.values()
     )
 
 
@@ -291,22 +345,6 @@ def _ci_failing_at_close(
     return _any_app_failing(rows)
 
 
-def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
-    """The head SHA the PR opened with, read off its ``OPENED`` lifecycle entry.
-
-    ``OpenedPayload.head_sha`` round-trips into the entry's stored payload
-    unchanged (it isn't a check/comment family event, so ``apply_activity``
-    appends it as-is). Returns ``None`` when there's no ``OPENED`` entry to read
-    it from — e.g. activity tracking was enabled after the PR had already
-    opened — since there's then no reliable "opening head" to key checks off.
-    """
-    for entry in doc.get("events", []):
-        if entry.get("event_type") == PullRequestActivityType.OPENED:
-            head_sha = (entry.get("payload") or {}).get("head_sha")
-            return head_sha or None
-    return None
-
-
 def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None) -> bool:
     """Whether any CI provider's check suite was already failing at the PR's
     *opening* head — unlike ``_ci_failing_at_close``, meaningful for every
@@ -314,9 +352,12 @@ def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityD
     checks scoped to the one head the PR opened with.
 
     Doc store: keyed precisely off the opening head SHA (see
-    ``_opened_head_sha_from_doc``), via the checks rollup's ``(head_sha,
+    ``activity_doc.opening_head_from_doc``, the same reader
+    ``ci_head_results_from_doc`` attributes the opening head with, so the two
+    agree on which SHA opened the PR), via the checks rollup's ``(head_sha,
     app_slug, check_suite_id)`` grouping — a later push's checks, recorded under
-    a different head, are correctly excluded.
+    a different head, are correctly excluded. A document with no recoverable
+    opening head has nothing to scope to, so it reports no failure.
 
     Legacy store: the row payload carries no ``head_sha`` at all (see
     ``CheckSuiteCompletedPayload``), so the opening head's checks are
@@ -328,9 +369,11 @@ def _ci_failed_at_open(pull_request: PullRequest, *, doc: activity_doc.ActivityD
     ``doc``: see ``_ci_failing_at_close``.
     """
     if doc is not None:
-        open_head_sha = _opened_head_sha_from_doc(doc)
-        if open_head_sha is None:
+        opening_head = activity_doc.opening_head_from_doc(doc)
+        if opening_head is None:
             return False
+
+        open_head_sha = opening_head[0]
         return _any_group_failing(
             group
             for group in doc.get("checks", {}).values()
@@ -381,7 +424,9 @@ def _no_ci_events(pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | 
     ).exists()
 
 
-def review_activity(pull_request: PullRequest) -> ReviewActivity:
+def review_activity(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None
+) -> ReviewActivity:
     """Review-submission facts read live off activity at emit time — never
     persisted onto ``PullRequestMetrics`` like ``reviews_count`` and its
     siblings, since every current caller of ``build_pr_metrics_row`` runs
@@ -392,8 +437,10 @@ def review_activity(pull_request: PullRequest) -> ReviewActivity:
 
     A single conditional aggregate does all the bucketing in Postgres — no rows
     cross into Python — rather than pulling every row over to count client-side.
+
+    ``doc``: see ``_ci_failing_at_close`` — the caller loads the document once
+    and threads it through, so it's mandatory here rather than optional.
     """
-    doc = load_activity_document(pull_request)
     if doc is not None:
         return ReviewActivity(**activity_doc.review_activity_from_doc(doc))
 
@@ -712,7 +759,9 @@ def _conversation_analysis_fields(
     }
 
 
-def _repo_is_public(pull_request: PullRequest) -> bool | None:
+def _repo_is_public(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None
+) -> bool | None:
     """Whether the repo was public at PR-open time, or ``None`` if unknown.
 
     Repository never persists visibility, so this is read back from the
@@ -721,9 +770,10 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
     in either store depending on its ``_use_activity_document`` routing (see
     ``pr_metrics.webhooks``), so the document is checked first and the legacy
     row is a fallback for PRs still on the old store.
+
+    ``doc``: see ``_ci_failing_at_close`` — the caller loads the document once
+    and threads it through, so it's mandatory here rather than optional.
     """
-    # Use the standard helper that correctly handles empty documents and orphaned rows
-    doc = load_activity_document(pull_request)
     if doc:
         opened_entry = next(
             (e for e in doc.get("events", []) if e["event_type"] == PullRequestActivityType.OPENED),
@@ -787,9 +837,13 @@ def build_pr_metrics_row(
     metrics = (
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
-    # Read once so requested_count and results (both unpersisted) come from the
-    # same activity snapshot rather than two separate reads.
-    review = review_activity(pull_request)
+    # Loaded once and threaded through to every reader below: they all read the
+    # same PR's activity, so without this each would re-issue an identical
+    # load_activity_document query. It also pins them to one snapshot, so the
+    # row's review, visibility, and CI-head facts can't come from different
+    # versions of the document.
+    doc = load_activity_document(pull_request)
+    review = review_activity(pull_request, doc=doc)
 
     # One repo read serves both the provider slug and the dedup key's identity.
     repo_external_id, repo_provider, integration_id = _repo_external_identity(pull_request)
@@ -799,7 +853,7 @@ def build_pr_metrics_row(
         repository_id=pull_request.repository_id,
         deduplication_key=_deduplication_key(pull_request, repo_external_id, integration_id),
         repository_provider=repo_provider,
-        repository_is_public=_repo_is_public(pull_request),
+        repository_is_public=_repo_is_public(pull_request, doc=doc),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         group_ids=group_ids,
@@ -833,6 +887,7 @@ def build_pr_metrics_row(
         autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        ci_head_results=_ci_head_results_json(attributions, doc=doc),
         **_conversation_analysis_fields(conversation_analysis),
     )
 

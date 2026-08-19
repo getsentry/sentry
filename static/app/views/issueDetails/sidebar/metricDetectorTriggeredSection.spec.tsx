@@ -221,6 +221,62 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
   });
 
+  it('omits the evaluated value when the value is null', async () => {
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSource],
+          value: null,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    expect(
+      await screen.findByRole('region', {name: 'Triggered Condition'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
+  });
+
+  it('omits the evaluated value when the anomaly detector value is null', async () => {
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSource],
+          value: {value: null},
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    expect(
+      await screen.findByRole('region', {name: 'Triggered Condition'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
+  });
+
   it('renders contributing issues section for errors dataset', async () => {
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';

@@ -14,5 +14,6 @@ export function ActivityNoteInput(
 
 const ActivityInputFrame = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
+  container-type: inline-size;
   min-width: 0;
 `;

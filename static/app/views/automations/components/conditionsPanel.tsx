@@ -39,7 +39,7 @@ export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps)
                     choice => choice.value === triggers?.logicType
                   )?.label || t('any'),
               })
-            : tct('[when:When] an event is captured', {
+            : tct('[when:When] an event or issue activity is captured', {
                 when: <ConditionBadge />,
               })}
         </ConditionGroupHeader>

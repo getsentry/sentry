@@ -122,6 +122,22 @@ class PrCloseMetricsEvent(analytics.Event):
     # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
 
+    # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
+    # order. Each item retains sequence, head/before SHA, derived ``actor``,
+    # whole-head outcome, and ``has_ci``. There is no ``sender_login`` or
+    # ``sender_type`` key: the pusher's GitHub identity is only an input to the
+    # actor classification and stays in the activity document, so no per-person
+    # identity reaches the warehouse — group on ``actor``
+    # (``seer``/``bot``/``human``/``unknown``). ``outcome`` is GitHub's own check
+    # conclusion for that head — ``success``/``failure``/``timed_out``/``cancelled``/
+    # ``action_required``/…, any-failure-wins across the head's suites — so query it
+    # as an open string set, not a fixed enum; the sole non-GitHub value is
+    # ``unknown``, meaning no suite concluded anything. Opening and synchronize
+    # heads with no checks are included; check heads missing from the bounded chain
+    # are appended with null sequence/identity. Null means unavailable (legacy storage
+    # or no authoring attribution), while ``[]`` means an available empty document.
+    ci_head_results: str | None = None
+
     # --- Conversation judge (set only on a judged close/merge row) ---
     # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
     # future judge's columns sit alongside without collision, and to disambiguate

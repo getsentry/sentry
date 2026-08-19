@@ -180,11 +180,13 @@ def handle_pull_requests_merged_milestone(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Reconcile the run's PULL_REQUESTS_MERGED milestone when one of its PRs merges,
-    resolving the run via the SeerRunPullRequest link (covers coding-agent PRs too).
+    """Reconcile the run's PULL_REQUESTS_MERGED milestone whenever one of its PRs closes,
+    merges, or reopens, resolving the run via the SeerRunPullRequest link (covers
+    coding-agent PRs too). A close can be the event that leaves every remaining PR
+    merged; a reopen can revoke a milestone that a since-abandoned PR let through.
     """
     pull_request = event.get("pull_request")
-    if not pull_request or event.get("action") != "closed" or not pull_request.get("merged"):
+    if not pull_request or event.get("action") not in ("closed", "reopened"):
         return
 
     number = pull_request.get("number")
