@@ -514,7 +514,11 @@ function SpansScopeActions({
                 ) : undefined,
               }}
               isSelected={isSelected}
-              onAction={() => setProjects([projectId])}
+              onAction={() => {
+                if (toggledProjects) {
+                  setProjects(toggledProjects);
+                }
+              }}
               onMultiSelect={
                 toggledProjects ? () => setProjects(toggledProjects) : undefined
               }
@@ -550,6 +554,14 @@ function SpansScopeActions({
         />
         {availableEnvironments.map(environment => {
           const isSelected = selectedEnvironments.includes(environment);
+          const toggleEnvironment = () =>
+            setDraftPageFilters(current => ({
+              ...current,
+              environments: current.environments.includes(environment)
+                ? current.environments.filter(value => value !== environment)
+                : [...current.environments, environment],
+            }));
+
           return (
             <CMDKAction
               key={environment}
@@ -561,20 +573,8 @@ function SpansScopeActions({
                 ) : undefined,
               }}
               isSelected={isSelected}
-              onAction={() =>
-                setDraftPageFilters(current => ({
-                  ...current,
-                  environments: [environment],
-                }))
-              }
-              onMultiSelect={() =>
-                setDraftPageFilters(current => ({
-                  ...current,
-                  environments: current.environments.includes(environment)
-                    ? current.environments.filter(value => value !== environment)
-                    : [...current.environments, environment],
-                }))
-              }
+              onAction={toggleEnvironment}
+              onMultiSelect={toggleEnvironment}
             />
           );
         })}
@@ -627,9 +627,16 @@ function SpansScopeActions({
 
 function SpansFilterActionsComponent({
   addSearchFilter,
+  actionPanel,
   filters,
   replaceSearchFilter,
 }: {
+  actionPanel: {
+    context: string;
+    label: string;
+    only: boolean;
+    order: number;
+  };
   addSearchFilter: (filter: SearchFilter) => void;
   filters: readonly string[];
   replaceSearchFilter: (filterIndex: number, filter: SearchFilter) => void;
@@ -640,6 +647,7 @@ function SpansFilterActionsComponent({
   return (
     <Fragment>
       <TraceItemFilterActions
+        actionPanel={actionPanel}
         addSearchFilter={addSearchFilter}
         booleanAttributes={booleanAttributes}
         id={ADD_FILTER_ACTION_ID}
@@ -1340,13 +1348,6 @@ function QueryClauseActionsEditor() {
         <CMDKAction
           id={ADD_GROUP_BY_ACTION_ID}
           actionContext="group-by"
-          display={{label: t('Add Group By')}}
-          keywords={['add', 'group', 'by', 'attribute']}
-          prompt={t('Search for attribute')}
-        >
-          <GroupByActions groupBys={draftGroupBys} onSelect={addGroupBy} />
-        </CMDKAction>
-        <CMDKAction
           actionPanel={{
             context: 'group-by',
             label: t('Add Group By'),
@@ -1354,32 +1355,21 @@ function QueryClauseActionsEditor() {
             order: MORE_ACTIONS_ORDER.addGroupBy,
           }}
           display={{label: t('Add Group By')}}
-          onAction={() =>
-            setDraftGroupByState(current => ({
-              ...current,
-              pendingRows: current.pendingRows + 1,
-            }))
-          }
-        />
+          keywords={['add', 'group', 'by', 'attribute']}
+          prompt={t('Search for attribute')}
+        >
+          <GroupByActions groupBys={draftGroupBys} onSelect={addGroupBy} />
+        </CMDKAction>
         <SpansFilterActions
           addSearchFilter={addSearchFilter}
-          filters={getFilterRows(draftQuery)}
-          replaceSearchFilter={replaceSearchFilter}
-        />
-        <CMDKAction
           actionPanel={{
             context: 'filter',
             label: t('Add Filter By'),
             only: true,
             order: MORE_ACTIONS_ORDER.addFilter,
           }}
-          display={{label: t('Add Filter By')}}
-          onAction={() =>
-            setDraftFilters(current => ({
-              ...current,
-              pendingRows: current.pendingRows + 1,
-            }))
-          }
+          filters={getFilterRows(draftQuery)}
+          replaceSearchFilter={replaceSearchFilter}
         />
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction
