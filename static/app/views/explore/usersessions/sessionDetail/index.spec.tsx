@@ -707,6 +707,61 @@ describe('SessionDetailView', () => {
     expect(href).toContain('tab=metrics');
   });
 
+  it('draws a lane only for the telemetry types the session holds', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 2}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
+      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    const {router} = render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
+    // This session is logs and nothing else, so the other four lanes are absent
+    // rather than drawn flat at zero.
+    expect(screen.queryByRole('button', {name: 'Errors 0'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Traces 0'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Metrics 0'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Feedback 0'})).not.toBeInTheDocument();
+
+    // And the lane that is left has moved up into the space rather than staying in
+    // its slot: the first row under the axis — which is where the error lane would
+    // otherwise be — is now the log lane, and clicking the session's start there
+    // opens the first log.
+    clickTrack(trackWithGeometry(), {
+      clientX: 0,
+      clientY: AXIS_HEIGHT + LANE_HEIGHT / 2,
+    });
+    await waitFor(() => {
+      expect(router.location.query.item).toBe('logs:log1');
+    });
+  });
+
+  it('keeps an emptied lane while a window is what emptied it', async () => {
+    // The lanes follow the session rather than the viewport: a zoom that leaves a
+    // lane with nothing in it has to leave the lane there, or the chart would
+    // reshuffle under the gesture that is reading it.
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 2}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
+      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByText('early log')).toBeInTheDocument();
+
+    const track = screen.getByRole('group', {name: 'Session time window'});
+    track.focus();
+    await userEvent.keyboard('{ArrowUp>5/}');
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Logs 0'})).toBeInTheDocument();
+    });
+  });
+
   it('hides a telemetry type from the scrubber lane it is labelled by', async () => {
     mockEmptyDatasets(['logs', 'errors']);
     mockDataset('logs', 'count', [{'count()': 1}]);
@@ -829,7 +884,7 @@ describe('SessionDetailView', () => {
       // depth the wheel lands on.
       wheelTrack(trackWithGeometry(), {
         clientX: 250,
-        clientY: LANE_Y.logs,
+        clientY: laneY('Logs'),
         deltaY: -400,
       });
 
@@ -852,13 +907,13 @@ describe('SessionDetailView', () => {
       // Zooming out at the full extent moves nothing, so the gesture is not the
       // chart's to swallow — otherwise the page cannot be scrolled past it.
       expect(
-        wheelTrack(track, {clientX: 500, clientY: LANE_Y.logs, deltaY: 200})
+        wheelTrack(track, {clientX: 500, clientY: laneY('Logs'), deltaY: 200})
           .defaultPrevented
       ).toBe(false);
 
       // Zooming in does move something, so it is.
       expect(
-        wheelTrack(track, {clientX: 500, clientY: LANE_Y.logs, deltaY: -200})
+        wheelTrack(track, {clientX: 500, clientY: laneY('Logs'), deltaY: -200})
           .defaultPrevented
       ).toBe(true);
     });
@@ -874,7 +929,7 @@ describe('SessionDetailView', () => {
       expect(await screen.findByText('log at 30s')).toBeInTheDocument();
 
       // 100px to 600px of 1000px across a minute: 6s to 36s.
-      dragTrack(trackWithGeometry(), {from: 100, to: 600, clientY: LANE_Y.logs});
+      dragTrack(trackWithGeometry(), {from: 100, to: 600, clientY: laneY('Logs')});
 
       await waitFor(() => {
         expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
@@ -888,7 +943,7 @@ describe('SessionDetailView', () => {
       // And the lane redrawn to that range is what makes this the test: 30s is now
       // four fifths of the way across rather than halfway, so a click at 800px
       // finds it only because the axis moved under it.
-      clickTrack(trackWithGeometry(), {clientX: 800, clientY: LANE_Y.logs});
+      clickTrack(trackWithGeometry(), {clientX: 800, clientY: laneY('Logs')});
       await waitFor(() => {
         expect(router.location.query.item).toBe('logs:log2');
       });
@@ -1331,9 +1386,8 @@ describe('SessionDetailView', () => {
       // which lane from the pointer's y, which item from its x.
       const track = trackWithGeometry();
 
-      // The session spans 1s to 3s over 1000px, so the middle log sits at 500px,
-      // and the logs lane is the third of four.
-      clickTrack(track, {clientX: 500, clientY: LANE_Y.logs});
+      // The session spans 1s to 3s over 1000px, so the middle log sits at 500px.
+      clickTrack(track, {clientX: 500, clientY: laneY('Logs')});
 
       const panel = await screen.findByRole('complementary', {
         name: 'Telemetry details',
@@ -1375,7 +1429,7 @@ describe('SessionDetailView', () => {
 
       // Halfway along a lane whose only items are at either end: nothing to open,
       // and a zoom is too expensive to build to be thrown away by a stray click.
-      clickTrack(track, {clientX: 500, clientY: LANE_Y.logs});
+      clickTrack(track, {clientX: 500, clientY: laneY('Logs')});
 
       expect(screen.getByText('Nothing in the selected time range.')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
@@ -1448,7 +1502,7 @@ describe('SessionDetailView', () => {
       // well past the trace's start but still inside its 1s duration. A dot-based
       // lane would miss it.
       const track = trackWithGeometry();
-      clickTrack(track, {clientX: 250, clientY: LANE_Y.traces});
+      clickTrack(track, {clientX: 250, clientY: laneY('Traces')});
 
       expect(router.location.query.item).toBe('traces:segment1');
 
@@ -1923,7 +1977,7 @@ describe('SessionDetailView', () => {
       // quarter of the way across instead of a twelfth.
       clickTrack(trackWithGeometry(1000, 258), {
         clientX: 250,
-        clientY: ROUTED_LANE_Y.logs,
+        clientY: laneY('Logs'),
       });
       await waitFor(() => {
         expect(router.location.query.item).toBe('logs:log1');
@@ -2046,18 +2100,31 @@ describe('SessionDetailView', () => {
   });
 });
 
-/**
- * Lane geometry from the scrubber: a 28px axis row over five 40px lanes, in the
- * order the chart draws them — errors, feedback, traces, logs, metrics.
- */
-const LANE_Y = {errors: 48, feedback: 88, traces: 128, logs: 168, metrics: 208};
+/** Lane geometry from the scrubber: a 28px axis row over 40px lanes. */
+const AXIS_HEIGHT = 28;
+const LANE_HEIGHT = 40;
+/** The route band, when there is one, inserts a 30px row under the axis. */
+const ROUTE_HEIGHT = 30;
+const ROUTE_Y = 42;
 
 /**
- * The same geometry with the route band present, which inserts a 30px row under
- * the axis and pushes every lane down by it.
+ * The vertical centre of one lane, read off what the chart actually drew rather
+ * than from a table of offsets.
+ *
+ * A lane with nothing in it is left out, so a type's row depends on what else the
+ * session holds — a logs-only session draws logs first, whatever the lane order
+ * is. The toggles come out in draw order, so their index is the lane's.
  */
-const ROUTE_Y = 42;
-const ROUTED_LANE_Y = {errors: 78, feedback: 118, traces: 158, logs: 198, metrics: 238};
+function laneY(label: string) {
+  const chart = screen.getByRole('group', {name: 'Session time window'}).parentElement!;
+  const toggles = Array.from(chart.querySelectorAll('button[aria-pressed]'));
+  const index = toggles.findIndex(toggle => toggle.textContent?.startsWith(label));
+  if (index === -1) {
+    throw new Error(`No ${label} lane is drawn`);
+  }
+  const routeOffset = screen.queryByText('Route') === null ? 0 : ROUTE_HEIGHT;
+  return AXIS_HEIGHT + routeOffset + index * LANE_HEIGHT + LANE_HEIGHT / 2;
+}
 
 /**
  * The scrubber's interactive track, given the size jsdom won't. Hit testing reads

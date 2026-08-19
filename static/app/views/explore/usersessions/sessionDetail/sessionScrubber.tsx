@@ -21,8 +21,12 @@ import {TelemetryTypeIcon} from './telemetryTypeIcon';
 import type {SessionEvent, SessionRange} from './useSessionDetail';
 
 /**
- * Lanes run most-severe first rather than in dataset order: an error lane at the
- * top is the first thing scanned, and it is most often what explains the session.
+ * Every lane a session can have, most-severe first rather than in dataset order:
+ * an error lane at the top is the first thing scanned, and it is most often what
+ * explains the session.
+ *
+ * Which of them a *given* session draws is decided at render, since a lane holding
+ * nothing is left out; see `visibleLanes`.
  */
 const LANE_ORDER: SessionDatasetKey[] = [
   'errors',
@@ -37,7 +41,9 @@ const LANES = LANE_ORDER.map(key => SESSION_DATASETS.find(config => config.key =
 const HEADER_HEIGHT = 28;
 const LANE_HEIGHT = 40;
 /** Kept whole: split across lines by the formatter, `repeat (…)` is not CSS. */
-const LANE_ROWS = `repeat(${LANES.length}, ${LANE_HEIGHT}px)`;
+function laneRows(count: number) {
+  return `repeat(${count}, ${LANE_HEIGHT}px)`;
+}
 
 /**
  * The overview strip: the whole session, however far the lanes are zoomed into it.
@@ -233,8 +239,9 @@ function extentOf(event: SessionEvent): {end: number; start: number} | undefined
 }
 
 /**
- * The session at a glance: one lane per telemetry type across whatever range is in
- * view, over a strip showing where in the session that range sits.
+ * The session at a glance: one lane per telemetry type the session holds, across
+ * whatever range is in view, over a strip showing where in the session that range
+ * sits.
  *
  * The lanes answer "where in this session did anything happen" before a single
  * row has been read, which is the one question a flat list cannot answer. Time
@@ -328,14 +335,39 @@ export function SessionScrubber({
   const laneCounts = useLaneCounts(counts, eventsByType, scoped);
 
   /**
+   * The lanes this session has anything in.
+   *
+   * An empty lane answers nothing and spends forty pixels of the one thing a
+   * timeline is short of, so it is left out rather than drawn flat: a backend
+   * session gets no feedback lane, a session that logs nothing gets no log lane.
+   *
+   * Decided by the session's exact aggregates rather than by the plotted items,
+   * because the items move with the text filter and with the zoom — a lane that
+   * disappeared as you typed would take the chart's height, and everything below
+   * it, along with it. `counts` is the one figure here that is a property of the
+   * session itself.
+   *
+   * Nothing counted anywhere leaves every lane in place. That is rows without
+   * aggregates, which only a failed count query produces, and five empty lanes are
+   * a better answer there than a chart with no lanes at all.
+   */
+  const visibleLanes = useMemo(() => {
+    const present = LANES.filter(config => counts[config.key] > 0);
+    return present.length > 0 ? present : LANES;
+  }, [counts]);
+
+  /**
    * Every plotted item of every enabled type, for the overview strip's single row.
    * Merged rather than laned: in twenty pixels the strip is answering "where in
    * this session did anything happen at all", and four rows of five pixels each
    * answers nothing.
    */
   const overviewEvents = useMemo(
-    () => LANE_ORDER.filter(key => enabled.has(key)).flatMap(key => eventsByType[key]),
-    [enabled, eventsByType]
+    () =>
+      visibleLanes
+        .filter(config => enabled.has(config.key))
+        .flatMap(config => eventsByType[config.key]),
+    [enabled, eventsByType, visibleLanes]
   );
 
   /**
@@ -344,12 +376,12 @@ export function SessionScrubber({
    */
   const laneMarks = useMemo(
     () =>
-      LANES.map(config => ({
+      visibleLanes.map(config => ({
         color: theme.tokens.graphics[config.graphicsVariant].vibrant,
         events: eventsByType[config.key],
         isOn: enabled.has(config.key),
       })),
-    [enabled, eventsByType, theme.tokens.graphics]
+    [enabled, eventsByType, theme.tokens.graphics, visibleLanes]
   );
 
   /**
@@ -641,7 +673,7 @@ export function SessionScrubber({
       }
 
       const laneIndex = Math.floor((clientY - rect.top - laneTop) / LANE_HEIGHT);
-      const config = LANES[laneIndex];
+      const config = visibleLanes[laneIndex];
       if (!config || clientY < rect.top + laneTop || !enabled.has(config.key)) {
         return null;
       }
@@ -681,7 +713,7 @@ export function SessionScrubber({
       const key = itemKey(found);
       return key === undefined ? null : {event: found, key, laneIndex};
     },
-    [enabled, eventsByType, fromClientX, domain, laneTop]
+    [enabled, eventsByType, fromClientX, domain, laneTop, visibleLanes]
   );
 
   /**
@@ -713,7 +745,7 @@ export function SessionScrubber({
     if (selectedKey === null) {
       return null;
     }
-    for (const [laneIndex, config] of LANES.entries()) {
+    for (const [laneIndex, config] of visibleLanes.entries()) {
       const event = eventsByType[config.key].find(
         candidate => itemKey(candidate) === selectedKey
       );
@@ -722,7 +754,7 @@ export function SessionScrubber({
       }
     }
     return null;
-  }, [selectedKey, eventsByType]);
+  }, [selectedKey, eventsByType, visibleLanes]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
@@ -826,7 +858,7 @@ export function SessionScrubber({
         explicitly positioned overlay below, which silently pushes the first
         lane's label onto a row of its own.
       */}
-      <Chart hasRoutes={hasRoutes}>
+      <Chart hasRoutes={hasRoutes} laneCount={visibleLanes.length}>
         <SessionHeader />
         <Overview
           bounds={bounds}
@@ -900,11 +932,11 @@ export function SessionScrubber({
           tint={theme.tokens.background.transparent.neutral.muted}
         />
 
-        {LANES.map((config, index) => {
+        {visibleLanes.map((config, index) => {
           const isOn = enabled.has(config.key);
           const color = theme.tokens.graphics[config.graphicsVariant].vibrant;
           const row = index + firstLaneRow;
-          const isLast = index === LANES.length - 1;
+          const isLast = index === visibleLanes.length - 1;
           return (
             <Fragment key={config.key}>
               <LaneToggle
@@ -1879,7 +1911,7 @@ const LaneCanvas = memo(function LaneCanvasImpl({
   width: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const height = LANES.length * LANE_HEIGHT;
+  const height = lanes.length * LANE_HEIGHT;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -2083,12 +2115,12 @@ function densityMarks(
  * The frame. Column gaps would break the row rules, so the two columns are
  * divided by a border and padded from the inside instead.
  */
-const Chart = styled('div')<{hasRoutes: boolean}>`
+const Chart = styled('div')<{hasRoutes: boolean; laneCount: number}>`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   grid-template-rows:
     ${OVERVIEW_HEIGHT}px ${HEADER_HEIGHT}px
-    ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${LANE_ROWS};
+    ${p => (p.hasRoutes ? `${ROUTE_HEIGHT}px ` : '')} ${p => laneRows(p.laneCount)};
   /*
    * Bottom edge only. The chart used to be a bordered, rounded card floating
    * inside the panel, which drew a second frame a few pixels in from the frame
