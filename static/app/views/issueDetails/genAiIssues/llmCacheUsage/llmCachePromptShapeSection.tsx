@@ -22,24 +22,34 @@ function divergenceStatement(divergence: LlmCachePromptDivergence): ReactNode {
     );
   }
 
+  // Each variant is a whole sentence rather than an optional clause spliced
+  // into one: where the phrase lands in the sentence is the translator's to
+  // decide, and a fragment passed through `tct` takes that away from them.
+  const prefix = <Text bold>{formatCharacters(commonPrefixChars)}</Text>;
+  const description = getPromptDivergenceDescription(kind);
+
   if (templateMisordered && stableBlockChars !== null) {
-    return tct(
-      'The stable part of this prompt sits behind the part that changes. The prompts start differing [prefix] in, at [kind], and a [block] block that is identical on every call sits after that point. Moving it in front of the changing part is what makes it cacheable.',
-      {
-        prefix: <Text bold>{formatCharacters(commonPrefixChars)}</Text>,
-        kind: getPromptDivergenceDescription(kind),
-        block: <Text bold>{formatCharacters(stableBlockChars)}</Text>,
-      }
-    );
+    const block = <Text bold>{formatCharacters(stableBlockChars)}</Text>;
+    return description === null
+      ? tct(
+          'The stable part of this prompt sits behind the part that changes. The prompts start differing [prefix] in, and a [block] block that is identical on every call sits after that point. Moving it in front of the changing part is what makes it cacheable.',
+          {prefix, block}
+        )
+      : tct(
+          'The stable part of this prompt sits behind the part that changes. The prompts start differing [prefix] in, at [kind], and a [block] block that is identical on every call sits after that point. Moving it in front of the changing part is what makes it cacheable.',
+          {prefix, kind: description, block}
+        );
   }
 
-  return tct(
-    'The sampled prompts stop matching [prefix] in, at [kind]. A provider caches a prefix and only a prefix, so nothing past that point can be held between calls.',
-    {
-      prefix: <Text bold>{formatCharacters(commonPrefixChars)}</Text>,
-      kind: getPromptDivergenceDescription(kind),
-    }
-  );
+  return description === null
+    ? tct(
+        'The sampled prompts stop matching [prefix] in. A provider caches a prefix and only a prefix, so nothing past that point can be held between calls.',
+        {prefix}
+      )
+    : tct(
+        'The sampled prompts stop matching [prefix] in, at [kind]. A provider caches a prefix and only a prefix, so nothing past that point can be held between calls.',
+        {prefix, kind: description}
+      );
 }
 
 function formatSharedPrefix(divergence: LlmCachePromptDivergence): string {
@@ -67,6 +77,7 @@ export function LlmCachePromptShapeSection({
   }
 
   const {kind, sampleCount, stableBlockChars} = divergence;
+  const divergenceDescription = getPromptDivergenceDescription(kind);
 
   return (
     <Stack gap="md">
@@ -81,11 +92,11 @@ export function LlmCachePromptShapeSection({
             'How much of the prompt is identical across the sampled calls before the first difference. Providers cache an exact prefix, so this is the most a cache could hold.'
           )}
         />
-        {kind !== 'none' && (
+        {divergenceDescription !== null && (
           <CallSiteMetric
             id="prompt-divergence-kind"
             label={t('Prompts first differ at')}
-            value={getPromptDivergenceDescription(kind)}
+            value={divergenceDescription}
           />
         )}
         {stableBlockChars !== null && stableBlockChars > 0 && (

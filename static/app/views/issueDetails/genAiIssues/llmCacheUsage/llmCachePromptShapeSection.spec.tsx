@@ -99,6 +99,29 @@ describe('LlmCachePromptShapeSection', () => {
     expect(screen.queryByText('Identical block after it')).not.toBeInTheDocument();
   });
 
+  it('does not name a divergence the classifier could not recognise', () => {
+    render(
+      <LlmCachePromptShapeSection
+        evidenceData={{
+          ...evidence,
+          promptDivergence: {...divergence, kind: 'other'},
+        }}
+      />
+    );
+
+    // `other` is the residual of a handful of patterns, so there is nothing to
+    // put after "first differ at". The measured lengths still stand on their own.
+    expect(screen.queryByText('Prompts first differ at')).not.toBeInTheDocument();
+    expect(screen.queryByText(/changing text/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Moving it in front of the changing part is what makes it cacheable/
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('142 chars (0.30% of the prompt)')).toBeInTheDocument();
+    expect(screen.getByText('Identical block after it')).toBeInTheDocument();
+  });
+
   it('renders nothing for an occurrence that carries no prompt diagnosis', () => {
     const {container} = render(
       <LlmCachePromptShapeSection evidenceData={{...evidence, promptDivergence: null}} />

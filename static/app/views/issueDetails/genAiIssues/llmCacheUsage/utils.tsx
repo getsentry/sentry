@@ -433,14 +433,17 @@ export function getPromptCachingDocsUrl(model: string | null): string {
 }
 
 /**
- * Reads as the tail of "the prompts first differ at ...".
+ * Reads as the tail of "the prompts first differ at ...", or null when there is
+ * no honest tail to write.
  *
- * `none` is deliberately unhandled: there is nothing to name, and the callers
- * that would use this say something else entirely in that case.
+ * `none` has no first difference to name. `other` is the residual of a handful
+ * of patterns rather than a finding: naming it would claim the divergence is
+ * neither an id nor a timestamp, when all that is known is that none of the
+ * patterns matched near it. Callers drop the phrase rather than fill it.
  */
 export function getPromptDivergenceDescription(
   kind: LlmCachePromptDivergenceKind
-): string {
+): string | null {
   switch (kind) {
     case 'iso_timestamp':
       return t('an ISO-8601 timestamp');
@@ -453,7 +456,7 @@ export function getPromptDivergenceDescription(
     case 'counter':
       return t('a changing number');
     default:
-      return t('changing text');
+      return null;
   }
 }
 
