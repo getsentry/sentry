@@ -189,6 +189,26 @@ describe('getFilterRows', () => {
     ).toEqual(['span.description:"checkout request"', 'transaction:*checkout*']);
   });
 
+  it('keeps a JSON filter visible and separates a subsequent filter', () => {
+    const inputMessages =
+      '[{"content": [{"text": "I want to buy plants for full sunlight"}], "role": "user"}]';
+    const inputFilter = addSearchFilterToQuery('', {
+      key: 'gen_ai.input.messages',
+      op: TermOperator.CONTAINS,
+      value: inputMessages,
+    });
+
+    expect(getFilterRows(inputFilter)).toEqual([inputFilter]);
+
+    const query = addSearchFilterToQuery(inputFilter, {
+      key: 'gen_ai.response.model',
+      op: TermOperator.DEFAULT,
+      value: 'gpt-4o',
+    });
+
+    expect(getFilterRows(query)).toEqual([inputFilter, 'gen_ai.response.model:gpt-4o']);
+  });
+
   it('returns no rows for an empty query', () => {
     expect(getFilterRows('   ')).toEqual([]);
   });

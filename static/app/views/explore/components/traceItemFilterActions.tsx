@@ -17,7 +17,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {traceItemAttributeValuesQueryOptions} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -29,12 +29,24 @@ export interface SearchFilter {
   value: string | number | boolean;
 }
 
+function normalizeFilterValue(value: string): string {
+  const trimmedValue = value.trim();
+  if (!trimmedValue.startsWith('[') || !trimmedValue.endsWith(']')) {
+    return value;
+  }
+
+  try {
+    return Array.isArray(JSON.parse(trimmedValue)) ? JSON.stringify(value) : value;
+  } catch {
+    return value;
+  }
+}
+
 export function addSearchFilterToQuery(
   currentQuery: string,
   filter: SearchFilter
 ): string {
-  const search = new MutableSearch(currentQuery);
-  const value = String(filter.value);
+  const value = normalizeFilterValue(String(filter.value));
   const isNegated = negationOperators.includes(filter.op);
   const key = isNegated ? `!${filter.key}` : filter.key;
 
@@ -63,21 +75,12 @@ export function addSearchFilterToQuery(
 
   const normalizedFilter = new MutableSearch('');
   addFilter(normalizedFilter);
-  const normalizedToken = normalizedFilter.tokens[0];
-  if (
-    normalizedToken &&
-    search.tokens.some(
-      token =>
-        token.type === normalizedToken.type &&
-        token.key === normalizedToken.key &&
-        token.value === normalizedToken.value
-    )
-  ) {
+  const normalizedFilterText = normalizedFilter.formatString();
+  if (getFilterRows(currentQuery).includes(normalizedFilterText)) {
     return currentQuery;
   }
 
-  addFilter(search);
-  return search.formatString();
+  return [currentQuery.trim(), normalizedFilterText].filter(Boolean).join(' ');
 }
 
 export function getFilterRows(query: string): string[] {
@@ -91,6 +94,27 @@ export function getFilterRows(query: string): string[] {
     !tokens ||
     tokens.some(token => token.type !== Token.FILTER && token.type !== Token.SPACES)
   ) {
+    // MutableSearch can recover UI-generated filters with bracketed JSON values that
+    // the search syntax parser treats as complex syntax.
+    const legacySearch = new MutableSearch(trimmedQuery);
+    const legacyFilterTypes = new Set([
+      TokenType.FILTER,
+      TokenType.CONTAINS_FILTER,
+      TokenType.STARTS_WITH_FILTER,
+      TokenType.ENDS_WITH_FILTER,
+    ]);
+
+    if (
+      legacySearch.tokens.length > 0 &&
+      legacySearch.tokens.every(token => legacyFilterTypes.has(token.type))
+    ) {
+      return legacySearch.tokens.map(token => {
+        const row = new MutableSearch('');
+        row.tokens = [token];
+        return row.formatString();
+      });
+    }
+
     return [trimmedQuery];
   }
 
