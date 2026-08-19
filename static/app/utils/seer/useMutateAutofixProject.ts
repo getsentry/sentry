@@ -1,8 +1,14 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  type InfiniteData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -23,6 +29,7 @@ import {
 import type {
   AutofixAgentSelectOption,
   SeerProjectSettingResponse,
+  SeerProjectSuggestionResponse,
   UserFacingStoppingPoint,
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -139,11 +146,79 @@ export function useMutateAutofixProject() {
       }
     },
     onSuccess: (_data, variables) => {
-      const {project, stoppingPoint} = variables;
+      const {project, repoEntries, agentOption, stoppingPoint} = variables;
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
       const updatedProject = {...project, autofixAutomationTuning: tuning};
       ProjectsStore.onUpdateSuccess(updatedProject);
+
+      // Move the project between the cached lists right away so the table
+      // updates without waiting for the onSettled refetches, which then
+      // reconcile ordering and any server-derived fields.
+      const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
+      const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
+      const settingsRow: SeerProjectSettingResponse = {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent,
+        integrationId: integrationId ?? null,
+        stoppingPoint: stoppingPointValue ?? 'off',
+        autoCreatePr: null,
+        automationTuning: tuning,
+        scannerAutomation: false,
+        reposCount: repoEntries.filter(entry => Boolean(entry.repoId)).length,
+      };
+
+      const [suggestionsUrl] = getInfiniteSeerProjectSuggestionsQueryOptions({
+        organization,
+        enabled: true,
+      }).queryKey;
+      queryClient.setQueriesData(
+        {queryKey: [suggestionsUrl], exact: false},
+        (
+          prev: InfiniteData<ApiResponse<SeerProjectSuggestionResponse[]>> | undefined
+        ) => {
+          if (prev) {
+            return {
+              ...prev,
+              pages: prev.pages.map(page => ({
+                ...page,
+                json: page.json.filter(item => item.projectId !== project.id),
+              })),
+            };
+          }
+          return;
+        }
+      );
+
+      const [settingsListUrl] = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+      queryClient.setQueriesData(
+        {queryKey: [settingsListUrl], exact: false},
+        (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
+          if (!prev || prev.pages.length === 0) {
+            return;
+          }
+          const exists = prev.pages.some(page =>
+            page.json.some(item => item.projectId === project.id)
+          );
+          return {
+            ...prev,
+            pages: prev.pages.map((page, index) => ({
+              ...page,
+              json: exists
+                ? page.json.map(item =>
+                    item.projectId === project.id ? {...item, ...settingsRow} : item
+                  )
+                : index === prev.pages.length - 1
+                  ? [...page.json, settingsRow]
+                  : page.json,
+            })),
+          };
+        }
+      );
     },
     onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;
