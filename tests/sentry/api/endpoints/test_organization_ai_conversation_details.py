@@ -967,3 +967,262 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.data["title"] is None
         assert len(response.data["spans"]) == 1
         assert mock_fetch_conversation_title.call_count == 1
+
+
+class ConversationParentSpanTest(BaseAIConversationsTestCase):
+    """Resolution of each span's nearest ancestor within the same conversation."""
+
+    view = "sentry-api-0-organization-ai-conversation-details"
+
+    def do_request(self, conversation_id, query=None, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:gen-ai-conversations"]
+
+        with self.feature(features):
+            return self.client.get(
+                reverse(
+                    self.view,
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "conversation_id": conversation_id,
+                    },
+                ),
+                query or {},
+                format="json",
+            )
+
+    def _store_plain_span(self, trace_id, span_id, parent_span_id, timestamp) -> None:
+        """A span with no conversation id, as the endpoint's filter would drop it."""
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "SELECT run_state",
+                        "sentry_tags": {"status": "ok", "op": "db"},
+                        "trace_id": trace_id,
+                        "span_id": span_id,
+                        "parent_span_id": parent_span_id,
+                    },
+                    start_ts=timestamp,
+                )
+            ]
+        )
+
+    def _parents_by_span_id(self, response) -> dict[str, Any]:
+        return {
+            span["span_id"]: span["conversation_parent_span"] for span in response.data["spans"]
+        }
+
+    def _window(self, now):
+        return {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+    def test_resolves_through_a_span_outside_the_conversation(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            trace_id=trace_id,
+            span_id="a" * 16,
+            parent_span_id="f" * 16,
+        )
+        # The db span between the agent and its tool is not part of the conversation,
+        # so the response cannot contain it.
+        self._store_plain_span(trace_id, "b" * 16, "a" * 16, now)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+        )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+
+        parents = self._parents_by_span_id(response)
+        assert parents == {"a" * 16: None, "c" * 16: "a" * 16}
+
+    def test_resolves_through_several_spans_outside_the_conversation(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            trace_id=trace_id,
+            span_id="a" * 16,
+            parent_span_id="f" * 16,
+        )
+        self._store_plain_span(trace_id, "b" * 16, "a" * 16, now)
+        self._store_plain_span(trace_id, "c" * 16, "b" * 16, now)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            span_id="d" * 16,
+            parent_span_id="c" * 16,
+        )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+        assert self._parents_by_span_id(response)["d" * 16] == "a" * 16
+
+    def test_keeps_a_direct_parent(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            trace_id=trace_id,
+            span_id="a" * 16,
+            parent_span_id="f" * 16,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+        )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+        assert self._parents_by_span_id(response)["b" * 16] == "a" * 16
+
+    def test_is_null_when_no_ancestor_is_in_the_conversation(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self._store_plain_span(trace_id, "b" * 16, "f" * 16, now)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+        )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+        assert self._parents_by_span_id(response) == {"c" * 16: None}
+
+    def test_does_not_resolve_across_conversations(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+        other_conversation_id = uuid4().hex
+
+        # An agent of a different conversation sits between the db span and the tool.
+        self.store_ai_span(
+            conversation_id=other_conversation_id,
+            timestamp=now,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            trace_id=trace_id,
+            span_id="a" * 16,
+            parent_span_id="f" * 16,
+        )
+        self._store_plain_span(trace_id, "b" * 16, "a" * 16, now)
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+        )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+        assert self._parents_by_span_id(response) == {"c" * 16: None}
+
+    def test_resolves_each_trace_separately(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        first_trace = uuid4().hex
+        second_trace = uuid4().hex
+
+        for index, trace_id in enumerate((first_trace, second_trace)):
+            agent_id = f"{index}a" * 8
+            tool_id = f"{index}c" * 8
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                op="gen_ai.invoke_agent",
+                operation_type="agent",
+                trace_id=trace_id,
+                span_id=agent_id,
+                parent_span_id="f" * 16,
+            )
+            self._store_plain_span(trace_id, f"{index}b" * 8, agent_id, now)
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                op="gen_ai.execute_tool",
+                operation_type="tool",
+                trace_id=trace_id,
+                span_id=tool_id,
+                parent_span_id=f"{index}b" * 8,
+            )
+
+        response = self.do_request(conversation_id, self._window(now))
+        assert response.status_code == 200
+
+        parents = self._parents_by_span_id(response)
+        assert parents == {
+            "0a" * 8: None,
+            "0c" * 8: "0a" * 8,
+            "1a" * 8: None,
+            "1c" * 8: "1a" * 8,
+        }
+
+    def test_survives_a_failing_parent_link_read(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+        )
+
+        with patch(
+            "sentry.api.endpoints.organization_ai_conversation_details."
+            "OrganizationAIConversationDetailsEndpoint._fetch_trace_links",
+            side_effect=Exception("snuba unavailable"),
+        ):
+            response = self.do_request(conversation_id, self._window(now))
+
+        assert response.status_code == 200
+        assert self._parents_by_span_id(response) == {"c" * 16: None}
