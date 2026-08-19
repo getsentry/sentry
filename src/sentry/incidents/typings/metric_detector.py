@@ -248,10 +248,14 @@ class MetricIssueContext:
 
         subscription = cls._get_subscription(evidence_data)
         snuba_query = subscription.snuba_query
-        if isinstance(evidence_data.value, (int, float)):
+        if evidence_data.value is None:
+            metric_value = None
+        elif isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
+        elif isinstance(evidence_data.value, dict):
+            metric_value = evidence_data.value.get("value")
         else:
-            metric_value = evidence_data.value["value"]
+            metric_value = None
 
         return cls(
             id=group.id,
