@@ -97,7 +97,7 @@ describe('getLlmCacheEvidenceData', () => {
       promptShortestChars: 48_000,
       promptPrefixShare: 0.003,
       promptDivergenceKind: 'iso_timestamp',
-      promptStableSuffixChars: 6_200,
+      promptStableBlockChars: 6_200,
       promptTemplateMisordered: true,
     });
 
@@ -106,7 +106,7 @@ describe('getLlmCacheEvidenceData', () => {
       commonPrefixChars: 142,
       shortestChars: 48_000,
       prefixShare: 0.003,
-      stableSuffixChars: 6_200,
+      stableBlockChars: 6_200,
       templateMisordered: true,
       sampleCount: 4,
     });
@@ -121,7 +121,7 @@ describe('getLlmCacheEvidenceData', () => {
     expect(
       getLlmCacheEvidenceData({
         promptDivergenceKind: 'uuid',
-        promptStableSuffixChars: 6_200,
+        promptStableBlockChars: 6_200,
       }).promptDivergence
     ).toBeNull();
   });
@@ -143,7 +143,7 @@ describe('getLlmCacheEvidenceData', () => {
     });
 
     expect(parsed.promptDivergence?.templateMisordered).toBe(false);
-    expect(parsed.promptDivergence?.stableSuffixChars).toBeNull();
+    expect(parsed.promptDivergence?.stableBlockChars).toBeNull();
   });
 
   it('ignores an unrecognized outcome', () => {

@@ -8,7 +8,7 @@ const divergence: LlmCachePromptDivergence = {
   commonPrefixChars: 142,
   shortestChars: 48_000,
   prefixShare: 0.003,
-  stableSuffixChars: 6_200,
+  stableBlockChars: 6_200,
   templateMisordered: true,
   sampleCount: 4,
 };
@@ -50,7 +50,7 @@ describe('LlmCachePromptShapeSection', () => {
     expect(screen.getByText('142 chars (0.30% of the prompt)')).toBeInTheDocument();
     expect(screen.getByText('Prompts first differ at')).toBeInTheDocument();
     expect(screen.getAllByText('an ISO-8601 timestamp').length).toBeGreaterThan(0);
-    expect(screen.getByText('Identical content after it')).toBeInTheDocument();
+    expect(screen.getByText('Identical block after it')).toBeInTheDocument();
     // Both the sentence and the row carry it.
     expect(screen.getAllByText('~6.2K chars')).toHaveLength(2);
     expect(
@@ -84,7 +84,7 @@ describe('LlmCachePromptShapeSection', () => {
           promptDivergence: {
             ...divergence,
             kind: 'none',
-            stableSuffixChars: 0,
+            stableBlockChars: 0,
             templateMisordered: false,
           },
         }}
@@ -96,7 +96,7 @@ describe('LlmCachePromptShapeSection', () => {
     ).toBeInTheDocument();
     // There is no first difference to name, and nothing follows one.
     expect(screen.queryByText('Prompts first differ at')).not.toBeInTheDocument();
-    expect(screen.queryByText('Identical content after it')).not.toBeInTheDocument();
+    expect(screen.queryByText('Identical block after it')).not.toBeInTheDocument();
   });
 
   it('renders nothing for an occurrence that carries no prompt diagnosis', () => {

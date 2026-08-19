@@ -64,11 +64,12 @@ export interface LlmCachePromptDivergence {
   sampleCount: number | null;
   shortestChars: number | null;
   /**
-   * Identical content trailing the divergence. A lower bound: the span store
-   * truncates long attribute values, so a sampled prompt can be a prefix of the
-   * real one.
+   * The largest identical block sitting anywhere after the divergence -- which
+   * is where stranded content usually is, since a prompt ends with the caller's
+   * own text. A lower bound: prompts are aligned in whole pieces, and the span
+   * store truncates long attribute values.
    */
-  stableSuffixChars: number | null;
+  stableBlockChars: number | null;
   /** Stable content sitting behind the variable part rather than in front. */
   templateMisordered: boolean;
 }

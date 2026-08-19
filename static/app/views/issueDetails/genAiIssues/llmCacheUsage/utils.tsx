@@ -174,7 +174,7 @@ function getPromptDivergence(
     sampleCount: getNumberValue(data.promptSampleCount),
     shortestChars: getNumberValue(data.promptShortestChars),
     prefixShare: getNumberValue(data.promptPrefixShare),
-    stableSuffixChars: getNumberValue(data.promptStableSuffixChars),
+    stableBlockChars: getNumberValue(data.promptStableBlockChars),
     templateMisordered: data.promptTemplateMisordered === true,
   };
 }

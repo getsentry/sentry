@@ -14,7 +14,7 @@ interface LlmCachePromptShapeSectionProps {
 }
 
 function divergenceStatement(divergence: LlmCachePromptDivergence): ReactNode {
-  const {kind, commonPrefixChars, stableSuffixChars, templateMisordered} = divergence;
+  const {kind, commonPrefixChars, stableBlockChars, templateMisordered} = divergence;
 
   if (kind === 'none') {
     return t(
@@ -22,13 +22,13 @@ function divergenceStatement(divergence: LlmCachePromptDivergence): ReactNode {
     );
   }
 
-  if (templateMisordered && stableSuffixChars !== null) {
+  if (templateMisordered && stableBlockChars !== null) {
     return tct(
-      'The stable part of this prompt sits behind the part that changes. The prompts start differing [prefix] in, at [kind], and [suffix] of identical content follow. Moving that content in front of the changing part is what makes it cacheable.',
+      'The stable part of this prompt sits behind the part that changes. The prompts start differing [prefix] in, at [kind], and a [block] block that is identical on every call sits after that point. Moving it in front of the changing part is what makes it cacheable.',
       {
         prefix: <Text bold>{formatCharacters(commonPrefixChars)}</Text>,
         kind: getPromptDivergenceDescription(kind),
-        suffix: <Text bold>{formatCharacters(stableSuffixChars)}</Text>,
+        block: <Text bold>{formatCharacters(stableBlockChars)}</Text>,
       }
     );
   }
@@ -66,7 +66,7 @@ export function LlmCachePromptShapeSection({
     return null;
   }
 
-  const {kind, sampleCount, stableSuffixChars} = divergence;
+  const {kind, sampleCount, stableBlockChars} = divergence;
 
   return (
     <Stack gap="md">
@@ -88,13 +88,13 @@ export function LlmCachePromptShapeSection({
             value={getPromptDivergenceDescription(kind)}
           />
         )}
-        {stableSuffixChars !== null && stableSuffixChars > 0 && (
+        {stableBlockChars !== null && stableBlockChars > 0 && (
           <CallSiteMetric
-            id="prompt-stable-suffix"
-            label={t('Identical content after it')}
-            value={formatCharacters(stableSuffixChars)}
+            id="prompt-stable-block"
+            label={t('Identical block after it')}
+            value={formatCharacters(stableBlockChars)}
             tooltip={t(
-              'Content that is the same on every sampled call but arrives after the first difference, so no cache can reach it. A lower bound: long prompts are truncated in storage.'
+              'The largest run of content that is the same on every sampled call but sits after the first difference, so no cache can reach it. A lower bound: prompts are aligned in whole pieces, and long ones are truncated in storage.'
             )}
           />
         )}
