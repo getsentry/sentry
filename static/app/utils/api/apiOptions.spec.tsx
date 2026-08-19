@@ -157,11 +157,22 @@ describe('apiOptions', () => {
 
     expect(result.current.data).toEqual({
       json: ['Project 1', 'Project 2'],
-      headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
+      headers: {
+        Link: 'my-link',
+        'X-Conduit-Channel-Id': undefined,
+        'X-Conduit-Token': undefined,
+        'X-Conduit-Url': undefined,
+        'X-Hits': 14,
+        'X-Max-Hits': undefined,
+        'X-Sentry-Direct-Hit': undefined,
+      },
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
       Link?: string;
+      'X-Conduit-Channel-Id'?: string;
+      'X-Conduit-Token'?: string;
+      'X-Conduit-Url'?: string;
       'X-Hits'?: number;
       'X-Max-Hits'?: number;
       'X-Sentry-Direct-Hit'?: string;

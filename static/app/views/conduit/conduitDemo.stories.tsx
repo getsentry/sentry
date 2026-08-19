@@ -1,12 +1,12 @@
-import {useMemo, useState} from 'react';
-import {useStream} from 'conduit-client';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import {getCsrfToken} from 'sentry/utils/getCsrfToken';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useConduitStream} from 'sentry/utils/useConduitStream';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Message = {
@@ -19,20 +19,16 @@ export default Storybook.story('Conduit Demo', story => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isEnabled, setIsEnabled] = useState(false);
 
-    const streamUrl = `/api/0/organizations/${organization.slug}/conduit-demo/`;
-
-    const streamHeaders = useMemo(
-      () => ({
-        'X-CSRFToken': getCsrfToken(),
-      }),
-      []
-    );
-
-    const {error, isConnected} = useStream({
+    const {error, isConnected} = useConduitStream({
       enabled: isEnabled,
-      orgId: Number(organization.id),
-      startStreamUrl: streamUrl,
-      startStreamHeaders: streamHeaders,
+      queryOptions: apiOptions.as<unknown>()(
+        '/organizations/$organizationIdOrSlug/conduit-demo/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+          method: 'POST',
+          staleTime: 0,
+        }
+      ),
       onMessage: (message: Message) => {
         setMessages(prev => [...prev, message]);
       },
