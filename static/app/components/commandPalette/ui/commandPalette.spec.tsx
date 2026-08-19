@@ -150,6 +150,45 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('updates automatic focus when a higher-priority action registers', async () => {
+    const firstAction = jest.fn();
+    const secondAction = jest.fn();
+    const {rerender} = render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          id="second-action"
+          display={{label: 'Second action'}}
+          onAction={secondAction}
+          order={1}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Second action'});
+    rerender(
+      <GlobalActionsComponent>
+        <CMDKAction
+          id="first-action"
+          display={{label: 'First action'}}
+          onAction={firstAction}
+          order={0}
+        />
+        <CMDKAction
+          id="second-action"
+          display={{label: 'Second action'}}
+          onAction={secondAction}
+          order={1}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'First action'});
+    await userEvent.keyboard('{Enter}');
+
+    expect(firstAction).toHaveBeenCalledTimes(1);
+    expect(secondAction).not.toHaveBeenCalled();
+  });
+
   it('does not reset focus to the first item after mouse leave', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     const {router} = render(

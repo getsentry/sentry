@@ -1,7 +1,6 @@
 import {Fragment, memo, useCallback, useState} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -46,7 +45,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   addSearchFilterToQuery,
-  getSearchFilterAttribute,
+  getSearchFilterDescriptor,
   getFilterRows,
   removeSearchFilterFromQuery,
   replaceSearchFilterInQuery,
@@ -106,6 +105,14 @@ const QUERY_ACTION_ORDER = {
 
 const ADD_FILTER_ACTION_ID = 'spans-add-filter';
 const ADD_GROUP_BY_ACTION_ID = 'spans-add-group-by';
+
+function getChangeFilterValueActionId(index: number): string {
+  return `spans-change-filter-value-${index}`;
+}
+
+function getChangeGroupByActionId(index: number): string {
+  return `spans-change-group-by-attribute-${index}`;
+}
 
 export function canCompareQueries(visualizes: Visualize[]): boolean {
   return visualizes.filter(isVisualizeFunction).length >= 2;
@@ -396,20 +403,22 @@ function SpansScopeActions({
 }) {
   const {projects} = useProjects();
   const isSuperuser = isActiveSuperuser();
-  const {maxPickableDays} = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
+  const {maxPickableDays} = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
   const selectedProjects = draftPageFilters.projects;
   const selectedEnvironments = draftPageFilters.environments;
-  const selectedProjectModels = selectedProjects
-    .map(projectId => projects.find(project => Number(project.id) === projectId))
-    .filter(project => project !== undefined);
-  const availableProjects = getProjectsForSelection(
+  const projectsInDraftScope = getProjectsForSelection(
     projects,
     selectedProjects,
     isSuperuser
   );
-  const explicitSelectedProjectIds = availableProjects.map(project => Number(project.id));
+  const selectedProjectModels = projectsInDraftScope;
+  const effectiveSelectedProjectIds = projectsInDraftScope.map(project =>
+    Number(project.id)
+  );
   const availableEnvironments = [
-    ...new Set(availableProjects.flatMap(project => project.environments)),
+    ...new Set(projectsInDraftScope.flatMap(project => project.environments)),
   ].toSorted();
   const timeRangeLabel =
     RELATIVE_TIME_RANGES.find(
@@ -441,9 +450,11 @@ function SpansScopeActions({
     >
       <CMDKAction
         display={{
-          label: t(
-            'Projects: %s',
-            getProjectScopeLabel(projects, draftPageFilters.projects)
+          label: t('Projects'),
+          trailingItem: (
+            <QueryValue
+              value={getProjectScopeLabel(projects, draftPageFilters.projects)}
+            />
           ),
           icon:
             selectedProjectModels.length > 0 ? (
@@ -465,9 +476,9 @@ function SpansScopeActions({
           display={{
             label: t('My Projects'),
             icon: <IconProject />,
-            trailingItem:
+            labelSuffix:
               appliedPageFilters.projects.length === 0 ? (
-                <Tag variant="info">{t('Current')}</Tag>
+                <QueryValue value={t('Current')} />
               ) : undefined,
           }}
           isSelected={selectedProjects.length === 0}
@@ -477,8 +488,8 @@ function SpansScopeActions({
           display={{
             label: t('All Projects'),
             icon: <IconProject />,
-            trailingItem: appliedPageFilters.projects.includes(ALL_ACCESS_PROJECTS) ? (
-              <Tag variant="info">{t('Current')}</Tag>
+            labelSuffix: appliedPageFilters.projects.includes(ALL_ACCESS_PROJECTS) ? (
+              <QueryValue value={t('Current')} />
             ) : undefined,
           }}
           isSelected={selectedProjects.includes(ALL_ACCESS_PROJECTS)}
@@ -486,9 +497,9 @@ function SpansScopeActions({
         />
         {projects.map(project => {
           const projectId = Number(project.id);
-          const isSelected = explicitSelectedProjectIds.includes(projectId);
+          const isSelected = effectiveSelectedProjectIds.includes(projectId);
           const toggledProjects = getToggledProjectSelection(
-            explicitSelectedProjectIds,
+            effectiveSelectedProjectIds,
             projectId
           );
           return (
@@ -498,16 +509,12 @@ function SpansScopeActions({
               display={{
                 label: project.slug,
                 icon: <ProjectAvatar project={project} size={16} />,
-                trailingItem: appliedPageFilters.projects.includes(projectId) ? (
-                  <Tag variant="info">{t('Current')}</Tag>
+                labelSuffix: appliedPageFilters.projects.includes(projectId) ? (
+                  <QueryValue value={t('Current')} />
                 ) : undefined,
               }}
               isSelected={isSelected}
-              onAction={() => {
-                if (toggledProjects) {
-                  setProjects(toggledProjects);
-                }
-              }}
+              onAction={() => setProjects([projectId])}
               onMultiSelect={
                 toggledProjects ? () => setProjects(toggledProjects) : undefined
               }
@@ -518,9 +525,9 @@ function SpansScopeActions({
 
       <CMDKAction
         display={{
-          label: t(
-            'Environments: %s',
-            getEnvironmentScopeLabel(draftPageFilters.environments)
+          label: t('Environments'),
+          trailingItem: (
+            <QueryValue value={getEnvironmentScopeLabel(draftPageFilters.environments)} />
           ),
           icon: <IconGlobe />,
         }}
@@ -531,9 +538,9 @@ function SpansScopeActions({
           display={{
             label: t('All Environments'),
             icon: <IconGlobe />,
-            trailingItem:
+            labelSuffix:
               appliedPageFilters.environments.length === 0 ? (
-                <Tag variant="info">{t('Current')}</Tag>
+                <QueryValue value={t('Current')} />
               ) : undefined,
           }}
           isSelected={selectedEnvironments.length === 0}
@@ -549,8 +556,8 @@ function SpansScopeActions({
               display={{
                 label: environment,
                 icon: <IconGlobe />,
-                trailingItem: appliedPageFilters.environments.includes(environment) ? (
-                  <Tag variant="info">{t('Current')}</Tag>
+                labelSuffix: appliedPageFilters.environments.includes(environment) ? (
+                  <QueryValue value={t('Current')} />
                 ) : undefined,
               }}
               isSelected={isSelected}
@@ -563,7 +570,7 @@ function SpansScopeActions({
               onMultiSelect={() =>
                 setDraftPageFilters(current => ({
                   ...current,
-                  environments: isSelected
+                  environments: current.environments.includes(environment)
                     ? current.environments.filter(value => value !== environment)
                     : [...current.environments, environment],
                 }))
@@ -574,31 +581,44 @@ function SpansScopeActions({
       </CMDKAction>
 
       <CMDKAction
-        display={{label: t('Time range: %s', timeRangeLabel), icon: <IconClock />}}
+        display={{
+          label: t('Time range'),
+          trailingItem: <QueryValue value={timeRangeLabel} />,
+          icon: <IconClock />,
+        }}
         keywords={['scope', 'time', 'date', 'range', 'period']}
         prompt={t('Select a time range')}
       >
         {RELATIVE_TIME_RANGES.filter(option => option.days <= maxPickableDays).map(
-          option => (
-            <CMDKAction
-              key={option.period}
-              display={{
-                label: option.label,
-                icon: <IconClock />,
-              }}
-              onAction={() =>
-                setDraftPageFilters(current => ({
-                  ...current,
-                  datetime: {
-                    end: null,
-                    period: option.period,
-                    start: null,
-                    utc: null,
-                  },
-                }))
-              }
-            />
-          )
+          option => {
+            const isSelected = draftPageFilters.datetime.period === option.period;
+
+            return (
+              <CMDKAction
+                key={option.period}
+                display={{
+                  label: option.label,
+                  labelSuffix:
+                    appliedPageFilters.datetime.period === option.period ? (
+                      <QueryValue value={t('Current')} />
+                    ) : undefined,
+                  icon: <IconClock />,
+                }}
+                isSelected={isSelected}
+                onAction={() =>
+                  setDraftPageFilters(current => ({
+                    ...current,
+                    datetime: {
+                      end: null,
+                      period: option.period,
+                      start: null,
+                      utc: null,
+                    },
+                  }))
+                }
+              />
+            );
+          }
         )}
       </CMDKAction>
     </CMDKAction>
@@ -628,7 +648,8 @@ function SpansFilterActionsComponent({
       />
       {filters.map((filter, filterIndex) => {
         const actionContext = `filter:${filterIndex}`;
-        const attributeKey = getSearchFilterAttribute(filter);
+        const descriptor = getSearchFilterDescriptor(filter);
+        const attributeKey = descriptor?.attributeKey ?? null;
         const hasAttribute =
           attributeKey !== null &&
           (stringAttributes[attributeKey] !== undefined ||
@@ -663,6 +684,23 @@ function SpansFilterActionsComponent({
                 displayLabel={t('Change Filter Operator')}
                 id={`spans-change-filter-operator-${filterIndex}`}
                 initialAttributeKey={attributeKey}
+                stringAttributes={stringAttributes}
+                traceItemType={TraceItemDataset.SPANS}
+              />
+            )}
+            {descriptor && (
+              <TraceItemFilterActions
+                actionPanel={{
+                  context: actionContext,
+                  label: t('Change Filter Value'),
+                  only: true,
+                }}
+                addSearchFilter={onChange}
+                booleanAttributes={booleanAttributes}
+                displayLabel={t('Change Filter Value')}
+                id={getChangeFilterValueActionId(filterIndex)}
+                initialAttributeKey={descriptor.attributeKey}
+                initialOperator={descriptor.operator}
                 stringAttributes={stringAttributes}
                 traceItemType={TraceItemDataset.SPANS}
               />
@@ -846,11 +884,13 @@ export function EquationFooter({
 }
 
 function GroupByActionsComponent({
+  currentGroupBy,
   groupBys,
-  setGroupBys,
+  onSelect,
 }: {
   groupBys: readonly string[];
-  setGroupBys: (groupBys: string[]) => void;
+  onSelect: (groupBy: string) => void;
+  currentGroupBy?: string;
 }) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
@@ -866,27 +906,31 @@ function GroupByActionsComponent({
   return (
     <CMDKAction display={{label: t('Attribute')}}>
       {options.map(option => {
-        const isSelected = groupBys.includes(option.value);
+        const isCurrent = currentGroupBy
+          ? option.value === currentGroupBy
+          : groupBys.includes(option.value);
+        const isUnavailable = groupBys.includes(option.value) && !isCurrent;
 
         return (
           <CMDKAction
             key={option.value}
+            disabled={isUnavailable}
             display={{
               label: option.textValue ?? option.value,
-              labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
+              labelSuffix: isCurrent ? <QueryValue value={t('Current')} /> : undefined,
               trailingItem:
                 typeof option.trailingItems === 'function'
                   ? option.trailingItems({
-                      disabled: false,
+                      disabled: isUnavailable,
                       isFocused: false,
-                      isSelected,
+                      isSelected: isCurrent,
                     })
                   : option.trailingItems,
             }}
             keywords={[option.value]}
             onAction={() => {
-              if (!isSelected) {
-                setGroupBys([...groupBys.filter(Boolean), option.value]);
+              if (!isUnavailable) {
+                onSelect(option.value);
               }
             }}
           />
@@ -1096,10 +1140,10 @@ function QueryClauseActionsEditor() {
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
   );
-  const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
-  const [pendingGroupByRows, setPendingGroupByRows] = useState(
-    groupBys.length === 0 ? 1 : 0
-  );
+  const [draftGroupByState, setDraftGroupByState] = useState(() => ({
+    groupBys: [...groupBys],
+    pendingRows: groupBys.length === 0 ? 1 : 0,
+  }));
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
   ]);
@@ -1119,10 +1163,68 @@ function QueryClauseActionsEditor() {
       };
     });
   }, []);
-  const addGroupBy = useCallback((nextGroupBys: string[]) => {
-    setDraftGroupBys(nextGroupBys);
-    setPendingGroupByRows(count => Math.max(0, count - 1));
+  const addGroupBy = useCallback((groupBy: string) => {
+    setDraftGroupByState(current => {
+      if (current.groupBys.includes(groupBy)) {
+        return current;
+      }
+      return {
+        groupBys: [...current.groupBys, groupBy],
+        pendingRows: Math.max(0, current.pendingRows - 1),
+      };
+    });
   }, []);
+  const replaceGroupBy = (index: number, groupBy: string) => {
+    setDraftGroupByState(current => {
+      if (
+        index < 0 ||
+        index >= current.groupBys.length ||
+        current.groupBys.some((value, valueIndex) =>
+          valueIndex === index ? false : value === groupBy
+        )
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        groupBys: current.groupBys.map((value, valueIndex) =>
+          valueIndex === index ? groupBy : value
+        ),
+      };
+    });
+  };
+  const clearGroupBy = (index: number) => {
+    setDraftGroupByState(current => {
+      if (index < 0 || index >= current.groupBys.length) {
+        return current;
+      }
+      return {
+        groupBys: current.groupBys.filter((_, valueIndex) => valueIndex !== index),
+        pendingRows: current.pendingRows + 1,
+      };
+    });
+  };
+  const removeGroupBy = (index: number) => {
+    setDraftGroupByState(current => {
+      const removesGroupBy = index >= 0 && index < current.groupBys.length;
+      const groupBysAfterRemoval = removesGroupBy
+        ? current.groupBys.filter((_, valueIndex) => valueIndex !== index)
+        : current.groupBys;
+      let pendingRowsAfterRemoval = removesGroupBy
+        ? current.pendingRows
+        : Math.max(0, current.pendingRows - 1);
+
+      if (groupBysAfterRemoval.length + pendingRowsAfterRemoval === 0) {
+        pendingRowsAfterRemoval = 1;
+      }
+
+      return {
+        groupBys: groupBysAfterRemoval,
+        pendingRows: pendingRowsAfterRemoval,
+      };
+    });
+  };
   const removeSearchFilter = useCallback((filterIndex: number) => {
     setDraftFilters(current => removeFilterRow(current, filterIndex));
   }, []);
@@ -1136,6 +1238,8 @@ function QueryClauseActionsEditor() {
     }));
   }, []);
 
+  const draftGroupBys = draftGroupByState.groupBys;
+  const pendingGroupByRows = draftGroupByState.pendingRows;
   const draftQuery = draftFilters.query;
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
   const draftVisualizes = draftCharts.map(chart => chart.visualize);
@@ -1240,7 +1344,7 @@ function QueryClauseActionsEditor() {
           keywords={['add', 'group', 'by', 'attribute']}
           prompt={t('Search for attribute')}
         >
-          <GroupByActions groupBys={draftGroupBys} setGroupBys={addGroupBy} />
+          <GroupByActions groupBys={draftGroupBys} onSelect={addGroupBy} />
         </CMDKAction>
         <CMDKAction
           actionPanel={{
@@ -1250,7 +1354,12 @@ function QueryClauseActionsEditor() {
             order: MORE_ACTIONS_ORDER.addGroupBy,
           }}
           display={{label: t('Add Group By')}}
-          onAction={() => setPendingGroupByRows(count => count + 1)}
+          onAction={() =>
+            setDraftGroupByState(current => ({
+              ...current,
+              pendingRows: current.pendingRows + 1,
+            }))
+          }
         />
         <SpansFilterActions
           addSearchFilter={addSearchFilter}
@@ -1344,22 +1453,66 @@ function QueryClauseActionsEditor() {
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
         {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(
-          (groupBy, index) => {
+          (groupBy, index, rows) => {
             const rowId = `spans-group-by-${index}`;
+            const actionContext = `group-by:${index}`;
 
             return (
-              <CMDKAction
-                key={rowId}
-                id={rowId}
-                actionContext={`group-by:${index}`}
-                display={{
-                  label: t('Group By'),
-                  trailingItem: <QueryValue value={groupBy} />,
-                }}
-                keywords={['group', 'by', 'attribute', groupBy]}
-                order={QUERY_ACTION_ORDER.groupBy + index}
-                targetAction={ADD_GROUP_BY_ACTION_ID}
-              />
+              <Fragment key={rowId}>
+                <CMDKAction
+                  id={rowId}
+                  actionContext={actionContext}
+                  display={{
+                    label: t('Group By'),
+                    trailingItem: <QueryValue value={groupBy} />,
+                  }}
+                  keywords={['group', 'by', 'attribute', groupBy]}
+                  order={QUERY_ACTION_ORDER.groupBy + index}
+                  targetAction={
+                    groupBy ? getChangeGroupByActionId(index) : ADD_GROUP_BY_ACTION_ID
+                  }
+                />
+                {groupBy && (
+                  <Fragment>
+                    <CMDKAction
+                      id={getChangeGroupByActionId(index)}
+                      actionPanel={{
+                        context: actionContext,
+                        label: t('Change Group By Attribute'),
+                        only: true,
+                      }}
+                      display={{label: t('Change Group By Attribute')}}
+                      prompt={t('Search for attribute')}
+                    >
+                      <GroupByActions
+                        currentGroupBy={groupBy}
+                        groupBys={draftGroupBys}
+                        onSelect={value => replaceGroupBy(index, value)}
+                      />
+                    </CMDKAction>
+                    <CMDKAction
+                      actionPanel={{
+                        context: actionContext,
+                        label: t('Clear Group By'),
+                        only: true,
+                      }}
+                      display={{label: t('Clear Group By')}}
+                      onAction={() => clearGroupBy(index)}
+                    />
+                  </Fragment>
+                )}
+                {rows.length > 1 && (
+                  <CMDKAction
+                    actionPanel={{
+                      context: actionContext,
+                      label: t('Delete Group By'),
+                      only: true,
+                    }}
+                    display={{label: t('Delete Group By')}}
+                    onAction={() => removeGroupBy(index)}
+                  />
+                )}
+              </Fragment>
             );
           }
         )}
@@ -1369,7 +1522,11 @@ function QueryClauseActionsEditor() {
           orderStart={QUERY_ACTION_ORDER.filter}
           pendingRows={draftFilters.pendingRows}
           summary={draftQuery}
-          targetAction={ADD_FILTER_ACTION_ID}
+          targetAction={(filter, index) =>
+            filter && getSearchFilterDescriptor(filter)
+              ? getChangeFilterValueActionId(index)
+              : ADD_FILTER_ACTION_ID
+          }
         />
         <CMDKAction
           id="spans-sort"

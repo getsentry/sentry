@@ -341,6 +341,7 @@ export function CommandPalette({
     disabledKeys,
   });
   const retainedFocusKeyRef = useRef<string | number | null>(null);
+  const automaticallyFocusedKeyRef = useRef<string | number | null>(null);
   const focusedAction = actions.find(
     action => action.key === treeState.selectionManager.focusedKey
   );
@@ -430,6 +431,7 @@ export function CommandPalette({
   }, [treeState.collection, treeState.selectionManager]);
 
   const resetResultsNavigation = useCallback(() => {
+    automaticallyFocusedKeyRef.current = null;
     mouseLeftResultsRef.current = false;
     treeState.selectionManager.setFocusedKey(null);
     if (resultsListRef.current) {
@@ -459,6 +461,7 @@ export function CommandPalette({
       return;
     }
     retainedFocusKeyRef.current = null;
+    automaticallyFocusedKeyRef.current = null;
 
     if (treeState.collection.getItem(retainedFocusKey) === null) {
       resetResultsNavigation();
@@ -471,14 +474,16 @@ export function CommandPalette({
   }, [resetResultsNavigation, treeState.collection, treeState.selectionManager]);
 
   useLayoutEffect(() => {
+    const focusedKey = treeState.selectionManager.focusedKey;
     if (
       state.action !== null ||
-      treeState.selectionManager.focusedKey !== null ||
       mouseLeftResultsRef.current ||
-      firstFocusableKey === null
+      firstFocusableKey === null ||
+      (focusedKey !== null && focusedKey !== automaticallyFocusedKeyRef.current)
     ) {
       return;
     }
+    automaticallyFocusedKeyRef.current = firstFocusableKey.key;
     treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
   }, [state.action, treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
@@ -539,6 +544,7 @@ export function CommandPalette({
       }
 
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        automaticallyFocusedKeyRef.current = null;
         setFrozenList({
           actions: computedActions,
           prefixMap: computedPrefixMap,

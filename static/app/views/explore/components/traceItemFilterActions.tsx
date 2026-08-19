@@ -142,9 +142,40 @@ export function replaceSearchFilterInQuery(
 }
 
 export function getSearchFilterAttribute(query: string): string | null {
+  return getSearchFilterDescriptor(query)?.attributeKey ?? null;
+}
+
+export function getSearchFilterDescriptor(
+  query: string
+): {attributeKey: string; operator: TermOperator} | null {
   const tokens = parseSearch(query);
   const filters = tokens?.filter(token => token.type === Token.FILTER) ?? [];
-  return filters.length === 1 ? filters[0]!.key.text : null;
+  if (filters.length !== 1) {
+    return null;
+  }
+
+  const filter = filters[0]!;
+  let operator = filter.operator;
+  if (filter.negated) {
+    switch (operator) {
+      case TermOperator.DEFAULT:
+        operator = TermOperator.NOT_EQUAL;
+        break;
+      case TermOperator.CONTAINS:
+        operator = TermOperator.DOES_NOT_CONTAIN;
+        break;
+      case TermOperator.STARTS_WITH:
+        operator = TermOperator.DOES_NOT_START_WITH;
+        break;
+      case TermOperator.ENDS_WITH:
+        operator = TermOperator.DOES_NOT_END_WITH;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return {attributeKey: filter.key.text, operator};
 }
 
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
@@ -168,6 +199,7 @@ interface TraceItemFilterActionsProps {
   };
   displayLabel?: string;
   initialAttributeKey?: string;
+  initialOperator?: TermOperator;
 }
 
 function TraceItemFilterActionsComponent({
@@ -177,6 +209,7 @@ function TraceItemFilterActionsComponent({
   displayLabel,
   id,
   initialAttributeKey,
+  initialOperator,
   stringAttributes,
   traceItemType,
 }: TraceItemFilterActionsProps) {
@@ -196,6 +229,31 @@ function TraceItemFilterActionsComponent({
       onAction: () => addSearchFilter({key: tag.key, op: operator, value}),
     };
   };
+
+  const valueResource =
+    (tag: Tag, operator: TermOperator) =>
+    (query: string, context: {state?: 'selected'}) => {
+      const options = traceItemAttributeValuesQueryOptions({
+        datetime: selection.datetime,
+        organizationSlug: organization.slug,
+        projectIds: selection.projects,
+        searchQuery: query,
+        tagKey: tag.key,
+        traceItemType,
+        type: 'string',
+      });
+
+      return cmdkQueryOptions({
+        ...options,
+        select: response => {
+          const actions = response.json.flatMap(item =>
+            item.value === null ? [] : [makeValueAction(tag, operator, item.value)]
+          );
+          return actions.length > 0 ? [{display: {label: t('Value')}, actions}] : [];
+        },
+        enabled: context.state === 'selected',
+      });
+    };
 
   const renderOperatorActions = (tag: Tag, type: 'boolean' | 'string') => {
     const operators = FILTER_OPERATORS[type];
@@ -226,32 +284,7 @@ function TraceItemFilterActionsComponent({
               key={operator || 'is'}
               display={display}
               prompt={t('Search for value')}
-              resource={(query, context) => {
-                const options = traceItemAttributeValuesQueryOptions({
-                  datetime: selection.datetime,
-                  organizationSlug: organization.slug,
-                  projectIds: selection.projects,
-                  searchQuery: query,
-                  tagKey: tag.key,
-                  traceItemType,
-                  type: 'string',
-                });
-
-                return cmdkQueryOptions({
-                  ...options,
-                  select: response => {
-                    const actions = response.json.flatMap(item =>
-                      item.value === null
-                        ? []
-                        : [makeValueAction(tag, operator, item.value)]
-                    );
-                    return actions.length > 0
-                      ? [{display: {label: t('Value')}, actions}]
-                      : [];
-                  },
-                  enabled: context.state === 'selected',
-                });
-              }}
+              resource={valueResource(tag, operator)}
             />
           );
         })}
@@ -281,6 +314,41 @@ function TraceItemFilterActionsComponent({
   const initialBooleanAttribute = initialAttributeKey
     ? booleanAttributes[initialAttributeKey]
     : undefined;
+
+  if (initialOperator !== undefined && initialStringAttribute) {
+    return (
+      <CMDKAction
+        id={id}
+        actionPanel={actionPanel}
+        actionContext="filter"
+        display={{label: displayLabel ?? t('Change Filter Value')}}
+        keywords={['change', 'filter', 'value']}
+        prompt={t('Search for value')}
+        resource={valueResource(initialStringAttribute, initialOperator)}
+      />
+    );
+  }
+
+  if (initialOperator !== undefined && initialBooleanAttribute) {
+    return (
+      <CMDKAction
+        id={id}
+        actionPanel={actionPanel}
+        actionContext="filter"
+        display={{label: displayLabel ?? t('Change Filter Value')}}
+        keywords={['change', 'filter', 'value']}
+      >
+        <CMDKAction display={{label: t('Value')}}>
+          {BOOLEAN_FILTER_VALUES.map(value => (
+            <CMDKAction
+              key={value}
+              {...makeValueAction(initialBooleanAttribute, initialOperator, value)}
+            />
+          ))}
+        </CMDKAction>
+      </CMDKAction>
+    );
+  }
 
   return (
     <CMDKAction
@@ -318,7 +386,7 @@ function TraceItemFilterRowsComponent({
   orderStart: number;
   pendingRows: number;
   summary: string;
-  targetAction: string;
+  targetAction: string | ((filter: string, index: number) => string);
   onClearFilter?: (index: number) => void;
   onDeleteFilter?: (index: number) => void;
 }) {
@@ -339,7 +407,11 @@ function TraceItemFilterRowsComponent({
           }}
           keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
           order={orderStart + index}
-          targetAction={targetAction}
+          targetAction={
+            typeof targetAction === 'function'
+              ? targetAction(filter, index)
+              : targetAction
+          }
         />
         {filter && onClearFilter && (
           <CMDKAction
