@@ -430,8 +430,8 @@ function TriggeredConditionDetails({
               feedbackOptions={{
                 messagePlaceholder: t('Tell us what you think about this metric issue.'),
                 tags: {
-                  ['feedback.source']: 'metric_issue_details',
-                  ['feedback.owner']: 'aci',
+                  'feedback.source': 'metric_issue_details',
+                  'feedback.owner': 'aci',
                 },
               }}
             />

@@ -411,7 +411,7 @@ export function SearchQueryBuilderCombobox<
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
   keepVisibleRef,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
