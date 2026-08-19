@@ -82,6 +82,12 @@ const MORE_ACTIONS_ORDER = {
   deleteChart: 60,
 } as const;
 
+const QUERY_ACTION_ORDER = {
+  sort: 0,
+  groupBy: 100,
+  filter: 200,
+} as const;
+
 const ADD_FILTER_ACTION_ID = 'spans-add-filter';
 const ADD_GROUP_BY_ACTION_ID = 'spans-add-group-by';
 
@@ -328,6 +334,7 @@ function SeriesActionsComponent({
     <Fragment>
       <CMDKAction
         id={`${seriesId}-source`}
+        deferChildren
         display={{
           label: t('Source'),
           trailingItem: <QueryValue value={sourceSummary} />,
@@ -353,6 +360,10 @@ function SeriesActionsComponent({
               key={aggregate}
               display={{
                 label: aggregate,
+                labelSuffix:
+                  aggregate === aggregateSummary ? (
+                    <QueryValue value={t('Current')} />
+                  ) : undefined,
                 trailingItem: getAggregateKind(aggregate),
               }}
               onAction={() => {
@@ -750,25 +761,25 @@ function QueryClauseActions() {
   };
   return (
     <CMDKChainedActionScope>
-      <CMDKTerminalActionScope>
-        <CMDKAction
-          display={{label: t('Apply Changes')}}
-          keywords={['apply', 'save', 'changes']}
-          onAction={() => {
-            setQueryParams({
-              aggregateFields: [
-                ...draftGroupBys.map(groupBy => ({groupBy})),
-                ...draftVisualizes.map(visualize => visualize.serialize()),
-              ],
-              aggregateSortBys: draftAggregateSortBys,
-              mode: draftMode,
-              query: draftQuery,
-              sortBys: draftSampleSortBys,
-            });
-          }}
-        />
-      </CMDKTerminalActionScope>
       <CMDKAction display={{label: t('Commands')}}>
+        <CMDKTerminalActionScope>
+          <CMDKAction
+            display={{label: t('Apply Changes')}}
+            keywords={['apply', 'save', 'changes']}
+            onAction={() => {
+              setQueryParams({
+                aggregateFields: [
+                  ...draftGroupBys.map(groupBy => ({groupBy})),
+                  ...draftVisualizes.map(visualize => visualize.serialize()),
+                ],
+                aggregateSortBys: draftAggregateSortBys,
+                mode: draftMode,
+                query: draftQuery,
+                sortBys: draftSampleSortBys,
+              });
+            }}
+          />
+        </CMDKTerminalActionScope>
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction
@@ -906,24 +917,27 @@ function QueryClauseActions() {
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
         {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(
-          (groupBy, index) => (
-            <CMDKAction
-              key={
-                groupBy
-                  ? `${groupBy}-${index}`
-                  : `pending-group-by-${index - draftGroupBys.length}`
-              }
-              actionContext={`group-by:${index}`}
-              display={{
-                label: t('Group By'),
-                trailingItem: <QueryValue value={groupBy} />,
-              }}
-              keywords={['group', 'by', 'attribute', groupBy]}
-              targetAction={ADD_GROUP_BY_ACTION_ID}
-            />
-          )
+          (groupBy, index) => {
+            const rowId = `spans-group-by-${index}`;
+
+            return (
+              <CMDKAction
+                key={rowId}
+                id={rowId}
+                actionContext={`group-by:${index}`}
+                display={{
+                  label: t('Group By'),
+                  trailingItem: <QueryValue value={groupBy} />,
+                }}
+                keywords={['group', 'by', 'attribute', groupBy]}
+                order={QUERY_ACTION_ORDER.groupBy + index}
+                targetAction={ADD_GROUP_BY_ACTION_ID}
+              />
+            );
+          }
         )}
         <TraceItemFilterRows
+          orderStart={QUERY_ACTION_ORDER.filter}
           pendingRows={draftFilters.pendingRows}
           summary={draftQuery}
           targetAction={ADD_FILTER_ACTION_ID}
@@ -934,6 +948,7 @@ function QueryClauseActions() {
             label: t('Sort by'),
             trailingItem: <QueryValue value={sortBySummary} />,
           }}
+          order={QUERY_ACTION_ORDER.sort}
           prompt={t('Search for an attribute')}
         >
           <SortActions

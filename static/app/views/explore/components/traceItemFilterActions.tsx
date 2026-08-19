@@ -232,10 +232,12 @@ function TraceItemFilterActionsComponent({
 export const TraceItemFilterActions = memo(TraceItemFilterActionsComponent);
 
 function TraceItemFilterRowsComponent({
+  orderStart,
   pendingRows,
   summary,
   targetAction,
 }: {
+  orderStart: number;
   pendingRows: number;
   summary: string;
   targetAction: string;
@@ -243,18 +245,24 @@ function TraceItemFilterRowsComponent({
   const filters = getFilterRows(summary);
   const rows = [...filters, ...Array.from({length: pendingRows}, () => '')];
 
-  return rows.map((filter, index) => (
-    <CMDKAction
-      key={filter ? `${filter}-${index}` : `pending-filter-${index - filters.length}`}
-      actionContext={`filter:${index}`}
-      display={{
-        label: t('Filter By'),
-        trailingItem: <QueryValue value={filter} />,
-      }}
-      keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
-      targetAction={targetAction}
-    />
-  ));
+  return rows.map((filter, index) => {
+    const rowId = `trace-item-filter-${index}`;
+
+    return (
+      <CMDKAction
+        key={rowId}
+        id={rowId}
+        actionContext={`filter:${index}`}
+        display={{
+          label: t('Filter By'),
+          trailingItem: <QueryValue value={filter} />,
+        }}
+        keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
+        order={orderStart + index}
+        targetAction={targetAction}
+      />
+    );
+  });
 }
 
 export const TraceItemFilterRows = memo(TraceItemFilterRowsComponent);

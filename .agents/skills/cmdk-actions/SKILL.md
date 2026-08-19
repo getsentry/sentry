@@ -78,6 +78,9 @@ interface CMDKActionProps {
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
 
+  // For expensive static prompt actions, mount children only after drill-in.
+  deferChildren?: boolean;
+
   // --- Group display ---
 
   // Overrides the input placeholder when the user drills into this action.
@@ -212,6 +215,22 @@ const assigneeIcon = group.assignedTo ? (
   {/* children */}
 </CMDKAction>;
 ```
+
+### Deferred static children
+
+Use `deferChildren` on a prompt action when its static picker tree is expensive
+to build and is only needed after drill-in. The parent action remains visible,
+but its children do not mount or register until the action is selected.
+
+```tsx
+<CMDKAction deferChildren display={{label: t('Source')}} prompt={t('Search for sources')}>
+  <ExpensiveSourceActions />
+</CMDKAction>
+```
+
+Use this only with `prompt`. Deferred children do not participate in top-level
+fuzzy search until the user opens their parent, so keep small or broadly useful
+action trees eager.
 
 ### 4. Async resource picker
 
@@ -777,6 +796,7 @@ without registering the picker's children a second time:
 - [ ] `resource` functions set `enabled: context.state === 'selected'` to defer fetching (or a query-content check for contextual resources)
 - [ ] `select` in resource options returns `CommandPaletteAction[]`
 - [ ] `prompt` is set on any drill-target that replaces the search placeholder
+- [ ] Expensive static prompt trees use `deferChildren`; small trees remain eager so their children participate in top-level search
 - [ ] `limit` is set on resource nodes to avoid overwhelming the list (default 4 only applies when `resource` AND `children` is a render-prop function; auto-render mode has no default)
 - [ ] `staleTime: Infinity` for stable lists (projects, nav items); `staleTime: 30_000` for dynamic data
 - [ ] `id="cmdk:supplementary:..."` on any section that should always sort last

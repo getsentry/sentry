@@ -352,6 +352,113 @@ describe('CommandPalette', () => {
     );
   });
 
+  it('restores the aggregate function row after selecting a value', async () => {
+    function AggregateActions() {
+      const [aggregate, setAggregate] = useState('count');
+
+      return (
+        <CommandPaletteSlot name="page">
+          <CMDKAction display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction display={{label: 'Commands'}}>
+                <CMDKAction display={{label: 'Add Chart'}} onAction={() => {}} />
+              </CMDKAction>
+              <CMDKAction display={{label: 'Chart A'}}>
+                <CMDKAction
+                  display={{label: 'Aggregate function', trailingItem: aggregate}}
+                >
+                  <CMDKAction
+                    display={{
+                      label: 'avg',
+                      labelSuffix: aggregate === 'avg' ? 'Current' : undefined,
+                    }}
+                    onAction={() => setAggregate('avg')}
+                  />
+                </CMDKAction>
+              </CMDKAction>
+            </CMDKChainedActionScope>
+          </CMDKAction>
+        </CommandPaletteSlot>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <AggregateActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Aggregate function/})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'avg'}));
+
+    expect(
+      await screen.findByRole('option', {name: /Aggregate function/})
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: /avg/})).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Group By', 'group-by'],
+    ['Filter By', 'filter-by'],
+  ])('restores the %s row after its pending value is completed', async (label, id) => {
+    function DynamicQueryRowActions() {
+      const [value, setValue] = useState('');
+      const targetId = `add-${id}`;
+      const rowId = `${id}-row-0`;
+
+      return (
+        <CommandPaletteSlot name="page">
+          <CMDKAction display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction display={{label: 'Commands'}}>
+                <CMDKAction display={{label: 'Add Chart'}} onAction={() => {}} />
+                <CMDKAction
+                  id={targetId}
+                  display={{label: `Add ${label}`}}
+                  prompt="Search for attribute"
+                >
+                  <CMDKAction
+                    display={{label: 'environment'}}
+                    onAction={() => setValue('environment')}
+                  />
+                </CMDKAction>
+              </CMDKAction>
+              <CMDKAction display={{label: 'Query'}}>
+                <CMDKAction
+                  key={value || `pending-${id}`}
+                  id={rowId}
+                  display={{label, trailingItem: value}}
+                  targetAction={targetId}
+                />
+              </CMDKAction>
+            </CMDKChainedActionScope>
+          </CMDKAction>
+        </CommandPaletteSlot>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicQueryRowActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: label}));
+    await userEvent.click(await screen.findByRole('option', {name: 'environment'}));
+
+    expect(await screen.findByRole('option', {name: label})).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+  });
+
   it('keeps a multi-select chained action picker open on shift-enter', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     const onAction = jest.fn();
@@ -580,7 +687,7 @@ describe('CommandPalette', () => {
     expect(onAddChart).not.toHaveBeenCalled();
   });
 
-  it('restores arrow navigation after a panel action changes the collection', async () => {
+  it('preserves the focused row after a panel action changes the collection', async () => {
     const onEditChart = jest.fn();
 
     function DynamicChartActions() {
@@ -607,13 +714,18 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <DynamicChartActions />
+        <CMDKAction display={{label: 'Traces'}} prompt="Search traces">
+          <DynamicChartActions />
+        </CMDKAction>
       </GlobalActionsComponent>
     );
 
+    await userEvent.click(await screen.findByRole('option', {name: 'Traces'}));
     const input = await screen.findByRole('textbox', {
       name: 'Search commands',
     });
+    await screen.findByRole('option', {name: 'Chart A'});
+    await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
       within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
@@ -623,9 +735,92 @@ describe('CommandPalette', () => {
     expect(await screen.findByText('Chart B')).toBeInTheDocument();
     expect(input).toHaveFocus();
 
-    await userEvent.keyboard('{ArrowDown}{Enter}');
+    await userEvent.keyboard('{Enter}');
 
     expect(onEditChart).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a chained action selected from the contextual root', async () => {
+    function DynamicTraceActions() {
+      const [charts, setCharts] = useState(['Chart A']);
+
+      return (
+        <CMDKAction display={{label: 'Traces'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction
+              display={{label: 'Add Chart'}}
+              onAction={() =>
+                setCharts(current => [
+                  ...current,
+                  `Chart ${String.fromCharCode(65 + current.length)}`,
+                ])
+              }
+            />
+            {charts.map(chart => (
+              <CMDKAction key={chart} display={{label: chart}} onAction={() => {}} />
+            ))}
+          </CMDKChainedActionScope>
+        </CMDKAction>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicTraceActions />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Chart'}));
+    expect(await screen.findByRole('option', {name: 'Chart B'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'Chart C'})).toBeInTheDocument();
+  });
+
+  it('keeps dynamically registered actions in explicit order', async () => {
+    function DynamicQueryActions() {
+      const [hasGroupBy, setHasGroupBy] = useState(false);
+
+      return (
+        <Fragment>
+          <CMDKAction
+            actionPanel={{context: 'query', label: 'Add Group By', only: true}}
+            display={{label: 'Add Group By'}}
+            onAction={() => setHasGroupBy(true)}
+          />
+          <CMDKAction
+            actionContext="query"
+            display={{label: 'Filter By'}}
+            order={200}
+            onAction={() => {}}
+          />
+          {hasGroupBy && (
+            <CMDKAction
+              actionContext="query"
+              display={{label: 'Group By'}}
+              order={100}
+              onAction={() => {}}
+            />
+          )}
+        </Fragment>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicQueryActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Filter By'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+      'Group By',
+      'Filter By',
+    ]);
   });
 
   it('closes More Actions with escape without closing the palette', async () => {
@@ -1766,6 +1961,37 @@ describe('CommandPalette', () => {
   });
 
   describe('prompt actions', () => {
+    it('defers expensive static children until the prompt is selected', async () => {
+      const renderChildren = jest.fn();
+
+      function ExpensiveChildren() {
+        renderChildren();
+        return <CMDKAction display={{label: 'span.duration'}} onAction={() => {}} />;
+      }
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction
+            deferChildren
+            display={{label: 'Source'}}
+            prompt="Search for sources"
+          >
+            <ExpensiveChildren />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Source'});
+      expect(renderChildren).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Source'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'span.duration'})
+      ).toBeInTheDocument();
+      expect(renderChildren).toHaveBeenCalled();
+    });
+
     function PromptAction() {
       return (
         <CMDKAction display={{label: 'DSN Tools'}}>

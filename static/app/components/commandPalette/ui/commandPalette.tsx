@@ -38,6 +38,7 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import type {CMDKNavStack} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {
   getLocationHref,
   isExternalLocation,
@@ -102,6 +103,23 @@ type CMDKFlatItem = CollectionTreeNode<CMDKActionData> & {
 };
 
 const EMPTY_PREFIX_MAP = new Map<string, string[]>();
+
+function getChainedReturnFocusKey(
+  stack: CMDKNavStack | null,
+  anchorKey: string
+): string | number | null {
+  let current = stack;
+  let returnFocusKey: string | number | null = null;
+
+  // Keep the oldest originating row below the anchor. Nested pickers each carry
+  // their own origin, but the first one is the row visible after returning.
+  while (current && current.value.key !== anchorKey) {
+    returnFocusKey = current.value.returnFocusKey ?? returnFocusKey;
+    current = current.previous;
+  }
+
+  return returnFocusKey;
+}
 
 interface CMDKActionSection {
   header: CMDKFlatItem | undefined;
@@ -331,6 +349,7 @@ export function CommandPalette({
     }),
     disabledKeys,
   });
+  const retainedFocusKeyRef = useRef<string | number | null>(null);
   const focusedAction = actions.find(
     action => action.key === treeState.selectionManager.focusedKey
   );
@@ -441,8 +460,28 @@ export function CommandPalette({
       return;
     }
     previousActionKeyRef.current = currentActionKey;
+    if (retainedFocusKeyRef.current !== null) {
+      return;
+    }
     resetResultsNavigation();
   }, [currentActionKey, resetResultsNavigation]);
+
+  useLayoutEffect(() => {
+    const retainedFocusKey = retainedFocusKeyRef.current;
+    if (retainedFocusKey === null) {
+      return;
+    }
+    retainedFocusKeyRef.current = null;
+
+    if (treeState.collection.getItem(retainedFocusKey) === null) {
+      resetResultsNavigation();
+      return;
+    }
+
+    mouseLeftResultsRef.current = false;
+    treeState.selectionManager.setFocused(true);
+    treeState.selectionManager.setFocusedKey(retainedFocusKey);
+  }, [resetResultsNavigation, treeState.collection, treeState.selectionManager]);
 
   useLayoutEffect(() => {
     if (
@@ -597,6 +636,7 @@ export function CommandPalette({
       const resultIndex = selectionActions.indexOf(action);
       const sourceAction = getSourceAction(action, selectionActions, selectionPrefixMap);
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
+      const returnFocusKey = treeState.selectionManager.focusedKey ?? key ?? undefined;
 
       if (action.targetAction) {
         const targetAction = findCollectionNode(store.tree(), action.targetAction);
@@ -610,6 +650,7 @@ export function CommandPalette({
           key: targetAction.key,
           label: targetAction.display.label,
           prompt: 'prompt' in targetAction ? targetAction.prompt : undefined,
+          returnFocusKey,
         });
         return;
       }
@@ -637,6 +678,7 @@ export function CommandPalette({
           label: sourceAction.display.label,
           prompt: 'prompt' in sourceAction ? sourceAction.prompt : undefined,
           query: carriedQuery,
+          returnFocusKey,
         });
         return;
       }
@@ -649,6 +691,7 @@ export function CommandPalette({
           label: action.display.label,
           prompt: 'prompt' in action ? action.prompt : undefined,
           query: action.textInput.initialValue ?? '',
+          returnFocusKey,
         });
         return;
       }
@@ -660,6 +703,7 @@ export function CommandPalette({
           key: action.key,
           label: action.display.label,
           prompt: action.prompt,
+          returnFocusKey,
         });
         return;
       }
@@ -671,6 +715,9 @@ export function CommandPalette({
           action.onMultiSelect();
           dispatch({type: 'set query', query: ''});
         } else {
+          retainedFocusKeyRef.current =
+            getChainedReturnFocusKey(state.action, action.chainedActionAnchor.key) ??
+            treeState.selectionManager.focusedKey;
           action.onAction();
           dispatch({
             type: 'return to anchor',
@@ -708,7 +755,9 @@ export function CommandPalette({
       dispatch,
       navigate,
       state.query,
+      state.action,
       store,
+      treeState.selectionManager,
     ]
   );
 
@@ -719,13 +768,12 @@ export function CommandPalette({
   const onPanelActionSelection = useCallback(
     (key: string | number | null) => {
       setIsActionsOpen(false);
-      resetResultsNavigation();
       onActionSelection(key, undefined, {
         actions: panelActions,
         prefixMap: EMPTY_PREFIX_MAP,
       });
     },
-    [onActionSelection, panelActions, resetResultsNavigation]
+    [onActionSelection, panelActions]
   );
 
   const handleActionsKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {

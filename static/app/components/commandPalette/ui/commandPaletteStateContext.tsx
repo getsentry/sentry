@@ -18,7 +18,13 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
  */
 export type CMDKNavStack = {
   previous: CMDKNavStack | null;
-  value: {key: string; label: string; query: string; prompt?: string};
+  value: {
+    key: string;
+    label: string;
+    query: string;
+    prompt?: string;
+    returnFocusKey?: string | number;
+  };
 };
 
 export type CommandPaletteState = {
@@ -52,6 +58,7 @@ type CommandPaletteAction =
       type: 'push action';
       prompt?: string;
       query?: string;
+      returnFocusKey?: string | number;
     }
   | {type: 'trigger action'}
   | {anchor: CMDKChainedActionAnchor; type: 'return to anchor'}
@@ -137,6 +144,7 @@ function commandPaletteReducer(
             label: action.label,
             prompt: action.prompt,
             query: state.query,
+            returnFocusKey: action.returnFocusKey,
           },
           previous: state.action,
         },

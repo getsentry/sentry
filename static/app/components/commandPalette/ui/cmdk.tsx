@@ -120,6 +120,8 @@ interface CMDKActionProps<TData = unknown> {
   /** Exposes this action in the contextual More Actions panel. */
   actionPanel?: CMDKActionPanel;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /** Mounts static children only after this prompt action is selected. */
+  deferChildren?: boolean;
   /** Keeps the action visible while preventing selection. */
   disabled?: boolean;
   /**
@@ -209,6 +211,7 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
  */
 export function CMDKAction<TData = unknown>({
   actionContext,
+  deferChildren,
   disabled,
   display,
   keywords,
@@ -328,6 +331,7 @@ export function CMDKAction<TData = unknown>({
           ? query
           : matchingNavAction.value.query
         : '';
+  const resolvedChildren = deferChildren && state !== 'selected' ? null : children;
 
   const enclosingAction = useMemo(
     () => ({key, label: display.label, parentKey, prompt}),
@@ -347,7 +351,7 @@ export function CMDKAction<TData = unknown>({
       return (
         <CMDKCollection.Context.Provider value={key}>
           <CMDKEnclosingActionProvider value={enclosingAction}>
-            {typeof children === 'function' ? null : children}
+            {typeof resolvedChildren === 'function' ? null : resolvedChildren}
           </CMDKEnclosingActionProvider>
         </CMDKCollection.Context.Provider>
       );
@@ -356,7 +360,7 @@ export function CMDKAction<TData = unknown>({
     return (
       <CMDKEnclosingActionProvider value={enclosingAction}>
         <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
-          {children}
+          {resolvedChildren}
         </CMDKActionWithResource>
       </CMDKEnclosingActionProvider>
     );
@@ -365,7 +369,7 @@ export function CMDKAction<TData = unknown>({
   return (
     <CMDKCollection.Context.Provider value={key}>
       <CMDKEnclosingActionProvider value={enclosingAction}>
-        {typeof children === 'function' ? null : children}
+        {typeof resolvedChildren === 'function' ? null : resolvedChildren}
       </CMDKEnclosingActionProvider>
     </CMDKCollection.Context.Provider>
   );
