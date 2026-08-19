@@ -194,6 +194,13 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
 
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
 
+    # Gates both the integration directory listing and the install pipeline, which are
+    # the only two ways in: every other Origin surface (webhooks, repository sync, code
+    # mappings, platform detection) is reachable only through an installed integration.
+    # is_provider_enabled derives the flag from the key, so this checks
+    # "organizations:integrations-cursor-origin" without a feature_flag_name override.
+    requires_feature_flag = True
+
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         from sentry.integrations.cursor_origin.pipeline import CursorOriginInstallApiStep
 
