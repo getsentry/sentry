@@ -42,10 +42,19 @@ MIN_CACHEABLE_SHARE = 0.5
 # ones far above. Any cutoff in the gap works; 5% is robust to drift.
 NOT_CACHING_MAX_HIT_RATE = 0.05
 
-THRASH_MIN_WRITE_READ_RATIO = 2.0
 THRASH_MAX_HIT_RATE = 0.30
 # Only call it thrash when a substantial share of input is being written to
-# cache; healthy write:read ratios sit far below 1.
+# cache. Together with the hit-rate ceiling this is also what bounds the
+# write:read ratio, with no need to threshold that ratio separately: writes at
+# or above this share of input and reads below the ceiling put the ratio above
+# 1:1, meaning a written token is read back at most once and the cache has
+# amortised nothing.
+#
+# Where that starts costing real money rather than merely wasting the cache
+# depends on the write premium, which the span does not record: against a 1.25x
+# premium caching stops paying for itself at 3.6:1, but against 2x it is 0.9:1.
+# Findings are raised across that whole range and the money is left to pricing,
+# which knows the premium and reports an overpay only when there is one.
 THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
 
 CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
@@ -270,7 +279,6 @@ def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
     if (
         creation_tokens > 0
         and stats.hit_rate < THRASH_MAX_HIT_RATE
-        and creation_tokens >= THRASH_MIN_WRITE_READ_RATIO * stats.sum_cache_read_tokens
         and creation_tokens >= THRASH_MIN_CREATION_INPUT_FRACTION * stats.sum_input_tokens
     ):
         return CacheOutcome.THRASH

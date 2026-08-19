@@ -137,11 +137,25 @@ def make_stats(
             id="hit-rate-cutoff-exclusive-at-5pct",
         ),
         pytest.param(
+            # Writes at 30% of input against a 29% hit rate: the tightest shape
+            # the two gates admit, and the ratio it implies is barely over 1:1.
             make_stats(
-                call_count=10_000, avg_input_tokens=2_000, hit_rate=0.2, write_read_ratio=2.0
+                call_count=10_000,
+                avg_input_tokens=2_000,
+                hit_rate=0.29,
+                write_read_ratio=0.3 / 0.29,
             ),
             CacheOutcome.THRASH,
-            id="thrash-ratio-inclusive-at-2",
+            id="thrash-at-the-corner-of-both-gates",
+        ),
+        pytest.param(
+            # Reading each written token back twice is a cache doing its job, so
+            # the low hit rate is what a cold prefix costs rather than a defect.
+            make_stats(
+                call_count=10_000, avg_input_tokens=2_000, hit_rate=0.29, write_read_ratio=0.5
+            ),
+            CacheOutcome.HEALTHY,
+            id="healthy-when-writes-are-amortised",
         ),
         pytest.param(
             # Ratio over threshold but hit rate at 30%: healthy usage, not thrash
