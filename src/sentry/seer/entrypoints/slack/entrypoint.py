@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
+from sentry.issues.action_log.types import ActionSource
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -16,6 +18,7 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
@@ -165,6 +168,9 @@ class SlackAutofixEntrypoint(
     SeerAutofixEntrypoint[SlackAutofixCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
+    action_source = ActionSource.SLACK
+    autofix_referrer = AutofixReferrer.SLACK
+    commit_author_referrer = "autofix_open_pr_slack"
     autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     def __init__(
@@ -466,6 +472,16 @@ class SlackAgentEntrypoint(
     SeerAgentEntrypoint[SlackAgentCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
+    enable_coding = False
+    enable_embeds = False
+    is_interactive = True
+    only_current_user = False
+
+    @staticmethod
+    def get_code_mode_tools(organization: Organization) -> str:
+        if features.has("organizations:seer-slack-code-mode", organization):
+            return "only"
+        return "off"
 
     def __init__(
         self,

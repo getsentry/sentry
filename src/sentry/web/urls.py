@@ -1389,6 +1389,10 @@ urlpatterns += [
                     r"^cursor/",
                     include("sentry.integrations.cursor.urls"),
                 ),
+                re_path(
+                    r"^vscode/",
+                    include("sentry.integrations.vscode.urls"),
+                ),
             ]
         ),
     ),

@@ -1,14 +1,17 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
+from sentry.issues.action_log.types import ActionSource
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.event_types import SentryAppEventType
 
 
 class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
+    VSCODE = "vscode"
 
 
 class SeerAutofixEntrypoint[CachePayloadT](Protocol):
@@ -18,6 +21,9 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+    action_source: ActionSource
+    autofix_referrer: AutofixReferrer
+    commit_author_referrer: str
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
@@ -111,6 +117,15 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
     """
 
     key: SeerEntrypointKey
+    enable_coding: bool
+    enable_embeds: bool
+    is_interactive: bool
+    only_current_user: bool
+
+    @staticmethod
+    def get_code_mode_tools(organization: Organization) -> str:
+        """Return the code-mode setting supported by this surface."""
+        ...
 
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
