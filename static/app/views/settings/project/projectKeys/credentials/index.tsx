@@ -14,8 +14,6 @@ import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {getManagedIngestDisplayDsn} from 'sentry/utils/managedIngestDomain';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
-import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 type Props = {
@@ -29,7 +27,7 @@ type Props = {
   showUnreal?: boolean;
 };
 
-type TabValue = 'otlp' | 'security' | 'minidump' | 'unreal' | 'vercel' | 'credentials';
+type TabValue = 'security' | 'minidump' | 'unreal' | 'credentials';
 
 interface TabConfig {
   key: TabValue;
@@ -251,11 +249,6 @@ export function ProjectKeyCredentials({
         visible: showPublicKey && showSecretKey && showProjectId,
       },
       {
-        key: 'otlp',
-        label: t('OpenTelemetry (OTLP)'),
-        visible: true,
-      },
-      {
         key: 'security',
         label: t('Security Header'),
         visible: showSecurityEndpoint,
@@ -269,11 +262,6 @@ export function ProjectKeyCredentials({
         key: 'unreal',
         label: t('Unreal Engine'),
         visible: showUnreal,
-      },
-      {
-        key: 'vercel',
-        label: t('Vercel Drains'),
-        visible: true,
       },
     ];
     return tabs.filter(tab => tab.visible);
@@ -303,7 +291,7 @@ export function ProjectKeyCredentials({
   const tabParser = useMemo(
     () => ({
       ...parseAsStringLiteral(availableTabs.map(tab => tab.key)),
-      defaultValue: availableTabs[0]?.key ?? 'otlp',
+      defaultValue: availableTabs[0]?.key ?? 'security',
     }),
     [availableTabs]
   );
@@ -312,15 +300,6 @@ export function ProjectKeyCredentials({
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'otlp':
-        return (
-          <OtlpTab
-            integrationEndpoint={data.dsn.integration}
-            logsEndpoint={data.dsn.otlp_logs}
-            tracesEndpoint={data.dsn.otlp_traces}
-            publicKey={data.public}
-          />
-        );
       case 'security':
         return <SecurityTab securityEndpoint={data.dsn.security} />;
       case 'minidump':
@@ -336,14 +315,6 @@ export function ProjectKeyCredentials({
             showPublicKey={showPublicKey}
             showSecretKey={showSecretKey}
             showProjectId={showProjectId}
-          />
-        );
-      case 'vercel':
-        return (
-          <VercelTab
-            integrationEndpoint={data.dsn.integration}
-            publicKey={data.public}
-            tracesEndpoint={data.dsn.otlp_traces}
           />
         );
       default:

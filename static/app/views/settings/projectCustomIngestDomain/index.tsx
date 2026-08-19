@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -12,7 +13,8 @@ import {
   setFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -87,6 +89,7 @@ const DIAGNOSTIC_STATUS = {
 >;
 
 export default function ProjectCustomIngestDomain() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
@@ -94,6 +97,10 @@ export default function ProjectCustomIngestDomain() {
     lastCheckedAt: string | null;
   } | null>(null);
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const dnsRecordInputStyle = {
+    backgroundColor: theme.tokens.background.primary,
+    fontSize: theme.font.size.lg,
+  };
   const path = {
     organizationIdOrSlug: organization.slug,
     projectIdOrSlug: project.slug,
@@ -225,7 +232,7 @@ export default function ProjectCustomIngestDomain() {
             variant: 'info',
           },
           pending_dns: {
-            description: t('Add the CNAME record below, then wait for DNS to update.'),
+            description: null,
             label: t('Waiting for DNS'),
             variant: 'warning',
           },
@@ -251,7 +258,7 @@ export default function ProjectCustomIngestDomain() {
           },
         } satisfies Record<
           ManagedIngestDomainStatus,
-          {description: string; label: string; variant: TagProps['variant']}
+          {description: string | null; label: string; variant: TagProps['variant']}
         >
       )[domain.status]
     : null;
@@ -306,7 +313,7 @@ export default function ProjectCustomIngestDomain() {
           <Stack gap="xl">
             <FieldGroup title={t('Custom domain')}>
               <Stack gap="lg">
-                <Flex align="start" justify="between" gap="lg" wrap="wrap">
+                <Flex align="center" justify="between" gap="lg" wrap="wrap">
                   <Stack gap="sm">
                     <Flex align="center" gap="md" wrap="wrap">
                       <Text size="lg" bold>
@@ -314,7 +321,9 @@ export default function ProjectCustomIngestDomain() {
                       </Text>
                       {status && <Tag variant={status.variant}>{status.label}</Tag>}
                     </Flex>
-                    {status && <Text variant="muted">{status.description}</Text>}
+                    {status?.description && (
+                      <Text variant="muted">{status.description}</Text>
+                    )}
                   </Stack>
 
                   {(domain.diagnostics.ranAt || domain.status !== 'deleting') && (
@@ -348,37 +357,56 @@ export default function ProjectCustomIngestDomain() {
                   domain.status !== 'deleting' && (
                     <Stack gap="lg">
                       <Stack.Separator />
-                      <Stack gap="xs">
-                        <Heading as="h2" size="sm">
-                          {domain.status === 'pending_dns'
-                            ? t('Add this CNAME record')
-                            : t('DNS record')}
-                        </Heading>
-                        <Text variant="muted">
-                          {t('Create this record with your DNS provider.')}
-                        </Text>
-                      </Stack>
-                      <Grid
-                        columns={{xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
-                        gap="lg"
+                      <Heading as="h2" size="md">
+                        {domain.status === 'pending_dns'
+                          ? t('Add this CNAME record')
+                          : t('DNS record')}
+                      </Heading>
+                      <Container
+                        background="secondary"
+                        border="muted"
+                        containerType="inline-size"
+                        padding="lg"
+                        radius="md"
                       >
-                        <Stack gap="sm">
-                          <Text size="sm" variant="muted">
-                            {t('Name')}
-                          </Text>
-                          <TextCopyInput aria-label={t('CNAME name')}>
-                            {domain.hostname}
-                          </TextCopyInput>
+                        <Stack gap="lg">
+                          <Grid columns={{xs: '1fr', md: '8rem minmax(0, 1fr)'}} gap="lg">
+                            <Stack gap="sm">
+                              <Text size="sm" bold>
+                                {t('Type')}
+                              </Text>
+                              <Input
+                                aria-label={t('DNS record type')}
+                                readOnly
+                                style={dnsRecordInputStyle}
+                                value="CNAME"
+                              />
+                            </Stack>
+                            <Stack gap="sm">
+                              <Text size="sm" bold>
+                                {t('Name')}
+                              </Text>
+                              <TextCopyInput
+                                aria-label={t('CNAME name')}
+                                style={dnsRecordInputStyle}
+                              >
+                                {domain.hostname}
+                              </TextCopyInput>
+                            </Stack>
+                          </Grid>
+                          <Stack gap="sm">
+                            <Text size="sm" bold>
+                              {t('Target')}
+                            </Text>
+                            <TextCopyInput
+                              aria-label={t('CNAME target')}
+                              style={dnsRecordInputStyle}
+                            >
+                              {domain.cnameTarget}
+                            </TextCopyInput>
+                          </Stack>
                         </Stack>
-                        <Stack gap="sm">
-                          <Text size="sm" variant="muted">
-                            {t('Target')}
-                          </Text>
-                          <TextCopyInput aria-label={t('CNAME target')}>
-                            {domain.cnameTarget}
-                          </TextCopyInput>
-                        </Stack>
-                      </Grid>
+                      </Container>
                       {domainConnectQuery.data?.provider === 'cloudflare' && (
                         <Alert
                           variant="info"
@@ -404,7 +432,7 @@ export default function ProjectCustomIngestDomain() {
 
                 <Stack.Separator />
 
-                <Disclosure size="sm" defaultExpanded={domain.status !== 'active'}>
+                <Disclosure size="sm" defaultExpanded={domain.status === 'error'}>
                   <Disclosure.Title>{t('Setup progress')}</Disclosure.Title>
                   <Disclosure.Content>
                     <Grid gap="lg">
@@ -485,7 +513,7 @@ export default function ProjectCustomIngestDomain() {
                     >
                       <Button
                         size="sm"
-                        variant="danger"
+                        variant="secondary"
                         busy={deleteMutation.isPending}
                         disabled={!hasWriteAccess || deleteMutation.isPending}
                       >
