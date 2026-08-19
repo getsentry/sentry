@@ -242,6 +242,16 @@ describe('SessionDetailView', () => {
     mockRouteVisits([]);
     mockVitals([]);
     mockUnhandled(0);
+    // The feedback lane rides on `issuePlatform` rather than on a dataset of its
+    // own, so `mockEmptyDatasets` does not cover it. Empty by default, like the
+    // route band: a test that is about feedback registers its own after this.
+    mockDataset('issuePlatform', 'count', []);
+    mockDataset('issuePlatform', 'rows', []);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      method: 'GET',
+      body: {data: []},
+    });
   });
 
   it('names the session from its telemetry, keeping the full id one click away', async () => {
@@ -722,7 +732,12 @@ describe('SessionDetailView', () => {
     const logsLane = screen.getByRole('button', {name: 'Logs 1', pressed: true});
     await userEvent.click(logsLane);
 
-    expect(router.location.query.telemetryType).toEqual(['metrics', 'traces', 'errors']);
+    expect(router.location.query.telemetryType).toEqual([
+      'metrics',
+      'traces',
+      'errors',
+      'feedback',
+    ]);
     expect(screen.queryByText('first log')).not.toBeInTheDocument();
     expect(screen.getByText('TypeError: boom')).toBeInTheDocument();
 
@@ -866,7 +881,7 @@ describe('SessionDetailView', () => {
       });
       expect(
         screen.getByText(
-          'Showing 0:06.00 to 0:36.00. Scroll to zoom, or drag the highlighted range above to move it.'
+          'Showing 0:06.00 to 0:36.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
         )
       ).toBeInTheDocument();
 
@@ -896,7 +911,7 @@ describe('SessionDetailView', () => {
       expect(screen.getByText('log at 60s')).toBeInTheDocument();
       expect(
         screen.getByText(
-          'Showing 0:42.00 to 1:00.00. Scroll to zoom, or drag the highlighted range above to move it.'
+          'Showing 0:42.00 to 1:00.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
         )
       ).toBeInTheDocument();
     });
@@ -926,9 +941,77 @@ describe('SessionDetailView', () => {
       expect(screen.getByText('log at 30s')).toBeInTheDocument();
       expect(
         screen.getByText(
-          'Showing 0:15.00 to 0:45.00. Scroll to zoom, or drag the highlighted range above to move it.'
+          'Showing 0:15.00 to 0:45.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
         )
       ).toBeInTheDocument();
+    });
+
+    it('resizes the range when the strip drag starts on one of its ends', async () => {
+      mockLogsAtSeconds([0, 30, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 30s')).toBeInTheDocument();
+
+      // 15s to 30s, taken the ordinary way.
+      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 500, clientY: 10});
+      await waitFor(() => {
+        expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      });
+
+      // A drag from the frame's right edge takes that end to 48s and leaves the
+      // other where it was — where a carry from the same point would have slid both.
+      dragTrack(withGeometry(overviewStrip()), {from: 500, to: 800, clientY: 10});
+      expect(
+        await screen.findByText(
+          'Showing 0:15.00 to 0:48.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
+        )
+      ).toBeInTheDocument();
+
+      // And the same from the left edge, outwards.
+      dragTrack(withGeometry(overviewStrip()), {from: 250, to: 100, clientY: 10});
+      expect(
+        await screen.findByText(
+          'Showing 0:06.00 to 0:48.00. Scroll to zoom, or drag the highlighted range above to move or resize it.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('says with the cursor what a press on the strip would do', async () => {
+      mockLogsAtSeconds([0, 30, 60]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 30s')).toBeInTheDocument();
+
+      const strip = withGeometry(overviewStrip());
+
+      // Unzoomed the frame is the whole strip, so there is nothing to take hold of.
+      pointerTrack(strip, 'pointermove', 375);
+      expect(strip).toHaveStyle({cursor: 'crosshair'});
+
+      dragTrack(strip, {from: 250, to: 500, clientY: 10});
+      await waitFor(() => {
+        expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      });
+
+      pointerTrack(strip, 'pointermove', 375);
+      expect(strip).toHaveStyle({cursor: 'grab'});
+      for (const end of [250, 500]) {
+        pointerTrack(strip, 'pointermove', end);
+        expect(strip).toHaveStyle({cursor: 'ew-resize'});
+      }
+      pointerTrack(strip, 'pointermove', 900);
+      expect(strip).toHaveStyle({cursor: 'crosshair'});
+
+      // Held rather than hovered, and held on the strip rather than on the frame:
+      // the carry moves the frame out from under the pointer, so a rule that waited
+      // on the frame would let go halfway through.
+      pointerTrack(strip, 'pointerdown', 375);
+      expect(strip).toHaveStyle({cursor: 'grabbing'});
+      pointerTrack(strip, 'pointermove', 600);
+      expect(strip).toHaveStyle({cursor: 'grabbing'});
+      pointerTrack(strip, 'pointerup', 600);
     });
   });
 
@@ -1827,7 +1910,7 @@ describe('SessionDetailView', () => {
 
       // A route already is a span of time, so clicking one performs the drag the
       // user would otherwise have to aim by hand.
-      clickTrack(trackWithGeometry(1000, 218), {clientX: 100, clientY: ROUTE_Y});
+      clickTrack(trackWithGeometry(1000, 258), {clientX: 100, clientY: ROUTE_Y});
 
       await waitFor(() => {
         expect(screen.queryByText('in the cart')).not.toBeInTheDocument();
@@ -1838,7 +1921,7 @@ describe('SessionDetailView', () => {
       // And the lanes have rescaled to the visit rather than merely being veiled
       // over: `/` ran for the session's first 20s, so the log at 5s now sits a
       // quarter of the way across instead of a twelfth.
-      clickTrack(trackWithGeometry(1000, 218), {
+      clickTrack(trackWithGeometry(1000, 258), {
         clientX: 250,
         clientY: ROUTED_LANE_Y.logs,
       });
@@ -1963,15 +2046,18 @@ describe('SessionDetailView', () => {
   });
 });
 
-/** Lane geometry from the scrubber: a 28px axis row over four 40px lanes. */
-const LANE_Y = {errors: 48, traces: 88, logs: 128, metrics: 168};
+/**
+ * Lane geometry from the scrubber: a 28px axis row over five 40px lanes, in the
+ * order the chart draws them — errors, feedback, traces, logs, metrics.
+ */
+const LANE_Y = {errors: 48, feedback: 88, traces: 128, logs: 168, metrics: 208};
 
 /**
  * The same geometry with the route band present, which inserts a 30px row under
  * the axis and pushes every lane down by it.
  */
 const ROUTE_Y = 42;
-const ROUTED_LANE_Y = {errors: 78, traces: 118, logs: 158, metrics: 198};
+const ROUTED_LANE_Y = {errors: 78, feedback: 118, traces: 158, logs: 198, metrics: 238};
 
 /**
  * The scrubber's interactive track, given the size jsdom won't. Hit testing reads
@@ -1981,7 +2067,7 @@ const ROUTED_LANE_Y = {errors: 78, traces: 118, logs: 158, metrics: 198};
  * The overview strip is deliberately *not* inside this element, so the lane
  * offsets below are unaffected by it; reach for {@link overviewStrip} instead.
  */
-function trackWithGeometry(width = 1000, height = 188) {
+function trackWithGeometry(width = 1000, height = 228) {
   return withGeometry(
     screen.getByRole('group', {name: 'Session time window'}),
     width,
@@ -2007,6 +2093,24 @@ function withGeometry(element: HTMLElement, width = 1000, height = 20) {
     toJSON: () => ({}),
   });
   return element;
+}
+
+/**
+ * One pointer event at one point, for the parts of a gesture that have to be read
+ * between its steps rather than after it.
+ */
+function pointerTrack(track: HTMLElement, type: string, clientX: number) {
+  act(() => {
+    const event = new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX,
+      clientY: 10,
+    });
+    Object.defineProperty(event, 'pointerId', {value: 1});
+    track.dispatchEvent(event);
+  });
 }
 
 /**

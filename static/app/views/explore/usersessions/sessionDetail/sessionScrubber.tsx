@@ -82,6 +82,12 @@ const MARKER_MAX = 26;
 const BAR_HEIGHT = 12;
 /** A trace can be shorter than a pixel of session. It still happened. */
 const BAR_MIN_PX = 3;
+/**
+ * How far a highlight sits outside the mark it is calling out, on every side. Used
+ * by the bar outline in both directions, so the box it draws is the painted bar
+ * grown evenly rather than a wider box pinned to one of its edges.
+ */
+const HIGHLIGHT_INSET = 2;
 /** The bar's corner. A literal now that a paint rather than CSS applies it. */
 const BAR_RADIUS_PX = 4;
 
@@ -140,6 +146,36 @@ const HIT_TOLERANCE_PX = 8;
  * pixels wide, which is legible and not aimable.
  */
 const GRAB_TOLERANCE_PX = 5;
+
+/**
+ * How much of the frame each end claims as a resize handle, and how far outside it
+ * the same handle reaches. Capped at a third of the frame apiece by the code that
+ * uses it, so a frame too thin to have a middle is still one you can pick up:
+ * carrying is the one gesture the strip has that the lanes below do not, and a
+ * wheel notch down there resizes anyway.
+ */
+const RESIZE_HANDLE_PX = 4;
+
+/**
+ * What a press on the overview's frame takes hold of: one of its ends, or the whole
+ * of it. Anywhere else on the strip is not a grip at all — it is a fresh selection.
+ */
+type OverviewGrip = 'move' | 'start' | 'end';
+
+/**
+ * How a grip announces itself. The pointer is the only thing the strip has to say
+ * this with: it is twenty pixels tall, pointer-only, and has no room for a handle
+ * drawn large enough to be read as one.
+ */
+function cursorFor(grip: OverviewGrip | null, isHeld = false): string {
+  if (grip === 'start' || grip === 'end') {
+    return 'ew-resize';
+  }
+  if (grip === 'move') {
+    return isHeld ? 'grabbing' : 'grab';
+  }
+  return 'crosshair';
+}
 
 /** An item under the pointer, and which lane it was found in. */
 interface LaneHit {
@@ -317,6 +353,19 @@ export function SessionScrubber({
   );
 
   /**
+   * Which lanes the canvas draws as bars. A property of the lane rather than of the
+   * item, because that is how the paint asks it: an item reporting no duration in a
+   * lane that has them is still drawn as a bar, and has to be called out as one.
+   *
+   * Memoized because answering it is a scan of a lane's events, and the question is
+   * asked on every pointer move.
+   */
+  const laneIsDuration = useMemo(
+    () => laneMarks.map(lane => hasDurations(lane.events)),
+    [laneMarks]
+  );
+
+  /**
    * A session with no browser telemetry has no routes to draw, and an empty
    * labelled row is worse than no row — it reads as "this session visited
    * nothing" rather than "we don't track routes here". Everything below shifts up
@@ -373,6 +422,36 @@ export function SessionScrubber({
   const toPercent = useCallback(
     (timestamp: number) => ((timestamp - view.start) / domain) * 100,
     [view.start, domain]
+  );
+
+  /**
+   * Where the paint actually puts a density mark: the centre of the bucket the item
+   * fell into, rather than the item's own timestamp. In pixels, because a bucket is
+   * a slice of the measured track and not a fraction of the domain.
+   *
+   * A highlight has to agree with this or it misses by up to half a bucket — a few
+   * pixels, which on a marker eight pixels wide is the difference between a ring
+   * around it and a ring beside it. The index is clamped exactly as `densityMarks`
+   * clamps it, so the two cannot disagree about the item landing on `view.end`.
+   *
+   * Null when there is no bucket to answer with: before the track has been measured,
+   * and for an item outside the viewport — which the paint drops rather than clamps,
+   * so a ring clamped to the nearest bucket would be the only thing marking an item
+   * that is not on screen. The timestamp is left to place those, off the edge, where
+   * the frame clips them.
+   */
+  const toBucketCentre = useCallback(
+    (timestamp: number) => {
+      if (width === 0 || timestamp < view.start || timestamp > view.start + domain) {
+        return null;
+      }
+      const index = Math.min(
+        buckets - 1,
+        Math.max(0, Math.floor(((timestamp - view.start) / domain) * buckets))
+      );
+      return ((index + 0.5) * width) / buckets;
+    },
+    [buckets, domain, view.start, width]
   );
 
   const fromClientX = useCallback(
@@ -915,13 +994,21 @@ export function SessionScrubber({
           {selected && (
             <Highlight
               hit={selected}
+              isDuration={laneIsDuration[selected.laneIndex] === true}
               toPercent={toPercent}
+              toBucketCentre={toBucketCentre}
               laneTop={laneTop}
               isSelected
             />
           )}
           {hover && hover.key !== selected?.key && (
-            <Highlight hit={hover} toPercent={toPercent} laneTop={laneTop} />
+            <Highlight
+              hit={hover}
+              isDuration={laneIsDuration[hover.laneIndex] === true}
+              toPercent={toPercent}
+              toBucketCentre={toBucketCentre}
+              laneTop={laneTop}
+            />
           )}
           {hoverAt !== null && (
             <Guide style={{left: `${toPercent(hoverAt)}%`}}>
@@ -949,7 +1036,7 @@ export function SessionScrubber({
         <Text size="xs" variant="muted">
           {isZoomed
             ? t(
-                'Showing %s to %s. Scroll to zoom, or drag the highlighted range above to move it.',
+                'Showing %s to %s. Scroll to zoom, or drag the highlighted range above to move or resize it.',
                 formatOffset(view.start - bounds.start),
                 formatOffset(view.end - bounds.start)
               )
@@ -1192,19 +1279,30 @@ function panView(
 }
 
 /**
- * One item, called out in its lane. An instant gets a ring at its timestamp; an
- * item that occupies time gets an outline around the whole of it, so what is
+ * One item, called out in its lane. A marker in a density lane gets a ring; an item
+ * in a lane drawn across time gets an outline around the whole of it, so what is
  * highlighted is the same shape as what was clicked.
+ *
+ * Every measurement here is the paint's, not the item's. The marks live on a canvas
+ * and this is a DOM element over the top of it, so the two agree only as far as they
+ * are told to: a ring goes on the bucket the paint centred the marker on, and an
+ * outline is the bar the paint drew — floor and all — grown by `HIGHLIGHT_INSET` on
+ * every side.
  */
 function Highlight({
   hit,
+  isDuration,
   toPercent,
+  toBucketCentre,
   laneTop,
   isSelected,
 }: {
   hit: LaneHit;
+  /** Whether this hit's lane is painted as bars rather than as bucketed marks. */
+  isDuration: boolean;
   /** Where the first lane starts, which the route band moves down when present. */
   laneTop: number;
+  toBucketCentre: (timestamp: number) => number | null;
   toPercent: (timestamp: number) => number;
   isSelected?: boolean;
 }) {
@@ -1215,26 +1313,34 @@ function Highlight({
 
   const top = laneTop + hit.laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
 
-  if (hit.event.duration === undefined) {
+  if (!isDuration) {
+    const centre = toBucketCentre(extent.start);
     return (
       <Ring
         aria-hidden
         data-selected={isSelected}
-        style={{left: `${toPercent(extent.start)}%`, top}}
+        style={{
+          left: centre === null ? `${toPercent(extent.start)}%` : centre,
+          top,
+        }}
       />
     );
   }
 
   const left = toPercent(extent.start);
+  const span = toPercent(extent.end) - left;
   return (
     <BarOutline
       aria-hidden
       data-selected={isSelected}
       style={{
-        left: `${left}%`,
-        width: `max(${BAR_MIN_PX + 4}px, ${toPercent(extent.end) - left}%)`,
-        top: top - (BAR_HEIGHT + 4) / 2,
-        height: BAR_HEIGHT + 4,
+        left: `calc(${left}% - ${HIGHLIGHT_INSET}px)`,
+        // The floor is the painted bar's, so a trace shorter than a pixel of session
+        // is ringed by a box four pixels wider than the three-pixel bar it is drawn
+        // as, evenly, rather than by a fixed box hanging off to the right of it.
+        width: `calc(max(${BAR_MIN_PX}px, ${span}%) + ${HIGHLIGHT_INSET * 2}px)`,
+        top: top - (BAR_HEIGHT + HIGHLIGHT_INSET * 2) / 2,
+        height: BAR_HEIGHT + HIGHLIGHT_INSET * 2,
       }}
     />
   );
@@ -1483,9 +1589,18 @@ const Overview = memo(function OverviewImpl({
    * move is measured from the pointer's total travel rather than accumulated a
    * fraction at a time, which drifts.
    */
-  const anchor = useRef<{clientX: number; from: SessionRange; isMove: boolean} | null>(
-    null
-  );
+  const anchor = useRef<{
+    clientX: number;
+    from: SessionRange;
+    grip: OverviewGrip | null;
+  } | null>(null);
+  /**
+   * The pointer's own state, kept here rather than in CSS because the gesture
+   * outlives the element it started on: the press captures the pointer to the
+   * strip, so a `:hover` or `:active` rule on the frame stops matching the moment
+   * the frame moves out from under the pointer — which is the whole of a carry.
+   */
+  const [cursor, setCursor] = useState(cursorFor(null));
 
   const domain = bounds.end - bounds.start;
   /**
@@ -1542,42 +1657,72 @@ const Overview = memo(function OverviewImpl({
   }, [events, buckets, bounds.start, domain]);
 
   /**
-   * Whether a press landed on the framed range, in pixels rather than in time. A
+   * What a press at this point would take hold of, in pixels rather than in time. A
    * deep zoom draws the frame a couple of pixels wide, which is a real thing on
-   * screen and an unaimable one — so the grab reaches a little past it, the way the
+   * screen and an unaimable one — so the grip reaches a little past it, the way the
    * lanes' own hit testing reaches past a very short bar.
+   *
+   * Takes the range rather than reading `view`, so the release can ask what the
+   * pointer is now over using the range it just committed. Asked with the old one,
+   * the pointer would sit on an end it had just dragged away from and say nothing.
    */
-  const isOnViewport = useCallback(
-    (clientX: number) => {
+  const gripAt = useCallback(
+    (clientX: number, range: SessionRange): OverviewGrip | null => {
       const rect = ref.current?.getBoundingClientRect();
-      if (!rect || rect.width === 0 || !isZoomed) {
-        return false;
+      const isZoomable = range.start > bounds.start || range.end < bounds.end;
+      if (!rect || rect.width === 0 || !isZoomable) {
+        return null;
       }
-      const from = rect.left + (toPercent(view.start) / 100) * rect.width;
-      const to = rect.left + (toPercent(view.end) / 100) * rect.width;
-      return clientX >= from - GRAB_TOLERANCE_PX && clientX <= to + GRAB_TOLERANCE_PX;
+      const from = rect.left + (toPercent(range.start) / 100) * rect.width;
+      const to = rect.left + (toPercent(range.end) / 100) * rect.width;
+      if (clientX < from - GRAB_TOLERANCE_PX || clientX > to + GRAB_TOLERANCE_PX) {
+        return null;
+      }
+      const handle = Math.min(RESIZE_HANDLE_PX, (to - from) / 3);
+      if (clientX <= from + handle) {
+        return 'start';
+      }
+      if (clientX >= to - handle) {
+        return 'end';
+      }
+      return 'move';
     },
-    [isZoomed, toPercent, view.end, view.start]
+    [bounds.end, bounds.start, toPercent]
   );
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
       return;
     }
-    anchor.current = {
-      clientX: event.clientX,
-      from: view,
-      isMove: isOnViewport(event.clientX),
-    };
+    const grip = gripAt(event.clientX, view);
+    anchor.current = {clientX: event.clientX, from: view, grip};
+    setCursor(cursorFor(grip, true));
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const start = anchor.current;
-    if (start === null || Math.abs(event.clientX - start.clientX) < MIN_DRAG_PX) {
+    if (start === null) {
+      setCursor(cursorFor(gripAt(event.clientX, view)));
       return;
     }
-    if (start.isMove) {
+    if (Math.abs(event.clientX - start.clientX) < MIN_DRAG_PX) {
+      return;
+    }
+    if (start.grip === 'start' || start.grip === 'end') {
+      // The end that was not taken hold of stays put and the one that was follows
+      // the pointer, past its opposite number if it goes that far: a pull that
+      // overshoots turns the range around rather than stopping dead against a floor
+      // it cannot see.
+      const fixed = start.grip === 'start' ? start.from.end : start.from.start;
+      const at = fromClientX(event.clientX);
+      const span = Math.max(MIN_VIEW_MS, Math.abs(at - fixed));
+      setDraft(
+        at < fixed ? {start: fixed - span, end: fixed} : {start: fixed, end: fixed + span}
+      );
+      return;
+    }
+    if (start.grip === 'move') {
       const rect = ref.current?.getBoundingClientRect();
       if (!rect || rect.width === 0) {
         return;
@@ -1601,24 +1746,22 @@ const Overview = memo(function OverviewImpl({
     }
     anchor.current = null;
 
+    let next: SessionRange | null = view;
     if (draft) {
-      onChangeView(clampWindow(draft, bounds));
+      next = clampWindow(draft, bounds);
+      onChangeView(next);
       setDraft(null);
-      return;
+    } else if (start.grip === null) {
+      // A press outside the frame jumps the range there, span intact — the same
+      // move as the drag, for when the distance is far enough that dragging it is a
+      // chore. On the frame it leaves it where it is: the gesture it began was a
+      // carry or a pull on one end, and neither has a destination at zero distance.
+      const span = view.end - view.start;
+      next = panView(view, bounds, fromClientX(event.clientX) - (view.start + span / 2));
+      onChangeView(next);
     }
 
-    // A press on the frame that went nowhere leaves it where it is: the gesture it
-    // began was a carry, and a carry of zero distance has no destination.
-    if (start.isMove) {
-      return;
-    }
-
-    // Elsewhere it jumps the range there, span intact — the same move as the drag,
-    // for when the distance is far enough that dragging it is a chore.
-    const span = view.end - view.start;
-    onChangeView(
-      panView(view, bounds, fromClientX(event.clientX) - (view.start + span / 2))
-    );
+    setCursor(cursorFor(gripAt(event.clientX, next ?? bounds)));
   };
 
   const shown = draft ?? view;
@@ -1633,10 +1776,11 @@ const Overview = memo(function OverviewImpl({
       title={
         isZoomed
           ? t(
-              'Drag the highlighted range to move it, or drag elsewhere to pick a new one'
+              'Drag the highlighted range to move it, drag either end to resize it, or drag elsewhere to pick a new one'
             )
           : t('Drag to pick a range')
       }
+      style={{cursor}}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -1644,10 +1788,7 @@ const Overview = memo(function OverviewImpl({
       <OverviewTicks ticks={ticks} buckets={buckets} />
       <OverviewShade style={{left: 0, width: `${left}%`}} />
       <OverviewShade style={{left: `${right}%`, right: 0}} />
-      <OverviewViewport
-        data-grabbable={isZoomed || undefined}
-        style={{left: `${left}%`, width: `${right - left}%`}}
-      />
+      <OverviewViewport style={{left: `${left}%`, width: `${right - left}%`}} />
     </OverviewTrack>
   );
 });
@@ -2062,6 +2203,7 @@ const OverviewTrack = styled('div')`
   grid-row: 1;
   position: relative;
   overflow: hidden;
+  /* Overridden inline for whatever the pointer is over; see cursorFor. */
   cursor: crosshair;
   touch-action: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -2099,26 +2241,14 @@ const OverviewViewport = styled('div')`
   bottom: 0;
   border: 1px solid ${p => p.theme.tokens.border.accent.vibrant};
   border-radius: ${p => p.theme.radius.xs};
-  pointer-events: none;
 
   /*
-   * The frame is also the handle, so it takes the pointer — but only once there is
-   * something to carry. Unzoomed it spans the whole strip, and a grab cursor over
-   * all of it would promise a gesture that does nothing.
-   *
-   * The events still reach the strip underneath by bubbling; this is here for the
-   * cursor, which is the only way the gesture announces itself. Hover-and-active
-   * rather than a piece of state: it survives the pointer leaving the frame
-   * mid-carry, which is exactly when the frame is moving out from under it.
+   * Decoration only. The frame is the handle, but the strip underneath does the
+   * hit testing for it: the handles are a few pixels either side of these edges,
+   * which is narrower and wider than the frame itself in turn, and the cursor has
+   * to survive the frame moving out from under the pointer mid-carry.
    */
-  &[data-grabbable] {
-    pointer-events: auto;
-    cursor: grab;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
+  pointer-events: none;
 `;
 
 const HeaderCell = styled('div')`
