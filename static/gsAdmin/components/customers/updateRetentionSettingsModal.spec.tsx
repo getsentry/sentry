@@ -142,6 +142,36 @@ describe('UpdateRetentionSettingsModal', () => {
     expect(getSpinbutton('Logs Downsampled')).toHaveValue(null);
   });
 
+  it('constrains org retention to a minimum of one day', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    expect(getSpinbutton('Org Retention')).toHaveAttribute('min', '1');
+    // Zero stays valid for category downsampled fields: it means
+    // inherit-standard there, so only the org-level field is constrained.
+    expect(getSpinbutton('Spans Downsampled')).not.toHaveAttribute('min');
+    expect(screen.getByText(/Org Retention must be at least 1 day/)).toBeInTheDocument();
+  });
+
   it('calls api with correct data when updating all fields', async () => {
     const subscription = SubscriptionFixture({
       organization,
