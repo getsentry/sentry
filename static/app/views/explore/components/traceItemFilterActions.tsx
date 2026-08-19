@@ -110,12 +110,10 @@ interface TraceItemFilterActionsProps {
   id: string;
   stringAttributes: TagCollection;
   traceItemType: TraceItemDataset;
-  actionPanelOrder?: number;
 }
 
 function TraceItemFilterActionsComponent({
   addSearchFilter,
-  actionPanelOrder,
   booleanAttributes,
   id,
   stringAttributes,
@@ -217,11 +215,6 @@ function TraceItemFilterActionsComponent({
     <CMDKAction
       id={id}
       actionContext="filter"
-      actionPanel={{
-        context: 'filter',
-        label: t('Add Filter By'),
-        order: actionPanelOrder,
-      }}
       display={{label: t('Add Filter By')}}
       keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
       prompt={t('Search for attribute')}
@@ -239,18 +232,20 @@ function TraceItemFilterActionsComponent({
 export const TraceItemFilterActions = memo(TraceItemFilterActionsComponent);
 
 function TraceItemFilterRowsComponent({
+  pendingRows,
   summary,
   targetAction,
 }: {
+  pendingRows: number;
   summary: string;
   targetAction: string;
 }) {
   const filters = getFilterRows(summary);
-  const rows = filters.length > 0 ? filters : [''];
+  const rows = [...filters, ...Array.from({length: pendingRows}, () => '')];
 
   return rows.map((filter, index) => (
     <CMDKAction
-      key={`${filter}-${index}`}
+      key={filter ? `${filter}-${index}` : `pending-filter-${index - filters.length}`}
       actionContext={`filter:${index}`}
       display={{
         label: t('Filter By'),

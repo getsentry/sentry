@@ -33,6 +33,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   addSearchFilterToQuery,
+  getFilterRows,
   type SearchFilter,
   TraceItemFilterActions,
   TraceItemFilterRows,
@@ -258,10 +259,8 @@ function SaveAsActionsComponent() {
 const SaveAsActions = memo(SaveAsActionsComponent);
 
 function SpansFilterActionsComponent({
-  actionPanelOrder,
   addSearchFilter,
 }: {
-  actionPanelOrder: number;
   addSearchFilter: (filter: SearchFilter) => void;
 }) {
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
@@ -270,7 +269,6 @@ function SpansFilterActionsComponent({
   return (
     <TraceItemFilterActions
       addSearchFilter={addSearchFilter}
-      actionPanelOrder={actionPanelOrder}
       booleanAttributes={booleanAttributes}
       id={ADD_FILTER_ACTION_ID}
       stringAttributes={stringAttributes}
@@ -595,6 +593,10 @@ function SourceActions({
       key={option.value}
       display={{
         label: option.textValue ?? option.value,
+        labelSuffix:
+          option.value === parsedFunction.arguments[0] ? (
+            <QueryValue value={t('Current')} />
+          ) : undefined,
         trailingItem:
           typeof option.trailingItems === 'function'
             ? option.trailingItems({
@@ -658,11 +660,17 @@ function QueryClauseActions() {
   const query = useQueryParamsQuery();
   const crossEvents = useQueryParamsCrossEvents();
   const [caseInsensitive] = useCaseInsensitivity();
-  const [draftQuery, setDraftQuery] = useState(query);
+  const [draftFilters, setDraftFilters] = useState(() => ({
+    pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
+    query,
+  }));
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
   );
   const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
+  const [pendingGroupByRows, setPendingGroupByRows] = useState(
+    groupBys.length === 0 ? 1 : 0
+  );
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
   ]);
@@ -672,10 +680,13 @@ function QueryClauseActions() {
 
   useEffect(() => {
     if (!commandPaletteState.open) {
-      setDraftQuery(query);
+      setDraftFilters({
+        pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
+        query,
+      });
       setDraftCharts(visualizes.map((visualize, id) => ({id, visualize})));
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDraftGroupBys([...groupBys]);
+      setPendingGroupByRows(groupBys.length === 0 ? 1 : 0);
       // The palette intentionally snapshots URL state when it closes so a new
       // editing session starts from the latest applied values.
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
@@ -693,9 +704,23 @@ function QueryClauseActions() {
   ]);
 
   const addSearchFilter = useCallback((filter: SearchFilter) => {
-    setDraftQuery(currentQuery => addSearchFilterToQuery(currentQuery, filter));
+    setDraftFilters(current => {
+      const nextQuery = addSearchFilterToQuery(current.query, filter);
+      if (nextQuery === current.query) {
+        return current;
+      }
+      return {
+        pendingRows: Math.max(0, current.pendingRows - 1),
+        query: nextQuery,
+      };
+    });
+  }, []);
+  const addGroupBy = useCallback((nextGroupBys: string[]) => {
+    setDraftGroupBys(nextGroupBys);
+    setPendingGroupByRows(count => Math.max(0, count - 1));
   }, []);
 
+  const draftQuery = draftFilters.query;
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
   const draftVisualizes = draftCharts.map(chart => chart.visualize);
   const draftSortBys =
@@ -773,11 +798,6 @@ function QueryClauseActions() {
         <CMDKAction
           id={ADD_GROUP_BY_ACTION_ID}
           actionContext="group-by"
-          actionPanel={{
-            context: 'group-by',
-            label: t('Add Group By'),
-            order: MORE_ACTIONS_ORDER.addGroupBy,
-          }}
           display={{label: t('Add Group By')}}
           keywords={['add', 'group', 'by', 'attribute']}
           prompt={t('Search for attribute')}
@@ -785,12 +805,34 @@ function QueryClauseActions() {
           <GroupByActions
             appliedGroupBys={groupBys}
             groupBys={draftGroupBys}
-            setGroupBys={setDraftGroupBys}
+            setGroupBys={addGroupBy}
           />
         </CMDKAction>
-        <SpansFilterActions
-          actionPanelOrder={MORE_ACTIONS_ORDER.addFilter}
-          addSearchFilter={addSearchFilter}
+        <CMDKAction
+          actionPanel={{
+            context: 'group-by',
+            label: t('Add Group By'),
+            only: true,
+            order: MORE_ACTIONS_ORDER.addGroupBy,
+          }}
+          display={{label: t('Add Group By')}}
+          onAction={() => setPendingGroupByRows(count => count + 1)}
+        />
+        <SpansFilterActions addSearchFilter={addSearchFilter} />
+        <CMDKAction
+          actionPanel={{
+            context: 'filter',
+            label: t('Add Filter By'),
+            only: true,
+            order: MORE_ACTIONS_ORDER.addFilter,
+          }}
+          display={{label: t('Add Filter By')}}
+          onAction={() =>
+            setDraftFilters(current => ({
+              ...current,
+              pendingRows: current.pendingRows + 1,
+            }))
+          }
         />
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction
@@ -863,10 +905,14 @@ function QueryClauseActions() {
         <SaveAsActions />
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
-        {(draftGroupBys.some(Boolean) ? draftGroupBys.filter(Boolean) : ['']).map(
+        {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(
           (groupBy, index) => (
             <CMDKAction
-              key={`${groupBy}-${index}`}
+              key={
+                groupBy
+                  ? `${groupBy}-${index}`
+                  : `pending-group-by-${index - draftGroupBys.length}`
+              }
               actionContext={`group-by:${index}`}
               display={{
                 label: t('Group By'),
@@ -877,7 +923,11 @@ function QueryClauseActions() {
             />
           )
         )}
-        <TraceItemFilterRows summary={draftQuery} targetAction={ADD_FILTER_ACTION_ID} />
+        <TraceItemFilterRows
+          pendingRows={draftFilters.pendingRows}
+          summary={draftQuery}
+          targetAction={ADD_FILTER_ACTION_ID}
+        />
         <CMDKAction
           id="spans-sort"
           display={{
