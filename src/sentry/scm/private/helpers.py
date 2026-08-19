@@ -1,4 +1,6 @@
+import functools
 import importlib
+import logging
 from typing import Any, cast
 
 import sentry_sdk
@@ -7,7 +9,17 @@ from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.services.integration.service import integration_service
+from sentry.models.repository import Repository as RepositoryModel
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils import metrics
 
+logger = logging.getLogger(__name__)
+
+
+@functools.cache
 def _cursor_origin_provider_cls() -> Any:
     """The Cursor Origin provider class, when the installed scm build has one.
 
@@ -23,16 +35,17 @@ def _cursor_origin_provider_cls() -> Any:
     try:
         module = importlib.import_module("scm.providers.cursor_origin.provider")
     except ImportError:
+        # Without this the caller returns None, fetch_service_provider returns None,
+        # and scm.helpers.initialize_provider raises ProviderNotFound -- which reads
+        # as "this provider is not supported" when the truth is "the installed
+        # sentry-scm predates it". Say which, so the version mismatch is not
+        # mistaken for a problem with the repository.
+        logger.warning(
+            "cursor_origin.scm_provider_unavailable",
+            extra={"scm_module": "scm.providers.cursor_origin.provider"},
+        )
         return None
     return module.CursorOriginProvider
-
-
-from sentry.constants import ObjectStatus
-from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.services.integration.service import integration_service
-from sentry.models.repository import Repository as RepositoryModel
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils import metrics
 
 
 def fetch_service_provider(organization_id: int, repository: Repository) -> Provider | None:
