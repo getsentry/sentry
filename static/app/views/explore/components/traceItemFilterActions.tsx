@@ -127,6 +127,26 @@ export function removeSearchFilterFromQuery(query: string, filterIndex: number):
     .join(' ');
 }
 
+export function replaceSearchFilterInQuery(
+  query: string,
+  filterIndex: number,
+  filter: SearchFilter
+): string {
+  const filters = getFilterRows(query);
+  if (filterIndex < 0 || filterIndex >= filters.length) {
+    return query;
+  }
+
+  filters[filterIndex] = addSearchFilterToQuery('', filter);
+  return filters.join(' ');
+}
+
+export function getSearchFilterAttribute(query: string): string | null {
+  const tokens = parseSearch(query);
+  const filters = tokens?.filter(token => token.type === Token.FILTER) ?? [];
+  return filters.length === 1 ? filters[0]!.key.text : null;
+}
+
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
 
 const FILTER_OPERATORS = {
@@ -140,12 +160,23 @@ interface TraceItemFilterActionsProps {
   id: string;
   stringAttributes: TagCollection;
   traceItemType: TraceItemDataset;
+  actionPanel?: {
+    context: string;
+    label: string;
+    only?: boolean;
+    order?: number;
+  };
+  displayLabel?: string;
+  initialAttributeKey?: string;
 }
 
 function TraceItemFilterActionsComponent({
   addSearchFilter,
+  actionPanel,
   booleanAttributes,
+  displayLabel,
   id,
+  initialAttributeKey,
   stringAttributes,
   traceItemType,
 }: TraceItemFilterActionsProps) {
@@ -166,9 +197,69 @@ function TraceItemFilterActionsComponent({
     };
   };
 
-  const renderAttribute = (tag: Tag, type: 'boolean' | 'string') => {
+  const renderOperatorActions = (tag: Tag, type: 'boolean' | 'string') => {
     const operators = FILTER_OPERATORS[type];
 
+    return (
+      <CMDKAction display={{label: t('Operator')}}>
+        {operators.map(operator => {
+          const display = {label: OP_LABELS[operator]};
+
+          if (type === 'boolean') {
+            return (
+              <CMDKAction
+                key={operator || 'is'}
+                display={display}
+                prompt={t('Search for value')}
+              >
+                <CMDKAction display={{label: t('Value')}}>
+                  {BOOLEAN_FILTER_VALUES.map(value => (
+                    <CMDKAction key={value} {...makeValueAction(tag, operator, value)} />
+                  ))}
+                </CMDKAction>
+              </CMDKAction>
+            );
+          }
+
+          return (
+            <CMDKAction
+              key={operator || 'is'}
+              display={display}
+              prompt={t('Search for value')}
+              resource={(query, context) => {
+                const options = traceItemAttributeValuesQueryOptions({
+                  datetime: selection.datetime,
+                  organizationSlug: organization.slug,
+                  projectIds: selection.projects,
+                  searchQuery: query,
+                  tagKey: tag.key,
+                  traceItemType,
+                  type: 'string',
+                });
+
+                return cmdkQueryOptions({
+                  ...options,
+                  select: response => {
+                    const actions = response.json.flatMap(item =>
+                      item.value === null
+                        ? []
+                        : [makeValueAction(tag, operator, item.value)]
+                    );
+                    return actions.length > 0
+                      ? [{display: {label: t('Value')}, actions}]
+                      : [];
+                  },
+                  enabled: context.state === 'selected',
+                });
+              }}
+            />
+          );
+        })}
+      </CMDKAction>
+    );
+  };
+
+  const renderAttribute = (tag: Tag, type: 'boolean' | 'string') => {
     return (
       <CMDKAction
         key={`${type}-${tag.key}`}
@@ -179,82 +270,37 @@ function TraceItemFilterActionsComponent({
         keywords={[tag.key]}
         prompt={t('Search for operator')}
       >
-        <CMDKAction display={{label: t('Operator')}}>
-          {operators.map(operator => {
-            const display = {label: OP_LABELS[operator]};
-
-            if (type === 'boolean') {
-              return (
-                <CMDKAction
-                  key={operator || 'is'}
-                  display={display}
-                  prompt={t('Search for value')}
-                >
-                  <CMDKAction display={{label: t('Value')}}>
-                    {BOOLEAN_FILTER_VALUES.map(value => (
-                      <CMDKAction
-                        key={value}
-                        {...makeValueAction(tag, operator, value)}
-                      />
-                    ))}
-                  </CMDKAction>
-                </CMDKAction>
-              );
-            }
-
-            return (
-              <CMDKAction
-                key={operator || 'is'}
-                display={display}
-                prompt={t('Search for value')}
-                resource={(query, context) => {
-                  const options = traceItemAttributeValuesQueryOptions({
-                    datetime: selection.datetime,
-                    organizationSlug: organization.slug,
-                    projectIds: selection.projects,
-                    searchQuery: query,
-                    tagKey: tag.key,
-                    traceItemType,
-                    type: 'string',
-                  });
-
-                  return cmdkQueryOptions({
-                    ...options,
-                    select: response => {
-                      const actions = response.json.flatMap(item =>
-                        item.value === null
-                          ? []
-                          : [makeValueAction(tag, operator, item.value)]
-                      );
-                      return actions.length > 0
-                        ? [{display: {label: t('Value')}, actions}]
-                        : [];
-                    },
-                    enabled: context.state === 'selected',
-                  });
-                }}
-              />
-            );
-          })}
-        </CMDKAction>
+        {renderOperatorActions(tag, type)}
       </CMDKAction>
     );
   };
 
+  const initialStringAttribute = initialAttributeKey
+    ? stringAttributes[initialAttributeKey]
+    : undefined;
+  const initialBooleanAttribute = initialAttributeKey
+    ? booleanAttributes[initialAttributeKey]
+    : undefined;
+
   return (
     <CMDKAction
       id={id}
+      actionPanel={actionPanel}
       actionContext="filter"
-      display={{label: t('Add Filter By')}}
+      display={{label: displayLabel ?? t('Add Filter By')}}
       keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
-      prompt={t('Search for attribute')}
+      prompt={initialAttributeKey ? t('Search for operator') : t('Search for attribute')}
     >
-      {sortedStringAttributes.length + sortedBooleanAttributes.length > 0 && (
-        <CMDKAction display={{label: t('Attribute')}}>
-          {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
-          {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
-        </CMDKAction>
-      )}
+      {initialStringAttribute
+        ? renderOperatorActions(initialStringAttribute, 'string')
+        : initialBooleanAttribute
+          ? renderOperatorActions(initialBooleanAttribute, 'boolean')
+          : sortedStringAttributes.length + sortedBooleanAttributes.length > 0 && (
+              <CMDKAction display={{label: t('Attribute')}}>
+                {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
+                {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
+              </CMDKAction>
+            )}
     </CMDKAction>
   );
 }

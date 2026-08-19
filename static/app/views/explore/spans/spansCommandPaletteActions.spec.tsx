@@ -3,8 +3,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   addSearchFilterToQuery,
+  getSearchFilterAttribute,
   getFilterRows,
   removeSearchFilterFromQuery,
+  replaceSearchFilterInQuery,
 } from 'sentry/views/explore/components/traceItemFilterActions';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -281,5 +283,25 @@ describe('removeSearchFilterFromQuery', () => {
         0
       )
     ).toEqual({query: 'gen_ai.response.model:gpt-4o', pendingRows: 1});
+  });
+
+  it('replaces only the selected filter', () => {
+    expect(
+      replaceSearchFilterInQuery(
+        'environment:production gen_ai.response.model:gpt-4o',
+        1,
+        {
+          key: 'gen_ai.response.model',
+          op: TermOperator.NOT_EQUAL,
+          value: 'gpt-5',
+        }
+      )
+    ).toBe('environment:production !gen_ai.response.model:gpt-5');
+  });
+
+  it('gets the attribute used by a filter', () => {
+    expect(getSearchFilterAttribute('gen_ai.response.model:gpt-4o')).toBe(
+      'gen_ai.response.model'
+    );
   });
 });

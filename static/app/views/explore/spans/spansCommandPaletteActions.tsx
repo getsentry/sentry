@@ -33,8 +33,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   addSearchFilterToQuery,
+  getSearchFilterAttribute,
   getFilterRows,
   removeSearchFilterFromQuery,
+  replaceSearchFilterInQuery,
   type SearchFilter,
   TraceItemFilterActions,
   TraceItemFilterRows,
@@ -302,20 +304,70 @@ const SaveAsActions = memo(SaveAsActionsComponent);
 
 function SpansFilterActionsComponent({
   addSearchFilter,
+  filters,
+  replaceSearchFilter,
 }: {
   addSearchFilter: (filter: SearchFilter) => void;
+  filters: readonly string[];
+  replaceSearchFilter: (filterIndex: number, filter: SearchFilter) => void;
 }) {
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
 
   return (
-    <TraceItemFilterActions
-      addSearchFilter={addSearchFilter}
-      booleanAttributes={booleanAttributes}
-      id={ADD_FILTER_ACTION_ID}
-      stringAttributes={stringAttributes}
-      traceItemType={TraceItemDataset.SPANS}
-    />
+    <Fragment>
+      <TraceItemFilterActions
+        addSearchFilter={addSearchFilter}
+        booleanAttributes={booleanAttributes}
+        id={ADD_FILTER_ACTION_ID}
+        stringAttributes={stringAttributes}
+        traceItemType={TraceItemDataset.SPANS}
+      />
+      {filters.map((filter, filterIndex) => {
+        const actionContext = `filter:${filterIndex}`;
+        const attributeKey = getSearchFilterAttribute(filter);
+        const hasAttribute =
+          attributeKey !== null &&
+          (stringAttributes[attributeKey] !== undefined ||
+            booleanAttributes[attributeKey] !== undefined);
+        const onChange = (nextFilter: SearchFilter) =>
+          replaceSearchFilter(filterIndex, nextFilter);
+
+        return (
+          <Fragment key={`filter-actions-${filterIndex}`}>
+            <TraceItemFilterActions
+              actionPanel={{
+                context: actionContext,
+                label: t('Change Filter Attribute'),
+                only: true,
+              }}
+              addSearchFilter={onChange}
+              booleanAttributes={booleanAttributes}
+              displayLabel={t('Change Filter Attribute')}
+              id={`spans-change-filter-attribute-${filterIndex}`}
+              stringAttributes={stringAttributes}
+              traceItemType={TraceItemDataset.SPANS}
+            />
+            {hasAttribute && (
+              <TraceItemFilterActions
+                actionPanel={{
+                  context: actionContext,
+                  label: t('Change Filter Operator'),
+                  only: true,
+                }}
+                addSearchFilter={onChange}
+                booleanAttributes={booleanAttributes}
+                displayLabel={t('Change Filter Operator')}
+                id={`spans-change-filter-operator-${filterIndex}`}
+                initialAttributeKey={attributeKey}
+                stringAttributes={stringAttributes}
+                traceItemType={TraceItemDataset.SPANS}
+              />
+            )}
+          </Fragment>
+        );
+      })}
+    </Fragment>
   );
 }
 
@@ -771,6 +823,12 @@ function QueryClauseActions() {
   const clearSearchFilter = useCallback((filterIndex: number) => {
     setDraftFilters(current => clearFilterRow(current, filterIndex));
   }, []);
+  const replaceSearchFilter = useCallback((filterIndex: number, filter: SearchFilter) => {
+    setDraftFilters(current => ({
+      ...current,
+      query: replaceSearchFilterInQuery(current.query, filterIndex, filter),
+    }));
+  }, []);
 
   const draftQuery = draftFilters.query;
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
@@ -866,7 +924,11 @@ function QueryClauseActions() {
           display={{label: t('Add Group By')}}
           onAction={() => setPendingGroupByRows(count => count + 1)}
         />
-        <SpansFilterActions addSearchFilter={addSearchFilter} />
+        <SpansFilterActions
+          addSearchFilter={addSearchFilter}
+          filters={getFilterRows(draftQuery)}
+          replaceSearchFilter={replaceSearchFilter}
+        />
         <CMDKAction
           actionPanel={{
             context: 'filter',
