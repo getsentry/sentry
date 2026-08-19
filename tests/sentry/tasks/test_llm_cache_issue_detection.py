@@ -1066,6 +1066,35 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             "Cache hit rate"
         ]
 
+    def test_does_not_name_a_divergence_it_could_not_recognise(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # An unrecognised divergence is the residual of a handful of patterns, not
+        # a finding: naming it would read as "not an id or a timestamp", which is
+        # more than failing to match five regexes establishes. The lengths are
+        # still worth reporting.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+        self.mock_fetch_prompts.return_value = [
+            f'[{{"role": "system", "content": "Summarize the incident. {STABLE_PROMPT_BODY}"}}]',
+            f'[{{"role": "system", "content": "Summarize the outage. {STABLE_PROMPT_BODY}"}}]',
+        ]
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert occurrence.evidence_data["prompt_divergence_kind"] == "other"
+
+        rows = {row.name: row.value for row in occurrence.evidence_display}
+        assert "Prompts first differ at" not in rows
+        assert "2 sampled prompts" in rows["Shared prompt prefix"]
+
     def test_leaves_the_prompt_diagnosis_off_when_no_prompt_text_was_sent(
         self,
         mock_fetch_stats: MagicMock,

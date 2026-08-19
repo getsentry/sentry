@@ -42,15 +42,18 @@ AGENT_LABEL_EVIDENCE_NAMES: dict[AgentLabelSource, str] = {
     AgentLabelSource.OPERATION_NAME: "Operation (no agent name)",
 }
 
-# Reads as the tail of "the prompts first differ at ...". `NONE` is absent
-# deliberately: there is no first difference to name, and the row is dropped.
+# Reads as the tail of "the prompts first differ at ...", and doubles as the rule
+# for whether that row is worth showing at all. `NONE` and `OTHER` are absent
+# deliberately: one has no first difference to name, and the other is the
+# residual of a handful of patterns rather than a finding. Naming it would claim
+# the divergence is not an id or a timestamp, when all that is known is that five
+# regexes did not match near it.
 DIVERGENCE_KIND_DESCRIPTIONS: dict[DivergenceKind, str] = {
     DivergenceKind.ISO_TIMESTAMP: "an ISO-8601 timestamp",
     DivergenceKind.EPOCH_TIMESTAMP: "a Unix timestamp",
     DivergenceKind.UUID: "a UUID",
     DivergenceKind.IDENTIFIER: "a request or trace id",
     DivergenceKind.COUNTER: "a changing number",
-    DivergenceKind.OTHER: "changing text",
 }
 
 # Versioned so grouping can change later without merging into existing issues.
@@ -270,7 +273,7 @@ def _prompt_divergence_evidence(divergence: PromptDivergence | None) -> list[Iss
             important=False,
         )
     ]
-    if divergence.divergence_kind is not DivergenceKind.NONE:
+    if divergence.divergence_kind in DIVERGENCE_KIND_DESCRIPTIONS:
         rows.append(
             IssueEvidence(
                 name="Prompts first differ at",
