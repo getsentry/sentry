@@ -68,6 +68,7 @@ export interface TraceItemDetailsResponse {
   itemId: string;
   meta: TraceItemDetailsMeta;
   timestamp: string;
+  estimatedClimateImpactCo2eGrams?: number;
   event?: {
     breadcrumbs?: {values: RawCrumb[]};
     contexts?: EventTransaction['contexts'];

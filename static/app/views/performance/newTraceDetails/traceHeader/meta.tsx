@@ -5,7 +5,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {formatCarbonEmissions} from 'sentry/utils/formatters';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   getTraceMetaLogsCount,
@@ -112,6 +114,7 @@ export function Meta(props: MetaProps) {
     props.metricsEnabled && props.overview.metrics.availability === 'loading';
 
   const repEvent = props.representativeEvent?.event;
+  const climateImpactGrams = props.tree.estimated_climate_impact_co2e_grams;
 
   return (
     <MetaWrapper>
@@ -170,6 +173,19 @@ export function Meta(props: MetaProps) {
           ) : (
             <TraceHeaderComponents.StyledPlaceholder _width={32} _height={20} />
           )}
+        </MetaSection>
+      ) : null}
+      {defined(climateImpactGrams) ? (
+        <MetaSection rightAlignBody headingText={t('Climate Impact')}>
+          <Tooltip
+            showUnderline
+            title={t(
+              'Estimated climate impact of the %s spans in this trace.',
+              spansCount
+            )}
+          >
+            {formatCarbonEmissions(climateImpactGrams)}
+          </Tooltip>
         </MetaSection>
       ) : null}
     </MetaWrapper>

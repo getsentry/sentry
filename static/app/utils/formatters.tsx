@@ -244,3 +244,23 @@ function getShortSpanOperationDescription(operation?: string) {
 export function formatDollars(value: number) {
   return `$${formatAbbreviatedNumberWithDynamicPrecision(value)}`;
 }
+
+const CO2E_SCALES = [
+  [1_000_000, 't'],
+  [1_000, 'kg'],
+  [1, 'g'],
+] as const;
+
+const CO2E_SMALLEST_SCALE = [0.001, 'mg'] as const;
+
+export function formatCarbonEmissions(grams: number): string {
+  const [divisor, unit] =
+    CO2E_SCALES.find(([threshold]) => Math.abs(grams) >= threshold) ??
+    CO2E_SMALLEST_SCALE;
+
+  const value = (grams / divisor).toLocaleString(undefined, {
+    maximumSignificantDigits: 3,
+  });
+
+  return `${value} ${unit} CO\u2082e`;
+}

@@ -6,6 +6,7 @@ import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils/defined';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
@@ -172,6 +173,7 @@ export declare namespace TraceTree {
     additional_attributes?: Record<string, number | string>;
     browser_web_vital?: Record<string, number>;
     description?: string;
+    estimated_climate_impact_co2e_grams?: number;
     measurements?: Record<string, number>;
     mobile_app_vital?: Record<string, number>;
   };
@@ -348,9 +350,22 @@ function fetchTrace(
   );
 }
 
+// `?climate=true` fabricates per-span climate impact so the UI can be exercised locally
+// before the backend starts sending the real field. Values are derived from span duration
+// rather than randomized so they stay stable across renders and reloads.
+function isClimateImpactStubbed(): boolean {
+  return qs.parse(window.location.search).climate === 'true';
+}
+
+function stubSpanClimateImpact(value: TraceTree.EAPSpan): number {
+  const durationMs = (value.end_timestamp - value.start_timestamp) * 1000;
+  return 0.05 * Math.max(durationMs, 1);
+}
+
 export class TraceTree extends TraceTreeEventDispatcher {
   collapsed_nodes = 0;
   eap_spans_count = 0;
+  estimated_climate_impact_co2e_grams: number | null = null;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -431,6 +446,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // Cyclic nodes are skipped and logged for debugging.
     const visitedIds = new Set<string>();
 
+    const stubClimateImpact = isClimateImpactStubbed();
+
     function visit(
       parent: BaseNode,
       value:
@@ -462,6 +479,16 @@ export class TraceTree extends TraceTreeEventDispatcher {
         });
 
         tree.eap_spans_count++;
+
+        if (stubClimateImpact && !defined(value.estimated_climate_impact_co2e_grams)) {
+          value.estimated_climate_impact_co2e_grams = stubSpanClimateImpact(value);
+        }
+
+        if (defined(value.estimated_climate_impact_co2e_grams)) {
+          tree.estimated_climate_impact_co2e_grams =
+            (tree.estimated_climate_impact_co2e_grams ?? 0) +
+            value.estimated_climate_impact_co2e_grams;
+        }
 
         // We only want to add transactions as profiled events.
         if ((node as EapSpanNode).value.is_transaction && node.hasProfiles) {

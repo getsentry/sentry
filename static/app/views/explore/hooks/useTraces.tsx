@@ -45,6 +45,7 @@ export interface TraceResult {
   slices: number;
   start: number;
   trace: string;
+  estimatedClimateImpactCo2eGrams?: number;
 }
 
 type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
