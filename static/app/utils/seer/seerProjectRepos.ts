@@ -12,6 +12,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
+import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
+import {getInfiniteSeerProjectSuggestionsQueryOptions} from 'sentry/utils/seer/seerProjectSuggestions';
 import type {
   SeerProjectMutateRepoPayload,
   SeerProjectRepoCreateInput,
@@ -73,6 +75,25 @@ function getRepoLookupFromCache(
     }
   }
   return lookup;
+}
+
+// Repo membership drives both org-level lists on /settings/seer/projects/: a
+// project's first repo removes it from the suggestions, removing its last repo
+// makes it a suggestion again, and the settings list shows a repo count.
+function invalidateOrganizationSeerProjectLists(
+  queryClient: QueryClient,
+  organization: Organization
+) {
+  const {queryKey: settingsListQueryKey} = getInfiniteSeerProjectsSettingsQueryOptions({
+    organization,
+    query: {},
+  });
+  queryClient.invalidateQueries({queryKey: [settingsListQueryKey[0]], exact: false});
+  const {queryKey: suggestionsQueryKey} = getInfiniteSeerProjectSuggestionsQueryOptions({
+    organization,
+    enabled: true,
+  });
+  queryClient.invalidateQueries({queryKey: [suggestionsQueryKey[0]], exact: false});
 }
 
 function getSeerProjectRepoQueryOptions({
@@ -270,6 +291,7 @@ export function getDeleteSeerProjectRepoOptions({
         queryClient.invalidateQueries({queryKey: context.singleQueryKey});
       }
       queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      invalidateOrganizationSeerProjectLists(queryClient, organization);
     },
   });
 }
@@ -457,6 +479,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
         });
       }
       queryClient.invalidateQueries({queryKey: [infiniteUrl], exact: false});
+      invalidateOrganizationSeerProjectLists(queryClient, organization);
     },
   });
 }
