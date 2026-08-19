@@ -15,9 +15,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
-import {formatDollars} from 'sentry/utils/formatters';
+import {formatCarbonEmissions, formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
@@ -47,6 +48,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 type CustomRenderersProps = AttributesFieldRendererProps<RenderFunctionBaggage>;
 
 const HIDDEN_ATTRIBUTES = ['is_segment', 'project_id', 'received'];
+const CLIMATE_IMPACT_ATTRIBUTE = 'estimated_climate_impact_co2e_grams';
 const TRUNCATED_TEXT_ATTRIBUTES = ['gen_ai.response.text', 'gen_ai.embeddings.input'];
 
 const jsonRenderer = (props: CustomRenderersProps) => {
@@ -109,7 +111,20 @@ export function AttributesContent({
       : undefined;
 
   const sortedAndFilteredAttributes = useMemo(() => {
-    const sortedAttributes = sortAttributes(attributes);
+    // The climate impact estimate rides along on the span itself rather than the
+    // trace item attributes, so surface it here as though it were one.
+    const climateImpactGrams =
+      CLIMATE_IMPACT_ATTRIBUTE in node.value
+        ? node.value.estimated_climate_impact_co2e_grams
+        : undefined;
+    const sortedAttributes = sortAttributes(
+      defined(climateImpactGrams)
+        ? [
+            ...attributes,
+            {name: CLIMATE_IMPACT_ATTRIBUTE, type: 'float', value: climateImpactGrams},
+          ]
+        : attributes
+    );
 
     const onlyVisibleAttributes = sortedAttributes.filter(
       attribute => !HIDDEN_ATTRIBUTES.includes(attribute.name)
@@ -126,7 +141,7 @@ export function AttributesContent({
     });
 
     return onlyMatchingAttributes;
-  }, [attributes, searchQuery]);
+  }, [attributes, node, searchQuery]);
 
   const customRenderers: Record<
     string,
@@ -195,6 +210,9 @@ export function AttributesContent({
     },
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
+    },
+    [CLIMATE_IMPACT_ATTRIBUTE]: (props: CustomRenderersProps) => {
+      return formatCarbonEmissions(Number(props.item.value));
     },
     assertion_failure_data: (props: CustomRenderersProps) => {
       if (props.item.value === null) {
