@@ -48,9 +48,10 @@ def root_cause_prompt(
         Guidelines:
         1. Use your tools to fetch the issue details and examine the evidence
         2. Investigate the trace, replay, logs, other issues, trends, and other telemetry when available to gain a deeper understanding of the issue
-        3. Investigate the relevant code in the codebase
-        4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
-        5. Use your todo list to track multiple hypotheses for complex bugs
+        3. If the event has a `session.id` (surfaced as `session_id` on the event details), it belongs to a user session that groups the user's telemetry — spans, logs, and errors across multiple traces and page loads. Query that telemetry with `session.id:<value>` to reconstruct what the user did before the error; the root cause often lives in an earlier trace in the same session, not in the error's own trace.
+        4. Investigate the relevant code in the codebase
+        5. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
+        6. Use your todo list to track multiple hypotheses for complex bugs
 
         If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
