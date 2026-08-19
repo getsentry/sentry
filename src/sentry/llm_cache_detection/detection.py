@@ -554,8 +554,10 @@ def diagnose_prompt_divergence(prompts: Sequence[str]) -> PromptDivergence | Non
         sample_count=len(usable),
         common_prefix_chars=common_prefix_chars,
         shortest_prompt_chars=shortest_prompt_chars,
-        # Every sample agrees up to the divergence, so which one is read for the
-        # token straddling it does not matter.
+        # The samples disagree at the divergence -- that is what makes it one --
+        # so reading any single one of them names that sample's version of the
+        # token sitting there. Its value varies by definition; its shape is what
+        # the template decides, and that is what gets reported.
         divergence_kind=_classify_divergence(usable[0], common_prefix_chars),
         stable_suffix_chars=_common_suffix_length(
             usable, max_length=shortest_prompt_chars - common_prefix_chars
