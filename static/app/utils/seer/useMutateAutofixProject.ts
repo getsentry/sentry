@@ -145,16 +145,14 @@ export function useMutateAutofixProject() {
         throw new AutofixSettingsPartialSaveError({cause: error});
       }
     },
-    onSuccess: (_data, variables) => {
+    onMutate: async variables => {
       const {project, repoEntries, agentOption, stoppingPoint} = variables;
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
-      const updatedProject = {...project, autofixAutomationTuning: tuning};
-      ProjectsStore.onUpdateSuccess(updatedProject);
-
-      // Move the project between the cached lists right away so the table
-      // updates without waiting for the onSettled refetches, which then
-      // reconcile ordering and any server-derived fields.
+      // Move the project between the cached lists optimistically, so the
+      // table updates on click instead of after the two writes and the
+      // onSettled refetches. The refetches reconcile ordering and any
+      // server-derived fields; onError restores the snapshots.
       const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
       const {stoppingPointValue} = resolveStoppingPoint(stoppingPoint, undefined);
       const settingsRow: SeerProjectSettingResponse = {
@@ -173,6 +171,23 @@ export function useMutateAutofixProject() {
         organization,
         enabled: true,
       }).queryKey;
+      const [settingsListUrl] = getInfiniteSeerProjectsSettingsQueryOptions({
+        organization,
+        query: {},
+      }).queryKey;
+
+      await queryClient.cancelQueries({queryKey: [suggestionsUrl], exact: false});
+      await queryClient.cancelQueries({queryKey: [settingsListUrl], exact: false});
+
+      const previousSuggestions = queryClient.getQueriesData({
+        queryKey: [suggestionsUrl],
+        exact: false,
+      });
+      const previousSettingsLists = queryClient.getQueriesData({
+        queryKey: [settingsListUrl],
+        exact: false,
+      });
+
       queryClient.setQueriesData(
         {queryKey: [suggestionsUrl], exact: false},
         (
@@ -191,10 +206,6 @@ export function useMutateAutofixProject() {
         }
       );
 
-      const [settingsListUrl] = getInfiniteSeerProjectsSettingsQueryOptions({
-        organization,
-        query: {},
-      }).queryKey;
       queryClient.setQueriesData(
         {queryKey: [settingsListUrl], exact: false},
         (prev: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>> | undefined) => {
@@ -219,6 +230,28 @@ export function useMutateAutofixProject() {
           };
         }
       );
+
+      return {previousSuggestions, previousSettingsLists};
+    },
+    onError: (error, _variables, context) => {
+      // A partial save persisted the repositories, so the optimistic move is
+      // already the server state; the caller's retry warning owns the rest.
+      if (error instanceof AutofixSettingsPartialSaveError || !context) {
+        return;
+      }
+      for (const [queryKey, data] of context.previousSuggestions) {
+        queryClient.setQueryData(queryKey, data);
+      }
+      for (const [queryKey, data] of context.previousSettingsLists) {
+        queryClient.setQueryData(queryKey, data);
+      }
+    },
+    onSuccess: (_data, variables) => {
+      const {project, stoppingPoint} = variables;
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
+
+      const updatedProject = {...project, autofixAutomationTuning: tuning};
+      ProjectsStore.onUpdateSuccess(updatedProject);
     },
     onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;
