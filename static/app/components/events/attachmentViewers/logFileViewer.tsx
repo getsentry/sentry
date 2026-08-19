@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Alert} from '@sentry/scraps/alert';
 import Ansi from 'ansi-to-react';
+
+import {Alert} from '@sentry/scraps/alert';
 
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
@@ -44,7 +45,7 @@ export function LogFileViewer(props: ViewerProps) {
       {isTruncated && (
         <Alert variant="warning">
           {t(
-            'Showing first 512\u00a0KB of file. Download the full attachment to view the rest.'
+            'Showing first 512\u00A0KB of file. Download the full attachment to view the rest.'
           )}
         </Alert>
       )}
