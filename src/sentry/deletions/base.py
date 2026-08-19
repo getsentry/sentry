@@ -333,8 +333,29 @@ class BulkModelDeletionTask(ModelDeletionTask[ModelT]):
         return self._delete_instance_bulk()
 
     def _delete_instance_bulk(self) -> bool:
+        ids: list[int] | None = None
+        if self.rate_limit_option:
+            # Prefetch the batch so concurrent bulk deletes can share the same
+            # leaky-bucket limiter as ModelDeletionTask before issuing DELETE.
+            ids = list(
+                self.model.objects.filter(**self.query).values_list("id", flat=True)[
+                    : self.chunk_size
+                ]
+            )
+            if not ids:
+                return False
+            self._throttle_deletes(len(ids))
+
         try:
             with unguarded_write(using=router.db_for_write(self.model)):
+                if ids is not None:
+                    return bulk_delete_objects(
+                        model=self.model,
+                        limit=len(ids),
+                        transaction_id=self.transaction_id,
+                        id__in=ids,
+                    )
+
                 return bulk_delete_objects(
                     model=self.model,
                     limit=self.chunk_size,
