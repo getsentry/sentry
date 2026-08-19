@@ -107,6 +107,7 @@ class Referrer(StrEnum):
     API_EVENTS_VITALS = "api.events.vitals"
     API_GROUP_AI_AUTOFIX = "api.group_ai_autofix"
     API_GROUP_AI_SUMMARY = "api.group_ai_summary"
+    API_GROUP_ATTACHMENTS_ERROR = "api.group-attachments.error"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
