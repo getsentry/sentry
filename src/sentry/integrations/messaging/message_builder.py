@@ -247,10 +247,11 @@ def build_attachment_replay_link(
     return None
 
 
-def build_rule_url(rule: Any, group: Group, project: Project) -> str:
+def build_rule_url(rule: Any, group: Group, project: Project, rule_id: str | None = None) -> str:
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
+    if rule_id is None:
+        rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
     rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
 
     return absolute_uri(rule_url)
@@ -269,7 +270,7 @@ def build_footer(
             case "workflow_id":
                 rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
             case "legacy_rule_id":
-                rule_url = build_rule_url(rules[0], group, project)
+                rule_url = build_rule_url(rules[0], group, project, value)
 
         # If this notification is triggered via the "Send Test Notification"
         # button then the label is not defined, but the url works.
