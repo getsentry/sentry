@@ -629,7 +629,7 @@ class ArtifactBundlePostAssembler:
                 # Guard against a race where a concurrent worker already deleted this file.
                 try:
                     existing_file = existing_artifact_bundle.file
-                except Exception:
+                except File.DoesNotExist:
                     # File was already deleted by a concurrent worker; nothing to clean up.
                     existing_file = None
 
