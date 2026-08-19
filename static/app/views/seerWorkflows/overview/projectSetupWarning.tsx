@@ -28,13 +28,11 @@ export function ProjectSetupWarning({unconfiguredProjects, orgSlug}: Props) {
   const names = formatProjectNames(unconfiguredProjects.map(project => project.slug));
 
   return (
-    <Alert.Container>
-      <Alert variant="warning" showIcon>
-        {tct("Seer isn't set up for [names]. Set it up [link].", {
-          names,
-          link: <Link to={`/settings/${orgSlug}/seer/`}>{t('here')}</Link>,
-        })}
-      </Alert>
-    </Alert.Container>
+    <Alert variant="warning" showIcon>
+      {tct("Seer isn't set up for [names]. Set it up [link].", {
+        names,
+        link: <Link to={`/settings/${orgSlug}/seer/`}>{t('here')}</Link>,
+      })}
+    </Alert>
   );
 }
