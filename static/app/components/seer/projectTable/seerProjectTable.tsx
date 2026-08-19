@@ -12,6 +12,7 @@ import {debounce, parseAsStringLiteral, parseAsString, useQueryState} from 'nuqs
 import SeerConfigConnect2 from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm} from '@sentry/scraps/form';
@@ -24,6 +25,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
@@ -86,8 +88,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const estimateSize = () => 41;
 
 // Header and body rows are separate grids that each apply this template, so
-// suggestion rows must use the identical string to stay column-aligned.
-const TABLE_COLUMNS = 'max-content 2fr 74px repeat(2, 1fr)';
+// suggestion rows must use the identical string to stay column-aligned. The
+// trailing track is a fixed width (not max-content) for the same reason: it
+// holds the suggestion-row action button and stays empty in the other rows,
+// and a per-row max-content track would resolve to different widths.
+const TABLE_COLUMNS = 'max-content 2fr 74px repeat(2, 1fr) 132px';
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -481,12 +486,6 @@ function SuggestedProjectRows({
 
       {showGroup ? (
         <Fragment>
-          <Alert variant="info" system>
-            {t(
-              'These projects have trusted repository links and are not yet configured for Autofix.'
-            )}
-          </Alert>
-
           {result.isError ? (
             <Flex
               align="center"
@@ -630,12 +629,19 @@ function SuggestedProjectRow({
             column matches the checkbox rows. */}
         <Container width="16px" />
       </InfiniteTable.RowCell>
-      <InfiniteTable.RowCell>
+      <InfiniteTable.RowCell gap="sm">
         <ProjectBadge
           disableLink
           project={project ?? {slug: suggestion.projectSlug}}
           avatarSize={16}
         />
+        <Tooltip
+          title={t(
+            'This project has trusted repository links and is not yet configured for Autofix.'
+          )}
+        >
+          <Tag variant="info">{t('Suggested')}</Tag>
+        </Tooltip>
       </InfiniteTable.RowCell>
       <InfiniteTable.RowCell justify="end">
         <InfoText
@@ -672,7 +678,7 @@ function SuggestedProjectRow({
           />
         </Stack>
       </InfiniteTable.RowCell>
-      <InfiniteTable.RowCell gap="md" overflow="visible">
+      <InfiniteTable.RowCell overflow="visible">
         <Stack align="stretch" flex="1">
           <Select
             size="xs"
@@ -687,6 +693,8 @@ function SuggestedProjectRow({
             }
           />
         </Stack>
+      </InfiniteTable.RowCell>
+      <InfiniteTable.RowCell justify="end">
         {project ? (
           shouldConfigure ? (
             <Button

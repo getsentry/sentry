@@ -18,9 +18,6 @@ import type {Organization} from 'sentry/types/organization';
 
 const mockOpenModal = jest.fn();
 
-const SUGGESTED_GROUP_TEXT =
-  'These projects have trusted repository links and are not yet configured for Autofix.';
-
 jest.mock('@sentry/scraps/modal', () => ({
   ...jest.requireActual('@sentry/scraps/modal'),
   useModal: () => ({openModal: mockOpenModal}),
@@ -337,7 +334,7 @@ describe('SeerProjectTable', () => {
 
         await screen.findByText(project.slug);
         expect(suggestionsRequest).not.toHaveBeenCalled();
-        expect(screen.queryByText(SUGGESTED_GROUP_TEXT)).not.toBeInTheDocument();
+        expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
       }
     );
 
@@ -350,10 +347,10 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(await screen.findByText(SUGGESTED_GROUP_TEXT)).toBeInTheDocument();
       const suggestionRow = (
         await screen.findByText(suggestedProject.slug)
       ).closest<HTMLElement>('[role="row"]')!;
+      expect(within(suggestionRow).getByText('Suggested')).toBeInTheDocument();
       // The row selects come preselected with the effective defaults.
       expect(await within(suggestionRow).findByText('Seer')).toBeInTheDocument();
       expect(
@@ -721,8 +718,8 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(await screen.findByText(SUGGESTED_GROUP_TEXT)).toBeInTheDocument();
       expect(await screen.findByText(suggestedProject.slug)).toBeInTheDocument();
+      expect(screen.getByText('Suggested')).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {name: 'Enable Autofix on a Project'})
       ).not.toBeInTheDocument();
@@ -740,7 +737,7 @@ describe('SeerProjectTable', () => {
       expect(
         await screen.findByRole('heading', {name: 'Enable Autofix on a Project'})
       ).toBeInTheDocument();
-      expect(screen.queryByText(SUGGESTED_GROUP_TEXT)).not.toBeInTheDocument();
+      expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
     });
 
     it('keeps the configured table usable when the suggestion query fails', async () => {
