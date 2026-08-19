@@ -19,7 +19,6 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB = 200
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
-    CURSOR_ORIGIN = 220
     JIRA_SERVER = 300
     PERFORCE = 400
 
@@ -82,7 +81,6 @@ class ExternalProviderEnum(StrEnum):
     GITLAB = IntegrationProviderSlug.GITLAB
     JIRA_SERVER = IntegrationProviderSlug.JIRA_SERVER
     PERFORCE = IntegrationProviderSlug.PERFORCE
-    CURSOR_ORIGIN = IntegrationProviderSlug.CURSOR_ORIGIN
 
 
 EXTERNAL_PROVIDERS_REVERSE = {
@@ -97,7 +95,6 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.GITHUB_ENTERPRISE: ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviderEnum.GITLAB: ExternalProviders.GITLAB,
     ExternalProviderEnum.PERFORCE: ExternalProviders.PERFORCE,
-    ExternalProviderEnum.CURSOR_ORIGIN: ExternalProviders.CURSOR_ORIGIN,
     ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
 
@@ -116,7 +113,6 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.GITLAB: ExternalProviderEnum.GITLAB.value,
     ExternalProviders.JIRA_SERVER: ExternalProviderEnum.JIRA_SERVER.value,
     ExternalProviders.PERFORCE: ExternalProviderEnum.PERFORCE.value,
-    ExternalProviders.CURSOR_ORIGIN: ExternalProviderEnum.CURSOR_ORIGIN.value,
     ExternalProviders.CUSTOM: ExternalProviderEnum.CUSTOM.value,
 }
 
