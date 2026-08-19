@@ -424,9 +424,19 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             [run.seer_run.id for _, run in capped], include_scm_info=include_scm_info
         )
 
+        # projectConfig covers every selected project; per-issue scmInfo only needs the
+        # projects with runs. Scan the smallest set that satisfies the requested expands.
         repo_eligibility_by_project: dict[int, _RepoEligibility] = {}
-        if include_scm_info or include_project_config:
-            repo_eligibility_by_project = _coding_agent_repo_eligibility(organization, project_ids)
+        if include_project_config:
+            eligibility_project_ids: Collection[int] = project_ids
+        elif include_scm_info:
+            eligibility_project_ids = {group.project_id for group in groups.values()}
+        else:
+            eligibility_project_ids = ()
+        if eligibility_project_ids:
+            repo_eligibility_by_project = _coding_agent_repo_eligibility(
+                organization, eligibility_project_ids
+            )
         issue_repo_eligibility = repo_eligibility_by_project if include_scm_info else None
 
         project_config: list[ProjectConfigPayload] = []

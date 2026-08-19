@@ -681,6 +681,22 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
         assert len(repo_queries) == 1
 
+    def test_scm_info_and_project_config_share_one_eligibility_query(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": ["scmInfo", "projectConfig"]}
+            )
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
+        assert self._issue_project(resp)["hasReposConnected"] is True
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is True
+
     @mock.patch(_INTEGRATION_SERVICE)
     def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
