@@ -127,6 +127,89 @@ def test_extract_review(decision: str, expected: AggregateReviewStatus | None) -
     assert result.review == expected
 
 
+def test_query_reads_individual_check_contexts() -> None:
+    assert "contexts(first: 100)" in PULL_REQUEST_STATUS_FRAGMENT
+
+
+def test_extract_failed_checks() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        {
+                            "__typename": "CheckRun",
+                            "name": "build (3.12)",
+                            "conclusion": "FAILURE",
+                        },
+                        {"__typename": "CheckRun", "name": "lint", "conclusion": "SUCCESS"},
+                        {"__typename": "CheckRun", "name": "deploy", "conclusion": "TIMED_OUT"},
+                        {
+                            "__typename": "CheckRun",
+                            "name": "setup",
+                            "conclusion": "STARTUP_FAILURE",
+                        },
+                        {
+                            "__typename": "CheckRun",
+                            "name": "approval",
+                            "conclusion": "ACTION_REQUIRED",
+                        },
+                        # CANCELLED maps to neither pass nor fail, matching the rollup mapping.
+                        {"__typename": "CheckRun", "name": "optional", "conclusion": "CANCELLED"},
+                        {"__typename": "CheckRun", "name": "running", "conclusion": None},
+                        {"__typename": "StatusContext", "context": "ci/legacy", "state": "FAILURE"},
+                        {"__typename": "StatusContext", "context": "ci/error", "state": "ERROR"},
+                        {"__typename": "StatusContext", "context": "ci/ok", "state": "SUCCESS"},
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == (
+        "build (3.12)",
+        "deploy",
+        "setup",
+        "approval",
+        "ci/legacy",
+        "ci/error",
+    )
+
+
+def test_extract_failed_checks_skips_partial_nodes() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        None,
+                        {"__typename": "CheckRun", "conclusion": "FAILURE"},
+                        {"__typename": "StatusContext", "state": "ERROR"},
+                        {"__typename": "SomethingNew", "name": "mystery"},
+                        {"__typename": "CheckRun", "name": "mypy", "conclusion": "FAILURE"},
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == ("mypy",)
+
+
+@pytest.mark.parametrize(
+    "contexts",
+    (None, {"nodes": None}, {"nodes": []}),
+    ids=("no_contexts", "no_nodes", "empty_nodes"),
+)
+def test_extract_failed_checks_without_nodes(contexts: dict[str, Any] | None) -> None:
+    result = extract_pull_request_status_from_response(
+        response({"state": "FAILURE", "contexts": contexts})
+    )
+    assert result.failed_checks == ()
+
+
 def test_extract_reads_checks_and_review_from_one_response() -> None:
     # Failing checks alongside an approving review: neither field masks the other.
     assert extract_pull_request_status_from_response(

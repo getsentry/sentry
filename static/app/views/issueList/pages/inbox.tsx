@@ -1,4 +1,10 @@
-import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {
+  type ComponentProps,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
@@ -48,6 +54,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -85,7 +92,6 @@ interface InboxSectionConfig {
     | 'num_assigned'
     | 'num_identified'
     | 'num_fix_applied';
-  defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
   label: string;
@@ -102,7 +108,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
-    defaultExpanded: true,
   },
   {
     analyticsKey: 'num_diagnosed',
@@ -111,7 +116,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    defaultExpanded: true,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -121,7 +125,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -131,7 +134,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
-    defaultExpanded: false,
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
@@ -141,7 +143,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:fix_applied is:unresolved',
     emptyMessage: t('No issues with an applied fix'),
     progress: ProgressState.FIX_APPLIED,
-    defaultExpanded: false,
   },
 ];
 
@@ -314,9 +315,11 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(
     section => !section.hidden?.({assignmentFilter, hasSeer})
   );
+  const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
     INBOX_DEFAULT_SIZE
@@ -376,7 +379,7 @@ function InboxContent() {
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {sections.map(section => (
               <InboxSection
-                key={section.key}
+                key={`${assignmentFilter}:${section.key}`}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
@@ -430,6 +433,9 @@ function InboxContent() {
             </Container>
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+          {!selectedIssueId && isInboxEmpty && (
+            <InboxEmptyState assignmentFilter={assignmentFilter} />
+          )}
         </Stack>
       </Grid>
     </Stack>
@@ -480,6 +486,8 @@ function InboxSection({
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
+  const hasIssues = groups.length > 0;
+  const [expanded, setExpanded] = useState<boolean>();
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
@@ -504,7 +512,8 @@ function InboxSection({
     <Disclosure
       as="section"
       aria-label={section.label}
-      defaultExpanded={section.defaultExpanded}
+      expanded={expanded ?? (!queryResult.isSuccess || hasIssues)}
+      onExpandedChange={setExpanded}
       size="sm"
     >
       <StickySectionHeader

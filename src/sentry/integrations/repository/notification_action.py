@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from logging import Logger, getLogger
 
-from django.db.models import Q
+from django.db.models import F, Q
 
 from sentry.integrations.repository.base import (
     BaseNewNotificationMessage,
@@ -85,25 +85,20 @@ class NotificationActionNotificationMessageRepository:
         """
         try:
             base_filter = self._parent_notification_message_base_filter()
-            filtered_ids = (
+            instance = (
                 self._model.objects.filter(base_filter)
                 .filter(
                     action=action,
                     group=group,
                     open_period_start=open_period_start,
                 )
-                .order_by()
-                .values("id")
+                # Order by open_period_start to encourage index use.
+                .order_by(F("open_period_start").asc(nulls_last=True), "-date_added")
+                .first()
             )
-            # We filter in a subquery and order/limit outside of it, as this helps us hit the
-            # partial index better. The general index looks appealing when it is a bad fit because of
-            # a small number of rather popular (group, action) pairs that match a huge number of rows.
-            instance: NotificationMessage = self._model.objects.filter(id__in=filtered_ids).latest(
-                "date_added"
-            )
+            if instance is None:
+                return None
             return NotificationActionNotificationMessage.from_model(instance=instance)
-        except NotificationMessage.DoesNotExist:
-            return None
         except Exception as e:
             self._logger.warning(
                 "Failed to get parent notification for issue rule",

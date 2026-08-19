@@ -29,8 +29,6 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import (
-    TransactionMetricKey,
-    TransactionMRI,
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
@@ -42,7 +40,13 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    requires_snuba,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @pytest.mark.snuba_ci
@@ -100,12 +104,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo_transaction", "satisfaction": "satisfied"},
             value=1,
         )
         self.store_performance_metric(
-            name=TransactionMRI.MEASUREMENTS_LCP.value,
+            name="d:transactions/measurements.lcp@millisecond",
             tags={"transaction": "bar_transaction", "satisfaction": "satisfied"},
             value=1,
         )
@@ -116,7 +120,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op=None,
-                    metric_mri=TransactionMRI.APDEX.value,
+                    metric_mri="e:transactions/apdex@ratio",
                     alias="apdex",
                 ),
             ],
@@ -158,12 +162,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={"transaction": "foo_transaction", "satisfaction": "satisfied"},
             value=1,
         )
         self.store_performance_metric(
-            name=TransactionMRI.MEASUREMENTS_LCP.value,
+            name="d:transactions/measurements.lcp@millisecond",
             tags={"transaction": "bar_transaction", "satisfaction": "satisfied"},
             value=1,
         )
@@ -174,7 +178,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op=None,
-                    metric_mri=TransactionMRI.APDEX.value,
+                    metric_mri="e:transactions/apdex@ratio",
                     alias="apdex",
                 ),
             ],
@@ -211,7 +215,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
                     value=value,
                 )
@@ -222,12 +226,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     alias="count_lcp",
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
+                    metric_mri="d:transactions/measurements.fcp@millisecond",
                     alias="count_fcp",
                 ),
             ],
@@ -236,7 +240,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                        metric_mri="d:transactions/measurements.lcp@millisecond",
                         alias="count_lcp",
                     ),
                     direction=Direction.DESC,
@@ -244,7 +248,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
+                        metric_mri="d:transactions/measurements.fcp@millisecond",
                         alias="count_fcp",
                     ),
                     direction=Direction.DESC,
@@ -288,7 +292,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
                     value=value,
                 )
@@ -299,12 +303,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     alias="count_lcp",
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     alias="count_lcp_2",
                 ),
             ],
@@ -315,7 +319,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                        metric_mri="d:transactions/measurements.lcp@millisecond",
                         alias="count_lcp",
                     ),
                     direction=Direction.DESC,
@@ -323,7 +327,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                        metric_mri="d:transactions/measurements.lcp@millisecond",
                         alias="count_lcp_2",
                     ),
                     direction=Direction.DESC,
@@ -420,7 +424,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             (project_3.id, 3),
         ):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 project_id=project_id,
                 tags={},
                 value=value,
@@ -432,7 +436,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             project_ids=[project_2.id, project_3.id],
@@ -441,7 +445,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
+                        metric_mri="d:transactions/duration@millisecond",
                     ),
                     direction=Direction.DESC,
                 ),
@@ -485,7 +489,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_order_by_invalid_str_field(self) -> None:
         for value in (0, 1, 2):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={},
                 value=value,
             )
@@ -497,7 +501,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 select=[
                     MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
+                        metric_mri="d:transactions/duration@millisecond",
                     ),
                 ],
                 groupby=[MetricGroupByField(field="transaction")],
@@ -521,7 +525,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_order_by_str_field_not_in_group_by(self) -> None:
         for value in (0, 1, 2):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={},
                 value=value,
             )
@@ -533,7 +537,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 select=[
                     MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
+                        metric_mri="d:transactions/duration@millisecond",
                     ),
                 ],
                 groupby=[],
@@ -551,7 +555,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_sum_if_column(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
             )
@@ -562,7 +566,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="sum_if_column",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"if_column": "transaction", "if_value": "/foo"},
                 ),
             ],
@@ -598,7 +602,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_uniq_if_column(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/foo"), (30, "/lorem")):
             self.store_performance_metric(
-                name=TransactionMRI.USER.value,
+                name="s:transactions/user@none",
                 tags={"transaction": transaction},
                 value=value,
             )
@@ -609,7 +613,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="uniq_if_column",
-                    metric_mri=TransactionMRI.USER.value,
+                    metric_mri="s:transactions/user@none",
                     params={"if_column": "transaction", "if_value": "/foo"},
                 ),
             ],
@@ -645,7 +649,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_tuple_condition(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
             )
@@ -656,7 +660,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             groupby=[],
@@ -707,14 +711,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_has_condition(self) -> None:
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
             )
 
         # We also store a metric without the transaction tag.
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             tags={},
             value=value,
         )
@@ -725,7 +729,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             groupby=[],
@@ -784,7 +788,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
             for value in values:
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags=tags,
                     value=value,
                 )
@@ -795,19 +799,19 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count_transaction_name",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"transaction_name": "is_unparameterized"},
                     alias="count_transaction_name_is_unparameterized",
                 ),
                 MetricField(
                     op="count_transaction_name",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"transaction_name": "is_null"},
                     alias="count_transaction_name_is_null",
                 ),
                 MetricField(
                     op="count_transaction_name",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"transaction_name": "has_value"},
                     alias="count_transaction_name_has_value",
                 ),
@@ -856,7 +860,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
             for value in values:
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags=tags,
                     value=value,
                 )
@@ -869,7 +873,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count_transaction_name",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"transaction_name": invalid_condition},
                     alias="count_transaction_name_invalid",
                 ),
@@ -902,7 +906,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_performance_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 value=value,
             )
@@ -913,7 +917,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op=None,
-                    metric_mri=TransactionMRI.FAILURE_RATE.value,
+                    metric_mri="e:transactions/failure_rate@ratio",
                     alias="failure_rate_alias",
                 ),
             ],
@@ -940,7 +944,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -951,7 +955,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    name="d:transactions/measurements.fcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                 )
@@ -962,12 +966,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="p50",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     alias="p50_lcp",
                 ),
                 MetricField(
                     op="p50",
-                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
+                    metric_mri="d:transactions/measurements.fcp@millisecond",
                     alias="p50_fcp",
                 ),
             ],
@@ -980,7 +984,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     MetricField(
                         op="p50",
-                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                        metric_mri="d:transactions/measurements.lcp@millisecond",
                         alias="p50_lcp",
                     ),
                     direction=Direction.ASC,
@@ -1039,7 +1043,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    name="d:transactions/measurements.lcp@millisecond",
                     tags={tag: value},
                     value=subvalue,
                     aggregation_option=AggregationOption.HIST,
@@ -1051,7 +1055,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="histogram",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     params={
                         "histogram_from": 2,
                         "histogram_to": None,
@@ -1061,7 +1065,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 ),
                 MetricField(
                     op="histogram",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     params={
                         "histogram_from": None,
                         "histogram_to": 9,
@@ -1096,7 +1100,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={},
                     value=1,
                     hours_before_now=hour,
@@ -1108,12 +1112,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             limit=Limit(limit=51),
@@ -1148,7 +1152,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for minute in range(count):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={},
                     value=1,
                     hours_before_now=hour,
@@ -1160,7 +1164,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 86400, "denominator": 60},
                 ),
             ],
@@ -1202,7 +1206,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for minute in range(count):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={},
                     value=1,
                     minutes_before_now=-(minute + 30),
@@ -1217,12 +1221,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             start=day_ago + timedelta(minutes=30),
@@ -1282,7 +1286,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for minute, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={},
                     value=1,
                     minutes_before_now=minute,
@@ -1294,12 +1298,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             limit=Limit(limit=51),
@@ -1340,7 +1344,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for minute, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={},
                     value=1,
                     minutes_before_now=minute,
@@ -1352,7 +1356,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             limit=Limit(limit=51),
@@ -1376,32 +1380,32 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for tags, metric, metric_mri, value in (
             (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
-                TransactionMetricKey.MEASUREMENTS_LCP.value,
-                TransactionMRI.MEASUREMENTS_LCP.value,
+                "transaction.measurements.lcp",
+                "d:transactions/measurements.lcp@millisecond",
                 50,
             ),
             (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
-                TransactionMetricKey.MEASUREMENTS_FP.value,
-                TransactionMRI.MEASUREMENTS_FP.value,
+                "transaction.measurements.fp",
+                "d:transactions/measurements.fp@millisecond",
                 15,
             ),
             (
                 {"measurement_rating": "meh", "transaction": "foo_transaction"},
-                TransactionMetricKey.MEASUREMENTS_FCP.value,
-                TransactionMRI.MEASUREMENTS_FCP.value,
+                "transaction.measurements.fcp",
+                "d:transactions/measurements.fcp@millisecond",
                 1500,
             ),
             (
                 {"measurement_rating": "meh", "transaction": "foo_transaction"},
-                TransactionMetricKey.MEASUREMENTS_FID.value,
-                TransactionMRI.MEASUREMENTS_FID.value,
+                "transaction.measurements.fid",
+                "d:transactions/measurements.fid@millisecond",
                 125,
             ),
             (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
-                TransactionMetricKey.MEASUREMENTS_CLS.value,
-                TransactionMRI.MEASUREMENTS_CLS.value,
+                "transaction.measurements.cls",
+                "d:transactions/measurements.cls@none",
                 0.15,
             ),
         ):
@@ -1417,31 +1421,31 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count_web_vitals",
-                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_lcp_good",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_mri=TransactionMRI.MEASUREMENTS_FP.value,
+                    metric_mri="d:transactions/measurements.fp@millisecond",
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_fp_good",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
+                    metric_mri="d:transactions/measurements.fcp@millisecond",
                     params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fcp_meh",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_mri=TransactionMRI.MEASUREMENTS_FID.value,
+                    metric_mri="d:transactions/measurements.fid@millisecond",
                     params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fid_meh",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_mri=TransactionMRI.MEASUREMENTS_CLS.value,
+                    metric_mri="d:transactions/measurements.cls@none",
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_cls_good",
                 ),
@@ -1491,7 +1495,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
             )
@@ -1502,7 +1506,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="team_key_transaction",
-                    metric_mri=str(TransactionMRI.DURATION.value),
+                    metric_mri="d:transactions/duration@millisecond",
                     params={
                         "team_key_condition_rhs": [
                             (self.project.id, "foo_transaction"),
@@ -1512,7 +1516,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 ),
                 MetricField(
                     op="p95",
-                    metric_mri=str(TransactionMRI.DURATION.value),
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="p95",
                 ),
             ],
@@ -1522,7 +1526,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField(
                     field=MetricField(
                         op="team_key_transaction",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         params={
                             "team_key_condition_rhs": [
                                 (self.project.id, "foo_transaction"),
@@ -1537,7 +1541,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         params={
                             "team_key_condition_rhs": [
                                 (self.project.id, "foo_transaction"),
@@ -1550,7 +1554,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="p95",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         alias="p95",
                     ),
                     direction=Direction.DESC,
@@ -1596,7 +1600,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={} if transaction is None else {"transaction": transaction},
                 value=value,
             )
@@ -1607,7 +1611,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="duration_count",
                 ),
             ],
@@ -1651,7 +1655,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={} if transaction is None else {"transaction": transaction},
                 value=value,
             )
@@ -1662,7 +1666,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="duration_count",
                 ),
             ],
@@ -1711,7 +1715,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
             )
@@ -1726,7 +1730,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"os.name": os_name},
                 value=value,
             )
@@ -1750,7 +1754,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     select=[
                         MetricField(
                             op="count",
-                            metric_mri=TransactionMRI.DURATION.value,
+                            metric_mri="d:transactions/duration@millisecond",
                             alias="duration_count",
                         ),
                     ],
@@ -1803,7 +1807,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 select=[
                     MetricField(
                         op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
+                        metric_mri="d:transactions/duration@millisecond",
                         alias="duration_count",
                     ),
                 ],
@@ -1839,7 +1843,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             self.store_performance_metric(
                 type="distribution",
-                name=TransactionMRI.DURATION.value,
+                name="d:transactions/duration@millisecond",
                 tags={"transaction": transaction},
                 value=value,
                 minutes_before_now=minutes,
@@ -1851,7 +1855,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="team_key_transaction",
-                    metric_mri=str(TransactionMRI.DURATION.value),
+                    metric_mri="d:transactions/duration@millisecond",
                     params={
                         "team_key_condition_rhs": [
                             (self.project.id, "foo_transaction"),
@@ -1861,7 +1865,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 ),
                 MetricField(
                     op="p95",
-                    metric_mri=str(TransactionMRI.DURATION.value),
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="p95",
                 ),
             ],
@@ -1874,7 +1878,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricGroupByField(
                     field=MetricField(
                         op="team_key_transaction",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         params={
                             "team_key_condition_rhs": [
                                 (self.project.id, "foo_transaction"),
@@ -1889,7 +1893,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="team_key_transaction",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         params={
                             "team_key_condition_rhs": [
                                 (self.project.id, "foo_transaction"),
@@ -1902,7 +1906,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricOrderByField(
                     field=MetricField(
                         op="p95",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         alias="p95",
                     ),
                     direction=Direction.DESC,
@@ -1912,7 +1916,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 MetricConditionField(
                     lhs=MetricField(
                         op="team_key_transaction",
-                        metric_mri=str(TransactionMRI.DURATION.value),
+                        metric_mri="d:transactions/duration@millisecond",
                         params={
                             "team_key_condition_rhs": [
                                 (self.project.id, "foo_transaction"),
@@ -1947,12 +1951,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             start=day_ago + timedelta(minutes=30),
@@ -1978,12 +1982,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             "select": [
                 MetricField(
                     op="rate",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_mri=TransactionMRI.DURATION.value,
+                    metric_mri="d:transactions/duration@millisecond",
                 ),
             ],
             "start": day_ago + timedelta(minutes=30),

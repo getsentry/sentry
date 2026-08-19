@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
@@ -73,56 +74,15 @@ def schedule_batch(
 ) -> None:
     scheduled_count = 0
 
-    if not concurrency:
-        concurrency = CONCURRENCY
     try:
         for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
             outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
-
-            aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
-
-            lo = aggregates["id__min"] or 0
-            hi = aggregates["id__max"] or -1
-            if hi < lo:
-                continue
-
-            scheduled_count += hi - lo + 1
-            batch_size = math.ceil((hi - lo + 1) / concurrency)
-
-            metrics_tags = dict(silo_mode=silo_mode.name, outbox_name=outbox_name)
-            metrics.gauge(
-                "deliver_from_outbox.queued_batch_size",
-                value=batch_size,
-                tags=metrics_tags,
-                sample_rate=1.0,
-            )
-
-            # Notably, when l and h are close, this will result in creating tasks that are processing future ids --
-            # that's totally fine.
-            for i in range(concurrency):
-                drain_task.delay(
-                    outbox_name=outbox_name,
-                    outbox_identifier_low=lo + i * batch_size,
-                    outbox_identifier_hi=lo + (i + 1) * batch_size,
-                )
-
-            deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
-            max_shard_depth = (
-                float(deepest_shard_information[0]["depth"]) if deepest_shard_information else 0.0
-            )
-            metrics.gauge(
-                "deliver_from_outbox.maximum_shard_depth",
-                value=max_shard_depth,
-                tags=metrics_tags,
-                sample_rate=1.0,
-            )
-
-            outbox_count = outbox_model.get_total_outbox_count()
-            metrics.gauge(
-                "deliver_from_outbox.total_outbox_count",
-                value=outbox_count,
-                tags=metrics_tags,
-                sample_rate=1.0,
+            scheduled_count += schedule_outbox_model(
+                silo_mode=silo_mode,
+                outbox_model=outbox_model,
+                drain_task=drain_task,
+                concurrency=concurrency,
+                drain_task_kwargs={"outbox_name": outbox_name},
             )
         if process_outbox_backfills:
             backfill_outboxes_for(silo_mode, scheduled_count)
@@ -130,6 +90,61 @@ def schedule_batch(
     except Exception:
         sentry_sdk.capture_exception()
         raise
+
+
+def schedule_outbox_model(
+    *,
+    silo_mode: SiloMode,
+    outbox_model: type[OutboxBase],
+    drain_task: Task[Any, Any],
+    concurrency: int | None = None,
+    drain_task_kwargs: Mapping[str, Any] | None = None,
+) -> int:
+    if not concurrency:
+        concurrency = CONCURRENCY
+
+    id_range = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
+    identifier_low = id_range["id__min"] or 0
+    identifier_high = id_range["id__max"] or -1
+    if identifier_high < identifier_low:
+        return 0
+
+    scheduled_count = identifier_high - identifier_low + 1
+    batch_size = math.ceil(scheduled_count / concurrency)
+    metrics_tags = dict(silo_mode=silo_mode.name, outbox_name=outbox_model._meta.label)
+    metrics.gauge(
+        "deliver_from_outbox.queued_batch_size",
+        value=batch_size,
+        tags=metrics_tags,
+        sample_rate=1.0,
+    )
+
+    # Notably, when low and high are close, some tasks process future ids. That's fine.
+    task_kwargs = drain_task_kwargs or {}
+    for i in range(concurrency):
+        drain_task.delay(
+            outbox_identifier_low=identifier_low + i * batch_size,
+            outbox_identifier_hi=identifier_low + (i + 1) * batch_size,
+            **task_kwargs,
+        )
+
+    deepest_shards = outbox_model.get_shard_depths_descending(limit=1)
+    max_shard_depth = float(deepest_shards[0]["depth"]) if deepest_shards else 0.0
+    metrics.gauge(
+        "deliver_from_outbox.maximum_shard_depth",
+        value=max_shard_depth,
+        tags=metrics_tags,
+        sample_rate=1.0,
+    )
+
+    outbox_count = outbox_model.get_total_outbox_count()
+    metrics.gauge(
+        "deliver_from_outbox.total_outbox_count",
+        value=outbox_count,
+        tags=metrics_tags,
+        sample_rate=1.0,
+    )
+    return scheduled_count
 
 
 @instrumented_task(

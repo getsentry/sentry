@@ -18,7 +18,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
-_FILES_PER_ACTIVATION = 20
+_FILES_PER_ACTIVATION = 100
 
 
 def enqueue_shard(
@@ -40,7 +40,7 @@ def enqueue_shard(
 @instrumented_task(
     name="sentry.debug_files.objectstore_migration.migrate_shard",
     namespace=debug_files_migration_tasks,
-    processing_deadline_duration=15 * 60,
+    processing_deadline_duration=30 * 60,
     silo_mode=SiloMode.CELL,
 )
 def migrate_shard(
