@@ -78,6 +78,10 @@ const IDENTITY_FIELDS: Record<SessionDatasetKey, FieldMap> = {
   errors: ERROR_FIELDS,
   logs: [],
   metrics: [],
+  // Left empty for now: feedback rides on `issuePlatform`, and rather than verify
+  // which `any()` identity aggregates it accepts, a session's name is left to the
+  // other datasets. A wrong field here would 400 the whole feedback count query.
+  feedback: [],
 };
 
 /**

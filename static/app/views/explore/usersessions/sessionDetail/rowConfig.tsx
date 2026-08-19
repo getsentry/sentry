@@ -5,6 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
+import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 export type Row = Record<string, unknown>;
@@ -201,6 +202,28 @@ export const ROW_CONFIG: Record<SessionDatasetKey, RowConfig> = {
         timestamp,
         tab: TraceLayoutTabKeys.METRICS,
       });
+    },
+  },
+  feedback: {
+    // The feedback list addresses one item by `${projectSlug}:${groupId}`, so the
+    // group id (`issue.id`) and the project slug are what the deep link needs.
+    fields: ['id', 'issue.id', 'title', 'user.display', 'project'],
+    getTitle: row => str(row.title) ?? t('(feedback)'),
+    getDetail: row => str(row['user.display']),
+    getLink: (row, {organization}) => {
+      const rawGroupId = row['issue.id'];
+      const groupId =
+        typeof rawGroupId === 'number' || typeof rawGroupId === 'string'
+          ? String(rawGroupId)
+          : undefined;
+      const projectSlug = str(row.project);
+      if (!groupId || !projectSlug) {
+        return;
+      }
+      return {
+        pathname: makeFeedbackPathname({path: '/', organization}),
+        query: {feedbackSlug: `${projectSlug}:${groupId}`},
+      };
     },
   },
 };

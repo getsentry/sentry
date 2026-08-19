@@ -1,4 +1,4 @@
-import {IconFire, IconGraph, IconList, IconSpan} from 'sentry/icons';
+import {IconFire, IconGraph, IconList, IconMegaphone, IconSpan} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 
@@ -25,5 +25,7 @@ export function TelemetryTypeIcon({type, ...props}: Props) {
       return <IconList {...props} />;
     case 'metrics':
       return <IconGraph type="line" {...props} />;
+    case 'feedback':
+      return <IconMegaphone {...props} />;
   }
 }

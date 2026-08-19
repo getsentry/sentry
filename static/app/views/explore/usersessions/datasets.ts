@@ -3,7 +3,7 @@ import {SESSION_ID} from '@sentry/conventions/attributes';
 import {t} from 'sentry/locale';
 import type {GraphicsVariant} from 'sentry/utils/theme';
 
-export type SessionDatasetKey = 'logs' | 'metrics' | 'traces' | 'errors';
+export type SessionDatasetKey = 'logs' | 'metrics' | 'traces' | 'errors' | 'feedback';
 
 export interface SessionDataset {
   /** Aggregate that counts events in the group. */
@@ -41,6 +41,18 @@ export interface SessionDataset {
   singularLabel: string;
   /** Converts this dataset's raw timestamp representation into epoch ms. */
   toEpochMs: (value: unknown) => number | undefined;
+  /**
+   * Scoping filter that defines *what this dataset even means*, ANDed onto every
+   * query — discovery, counts and rows alike — unlike `filter`, which narrows rows
+   * only.
+   *
+   * `feedback` needs one: it rides on the shared `issuePlatform` dataset, which
+   * also carries other issue types, so `occurrence_type_id:6001` is what makes it a
+   * feedback dataset rather than an issue-platform one. It has to reach the count
+   * and extent aggregates too, or a session's feedback count would include every
+   * other issue-platform occurrence it has.
+   */
+  baseFilter?: string;
   /**
    * Extra filter narrowing the *rows* this kind renders, ANDed onto whatever else
    * the page is asking for. Only `traces` needs one — see below.
@@ -170,6 +182,26 @@ export const SESSION_DATASETS: SessionDataset[] = [
     pageSize: 100,
     toEpochMs: fromIsoString,
   },
+  {
+    key: 'feedback',
+    label: t('Feedback'),
+    singularLabel: t('Feedback'),
+    graphicsVariant: 'warning',
+    // Feedback is not a dataset of its own — it is the issue-platform dataset
+    // scoped to feedback occurrences (see `baseFilter`). `timestamp` is a
+    // first-class ISO field here, the same as on `errors`.
+    dataset: 'issuePlatform',
+    // `occurrence_type_id` is the queryable column on this dataset;
+    // `issue.category:feedback` only works on the issues stream, not `/events/`.
+    // 6001 is `FeedbackGroup.type_id`.
+    baseFilter: 'occurrence_type_id:6001',
+    countField: 'count()',
+    firstSeenField: 'min(timestamp)',
+    lastSeenField: 'max(timestamp)',
+    maxRows: 1000,
+    pageSize: 100,
+    toEpochMs: fromIsoString,
+  },
 ];
 
 /**
@@ -183,4 +215,19 @@ export function withDatasetFilter(config: SessionDataset, query: string): string
     return query;
   }
   return query ? `${query} ${config.filter}` : config.filter;
+}
+
+/**
+ * A dataset's scoping `baseFilter` ANDed onto a query. Applied to every query for
+ * the dataset — discovery, counts and rows — because it defines what the dataset
+ * contains rather than narrowing a single view of it. See `baseFilter`.
+ *
+ * As with `withDatasetFilter`, callers parenthesize any top-level `OR` first; this
+ * appends.
+ */
+export function withBaseFilter(config: SessionDataset, query: string): string {
+  if (!config.baseFilter) {
+    return query;
+  }
+  return query ? `${query} ${config.baseFilter}` : config.baseFilter;
 }

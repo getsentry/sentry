@@ -82,6 +82,44 @@ function useErrorAttributes(): DatasetAttributes {
   }, [data, isPending, isReady]);
 }
 
+/** Feedback searchable keys, from the issue-platform dataset's org tags. */
+function useFeedbackAttributes(): DatasetAttributes {
+  const organization = useOrganization();
+  const {selection, isReady} = usePageFilters();
+  const datetimeParams = normalizeDateTimeParams(selection.datetime);
+
+  const {data, isPending} = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      dataset: Dataset.ISSUE_PLATFORM,
+      projectIds: selection.projects.map(String),
+      keepPreviousData: true,
+      statsPeriod: datetimeParams.statsPeriod,
+      start: datetimeParams.start,
+      end: datetimeParams.end,
+      enabled: isReady,
+    },
+    {}
+  );
+
+  return useMemo(() => {
+    const orgTags: TagCollection = Object.fromEntries(
+      (data ?? []).map(tag => [
+        tag.key,
+        {key: tag.key, name: tag.key, kind: FieldKind.TAG},
+      ])
+    );
+
+    return {
+      stringAttributes: orgTags,
+      numberAttributes: EMPTY_COLLECTION,
+      booleanAttributes: EMPTY_COLLECTION,
+      secondaryAliases: EMPTY_COLLECTION,
+      isLoading: isReady && isPending,
+    };
+  }, [data, isPending, isReady]);
+}
+
 /**
  * One EAP dataset's attributes across all three types.
  *
@@ -129,6 +167,7 @@ export function useSessionAttributes(): SessionAttributes {
   const logs = useEapAttributes(TraceItemDataset.LOGS);
   const metrics = useEapAttributes(TraceItemDataset.TRACEMETRICS);
   const errors = useErrorAttributes();
+  const feedback = useFeedbackAttributes();
 
   return useMemo(() => {
     const knownKeys: KnownKeysByDataset = {
@@ -136,6 +175,7 @@ export function useSessionAttributes(): SessionAttributes {
       metrics: keysOfDataset(metrics),
       traces: keysOfDataset(spans),
       errors: keysOfDataset(errors),
+      feedback: keysOfDataset(feedback),
     };
 
     // `traces` is the spans dataset, so its searchable keys are the span ones —
@@ -144,7 +184,7 @@ export function useSessionAttributes(): SessionAttributes {
     //
     // Spans last so their definitions win a key collision: they are the richest
     // dataset and the one most session searches are aimed at.
-    const order = [errors, metrics, logs, spans];
+    const order = [feedback, errors, metrics, logs, spans];
 
     return {
       knownKeys,
@@ -153,9 +193,13 @@ export function useSessionAttributes(): SessionAttributes {
       booleanAttributes: Object.assign({}, ...order.map(d => d.booleanAttributes)),
       secondaryAliases: Object.assign({}, ...order.map(d => d.secondaryAliases)),
       isLoading:
-        spans.isLoading || logs.isLoading || metrics.isLoading || errors.isLoading,
+        spans.isLoading ||
+        logs.isLoading ||
+        metrics.isLoading ||
+        errors.isLoading ||
+        feedback.isLoading,
     };
-  }, [spans, logs, metrics, errors]);
+  }, [spans, logs, metrics, errors, feedback]);
 }
 
 function keysOfDataset(attributes: DatasetAttributes): Set<string> {

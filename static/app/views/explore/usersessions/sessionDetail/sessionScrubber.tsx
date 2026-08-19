@@ -24,7 +24,13 @@ import type {SessionEvent, SessionRange} from './useSessionDetail';
  * Lanes run most-severe first rather than in dataset order: an error lane at the
  * top is the first thing scanned, and it is most often what explains the session.
  */
-const LANE_ORDER: SessionDatasetKey[] = ['errors', 'traces', 'logs', 'metrics'];
+const LANE_ORDER: SessionDatasetKey[] = [
+  'errors',
+  'feedback',
+  'traces',
+  'logs',
+  'metrics',
+];
 
 const LANES = LANE_ORDER.map(key => SESSION_DATASETS.find(config => config.key === key)!);
 

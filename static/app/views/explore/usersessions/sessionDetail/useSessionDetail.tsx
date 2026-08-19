@@ -20,6 +20,7 @@ import type {
 } from 'sentry/views/explore/usersessions/datasets';
 import {
   SESSION_DATASETS,
+  withBaseFilter,
   withDatasetFilter,
 } from 'sentry/views/explore/usersessions/datasets';
 import type {
@@ -413,6 +414,7 @@ export function useSessionDetail(sessionId: string) {
         query: {
           ...commonQuery,
           dataset: config.dataset,
+          query: withBaseFilter(config, commonQuery.query),
           // The extent and naming aggregates ride along on a request that already
           // runs. They have to come from aggregates rather than from the fetched
           // rows: a truncated page's first and last row are not the session's,
@@ -431,7 +433,12 @@ export function useSessionDetail(sessionId: string) {
     combine: results => ({
       results,
       isPending: results.some(result => result.isPending),
-      isError: results.some(result => result.isError),
+      // Feedback rides on issuePlatform and is best-effort: a failure there must
+      // not blank a timeline the other four datasets can still fill.
+      isError: results.some(
+        (result, index) =>
+          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+      ),
     }),
   });
 
@@ -487,7 +494,7 @@ export function useSessionDetail(sessionId: string) {
           dataset: config.dataset,
           // The rows are narrowed further than the counts above: `traces` renders
           // one row per segment span, while its count stays over every span.
-          query: withDatasetFilter(config, commonQuery.query),
+          query: withDatasetFilter(config, withBaseFilter(config, commonQuery.query)),
           field: ['timestamp', 'project.id', ...ROW_CONFIG[config.key].fields],
           // Sorted server-side rather than only in the merge below, so a
           // truncated timeline keeps the end of the session the user is
@@ -504,7 +511,12 @@ export function useSessionDetail(sessionId: string) {
     combine: results => ({
       results,
       isPending: results.some(result => result.isPending),
-      isError: results.some(result => result.isError),
+      // Feedback rides on issuePlatform and is best-effort: a failure there must
+      // not blank a timeline the other four datasets can still fill.
+      isError: results.some(
+        (result, index) =>
+          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+      ),
     }),
   });
 
@@ -514,18 +526,21 @@ export function useSessionDetail(sessionId: string) {
       metrics: 0,
       traces: 0,
       errors: 0,
+      feedback: 0,
     };
     const truncatedByType: Record<SessionDatasetKey, boolean> = {
       logs: false,
       metrics: false,
       traces: false,
       errors: false,
+      feedback: false,
     };
     const eventsByType: Record<SessionDatasetKey, SessionEvent[]> = {
       logs: [],
       metrics: [],
       traces: [],
       errors: [],
+      feedback: [],
     };
     const eventsByKey = new Map<string, SessionEvent>();
 
@@ -547,7 +562,11 @@ export function useSessionDetail(sessionId: string) {
 
       const firstSeen = config.toEpochMs(row?.[config.firstSeenField]);
       const lastSeen = config.toEpochMs(row?.[config.lastSeenField]);
-      if (firstSeen !== undefined) {
+      // An empty aggregate still returns one row: on `issuePlatform` its
+      // `min(timestamp)` comes back as the epoch-0 string rather than null, which
+      // would otherwise drag the session's start back to 1970. A dataset with no
+      // events has no extent to contribute.
+      if (counts[config.key] > 0 && firstSeen !== undefined) {
         aggregateBounds = {
           start: Math.min(aggregateBounds?.start ?? firstSeen, firstSeen),
           end: Math.max(aggregateBounds?.end ?? firstSeen, lastSeen ?? firstSeen),

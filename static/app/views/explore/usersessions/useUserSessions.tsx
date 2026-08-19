@@ -8,7 +8,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {SessionDatasetKey} from './datasets';
-import {SESSION_DATASETS} from './datasets';
+import {SESSION_DATASETS, withBaseFilter} from './datasets';
 import type {KnownKeysByDataset} from './queryRouting';
 import {datasetsForQuery} from './queryRouting';
 import type {SessionIdentity, SessionName} from './sessionName';
@@ -177,7 +177,7 @@ export function useUserSessions({
             config.firstSeenField,
             config.lastSeenField,
           ],
-          query: discoveryQuery,
+          query: withBaseFilter(config, discoveryQuery),
           sort: `-${config.lastSeenField}`,
         },
         staleTime: 0,
@@ -246,7 +246,7 @@ export function useUserSessions({
             // session rather than the part that matched.
             ...identityFields(config.key),
           ],
-          query: `${SESSION_ID}:[${sessionIds.join(',')}]`,
+          query: withBaseFilter(config, `${SESSION_ID}:[${sessionIds.join(',')}]`),
           sort: `-${config.countField}`,
         },
         staleTime: 0,
@@ -255,7 +255,12 @@ export function useUserSessions({
     combine: results => ({
       results,
       isPending: results.some(result => result.isPending),
-      isError: results.some(result => result.isError),
+      // Feedback rides on issuePlatform and is best-effort — see the discovery
+      // combine above.
+      isError: results.some(
+        (result, index) =>
+          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+      ),
       error: results.find(result => result.error)?.error ?? null,
     }),
   });
@@ -270,7 +275,7 @@ export function useUserSessions({
         id,
         {
           id,
-          counts: {logs: 0, metrics: 0, traces: 0, errors: 0},
+          counts: {logs: 0, metrics: 0, traces: 0, errors: 0, feedback: 0},
           firstSeen: undefined,
           lastSeen: undefined,
           totalEvents: 0,

@@ -37,7 +37,7 @@ const REFERRER = 'api.explore.user-session-item-details';
 export type TraceItemKey = Extract<SessionDatasetKey, 'traces' | 'logs' | 'metrics'>;
 
 export function isTraceItemKey(key: SessionDatasetKey): key is TraceItemKey {
-  return key !== 'errors';
+  return key !== 'errors' && key !== 'feedback';
 }
 
 /**

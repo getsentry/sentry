@@ -43,6 +43,7 @@ const OPEN_LABEL: Record<SessionDatasetKey, string> = {
   logs: t('Open in Logs'),
   metrics: t('Open in Trace'),
   errors: t('Open Issue'),
+  feedback: t('Open Feedback'),
 };
 
 interface Props {
