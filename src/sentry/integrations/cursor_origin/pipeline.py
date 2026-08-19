@@ -57,8 +57,19 @@ def _installation_id_from_receipt(receipt: str) -> str | None:
     Like webhook deliveries, receipts carry no key id we can rely on, so every
     active key is tried.
     """
+    # Header of the *unverified* token, for telemetry only -- never to decide
+    # whether to trust it. Records which algorithm and key Origin actually signed
+    # with, which is the thing that cannot be established from the API docs.
+    try:
+        header = jwt.get_unverified_header(receipt)
+    except jwt.PyJWTError:
+        header = {}
+    signing = {"alg": header.get("alg"), "kid": header.get("kid")}
+
+    key_count = 0
     for force_refresh in (False, True):
         keys = fetch_public_keys(force_refresh=force_refresh)
+        key_count = len(keys)
         for key_bytes in keys:
             try:
                 claims = jwt.decode(
@@ -72,12 +83,28 @@ def _installation_id_from_receipt(receipt: str) -> str | None:
             except (jwt.PyJWTError, ValueError):
                 continue
             subject = claims.get("sub")
+            # Installs are rare, so logging the success path is cheap -- and it is
+            # a positive confirmation that Origin signs receipts with a JWKS key,
+            # rather than having to infer it from the absence of a warning.
+            # installation_id is included because a reinstall that returns the same
+            # id lands on the existing Integration row, and without it in the log
+            # there is no way to tell that apart from a genuinely new install.
+            logger.info(
+                "cursor_origin.install.receipt_verified",
+                extra={**signing, "installation_id": subject},
+            )
             return str(subject) if subject else None
         # Only worth refetching if the cache could have been stale.
         if not keys:
             break
 
-    logger.warning("cursor_origin.install.receipt_verification_failed")
+    logger.warning(
+        "cursor_origin.install.receipt_verification_failed",
+        # alg/kid say whether this is a key we do not have (rotation, or a signer
+        # outside the JWKS) or an algorithm we do not accept. key_count of 0 means
+        # the JWKS fetch itself failed, which is a different problem.
+        extra={**signing, "key_count": key_count},
+    )
     return None
 
 
