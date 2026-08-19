@@ -20,7 +20,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 
-class VSCodeActionSerializer(serializers.Serializer):
+class VSCodeActionSerializer(serializers.Serializer[dict[str, object]]):
     type = serializers.ChoiceField(choices=["user_input_response"])
     inputId = serializers.CharField(allow_blank=False, max_length=256)
     responseData = serializers.JSONField()
@@ -41,7 +41,7 @@ class VSCodeActionEndpoint(OrganizationEndpoint):
                 organization=organization, user_id=user_id, session_id=session_id
             )
         except serializers.ValidationError as e:
-            Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = VSCodeActionSerializer(data=request.data)
         if not serializer.is_valid():

@@ -53,7 +53,7 @@ class VSCodeChatEndpoint(OrganizationEndpoint):
                 organization=organization, user_id=user_id, session_id=session_id
             )
         except serializers.ValidationError as e:
-            Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if run.mirror_status == SeerRunMirrorStatus.FAILED:
             return Response(
@@ -113,7 +113,6 @@ class VSCodeChatEndpoint(OrganizationEndpoint):
             editor_response(run, run.agent, status="running"),
             status=status.HTTP_201_CREATED,
         )
-        return self.respond(status=status.HTTP_200_OK)
 
     def put(self, request: Request, organization: Organization, session_id: str) -> Response:
         """
@@ -125,7 +124,7 @@ class VSCodeChatEndpoint(OrganizationEndpoint):
                 organization=organization, user_id=user_id, session_id=session_id
             )
         except serializers.ValidationError as e:
-            Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = VSCodeChatSerializer(data=request.data)
         if not serializer.is_valid():
