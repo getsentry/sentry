@@ -106,8 +106,15 @@ class CursorOriginIntegration(
         try:
             raw_repos = self.get_client().get_repositories()
         except ApiError as e:
+            # Deliberately not returning [] here. The daily repo sync computes
+            # removals as `sentry_active_ids - provider_external_ids`, so an empty
+            # list from a transient failure reads as "the provider dropped every
+            # repository" and queues them all for disablement. raise_error turns
+            # this into an IntegrationError, which the sync task treats as a
+            # failure to retry and which the repo-picker endpoint already catches
+            # and reports as a 400. GitHub and GitLab likewise do not swallow it.
             logger.info("cursor_origin.get_repositories.error", extra={"error": str(e)})
-            return []
+            self.raise_error(e)
 
         repos: list[RepositoryInfo] = [
             {
