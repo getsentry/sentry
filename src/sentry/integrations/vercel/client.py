@@ -93,7 +93,22 @@ class VercelClient(ApiClient):
         return self.get(self.GET_PROJECT_URL % vercel_project_id)
 
     def get_env_vars(self, vercel_project_id):
-        return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
+        # Env vars are paginated the same way as projects. Projects with many
+        # variables can exceed one page; without pagination the update path
+        # misses existing keys and fails with ENV_ALREADY_EXISTS.
+        url = self.GET_ENV_VAR_URL % vercel_project_id
+        params: _ParamsDict = {"limit": self.pagination_limit}
+        results = []
+        next_timestamp: str | None = ""
+        while next_timestamp is not None:
+            response = self.get(url, params=params) or {}
+            results += response.get("envs") or []
+            pagination = response.get("pagination") or {}
+            next_timestamp = pagination.get("next")
+            if next_timestamp is None:
+                break
+            params["until"] = next_timestamp
+        return {"envs": results}
 
     def create_env_variable(self, vercel_project_id, data, upsert=False):
         # The v10 endpoint is required for `upsert=true`
