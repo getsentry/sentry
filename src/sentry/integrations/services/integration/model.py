@@ -81,6 +81,38 @@ class RpcIntegrationExternalProject(RpcModel):
     unresolved_status: str
 
 
+class RpcGiteaAccessToken(RpcModel):
+    """A usable Gitea access token, refreshed if it was close to expiring.
+
+    GitHub's equivalent refresh returns an ``RpcIntegration`` because the token it
+    mints is stored on the ``Integration`` row. Gitea's token is a user-scoped OAuth
+    token living on ``Identity.data``, which is readable only in control silo and has
+    nowhere to ride on an ``RpcIntegration``, so it is returned directly.
+
+    Guaranteed valid for the next few minutes only - Gitea access tokens last about an
+    hour and the refresh here is proactive, not continuous. Spend it promptly, and ask
+    for a new one rather than holding one across a long-running job.
+
+    ``base_url`` is the instance URL recorded when the integration was installed,
+    verbatim. Two things follow. It may carry a sub-path, so callers must build URLs
+    from it rather than reassembling one from a hostname. And it is customer-supplied
+    and not SSRF-validated: inside Sentry every integration client routes through
+    ``SafeSession``/``BlacklistAdapter``, and a caller outside that path (getsentry's
+    coding-agent handoff) is responsible for its own address blocking.
+
+    ``expires`` is an absolute Unix timestamp in seconds, not a remaining lifetime.
+
+    ``verify_ssl`` mirrors what the integration was installed with. Self-hosted
+    instances behind a private CA are installed with it off, and a caller that hardcodes
+    verification would fail against them where Sentry itself succeeds.
+    """
+
+    access_token: str
+    base_url: str
+    expires: int | None = None
+    verify_ssl: bool = True
+
+
 class RpcIntegrationIdentityContext(RpcModel):
     integration: RpcIntegration | None
     identity_provider: RpcIdentityProvider | None

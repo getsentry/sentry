@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
+from time import time
 from typing import TYPE_CHECKING, Any
 
 from requests import PreparedRequest
@@ -25,6 +27,10 @@ if TYPE_CHECKING:
     from sentry.integrations.gitea.integration import GiteaIntegration
 
 logger = logging.getLogger("sentry.integrations.gitea")
+
+# Gitea access tokens last an hour by default. Ten minutes of remaining validity
+# matches what the GitHub integration treats as "about to expire".
+DEFAULT_TOKEN_MINIMUM_VALIDITY = timedelta(minutes=10)
 
 
 class GiteaSetupApiClient(IntegrationProxyClient):
@@ -108,6 +114,30 @@ class GiteaApiClient(IntegrationProxyClient, RepositoryClient):
         if self.identity.data["access_token"]:
             return {"access_token": self.identity.data["access_token"], "permissions": None}
         return None
+
+    @control_silo_function
+    def ensure_fresh_access_token(
+        self, minimum_validity: timedelta = DEFAULT_TOKEN_MINIMUM_VALIDITY
+    ) -> None:
+        """
+        Refresh the identity's token if it expires within ``minimum_validity``.
+
+        The refresh in :meth:`request` is reactive - it needs a 401 to fire. A
+        caller that hands the raw token to something outside this client (the
+        Gitea coding-agent write-back does) never makes that request, so the
+        staleness has to be checked up front instead.
+
+        An identity with no recorded expiry is left alone: Gitea only omits
+        ``expires`` when the token response carried no ``expires_in``, and
+        refreshing on a hunch would trade a working token for an
+        ``IdentityNotValid``.
+        """
+        expires = self.identity.data.get("expires")
+        if expires is None:
+            return
+        if int(expires) - time() > minimum_validity.total_seconds():
+            return
+        self._refresh_auth()
 
     # Auth / token refresh
 

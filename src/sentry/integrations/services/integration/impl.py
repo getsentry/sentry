@@ -7,13 +7,16 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from django.core.exceptions import SuspiciousOperation
 from django.utils import timezone
+from requests.exceptions import RequestException
 
 from sentry import analytics
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
     AlertRuleUiComponentWebhookSentEvent,
 )
 from sentry.api.paginator import OffsetPaginator
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
@@ -35,6 +38,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
 )
 from sentry.integrations.services.integration.model import (
+    RpcGiteaAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -45,6 +49,7 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -58,7 +63,7 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -636,3 +641,88 @@ class DatabaseBackedIntegrationService(IntegrationService):
         integration.refresh_from_db()
 
         return serialize_integration(integration)
+
+    def refresh_gitea_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcGiteaAccessToken | None:
+        """Return a Gitea access token that is good for at least the next few minutes.
+
+        Kept separate from ``refresh_github_access_token`` rather than folded into it:
+        that method is a GitHub-shaped contract down to its return type, which carries
+        the refreshed token on ``Integration.metadata``. Gitea keeps its token on the
+        installer's ``Identity`` instead, so it has to be handed back on its own.
+
+        Returns ``None`` for every "we cannot produce a token" case - unknown or
+        inactive integration, an organization the integration is not installed on,
+        metadata with no ``base_url``, a deleted identity, an unreachable instance, or
+        a refresh the identity cannot satisfy - so callers have one failure to handle
+        rather than six. Nothing from the Gitea instance is allowed to escape as an
+        exception across the RPC boundary.
+        """
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider=IntegrationProviderSlug.GITEA.value,
+                status=ObjectStatus.ACTIVE,
+            )
+        except Integration.DoesNotExist:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+        # get_installation doesn't check that the integration is associated with the
+        # organization, so this validates that it is (and caches the org_integration).
+        try:
+            installation.org_integration
+        except OrganizationIntegrationNotFound:
+            return None
+
+        base_url = integration.metadata.get("base_url")
+        if not base_url:
+            logger.warning(
+                "gitea.refresh_access_token.missing_base_url",
+                extra={"integration_id": integration_id},
+            )
+            return None
+
+        # `get_client` resolves the installer's identity, so it belongs inside the
+        # guard: an installation whose identity was deleted raises from here, and it is
+        # the single most likely way a Gitea integration goes bad.
+        try:
+            client = installation.get_client()
+            client.ensure_fresh_access_token()
+            token = client.get_access_token()
+            expires = client.identity.data.get("expires")
+        except (IdentityNotValid, IntegrationConfigurationError):
+            # The customer has to reauthorize. Expected enough not to page anyone -
+            # Gitea rotates the refresh token on every use, so two refreshes racing
+            # guarantees one of these.
+            logger.warning(
+                "gitea.refresh_access_token.reauthorization_required",
+                exc_info=True,
+                extra={"integration_id": integration_id, "organization_id": organization_id},
+            )
+            return None
+        except (ApiError, RequestException, SuspiciousOperation, KeyError):
+            # A self-hosted instance that has moved, expired its certificate, or gone
+            # behind a blocked address is the steady state for this integration, and
+            # none of those raise `ApiError` on the OAuth refresh path.
+            logger.exception(
+                "gitea.refresh_access_token.refresh_failed",
+                extra={"integration_id": integration_id, "organization_id": organization_id},
+            )
+            return None
+
+        access_token = token.get("access_token") if token else None
+        if not access_token:
+            logger.warning(
+                "gitea.refresh_access_token.no_access_token",
+                extra={"integration_id": integration_id},
+            )
+            return None
+
+        return RpcGiteaAccessToken(
+            access_token=access_token,
+            base_url=base_url,
+            expires=int(expires) if expires is not None else None,
+            verify_ssl=bool(integration.metadata.get("verify_ssl", True)),
+        )

@@ -233,6 +233,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
+            gitea_agent_id=None,
+            gitea_agent_version=None,
         )
 
     def test_get_client_with_environment_and_workspace(self) -> None:
@@ -261,6 +263,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id="agent-123",
             agent_version=1,
             model=None,
+            gitea_agent_id=None,
+            gitea_agent_version=None,
         )
 
     def test_get_client_passes_model_from_metadata(self) -> None:
@@ -283,6 +287,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model="claude-sonnet-4-6",
+            gitea_agent_id=None,
+            gitea_agent_version=None,
         )
 
     def test_get_client_passes_none_model_when_metadata_has_none(self) -> None:
@@ -305,6 +311,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
+            gitea_agent_id=None,
+            gitea_agent_version=None,
         )
 
     def test_get_client_class_not_configured(self) -> None:
@@ -484,6 +492,10 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         agent_version=None,
         client_agent_id=None,
         client_agent_version=None,
+        gitea_agent_id=None,
+        gitea_agent_version=None,
+        client_gitea_agent_id=None,
+        client_gitea_agent_version=None,
     ):
         """Set up mocks for launch tests. Returns (installation, mock_client, mock_cls, request)."""
         from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -495,6 +507,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         mock_client.environment_id = client_environment_id
         mock_client.agent_id = client_agent_id
         mock_client.agent_version = client_agent_version
+        mock_client.gitea_agent_id = client_gitea_agent_id
+        mock_client.gitea_agent_version = client_gitea_agent_version
 
         mock_state = MagicMock()
         mock_state.id = "session-456"
@@ -510,6 +524,10 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             metadata_kwargs["agent_id"] = agent_id
         if agent_version is not None:
             metadata_kwargs["agent_version"] = agent_version
+        if gitea_agent_id is not None:
+            metadata_kwargs["gitea_agent_id"] = gitea_agent_id
+        if gitea_agent_version is not None:
+            metadata_kwargs["gitea_agent_version"] = gitea_agent_version
 
         integration = self.create_integration(
             organization=self.organization,
@@ -629,6 +647,64 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert installation.model.metadata["environment_id"] == "env-new"
         assert installation.model.metadata["agent_id"] == "agent-new"
         assert installation.model.metadata["agent_version"] == 2
+
+    def test_launch_persists_the_gitea_agent_under_its_own_key(self) -> None:
+        # Gitea sessions run a different agent definition. Storing it in `agent_id`
+        # would make every launch replace the other provider's agent.
+        installation, mock_client, mock_cls, request = self._setup_launch(
+            agent_id="agent-github",
+            agent_version=1,
+            client_agent_id="agent-github",
+            client_agent_version=1,
+            client_gitea_agent_id="agent-gitea",
+            client_gitea_agent_version=3,
+        )
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.launch(request=request)
+
+        assert installation.model.metadata["gitea_agent_id"] == "agent-gitea"
+        assert installation.model.metadata["gitea_agent_version"] == 3
+        assert installation.model.metadata["agent_id"] == "agent-github"
+
+    def test_launch_does_not_persist_an_unchanged_gitea_agent(self) -> None:
+        installation, mock_client, mock_cls, request = self._setup_launch(
+            environment_id="env-same",
+            client_environment_id="env-same",
+            gitea_agent_id="agent-gitea",
+            gitea_agent_version=3,
+            client_gitea_agent_id="agent-gitea",
+            client_gitea_agent_version=3,
+        )
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            with patch.object(installation, "_persist_metadata") as mock_persist:
+                installation.launch(request=request)
+
+        mock_persist.assert_not_called()
+
+    def test_launch_skips_vault_resolution_for_a_non_github_repo(self) -> None:
+        # A vault holds one thing: the GitHub MCP credential. Resolving one for a
+        # Gitea repo would create an empty vault keyed by a Gitea integration id.
+        installation, mock_client, mock_cls, request = self._setup_launch()
+        request.repository.provider = "integrations:gitea"
+
+        with self.feature("organizations:claude-code-vault-reuse"):
+            with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+                installation.launch(request=request)
+
+        mock_client.create_vault.assert_not_called()
+        assert mock_client.launch.call_args[1]["vault_id"] is None
+
+    def test_launch_still_resolves_a_vault_for_a_github_repo(self) -> None:
+        installation, mock_client, mock_cls, request = self._setup_launch()
+        mock_client.create_vault.return_value = "vault-123"
+
+        with self.feature("organizations:claude-code-vault-reuse"):
+            with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+                installation.launch(request=request)
+
+        assert mock_client.launch.call_args[1]["vault_id"] == "vault-123"
 
 
 @control_silo_test

@@ -12,6 +12,7 @@ from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationRe
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.integrations.services.integration.model import (
+    RpcGiteaAccessToken,
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -316,6 +317,13 @@ class IntegrationService(RpcService):
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def refresh_gitea_access_token(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcGiteaAccessToken | None:
         pass
 
 

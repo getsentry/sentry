@@ -551,25 +551,31 @@ def build_result_from_events(
     extracted = ExtractedAgentResult()
     if new_status == CodingAgentStatus.COMPLETED:
         extracted = extract_result_from_events(events)
-        if not extracted.url:
-            logger.warning(
-                "coding_agent.claude_code.no_result_url_in_response",
-                extra={"agent_id": agent_id},
-            )
-            new_status = CodingAgentStatus.FAILED
 
     try:
+        # The session ID lets the client finish work the agent could not do itself. On
+        # a forge with no sandbox access (Gitea) the agent only writes a patch, and the
+        # client is what turns that into a branch and a pull request — so the URL comes
+        # back on the result rather than being scraped out of the agent's prose.
         result = client.build_result_from_session(
             agent_name=agent_name,
             pr_url=extracted.url,
+            session_id=agent_id,
         )
         if result:
             result.description = extracted.text_block or ""
-            result.branch_name = extracted.branch_name
-            result.pr_number = extracted.pr_number
+            result.branch_name = result.branch_name or extracted.branch_name
+            result.pr_number = result.pr_number or extracted.pr_number
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",
+            extra={"agent_id": agent_id},
+        )
+        new_status = CodingAgentStatus.FAILED
+
+    if new_status == CodingAgentStatus.COMPLETED and (result is None or not result.pr_url):
+        logger.warning(
+            "coding_agent.claude_code.no_result_url_in_response",
             extra={"agent_id": agent_id},
         )
         new_status = CodingAgentStatus.FAILED

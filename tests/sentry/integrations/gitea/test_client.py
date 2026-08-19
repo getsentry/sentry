@@ -1,3 +1,5 @@
+from datetime import timedelta
+from time import time
 from typing import Any
 from unittest import mock
 
@@ -313,6 +315,54 @@ class GiteaApiClientTest(TestCase):
         with mock.patch.object(GiteaApiClient, "_refresh_auth", return_value=None):
             with pytest.raises(ApiUnauthorized):
                 self.gitea_client.get_default_branch("acme/widgets")
+
+    @responses.activate
+    def test_ensure_fresh_access_token_refreshes_an_expiring_token(self) -> None:
+        # The setUp identity expires in 2009, so it is always "about to expire".
+        self._stub_token_refresh()
+
+        self.gitea_client.ensure_fresh_access_token()
+
+        assert self.gitea_client.get_access_token() == {
+            "access_token": "fresh-access-token",
+            "permissions": None,
+        }
+
+    @responses.activate
+    def test_ensure_fresh_access_token_leaves_a_valid_token_alone(self) -> None:
+        self.gitea_client.identity.data["expires"] = int(time()) + 3600
+
+        self.gitea_client.ensure_fresh_access_token()
+
+        # No refresh request was made; `responses` would have raised on one.
+        assert self.gitea_client.get_access_token() == {
+            "access_token": "access-token",
+            "permissions": None,
+        }
+
+    @responses.activate
+    def test_ensure_fresh_access_token_leaves_an_expiry_less_token_alone(self) -> None:
+        # Refreshing on a hunch would trade a working token for an IdentityNotValid.
+        del self.gitea_client.identity.data["expires"]
+
+        self.gitea_client.ensure_fresh_access_token()
+
+        assert self.gitea_client.get_access_token() == {
+            "access_token": "access-token",
+            "permissions": None,
+        }
+
+    @responses.activate
+    def test_ensure_fresh_access_token_respects_the_validity_window(self) -> None:
+        self.gitea_client.identity.data["expires"] = int(time()) + 300
+        self._stub_token_refresh()
+
+        # Five minutes of validity left clears a one-minute bar but not the default.
+        self.gitea_client.ensure_fresh_access_token(minimum_validity=timedelta(minutes=1))
+        assert self.gitea_client.identity.data["access_token"] == "access-token"
+
+        self.gitea_client.ensure_fresh_access_token()
+        assert self.gitea_client.identity.data["access_token"] == "fresh-access-token"
 
 
 class GiteaQuotePathTest(TestCase):

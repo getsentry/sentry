@@ -119,6 +119,12 @@ class GiteaApiPath:
 
     repo_search = "/repos/search"
     repo = "/repos/{repo}"
+    # Used by the coding-agent handoff in getsentry, which downloads a repository as
+    # a source archive and later commits the agent's patch back. `{ref}` is a
+    # path-like ref (`main`, `release/1.x`) with the format appended, e.g.
+    # `main.tar.gz`; Gitea routes the whole tail as a wildcard, so a ref containing
+    # slashes is fine.
+    archive = "/repos/{repo}/archive/{ref}"
 
     branches = "/repos/{repo}/branches"
     branch = "/repos/{repo}/branches/{branch}"
@@ -128,6 +134,10 @@ class GiteaApiPath:
     compare = "/repos/{repo}/compare/{basehead}"
 
     contents = "/repos/{repo}/contents/{path}"
+    # Applies several file operations in one commit, and can cut the branch it
+    # commits to at the same time (`new_branch`). Present since Gitea 1.20, so within
+    # the 1.22 baseline above. Used by the coding-agent handoff in getsentry.
+    contents_batch = "/repos/{repo}/contents"
     raw = "/repos/{repo}/raw/{path}"
 
     issues = "/repos/{repo}/issues"
