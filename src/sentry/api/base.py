@@ -70,6 +70,7 @@ from ..utils.pagination_factory import (
 from .authentication import (
     AgentTokenAuthentication,
     ApiKeyAuthentication,
+    BiscuitTokenAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
@@ -108,6 +109,7 @@ DEFAULT_AUTHENTICATION = (
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
+    BiscuitTokenAuthentication,
     ApiKeyAuthentication,
     ViewerContextAuthentication,
     SessionAuthentication,

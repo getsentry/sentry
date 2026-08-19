@@ -557,6 +557,14 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
+from sentry.agent.endpoints.organization_biscuit_elevation import (
+    OrganizationBiscuitElevationDetailEndpoint,
+    OrganizationBiscuitElevationEndpoint,
+)
+from sentry.agent.endpoints.organization_biscuit_token import OrganizationBiscuitTokenEndpoint
+from sentry.agent.endpoints.organization_biscuit_token_refresh import (
+    OrganizationBiscuitTokenRefreshEndpoint,
+)
 from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
 from sentry.seer.endpoints.organization_agent_token import OrganizationAgentTokenEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
@@ -1783,6 +1791,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/$",
         OrganizationAgentApproveEndpoint.as_view(),
         name="sentry-api-0-organization-agent-approve",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/biscuit-token/$",
+        OrganizationBiscuitTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-biscuit-token",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/biscuit-token/refresh/$",
+        OrganizationBiscuitTokenRefreshEndpoint.as_view(),
+        name="sentry-api-0-organization-biscuit-token-refresh",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/biscuit-token/elevation/$",
+        OrganizationBiscuitElevationEndpoint.as_view(),
+        name="sentry-api-0-organization-biscuit-elevation",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/biscuit-token/elevation/(?P<elevation_id>[^/]+)/$",
+        OrganizationBiscuitElevationDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-biscuit-elevation-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",

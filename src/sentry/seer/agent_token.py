@@ -300,9 +300,12 @@ def decode_agent_token(token_str: str) -> AgentTokenClaims:
     return _validate_claims(claims)
 
 
+_AGENT_TOKEN_KINDS = frozenset({AGENT_TOKEN_KIND, "biscuit_agent_token"})
+
+
 def is_agent_auth(auth: object) -> TypeGuard[AuthenticatedToken]:
-    """Whether an authenticated credential is a Seer agent capability token."""
-    return isinstance(auth, AuthenticatedToken) and auth.kind == AGENT_TOKEN_KIND
+    """Whether an authenticated credential is an agent capability token (JWT or biscuit)."""
+    return isinstance(auth, AuthenticatedToken) and auth.kind in _AGENT_TOKEN_KINDS
 
 
 def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
@@ -317,13 +320,19 @@ def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
 
 
 def create_write_grant(
-    *, organization_id: int, user_id: int, session_id: str, scopes: Iterable[str]
+    *,
+    organization_id: int,
+    user_id: int,
+    session_id: str,
+    scopes: Iterable[str],
+    ttl: timedelta | None = None,
 ) -> SeerAgentWriteGrant:
     """Merge ``scopes`` into the single grant for ``(org, user, session)`` and refresh its
     expiry, creating it if absent. The caller MUST have already capped ``scopes`` to the
     approving user's own authority. The unique constraint plus row lock keep concurrent
     approvals from racing."""
     now = timezone.now()
+    expiry = now + (ttl or DEFAULT_EXPIRATION)
     with transaction.atomic(using=router.db_for_write(SeerAgentWriteGrant)):
         grant, created = SeerAgentWriteGrant.objects.select_for_update().get_or_create(
             organization_id=organization_id,
@@ -331,11 +340,12 @@ def create_write_grant(
             agent_session_id=session_id,
             defaults={
                 "scope_list": sorted(scopes),
+                "expires_at": expiry,
             },
         )
         if not created:
             previous_scopes = set() if grant.expires_at <= now else set(grant.get_scopes())
             grant.scope_list = sorted(previous_scopes | set(scopes))
-            grant.expires_at = now + DEFAULT_EXPIRATION
+            grant.expires_at = expiry
             grant.save(update_fields=["scope_list", "expires_at", "date_updated"])
     return grant

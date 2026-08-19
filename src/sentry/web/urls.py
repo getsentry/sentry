@@ -35,6 +35,7 @@ from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.agent_elevation import AgentElevationView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
@@ -237,6 +238,12 @@ urlpatterns += [
                 ),
             ]
         ),
+    ),
+    # Agent elevation (browser-based scope approval)
+    re_path(
+        r"^agent/elevate/$",
+        AgentElevationView.as_view(),
+        name="sentry-agent-elevate",
     ),
     # SAML
     re_path(

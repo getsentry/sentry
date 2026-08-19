@@ -789,6 +789,10 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Ed25519 keypair for minting/verifying biscuit agent tokens (hex-encoded).
+BISCUIT_AGENT_ROOT_PRIVATE_KEY: str = ""
+BISCUIT_AGENT_ROOT_PUBLIC_KEY: str = ""
+
 # TTL in seconds for ViewerContext JWT tokens.
 VIEWER_CONTEXT_JWT_TTL: int = 900
 

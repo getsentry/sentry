@@ -525,6 +525,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
             return False
 
+        from sentry.agent.biscuit_token import BISCUIT_TOKEN_PREFIX
+
+        if token_str.startswith(BISCUIT_TOKEN_PREFIX):
+            return False
+
         return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
@@ -680,6 +685,78 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
             agent_token.FEATURE_FLAG,
+            org_context.organization,
+            actor=user,
+            skip_experiment_exposure=True,
+        ):
+            fail("feature_flag_off", user_id=user_id, org_id=auth_token.organization_id)
+
+        compatibility_user = user.copy(
+            update={
+                "is_staff": False,
+                "is_superuser": False,
+                "permissions": frozenset(),
+                "roles": frozenset(),
+            }
+        )
+        return self.transform_auth(compatibility_user, auth_token)
+
+
+class BiscuitTokenAuthentication(StandardAuthentication):
+    """Authenticates biscuit capability tokens (Ed25519, asymmetric).
+
+    Like AgentTokenAuthentication, authenticates as a non-user actor with
+    access derived from the delegating member, capped by token scopes."""
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        from sentry.agent import biscuit_token
+
+        return biscuit_token.is_biscuit_token_string(force_str(auth[1]))
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        from sentry.agent import biscuit_token
+
+        def fail(reason: str, **extra: Any) -> NoReturn:
+            logger.warning(
+                "biscuit_token_auth.failed",
+                extra={"reason": reason, **extra},
+            )
+            raise AuthenticationFailed("Invalid agent token")
+
+        try:
+            claims = biscuit_token.verify_biscuit_token(token_str)
+            auth_token = biscuit_token.build_authenticated_token(claims)
+            user_id = auth_token.user_id
+        except (ValueError, KeyError, TypeError) as exc:
+            fail("decode_failed", error_type=type(exc).__name__)
+
+        if user_id is None:
+            fail("no_user_principal", org_id=auth_token.organization_id)
+
+        user = user_service.get_user(user_id=user_id)
+        if user is None:
+            fail("user_not_found", user_id=user_id)
+        if not user.is_active:
+            fail("user_inactive", user_id=user_id)
+        if getattr(user, "is_suspended", False):
+            fail("user_suspended", user_id=user_id)
+
+        org_context = organization_service.get_organization_by_id(
+            id=auth_token.organization_id,
+            user_id=user_id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None:
+            fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if org_context.member is None:
+            fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if not features.has(
+            biscuit_token.FEATURE_FLAG,
             org_context.organization,
             actor=user,
             skip_experiment_exposure=True,

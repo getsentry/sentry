@@ -47,6 +47,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:agentic-triage-free-cohort-killswitch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable agentic triage sort for night shift candidate selection
     manager.add("organizations:agentic-triage-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Gate biscuit-based agent capability tokens (hackweek POC)
+    manager.add("organizations:agent-biscuit-token-flow", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization

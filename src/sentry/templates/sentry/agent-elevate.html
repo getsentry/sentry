@@ -1,0 +1,66 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Approve Agent Permissions" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  {% if approved %}
+    <div>
+      <h3>Permissions Approved</h3>
+      <p>The agent session has been granted elevated permissions. You can close this tab.</p>
+      <ul>
+        {% for scope in requested_scopes %}
+          <li>{{ scope }}</li>
+        {% endfor %}
+      </ul>
+      <p>These permissions will expire automatically after ~5 minutes.</p>
+    </div>
+  {% elif denied %}
+    <div>
+      <h3>Permissions Denied</h3>
+      <p>The agent session was denied elevated permissions. You can close this tab.</p>
+    </div>
+  {% else %}
+    <form class="form-stacked" action="." method="post" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="tx_id" value="{{ tx_id }}">
+      <input type="hidden" name="elevation_id" value="{{ elevation_id }}">
+
+      <div>
+        <p>An AI agent session is requesting additional permissions for your organization <strong>{{ org_name }}</strong>:</p>
+        <ul>
+          {% for scope in requested_scopes %}
+            <li>{{ scope }}</li>
+          {% endfor %}
+        </ul>
+        <p>These permissions will expire automatically after ~5 minutes.</p>
+      </div>
+
+      <div class="auth-footer">
+        <button type="submit" class="btn btn-primary" name="op" value="approve" disabled>{% trans "Approve" %}</button>
+        <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
+      </div>
+    </form>
+    {% script %}
+    <script>
+      (function () {
+        var btn = document.querySelector('[name="op"][value="approve"]');
+        function onFirstInteraction() {
+          document.removeEventListener('pointermove', onFirstInteraction);
+          document.removeEventListener('pointerdown', onFirstInteraction);
+          document.removeEventListener('keydown', onFirstInteraction);
+          setTimeout(function () {
+            btn.disabled = false;
+          }, 1000);
+        }
+
+        document.addEventListener('pointermove', onFirstInteraction);
+        document.addEventListener('pointerdown', onFirstInteraction);
+        document.addEventListener('keydown', onFirstInteraction);
+      })();
+    </script>
+    {% endscript %}
+  {% endif %}
+{% endblock %}
