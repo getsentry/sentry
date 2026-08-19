@@ -34,20 +34,27 @@ function SampleRow({sample}: {sample: LlmCacheSampleCall}) {
 
   return (
     <Flex justify="between" align="center" gap="lg" wrap="wrap">
+      {/* A row is one call, so it is named for the span that made it rather than
+          for the trace around it, which holds the whole request. A sample with no
+          span id can only offer that trace, and says which it is offering. */}
       <Link to={target}>
-        <Text monospace size="sm">
-          {sample.traceId.slice(0, 8)}
-        </Text>
+        {sample.spanId ? (
+          <Text monospace size="sm">
+            {sample.spanId}
+          </Text>
+        ) : (
+          <Text size="sm">{t('View trace')}</Text>
+        )}
       </Link>
-      <Text size="sm" variant="muted">
-        {sample.inputTokens === null
-          ? t('View trace')
-          : t(
-              '%s input · %s cached',
-              formatTokens(sample.inputTokens),
-              formatTokens(sample.cacheReadTokens ?? 0)
-            )}
-      </Text>
+      {sample.inputTokens !== null && (
+        <Text size="sm" variant="muted">
+          {t(
+            '%s input · %s cached',
+            formatTokens(sample.inputTokens),
+            formatTokens(sample.cacheReadTokens ?? 0)
+          )}
+        </Text>
+      )}
       {sample.timestamp && (
         <Text size="sm" variant="muted">
           <DateTime date={sample.timestamp} />

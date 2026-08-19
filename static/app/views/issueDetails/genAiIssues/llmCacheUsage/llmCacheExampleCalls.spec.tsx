@@ -38,18 +38,21 @@ const evidence: LlmCacheEvidenceData = {
 };
 
 describe('LlmCacheExampleCalls', () => {
-  it('links a sample to the span that made the call, not just its trace', () => {
+  it('names a sample for the span that made the call, not for its trace', () => {
     render(<LlmCacheExampleCalls evidenceData={evidence} />);
 
-    const link = screen.getByRole('link', {name: 'abcdef01'});
+    const link = screen.getByRole('link', {name: '1'.repeat(16)});
     // The span id is what lands the reader on the gen-AI call inside the trace,
     // and the timestamp is how the trace view finds a trace this old at all.
+    expect(link).toHaveAttribute('href', expect.stringContaining('abcdef01'));
     expect(link).toHaveAttribute('href', expect.stringContaining('1111111111111111'));
     expect(link).toHaveAttribute('href', expect.stringContaining('timestamp'));
+    // A trace id under a heading that says calls is the confusion being avoided.
+    expect(screen.queryByText('abcdef01')).not.toBeInTheDocument();
     expect(screen.getByText('~12.4K input · 0 cached')).toBeInTheDocument();
   });
 
-  it('still links bare trace ids from older occurrences', () => {
+  it('offers the trace by name when a sample carries no span id', () => {
     render(
       <LlmCacheExampleCalls
         evidenceData={{
@@ -68,8 +71,8 @@ describe('LlmCacheExampleCalls', () => {
       />
     );
 
-    expect(screen.getByRole('link', {name: 'beefbeef'})).toBeInTheDocument();
-    expect(screen.getByText('View trace')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'View trace'});
+    expect(link).toHaveAttribute('href', expect.stringContaining('beefbeef'));
   });
 
   it('renders nothing when the detector attached no samples', () => {
