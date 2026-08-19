@@ -166,7 +166,7 @@ def _build_evidence_data(
         ],
     }
 
-    warmth = stats.warmth
+    warmth = finding.warmth
     if warmth is not None:
         evidence_data.update(
             {
@@ -242,7 +242,7 @@ def _build_evidence_display(
         ),
         IssueEvidence(name="Window", value=f"{DETECTION_WINDOW_DAYS}d", important=False),
         IssueEvidence(name="Calls", value=f"{stats.call_count:,}", important=False),
-        *_cache_eligible_calls_evidence(stats.warmth),
+        *_cache_eligible_calls_evidence(finding.warmth),
         IssueEvidence(
             name="Cache hit rate",
             value=_format_rate(stats.hit_rate),

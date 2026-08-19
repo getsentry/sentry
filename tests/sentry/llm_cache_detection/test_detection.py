@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
 from sentry.llm_cache_detection.detection import (
@@ -17,6 +15,7 @@ from sentry.llm_cache_detection.detection import (
     find_contrast_anchor,
     needs_cache_presence_probe,
     resolve_with_cache_presence,
+    resolve_with_warmth,
 )
 
 
@@ -30,13 +29,8 @@ def make_stats(
     avg_input_tokens: float,
     hit_rate: float = 0.0,
     write_read_ratio: float = 0.0,
-    cacheable_share: float = 1.0,
 ) -> CallSiteStats:
-    """Build stats from hit-rate and write:read ratios rather than raw token sums.
-
-    Traffic arrives in bursts unless a case says otherwise, so warmth follows the
-    call count and the cases below turn purely on the ratios.
-    """
+    """Build stats from hit-rate and write:read ratios rather than raw token sums."""
     sum_input = call_count * avg_input_tokens
     sum_read = hit_rate * sum_input
     sum_creation = write_read_ratio * sum_read
@@ -50,9 +44,6 @@ def make_stats(
         sum_cache_read_tokens=sum_read,
         sum_cache_creation_tokens=sum_creation,
         avg_input_tokens=avg_input_tokens,
-        warmth=CallSiteWarmth(
-            total_call_count=call_count, warm_call_count=call_count * cacheable_share
-        ),
     )
 
 
@@ -124,27 +115,16 @@ def make_stats(
             id="ineligible-below-the-confidence-floor",
         ),
         pytest.param(
-            # Ineligible: busy, but its calls almost always arrive alone, so a
-            # cache was never warm to hit and the hit rate is arithmetic.
-            make_stats(call_count=50_000, avg_input_tokens=2_935, cacheable_share=0.2),
-            CacheOutcome.INELIGIBLE,
-            id="ineligible-mostly-isolated-calls",
-        ),
-        pytest.param(
-            # Every eligibility floor met exactly.
-            make_stats(
-                call_count=int(MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE),
-                avg_input_tokens=MIN_AVG_INPUT_TOKENS,
-                cacheable_share=MIN_CACHEABLE_SHARE,
-            ),
+            # Both floors met exactly.
+            make_stats(call_count=MIN_CALLS_FOR_CONFIDENCE, avg_input_tokens=MIN_AVG_INPUT_TOKENS),
             CacheOutcome.NOT_CACHING,
             id="eligibility-thresholds-inclusive",
         ),
         pytest.param(
             # A burst workload: dozens of calls inside a minute and then nothing
-            # for hours, which averages far under one call per cache TTL yet
-            # keeps a cache warm for nearly all of them.
-            make_stats(call_count=600, avg_input_tokens=8_000, cacheable_share=0.95),
+            # for hours. It averages far under one call per cache TTL across the
+            # window, which says nothing about whether its cache stays warm.
+            make_stats(call_count=600, avg_input_tokens=8_000),
             CacheOutcome.NOT_CACHING,
             id="bursty-traffic-is-evaluated",
         ),
@@ -200,14 +180,46 @@ def test_warmth_of_a_call_site_that_never_called() -> None:
     assert warmth.cacheable_share == 0
 
 
-def test_unmeasured_warmth_is_ineligible() -> None:
-    # Nothing is known about the gaps between this call site's calls, which is
-    # as good as knowing they are too wide to cache.
-    stats = replace(
-        make_stats(call_count=169_000, avg_input_tokens=2_748, hit_rate=0.000088), warmth=None
-    )
+@pytest.mark.parametrize(
+    ("warmth", "expected"),
+    [
+        pytest.param(
+            CallSiteWarmth(total_call_count=50_000, warm_call_count=10_000),
+            CacheOutcome.INELIGIBLE,
+            id="mostly-isolated-calls",
+        ),
+        pytest.param(
+            CallSiteWarmth(total_call_count=300, warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1),
+            CacheOutcome.INELIGIBLE,
+            id="too-few-calls-met-a-warm-cache",
+        ),
+        pytest.param(
+            # Nothing is known about the gaps between this call site's calls,
+            # which is as good as knowing they are too wide to cache.
+            None,
+            CacheOutcome.INELIGIBLE,
+            id="warmth-never-measured",
+        ),
+        pytest.param(
+            CallSiteWarmth(
+                total_call_count=MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE,
+                warm_call_count=MIN_CALLS_FOR_CONFIDENCE,
+            ),
+            CacheOutcome.NOT_CACHING,
+            id="both-floors-inclusive",
+        ),
+    ],
+)
+def test_resolve_with_warmth(warmth: CallSiteWarmth | None, expected: CacheOutcome) -> None:
+    assert resolve_with_warmth(CacheOutcome.NOT_CACHING, warmth) == expected
 
-    assert classify_call_site(stats) == CacheOutcome.INELIGIBLE
+
+def test_resolve_with_warmth_leaves_an_eligible_outcome_alone() -> None:
+    # The resolver only ever rejects: it is not a second opinion on which of the
+    # flagged readings a call site got.
+    warmth = CallSiteWarmth(total_call_count=10_000, warm_call_count=9_000)
+
+    assert resolve_with_warmth(CacheOutcome.THRASH, warmth) == CacheOutcome.THRASH
 
 
 def test_web_search_wrapper_flags_without_gap_guard() -> None:

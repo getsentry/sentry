@@ -21,6 +21,7 @@ from sentry.llm_cache_detection.detection import (
 from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
+    fetch_call_site_warmth,
     fetch_sample_calls,
 )
 from sentry.models.project import Project
@@ -314,10 +315,11 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         self.store_call_site(agent_name="Explorer", model=CLAUDE, cache_read_tokens=0)
 
         stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        warmth = fetch_call_site_warmth(self.project, stats, self.window)
 
-        assert stats.warmth is not None
-        assert stats.warmth.total_call_count == CALLS_PER_CALL_SITE
-        assert stats.warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
+        assert warmth is not None
+        assert warmth.total_call_count == CALLS_PER_CALL_SITE
+        assert warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
 
     def test_counts_calls_spaced_wider_than_the_cache_ttl_as_cold(self) -> None:
         # An hour between calls outlives any prompt cache, so no volume of them
@@ -335,26 +337,28 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         )
 
         stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        warmth = fetch_call_site_warmth(self.project, stats, self.window)
 
-        assert stats.warmth is not None
-        assert stats.warmth.total_call_count == CALLS_PER_CALL_SITE
-        assert stats.warmth.warm_call_count == 0
+        assert warmth is not None
+        assert warmth.total_call_count == CALLS_PER_CALL_SITE
+        assert warmth.warm_call_count == 0
 
     def test_measures_warmth_for_a_call_site_named_after_its_operation(self) -> None:
-        # The fallback label is a group of its own in both queries, and they only
-        # line up if a missing agent name reads the same way in each.
+        # Spans carrying no agent name are a call site of their own, and the
+        # query that measures them has to select them by that same absence.
         self.store_call_site(model=CLAUDE, operation_name="generate_content", cache_read_tokens=0)
 
         stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        warmth = fetch_call_site_warmth(self.project, stats, self.window)
 
         assert stats.agent_label_source is AgentLabelSource.OPERATION_NAME
-        assert stats.warmth is not None
-        assert stats.warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
+        assert warmth is not None
+        assert warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
 
-    def test_folds_operation_names_before_reading_warmth(self) -> None:
-        # One agent reporting two operation names comes back as two groups, and
-        # counted apart the pair reads as two cold starts instead of a cold call
-        # followed by a warm one.
+    def test_reads_warmth_across_an_agents_operation_names(self) -> None:
+        # An agent reporting two operation names is still one call site, so both
+        # calls belong to the same bucket -- a cold call followed by a warm one,
+        # not two cold starts.
         self.store_spans(
             [
                 self.gen_ai_span(
@@ -368,10 +372,11 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         )
 
         stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+        warmth = fetch_call_site_warmth(self.project, stats, self.window)
 
-        assert stats.warmth is not None
-        assert stats.warmth.total_call_count == 2
-        assert stats.warmth.warm_call_count == 1
+        assert warmth is not None
+        assert warmth.total_call_count == 2
+        assert warmth.warm_call_count == 1
 
     def test_excludes_other_projects(self) -> None:
         other_project = self.create_project()

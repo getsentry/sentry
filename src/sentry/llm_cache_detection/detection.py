@@ -104,18 +104,6 @@ class CacheOutcome(StrEnum):
 
 FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
-# The label's source belongs to a call site's identity rather than decorating
-# it: an agent genuinely named `chat` and the fallback label for spans that
-# carry no agent name are different call sites that would otherwise share a key.
-CallSiteKey = tuple[str, str, str, str]
-
-
-def call_site_key(
-    agent_label_source: AgentLabelSource, agent_label: str, span_name: str, model: str
-) -> CallSiteKey:
-    """Identify one call site, for lining up rows that describe it."""
-    return (agent_label_source.value, agent_label, span_name, model)
-
 
 @dataclass(frozen=True)
 class CallSiteWarmth:
@@ -172,14 +160,19 @@ class CallSiteStats:
     sum_cache_read_tokens: float
     sum_cache_creation_tokens: float
     avg_input_tokens: float
-    # None where the shape of the traffic was not measured. A call site whose
-    # gaps are unknown is treated exactly like one that cannot cache: nothing
-    # can be read off either.
-    warmth: CallSiteWarmth | None = None
 
     @property
-    def group_key(self) -> CallSiteKey:
-        return call_site_key(self.agent_label_source, self.agent_label, self.span_name, self.model)
+    def group_key(self) -> tuple[str, str, str, str]:
+        # The label's source belongs to the identity rather than decorating it:
+        # an agent genuinely named `chat` and the fallback label for spans that
+        # carry no agent name are different call sites that would otherwise
+        # share a key.
+        return (
+            self.agent_label_source.value,
+            self.agent_label,
+            self.span_name,
+            self.model,
+        )
 
     @property
     def hit_rate(self) -> float:
@@ -239,6 +232,9 @@ class CacheFinding:
     outcome: CacheOutcome
     stats: CallSiteStats
     anchor: ContrastAnchor | None
+    # Measured only for a call site that is already a candidate: it costs a
+    # query of its own, and nothing short of a finding reads it.
+    warmth: CallSiteWarmth | None = None
 
     @property
     def severity(self) -> float:
@@ -248,25 +244,23 @@ class CacheFinding:
 
 
 def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
-    """Classify a call-site group from its token sums and the shape of its traffic.
+    """Classify a call-site group from its token sums.
 
-    A group is read at all only once it can cache -- enough of its calls arriving
-    inside the TTL of an earlier one -- and once enough of them have, for the
-    ratios to carry any weight. Warmth that was never measured answers neither
-    question, and is read as the answer being no.
+    Eligibility is only half-answered here. Whether a call site's traffic arrives
+    closely enough spaced to meet a warm cache at all costs a query of its own,
+    so callers settle it with ``resolve_with_warmth`` on the groups this flags,
+    which are the only ones an answer changes anything for -- a hit rate high
+    enough to read as healthy is itself proof that the cache warms. Until then
+    the call count stands in for it: it is the ceiling on how many of a group's
+    calls could have been cache-eligible, so a group short of the floor on its
+    total cannot reach it on the warm subset either.
 
     Assumes cache attributes are recorded on the group's provider path; callers
     must apply ``resolve_with_cache_presence`` when ``needs_cache_presence_probe``
     is true, since a group whose spans never carry cache attributes at all is
     indistinguishable from a 0%-hit group by sums alone.
     """
-    warmth = stats.warmth
-    if (
-        stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS
-        or warmth is None
-        or warmth.warm_call_count < MIN_CALLS_FOR_CONFIDENCE
-        or warmth.cacheable_share < MIN_CACHEABLE_SHARE
-    ):
+    if stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS or stats.call_count < MIN_CALLS_FOR_CONFIDENCE:
         return CacheOutcome.INELIGIBLE
 
     creation_tokens = stats.sum_cache_creation_tokens
@@ -284,6 +278,28 @@ def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
         return CacheOutcome.NOT_CACHING
 
     return CacheOutcome.HEALTHY
+
+
+def resolve_with_warmth(outcome: CacheOutcome, warmth: CallSiteWarmth | None) -> CacheOutcome:
+    """Apply the warmth half of eligibility: traffic too sparse to cache -> INELIGIBLE.
+
+    A hit rate is a verdict only on a call site that had a warm cache to hit.
+    Traffic spaced wider than the TTL meets a cold one however much of it there
+    is, and the 0% that follows is arithmetic rather than a defect anyone can
+    fix. The share floor also bounds what the hit rate's denominator hides: it
+    counts every call, including ones no cache could have served, so demanding
+    that most of them could is what keeps isolated traffic from reading as a
+    broken cache.
+
+    ``None`` means warmth could not be measured, which answers neither question.
+    """
+    if (
+        warmth is None
+        or warmth.warm_call_count < MIN_CALLS_FOR_CONFIDENCE
+        or warmth.cacheable_share < MIN_CACHEABLE_SHARE
+    ):
+        return CacheOutcome.INELIGIBLE
+    return outcome
 
 
 def reports_only_positive_cache_values(model: str) -> bool:

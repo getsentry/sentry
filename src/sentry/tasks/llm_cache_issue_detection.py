@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Generator
+from dataclasses import replace
 from itertools import batched
 
 from sentry import features
@@ -17,6 +18,7 @@ from sentry.llm_cache_detection.detection import (
     find_contrast_anchor,
     needs_cache_presence_probe,
     resolve_with_cache_presence,
+    resolve_with_warmth,
 )
 from sentry.llm_cache_detection.issue_platform_adapter import (
     check_llm_cache_issue_already_speaks_for,
@@ -27,6 +29,7 @@ from sentry.llm_cache_detection.pricing import ModelPricebook
 from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
+    fetch_call_site_warmth,
     fetch_sample_calls,
 )
 from sentry.models.organization import Organization
@@ -43,7 +46,11 @@ LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
 # Matches the group type's default creation quota (5/hour/project): anything
 # beyond it would be rate-limit-dropped by the occurrence consumer anyway.
 FINDINGS_PER_PROJECT_LIMIT = 5
-# Bounds sequential EAP probe queries so the task fits its processing deadline.
+# Bound the sequential EAP probe queries so the task fits its processing
+# deadline. Warmth is asked of every candidate and presence only of the
+# ambiguous ones, so each gets a budget of its own rather than sharing a pool
+# that whichever ran first would drain.
+MAX_WARMTH_PROBES_PER_PROJECT = 20
 MAX_PRESENCE_PROBES_PER_PROJECT = 20
 # Caps how many projects the fan-out holds in memory and how many organizations
 # a single dispatch round resolves.
@@ -182,7 +189,8 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
     candidates.sort(key=lambda finding: finding.severity, reverse=True)
 
     findings: list[CacheFinding] = []
-    probes_remaining = MAX_PRESENCE_PROBES_PER_PROJECT
+    warmth_probes_remaining = MAX_WARMTH_PROBES_PER_PROJECT
+    presence_probes_remaining = MAX_PRESENCE_PROBES_PER_PROJECT
     rejected_already_exists_count = 0
     for candidate in candidates:
         if len(findings) >= FINDINGS_PER_PROJECT_LIMIT:
@@ -196,24 +204,42 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         ):
             rejected_already_exists_count += 1
             continue
-        if needs_cache_presence_probe(candidate.stats, candidate.outcome):
-            # An unqueryable call site and an exhausted budget both leave presence
-            # unknown, which the resolver treats conservatively. Only a query that
-            # actually reached EAP is charged: charging for the rest would let a
-            # handful of unexpressible call sites spend the whole budget.
+        # An unqueryable call site and an exhausted budget both leave a probe
+        # unanswered, which either resolver reads conservatively. Only a query
+        # that actually reached EAP is charged: charging for the rest would let
+        # a handful of unexpressible call sites spend the whole budget.
+        #
+        # Warmth is asked first because it can reject outright -- a call site
+        # whose calls arrive too far apart to meet a warm cache is not a finding
+        # -- which spares the rejected ones a presence probe as well.
+        warmth = (
+            fetch_call_site_warmth(project, candidate.stats, window)
+            if warmth_probes_remaining > 0
+            else None
+        )
+        if warmth is not None:
+            warmth_probes_remaining -= 1
+        resolved = resolve_with_warmth(candidate.outcome, warmth)
+        if resolved != candidate.outcome:
+            outcome_counts[candidate.outcome] -= 1
+            outcome_counts[resolved] += 1
+            continue
+
+        finding = replace(candidate, warmth=warmth)
+        if needs_cache_presence_probe(finding.stats, finding.outcome):
             presence = (
-                count_spans_with_cache_attributes(project, candidate.stats, window)
-                if probes_remaining > 0
+                count_spans_with_cache_attributes(project, finding.stats, window)
+                if presence_probes_remaining > 0
                 else None
             )
             if presence is not None:
-                probes_remaining -= 1
-            resolved = resolve_with_cache_presence(candidate.outcome, presence)
-            if resolved != candidate.outcome:
-                outcome_counts[candidate.outcome] -= 1
+                presence_probes_remaining -= 1
+            resolved = resolve_with_cache_presence(finding.outcome, presence)
+            if resolved != finding.outcome:
+                outcome_counts[finding.outcome] -= 1
                 outcome_counts[resolved] += 1
                 continue
-        findings.append(candidate)
+        findings.append(finding)
 
     for outcome, count in outcome_counts.items():
         if count <= 0:
