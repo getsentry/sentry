@@ -23,6 +23,10 @@ const FEATURE_GATED_PROVIDERS: Array<{
     flag: 'seer-gitlab-support',
     providerIds: ['gitlab', 'integrations:gitlab'],
   },
+  {
+    flag: 'seer-cursor-origin-support',
+    providerIds: ['cursor_origin', 'integrations:cursor_origin'],
+  },
 ];
 
 /**
