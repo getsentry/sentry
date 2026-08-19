@@ -669,6 +669,22 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert set(config) == {str(selected.id)}
         assert str(other.id) not in config
 
+    def test_project_config_scopes_to_member_projects_by_default(self):
+        org = self.create_organization(owner=self.create_user())
+        member = self.create_user()
+        my_team = self.create_team(organization=org)
+        self.create_member(user=member, organization=org, teams=[my_team])
+        mine = self.create_project(organization=org, teams=[my_team])
+        other_team = self.create_team(organization=org)
+        theirs = self.create_project(organization=org, teams=[other_team])
+        self.login_as(member)
+
+        resp = self.get_success_response(org.slug, qs_params={"expand": "projectConfig"})
+
+        config = self._project_config_by_id(resp)
+        assert str(mine.id) in config
+        assert str(theirs.id) not in config
+
     def test_project_config_eligibility_is_one_query(self):
         for _ in range(3):
             project = self.create_project(organization=self.organization)

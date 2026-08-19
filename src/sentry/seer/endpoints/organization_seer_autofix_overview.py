@@ -347,7 +347,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAutofixOverviewPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
         start, end = get_date_range_from_stats_period(request.GET)
