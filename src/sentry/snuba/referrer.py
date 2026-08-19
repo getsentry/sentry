@@ -695,8 +695,9 @@ class Referrer(StrEnum):
     ISSUES_LLM_CACHE_DETECTION_CACHE_PRESENCE = "issues.llm_cache_detection.cache_presence"
     ISSUES_LLM_CACHE_DETECTION_WARMTH = "issues.llm_cache_detection.warmth"
     ISSUES_LLM_CACHE_DETECTION_TRACE_SAMPLES = "issues.llm_cache_detection.trace_samples"
+    ISSUES_LLM_CACHE_DETECTION_PROMPT_SAMPLES = "issues.llm_cache_detection.prompt_samples"
     # The live queries the LLM Cache Usage issue page runs on the reader's behalf,
-    # as opposed to the four above, which detection runs for itself.
+    # as opposed to the ones above, which detection runs for itself.
     API_LLM_CACHE_USAGE_ISSUE = "api.llm-cache-usage-issue"
 
     INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"

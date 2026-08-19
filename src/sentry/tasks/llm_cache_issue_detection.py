@@ -15,6 +15,7 @@ from sentry.llm_cache_detection.detection import (
     CacheOutcome,
     DetectionWindow,
     classify_call_site,
+    diagnose_prompt_divergence,
     find_contrast_anchor,
     needs_cache_presence_probe,
     resolve_with_cache_presence,
@@ -31,6 +32,7 @@ from sentry.llm_cache_detection.query import (
     fetch_call_site_stats,
     fetch_call_site_warmth,
     fetch_sample_calls,
+    fetch_sample_prompts,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -52,6 +54,12 @@ FINDINGS_PER_PROJECT_LIMIT = 5
 # that whichever ran first would drain.
 MAX_WARMTH_PROBES_PER_PROJECT = 20
 MAX_PRESENCE_PROBES_PER_PROJECT = 20
+# Prompt sampling drags back whole message lists, which makes it the heaviest
+# query the detector runs, so it is deliberately allowed fewer than the findings
+# cap: spent in severity order, the findings it does not reach keep the evidence
+# they already have. Kept a number of its own rather than tied to that cap, so
+# that raising the cap does not quietly raise this cost with it.
+MAX_PROMPT_PROBES_PER_PROJECT = 3
 # Caps how many projects the fan-out holds in memory and how many organizations
 # a single dispatch round resolves.
 PROJECTS_PER_BATCH = 1_000
@@ -255,10 +263,23 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         # Prices come from a single cache entry covering every model, so one load
         # serves every finding in the run.
         pricebook = ModelPricebook.load()
+        prompt_probes_remaining = MAX_PROMPT_PROBES_PER_PROJECT
         for finding in findings:
             sample_calls = fetch_sample_calls(project, finding.stats, window)
             savings = pricebook.estimate(finding)
-            send_llm_cache_issue_to_platform(project, finding, sample_calls, window, savings)
+            # An unqueryable call site costs nothing at EAP, so it is not charged
+            # against the budget -- the same accounting the earlier probes use.
+            prompts = (
+                fetch_sample_prompts(project, finding.stats, window)
+                if prompt_probes_remaining > 0
+                else None
+            )
+            if prompts is not None:
+                prompt_probes_remaining -= 1
+            divergence = diagnose_prompt_divergence(prompts or ())
+            send_llm_cache_issue_to_platform(
+                project, finding, sample_calls, window, savings, divergence
+            )
             metrics.incr(
                 "llm_cache_issue_detection.issues.sent",
                 tags={"kind": finding.outcome.value},

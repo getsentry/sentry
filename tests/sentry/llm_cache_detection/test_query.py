@@ -27,6 +27,7 @@ from sentry.llm_cache_detection.query import (
     count_spans_with_cache_attributes,
     fetch_call_site_warmth,
     fetch_sample_calls,
+    fetch_sample_prompts,
 )
 
 
@@ -136,6 +137,9 @@ def test_unexpressible_value_resolves_unknown_without_querying() -> None:
     assert warmth is None
     assert resolve_with_warmth(CacheOutcome.NOT_CACHING, warmth) == CacheOutcome.INELIGIBLE
     assert fetch_sample_calls(project, stats, window) == []
+    # None rather than an empty list, so the caller can tell a call site it never
+    # asked about from one whose spans carry no prompt text.
+    assert fetch_sample_prompts(project, stats, window) is None
 
 
 def test_falls_back_to_the_operation_name_per_row() -> None:

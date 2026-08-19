@@ -368,3 +368,196 @@ def find_contrast_anchor(
         call_count=best.call_count,
         avg_input_tokens=best.avg_input_tokens,
     )
+
+
+# A shared prefix only means something once two invocations have been compared.
+MIN_PROMPT_SAMPLES = 2
+
+# Prompt lengths are read in characters because that is what the attribute
+# carries, while every cache threshold is denominated in tokens. Four characters
+# to a token is the rough English-prose ratio; it varies by tokenizer and by
+# language, so it is only ever used to put a character length on the same scale
+# as a token threshold, never to report a token count.
+CHARS_PER_TOKEN = 4
+MIN_CACHEABLE_PREFIX_CHARS = MIN_AVG_INPUT_TOKENS * CHARS_PER_TOKEN
+
+# How much of a prompt to read around the point where the samples stop agreeing.
+# What gets classified is the token straddling that point, and the longest of
+# those is a hyphenated UUID at 36 characters, so this leaves room for a whole
+# token either side of the boundary and little else.
+DIVERGENCE_WINDOW_CHARS = 128
+
+
+class DivergenceKind(StrEnum):
+    """What sits at the point where a call site's sampled prompts stop agreeing."""
+
+    NONE = "none"
+    ISO_TIMESTAMP = "iso_timestamp"
+    EPOCH_TIMESTAMP = "epoch_timestamp"
+    UUID = "uuid"
+    IDENTIFIER = "identifier"
+    COUNTER = "counter"
+    OTHER = "other"
+
+
+# Ordered most specific first, since the first pattern covering the divergence
+# point names it: everything built out of digits has to be tried before the bare
+# run of digits that would otherwise swallow it.
+DIVERGENCE_PATTERNS: tuple[tuple[DivergenceKind, re.Pattern[str]], ...] = (
+    (
+        DivergenceKind.ISO_TIMESTAMP,
+        re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?"),
+    ),
+    (
+        DivergenceKind.UUID,
+        re.compile(
+            r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.IGNORECASE
+        ),
+    ),
+    # Trace and span ids are 32 and 16 hex characters; shorter hex runs are left
+    # to the counter pattern rather than guessed at. The prefixed alternative
+    # covers the opaque ids APIs hand out, which nothing but the prefix makes
+    # recognisable -- so a digit is required in the tail to keep ordinary
+    # snake_case words from matching.
+    (
+        DivergenceKind.IDENTIFIER,
+        re.compile(
+            r"\b(?:[0-9a-f]{16,}"
+            r"|(?:req|request|trace|span|session|conversation|thread|run|correlation)"
+            r"[-_](?:id[-_])?(?=[0-9a-z]*\d)[0-9a-z]{6,})\b",
+            re.IGNORECASE,
+        ),
+    ),
+    # Epoch seconds and milliseconds for the next few centuries. Narrower than
+    # "ten or thirteen digits" so that quantities of that size stay counters.
+    (DivergenceKind.EPOCH_TIMESTAMP, re.compile(r"\b1\d{9}(?:\d{3})?\b")),
+    (DivergenceKind.COUNTER, re.compile(r"\d+")),
+)
+
+
+@dataclass(frozen=True)
+class PromptDivergence:
+    """Where a call site's sampled prompts stop agreeing, and what sits there.
+
+    A provider caches a prefix of the token sequence, so where the prompts stop
+    agreeing is where caching stops being possible, whatever follows. Lengths
+    are in characters: that is the unit the attribute is measured in, and
+    converting to tokens would dress a tokenizer-dependent guess up as a count.
+
+    ``stable_suffix_chars`` is a floor rather than a measurement. EAP truncates
+    long attribute values, so a sampled prompt is a prefix of the real one --
+    which leaves the shared prefix exact, since a divergence found inside the
+    sample is a divergence in the prompt, but makes anything read off the end of
+    the sample best-effort.
+
+    No prompt text is carried out: only lengths, and the *kind* of the token the
+    prompts part ways at.
+    """
+
+    sample_count: int
+    common_prefix_chars: int
+    shortest_prompt_chars: int
+    divergence_kind: DivergenceKind
+    stable_suffix_chars: int
+
+    @property
+    def prefix_share(self) -> float:
+        """How much of the shortest sampled prompt the shared prefix covers."""
+        if self.shortest_prompt_chars <= 0:
+            return 0.0
+        return self.common_prefix_chars / self.shortest_prompt_chars
+
+    @property
+    def template_misordered(self) -> bool:
+        """Whether stable content is sitting behind the variable part.
+
+        The shared prefix is all a cache can hold, so a prefix under the
+        provider's minimum cacheable length caches nothing at all -- while
+        identical content of at least that length trailing the divergence is
+        content that would have cached, had the template put it first.
+        """
+        return (
+            self.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
+            and self.stable_suffix_chars >= MIN_CACHEABLE_PREFIX_CHARS
+        )
+
+
+def _common_prefix_length(prompts: Sequence[str]) -> int:
+    shortest = min(prompts, key=len)
+    for index, character in enumerate(shortest):
+        if any(prompt[index] != character for prompt in prompts):
+            return index
+    return len(shortest)
+
+
+def _common_suffix_length(prompts: Sequence[str], *, max_length: int) -> int:
+    """Length of the identical tail the prompts share, capped by the caller.
+
+    The cap keeps the tail from reaching back past the divergence point and
+    double-counting the shared prefix.
+    """
+    length = 0
+    while length < max_length:
+        character = prompts[0][-1 - length]
+        if any(prompt[-1 - length] != character for prompt in prompts):
+            break
+        length += 1
+    return length
+
+
+def _classify_divergence(prompt: str, divergence_index: int) -> DivergenceKind:
+    """Name the token straddling the point where the prompts stop agreeing.
+
+    Read from a window rather than the whole prompt, so that a pattern occurring
+    somewhere else entirely cannot claim the divergence, and so the scan stays
+    bounded on prompts tens of kilobytes long.
+    """
+    window_start = max(divergence_index - DIVERGENCE_WINDOW_CHARS, 0)
+    window = prompt[window_start : divergence_index + DIVERGENCE_WINDOW_CHARS]
+    boundary = divergence_index - window_start
+    for kind, pattern in DIVERGENCE_PATTERNS:
+        if any(match.start() <= boundary < match.end() for match in pattern.finditer(window)):
+            return kind
+    return DivergenceKind.OTHER
+
+
+def diagnose_prompt_divergence(prompts: Sequence[str]) -> PromptDivergence | None:
+    """Locate where one call site's sampled prompts stop agreeing.
+
+    Returns None when there is nothing to compare. Sending prompt text is opt-in
+    and usually off, so that is the ordinary outcome rather than a failure, and
+    it leaves the rest of the finding to speak for itself.
+
+    The prompts are compared as the SDK serialized them, which is a proxy for the
+    token sequence a provider actually caches on -- close enough to say where a
+    template starts varying, not close enough to quote as a token offset.
+    """
+    usable = [prompt for prompt in prompts if prompt]
+    if len(usable) < MIN_PROMPT_SAMPLES:
+        return None
+
+    shortest_prompt_chars = min(len(prompt) for prompt in usable)
+    common_prefix_chars = _common_prefix_length(usable)
+    if common_prefix_chars >= shortest_prompt_chars:
+        # The samples agree for as far as the shortest of them goes: a prompt
+        # that only ever grows at the end, which is the shape a cache wants.
+        # Nothing about the template explains the misses.
+        return PromptDivergence(
+            sample_count=len(usable),
+            common_prefix_chars=common_prefix_chars,
+            shortest_prompt_chars=shortest_prompt_chars,
+            divergence_kind=DivergenceKind.NONE,
+            stable_suffix_chars=0,
+        )
+
+    return PromptDivergence(
+        sample_count=len(usable),
+        common_prefix_chars=common_prefix_chars,
+        shortest_prompt_chars=shortest_prompt_chars,
+        # Every sample agrees up to the divergence, so which one is read for the
+        # token straddling it does not matter.
+        divergence_kind=_classify_divergence(usable[0], common_prefix_chars),
+        stable_suffix_chars=_common_suffix_length(
+            usable, max_length=shortest_prompt_chars - common_prefix_chars
+        ),
+    )

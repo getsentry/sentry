@@ -19,10 +19,12 @@ from sentry.llm_cache_detection.detection import (
     DetectionWindow,
 )
 from sentry.llm_cache_detection.query import (
+    PROMPT_SAMPLES_LIMIT,
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
     fetch_call_site_warmth,
     fetch_sample_calls,
+    fetch_sample_prompts,
 )
 from sentry.models.project import Project
 from sentry.tasks.llm_cache_issue_detection import (
@@ -40,6 +42,9 @@ INGEST_FEATURE = LLMCacheUsageGroupType.build_ingest_feature_name()
 # which each test lowers to keep the seeded span volume small.
 INPUT_TOKENS = 2_000
 CALLS_PER_CALL_SITE = 6
+
+# Synthetic, invented for the test. Real prompt text never goes in a fixture.
+PROMPT = '[{"role": "system", "content": "Rank the rows and explain the ranking."}]'
 
 CLAUDE = "claude-sonnet-4"
 # Gemini reports cache attributes only when positive, which is what lets a call
@@ -68,6 +73,7 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
         operation_name: str | None = "generate_content",
         project: Project | None = None,
         deprecated_attribute_names: bool = False,
+        prompt: str | None = None,
         start_ts: datetime | None = None,
     ) -> dict[str, Any]:
         """Build a gen-AI call span. Omitted token kwargs are left off the span entirely.
@@ -102,6 +108,11 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
             data[read_attribute] = cache_read_tokens
         if cache_creation_tokens is not None:
             data[creation_attribute] = cache_creation_tokens
+        if prompt is not None:
+            prompt_attribute = (
+                "gen_ai.request.messages" if deprecated_attribute_names else "gen_ai.input.messages"
+            )
+            data[prompt_attribute] = prompt
 
         return self.create_span(
             project=project or self.project,
@@ -497,6 +508,65 @@ class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
         assert [sample.trace_id for sample in samples] == [trace_id]
 
 
+class FetchSamplePromptsTest(LLMCacheDetectionIntegrationTest):
+    def test_returns_nothing_when_the_spans_carry_no_prompt_text(self) -> None:
+        # Sending prompts is opt-in, so this is the ordinary shape of the data.
+        self.store_call_site(model=CLAUDE, cache_read_tokens=0)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert fetch_sample_prompts(self.project, stats, self.window) == []
+
+    def test_returns_the_prompt_text_of_the_call_site(self) -> None:
+        self.store_call_site(model=CLAUDE, cache_read_tokens=0, prompt=PROMPT)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        prompts = fetch_sample_prompts(self.project, stats, self.window)
+
+        assert prompts == [PROMPT] * PROMPT_SAMPLES_LIMIT
+
+    def test_reads_the_deprecated_prompt_attribute(self) -> None:
+        # SDKs are part-way through the move off `gen_ai.request.messages`, so a
+        # call site writing the old name still has to be readable.
+        self.store_call_site(
+            model=CLAUDE, cache_read_tokens=0, prompt=PROMPT, deprecated_attribute_names=True
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        prompts = fetch_sample_prompts(self.project, stats, self.window)
+
+        assert prompts == [PROMPT] * PROMPT_SAMPLES_LIMIT
+
+    def test_returns_one_prompt_per_trace(self) -> None:
+        # Repeat calls inside one trace are one invocation's worth of evidence,
+        # and comparing a prompt against itself would report a false agreement.
+        trace_id = uuid4().hex
+        self.store_spans(
+            [
+                self.gen_ai_span(model=CLAUDE, cache_read_tokens=0, prompt=PROMPT)
+                | {"trace_id": trace_id}
+                for _ in range(CALLS_PER_CALL_SITE)
+            ]
+        )
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        assert fetch_sample_prompts(self.project, stats, self.window) == [PROMPT]
+
+    def test_scopes_the_prompts_to_their_own_call_site(self) -> None:
+        other_prompt = '[{"role": "system", "content": "Draft a release note."}]'
+        self.store_call_site(model=CLAUDE, cache_read_tokens=0, prompt=PROMPT)
+        self.store_call_site(model=GEMINI, span_name="generate_content gemini", prompt=other_prompt)
+
+        stats = self.stats_for(fetch_call_site_stats(self.project, self.window), CLAUDE)
+
+        prompts = fetch_sample_prompts(self.project, stats, self.window)
+
+        assert prompts == [PROMPT] * PROMPT_SAMPLES_LIMIT
+
+
 # Each seeded call site is a handful of spans; which volumes the eligibility
 # floors let through is settled in the detection tests.
 @patch("sentry.llm_cache_detection.detection.MIN_CALLS_FOR_CONFIDENCE", 1)
@@ -572,6 +642,35 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
             detect_llm_cache_issues_for_project(self.project.id)
 
         assert not mock_produce.called
+
+    def test_diagnoses_where_the_sampled_prompts_stop_agreeing(
+        self, mock_produce: MagicMock
+    ) -> None:
+        # Two invocations of one call site whose template puts a timestamp in
+        # front of everything stable, so nothing the provider could cache is
+        # ever in the same place twice.
+        stable_body = "Rank the rows and explain the ranking.\n" * 120
+        self.store_spans(
+            [
+                self.gen_ai_span(
+                    model=GEMINI,
+                    span_name="generate_content gemini",
+                    prompt=f'[{{"role": "system", "content": "As of {moment}. {stable_body}"}}]',
+                )
+                for moment in ("2026-08-19T10:15:00Z", "2026-08-19T11:47:31Z")
+                for _ in range(2)
+            ]
+        )
+
+        with self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True}):
+            detect_llm_cache_issues_for_project(self.project.id)
+
+        assert mock_produce.call_count == 1
+        evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
+        assert evidence["prompt_sample_count"] == PROMPT_SAMPLES_LIMIT
+        assert evidence["prompt_divergence_kind"] == "iso_timestamp"
+        assert evidence["prompt_stable_suffix_chars"] >= len(stable_body)
+        assert evidence["prompt_template_misordered"] is True
 
     def test_attaches_a_healthy_same_model_call_site_as_contrast(
         self, mock_produce: MagicMock

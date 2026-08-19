@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
+
 from sentry.llm_cache_detection.detection import (
     CACHE_TTL_MINUTES,
     AgentLabelSource,
@@ -48,6 +50,15 @@ CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
 CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 
+# `gen_ai.request.messages` is deprecated in favour of `gen_ai.input.messages`
+# and SDKs are part-way through the move, so both are read, current name first.
+# Carrying prompt text at all is opt-in and off by default, so most call sites
+# have neither.
+PROMPT_ATTRIBUTES = (
+    ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES,
+    ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES,
+)
+
 # An aggregate column doubles as the key its value comes back under, so the
 # query and the code reading the response share one name.
 SUM_INPUT_TOKENS = f"sum({INPUT_TOKENS})"
@@ -67,6 +78,12 @@ SAMPLE_CALLS_LIMIT = 3
 # Sampled rows are deduplicated by trace, so ask for enough of them that a call
 # site repeating within one trace still yields distinct examples.
 SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
+
+# Each sampled prompt is a whole message list, so this is the widest row the
+# detector reads. Four is enough that a field varying only occasionally still
+# shows up, without paying for a long list of very large attribute values.
+PROMPT_SAMPLES_LIMIT = 4
+PROMPT_SAMPLES_QUERY_LIMIT = PROMPT_SAMPLES_LIMIT * 3
 
 
 @dataclass(frozen=True)
@@ -380,3 +397,51 @@ def fetch_sample_calls(
         if len(samples) == SAMPLE_CALLS_LIMIT:
             break
     return samples
+
+
+def fetch_sample_prompts(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> list[str] | None:
+    """Read the prompt text of a few of the call site's most recent invocations.
+
+    Recency decides which ones rather than size: the shared prefix is a statement
+    about the template the code assembles now, and the largest prompts skew
+    towards whichever path happens to carry the most context. Rows are
+    deduplicated by trace for the reason ``fetch_sample_calls`` does it -- a call
+    site firing repeatedly inside one trace is one invocation's worth of
+    evidence.
+
+    Returns None when the group cannot be queried. An empty list means the spans
+    carry no prompt text, which is the ordinary case.
+    """
+    group_filter = _build_group_filter(stats)
+    if group_filter is None:
+        return None
+    prompt_present = " OR ".join(f"has:{attribute}" for attribute in PROMPT_ATTRIBUTES)
+    result = _run_spans_query(
+        project,
+        window,
+        query_string=f"{group_filter} ({prompt_present})",
+        selected_columns=["trace", "timestamp", *PROMPT_ATTRIBUTES],
+        orderby=["-timestamp"],
+        limit=PROMPT_SAMPLES_QUERY_LIMIT,
+        referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_PROMPT_SAMPLES,
+    )
+
+    prompts: list[str] = []
+    seen_trace_ids: set[str] = set()
+    for row in result.get("data", []):
+        trace_id = row.get("trace")
+        if trace_id and trace_id in seen_trace_ids:
+            continue
+        prompt = next(
+            (str(row[attribute]) for attribute in PROMPT_ATTRIBUTES if row.get(attribute)), None
+        )
+        if prompt is None:
+            continue
+        if trace_id:
+            seen_trace_ids.add(trace_id)
+        prompts.append(prompt)
+        if len(prompts) == PROMPT_SAMPLES_LIMIT:
+            break
+    return prompts

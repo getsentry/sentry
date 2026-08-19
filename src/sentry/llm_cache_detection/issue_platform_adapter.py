@@ -19,6 +19,8 @@ from sentry.llm_cache_detection.detection import (
     CallSiteStats,
     CallSiteWarmth,
     DetectionWindow,
+    DivergenceKind,
+    PromptDivergence,
 )
 from sentry.llm_cache_detection.pricing import SavingsEstimate
 from sentry.llm_cache_detection.query import SampleCall
@@ -38,6 +40,17 @@ FINDING_TITLES: dict[CacheOutcome, str] = {
 AGENT_LABEL_EVIDENCE_NAMES: dict[AgentLabelSource, str] = {
     AgentLabelSource.AGENT_NAME: "Agent",
     AgentLabelSource.OPERATION_NAME: "Operation (no agent name)",
+}
+
+# Reads as the tail of "the prompts first differ at ...". `NONE` is absent
+# deliberately: there is no first difference to name, and the row is dropped.
+DIVERGENCE_KIND_DESCRIPTIONS: dict[DivergenceKind, str] = {
+    DivergenceKind.ISO_TIMESTAMP: "an ISO-8601 timestamp",
+    DivergenceKind.EPOCH_TIMESTAMP: "a Unix timestamp",
+    DivergenceKind.UUID: "a UUID",
+    DivergenceKind.IDENTIFIER: "a request or trace id",
+    DivergenceKind.COUNTER: "a changing number",
+    DivergenceKind.OTHER: "changing text",
 }
 
 # Versioned so grouping can change later without merging into existing issues.
@@ -80,9 +93,12 @@ def _format_rate(rate: float) -> str:
     return f"{rate:.2%}"
 
 
-def _format_tokens(value: float) -> str:
-    """Render a token total approximately: it is extrapolated from sampled spans,
-    so digit-exact precision would overstate what is known."""
+def _format_magnitude(value: float) -> str:
+    """Render a large count approximately.
+
+    Token totals are extrapolated from sampled spans and prompt lengths are read
+    off samples EAP may have truncated, so digit-exact precision would overstate
+    what either is known to."""
     if value < 1_000:
         return f"{value:,.0f}"
     if value < 1_000_000:
@@ -127,6 +143,7 @@ def _build_evidence_data(
     sample_calls: list[SampleCall],
     window: DetectionWindow,
     savings: SavingsEstimate | None,
+    divergence: PromptDivergence | None,
 ) -> dict[str, Any]:
     """The machine-readable half of the occurrence, which the issue page renders from."""
     stats = finding.stats
@@ -177,6 +194,19 @@ def _build_evidence_data(
             }
         )
 
+    if divergence is not None:
+        evidence_data.update(
+            {
+                "prompt_sample_count": divergence.sample_count,
+                "prompt_common_prefix_chars": divergence.common_prefix_chars,
+                "prompt_shortest_chars": divergence.shortest_prompt_chars,
+                "prompt_prefix_share": divergence.prefix_share,
+                "prompt_divergence_kind": divergence.divergence_kind.value,
+                "prompt_stable_suffix_chars": divergence.stable_suffix_chars,
+                "prompt_template_misordered": divergence.template_misordered,
+            }
+        )
+
     if savings is not None:
         evidence_data.update(
             {
@@ -221,8 +251,49 @@ def _cache_eligible_calls_evidence(warmth: CallSiteWarmth | None) -> list[IssueE
     ]
 
 
+def _prompt_divergence_evidence(divergence: PromptDivergence | None) -> list[IssueEvidence]:
+    """Where the sampled prompts stop agreeing, as rows -- or no rows at all.
+
+    Stated as facts rather than as a verdict: what the numbers add up to depends
+    on the template, which the reader has and the detector does not.
+    """
+    if divergence is None:
+        return []
+    rows = [
+        IssueEvidence(
+            name="Shared prompt prefix",
+            value=(
+                f"{_format_magnitude(divergence.common_prefix_chars)} chars across "
+                f"{divergence.sample_count} sampled prompts "
+                f"({_format_rate(divergence.prefix_share)})"
+            ),
+            important=False,
+        )
+    ]
+    if divergence.divergence_kind is not DivergenceKind.NONE:
+        rows.append(
+            IssueEvidence(
+                name="Prompts first differ at",
+                value=DIVERGENCE_KIND_DESCRIPTIONS[divergence.divergence_kind],
+                important=False,
+            )
+        )
+    if divergence.stable_suffix_chars > 0:
+        rows.append(
+            IssueEvidence(
+                name="Identical content after it",
+                value=f"{_format_magnitude(divergence.stable_suffix_chars)} chars",
+                important=False,
+            )
+        )
+    return rows
+
+
 def _build_evidence_display(
-    finding: CacheFinding, sample_calls: list[SampleCall], savings: SavingsEstimate | None
+    finding: CacheFinding,
+    sample_calls: list[SampleCall],
+    savings: SavingsEstimate | None,
+    divergence: PromptDivergence | None,
 ) -> list[IssueEvidence]:
     """The human-readable half, as rows.
 
@@ -267,26 +338,29 @@ def _build_evidence_display(
 
     evidence_display += [
         IssueEvidence(
-            name="Avg input tokens", value=_format_tokens(stats.avg_input_tokens), important=False
+            name="Avg input tokens",
+            value=_format_magnitude(stats.avg_input_tokens),
+            important=False,
         ),
         IssueEvidence(
-            name="Uncached tokens", value=_format_tokens(stats.uncached_tokens), important=False
+            name="Uncached tokens", value=_format_magnitude(stats.uncached_tokens), important=False
         ),
         IssueEvidence(
             name="Total input tokens",
-            value=_format_tokens(stats.sum_input_tokens),
+            value=_format_magnitude(stats.sum_input_tokens),
             important=False,
         ),
         IssueEvidence(
             name="Cache read tokens",
-            value=_format_tokens(stats.sum_cache_read_tokens),
+            value=_format_magnitude(stats.sum_cache_read_tokens),
             important=False,
         ),
         IssueEvidence(
             name="Cache write tokens",
-            value=_format_tokens(stats.sum_cache_creation_tokens),
+            value=_format_magnitude(stats.sum_cache_creation_tokens),
             important=False,
         ),
+        *_prompt_divergence_evidence(divergence),
     ]
 
     anchor = finding.anchor
@@ -352,6 +426,7 @@ def send_llm_cache_issue_to_platform(
     sample_calls: list[SampleCall],
     window: DetectionWindow,
     savings: SavingsEstimate | None,
+    divergence: PromptDivergence | None,
 ) -> None:
     """Produce an occurrence for a flagged call-site group."""
     stats = finding.stats
@@ -366,8 +441,8 @@ def send_llm_cache_issue_to_platform(
         issue_title=FINDING_TITLES[finding.outcome],
         subtitle=_format_call_site(stats),
         resource_id=None,
-        evidence_data=_build_evidence_data(finding, sample_calls, window, savings),
-        evidence_display=_build_evidence_display(finding, sample_calls, savings),
+        evidence_data=_build_evidence_data(finding, sample_calls, window, savings, divergence),
+        evidence_display=_build_evidence_display(finding, sample_calls, savings, divergence),
         type=LLMCacheUsageGroupType,
         detection_time=now,
         culprit=stats.agent_label,

@@ -4,6 +4,7 @@ import pytest
 
 from sentry.llm_cache_detection.detection import (
     MIN_AVG_INPUT_TOKENS,
+    MIN_CACHEABLE_PREFIX_CHARS,
     MIN_CACHEABLE_SHARE,
     MIN_CALLS_FOR_CONFIDENCE,
     AgentLabelSource,
@@ -11,7 +12,9 @@ from sentry.llm_cache_detection.detection import (
     CacheOutcome,
     CallSiteStats,
     CallSiteWarmth,
+    DivergenceKind,
     classify_call_site,
+    diagnose_prompt_divergence,
     find_contrast_anchor,
     needs_cache_presence_probe,
     resolve_with_cache_presence,
@@ -460,3 +463,180 @@ def test_hit_rate_and_ratio_handle_zero_denominators() -> None:
     stats = make_stats(call_count=0, avg_input_tokens=0)
     assert stats.hit_rate == 0.0
     assert stats.write_read_ratio is None
+
+
+# Every prompt in these tests is invented. Real prompt text never enters a
+# fixture: the detector only ever reports lengths and a kind, and the tests hold
+# themselves to the same line.
+STABLE_BLOCK = "Rank the candidate rows and explain the ranking briefly.\n" * 200
+SHORT_BLOCK = "Answer in one sentence.\n"
+
+
+MESSAGE_LIST_OPENING = '[{"role": "system", "content": "'
+
+
+def make_prompt(head: str, body: str = STABLE_BLOCK) -> str:
+    """A serialized message list with a variable head and a stable body."""
+    return f'{MESSAGE_LIST_OPENING}{head}{body}"}}]'
+
+
+@pytest.mark.parametrize(
+    "prompts",
+    [
+        pytest.param([], id="nothing-sampled"),
+        pytest.param([make_prompt("")], id="one-invocation-has-nothing-to-differ-from"),
+        pytest.param(["", ""], id="spans-carrying-an-empty-attribute"),
+        pytest.param([make_prompt(""), ""], id="only-one-of-the-samples-carries-text"),
+    ],
+)
+def test_no_diagnosis_without_two_prompts_to_compare(prompts: list[str]) -> None:
+    assert diagnose_prompt_divergence(prompts) is None
+
+
+def test_reports_no_divergence_when_the_samples_agree() -> None:
+    # A prompt that only ever grows at the end is the shape a cache wants, so
+    # nothing about the template explains the misses.
+    prompt = make_prompt("")
+    divergence = diagnose_prompt_divergence([prompt, prompt + " and then some more."])
+
+    assert divergence is not None
+    assert divergence.divergence_kind is DivergenceKind.NONE
+    assert divergence.common_prefix_chars == len(prompt)
+    assert divergence.prefix_share == 1.0
+    assert divergence.stable_suffix_chars == 0
+    assert not divergence.template_misordered
+
+
+def test_measures_the_prefix_the_samples_share() -> None:
+    head = "Reviewer "
+    divergence = diagnose_prompt_divergence(
+        [
+            make_prompt(f"{head}alpha. "),
+            make_prompt(f"{head}bravo. "),
+            make_prompt(f"{head}gamma. "),
+        ]
+    )
+
+    assert divergence is not None
+    assert divergence.sample_count == 3
+    assert divergence.common_prefix_chars == len(MESSAGE_LIST_OPENING) + len(head)
+    assert divergence.shortest_prompt_chars == len(make_prompt(f"{head}alpha. "))
+    assert divergence.prefix_share == pytest.approx(
+        divergence.common_prefix_chars / divergence.shortest_prompt_chars
+    )
+
+
+@pytest.mark.parametrize(
+    ("first_head", "second_head", "expected"),
+    [
+        pytest.param(
+            "Now: 2026-08-19T10:15:00Z. ",
+            "Now: 2026-08-19T11:47:31Z. ",
+            DivergenceKind.ISO_TIMESTAMP,
+            id="iso-timestamp",
+        ),
+        pytest.param(
+            "Now: 1755600000123. ",
+            "Now: 1755600991777. ",
+            DivergenceKind.EPOCH_TIMESTAMP,
+            id="epoch-millis",
+        ),
+        pytest.param(
+            "Session 0f2b7a1c-1c3e-4b6a-9f2d-8a1b2c3d4e5f. ",
+            "Session 0f2b7a1c-1c3e-4b6a-9f2d-8a1b2c3d4e60. ",
+            DivergenceKind.UUID,
+            id="uuid",
+        ),
+        pytest.param(
+            "Trace 9f2d8a1b2c3d4e5f9f2d8a1b2c3d4e5f. ",
+            "Trace 9f2d8a1b2c3d4e5f9f2d8a1b2c3d4e60. ",
+            DivergenceKind.IDENTIFIER,
+            id="hex-trace-id",
+        ),
+        pytest.param(
+            "Call req_a1b2c3d4e5. ",
+            "Call req_a1b2c3d4f7. ",
+            DivergenceKind.IDENTIFIER,
+            id="prefixed-opaque-id",
+        ),
+        pytest.param(
+            "Turn 41 of this session. ",
+            "Turn 42 of this session. ",
+            DivergenceKind.COUNTER,
+            id="counter",
+        ),
+        pytest.param(
+            "The user asked about pears. ",
+            "The user asked about apples. ",
+            DivergenceKind.OTHER,
+            id="ordinary-varying-text",
+        ),
+    ],
+)
+def test_names_what_the_samples_first_differ_at(
+    first_head: str, second_head: str, expected: DivergenceKind
+) -> None:
+    divergence = diagnose_prompt_divergence([make_prompt(first_head), make_prompt(second_head)])
+
+    assert divergence is not None
+    assert divergence.divergence_kind is expected
+
+
+def test_a_word_that_reads_like_an_id_prefix_is_not_one() -> None:
+    # The prefixed-id pattern is only recognisable by its prefix, so it demands a
+    # digit in the tail rather than claiming every `run_`-prefixed word.
+    divergence = diagnose_prompt_divergence(
+        [make_prompt("Step run_migrations. "), make_prompt("Step run_backfills. ")]
+    )
+
+    assert divergence is not None
+    assert divergence.divergence_kind is DivergenceKind.OTHER
+
+
+def test_flags_a_template_holding_its_stable_content_behind_the_variable_part() -> None:
+    divergence = diagnose_prompt_divergence(
+        [make_prompt("Now: 2026-08-19T10:15:00Z. "), make_prompt("Now: 2026-08-19T11:47:31Z. ")]
+    )
+
+    assert divergence is not None
+    assert divergence.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.stable_suffix_chars >= MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.template_misordered
+
+
+def test_does_not_call_it_misordered_when_the_shared_prefix_already_caches() -> None:
+    # The stable content is where a cache can reach it; that the tail varies
+    # after it is ordinary, not a template someone put together backwards.
+    shared = "A" * (MIN_CACHEABLE_PREFIX_CHARS + 1)
+    divergence = diagnose_prompt_divergence(
+        [f"{shared}{STABLE_BLOCK}pears", f"{shared}{STABLE_BLOCK}apples"]
+    )
+
+    assert divergence is not None
+    assert divergence.common_prefix_chars > MIN_CACHEABLE_PREFIX_CHARS
+    assert not divergence.template_misordered
+
+
+def test_does_not_call_it_misordered_when_too_little_follows_the_divergence() -> None:
+    # Moving a block this small ahead of the timestamp would still not reach the
+    # provider's minimum cacheable prefix, so there is nothing to recommend.
+    divergence = diagnose_prompt_divergence(
+        [
+            make_prompt("Now: 2026-08-19T10:15:00Z. ", SHORT_BLOCK),
+            make_prompt("Now: 2026-08-19T11:47:31Z. ", SHORT_BLOCK),
+        ]
+    )
+
+    assert divergence is not None
+    assert 0 < divergence.stable_suffix_chars < MIN_CACHEABLE_PREFIX_CHARS
+    assert not divergence.template_misordered
+
+
+def test_the_identical_tail_does_not_reach_back_past_the_divergence() -> None:
+    # Without the cap the tail would run into the shared prefix and count the
+    # same characters twice.
+    divergence = diagnose_prompt_divergence(["ax", "aax"])
+
+    assert divergence is not None
+    assert divergence.common_prefix_chars == 1
+    assert divergence.stable_suffix_chars == 1

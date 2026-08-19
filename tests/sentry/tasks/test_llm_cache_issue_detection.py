@@ -26,6 +26,7 @@ from sentry.tasks import llm_cache_issue_detection
 from sentry.tasks.llm_cache_issue_detection import (
     FINDINGS_PER_PROJECT_LIMIT,
     MAX_PRESENCE_PROBES_PER_PROJECT,
+    MAX_PROMPT_PROBES_PER_PROJECT,
     MAX_WARMTH_PROBES_PER_PROJECT,
     detect_llm_cache_issues_for_project,
     run_llm_cache_issue_detection,
@@ -53,6 +54,16 @@ SAMPLE_CALLS = [
         cache_read_tokens=0,
         cache_creation_tokens=0,
     ),
+]
+
+
+# Synthetic prompts, invented for the test: a variable head in front of a stable
+# body, which is the shape the diagnosis exists to name. Real prompt text never
+# goes in a fixture.
+STABLE_PROMPT_BODY = "Summarize the rows below and cite each one.\n" * 100
+DIVERGING_PROMPTS = [
+    f'[{{"role": "system", "content": "As of 2026-08-19T10:15:00Z. {STABLE_PROMPT_BODY}"}}]',
+    f'[{{"role": "system", "content": "As of 2026-08-19T11:47:31Z. {STABLE_PROMPT_BODY}"}}]',
 ]
 
 
@@ -233,6 +244,12 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             patch("sentry.tasks.llm_cache_issue_detection.fetch_call_site_warmth")
         )
         self.mock_fetch_warmth.side_effect = lambda project, stats, window: bursty(stats)
+        # Prompt text is opt-in and usually absent, so the default here is a
+        # query that ran and came back with nothing.
+        self.mock_fetch_prompts = self.enterContext(
+            patch("sentry.tasks.llm_cache_issue_detection.fetch_sample_prompts")
+        )
+        self.mock_fetch_prompts.return_value = []
 
     def enabled_features(self) -> AbstractContextManager[Any]:
         return self.feature({DETECTION_FEATURE: True, INGEST_FEATURE: True})
@@ -1017,6 +1034,91 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert self.mock_fetch_warmth.call_count == 1
         assert not mock_count_cache_attrs.called
         assert not mock_produce.called
+
+    def test_says_where_the_sampled_prompts_stop_agreeing(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+        self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        evidence = occurrence.evidence_data
+        assert evidence["prompt_sample_count"] == 2
+        assert evidence["prompt_divergence_kind"] == "iso_timestamp"
+        assert evidence["prompt_shortest_chars"] == len(DIVERGING_PROMPTS[0])
+        assert evidence["prompt_stable_suffix_chars"] > evidence["prompt_common_prefix_chars"]
+        assert evidence["prompt_template_misordered"] is True
+
+        rows = {row.name: row.value for row in occurrence.evidence_display}
+        assert rows["Prompts first differ at"] == "an ISO-8601 timestamp"
+        assert "2 sampled prompts" in rows["Shared prompt prefix"]
+        assert rows["Identical content after it"].endswith("chars")
+        # The diagnosis is context, never the headline the integrations render.
+        assert [row.name for row in occurrence.evidence_display if row.important] == [
+            "Cache hit rate"
+        ]
+
+    def test_leaves_the_prompt_diagnosis_off_when_no_prompt_text_was_sent(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Sending prompts is opt-in and mostly off, so this is the ordinary path:
+        # the finding is filed with the evidence it does have.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert "prompt_divergence_kind" not in occurrence.evidence_data
+        assert occurrence.evidence_data["hit_rate"] == pytest.approx(0.000088, rel=1e-2)
+        assert not [
+            row for row in occurrence.evidence_display if row.name.startswith("Shared prompt")
+        ]
+
+    def test_bounds_the_prompt_probes_it_spends(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # The probe is the heaviest query of the run, so it is spent on the most
+        # severe findings and the rest are filed without a diagnosis.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [
+            replace(NOT_CACHING_STATS, agent_label=f"agent-{index}")
+            for index in range(FINDINGS_PER_PROJECT_LIMIT)
+        ]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+        self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        assert self.mock_fetch_prompts.call_count == MAX_PROMPT_PROBES_PER_PROJECT
+        assert mock_produce.call_count == FINDINGS_PER_PROJECT_LIMIT
+        diagnosed = [
+            "prompt_divergence_kind" in call.kwargs["occurrence"].evidence_data
+            for call in mock_produce.call_args_list
+        ]
+        assert diagnosed == [True] * MAX_PROMPT_PROBES_PER_PROJECT + [False] * (
+            FINDINGS_PER_PROJECT_LIMIT - MAX_PROMPT_PROBES_PER_PROJECT
+        )
 
     def test_bounds_the_warmth_probes_it_spends(
         self,
