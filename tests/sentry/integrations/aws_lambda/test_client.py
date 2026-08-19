@@ -2,14 +2,22 @@ from unittest.mock import MagicMock, patch
 
 import boto3
 import orjson
+import pytest
+from django.test import override_settings
 
-from sentry.integrations.aws_lambda.client import gen_aws_client
+from sentry.conf.server import DEAD
+from sentry.integrations.aws_lambda.client import ConfigurationError, gen_aws_client
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 
 
 @all_silo_test
 class AwsLambdaClientTest(TestCase):
+    def test_missing_secret_access_key(self) -> None:
+        with override_settings(SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY=DEAD):
+            with pytest.raises(ConfigurationError, match="secret access key not set"):
+                gen_aws_client("599817902985", "us-west-1", "124-343")
+
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")
     def test_simple(self, mock_get_client: MagicMock, mock_get_session: MagicMock) -> None:

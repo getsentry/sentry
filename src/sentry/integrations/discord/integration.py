@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
@@ -248,8 +249,8 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def __init__(self) -> None:
         self.application_id = options.get("discord.application-id")
         self.public_key = options.get("discord.public-key")
-        self.bot_token = options.get("discord.bot-token")
-        self.client_secret = options.get("discord.client-secret")
+        self.bot_token = settings.SENTRY_DISCORD_BOT_TOKEN
+        self.client_secret = settings.SENTRY_DISCORD_CLIENT_SECRET
         self.client = DiscordClient()
         self.setup_url = absolute_uri("extensions/discord/setup/")
         self.configure_url = absolute_uri("extensions/discord/configure/")
@@ -372,7 +373,13 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def _credentials_exist(self) -> bool:
         has_credentials = all(
-            (self.application_id, self.public_key, self.bot_token, self.client_secret)
+            isinstance(credential, str) and credential
+            for credential in (
+                self.application_id,
+                self.public_key,
+                self.bot_token,
+                self.client_secret,
+            )
         )
         if not has_credentials:
             logger.warning(

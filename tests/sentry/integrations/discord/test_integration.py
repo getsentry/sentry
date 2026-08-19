@@ -6,10 +6,12 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.test import override_settings
 from django.urls import reverse
 from responses.matchers import header_matcher
 
 from sentry import options
+from sentry.conf.server import DEAD
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     DISCORD_BASE_URL,
@@ -40,6 +42,9 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token", SENTRY_DISCORD_CLIENT_SECRET="client-secret"
+)
 class DiscordIntegrationTest(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
@@ -51,8 +56,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self.client_secret = "client-secret"
         options.set("discord.application-id", self.application_id)
         options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
         self.token_url = f"{DISCORD_BASE_URL}/oauth2/token"
         self.user_id = "user1234"
         self.guild_id = "12345"
@@ -250,6 +253,13 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         assert mock_set_application_command.call_count == 0
 
+    def test_dead_credentials_are_missing(self) -> None:
+        with override_settings(SENTRY_DISCORD_BOT_TOKEN=DEAD):
+            assert not self.provider()._credentials_exist()
+
+        with override_settings(SENTRY_DISCORD_CLIENT_SECRET=DEAD):
+            assert not self.provider()._credentials_exist()
+
     @responses.activate
     def test_set_commands_failure(self) -> None:
         provider = self.provider()
@@ -337,6 +347,9 @@ class DiscordIntegrationSendNotificationTest(TestCase):
 
 
 @control_silo_test
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token", SENTRY_DISCORD_CLIENT_SECRET="client-secret"
+)
 class DiscordApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     method = "post"
@@ -353,8 +366,6 @@ class DiscordApiPipelineTest(APITestCase):
         self.client_secret = "client-secret"
         options.set("discord.application-id", self.application_id)
         options.set("discord.public-key", self.public_key)
-        options.set("discord.bot-token", self.bot_token)
-        options.set("discord.client-secret", self.client_secret)
 
     def tearDown(self) -> None:
         responses.reset()

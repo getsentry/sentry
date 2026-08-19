@@ -3,12 +3,14 @@ import datetime
 import pytest
 import responses
 from django.http import HttpRequest
+from django.test import override_settings
 
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
+from sentry.conf.server import DEAD
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164
+from sentry.utils.sms import InvalidPhoneNumber, phone_number_as_e164, send_sms
 
 
 @control_silo_test
@@ -54,8 +56,9 @@ class SmsInterfaceTest(TestCase):
         interface = SmsInterface()
         interface.phone_number = "2345678901"
 
-        with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
-            rv = interface.activate(request)
+        with override_settings(SENTRY_SMS_TWILIO_TOKEN="twilio-token"):
+            with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
+                rv = interface.activate(request)
 
         assert (
             rv.message
@@ -100,22 +103,29 @@ class SmsInterfaceTest(TestCase):
         interface = SmsInterface()
         interface.phone_number = "2345678901"
 
-        with freeze_time(datetime.datetime.now()):
-            with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
-                with pytest.raises(SMSRateLimitExceeded):
-                    for _ in range(4):
-                        rv = interface.activate(request)
+        with override_settings(SENTRY_SMS_TWILIO_TOKEN="twilio-token"):
+            with freeze_time(datetime.datetime.now()):
+                with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
+                    with pytest.raises(SMSRateLimitExceeded):
+                        for _ in range(4):
+                            rv = interface.activate(request)
 
-                interface.phone_number = "2345678900"
-                rv = interface.activate(request)
-                assert (
-                    rv.message
-                    == "A confirmation code was sent to <strong>(***) ***-**00</strong>. It is valid for 45 seconds."
-                )
+                    interface.phone_number = "2345678900"
+                    rv = interface.activate(request)
+                    assert (
+                        rv.message
+                        == "A confirmation code was sent to <strong>(***) ***-**00</strong>. It is valid for 45 seconds."
+                    )
 
     def test_invalid_phone_number(self) -> None:
         with pytest.raises(InvalidPhoneNumber):
             phone_number_as_e164("+15555555555")
+
+    @override_settings(SENTRY_SMS_TWILIO_TOKEN=DEAD)
+    def test_missing_twilio_token(self) -> None:
+        with self.options({"sms.twilio-account": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}):
+            with pytest.raises(RuntimeError, match="SMS backend is not configured"):
+                send_sms("body", "+12345678900")
 
     def test_valid_phone_number(self) -> None:
         formatted_number = phone_number_as_e164("2345678900")

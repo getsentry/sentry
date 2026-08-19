@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
+from django.test import override_settings
 
+from sentry.conf.server import DEAD
 from sentry.identity.github.provider import (
     GitHubIdentityProvider,
     fetch_verified_primary_email,
@@ -77,6 +79,23 @@ class FetchVerifiedPrimaryEmailTest(TestCase):
 )
 def test_get_verified_primary_email(emails: list, expected: str | None) -> None:
     assert get_verified_primary_email(emails) == expected
+
+
+def test_github_oauth_client_secret_uses_single_organization_setting() -> None:
+    with override_settings(
+        SENTRY_SINGLE_ORGANIZATION=True,
+        GITHUB_API_SECRET="single-organization-secret",
+        SENTRY_GITHUB_APP_CLIENT_SECRET=DEAD,
+    ):
+        assert GitHubIdentityProvider().get_oauth_client_secret() == "single-organization-secret"
+
+
+def test_github_oauth_client_secret_returns_none_when_unconfigured() -> None:
+    with override_settings(
+        SENTRY_SINGLE_ORGANIZATION=False,
+        SENTRY_GITHUB_APP_CLIENT_SECRET=DEAD,
+    ):
+        assert GitHubIdentityProvider().get_oauth_client_secret() is None
 
 
 @control_silo_test

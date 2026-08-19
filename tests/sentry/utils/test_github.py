@@ -2,7 +2,9 @@ from unittest import TestCase
 
 import pytest
 import responses
+from django.test import override_settings
 
+from sentry.conf.server import DEAD
 from sentry.utils.github import verify_signature
 
 GITHUB_META_PUBLIC_KEYS_RESPONSE = {
@@ -42,6 +44,11 @@ class TestGitHub(TestCase):
 
     def test_verify_signature_success(self) -> None:
         self._verify()
+
+    def test_verify_signature_missing_client_secret(self) -> None:
+        with override_settings(GITHUB_API_SECRET=DEAD):
+            with pytest.raises(ValueError, match="GitHub API secret is not configured"):
+                verify_signature(self.payload, self.signature, self.key_id, self.subpath)
 
     def test_verify_signature_missing_key(self) -> None:
         self.key_id = ""

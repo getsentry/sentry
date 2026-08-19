@@ -1,7 +1,9 @@
 from functools import cached_property
 
+from django.test import override_settings
 from django.utils import timezone
 
+from sentry.conf.server import DEAD
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apidevicecode import ApiDeviceCode
@@ -467,7 +469,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with override_settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -492,6 +494,26 @@ class OAuthTokenCodeTest(TestCase):
 
             assert data["id_token"].count(".") == 2
 
+    def test_dead_signing_secret_does_not_generate_id_token(self) -> None:
+        self.login_as(self.user)
+        self.grant.scope_list = ["openid"]
+        self.grant.save(update_fields=["scope_list"])
+
+        with override_settings(SENTRY_CODECOV_SIGNING_SECRET=DEAD):
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "authorization_code",
+                    "redirect_uri": self.application.get_default_redirect_uri(),
+                    "code": self.grant.code,
+                    "client_id": self.application.client_id,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        assert resp.status_code == 200
+        assert "id_token" not in resp.json()
+
     def test_valid_params_id_token_additional_scopes(self) -> None:
         self.login_as(self.user)
         open_id_grant = ApiGrant.objects.create(
@@ -500,7 +522,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with override_settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {

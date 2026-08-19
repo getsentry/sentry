@@ -10,10 +10,11 @@ import pytest
 import responses
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.base import SessionBase
-from django.test import Client, RequestFactory
+from django.test import Client, RequestFactory, override_settings
 
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.conf.server import DEAD
 from sentry.identity.gcp.provider import (
     GCPIdentityProvider,
     GCPOAuth2LoginView,
@@ -23,6 +24,7 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import IdentityProvider
 from sentry.utils import json
@@ -164,13 +166,13 @@ class GCPIdentityProviderTest(TestCase):
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
 
-    @patch("sentry.identity.gcp.provider.options.get")
-    def test_get_refresh_token_params(self, mock_options: MagicMock) -> None:
-        mock_options.side_effect = lambda key: {
-            "gcp.client-id": "my-client-id",
-            "gcp.client-secret": "my-client-secret",
-        }[key]
+    @override_settings(SENTRY_GCP_CLIENT_SECRET=DEAD)
+    def test_get_oauth_client_secret_treats_dead_as_missing(self) -> None:
+        assert self.provider.get_oauth_client_secret() is None
 
+    @override_settings(SENTRY_GCP_CLIENT_SECRET="my-client-secret")
+    @override_options({"gcp.client-id": "my-client-id"})
+    def test_get_refresh_token_params(self) -> None:
         identity = MagicMock()
         params = self.provider.get_refresh_token_params("refresh-token-123", identity)
 

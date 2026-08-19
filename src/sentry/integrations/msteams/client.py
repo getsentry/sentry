@@ -5,6 +5,7 @@ from abc import ABC
 from typing import TypedDict
 from urllib.parse import urlencode
 
+from django.conf import settings
 from requests import PreparedRequest
 
 from sentry import options
@@ -170,7 +171,9 @@ class TokenData(TypedDict):
 
 def get_token_data() -> TokenData:
     client_id = options.get("msteams.client-id")
-    client_secret = options.get("msteams.client-secret")
+    client_secret = settings.SENTRY_MSTEAMS_CLIENT_SECRET
+    if not client_id or not isinstance(client_secret, str) or not client_secret:
+        raise RuntimeError("Microsoft Teams credentials are not configured.")
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response

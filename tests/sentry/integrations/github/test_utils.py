@@ -1,7 +1,10 @@
 import pytest
+from django.test import override_settings
 from rest_framework.response import Response
 
+from sentry.conf.server import DEAD
 from sentry.integrations.github.utils import (
+    get_jwt,
     get_last_page_number,
     is_github_bot_login,
     is_github_rate_limit_sensitive,
@@ -114,3 +117,9 @@ class IsGithubRateLimitSensitiveTest(TestCase):
         org = self.create_organization(slug="org-1")
         with self.options({"github-app.rate-limit-sensitive-orgs": []}):
             assert is_github_rate_limit_sensitive(org.slug) is False
+
+
+def test_get_jwt_rejects_unconfigured_private_key() -> None:
+    with override_settings(SENTRY_GITHUB_APP_PRIVATE_KEY=DEAD):
+        with pytest.raises(ValueError, match="GitHub App private key is not configured"):
+            get_jwt(github_id="123")

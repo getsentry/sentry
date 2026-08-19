@@ -3,6 +3,7 @@ from urllib.parse import quote
 
 import phonenumbers
 import requests
+from django.conf import settings
 
 from sentry import options
 
@@ -54,10 +55,13 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
     url = "https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json" % quote(account)
 
     phone_number = phone_number_as_e164(to)
+    token = settings.SENTRY_SMS_TWILIO_TOKEN
+    if not isinstance(token, str) or not token:
+        raise RuntimeError("SMS backend is not configured.")
 
     rv = requests.post(
         url,
-        auth=(account, options.get("sms.twilio-token")),
+        auth=(account, token),
         data={"To": phone_number, "From": options.get("sms.twilio-number"), "Body": body},
     )
     if not rv.ok:

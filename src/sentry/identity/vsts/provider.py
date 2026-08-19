@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from requests import Response
 
@@ -57,7 +58,8 @@ class VSTSIdentityProvider(OAuth2Provider):
         return options.get("vsts.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("vsts.client-secret")
+        secret = settings.SENTRY_VSTS_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
@@ -82,7 +84,9 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
-        client_secret = options.get("vsts.client-secret")
+        client_secret = settings.SENTRY_VSTS_CLIENT_SECRET
+        if not isinstance(client_secret, str):
+            client_secret = None
 
         # The token refresh flow does not operate within a pipeline in the same way
         # that installation does, this means that we have to use the identity.scopes
@@ -97,7 +101,8 @@ class VSTSIdentityProvider(OAuth2Provider):
             "Legacy VSTS identity provider only supports Identity"
         )
         if "vso.code" not in identity.scopes:
-            client_secret = options.get("vsts-limited.client-secret")
+            limited_secret = settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET
+            client_secret = limited_secret if isinstance(limited_secret, str) else None
 
         oauth_redirect_url = kwargs.get("redirect_url")
         if oauth_redirect_url is None:
@@ -159,7 +164,8 @@ class VSTSNewIdentityProvider(OAuth2Provider):
         return options.get("vsts_new.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("vsts_new.client-secret")
+        secret = settings.SENTRY_VSTS_NEW_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
