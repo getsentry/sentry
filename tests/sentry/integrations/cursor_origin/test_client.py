@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
+
+import pytest
 
 from sentry.integrations.cursor_origin.client import CursorOriginSetupApiClient
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
@@ -90,3 +94,48 @@ class RateLimitTrackingTest(TestCase):
 
         client.track_response_data(200, None, FakeResponse())  # type: ignore[arg-type]
         assert client.get_remaining_api_requests() == before
+
+
+class ClientCrashGuardTest(TestCase):
+    """Regressions for the three client crashes reported on #122180.
+
+    All three are shapes Origin really returns, reached through code paths written
+    against GitHub's shapes.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.api_client = CursorOriginSetupApiClient(installation_id="i_test")
+
+    def test_should_count_api_error_tolerates_a_non_dict_body(self) -> None:
+        # ApiError.json is whatever json.loads returned. A bare string body used to
+        # reach .get() and raise AttributeError (C36-WPK).
+        error = ApiError('"something went wrong"')
+        # ApiError.json is annotated dict[str, Any] | None but holds whatever
+        # json.loads returned. That gap between annotation and runtime is the bug,
+        # so the assertion has to step outside the annotation to state it.
+        body: Any = error.json
+        assert body == "something went wrong"
+        assert self.api_client.should_count_api_error(error, {}) is True
+
+    def test_should_count_api_error_still_reads_a_dict_message(self) -> None:
+        # The guard must not stop expected conditions being discounted.
+        error = ApiError('{"message": "Not Found"}')
+        assert self.api_client.should_count_api_error(error, {}) is False
+
+    def test_get_file_raises_api_error_for_a_directory(self) -> None:
+        # Origin answers a directory path with {"type": "dir", ...} and no
+        # "content". Callers handle ApiError but not KeyError (RNJ-6A9).
+        repo = self.create_repo(project=self.project, name="sentry/nuget-trends")
+        with mock.patch.object(
+            self.api_client, "get_contents", return_value={"type": "dir", "entries": []}
+        ):
+            with pytest.raises(ApiError):
+                self.api_client.get_file(repo, "src", ref=None)
+
+    def test_get_repos_exposes_the_github_shaped_name(self) -> None:
+        # link_all_repos reads repo["full_name"]; Origin returns fullName (5Z5-T9N).
+        with mock.patch.object(
+            self.api_client, "get_repositories", return_value=[{"id": 7, "fullName": "o/r"}]
+        ):
+            assert self.api_client.get_repos() == [{"id": 7, "fullName": "o/r", "full_name": "o/r"}]
