@@ -458,6 +458,40 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_allowed_when_pr_creation_failed(
+        self, mock_run_state, mock_trigger_explorer
+    ):
+        """A push that failed stranded no PR, so the re-run is allowed."""
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=42
+        )
+        mock_run_state.return_value = SeerRunState(
+            run_id=42,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_creation_status="error",
+                    pr_creation_error_reason="workflow_patch",
+                )
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "code_changes", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_insert_index_unknown_run_returns_404(self, mock_run_state, mock_trigger_explorer):
         """The re-run guard surfaces an unknown run as 404, not 403."""
         group = self.create_group()
