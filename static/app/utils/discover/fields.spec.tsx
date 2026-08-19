@@ -1,6 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {
+  AggregationKeyWithAlias,
+  ColumnValueType,
+} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -93,6 +96,61 @@ describe('parseFunction', () => {
       arguments: ['tags[foo,number]'],
     });
   });
+
+  it('annotates filter when the first argument is backtick-wrapped', () => {
+    expect(parseFunction('avg_if(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:db`', 'span.duration'],
+      filter: 'span.op:db',
+    });
+  });
+
+  it('does not split backtick wrapped search filters on commas', () => {
+    expect(parseFunction('avg_if(`span.op:[db,http]`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http]`', 'span.duration'],
+      filter: 'span.op:[db,http]',
+    });
+    expect(
+      parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)')
+    ).toEqual({
+      name: 'count_if',
+      arguments: ['`span.description:"GET /foo, /bar"`', 'span.duration'],
+      filter: 'span.description:"GET /foo, /bar"',
+    });
+  });
+
+  it('handles backtick wrapped search filters as the only argument', () => {
+    expect(parseFunction('count_if(`span.op:db`)')).toEqual({
+      name: 'count_if',
+      arguments: ['`span.op:db`'],
+      filter: 'span.op:db',
+    });
+  });
+
+  it('annotates filters containing commas and quotes', () => {
+    expect(
+      parseFunction('avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)')
+    ).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http] AND span.status:ok`', 'span.duration'],
+      filter: 'span.op:[db,http] AND span.status:ok',
+    });
+  });
+
+  it('leaves Discover style count_if untouched', () => {
+    expect(parseFunction('count_if(span.duration,equals,300)')).toEqual({
+      name: 'count_if',
+      arguments: ['span.duration', 'equals', '300'],
+    });
+  });
+
+  it('leaves plain aggregates without a filter key', () => {
+    expect(parseFunction('avg(span.duration)')).toEqual({
+      name: 'avg',
+      arguments: ['span.duration'],
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {
@@ -121,6 +179,20 @@ describe('generateFieldAsString', () => {
         function: ['count', 'tags[foo,number]', undefined, undefined],
       })
     ).toBe('count(tags[foo,number])');
+  });
+
+  it('preserves backtick wrapped search filter arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: [
+          'avg_if' as AggregationKeyWithAlias,
+          '`span.op:[db,http]`',
+          'span.duration',
+          undefined,
+        ],
+      })
+    ).toBe('avg_if(`span.op:[db,http]`,span.duration)');
   });
 
   it('round-trips quoted function arguments through field parsing', () => {
@@ -273,6 +345,16 @@ describe('explodeField', () => {
       kind: 'function',
       function: ['count', 'foo.bar.is-Enterprise_42', undefined, undefined],
     });
+  });
+
+  it('round-trips backtick-wrapped _if filters', () => {
+    expect(explodeField({field: 'avg_if(`span.op:db`,span.duration)'})).toEqual({
+      kind: 'function',
+      function: ['avg_if', '`span.op:db`', 'span.duration'],
+    });
+    expect(
+      generateFieldAsString(explodeField({field: 'avg_if(`span.op:db`,span.duration)'}))
+    ).toBe('avg_if(`span.op:db`,span.duration)');
   });
 });
 
