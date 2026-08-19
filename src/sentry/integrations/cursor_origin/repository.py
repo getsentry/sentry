@@ -43,12 +43,22 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
+        # Two callers with different shapes reach this. The repo picker goes through
+        # get_repository_data, which sets "name" from the API's fullName. link_all_repos
+        # -- scheduled by post_install -- instead calls this directly with only
+        # {external_id, integration_id, identifier} from get_repo_config, so "name" is
+        # absent and a bare data["name"] raised KeyError for every repository on every
+        # install. Prefer the canonical name where we have it, fall back to the
+        # identifier, which holds the same "owner/repo" fullName.
+        # GitHub reads "identifier" for this reason; GitLab reads "name" and gets away
+        # with it only because nothing bulk-links its repositories.
+        name = data.get("name") or data["identifier"]
         return {
-            "name": data["name"],
+            "name": name,
             "external_id": data["external_id"],
-            "url": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{data['name']}",
+            "url": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}",
             "config": {
-                "name": data["name"],
+                "name": name,
                 "default_branch": data.get("default_branch"),
             },
             "integration_id": data["integration_id"],

@@ -73,3 +73,48 @@ class CursorOriginRepositoryProviderTest(TestCase):
         ):
             with pytest.raises(IntegrationError):
                 self.provider.get_repository_data(self.organization, config)
+
+
+class BuildRepositoryConfigShapeTest(TestCase):
+    """build_repository_config is reached with two different config shapes.
+
+    The repo picker goes through get_repository_data, which sets "name". The
+    link_all_repos task that post_install schedules calls it directly with only
+    {external_id, integration_id, identifier}, which used to raise KeyError('name')
+    for every repository on every install.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = CursorOriginRepositoryProvider("integrations:cursor_origin")
+
+    def test_link_all_repos_shape_without_a_name(self) -> None:
+        config = self.provider.build_repository_config(
+            organization=self.organization,
+            data={
+                "external_id": "42",
+                "integration_id": 7,
+                "identifier": "sentry/nuget-trends",
+            },
+        )
+        assert config["name"] == "sentry/nuget-trends"
+        assert config["external_id"] == "42"
+        assert config["integration_id"] == 7
+        assert config["url"].endswith("/sentry/nuget-trends")
+        assert config["config"]["default_branch"] is None
+
+    def test_repo_picker_shape_prefers_the_canonical_name(self) -> None:
+        # get_repository_data overwrites name with the API's fullName, which is the
+        # authoritative casing; identifier is whatever was picked.
+        config = self.provider.build_repository_config(
+            organization=self.organization,
+            data={
+                "external_id": "42",
+                "integration_id": 7,
+                "identifier": "Sentry/NuGet-Trends",
+                "name": "sentry/nuget-trends",
+                "default_branch": "main",
+            },
+        )
+        assert config["name"] == "sentry/nuget-trends"
+        assert config["config"]["default_branch"] == "main"
