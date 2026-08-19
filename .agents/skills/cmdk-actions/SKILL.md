@@ -102,6 +102,10 @@ interface CMDKActionProps {
 
   // Semantic context represented by this selectable row.
   actionContext?: string;
+
+  // Opens another registered action by its stable id. Use this for lightweight
+  // summary rows that should reuse one expensive picker registration.
+  targetAction?: string;
 }
 ```
 
@@ -739,8 +743,8 @@ Use a separate overlay label when the regular action label reflects current stat
 ```tsx
 <CMDKAction
   actionContext="filter"
-  display={{label: t('Add Filter')}}
-  actionPanel={{context: 'filter', label: t('Add Filter')}}
+  display={{label: t('Add Filter By')}}
+  actionPanel={{context: 'filter', label: t('Add Filter By')}}
   prompt={t('Search for attribute')}
 >
   {/* filter picker actions */}
@@ -752,6 +756,16 @@ children, and chained-action behavior. Do not register a duplicate callback sole
 for the panel. Set `only: true` to move an action into the panel and hide it from
 normal palette browsing and search. Set `order` when actions registered in different
 branches need an explicit order in the panel; lower values appear first.
+
+Use `targetAction` when a separate summary row should open an existing picker
+without registering the picker's children a second time:
+
+```tsx
+<CMDKAction id="add-filter" display={{label: t('Add Filter By')}} prompt={...}>
+  {/* expensive picker registered once */}
+</CMDKAction>
+<CMDKAction display={{label: t('Filter By')}} targetAction="add-filter" />
+```
 
 ---
 

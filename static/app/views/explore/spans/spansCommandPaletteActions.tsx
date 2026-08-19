@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -81,6 +81,9 @@ const MORE_ACTIONS_ORDER = {
   deleteChart: 60,
 } as const;
 
+const ADD_FILTER_ACTION_ID = 'spans-add-filter';
+const ADD_GROUP_BY_ACTION_ID = 'spans-add-group-by';
+
 export function canCompareQueries(visualizes: Visualize[]): boolean {
   return visualizes.filter(isVisualizeFunction).length >= 2;
 }
@@ -130,7 +133,7 @@ export function reorderCharts<T>(
   return reorderedCharts;
 }
 
-function SaveAsActions() {
+function SaveAsActionsComponent() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
@@ -252,7 +255,9 @@ function SaveAsActions() {
   );
 }
 
-function SpansFilterActions({
+const SaveAsActions = memo(SaveAsActionsComponent);
+
+function SpansFilterActionsComponent({
   actionPanelOrder,
   addSearchFilter,
 }: {
@@ -267,25 +272,32 @@ function SpansFilterActions({
       addSearchFilter={addSearchFilter}
       actionPanelOrder={actionPanelOrder}
       booleanAttributes={booleanAttributes}
+      id={ADD_FILTER_ACTION_ID}
       stringAttributes={stringAttributes}
       traceItemType={TraceItemDataset.SPANS}
     />
   );
 }
 
-function SeriesActions({
-  index,
-  onChange,
-  seriesId,
-  visualize,
-  visualizes,
-}: {
+const SpansFilterActions = memo(SpansFilterActionsComponent);
+
+interface SeriesActionsProps {
+  chartId: number;
   index: number;
-  onChange: (visualize: Visualize) => void;
   seriesId: string;
+  updateVisualize: (chartId: number, visualize: Visualize) => void;
   visualize: Visualize;
   visualizes: readonly Visualize[];
-}) {
+}
+
+function SeriesActionsComponent({
+  chartId,
+  index,
+  seriesId,
+  updateVisualize,
+  visualize,
+  visualizes,
+}: SeriesActionsProps) {
   if (isVisualizeEquation(visualize)) {
     const expression = stripEquationPrefix(visualize.yAxis);
 
@@ -300,7 +312,10 @@ function SeriesActions({
           ariaLabel: t('Edit Equation'),
           initialValue: expression,
           onSubmit: value =>
-            onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})),
+            updateVisualize(
+              chartId,
+              visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})
+            ),
           footer: <EquationFooter index={index} visualizes={visualizes} />,
         }}
       />
@@ -321,7 +336,10 @@ function SeriesActions({
         }}
         prompt={t('Search for sources')}
       >
-        <SourceActions visualize={visualize} onChange={onChange} />
+        <SourceActions
+          visualize={visualize}
+          onChange={nextVisualize => updateVisualize(chartId, nextVisualize)}
+        />
       </CMDKAction>
       <CMDKAction
         id={`${seriesId}-aggregate`}
@@ -344,7 +362,8 @@ function SeriesActions({
                 if (!currentFunction) {
                   return;
                 }
-                onChange(
+                updateVisualize(
+                  chartId,
                   visualize.replace({
                     yAxis: updateVisualizeAggregate({
                       newAggregate: aggregate,
@@ -360,6 +379,33 @@ function SeriesActions({
     </Fragment>
   );
 }
+
+function areSeriesActionsPropsEqual(
+  previous: SeriesActionsProps,
+  next: SeriesActionsProps
+): boolean {
+  if (
+    previous.chartId !== next.chartId ||
+    previous.index !== next.index ||
+    previous.seriesId !== next.seriesId ||
+    previous.updateVisualize !== next.updateVisualize ||
+    previous.visualize !== next.visualize
+  ) {
+    return false;
+  }
+
+  if (!isVisualizeEquation(next.visualize)) {
+    return true;
+  }
+
+  // Equations only render references to preceding series. Appending a chart does
+  // not change that prefix, so existing equation action trees can remain mounted.
+  return Array.from({length: next.index}).every(
+    (_, index) => previous.visualizes[index] === next.visualizes[index]
+  );
+}
+
+const SeriesActions = memo(SeriesActionsComponent, areSeriesActionsPropsEqual);
 
 function EquationFooter({
   index,
@@ -396,7 +442,7 @@ function EquationFooter({
   );
 }
 
-function GroupByActions({
+function GroupByActionsComponent({
   appliedGroupBys,
   groupBys,
   setGroupBys,
@@ -450,6 +496,8 @@ function GroupByActions({
     </CMDKAction>
   );
 }
+
+const GroupByActions = memo(GroupByActionsComponent);
 
 function SortActions({
   groupBys,
@@ -644,9 +692,9 @@ function QueryClauseActions() {
     visualizes,
   ]);
 
-  const addSearchFilter = (filter: SearchFilter) => {
+  const addSearchFilter = useCallback((filter: SearchFilter) => {
     setDraftQuery(currentQuery => addSearchFilterToQuery(currentQuery, filter));
-  };
+  }, []);
 
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
   const draftVisualizes = draftCharts.map(chart => chart.visualize);
@@ -659,13 +707,13 @@ function QueryClauseActions() {
   const sortBySummary = draftSortBys
     .map(sort => `${sort.field}, ${sort.kind}`)
     .join(', ');
-  const updateVisualize = (index: number, nextVisualize: Visualize) => {
+  const updateVisualize = useCallback((chartId: number, nextVisualize: Visualize) => {
     setDraftCharts(currentCharts =>
-      currentCharts.map((chart, chartIndex) =>
-        chartIndex === index ? {...chart, visualize: nextVisualize} : chart
+      currentCharts.map(chart =>
+        chart.id === chartId ? {...chart, visualize: nextVisualize} : chart
       )
     );
-  };
+  }, []);
   const addDraftChart = (visualize: Visualize) => {
     setDraftCharts(currentCharts => [
       ...currentCharts,
@@ -699,9 +747,9 @@ function QueryClauseActions() {
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction
-              actionContext="chart"
+              actionContext="add-chart"
               actionPanel={{
-                context: 'chart',
+                context: 'add-chart',
                 label: t('Add Chart'),
                 order: MORE_ACTIONS_ORDER.addChart,
               }}
@@ -710,9 +758,9 @@ function QueryClauseActions() {
               onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
             <CMDKAction
-              actionContext="chart"
+              actionContext="add-equation"
               actionPanel={{
-                context: 'chart',
+                context: 'add-equation',
                 label: t('Add Equation'),
                 order: MORE_ACTIONS_ORDER.addEquation,
               }}
@@ -723,6 +771,7 @@ function QueryClauseActions() {
           </Fragment>
         )}
         <CMDKAction
+          id={ADD_GROUP_BY_ACTION_ID}
           actionContext="group-by"
           actionPanel={{
             context: 'group-by',
@@ -745,9 +794,9 @@ function QueryClauseActions() {
         />
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction
-            actionContext="chart"
+            actionContext="reorder-charts"
             actionPanel={{
-              context: 'chart',
+              context: 'reorder-charts',
               label: t('Reorder Charts'),
               order: MORE_ACTIONS_ORDER.reorderCharts,
             }}
@@ -824,11 +873,11 @@ function QueryClauseActions() {
                 trailingItem: <QueryValue value={groupBy} />,
               }}
               keywords={['group', 'by', 'attribute', groupBy]}
-              onAction={() => {}}
+              targetAction={ADD_GROUP_BY_ACTION_ID}
             />
           )
         )}
-        <TraceItemFilterRows summary={draftQuery} />
+        <TraceItemFilterRows summary={draftQuery} targetAction={ADD_FILTER_ACTION_ID} />
         <CMDKAction
           id="spans-sort"
           display={{
@@ -869,11 +918,12 @@ function QueryClauseActions() {
             />
           )}
           <SeriesActions
+            chartId={chartId}
             index={index}
+            seriesId={`spans-series-${chartId}`}
+            updateVisualize={updateVisualize}
             visualize={visualize}
             visualizes={draftVisualizes}
-            onChange={nextVisualize => updateVisualize(index, nextVisualize)}
-            seriesId={`spans-series-${chartId}`}
           />
         </CMDKAction>
       ))}

@@ -66,6 +66,8 @@ interface CMDKActionDataBase {
   order?: number;
   ref?: React.RefObject<HTMLElement | null>;
   slot?: CommandPaletteSlotName;
+  /** Stable key of another action whose children this row opens. */
+  targetAction?: string;
   textInput?: CMDKTextInput;
 }
 
@@ -141,6 +143,8 @@ interface CMDKActionProps<TData = unknown> {
   order?: number;
   prompt?: string;
   resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
+  /** Opens another registered action by its stable `id`. */
+  targetAction?: string;
   /** Turns this action into a free-text editor that submits on Enter. */
   textInput?: CMDKTextInput;
   to?: LocationDescriptor;
@@ -218,6 +222,7 @@ export function CMDKAction<TData = unknown>({
   order,
   prompt,
   resource,
+  targetAction,
   textInput,
   limit,
   actionPanel,
@@ -249,6 +254,7 @@ export function CMDKAction<TData = unknown>({
               actionPanel,
               order,
               slot: slotName ?? undefined,
+              targetAction,
             }
           : {
               actionContext,
@@ -265,6 +271,7 @@ export function CMDKAction<TData = unknown>({
               order,
               chainedActionAnchor: chainedActionScope ?? undefined,
               slot: slotName ?? undefined,
+              targetAction,
               textInput,
             }
         : {
@@ -278,6 +285,7 @@ export function CMDKAction<TData = unknown>({
             actionPanel,
             order,
             slot: slotName ?? undefined,
+            targetAction,
             textInput,
           },
     [
@@ -297,6 +305,7 @@ export function CMDKAction<TData = unknown>({
       ref,
       resource,
       slotName,
+      targetAction,
       textInput,
       to,
     ]

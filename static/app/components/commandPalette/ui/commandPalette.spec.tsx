@@ -420,12 +420,24 @@ describe('CommandPalette', () => {
     expect(await screen.findByText('Group by')).toBeInTheDocument();
   });
 
-  it('shows only actions matching the highlighted row context', async () => {
+  it('shows only the action matching the highlighted command', async () => {
     render(
       <GlobalActionsComponent>
         <CMDKAction
-          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+          actionContext="add-chart"
+          actionPanel={{context: 'add-chart', label: 'Add Chart'}}
           display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionContext="add-equation"
+          actionPanel={{context: 'add-equation', label: 'Add Equation'}}
+          display={{label: 'Add Equation'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionContext="chart:7"
+          display={{label: 'Chart A'}}
           onAction={() => {}}
         />
         <CMDKAction
@@ -437,42 +449,33 @@ describe('CommandPalette', () => {
           display={{label: 'Delete Chart'}}
           onAction={() => {}}
         />
-        <CMDKAction
-          actionPanel={{
-            context: 'chart:8',
-            label: 'Delete Other Chart',
-            only: true,
-          }}
-          display={{label: 'Delete Other Chart'}}
-          onAction={() => {}}
-        />
-        <CMDKAction
-          actionPanel={{context: 'filter', label: 'Add Filter', only: true}}
-          display={{label: 'Add Filter'}}
-          onAction={() => {}}
-        />
-        <CMDKAction
-          actionContext="chart:7"
-          display={{label: 'Chart A'}}
-          onAction={() => {}}
-        />
       </GlobalActionsComponent>
     );
 
     await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
 
-    const overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    let overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
     expect(within(overlay).getByRole('option', {name: 'Add Chart'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
+    expect(
+      within(overlay).getByRole('option', {name: 'Add Equation'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
     expect(
       within(overlay).getByRole('option', {name: 'Delete Chart'})
     ).toBeInTheDocument();
-    expect(
-      within(overlay).queryByRole('option', {name: 'Add Filter'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(overlay).queryByRole('option', {name: 'Delete Other Chart'})
-    ).not.toBeInTheDocument();
   });
 
   it('orders More Actions independently of registration order', async () => {
@@ -759,6 +762,37 @@ describe('CommandPalette', () => {
 
     expect(screen.getByText('Attribute')).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search for attribute'
+    );
+  });
+
+  it('opens a shared picker from a lightweight row with Enter', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Commands'}}>
+          <CMDKAction
+            id="add-filter"
+            display={{label: 'Add Filter By'}}
+            prompt="Search for attribute"
+          >
+            <CMDKAction display={{label: 'Attribute'}}>
+              <CMDKAction display={{label: 'environment'}} onAction={() => {}} />
+            </CMDKAction>
+          </CMDKAction>
+        </CMDKAction>
+        <CMDKAction display={{label: 'Query'}}>
+          <CMDKAction display={{label: 'Filter By'}} targetAction="add-filter" />
+        </CMDKAction>
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Add Filter By'});
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
       'Search for attribute'

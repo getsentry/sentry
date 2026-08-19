@@ -598,6 +598,22 @@ export function CommandPalette({
       const sourceAction = getSourceAction(action, selectionActions, selectionPrefixMap);
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
+      if (action.targetAction) {
+        const targetAction = findCollectionNode(store.tree(), action.targetAction);
+        if (!targetAction) {
+          return;
+        }
+        animatePress();
+        analytics.recordGroupAction(sourceAction, resultIndex);
+        dispatch({
+          type: 'push action',
+          key: targetAction.key,
+          label: targetAction.display.label,
+          prompt: 'prompt' in targetAction ? targetAction.prompt : undefined,
+        });
+        return;
+      }
+
       if (action.children.length > 0) {
         if (
           'onMultiSelect' in action &&
@@ -692,6 +708,7 @@ export function CommandPalette({
       dispatch,
       navigate,
       state.query,
+      store,
     ]
   );
 
@@ -1226,9 +1243,9 @@ function flattenActions(
       const isGroup = node.children.length > 0;
       // Skip non-group nodes that have no executable action — they are
       // empty placeholders (e.g. a CMDKGroup whose children didn't render).
-      // Prompt/resource nodes are actionable leaf items even though they lack
-      // `to` or `onAction`, so only skip when none of the four action types apply.
-      if (!isGroup && !('to' in node) && !('onAction' in node)) {
+      // Prompt/resource/target nodes are actionable leaf items even though they lack
+      // `to` or `onAction`, so only skip when none of the action types apply.
+      if (!isGroup && !('to' in node) && !('onAction' in node) && !node.targetAction) {
         const hasPromptOrResource =
           ('prompt' in node && !!node.prompt) ||
           ('resource' in node && !!node.resource) ||
@@ -1576,6 +1593,7 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
     'resource' in node &&
     !('to' in node) &&
     !('onAction' in node) &&
+    !node.targetAction &&
     !('prompt' in node && node.prompt) &&
     !('textInput' in node && node.textInput)
   );

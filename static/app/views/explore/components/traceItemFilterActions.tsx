@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {memo, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Text} from '@sentry/scraps/text';
@@ -107,15 +107,17 @@ const FILTER_OPERATORS = {
 interface TraceItemFilterActionsProps {
   addSearchFilter: (filter: SearchFilter) => void;
   booleanAttributes: TagCollection;
+  id: string;
   stringAttributes: TagCollection;
   traceItemType: TraceItemDataset;
   actionPanelOrder?: number;
 }
 
-export function TraceItemFilterActions({
+function TraceItemFilterActionsComponent({
   addSearchFilter,
   actionPanelOrder,
   booleanAttributes,
+  id,
   stringAttributes,
   traceItemType,
 }: TraceItemFilterActionsProps) {
@@ -213,13 +215,14 @@ export function TraceItemFilterActions({
 
   return (
     <CMDKAction
+      id={id}
       actionContext="filter"
       actionPanel={{
         context: 'filter',
-        label: t('Add Filter'),
+        label: t('Add Filter By'),
         order: actionPanelOrder,
       }}
-      display={{label: t('Add Filter')}}
+      display={{label: t('Add Filter By')}}
       keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
       prompt={t('Search for attribute')}
     >
@@ -233,7 +236,15 @@ export function TraceItemFilterActions({
   );
 }
 
-export function TraceItemFilterRows({summary}: {summary: string}) {
+export const TraceItemFilterActions = memo(TraceItemFilterActionsComponent);
+
+function TraceItemFilterRowsComponent({
+  summary,
+  targetAction,
+}: {
+  summary: string;
+  targetAction: string;
+}) {
   const filters = getFilterRows(summary);
   const rows = filters.length > 0 ? filters : [''];
 
@@ -246,10 +257,12 @@ export function TraceItemFilterRows({summary}: {summary: string}) {
         trailingItem: <QueryValue value={filter} />,
       }}
       keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
-      onAction={() => {}}
+      targetAction={targetAction}
     />
   ));
 }
+
+export const TraceItemFilterRows = memo(TraceItemFilterRowsComponent);
 
 function QueryValue({value}: {value: string}) {
   return (
