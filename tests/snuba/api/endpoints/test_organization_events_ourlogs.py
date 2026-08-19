@@ -110,6 +110,59 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert meta["dataset"] == self.dataset
 
+    def test_timestamp_sequence_breaks_ties_when_timestamp_precise_is_equal(self) -> None:
+        shared_timestamp = self.ten_mins_ago
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                timestamp=shared_timestamp,
+                attributes={"sentry.timestamp.sequence": 0},
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                timestamp=shared_timestamp,
+                attributes={"sentry.timestamp.sequence": 1},
+            ),
+            self.create_ourlog(
+                {"body": "third"},
+                timestamp=shared_timestamp,
+                attributes={"sentry.timestamp.sequence": 2},
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        ascending = self.do_request(
+            {
+                "field": ["log.body", "timestamp"],
+                "query": "",
+                "orderby": "timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        descending = self.do_request(
+            {
+                "field": ["log.body", "timestamp"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert ascending.status_code == 200, ascending.content
+        assert descending.status_code == 200, descending.content
+        assert [row["log.body"] for row in ascending.data["data"]] == [
+            "first",
+            "second",
+            "third",
+        ]
+        assert [row["log.body"] for row in descending.data["data"]] == [
+            "third",
+            "second",
+            "first",
+        ]
+
     def test_free_text_wildcard_filter(self) -> None:
         logs = [
             self.create_ourlog(
@@ -503,6 +556,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 constants.TIMESTAMP_PRECISE_ALIAS: pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
+                constants.TIMESTAMP_SEQUENCE_ALIAS: None,
                 "observed_timestamp": source.attributes[
                     "sentry.observed_timestamp_nanos"
                 ].string_value,
@@ -1123,6 +1177,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             {
                 "timestamp": ANY,
                 "timestamp_precise": ANY,
+                "timestamp.sequence": None,
                 "message": "log",
             }
         ]
