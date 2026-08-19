@@ -1737,6 +1737,12 @@ SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
+# Shared secret for short-lived JWTs on Snuba destructive endpoints.
+# Must match snuba DELETE_SERVICE_AUTH_SECRET. Empty fails closed once
+# snuba enforces AuthN.
+SENTRY_SNUBA_DELETE_AUTH_SECRET = env("SENTRY_SNUBA_DELETE_AUTH_SECRET", default="")
+
+
 # Node storage backend
 SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
@@ -338,7 +339,19 @@ def delete_trace_items_rpc(req: DeleteTraceItemsRequest) -> DeleteTraceItemsResp
     An RPC which deletes trace items matching the filters specified in the request.
     Used for deleting EAP trace items (e.g. occurrences).
     """
-    resp = _make_rpc_request("EndpointDeleteTraceItems", "v1", req.meta.referrer, req)
+    from sentry.utils.snuba_delete_auth import snuba_delete_auth_headers
+
+    extra_headers = snuba_delete_auth_headers(
+        project_ids=list(req.meta.project_ids),
+        organization_ids=[req.meta.organization_id],
+    )
+    resp = _make_rpc_request(
+        "EndpointDeleteTraceItems",
+        "v1",
+        req.meta.referrer,
+        req,
+        extra_headers=extra_headers,
+    )
     response = DeleteTraceItemsResponse()
     response.ParseFromString(resp.data)
     _log_rpc_response("EndpointDeleteTraceItems", req, response.matching_items_count)
@@ -408,6 +421,7 @@ def _make_rpc_request(
     thread_isolation_scope: sentry_sdk.Scope | None = None,
     thread_current_scope: sentry_sdk.Scope | None = None,
     debug: str | bool = False,
+    extra_headers: Mapping[str, str] | None = None,
 ) -> BaseHTTPResponse:
     try:
         logger_extra: dict[str, object] = {
@@ -444,17 +458,16 @@ def _make_rpc_request(
                     set_span_tag(span, "snuba.referrer", referrer)
                     set_span_data(span, "snuba.query", req)
                 try:
+                    headers: dict[str, str] = {}
+                    if referrer:
+                        headers["referer"] = referrer
+                    if extra_headers:
+                        headers.update(extra_headers)
                     http_resp = _snuba_pool.urlopen(
                         "POST",
                         f"/rpc/{endpoint_name}/{class_version}",
                         body=req.SerializeToString(),
-                        headers=(
-                            {
-                                "referer": referrer,
-                            }
-                            if referrer
-                            else {}
-                        ),
+                        headers=headers,
                     )
                 except urllib3.exceptions.HTTPError as err:
                     if isinstance(err, urllib3.exceptions.ReadTimeoutError):
