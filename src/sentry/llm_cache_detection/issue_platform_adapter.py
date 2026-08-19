@@ -152,7 +152,6 @@ def _build_evidence_data(
         "sum_input_tokens": stats.sum_input_tokens,
         "sum_cache_read_tokens": stats.sum_cache_read_tokens,
         "sum_cache_creation_tokens": stats.sum_cache_creation_tokens,
-        "sample_trace_ids": [sample.trace_id for sample in sample_calls],
         "sample_traces": [
             {
                 "trace_id": sample.trace_id,

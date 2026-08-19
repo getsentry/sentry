@@ -54,7 +54,6 @@ SAMPLE_CALLS = [
         cache_creation_tokens=0,
     ),
 ]
-SAMPLE_TRACE_IDS = [sample.trace_id for sample in SAMPLE_CALLS]
 
 
 def bursty(stats: CallSiteStats) -> CallSiteWarmth:
@@ -270,9 +269,8 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             assert occurrence.project_id == project.id
             assert occurrence.level == "warning"
             assert occurrence.evidence_data["window_days"] == 7
-            assert occurrence.evidence_data["sample_trace_ids"] == SAMPLE_TRACE_IDS
             assert event_data["project_id"] == project.id
-            assert event_data["contexts"]["trace"]["trace_id"] == SAMPLE_TRACE_IDS[0]
+            assert event_data["contexts"]["trace"]["trace_id"] == SAMPLE_CALLS[0].trace_id
 
         # Sorted by severity descending: the not-caching group's uncached
         # tokens dwarf the thrash group's un-recouped cache writes.
@@ -417,7 +415,6 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             }
             for sample in SAMPLE_CALLS
         ]
-        assert evidence["sample_trace_ids"] == SAMPLE_TRACE_IDS
 
     def test_emits_the_anchor_volume_alongside_its_hit_rate(
         self,

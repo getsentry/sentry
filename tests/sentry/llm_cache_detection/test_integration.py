@@ -525,12 +525,14 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         assert evidence["hit_rate"] == 0
         assert evidence["sum_input_tokens"] == INPUT_TOKENS * CALLS_PER_CALL_SITE
         assert evidence["uncached_tokens"] == INPUT_TOKENS * CALLS_PER_CALL_SITE
-        assert evidence["sample_trace_ids"]
+        assert evidence["sample_traces"]
 
         event_data = mock_produce.call_args.kwargs["event_data"]
         assert event_data["project_id"] == self.project.id
         assert event_data["tags"]["gen_ai.agent.name"] == "Summarizer"
-        assert event_data["contexts"]["trace"]["trace_id"] == evidence["sample_trace_ids"][0]
+        assert (
+            event_data["contexts"]["trace"]["trace_id"] == evidence["sample_traces"][0]["trace_id"]
+        )
 
     def test_flags_a_call_site_that_thrashes_its_cache(self, mock_produce: MagicMock) -> None:
         # Writes dominate reads: the call site pays the cache-write premium on
