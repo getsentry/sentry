@@ -17,6 +17,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
     NoDynamicSamplingConfiguration,
     get_configuration,
 )
+from sentry.dynamic_sampling.per_org.results import RecalibrationOutcome
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
@@ -29,7 +30,6 @@ from sentry.testutils.cases import TestCase
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     CALCULATE_FACTOR,
-    DELETE_FACTOR,
     GET_FACTOR,
     OUTCOMES_VOLUME,
     SET_FACTOR,
@@ -178,13 +178,16 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         ) as mocks:
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(org_volume) == 0.7
+            configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        assert configuration.organization_recalibration_factor == 0.7
+        assert configuration.results.recalibration_factor == 0.7
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.APPLIED
+        assert configuration.results.previous_recalibration_factor == 1.4
         mocks[GET_FACTOR].assert_called_once_with(org.id)
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.7)
+        # The factor is only recorded here. write_caches stores it at the end of the pass.
+        mocks[SET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_skips_recalibration_without_an_org_volume(self) -> None:
         org = self.create_organization()
@@ -195,19 +198,16 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
                 GET_FACTOR: 1.0,
-                SET_FACTOR: DEFAULT,
-                DELETE_FACTOR: DEFAULT,
             }
-        ) as mocks:
+        ):
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(None) is None
+            configuration.recalibrate(None)
 
-        assert configuration.organization_recalibration_factor is None
-        mocks[SET_FACTOR].assert_not_called()
-        mocks[DELETE_FACTOR].assert_not_called()
+        assert configuration.results.recalibration_factor is None
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.NO_FACTOR
 
-    def test_subscription_backed_org_deletes_recalibration_factor_when_out_of_bounds(
+    def test_subscription_backed_org_rejects_a_recalibration_factor_out_of_bounds(
         self,
     ) -> None:
         org = self.create_organization()
@@ -219,18 +219,16 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
                 GET_FACTOR: 1.0,
-                DELETE_FACTOR: DEFAULT,
-                SET_FACTOR: DEFAULT,
             }
-        ) as mocks:
+        ):
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(org_volume) is None
+            configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        assert configuration.organization_recalibration_factor is None
-        mocks[DELETE_FACTOR].assert_called_once_with(org.id)
-        mocks[SET_FACTOR].assert_not_called()
+        assert configuration.results.recalibration_factor is None
+        # Recorded apart from NO_FACTOR, because only this outcome clears the cached factor.
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.OUT_OF_BOUNDS
 
     def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(
         self,
@@ -245,18 +243,15 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 OUTCOMES_VOLUME: None,
                 GET_FACTOR: 1.0,
                 CALCULATE_FACTOR: None,
-                DELETE_FACTOR: DEFAULT,
-                SET_FACTOR: DEFAULT,
             }
-        ) as mocks:
+        ):
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(org_volume) is None
+            configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        assert configuration.organization_recalibration_factor is None
-        mocks[DELETE_FACTOR].assert_not_called()
-        mocks[SET_FACTOR].assert_not_called()
+        assert configuration.results.recalibration_factor is None
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.NO_FACTOR
 
     def test_building_configuration_does_not_recalibrate(self) -> None:
         org = self.create_organization()
@@ -266,16 +261,15 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
-                SET_FACTOR: DEFAULT,
-                DELETE_FACTOR: DEFAULT,
+                GET_FACTOR: DEFAULT,
             }
         ) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        assert configuration.organization_recalibration_factor is None
-        mocks[SET_FACTOR].assert_not_called()
-        mocks[DELETE_FACTOR].assert_not_called()
+        assert configuration.results.recalibration_factor is None
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.NOT_RUN
+        mocks[GET_FACTOR].assert_not_called()
 
     def test_org_mode_custom_dynamic_sampling_recalibrates_against_target_sample_rate(self) -> None:
         org = self.create_organization()
@@ -289,18 +283,17 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 {
                     GET_FACTOR: 1.2,
                     CALCULATE_FACTOR: 0.9,
-                    SET_FACTOR: DEFAULT,
                 }
             ) as mocks,
         ):
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(org_volume) == 0.9
+            configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
-        assert configuration.organization_recalibration_factor == 0.9
+        assert configuration.results.recalibration_factor == 0.9
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.APPLIED
         mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.2, 0.3)
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.9)
 
     def test_project_mode_custom_dynamic_sampling_does_not_recalibrate(self) -> None:
         org = self.create_organization()
@@ -311,15 +304,16 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch_configuration({SET_FACTOR: DEFAULT}) as mocks,
+            patch_configuration({GET_FACTOR: DEFAULT}) as mocks,
         ):
             configuration = get_configuration(org.id)
 
-            assert configuration.recalibrate(org_volume) is None
+            configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
-        assert configuration.organization_recalibration_factor is None
-        mocks[SET_FACTOR].assert_not_called()
+        assert configuration.results.recalibration_factor is None
+        assert configuration.results.recalibration_outcome == RecalibrationOutcome.NOT_RUN
+        mocks[GET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()

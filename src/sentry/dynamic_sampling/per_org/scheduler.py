@@ -3,42 +3,28 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-import sentry_sdk
 from django.db.models import Exists, F, OuterRef
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org.cache import write_caches
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
-    compare_organization_sliding_window_sample_rates,
-    compare_rebalanced_projects_with_cache,
-    compare_rebalanced_transactions_with_cache,
-    compare_recalibration_factor_with_cache,
-    get_cached_organization_sample_rate,
-    get_cached_per_org_recalibration_factor,
-    get_cached_rebalanced_project_sample_rates,
-    get_cached_rebalanced_transaction_sample_rates,
-    get_cached_recalibration_factor,
-    log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
 )
+from sentry.dynamic_sampling.per_org.comparisons import emit_comparisons
 from sentry.dynamic_sampling.per_org.configuration import (
-    AutomaticDynamicSamplingConfiguration,
     BaseDynamicSamplingConfiguration,
-    ProjectSampleRates,
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.gate import (
     is_org_in_recalibration_rollout,
     is_org_in_rollout,
-    is_org_in_sample_rates_summary_log_rollout,
-    sliding_window_comparison_org_ids,
-    transaction_volume_debug_project_ids,
 )
 from sentry.dynamic_sampling.per_org.queries import (
+    RECALIBRATION_TIME_INTERVAL,
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
@@ -53,7 +39,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -89,42 +74,41 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    # Recalibration pairs this volume with an outcomes query later in the task. The end is
+    try:
+        return run_calculations(config)
+    finally:
+        # Everything the pass computed sits on config.results by now. Emitting and writing
+        # here, instead of at the stage that produced each value, keeps a stage that bails
+        # out from discarding the results of the stages before it.
+        emit_comparisons(config)
+        write_caches(config)
+
+
+def run_calculations(config: BaseDynamicSamplingConfiguration) -> DynamicSamplingStatus | None:
+    """Run every calculation stage for one organization, recording each on config.results.
+
+    Returns the status that describes where the pass stopped, or None when it ran to the
+    end. Nothing is logged or cached here; the caller does both once the pass is over.
+    """
+    results = config.results
+
+    # Recalibration pairs this volume with an outcomes query later in the pass. The end is
     # fixed here instead of taken twice from the clock, and truncated to the minute because
     # the outcomes query widens its window to whole minutes.
     org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
-    org_volume_5m = get_eap_organization_volume(config, end=org_volume_end)
-    if org_volume_5m is None:
+    results.organization_volume = get_eap_organization_volume(config, end=org_volume_end)
+    if results.organization_volume is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
-    project_volumes = get_eap_project_volumes(config)
-    if not project_volumes:
+    results.project_volumes = get_eap_project_volumes(config)
+    if not results.project_volumes:
         return DynamicSamplingStatus.NO_PROJECT_VOLUMES
 
-    log_summary = is_org_in_sample_rates_summary_log_rollout(config.organization.id)
-
-    # Read outside the balancing branch when the summary log is on, so orgs that skip project
-    # balancing (project-mode custom sampling) still get a generic metrics side in the log.
-    cached_sample_rates: dict[int, float | None] = {}
-    if config.should_balance_projects or log_summary:
-        cached_sample_rates = get_cached_rebalanced_project_sample_rates(config.organization.id)
-
     if config.should_balance_projects:
-        rebalanced_projects = run_project_balancing(config, project_volumes)
-        rebalanced_projects = apply_project_sample_rate_overrides(rebalanced_projects)
-        config.set_rebalanced_project_sample_rates(rebalanced_projects)
-        compare_rebalanced_projects_with_cache(
-            config, rebalanced_projects, cached_sample_rates, project_volumes
+        rebalanced_projects = run_project_balancing(config, results.project_volumes)
+        config.set_rebalanced_project_sample_rates(
+            apply_project_sample_rate_overrides(rebalanced_projects)
         )
-
-    if (
-        isinstance(config, AutomaticDynamicSamplingConfiguration)
-        and config.organization.id in sliding_window_comparison_org_ids()
-    ):
-        try:
-            compare_organization_sliding_window_sample_rates(config)
-        except Exception as exc:
-            sentry_sdk.capture_exception(exc)
 
     sample_rates = config.get_project_sample_rates()
     # Emitted once per org per scheduler cycle, so summing over one CYCLE_DURATION
@@ -134,121 +118,31 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     )
     if projects_below_full_sample_rate:
         emit_count(PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC, projects_below_full_sample_rate)
-    projects_to_balance = [
+
+    results.projects_to_balance = [
         project for project in config.projects if sample_rates.get(project.id) != 1.0
     ]
-    if not projects_to_balance:
+    if not results.projects_to_balance:
         return DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
 
-    transaction_volumes = get_eap_transaction_volumes(config)
-    if not transaction_volumes:
+    results.transaction_volumes = get_eap_transaction_volumes(config)
+    if not results.transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
-    debug_project_ids = transaction_volume_debug_project_ids() & {
-        project.id for project in projects_to_balance
-    }
-    if debug_project_ids:
-        log_transaction_volume_debug(config, transaction_volumes, debug_project_ids)
-
-    rebalanced_transactions = run_transaction_balancing(
-        config, project_volumes, transaction_volumes
-    )
-    # When the summary log is on, the cache is read for every project rather than only the
-    # EAP-rebalanced ones, so the log can report a generic metrics side even where EAP
-    # produced no transaction rates.
-    cached_transaction_sample_rates = get_cached_rebalanced_transaction_sample_rates(
-        org_id=config.organization.id,
-        project_ids=(
-            [project.id for project in config.projects]
-            if log_summary
-            else list(rebalanced_transactions.keys())
-        ),
-    )
-    compare_rebalanced_transactions_with_cache(
-        config, rebalanced_transactions, cached_transaction_sample_rates
+    results.rebalanced_transactions = run_transaction_balancing(
+        config, results.project_volumes, results.transaction_volumes
     )
 
-    if log_summary:
-        log_sample_rates_summary(
+    if is_org_in_recalibration_rollout(config.organization.id):
+        results.recalibration_volume = get_recalibration_organization_volume(
             config,
-            project_sample_rates=sample_rates,
-            cached_project_sample_rates=cached_sample_rates,
-            rebalanced_transactions=rebalanced_transactions,
-            cached_transaction_sample_rates=cached_transaction_sample_rates,
-        )
-
-    if is_org_in_recalibration_rollout(org_id):
-        recalibration_volume = get_recalibration_organization_volume(
-            config,
-            org_volume_5m,
-            time_interval=timedelta(minutes=5),
+            results.organization_volume,
+            time_interval=RECALIBRATION_TIME_INTERVAL,
             end=org_volume_end,
         )
-        # recalibrate overwrites this factor, so read it first to keep the state the EAP loop
-        # started this pass from.
-        previous_eap_factor = get_cached_per_org_recalibration_factor(config.organization.id)
-        calculated_factor = config.recalibrate(recalibration_volume)
-        cached_factor = get_cached_recalibration_factor(config.organization.id)
-        try:
-            compare_recalibration_factor_with_cache(
-                config,
-                recalibration_volume,
-                calculated_factor,
-                cached_factor,
-                previous_eap_factor=previous_eap_factor,
-                legacy_volume=get_organization_volume(
-                    config.organization.id, time_interval=timedelta(minutes=5)
-                ),
-            )
-        except Exception as exc:
-            sentry_sdk.capture_exception(exc)
+        config.recalibrate(results.recalibration_volume)
 
     return None
-
-
-def log_sample_rates_summary(
-    config: BaseDynamicSamplingConfiguration,
-    project_sample_rates: ProjectSampleRates,
-    cached_project_sample_rates: dict[int, float | None],
-    rebalanced_transactions: dict[int, tuple[list[RebalancedItem], float]],
-    cached_transaction_sample_rates: dict[int, tuple[dict[str, float], float] | None],
-) -> None:
-    """
-    One line per org per cycle with the org, project and transaction sample rates of both
-    the EAP and the generic metrics (legacy) pipeline, for side-by-side comparison without
-    having to join the per-project and per-transaction comparison logs.
-    """
-    projects_summary = {}
-    for project in config.projects:
-        project_id = project.id
-        eap_named_rates, eap_implicit_rate = rebalanced_transactions.get(project_id, ([], None))
-        cached_transactions = cached_transaction_sample_rates.get(project_id)
-        generic_metrics_named_rates, generic_metrics_implicit_rate = (
-            ({}, None) if cached_transactions is None else cached_transactions
-        )
-        projects_summary[str(project_id)] = {
-            "eap_sample_rate": project_sample_rates.get(project_id),
-            "generic_metrics_sample_rate": cached_project_sample_rates.get(project_id),
-            "eap_transaction_implicit_sample_rate": eap_implicit_rate,
-            "generic_metrics_transaction_implicit_sample_rate": generic_metrics_implicit_rate,
-            "eap_transaction_sample_rates": {
-                str(item.id): item.new_sample_rate for item in eap_named_rates
-            },
-            "generic_metrics_transaction_sample_rates": generic_metrics_named_rates,
-        }
-
-    logger.info(
-        "dynamic_sampling.per_org.sample_rates_summary",
-        extra={
-            "org_id": config.organization.id,
-            "eap_org_sample_rate": config.get_sample_rate(),
-            "eap_org_serving_sample_rate": config.get_serving_sample_rate(),
-            "generic_metrics_org_sample_rate": get_cached_organization_sample_rate(
-                config.organization.id
-            ),
-            "projects": projects_summary,
-        },
-    )
 
 
 @instrumented_task(
