@@ -377,18 +377,14 @@ class PullRequest(Model):
         Returns a Q object that filters for unused PRs.
         This is the inverse of what makes a PR "in use".
 
-        Every keep condition is bounded, either by ``cutoff_date`` or by the lifetime
-        of the object that references the PR. A condition that can be true forever
-        makes the PR immortal: retention scans it in every run and can never remove it.
+        Every keep condition must be bounded, either by ``cutoff_date`` or by the
+        lifetime of the object referencing the PR. An unbounded one makes the PR immortal.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        # Bounded by the *group's* lifetime, not the PR's: an issue that is still
-        # alive shows this PR (issue detail, weekly report, resolution activity), and
-        # the join through ``group__project`` drops the link once either is gone.
-        # GroupLink is deleted with its Group, which retention ages out on last_seen.
+        # Bounded by the group's lifetime: GroupLink is deleted along with its Group.
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
@@ -403,11 +399,9 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
-        # Bounded by the *release's* recency: what a release surfaces is the
-        # commit -> PR link on its commit list, so a release past the retention
-        # window has no claim on the PR. Commits in a release are themselves kept
-        # forever (see CommitDeletionTask), so keying on the commit would not bound
-        # this at all.
+        # Bounded by the release's recency rather than the commit's: CommitDeletionTask
+        # keeps any commit that is in a release forever, so keying on the commit
+        # bounds nothing.
         commit_in_release = Exists(
             ReleaseCommit.objects.filter(
                 commit_id=OuterRef("commit_id"), release__date_added__gte=cutoff_date
