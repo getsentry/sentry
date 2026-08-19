@@ -179,13 +179,14 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = resolveChartComponent({
-    chartComponent,
-    showDaily,
-    timeseriesLength: timeseriesData.length,
-    forceChartType,
-    yAxis,
-  });
+  const multiPlotType =
+    timeseriesData.length > 1 ? forceChartType || aggregateMultiPlotType(yAxis) : null;
+  if (multiPlotType !== null && multiPlotType !== 'line' && multiPlotType !== 'area') {
+    throw new Error(`Unknown multi plot type for ${yAxis}`);
+  }
+  const ChartComponent =
+    chartComponent ??
+    (showDaily ? BarChart : multiPlotType === 'line' ? LineChart : AreaChart);
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
