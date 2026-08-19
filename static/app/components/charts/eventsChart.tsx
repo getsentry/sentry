@@ -148,7 +148,7 @@ function Chart({
   }
 
   const multiPlotType =
-    !defined(chartComponent) && timeseriesData.length > 1
+    !defined(chartComponent) && !showDaily && timeseriesData.length > 1
       ? forceChartType || aggregateMultiPlotType(yAxis)
       : null;
   if (multiPlotType !== null && multiPlotType !== 'line' && multiPlotType !== 'area') {
