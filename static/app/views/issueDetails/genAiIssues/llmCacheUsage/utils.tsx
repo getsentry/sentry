@@ -11,6 +11,8 @@ import type {
   LlmCacheContrastAnchor,
   LlmCacheEvidenceData,
   LlmCacheOutcome,
+  LlmCachePromptDivergence,
+  LlmCachePromptDivergenceKind,
   LlmCacheSampleCall,
 } from './types';
 
@@ -135,6 +137,48 @@ function getAnchor(data: Record<string, unknown>): LlmCacheContrastAnchor | null
   };
 }
 
+const PROMPT_DIVERGENCE_KINDS: readonly LlmCachePromptDivergenceKind[] = [
+  'none',
+  'iso_timestamp',
+  'epoch_timestamp',
+  'uuid',
+  'identifier',
+  'counter',
+  'other',
+];
+
+function getPromptDivergenceKind(value: unknown): LlmCachePromptDivergenceKind | null {
+  return PROMPT_DIVERGENCE_KINDS.find(kind => kind === value) ?? null;
+}
+
+/**
+ * The prompt diagnosis, or null when the occurrence carries none.
+ *
+ * The kind and the shared prefix are what every sentence on the page is built
+ * from, so an occurrence missing either has nothing to say and is dropped whole
+ * rather than rendered half-empty.
+ */
+function getPromptDivergence(
+  data: Record<string, unknown>
+): LlmCachePromptDivergence | null {
+  const kind = getPromptDivergenceKind(data.promptDivergenceKind);
+  const commonPrefixChars = getNumberValue(data.promptCommonPrefixChars);
+
+  if (kind === null || commonPrefixChars === null) {
+    return null;
+  }
+
+  return {
+    kind,
+    commonPrefixChars,
+    sampleCount: getNumberValue(data.promptSampleCount),
+    shortestChars: getNumberValue(data.promptShortestChars),
+    prefixShare: getNumberValue(data.promptPrefixShare),
+    stableSuffixChars: getNumberValue(data.promptStableSuffixChars),
+    templateMisordered: data.promptTemplateMisordered === true,
+  };
+}
+
 export function getLlmCacheEvidenceData(
   evidenceData: EventOccurrence['evidenceData'] | null | undefined
 ): LlmCacheEvidenceData {
@@ -163,6 +207,7 @@ export function getLlmCacheEvidenceData(
     windowEnd: getTimestampValue(data.windowEnd),
     sampleCalls: getSampleCalls(data.sampleTraces),
     anchor: getAnchor(data),
+    promptDivergence: getPromptDivergence(data),
   };
 }
 
@@ -265,20 +310,36 @@ export function getCallSiteExploreUrl({
   });
 }
 
+function formatApproximateCount(value: number): string {
+  if (value < 1000) {
+    return value.toLocaleString(undefined, {maximumFractionDigits: 0});
+  }
+  // Guard on the rounded figure, not the raw one: 999,999 round to 1000.0K,
+  // which should read as 1.0M.
+  const thousands = (value / 1_000).toFixed(1);
+  if (Number(thousands) < 1_000) {
+    return t('~%sK', thousands);
+  }
+  return t('~%sM', (value / 1_000_000).toFixed(1));
+}
+
 export function formatTokens(tokens: number | null): string {
   if (tokens === null) {
     return t('Unknown');
   }
-  if (tokens < 1000) {
-    return tokens.toLocaleString(undefined, {maximumFractionDigits: 0});
+  return formatApproximateCount(tokens);
+}
+
+/**
+ * A prompt length, on the same approximate scale as token counts: it is read
+ * off a few sampled prompts the span store may have truncated, so exact digits
+ * would claim more than the measurement supports.
+ */
+export function formatCharacters(characters: number | null): string {
+  if (characters === null) {
+    return t('Unknown');
   }
-  // Guard on the rounded figure, not the raw one: 999,999 tokens round to
-  // 1000.0K, which should read as 1.0M.
-  const thousands = (tokens / 1_000).toFixed(1);
-  if (Number(thousands) < 1_000) {
-    return t('~%sK', thousands);
-  }
-  return t('~%sM', (tokens / 1_000_000).toFixed(1));
+  return t('%s chars', formatApproximateCount(characters));
 }
 
 export function formatRate(rate: number | null): string {
@@ -369,6 +430,31 @@ const PROMPT_CACHING_DOCS: Record<CacheProvider, string> = {
 
 export function getPromptCachingDocsUrl(model: string | null): string {
   return PROMPT_CACHING_DOCS[getCacheProvider(model)];
+}
+
+/**
+ * Reads as the tail of "the prompts first differ at ...".
+ *
+ * `none` is deliberately unhandled: there is nothing to name, and the callers
+ * that would use this say something else entirely in that case.
+ */
+export function getPromptDivergenceDescription(
+  kind: LlmCachePromptDivergenceKind
+): string {
+  switch (kind) {
+    case 'iso_timestamp':
+      return t('an ISO-8601 timestamp');
+    case 'epoch_timestamp':
+      return t('a Unix timestamp');
+    case 'uuid':
+      return t('a UUID');
+    case 'identifier':
+      return t('a request or trace id');
+    case 'counter':
+      return t('a changing number');
+    default:
+      return t('changing text');
+  }
 }
 
 export function getPromptCachingDocsLabel(model: string | null): string {

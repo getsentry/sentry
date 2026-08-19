@@ -10,6 +10,7 @@ import {LlmCacheActivityChart} from './llmCacheActivityChart';
 import {LlmCacheComparisonSection} from './llmCacheComparisonSection';
 import {LlmCacheExampleCalls} from './llmCacheExampleCalls';
 import {LlmCacheProblemSection} from './llmCacheProblemSection';
+import {LlmCachePromptShapeSection} from './llmCachePromptShapeSection';
 import {LlmCacheTroubleshootingSection} from './llmCacheTroubleshootingSection';
 import {getLlmCacheEvidenceData} from './utils';
 
@@ -32,6 +33,14 @@ export function LlmCacheUsageSections({event}: LlmCacheUsageSectionsProps) {
       <FoldSection sectionKey={SectionKey.LLM_CACHE_PROBLEM} title={t('Problem')}>
         <LlmCacheProblemSection evidenceData={evidenceData} />
       </FoldSection>
+      {evidenceData.promptDivergence !== null && (
+        <FoldSection
+          sectionKey={SectionKey.LLM_CACHE_PROMPT_SHAPE}
+          title={t('Prompt Shape')}
+        >
+          <LlmCachePromptShapeSection evidenceData={evidenceData} />
+        </FoldSection>
+      )}
       {evidenceData.anchor !== null && (
         <FoldSection
           sectionKey={SectionKey.LLM_CACHE_COMPARISON}

@@ -24,6 +24,7 @@ const evidence: LlmCacheEvidenceData = {
   windowDays: 7,
   windowStart: null,
   windowEnd: null,
+  promptDivergence: null,
   sampleCalls: [],
   anchor: null,
 };

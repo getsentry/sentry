@@ -25,6 +25,7 @@ const evidence: LlmCacheEvidenceData = {
   windowStart: '2026-08-10T00:00:00+00:00',
   windowEnd: '2026-08-17T00:00:00+00:00',
   anchor: null,
+  promptDivergence: null,
   sampleCalls: [
     {
       traceId: 'abcdef01'.padEnd(32, '0'),

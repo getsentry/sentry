@@ -24,6 +24,7 @@ const baseEvidence: LlmCacheEvidenceData = {
   windowDays: 7,
   windowStart: '2026-08-10T00:00:00+00:00',
   windowEnd: '2026-08-17T00:00:00+00:00',
+  promptDivergence: null,
   sampleCalls: [],
   anchor: null,
 };

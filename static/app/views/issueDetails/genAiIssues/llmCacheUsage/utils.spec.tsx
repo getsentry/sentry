@@ -2,6 +2,7 @@ import {
   buildCallSiteQuery,
   formatCacheEligibleCalls,
   formatCallSiteLabel,
+  formatCharacters,
   formatRate,
   formatTokens,
   getCacheProvider,
@@ -87,6 +88,62 @@ describe('getLlmCacheEvidenceData', () => {
     });
 
     expect(parsed.anchor).toBeNull();
+  });
+
+  it('reads the prompt diagnosis', () => {
+    const parsed = getLlmCacheEvidenceData({
+      promptSampleCount: 4,
+      promptCommonPrefixChars: 142,
+      promptShortestChars: 48_000,
+      promptPrefixShare: 0.003,
+      promptDivergenceKind: 'iso_timestamp',
+      promptStableSuffixChars: 6_200,
+      promptTemplateMisordered: true,
+    });
+
+    expect(parsed.promptDivergence).toEqual({
+      kind: 'iso_timestamp',
+      commonPrefixChars: 142,
+      shortestChars: 48_000,
+      prefixShare: 0.003,
+      stableSuffixChars: 6_200,
+      templateMisordered: true,
+      sampleCount: 4,
+    });
+  });
+
+  it('has no prompt diagnosis when the spans carried no prompt text', () => {
+    // The common case: sending prompts is opt-in and mostly off.
+    expect(getLlmCacheEvidenceData({hitRate: 0}).promptDivergence).toBeNull();
+  });
+
+  it('drops a prompt diagnosis missing the parts every sentence is built from', () => {
+    expect(
+      getLlmCacheEvidenceData({
+        promptDivergenceKind: 'uuid',
+        promptStableSuffixChars: 6_200,
+      }).promptDivergence
+    ).toBeNull();
+  });
+
+  it('reads an unrecognized divergence kind as no diagnosis at all', () => {
+    // A kind the page cannot describe would render a sentence with a hole in it.
+    expect(
+      getLlmCacheEvidenceData({
+        promptDivergenceKind: 'semver',
+        promptCommonPrefixChars: 142,
+      }).promptDivergence
+    ).toBeNull();
+  });
+
+  it('reads a missing misordering verdict as no verdict', () => {
+    const parsed = getLlmCacheEvidenceData({
+      promptDivergenceKind: 'counter',
+      promptCommonPrefixChars: 142,
+    });
+
+    expect(parsed.promptDivergence?.templateMisordered).toBe(false);
+    expect(parsed.promptDivergence?.stableSuffixChars).toBeNull();
   });
 
   it('ignores an unrecognized outcome', () => {
@@ -229,6 +286,14 @@ describe('formatTokens', () => {
   it('rolls up to millions rather than printing 1000.0K', () => {
     expect(formatTokens(999_999)).toBe('~1.0M');
     expect(formatTokens(999_400)).toBe('~999.4K');
+  });
+});
+
+describe('formatCharacters', () => {
+  it('reads as a length rather than a bare number', () => {
+    expect(formatCharacters(142)).toBe('142 chars');
+    expect(formatCharacters(6_200)).toBe('~6.2K chars');
+    expect(formatCharacters(null)).toBe('Unknown');
   });
 });
 

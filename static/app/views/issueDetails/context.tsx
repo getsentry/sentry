@@ -72,6 +72,7 @@ export const enum SectionKey {
   PROCESSING_ERROR = 'processing-error',
   CONFIGURATION_PROBLEM = 'configuration-problem',
   LLM_CACHE_PROBLEM = 'llm-cache-problem', // Only LLM Cache Usage issues
+  LLM_CACHE_PROMPT_SHAPE = 'llm-cache-prompt-shape',
   LLM_CACHE_COMPARISON = 'llm-cache-comparison',
   LLM_CACHE_ACTIVITY = 'llm-cache-activity',
   LLM_CACHE_EXAMPLE_CALLS = 'llm-cache-example-calls',
