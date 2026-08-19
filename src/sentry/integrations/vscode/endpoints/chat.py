@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.integrations.vscode.endpoints.utils import (
+    VSCodeEndpointPermission,
     create_session_id,
     editor_response,
     format_editor_context,
@@ -26,7 +27,7 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 
 
-class VSCodeChatSerializer(serializers.Serializer):
+class VSCodeChatSerializer(serializers.Serializer[dict[str, object]]):
     message = serializers.CharField(allow_blank=False, max_length=100_000)
     editorContext = serializers.JSONField(required=False, allow_null=True, default=None)
 
@@ -40,8 +41,7 @@ class VSCodeChatEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    authentication_classes = ()
-    permission_classes = ()
+    permission_classes = (VSCodeEndpointPermission,)
 
     def get(self, request: Request, organization: Organization, session_id: str) -> HttpResponse:
         """

@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.integrations.vscode.endpoints.utils import (
+    VSCodeEndpointPermission,
     editor_response,
     get_run_from_session_id,
     validate_vscode_access,
@@ -31,8 +32,7 @@ class VSCodeActionEndpoint(OrganizationEndpoint):
     owner = ApiOwner.COMMUNITY
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
-    authentication_classes = ()
-    permission_classes = ()
+    permission_classes = (VSCodeEndpointPermission,)
 
     def post(self, request: Request, organization: Organization, session_id: str) -> Response:
         user_id = validate_vscode_access(request=request, organization=organization)

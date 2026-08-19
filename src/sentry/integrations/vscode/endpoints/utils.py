@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
@@ -21,6 +22,14 @@ EDITOR_STATUS_BY_SEER_STATUS = {
     "error": "failed",
     "awaiting_user_input": "waiting_for_user",
 }
+
+
+class VSCodeEndpointPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+    }
 
 
 def validate_vscode_access(request: Request, organization: Organization) -> int:

@@ -44,7 +44,7 @@ class VSCodeAgentEntrypoint(SeerAgentEntrypoint[VSCodeCachePayload]):
         organization: Organization | RpcOrganization,
         actor: User | RpcUser | AnonymousUser | None = None,
     ) -> bool:
-        return features.has("organizations:seer-vscode", organization, actor=actor)
+        return features.has("organizations:integrations-vscode", organization, actor=actor)
 
     @staticmethod
     def get_code_mode_tools(organization: Organization) -> str:
@@ -80,7 +80,7 @@ class VSCodeAutofixEntrypoint(SeerAutofixEntrypoint[VSCodeAutofixCachePayload]):
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return features.has("organizations:seer-vscode", organization)
+        return features.has("organizations:integrations-vscode", organization)
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         pass
