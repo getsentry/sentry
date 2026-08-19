@@ -1,0 +1,98 @@
+name: no-unjustified-lint-ignore
+severity: warning
+tags: [linting, tech-debt, documentation]
+
+why: |
+  An inline eslint-disable, oxlint-disable, or biome-ignore comment silences a
+  rule that someone, at some point, decided the codebase should follow. Left
+  alone, each one is either a violation that should have been fixed instead of
+  hidden, or a genuine exception that nobody wrote down the reasoning for — so
+  the next person to touch that line has no way to tell which.
+
+  A bare disable (no rule name — silences everything on that line/block) is
+  worse: it can mask new violations introduced later by unrelated edits, and
+  there's no single rule to go verify.
+
+  The point of this convention isn't "delete every ignore comment" — some
+  suppressions are correct. It's that whoever looks at a hit should see what
+  the suppressed rule actually wants (its own documented bad/good examples),
+  so they can tell the difference between a violation worth fixing and an
+  exception worth documenting, instead of guessing.
+
+detect_command: 'bash {convention_dir}/no-unjustified-lint-ignore.detect.sh {repo_path}'
+
+fix: |
+  Each finding names a `tool` (eslint, oxlint, or biome) and one or more
+  `rules` suppressed at that line (empty `rules` means a bare disable with no
+  rule listed — see the gotcha below).
+
+  Steps:
+    1. For each rule name in the finding, look up its canonical doc page:
+         - eslint core/plugin rule:  https://eslint.org/docs/latest/rules/<rule>
+           (for a scoped/plugin rule like `react-hooks/exhaustive-deps` or
+           `@typescript-eslint/no-base-to-string`, search the plugin's own docs
+           instead — eslint.org only hosts core rules)
+         - oxlint:  https://oxc.rs/docs/guide/usage/linter/rules/<rule>.html
+         - biome:   the finding's rule is `<group>/<name>` (e.g.
+           `suspicious/noExplicitAny`); the doc lives at
+           https://biomejs.dev/linter/rules/<kebab-case-name>/ — drop the group,
+           kebab-case the rule name (`noExplicitAny` -> `no-explicit-any`)
+    2. Pull that page's "incorrect"/"correct" (or bad/good) example snippets.
+       Put them in the generated issue body under the finding, alongside a
+       one-line summary of what the rule enforces — this lookup is the reason
+       this convention exists; do not skip it even if the fix looks obvious.
+    3. Decide, using those examples plus the actual code at the callsite:
+         - If the code is a real violation: fix it and remove the ignore
+           comment (or narrow it to just the rules still legitimately needed,
+           if the line trips more than one).
+         - If the suppression is genuinely necessary: keep it, but replace or
+           add a comment stating *why*, next to the disable/ignore comment.
+           Biome already requires a reason after `biome-ignore lint/x/y:` —
+           make sure that reason is still accurate, not boilerplate.
+    4. Re-run the tool that owns the rule (`pnpm eslint <file>`, the oxlint or
+       biome equivalent) to confirm the line is clean or, if kept, that the
+       reason comment doesn't trip a "require description" meta-rule.
+
+  Gotchas:
+    1. A bare `eslint-disable`/`oxlint-disable` (no rule name, `rules: []` in
+       the finding) silences everything on that line/block — there is no
+       single doc page to fetch. Read the surrounding code to work out which
+       rule(s) were actually being avoided (temporarily removing the comment
+       and running the linter on that file is the fastest way to find out),
+       then treat each one individually per the steps above.
+    2. `eslint-disable` / `oxlint-disable` with no `-line`/`-next-line` suffix
+       suppresses the rule(s) for the rest of the file (or until a matching
+       `-enable`), not just one line — check how much code it actually covers
+       before deciding a targeted fix is even possible.
+    3. Don't just delete the comment without addressing the underlying code —
+       that turns a documented suppression into an undocumented lint failure
+       (or reintroduces the very bug the rule exists to catch) and breaks CI.
+    4. Some suppressions guard against false positives in the rule itself
+       (common with type-narrowing edge cases); the doc's examples should make
+       that distinguishable from an actual violation, but when genuinely
+       unsure, prefer keeping the suppression with a clearer reason over
+       guessing at a code change.
+
+examples:
+  bad:
+    - '// eslint-disable-next-line react-hooks/exhaustive-deps'
+    - 'console.error(err); // eslint-disable-line no-console'
+    - '/* eslint-disable unicorn/filename-case */'
+    - '// eslint-disable-next-line'
+  good:
+    - '// eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately omitting `dispatch`, which is stable per React docs'
+    - 'logger.error(err); // structured logger, no-console does not apply'
+    - '// biome-ignore lint/suspicious/noExplicitAny: bridging an untyped third-party callback'
+
+include:
+  - 'static/**/*.tsx'
+  - 'static/**/*.ts'
+  - 'static/**/*.jsx'
+  - 'static/**/*.js'
+exclude:
+  - '**/node_modules/**'
+  - '**/__fixtures__/**'
+  - '**/__mocks__/**'
+  - '**/*.spec.*'
+  - '**/*.test.*'
+  - '**/test/**'
