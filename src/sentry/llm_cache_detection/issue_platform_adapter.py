@@ -202,7 +202,7 @@ def _build_evidence_data(
                 "prompt_shortest_chars": divergence.shortest_prompt_chars,
                 "prompt_prefix_share": divergence.prefix_share,
                 "prompt_divergence_kind": divergence.divergence_kind.value,
-                "prompt_stable_suffix_chars": divergence.stable_suffix_chars,
+                "prompt_stable_block_chars": divergence.stable_block_chars,
                 "prompt_template_misordered": divergence.template_misordered,
             }
         )
@@ -278,11 +278,11 @@ def _prompt_divergence_evidence(divergence: PromptDivergence | None) -> list[Iss
                 important=False,
             )
         )
-    if divergence.stable_suffix_chars > 0:
+    if divergence.stable_block_chars > 0:
         rows.append(
             IssueEvidence(
-                name="Identical content after it",
-                value=f"{_format_magnitude(divergence.stable_suffix_chars)} chars",
+                name="Identical block after it",
+                value=f"{_format_magnitude(divergence.stable_block_chars)} chars",
                 important=False,
             )
         )

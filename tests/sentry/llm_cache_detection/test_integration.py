@@ -669,7 +669,10 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         evidence = mock_produce.call_args.kwargs["occurrence"].evidence_data
         assert evidence["prompt_sample_count"] == PROMPT_SAMPLES_LIMIT
         assert evidence["prompt_divergence_kind"] == "iso_timestamp"
-        assert evidence["prompt_stable_suffix_chars"] >= len(stable_body)
+        # A floor, not the exact size: the block is aligned in whole pieces, so
+        # the one straddling the divergence is dropped rather than half-counted.
+        assert evidence["prompt_stable_block_chars"] >= len(stable_body) * 0.9
+        assert evidence["prompt_template_misordered"] is True
         assert evidence["prompt_template_misordered"] is True
 
     def test_attaches_a_healthy_same_model_call_site_as_contrast(

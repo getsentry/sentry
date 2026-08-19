@@ -475,9 +475,9 @@ SHORT_BLOCK = "Answer in one sentence.\n"
 MESSAGE_LIST_OPENING = '[{"role": "system", "content": "'
 
 
-def make_prompt(head: str, body: str = STABLE_BLOCK) -> str:
+def make_prompt(head: str, body: str = STABLE_BLOCK, tail: str = "") -> str:
     """A serialized message list with a variable head and a stable body."""
-    return f'{MESSAGE_LIST_OPENING}{head}{body}"}}]'
+    return f'{MESSAGE_LIST_OPENING}{head}{body}{tail}"}}]'
 
 
 @pytest.mark.parametrize(
@@ -503,7 +503,7 @@ def test_reports_no_divergence_when_the_samples_agree() -> None:
     assert divergence.divergence_kind is DivergenceKind.NONE
     assert divergence.common_prefix_chars == len(prompt)
     assert divergence.prefix_share == 1.0
-    assert divergence.stable_suffix_chars == 0
+    assert divergence.stable_block_chars == 0
     assert not divergence.template_misordered
 
 
@@ -600,7 +600,7 @@ def test_flags_a_template_holding_its_stable_content_behind_the_variable_part() 
 
     assert divergence is not None
     assert divergence.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
-    assert divergence.stable_suffix_chars >= MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
     assert divergence.template_misordered
 
 
@@ -628,15 +628,35 @@ def test_does_not_call_it_misordered_when_too_little_follows_the_divergence() ->
     )
 
     assert divergence is not None
-    assert 0 < divergence.stable_suffix_chars < MIN_CACHEABLE_PREFIX_CHARS
+    assert 0 < divergence.stable_block_chars < MIN_CACHEABLE_PREFIX_CHARS
     assert not divergence.template_misordered
 
 
-def test_the_identical_tail_does_not_reach_back_past_the_divergence() -> None:
-    # Without the cap the tail would run into the shared prefix and count the
-    # same characters twice.
-    divergence = diagnose_prompt_divergence(["ax", "aax"])
+def test_finds_stable_content_stranded_between_two_variable_parts() -> None:
+    # The shape a template usually breaks in: something variable up front, the
+    # stable body behind it, and the caller's own text last -- so the content
+    # worth moving is neither the prefix nor the suffix. The heads differ in
+    # length, so the block sits at a different offset in each sample and can
+    # only be found by aligning on content.
+    divergence = diagnose_prompt_divergence(
+        [
+            make_prompt("Session 41. ", tail="how do I rotate a key?"),
+            make_prompt("Session 7. ", tail="why did the job fail?"),
+        ]
+    )
 
     assert divergence is not None
-    assert divergence.common_prefix_chars == 1
-    assert divergence.stable_suffix_chars == 1
+    assert divergence.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.template_misordered
+
+
+def test_the_stable_block_does_not_reach_back_past_the_divergence() -> None:
+    # Only what follows the divergence is measured, so content shared in the
+    # prefix cannot be counted a second time as a block worth moving.
+    shared_prefix = "Rank the rows and explain the ranking.\n" * 200
+    divergence = diagnose_prompt_divergence([f"{shared_prefix}alpha", f"{shared_prefix}beta"])
+
+    assert divergence is not None
+    assert divergence.common_prefix_chars == len(shared_prefix)
+    assert divergence.stable_block_chars == 0

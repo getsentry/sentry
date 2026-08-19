@@ -11,6 +11,7 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from difflib import SequenceMatcher
 from enum import StrEnum
 
 DETECTION_WINDOW_DAYS = 7
@@ -387,6 +388,14 @@ MIN_CACHEABLE_PREFIX_CHARS = MIN_AVG_INPUT_TOKENS * CHARS_PER_TOKEN
 # token either side of the boundary and little else.
 DIVERGENCE_WINDOW_CHARS = 128
 
+# What follows the divergence is compared in pieces rather than characters, so
+# that an identical block still lines up when the variable text ahead of it
+# changes length from one sample to the next. Line breaks put those cuts on
+# content, which is what makes the alignment hold; a prompt carrying none is cut
+# at fixed offsets instead, where a block that shifts is missed rather than
+# misreported.
+STABLE_BLOCK_SEGMENT_CHARS = 256
+
 
 class DivergenceKind(StrEnum):
     """What sits at the point where a call site's sampled prompts stop agreeing."""
@@ -444,11 +453,11 @@ class PromptDivergence:
     are in characters: that is the unit the attribute is measured in, and
     converting to tokens would dress a tokenizer-dependent guess up as a count.
 
-    ``stable_suffix_chars`` is a floor rather than a measurement. EAP truncates
+    ``stable_block_chars`` is a floor rather than a measurement. EAP truncates
     long attribute values, so a sampled prompt is a prefix of the real one --
     which leaves the shared prefix exact, since a divergence found inside the
-    sample is a divergence in the prompt, but makes anything read off the end of
-    the sample best-effort.
+    sample is a divergence in the prompt, but makes anything read from further
+    in best-effort.
 
     No prompt text is carried out: only lengths, and the *kind* of the token the
     prompts part ways at.
@@ -458,7 +467,7 @@ class PromptDivergence:
     common_prefix_chars: int
     shortest_prompt_chars: int
     divergence_kind: DivergenceKind
-    stable_suffix_chars: int
+    stable_block_chars: int
 
     @property
     def prefix_share(self) -> float:
@@ -472,13 +481,13 @@ class PromptDivergence:
         """Whether stable content is sitting behind the variable part.
 
         The shared prefix is all a cache can hold, so a prefix under the
-        provider's minimum cacheable length caches nothing at all -- while
-        identical content of at least that length trailing the divergence is
+        provider's minimum cacheable length caches nothing at all -- while an
+        identical block of at least that length sitting past the divergence is
         content that would have cached, had the template put it first.
         """
         return (
             self.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
-            and self.stable_suffix_chars >= MIN_CACHEABLE_PREFIX_CHARS
+            and self.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
         )
 
 
@@ -490,19 +499,51 @@ def _common_prefix_length(prompts: Sequence[str]) -> int:
     return len(shortest)
 
 
-def _common_suffix_length(prompts: Sequence[str], *, max_length: int) -> int:
-    """Length of the identical tail the prompts share, capped by the caller.
+def _segment(text: str) -> list[str]:
+    """Cut a prompt tail into pieces that can be aligned across samples.
 
-    The cap keeps the tail from reaching back past the divergence point and
-    double-counting the shared prefix.
+    The attribute carries a serialized message list, so a newline inside a
+    message arrives escaped rather than as the character itself; both forms are
+    seams.
     """
-    length = 0
-    while length < max_length:
-        character = prompts[0][-1 - length]
-        if any(prompt[-1 - length] != character for prompt in prompts):
-            break
-        length += 1
-    return length
+    pieces = [piece for piece in re.split(r"(?<=\\n)|(?<=\n)", text) if piece]
+    if len(pieces) > 1:
+        return pieces
+    return [
+        text[offset : offset + STABLE_BLOCK_SEGMENT_CHARS]
+        for offset in range(0, len(text), STABLE_BLOCK_SEGMENT_CHARS)
+    ]
+
+
+def _stable_block_chars(prompts: Sequence[str], *, start: int) -> int:
+    """Size of the largest identical block every sample carries after ``start``.
+
+    Not the shared tail: a prompt ends with whatever varies most, usually the
+    user's own turn, so stable content stranded behind the divergence tends to
+    sit in the middle with variable text on either side of it. All such content
+    has in common is that it follows the divergence, so the largest identical
+    run anywhere past that point is what gets measured.
+
+    Reported conservatively when there are more than two samples: whichever
+    pairing shares least is what is claimed, since a block missing from one
+    sample is not a block the template always emits.
+    """
+    tails = [_segment(prompt[start:]) for prompt in prompts]
+    reference = tails[0]
+    shared: int | None = None
+    for other in tails[1:]:
+        # A stable block is made of repeated lines, which is exactly what the
+        # junk heuristic would discard as too popular to be meaningful.
+        matcher = SequenceMatcher(a=reference, b=other, autojunk=False)
+        largest = max(
+            (
+                sum(len(piece) for piece in reference[block.a : block.a + block.size])
+                for block in matcher.get_matching_blocks()
+            ),
+            default=0,
+        )
+        shared = largest if shared is None else min(shared, largest)
+    return shared or 0
 
 
 def _classify_divergence(prompt: str, divergence_index: int) -> DivergenceKind:
@@ -547,7 +588,7 @@ def diagnose_prompt_divergence(prompts: Sequence[str]) -> PromptDivergence | Non
             common_prefix_chars=common_prefix_chars,
             shortest_prompt_chars=shortest_prompt_chars,
             divergence_kind=DivergenceKind.NONE,
-            stable_suffix_chars=0,
+            stable_block_chars=0,
         )
 
     return PromptDivergence(
@@ -559,7 +600,5 @@ def diagnose_prompt_divergence(prompts: Sequence[str]) -> PromptDivergence | Non
         # token sitting there. Its value varies by definition; its shape is what
         # the template decides, and that is what gets reported.
         divergence_kind=_classify_divergence(usable[0], common_prefix_chars),
-        stable_suffix_chars=_common_suffix_length(
-            usable, max_length=shortest_prompt_chars - common_prefix_chars
-        ),
+        stable_block_chars=_stable_block_chars(usable, start=common_prefix_chars),
     )

@@ -26,7 +26,6 @@ from sentry.tasks import llm_cache_issue_detection
 from sentry.tasks.llm_cache_issue_detection import (
     FINDINGS_PER_PROJECT_LIMIT,
     MAX_PRESENCE_PROBES_PER_PROJECT,
-    MAX_PROMPT_PROBES_PER_PROJECT,
     MAX_WARMTH_PROBES_PER_PROJECT,
     detect_llm_cache_issues_for_project,
     run_llm_cache_issue_detection,
@@ -1055,13 +1054,13 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert evidence["prompt_sample_count"] == 2
         assert evidence["prompt_divergence_kind"] == "iso_timestamp"
         assert evidence["prompt_shortest_chars"] == len(DIVERGING_PROMPTS[0])
-        assert evidence["prompt_stable_suffix_chars"] > evidence["prompt_common_prefix_chars"]
+        assert evidence["prompt_stable_block_chars"] > evidence["prompt_common_prefix_chars"]
         assert evidence["prompt_template_misordered"] is True
 
         rows = {row.name: row.value for row in occurrence.evidence_display}
         assert rows["Prompts first differ at"] == "an ISO-8601 timestamp"
         assert "2 sampled prompts" in rows["Shared prompt prefix"]
-        assert rows["Identical content after it"].endswith("chars")
+        assert rows["Identical block after it"].endswith("chars")
         # The diagnosis is context, never the headline the integrations render.
         assert [row.name for row in occurrence.evidence_display if row.important] == [
             "Cache hit rate"
@@ -1090,15 +1089,15 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             row for row in occurrence.evidence_display if row.name.startswith("Shared prompt")
         ]
 
-    def test_bounds_the_prompt_probes_it_spends(
+    def test_diagnoses_every_finding_it_files(
         self,
         mock_fetch_stats: MagicMock,
         mock_count_cache_attrs: MagicMock,
         mock_fetch_traces: MagicMock,
         mock_produce: MagicMock,
     ) -> None:
-        # The probe is the heaviest query of the run, so it is spent on the most
-        # severe findings and the rest are filed without a diagnosis.
+        # The filing loop is already bounded by the findings cap, so the probe
+        # needs no budget of its own and no finding is filed undiagnosed.
         project = self.create_project()
         mock_fetch_stats.return_value = [
             replace(NOT_CACHING_STATS, agent_label=f"agent-{index}")
@@ -1110,14 +1109,11 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         with self.enabled_features():
             detect_llm_cache_issues_for_project(project.id)
 
-        assert self.mock_fetch_prompts.call_count == MAX_PROMPT_PROBES_PER_PROJECT
+        assert self.mock_fetch_prompts.call_count == FINDINGS_PER_PROJECT_LIMIT
         assert mock_produce.call_count == FINDINGS_PER_PROJECT_LIMIT
-        diagnosed = [
+        assert all(
             "prompt_divergence_kind" in call.kwargs["occurrence"].evidence_data
             for call in mock_produce.call_args_list
-        ]
-        assert diagnosed == [True] * MAX_PROMPT_PROBES_PER_PROJECT + [False] * (
-            FINDINGS_PER_PROJECT_LIMIT - MAX_PROMPT_PROBES_PER_PROJECT
         )
 
     def test_bounds_the_warmth_probes_it_spends(
