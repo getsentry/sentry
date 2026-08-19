@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypedDict
@@ -44,6 +44,81 @@ class WorkflowEvaluationOutcome(StrEnum):
     NOT_TRIGGERED = "not_triggered"
 
 
+@dataclass(frozen=True, kw_only=True)
+class DelayedWorkflowEvaluation:
+    """The second half of a deferred workflow evaluation for one event and group."""
+
+    workflow_id: WorkflowId
+    project_id: int | None
+    group_id: int
+    event_id: str
+    trigger_group_id: DataConditionGroupId | None
+    trigger_group_evaluation: DataConditionGroupEvaluation
+    filter_group_evaluations: Mapping[DataConditionGroupId, DataConditionGroupEvaluation]
+    passing_filter_group_ids: frozenset[DataConditionGroupId]
+    missing_condition_group_ids: frozenset[DataConditionGroupId]
+    triggered_action_ids: tuple[int, ...] = ()
+    evaluation_id: str | None = None
+
+    @property
+    def outcome(self) -> WorkflowEvaluationOutcome:
+        evaluations = [
+            self.trigger_group_evaluation,
+            *self.filter_group_evaluations.values(),
+        ]
+        if self.missing_condition_group_ids or any(
+            evaluation.is_tainted() for evaluation in evaluations
+        ):
+            return WorkflowEvaluationOutcome.ERROR
+        if not self.trigger_group_evaluation.triggered:
+            return WorkflowEvaluationOutcome.NOT_TRIGGERED
+        if self.triggered_action_ids:
+            return WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
+        return WorkflowEvaluationOutcome.NO_ACTIONS
+
+    def to_artifact(self) -> dict[str, object]:
+        evaluations = [
+            self.trigger_group_evaluation,
+            *self.filter_group_evaluations.values(),
+        ]
+        error = next(
+            (evaluation.error.msg for evaluation in evaluations if evaluation.error is not None),
+            None,
+        )
+        if error is None and self.missing_condition_group_ids:
+            error = "DataConditionGroup does not exist"
+
+        trigger_group_evaluation = {
+            **self.trigger_group_evaluation.to_artifact(),
+            "condition_group_id": self.trigger_group_id,
+        }
+        filter_group_evaluations = [
+            {
+                **evaluation.to_artifact(),
+                "condition_group_id": condition_group_id,
+            }
+            for condition_group_id, evaluation in sorted(self.filter_group_evaluations.items())
+        ]
+        return {
+            "workflow_id": self.workflow_id,
+            **({"evaluation_id": self.evaluation_id} if self.evaluation_id else {}),
+            "project_id": self.project_id,
+            "event_id": self.event_id,
+            "group_id": self.group_id,
+            "outcome": self.outcome,
+            "result_type": "actions",
+            "triggered": self.trigger_group_evaluation.triggered,
+            "error": error,
+            "triggered_action_ids": list(self.triggered_action_ids),
+            "deferred": None,
+            "trigger_group_evaluation": trigger_group_evaluation,
+            "filter_group_evaluations": filter_group_evaluations,
+            "passing_filter_group_ids": sorted(self.passing_filter_group_ids),
+            "missing_condition_group_ids": sorted(self.missing_condition_group_ids),
+            "evaluation_source": "delayed",
+        }
+
+
 class WorkflowEvaluationData(TypedDict):
     """
     Track all of the data that went into evaluating a single workflow.
@@ -81,6 +156,7 @@ class WorkflowEvaluation(
     workflow_id: WorkflowId
     detector_id: int
     detector_type: str
+    evaluation_id: str | None = None
 
     @property
     def outcome(self) -> WorkflowEvaluationOutcome:
@@ -118,6 +194,7 @@ class WorkflowEvaluation(
         )
         return {
             "workflow_id": self.workflow_id,
+            **({"evaluation_id": self.evaluation_id} if self.evaluation_id else {}),
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
             "project_id": event_data.event.project_id,

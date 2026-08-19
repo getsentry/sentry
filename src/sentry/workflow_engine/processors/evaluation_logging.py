@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING, cast
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    DelayedWorkflowEvaluation,
+    ProcessWorkflowsResult,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -15,6 +18,7 @@ if TYPE_CHECKING:
 
 DETECTOR_EVALUATION_LOG_PREFIX = "workflow_engine.process_detectors.evaluation"
 WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_workflows.evaluation"
+DELAYED_WORKFLOW_EVALUATION_LOG_PREFIX = "workflow_engine.process_delayed_workflows.evaluation"
 
 
 def _should_emit_evaluation_logs(organization: Organization) -> bool:
@@ -56,6 +60,26 @@ def emit_detector_evaluation_logs(
         logger,
         organization_id=organization.id,
         artifacts=result.evaluation_artifacts(),
+        log_prefix=log_prefix,
+    )
+    return True
+
+
+def emit_delayed_workflow_evaluation_logs(
+    logger: Logger,
+    *,
+    organization: Organization,
+    evaluations: list[DelayedWorkflowEvaluation],
+    log_prefix: str = DELAYED_WORKFLOW_EVALUATION_LOG_PREFIX,
+) -> bool:
+    """Sample a delayed batch and emit one self-contained artifact per event evaluation."""
+    if not evaluations or not _should_emit_evaluation_logs(organization):
+        return False
+
+    _emit_evaluation_artifacts(
+        logger,
+        organization_id=organization.id,
+        artifacts=[evaluation.to_artifact() for evaluation in evaluations],
         log_prefix=log_prefix,
     )
     return True

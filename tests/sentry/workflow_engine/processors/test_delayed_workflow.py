@@ -56,10 +56,12 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
+from sentry.workflow_engine.processors.evaluations import DelayedWorkflowEvaluation
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
+EVALUATION_ID = "00000000-0000-4000-8000-000000000001"
 
 
 class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
@@ -708,7 +710,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             events={
                 EventKey.from_redis_key(
                     f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}:{self.workflow1_if_dcgs[0].id}:{self.workflow1_if_dcgs[1].id}"
-                ): EventInstance(event_id="test-event-1"),
+                ): EventInstance(event_id="test-event-1", evaluation_id=EVALUATION_ID),
                 EventKey.from_redis_key(
                     f"{self.workflow2.id}:{self.group2.id}:{self.workflow2.when_condition_group_id}:{self.workflow2_if_dcgs[0].id}:{self.workflow2_if_dcgs[1].id}"
                 ): EventInstance(event_id="test-event-2"),
@@ -725,6 +727,21 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.condition_group_results,
             self.dcg_to_slow_conditions,
         )
+
+        first_evaluation = eval_result.evaluations[0]
+        assert isinstance(first_evaluation, DelayedWorkflowEvaluation)
+        assert first_evaluation.workflow_id == self.workflow1.id
+        assert first_evaluation.evaluation_id == EVALUATION_ID
+        assert first_evaluation.project_id is None
+        assert first_evaluation.group_id == self.group1.id
+        assert first_evaluation.event_id == "test-event-1"
+        assert first_evaluation.trigger_group_id == self.workflow1.when_condition_group_id
+        assert first_evaluation.trigger_group_evaluation.triggered
+        assert set(first_evaluation.filter_group_evaluations) == {self.workflow1_if_dcgs[0].id}
+        assert first_evaluation.passing_filter_group_ids == frozenset(
+            {self.workflow1_if_dcgs[1].id}
+        )
+        assert first_evaluation.missing_condition_group_ids == frozenset()
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
         assert (
@@ -1146,6 +1163,11 @@ class TestEventKeyAndInstance:
         instance = EventInstance(event_id="test-event")
         assert instance.event_id == "test-event"
         assert instance.occurrence_id is None
+        assert instance.evaluation_id is None
+
+        # New buffered events carry the evaluation ID through delayed processing.
+        instance = EventInstance(event_id="test-event", evaluation_id=EVALUATION_ID)
+        assert instance.evaluation_id == EVALUATION_ID
 
         # Test with occurrence ID
         instance = EventInstance(event_id="test-event", occurrence_id="test-occurrence")

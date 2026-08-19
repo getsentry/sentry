@@ -3,6 +3,7 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
+from uuid import uuid4
 
 import sentry_sdk
 from django.db.models import Q
@@ -473,6 +474,7 @@ def _build_workflow_evaluations(
         workflow_evaluations[workflow.id] = WorkflowEvaluation(
             workflow_id=workflow.id,
             detector_id=detector.id,
+            evaluation_id=delayed_item.evaluation_id if delayed_item else str(uuid4()),
             detector_type=detector.type,
             result=result,
             triggered=trigger_eval.triggered,
