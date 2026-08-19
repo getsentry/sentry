@@ -13,6 +13,11 @@ CURSOR_ORIGIN_JWT_AUDIENCE = "origin-apps"
 # Origin caps app JWTs at ~5 minutes. Stay comfortably inside it.
 JWT_EXPIRY_SECONDS = 240
 
+# Origin's published Ed25519 public keys. Used to verify things Origin signed:
+# the install receipt, and webhook deliveries.
+CURSOR_ORIGIN_JWKS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/keys"
+CURSOR_ORIGIN_JWKS_CACHE_SECONDS = 3600
+
 # Installation tokens expire in under 15 minutes -- far shorter than GitHub's hour.
 # Refresh well ahead of expiry so a long-running request can't straddle the boundary.
 TOKEN_MINIMUM_VALIDITY_SECONDS = 180
