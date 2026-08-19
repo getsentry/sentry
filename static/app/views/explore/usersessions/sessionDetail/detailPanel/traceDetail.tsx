@@ -72,6 +72,10 @@ export function TraceDetail({event}: {event: SessionEvent}) {
   );
 
   const traceSlug = str(event.row.trace);
+  // The row is the trace's segment span, so that is the row the waterfall opens on.
+  // Without it the waterfall falls back to the page's query string, which by then
+  // may carry a `node` left behind by an earlier trace's waterfall.
+  const spanId = str(event.row.id);
 
   if (!traceSlug) {
     return (
@@ -86,7 +90,11 @@ export function TraceDetail({event}: {event: SessionEvent}) {
       initialPreferences={preferences}
       preferencesStorageKey={PREFERENCES_KEY}
     >
-      <SessionTraceWaterfall traceSlug={traceSlug} timestamp={event.timestamp} />
+      <SessionTraceWaterfall
+        traceSlug={traceSlug}
+        timestamp={event.timestamp}
+        spanId={spanId}
+      />
     </TraceStateProvider>
   );
 }
@@ -98,7 +106,10 @@ export function TraceDetail({event}: {event: SessionEvent}) {
 function SessionTraceWaterfall({
   traceSlug,
   timestamp,
+  spanId,
 }: {
+  /** The segment span the row stands for, selected once the tree is built. */
+  spanId: string | undefined;
   /** Epoch ms, as the timeline carries it. */
   timestamp: number | undefined;
   traceSlug: string;
@@ -133,6 +144,7 @@ function SessionTraceWaterfall({
         organization={organization}
         source="trace_view"
         replay={null}
+        scrollToEventId={spanId}
       />
     </Stack>
   );

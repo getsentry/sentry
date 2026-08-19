@@ -59,13 +59,25 @@ function ms(value: unknown): number | undefined {
 }
 
 /**
- * Query params that mean something only to this timeline: the open item, the lane
- * and text filters, the sort. The trace-view link builders carry the whole current
- * query across to their target, so these have to come off first — `item` most of
- * all, since a target that still carries it would arrive with the details panel
- * open over it.
+ * Query params the target has no business inheriting. The trace-view link builders
+ * carry the whole current query across, so these have to come off first.
+ *
+ * Two groups: params that mean something only to this timeline (the open item, the
+ * lane and text filters, the sort) — `item` most of all, since a target that still
+ * carries it would arrive with the details panel open over it — and params the
+ * waterfall embedded in that panel writes back as the reader clicks around it
+ * (`node`, `eventId`, `fov`), which address a span in whichever trace was open at
+ * the time and so mean nothing to the next one.
  */
-const SESSION_ONLY_PARAMS = ['item', 'query', 'sort', 'telemetryType'] as const;
+const SESSION_ONLY_PARAMS = [
+  'item',
+  'query',
+  'sort',
+  'telemetryType',
+  'node',
+  'eventId',
+  'fov',
+] as const;
 
 function withoutSessionParams(location: Location): Location {
   const query = {...location.query};
