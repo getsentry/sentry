@@ -18,13 +18,18 @@ class CursorOriginRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def _parser(self, event_type: str | None = None, installation_id: str | None = None):
-        headers = {}
+    def _parser(
+        self, event_type: str | None = None, installation_id: str | None = None
+    ) -> CursorOriginRequestParser:
+        # `headers=` with real header names rather than **HTTP_-prefixed environ:
+        # splatting into post() makes mypy match the dict against data/
+        # content_type/secure, and it reads closer to the actual delivery.
+        headers: dict[str, str] = {}
         if event_type:
-            headers["HTTP_WEBHOOK_EVENT_TYPE"] = event_type
+            headers["webhook-event-type"] = event_type
         if installation_id:
-            headers["HTTP_WEBHOOK_INSTALLATION_ID"] = installation_id
-        request = self.factory.post(WEBHOOK_PATH, **headers)
+            headers["webhook-installation-id"] = installation_id
+        request = self.factory.post(WEBHOOK_PATH, headers=headers)
         return CursorOriginRequestParser(request=request, response_handler=self.get_response)
 
     @responses.activate
