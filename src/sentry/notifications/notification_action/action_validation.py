@@ -244,12 +244,29 @@ class SentryAppActionValidatorHandler:
 
     def clean_data(self) -> dict[str, Any]:
         target_identifier = self.validated_data["config"]["target_identifier"]
-        installations = app_service.get_many(
-            filter=dict(app_ids=[int(target_identifier)], organization_id=self.organization.id)
-        )
+        # Clients may send either the sentry app id (canonical) or an installation
+        # uuid (legacy issue-alert / miswired UI payloads). Accept both and
+        # normalize config.target_identifier to the app id.
+        installations = []
+        try:
+            app_id = int(target_identifier)
+        except (TypeError, ValueError):
+            app_id = None
+
+        if app_id is not None:
+            installations = app_service.get_many(
+                filter=dict(app_ids=[app_id], organization_id=self.organization.id)
+            )
+        elif isinstance(target_identifier, str) and target_identifier:
+            installations = app_service.get_many(
+                filter=dict(uuids=[target_identifier], organization_id=self.organization.id)
+            )
+
         installation = installations[0] if len(installations) else None
         if not installation:
             raise ValidationError("Sentry app installation not found.")
+
+        self.validated_data["config"]["target_identifier"] = str(installation.sentry_app.id)
 
         settings = self.validated_data["data"].get("settings", [])
         action = {
