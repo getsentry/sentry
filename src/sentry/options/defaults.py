@@ -684,7 +684,7 @@ register(
 # Cursor Origin Integration
 register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("cursor-origin-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("cursor-origin-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("cursor-origin-app.webhook-secret", flags=FLAG_CREDENTIAL)
 
 # GitHub Console SDK App (separate app for repository invitations)

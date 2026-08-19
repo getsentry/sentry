@@ -19,6 +19,10 @@ def _load_private_key(private_key: str) -> Ed25519PrivateKey:
     Unlike GitHub's RS256 keys, PyJWT will not accept the PEM string directly for
     EdDSA -- it needs a key object -- so the load step is mandatory here.
     """
+    if not private_key:
+        # Unset in this environment. Say so, rather than failing inside
+        # cryptography on an empty buffer or on None.encode().
+        raise ValueError("cursor-origin-app.private-key is not configured")
     key = serialization.load_pem_private_key(private_key.encode("utf-8"), password=None)
     if not isinstance(key, Ed25519PrivateKey):
         raise ValueError(f"cursor-origin-app.private-key is not Ed25519: {type(key).__name__}")
