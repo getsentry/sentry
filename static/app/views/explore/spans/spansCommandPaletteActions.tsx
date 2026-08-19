@@ -1319,10 +1319,16 @@ function QueryClauseActionsEditor() {
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
   );
-  const [draftGroupByState, setDraftGroupByState] = useState(() => ({
-    groupBys: [...groupBys],
-    pendingRows: groupBys.length === 0 ? 1 : 0,
-  }));
+  const [draftGroupByState, setDraftGroupByState] = useState(() => {
+    const definedGroupBys = groupBys.filter(Boolean);
+    return {
+      groupBys: definedGroupBys,
+      pendingRows: Math.max(
+        groupBys.length - definedGroupBys.length,
+        definedGroupBys.length === 0 ? 1 : 0
+      ),
+    };
+  });
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
   ]);
@@ -1344,6 +1350,18 @@ function QueryClauseActionsEditor() {
   }, []);
   const addGroupBy = useCallback((groupBy: string) => {
     setDraftGroupByState(current => addGroupByToDraftState(current, groupBy));
+  }, []);
+  const addPendingGroupByRow = useCallback(() => {
+    setDraftGroupByState(current => ({
+      ...current,
+      pendingRows: current.pendingRows + 1,
+    }));
+  }, []);
+  const addPendingFilterRow = useCallback(() => {
+    setDraftFilters(current => ({
+      ...current,
+      pendingRows: current.pendingRows + 1,
+    }));
   }, []);
   const replaceGroupBy = (index: number, groupBy: string) => {
     setDraftGroupByState(current => {
@@ -1517,7 +1535,6 @@ function QueryClauseActionsEditor() {
           </Fragment>
         )}
         <CMDKAction
-          id={ADD_GROUP_BY_ACTION_ID}
           actionContext="group-by"
           actionPanel={{
             context: 'group-by',
@@ -1527,15 +1544,37 @@ function QueryClauseActionsEditor() {
           }}
           display={{label: t('Add Group By')}}
           keywords={['add', 'group', 'by', 'attribute']}
+          onAction={addPendingGroupByRow}
+        />
+        <CMDKAction
+          id={ADD_GROUP_BY_ACTION_ID}
+          actionPanel={{
+            context: 'group-by-picker',
+            label: t('Choose Group By Attribute'),
+            only: true,
+          }}
+          display={{label: t('Choose Group By Attribute')}}
           prompt={t('Search for attribute')}
         >
           <GroupByActions groupBys={draftGroupBys} onSelect={addGroupBy} />
         </CMDKAction>
-        <SpansFilterActions
-          addSearchFilter={addSearchFilter}
+        <CMDKAction
+          actionContext="filter"
           actionPanel={{
             context: 'filter',
             label: t('Add Filter By'),
+            only: true,
+            order: MORE_ACTIONS_ORDER.addFilter,
+          }}
+          display={{label: t('Add Filter By')}}
+          keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
+          onAction={addPendingFilterRow}
+        />
+        <SpansFilterActions
+          addSearchFilter={addSearchFilter}
+          actionPanel={{
+            context: 'filter-picker',
+            label: t('Choose Filter Attribute'),
             only: true,
             order: MORE_ACTIONS_ORDER.addFilter,
           }}

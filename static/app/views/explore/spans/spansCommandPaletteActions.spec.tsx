@@ -105,6 +105,42 @@ function ProjectSelectionPalette() {
   );
 }
 
+describe('equation draft selection', () => {
+  it('restores keyboard navigation after adding an equation and returning', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Equation'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Return to previous action'})
+    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'Chart');
+    await userEvent.click(await screen.findByRole('option', {name: 'Chart B'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Edit Equation'}));
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Edit Equation'}), '#1');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Return to previous action'})
+    );
+
+    const searchInput = screen.getByRole('textbox', {name: 'Search commands'});
+    await waitFor(() => expect(searchInput).toHaveFocus());
+    await userEvent.keyboard('{ArrowDown}');
+    expect(searchInput).toHaveFocus();
+  });
+});
+
 describe('project scope selection', () => {
   const projects = [
     ProjectFixture({id: '1', isMember: true, hasAccess: true}),
@@ -429,6 +465,72 @@ describe('environment scope selection', () => {
 });
 
 describe('group by draft selection', () => {
+  it('adds blank group by and filter rows without opening attribute pickers', async () => {
+    // React Aria's virtual focus schedules a passive update after the keyboard action.
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    const searchInput = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(searchInput, 'Group By');
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Add Group By',
+      })
+    );
+
+    expect(await screen.findAllByRole('option', {name: 'Group By'})).toHaveLength(2);
+    expect(screen.queryByPlaceholderText('Search for attribute')).not.toBeInTheDocument();
+
+    await userEvent.type(searchInput, 'Filter By');
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Add Filter By',
+      })
+    );
+
+    expect(await screen.findAllByRole('option', {name: 'Filter By'})).toHaveLength(2);
+    expect(screen.queryByPlaceholderText('Search for attribute')).not.toBeInTheDocument();
+  });
+
+  it('adds only the selected group by when returning to the query', async () => {
+    // React Aria's virtual focus schedules a passive update after the keyboard action.
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Group By'}));
+    const attributeInput = screen.getByPlaceholderText('Search for attribute');
+    await userEvent.type(attributeInput, 'span.op');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    const groupByRows = await screen.findAllByRole('option', {name: 'Group By'});
+    expect(groupByRows).toHaveLength(1);
+    expect(within(groupByRows[0]!).getByText('span.op')).toBeInTheDocument();
+  });
+
   it('replaces the pending row without adding a duplicate group by', () => {
     const selected = addGroupByToDraftState(
       {groupBys: [], pendingRows: 1},
@@ -437,6 +539,50 @@ describe('group by draft selection', () => {
 
     expect(selected).toEqual({groupBys: ['environment'], pendingRows: 0});
     expect(addGroupByToDraftState(selected, 'environment')).toBe(selected);
+  });
+});
+
+describe('filter draft selection', () => {
+  it('keeps a selected filter in the palette and out of the URL until apply', async () => {
+    // React Aria's virtual focus schedules a passive update after the keyboard action.
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      body: [{value: 'http.server'}],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', statsPeriod: '24h'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
+    await userEvent.type(screen.getByPlaceholderText('Search for attribute'), 'span.op');
+    await userEvent.click(await screen.findByRole('option', {name: 'span.op'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'is'}));
+    expect(await screen.findByRole('option', {name: 'http.server'})).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toBeInTheDocument();
+    expect(await screen.findByText('span.op:http.server')).toBeInTheDocument();
+    expect(router.location.query.query).toBeUndefined();
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
+    await waitFor(() => expect(router.location.query.query).toBe('span.op:http.server'));
   });
 });
 

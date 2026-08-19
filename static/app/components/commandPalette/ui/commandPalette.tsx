@@ -342,7 +342,7 @@ export function CommandPalette({
     disabledKeys,
   });
   const retainedFocusRef = useRef<{
-    anchorKey: string;
+    anchorKey: string | null;
     focusKey: string | number;
   } | null>(null);
   const hasUserNavigatedResultsRef = useRef(false);
@@ -443,6 +443,22 @@ export function CommandPalette({
     }
   }, [treeState.selectionManager]);
 
+  const popAction = useCallback(() => {
+    if (state.action === null) {
+      return;
+    }
+
+    const returnFocusKey = state.action.value.returnFocusKey;
+    retainedFocusRef.current =
+      returnFocusKey === undefined
+        ? null
+        : {
+            anchorKey: state.action.previous?.value.key ?? null,
+            focusKey: returnFocusKey,
+          };
+    dispatch({type: 'pop action'});
+  }, [dispatch, state.action]);
+
   const currentActionKey = state.action?.value.key ?? null;
   const listActionKey = currentTextInput
     ? (state.action?.previous?.value.key ?? null)
@@ -453,11 +469,12 @@ export function CommandPalette({
       return;
     }
     previousActionKeyRef.current = currentActionKey;
+    state.input.current?.focus();
     if (retainedFocusRef.current !== null) {
       return;
     }
     resetResultsNavigation();
-  }, [currentActionKey, resetResultsNavigation]);
+  }, [currentActionKey, resetResultsNavigation, state.input]);
 
   useLayoutEffect(() => {
     const retainedFocus = retainedFocusRef.current;
@@ -468,7 +485,13 @@ export function CommandPalette({
     hasUserNavigatedResultsRef.current = true;
 
     if (treeState.collection.getItem(retainedFocus.focusKey) === null) {
-      resetResultsNavigation();
+      if (firstFocusableKey === null) {
+        resetResultsNavigation();
+        return;
+      }
+      mouseLeftResultsRef.current = false;
+      treeState.selectionManager.setFocused(true);
+      treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
       return;
     }
 
@@ -477,6 +500,7 @@ export function CommandPalette({
     treeState.selectionManager.setFocusedKey(retainedFocus.focusKey);
   }, [
     currentActionKey,
+    firstFocusableKey,
     resetResultsNavigation,
     treeState.collection,
     treeState.selectionManager,
@@ -532,7 +556,7 @@ export function CommandPalette({
       if (e.key === 'Enter' && currentTextInput) {
         e.preventDefault();
         currentTextInput.onSubmit(state.query);
-        startTransition(() => dispatch({type: 'pop action'}));
+        startTransition(popAction);
         return;
       }
 
@@ -589,7 +613,7 @@ export function CommandPalette({
       if (e.key === 'Backspace' && state.query.length === 0) {
         if (state.action) {
           animatePop();
-          dispatch({type: 'pop action'});
+          popAction();
           e.preventDefault();
           return;
         }
@@ -606,7 +630,7 @@ export function CommandPalette({
         }
         if (state.action) {
           animatePop();
-          dispatch({type: 'pop action'});
+          popAction();
           e.preventDefault();
           e.stopPropagation();
           return;
@@ -946,7 +970,7 @@ export function CommandPalette({
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
                               animatePop();
-                              dispatch({type: 'pop action'});
+                              popAction();
                               state.input.current?.focus();
                             }}
                             aria-label={t('Return to previous action')}

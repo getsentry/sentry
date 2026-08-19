@@ -352,6 +352,7 @@ function TraceItemFilterActionsComponent({
 
   return (
     <CMDKAction
+      deferChildren
       id={id}
       actionPanel={actionPanel}
       actionContext="filter"
