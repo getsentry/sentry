@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload snapshots
         id: upload
-        if: ${{ !cancelled() && hashFiles('.artifacts/snapshots/**') != '' }}
+        if: ${{ success() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
