@@ -16,12 +16,13 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Image} from '@sentry/scraps/image';
-import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -397,19 +398,13 @@ function SuggestedProjectRows({
   const {isLoadingModal, openProjectModal} = useProjectAddRepoModal();
 
   const suggestions = suggestionsEnabled ? (result.data ?? []) : [];
-  const stoppingPointLabel =
-    PROJECT_STOPPING_POINT_OPTIONS.find(option => option.value === stoppingPoint)
-      ?.label ?? t('Not configured');
 
   async function enableAutofix(
     suggestion: SeerProjectSuggestionResponse,
     project: Project,
-    agentOption: AutofixAgentSelectOption
+    agentOption: AutofixAgentSelectOption,
+    selectedStoppingPoint: UserFacingStoppingPoint
   ) {
-    if (stoppingPoint === undefined) {
-      return;
-    }
-
     const variables: AutofixProjectMutationVariables = {
       project,
       repoEntries: suggestion.linkedRepositories.map(repository => ({
@@ -417,7 +412,7 @@ function SuggestedProjectRows({
         branch: '',
       })),
       agentOption,
-      stoppingPoint,
+      stoppingPoint: selectedStoppingPoint,
     };
 
     try {
@@ -486,22 +481,11 @@ function SuggestedProjectRows({
 
       {showGroup ? (
         <Fragment>
-          <Flex
-            align="center"
-            gap="xs"
-            padding="sm xl"
-            background="secondary"
-            borderBottom="muted"
-          >
-            <Text size="sm" variant="muted" bold>
-              {t('Suggested')}
-            </Text>
-            <InfoTip
-              title={t(
-                'These projects have trusted repository links and are not yet configured for Autofix. Enable Autofix applies the defaults shown in the row.'
-              )}
-            />
-          </Flex>
+          <Alert variant="info" system>
+            {t(
+              'These projects have trusted repository links and are not yet configured for Autofix.'
+            )}
+          </Alert>
 
           {result.isError ? (
             <Flex
@@ -532,100 +516,35 @@ function SuggestedProjectRows({
           ) : (
             suggestions.map(suggestion => {
               const project = projectsById.get(suggestion.projectId);
-              const hasOnlyGithubRepositories =
-                suggestion.linkedRepositories.length > 0 &&
-                suggestion.linkedRepositories.every(repository =>
-                  isGitHubProvider(repository.provider)
-                );
-              const effectiveAgent = hasOnlyGithubRepositories ? defaultAgent : 'seer';
-              const agentLabel = defaultAgentQuery.isPending
-                ? t('Loading')
-                : (agentSelectOptions.find(option => option.value === effectiveAgent)
-                    ?.label ?? t('Seer'));
-              const shouldConfigure =
-                suggestion.linkedReposCount > 10 || stoppingPoint === undefined;
-              const isCurrentMutation =
-                saveMutation.isPending &&
-                saveMutation.variables?.project.id === project?.id;
-
               return (
-                <Grid
+                <SuggestedProjectRow
                   key={suggestion.projectId}
-                  columns={TABLE_COLUMNS}
-                  align="center"
-                  role="row"
-                  background="secondary"
-                  borderBottom="muted"
-                >
-                  <InfiniteTable.RowCell>
-                    {/* Sized to the sm checkbox box so this row's max-content
-                        first column matches the checkbox rows. */}
-                    <Container width="16px" />
-                  </InfiniteTable.RowCell>
-                  <InfiniteTable.RowCell>
-                    <ProjectBadge
-                      disableLink
-                      project={project ?? {slug: suggestion.projectSlug}}
-                      avatarSize={16}
-                    />
-                  </InfiniteTable.RowCell>
-                  <InfiniteTable.RowCell justify="end">
-                    <InfoText
-                      tabular
-                      title={
-                        suggestion.linkedRepositories.length > 0
-                          ? suggestion.linkedRepositories
-                              .map(repository => repository.name)
-                              .join(', ')
-                          : t('Repository details unavailable')
-                      }
-                    >
-                      {suggestion.linkedReposCount}
-                    </InfoText>
-                  </InfiniteTable.RowCell>
-                  <InfiniteTable.RowCell>
-                    <Text size="sm" variant="muted">
-                      {agentLabel}
-                    </Text>
-                  </InfiniteTable.RowCell>
-                  <InfiniteTable.RowCell justify="between" gap="md">
-                    <Text size="sm" variant="muted" ellipsis>
-                      {stoppingPointLabel}
-                    </Text>
-                    {project ? (
-                      shouldConfigure ? (
-                        <Button
-                          size="xs"
-                          busy={isLoadingModal}
-                          disabled={saveMutation.isPending || isLoadingModal}
-                          onClick={() => void openProjectModal(project)}
-                        >
-                          {t('Configure')}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="primary"
-                          size="xs"
-                          busy={isCurrentMutation}
-                          disabled={
-                            saveMutation.isPending ||
-                            defaultAgentQuery.isPending ||
-                            isLoadingModal
-                          }
-                          onClick={() =>
-                            void enableAutofix(suggestion, project, effectiveAgent)
-                          }
-                        >
-                          {t('Enable Autofix')}
-                        </Button>
-                      )
-                    ) : (
-                      <Button size="xs" disabled>
-                        {t('Unavailable')}
-                      </Button>
-                    )}
-                  </InfiniteTable.RowCell>
-                </Grid>
+                  suggestion={suggestion}
+                  project={project}
+                  agentSelectOptions={agentSelectOptions}
+                  defaultAgent={defaultAgent}
+                  defaultAgentPending={defaultAgentQuery.isPending}
+                  defaultStoppingPoint={stoppingPoint}
+                  disabled={saveMutation.isPending || isLoadingModal}
+                  isCurrentMutation={
+                    saveMutation.isPending &&
+                    saveMutation.variables?.project.id === project?.id
+                  }
+                  isLoadingModal={isLoadingModal}
+                  onConfigure={configureProject =>
+                    void openProjectModal(configureProject)
+                  }
+                  onEnable={(agentOption, selectedStoppingPoint) =>
+                    project
+                      ? void enableAutofix(
+                          suggestion,
+                          project,
+                          agentOption,
+                          selectedStoppingPoint
+                        )
+                      : undefined
+                  }
+                />
               );
             })
           )}
@@ -646,6 +565,160 @@ function SuggestedProjectRows({
         </Fragment>
       ) : null}
     </Fragment>
+  );
+}
+
+interface SuggestedProjectRowProps {
+  agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
+  defaultAgent: AutofixAgentSelectOption;
+  defaultAgentPending: boolean;
+  defaultStoppingPoint: UserFacingStoppingPoint | undefined;
+  disabled: boolean;
+  isCurrentMutation: boolean;
+  isLoadingModal: boolean;
+  onConfigure: (project: Project) => void;
+  onEnable: (
+    agentOption: AutofixAgentSelectOption,
+    stoppingPoint: UserFacingStoppingPoint
+  ) => void;
+  project: Project | undefined;
+  suggestion: SeerProjectSuggestionResponse;
+}
+
+function SuggestedProjectRow({
+  agentSelectOptions,
+  defaultAgent,
+  defaultAgentPending,
+  defaultStoppingPoint,
+  disabled,
+  isCurrentMutation,
+  isLoadingModal,
+  onConfigure,
+  onEnable,
+  project,
+  suggestion,
+}: SuggestedProjectRowProps) {
+  // The selects hold row-local choices that are only persisted by the Enable
+  // Autofix click, unlike the autosaving selects in the configured rows.
+  const [agentOverride, setAgentOverride] = useState<AutofixAgentSelectOption | null>(
+    null
+  );
+  const [stoppingPointOverride, setStoppingPointOverride] =
+    useState<UserFacingStoppingPoint | null>(null);
+
+  const hasOnlyGithubRepositories =
+    suggestion.linkedRepositories.length > 0 &&
+    suggestion.linkedRepositories.every(repository =>
+      isGitHubProvider(repository.provider)
+    );
+  const selectedAgent = hasOnlyGithubRepositories
+    ? (agentOverride ?? defaultAgent)
+    : 'seer';
+  const selectedStoppingPoint = stoppingPointOverride ?? defaultStoppingPoint;
+  const shouldConfigure = suggestion.linkedReposCount > 10;
+
+  return (
+    <Grid
+      columns={TABLE_COLUMNS}
+      align="center"
+      role="row"
+      background="secondary"
+      borderBottom="muted"
+    >
+      <InfiniteTable.RowCell>
+        {/* Sized to the sm checkbox box so this row's max-content first
+            column matches the checkbox rows. */}
+        <Container width="16px" />
+      </InfiniteTable.RowCell>
+      <InfiniteTable.RowCell>
+        <ProjectBadge
+          disableLink
+          project={project ?? {slug: suggestion.projectSlug}}
+          avatarSize={16}
+        />
+      </InfiniteTable.RowCell>
+      <InfiniteTable.RowCell justify="end">
+        <InfoText
+          tabular
+          title={
+            suggestion.linkedRepositories.length > 0
+              ? suggestion.linkedRepositories
+                  .map(repository => repository.name)
+                  .join(', ')
+              : t('Repository details unavailable')
+          }
+        >
+          {suggestion.linkedReposCount}
+        </InfoText>
+      </InfiniteTable.RowCell>
+      <InfiniteTable.RowCell overflow="visible">
+        <Stack align="stretch" flex="1">
+          <Select
+            size="xs"
+            menuPortalTarget={document.body}
+            searchable={false}
+            clearable={false}
+            disabled={
+              disabled ||
+              shouldConfigure ||
+              defaultAgentPending ||
+              !hasOnlyGithubRepositories
+            }
+            options={agentSelectOptions}
+            value={selectedAgent}
+            onChange={(option: {value: AutofixAgentSelectOption}) =>
+              setAgentOverride(option.value)
+            }
+          />
+        </Stack>
+      </InfiniteTable.RowCell>
+      <InfiniteTable.RowCell gap="md" overflow="visible">
+        <Stack align="stretch" flex="1">
+          <Select
+            size="xs"
+            menuPortalTarget={document.body}
+            searchable={false}
+            clearable={false}
+            disabled={disabled || shouldConfigure}
+            options={PROJECT_STOPPING_POINT_OPTIONS}
+            value={selectedStoppingPoint ?? null}
+            onChange={(option: {value: UserFacingStoppingPoint}) =>
+              setStoppingPointOverride(option.value)
+            }
+          />
+        </Stack>
+        {project ? (
+          shouldConfigure ? (
+            <Button
+              size="xs"
+              busy={isLoadingModal}
+              disabled={disabled}
+              onClick={() => onConfigure(project)}
+            >
+              {t('Configure')}
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="xs"
+              busy={isCurrentMutation}
+              disabled={disabled || defaultAgentPending || !selectedStoppingPoint}
+              onClick={() =>
+                selectedStoppingPoint
+                  ? onEnable(selectedAgent, selectedStoppingPoint)
+                  : undefined
+              }
+            >
+              {t('Enable Autofix')}
+            </Button>
+          )
+        ) : (
+          <Button size="xs" disabled>
+            {t('Unavailable')}
+          </Button>
+        )}
+      </InfiniteTable.RowCell>
+    </Grid>
   );
 }
 

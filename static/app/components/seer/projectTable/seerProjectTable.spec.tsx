@@ -18,6 +18,9 @@ import type {Organization} from 'sentry/types/organization';
 
 const mockOpenModal = jest.fn();
 
+const SUGGESTED_GROUP_TEXT =
+  'These projects have trusted repository links and are not yet configured for Autofix.';
+
 jest.mock('@sentry/scraps/modal', () => ({
   ...jest.requireActual('@sentry/scraps/modal'),
   useModal: () => ({openModal: mockOpenModal}),
@@ -334,7 +337,7 @@ describe('SeerProjectTable', () => {
 
         await screen.findByText(project.slug);
         expect(suggestionsRequest).not.toHaveBeenCalled();
-        expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
+        expect(screen.queryByText(SUGGESTED_GROUP_TEXT)).not.toBeInTheDocument();
       }
     );
 
@@ -347,11 +350,11 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(await screen.findByText('Suggested')).toBeInTheDocument();
+      expect(await screen.findByText(SUGGESTED_GROUP_TEXT)).toBeInTheDocument();
       const suggestionRow = (
         await screen.findByText(suggestedProject.slug)
       ).closest<HTMLElement>('[role="row"]')!;
-      // The effective agent and stopping point defaults, as plain text.
+      // The row selects come preselected with the effective defaults.
       expect(await within(suggestionRow).findByText('Seer')).toBeInTheDocument();
       expect(
         within(suggestionRow).getByText('Stop after Root Cause')
@@ -518,23 +521,10 @@ describe('SeerProjectTable', () => {
       expect(await screen.findByRole('button', {name: 'Enable Autofix'})).toBeDisabled();
     });
 
-    it.each<[string, () => void]>([
-      [
-        'the stopping point default is missing',
-        () =>
-          setupSuggestionTable({
-            organizationOverrides: {defaultAutomatedRunStoppingPoint: undefined},
-          }),
-      ],
-      [
-        'the full repository count is greater than 10',
-        () =>
-          setupSuggestionTable({
-            suggestions: [makeSuggestion({linkedReposCount: 11})],
-          }),
-      ],
-    ])('opens Configure when %s', async (_label, setup) => {
-      setup();
+    it('opens Configure when the full repository count is greater than 10', async () => {
+      setupSuggestionTable({
+        suggestions: [makeSuggestion({linkedReposCount: 11})],
+      });
       const repositoriesPut = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
         method: 'PUT',
@@ -552,6 +542,82 @@ describe('SeerProjectTable', () => {
       const modalElement = mockOpenModal.mock.calls[0]![0]({});
       expect(modalElement.props.defaultProject).toBe(suggestedProject);
       expect(repositoriesPut).not.toHaveBeenCalled();
+    });
+
+    it('sends the row-selected agent and stopping point instead of the defaults', async () => {
+      setupSuggestionTable();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: {},
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderTable();
+
+      const suggestionRow = (
+        await screen.findByText(suggestedProject.slug)
+      ).closest<HTMLElement>('[role="row"]')!;
+      await userEvent.click(await within(suggestionRow).findByText('Seer'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      );
+      await userEvent.click(within(suggestionRow).getByText('Stop after Root Cause'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Stop after Plan'})
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Enable Autofix'}));
+
+      await waitFor(() => expect(settingsPut).toHaveBeenCalled());
+      expect(settingsPut).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            agent: 'cursor_background_agent',
+            integrationId: '123',
+            stoppingPoint: 'code_changes',
+          }),
+        })
+      );
+    });
+
+    it('requires a stopping point choice when the org default is missing', async () => {
+      setupSuggestionTable({
+        organizationOverrides: {defaultAutomatedRunStoppingPoint: undefined},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/repos/`,
+        method: 'PUT',
+        body: {},
+      });
+      const settingsPut = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${suggestedProject.slug}/seer/settings/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderTable();
+
+      const enableButton = await screen.findByRole('button', {name: 'Enable Autofix'});
+      expect(enableButton).toBeDisabled();
+
+      const suggestionRow = screen
+        .getByText(suggestedProject.slug)
+        .closest<HTMLElement>('[role="row"]')!;
+      await userEvent.click(within(suggestionRow).getByText('Select...'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Stop after Root Cause'})
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Enable Autofix'}));
+
+      await waitFor(() => expect(settingsPut).toHaveBeenCalled());
+      expect(settingsPut.mock.calls[0]![1].data.stoppingPoint).toBe('root_cause');
     });
 
     it('disables the action when the full project object is unavailable', async () => {
@@ -655,7 +721,7 @@ describe('SeerProjectTable', () => {
 
       renderTable();
 
-      expect(await screen.findByText('Suggested')).toBeInTheDocument();
+      expect(await screen.findByText(SUGGESTED_GROUP_TEXT)).toBeInTheDocument();
       expect(await screen.findByText(suggestedProject.slug)).toBeInTheDocument();
       expect(
         screen.queryByRole('heading', {name: 'Enable Autofix on a Project'})
@@ -674,7 +740,7 @@ describe('SeerProjectTable', () => {
       expect(
         await screen.findByRole('heading', {name: 'Enable Autofix on a Project'})
       ).toBeInTheDocument();
-      expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
+      expect(screen.queryByText(SUGGESTED_GROUP_TEXT)).not.toBeInTheDocument();
     });
 
     it('keeps the configured table usable when the suggestion query fails', async () => {
