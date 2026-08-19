@@ -48,6 +48,12 @@ class IssuePayload(TypedDict):
     project: IssueProjectPayload
 
 
+class ProjectConfigPayload(TypedDict):
+    id: str
+    slug: str
+    hasReposConnected: bool
+
+
 class CodeChangeFilePayload(TypedDict):
     repoName: str
     patch: FilePatch
@@ -78,3 +84,4 @@ class RunPayload(TypedDict):
 class OverviewResponse(TypedDict):
     runsByMilestone: dict[str, list[RunPayload]]
     truncatedMilestones: list[str]
+    projectConfig: NotRequired[list[ProjectConfigPayload]]
