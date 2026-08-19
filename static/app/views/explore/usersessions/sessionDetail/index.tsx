@@ -27,6 +27,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useSessionItemDrawer} from './detailPanel/useSessionItemDrawer';
 import {SessionHealthText} from './sessionHealth';
 import {SessionRail} from './sessionRail';
+import {SessionReplay} from './sessionReplay';
 import {SessionScrubber} from './sessionScrubber';
 import {SessionVitalsRow} from './sessionVitals';
 import {TimelineFilters} from './timelineFilters';
@@ -240,6 +241,8 @@ export default function SessionDetailView() {
                   onSelect={selection.toggleItem}
                 />
               </Panel>
+
+              <SessionReplay sessionId={sessionId} />
             </Stack>
           </ViewportConstrainedPage>
         </AnalyticsArea>
