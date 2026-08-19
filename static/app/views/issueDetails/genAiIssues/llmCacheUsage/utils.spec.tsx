@@ -80,33 +80,6 @@ describe('getLlmCacheEvidenceData', () => {
     expect(buildCallSiteQuery(parsed)).toBeNull();
   });
 
-  it('falls back to bare trace ids from older occurrences', () => {
-    // Occurrences produced before the detector emitted per-call detail still
-    // have to render something linkable.
-    const parsed = getLlmCacheEvidenceData({
-      sampleTraceIds: ['a'.repeat(32), 'b'.repeat(32)],
-    });
-
-    expect(parsed.sampleCalls).toEqual([
-      {
-        traceId: 'a'.repeat(32),
-        spanId: null,
-        timestamp: null,
-        inputTokens: null,
-        cacheReadTokens: null,
-        cacheCreationTokens: null,
-      },
-      {
-        traceId: 'b'.repeat(32),
-        spanId: null,
-        timestamp: null,
-        inputTokens: null,
-        cacheReadTokens: null,
-        cacheCreationTokens: null,
-      },
-    ]);
-  });
-
   it('drops a partial contrast anchor rather than rendering half a comparison', () => {
     const parsed = getLlmCacheEvidenceData({
       contrastModel: 'claude-sonnet-4',

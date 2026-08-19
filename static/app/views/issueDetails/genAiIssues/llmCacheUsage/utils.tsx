@@ -89,7 +89,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[] {
+function getSampleCalls(value: unknown): LlmCacheSampleCall[] {
   if (Array.isArray(value)) {
     const samples: unknown[] = value;
     return samples.flatMap(entry => {
@@ -108,27 +108,6 @@ function getSampleCalls(value: unknown, traceIds: unknown): LlmCacheSampleCall[]
           cacheCreationTokens: getNumberValue(sample.cacheCreationTokens),
         },
       ];
-    });
-  }
-
-  // Occurrences produced before the detector emitted the richer samples carry
-  // bare trace ids; they still link somewhere useful.
-  if (Array.isArray(traceIds)) {
-    const ids: unknown[] = traceIds;
-    return ids.flatMap(entry => {
-      const traceId = getStringValue(entry);
-      return traceId === null
-        ? []
-        : [
-            {
-              traceId,
-              spanId: null,
-              timestamp: null,
-              inputTokens: null,
-              cacheReadTokens: null,
-              cacheCreationTokens: null,
-            },
-          ];
     });
   }
 
@@ -182,7 +161,7 @@ export function getLlmCacheEvidenceData(
     windowDays: getNumberValue(data.windowDays),
     windowStart: getTimestampValue(data.windowStart),
     windowEnd: getTimestampValue(data.windowEnd),
-    sampleCalls: getSampleCalls(data.sampleTraces, data.sampleTraceIds),
+    sampleCalls: getSampleCalls(data.sampleTraces),
     anchor: getAnchor(data),
   };
 }
