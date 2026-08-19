@@ -87,6 +87,7 @@ export function OTPInput<const Format extends string>({
       maxLength={length}
       onChange={newValue => setValue(normalizeValue(newValue))}
       onComplete={(newValue: string) => onComplete(normalizeValue(newValue))}
+      pasteTransformer={pastedValue => pastedValue.replaceAll('-', '')}
       pattern={isAlphanumeric ? REGEXP_ONLY_DIGITS_AND_CHARS : REGEXP_ONLY_DIGITS}
       render={({slots}) => (
         <Flex align="center" aria-hidden gap="xs" paddingRight="md">
