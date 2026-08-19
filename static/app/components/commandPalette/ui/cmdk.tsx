@@ -331,7 +331,7 @@ export function CMDKAction<TData = unknown>({
           ? query
           : matchingNavAction.value.query
         : '';
-  const resolvedChildren = deferChildren && state !== 'selected' ? null : children;
+  const shouldRenderChildren = deferChildren !== true || state === 'selected';
 
   const enclosingAction = useMemo(
     () => ({key, label: display.label, parentKey, prompt}),
@@ -351,7 +351,7 @@ export function CMDKAction<TData = unknown>({
       return (
         <CMDKCollection.Context.Provider value={key}>
           <CMDKEnclosingActionProvider value={enclosingAction}>
-            {typeof resolvedChildren === 'function' ? null : resolvedChildren}
+            {typeof children === 'function' || !shouldRenderChildren ? null : children}
           </CMDKEnclosingActionProvider>
         </CMDKCollection.Context.Provider>
       );
@@ -360,7 +360,7 @@ export function CMDKAction<TData = unknown>({
     return (
       <CMDKEnclosingActionProvider value={enclosingAction}>
         <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
-          {resolvedChildren}
+          {shouldRenderChildren ? children : null}
         </CMDKActionWithResource>
       </CMDKEnclosingActionProvider>
     );
@@ -369,7 +369,7 @@ export function CMDKAction<TData = unknown>({
   return (
     <CMDKCollection.Context.Provider value={key}>
       <CMDKEnclosingActionProvider value={enclosingAction}>
-        {typeof resolvedChildren === 'function' ? null : resolvedChildren}
+        {typeof children === 'function' || !shouldRenderChildren ? null : children}
       </CMDKEnclosingActionProvider>
     </CMDKCollection.Context.Provider>
   );

@@ -1,7 +1,10 @@
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   addSearchFilterToQuery,
   getFilterRows,
+  removeSearchFilterFromQuery,
 } from 'sentry/views/explore/components/traceItemFilterActions';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -13,6 +16,8 @@ import {
   canDeleteChart,
   canReorderCharts,
   deleteChart,
+  EquationFooter,
+  removeFilterRow,
   reorderCharts,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
 
@@ -75,6 +80,29 @@ describe('chart reordering', () => {
   it('does not move a chart beyond the list boundaries', () => {
     expect(reorderCharts(charts, 0, 'up')).toEqual(charts);
     expect(reorderCharts(charts, charts.length - 1, 'down')).toEqual(charts);
+  });
+});
+
+describe('EquationFooter', () => {
+  it('shows charts added after the equation using their actual labels', () => {
+    render(
+      <EquationFooter
+        index={1}
+        visualizes={[
+          new VisualizeFunction('count(span.duration)'),
+          new VisualizeEquation('equation|count(span.duration) / p95(span.duration)'),
+          new VisualizeFunction('p95(span.duration)'),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('count(span.duration)')).toBeInTheDocument();
+    expect(screen.getByText('C')).toBeInTheDocument();
+    expect(screen.getByText('p95(span.duration)')).toBeInTheDocument();
+    expect(
+      screen.queryByText('count(span.duration) / p95(span.duration)')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -217,5 +245,28 @@ describe('getFilterRows', () => {
     const query = '(project:frontend-react OR project:backend-python) error';
 
     expect(getFilterRows(query)).toEqual([query]);
+  });
+});
+
+describe('removeSearchFilterFromQuery', () => {
+  it('removes only the selected filter', () => {
+    const query =
+      'environment:production gen_ai.response.model:gpt-4o span.op:gen_ai.request';
+
+    expect(removeSearchFilterFromQuery(query, 1)).toBe(
+      'environment:production span.op:gen_ai.request'
+    );
+  });
+
+  it('deletes a newly added empty row', () => {
+    expect(removeFilterRow({query: 'environment:production', pendingRows: 1}, 1)).toEqual(
+      {query: 'environment:production', pendingRows: 0}
+    );
+  });
+
+  it('keeps one empty row after removing the final filter', () => {
+    expect(removeFilterRow({query: 'environment:production', pendingRows: 0}, 0)).toEqual(
+      {query: '', pendingRows: 1}
+    );
   });
 });

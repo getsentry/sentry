@@ -34,6 +34,7 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   addSearchFilterToQuery,
   getFilterRows,
+  removeSearchFilterFromQuery,
   type SearchFilter,
   TraceItemFilterActions,
   TraceItemFilterRows,
@@ -113,6 +114,27 @@ export function deleteChart<T extends {id: number}>(
   chartId: number
 ): T[] {
   return charts.filter(chart => chart.id !== chartId);
+}
+
+export function removeFilterRow(
+  filters: {pendingRows: number; query: string},
+  filterIndex: number
+): {pendingRows: number; query: string} {
+  const filterCount = getFilterRows(filters.query).length;
+  const query =
+    filterIndex < filterCount
+      ? removeSearchFilterFromQuery(filters.query, filterIndex)
+      : filters.query;
+  let pendingRows =
+    filterIndex < filterCount
+      ? filters.pendingRows
+      : Math.max(0, filters.pendingRows - 1);
+
+  if (getFilterRows(query).length + pendingRows === 0) {
+    pendingRows = 1;
+  }
+
+  return {pendingRows, query};
 }
 
 export function reorderCharts<T>(
@@ -407,28 +429,31 @@ function areSeriesActionsPropsEqual(
     return true;
   }
 
-  // Equations only render references to preceding series. Appending a chart does
-  // not change that prefix, so existing equation action trees can remain mounted.
-  return Array.from({length: next.index}).every(
-    (_, index) => previous.visualizes[index] === next.visualizes[index]
+  // The equation footer renders every other chart, so additions, removals, and
+  // reordering must refresh the existing equation action tree.
+  return (
+    previous.visualizes.length === next.visualizes.length &&
+    previous.visualizes.every((visualize, index) => visualize === next.visualizes[index])
   );
 }
 
 const SeriesActions = memo(SeriesActionsComponent, areSeriesActionsPropsEqual);
 
-function EquationFooter({
+export function EquationFooter({
   index,
   visualizes,
 }: {
   index: number;
   visualizes: readonly Visualize[];
 }) {
-  const referencedSeries = visualizes.slice(0, index);
+  const referencedSeries = visualizes.flatMap((series, seriesIndex) =>
+    seriesIndex === index ? [] : [{series, seriesIndex}]
+  );
 
   return (
     <Flex align="center" justify="end" gap="lg" flex={1} minWidth={0}>
       <Flex align="center" gap="md" minWidth={0} overflow="hidden">
-        {referencedSeries.map((series, seriesIndex) => (
+        {referencedSeries.map(({series, seriesIndex}) => (
           <Flex key={seriesIndex} align="center" gap="xs" minWidth={0}>
             <Text size="sm" variant="accent">
               {String.fromCharCode(65 + seriesIndex)}
@@ -726,6 +751,9 @@ function QueryClauseActions() {
     setDraftGroupBys(nextGroupBys);
     setPendingGroupByRows(count => Math.max(0, count - 1));
   }, []);
+  const removeSearchFilter = useCallback((filterIndex: number) => {
+    setDraftFilters(current => removeFilterRow(current, filterIndex));
+  }, []);
 
   const draftQuery = draftFilters.query;
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
@@ -929,6 +957,7 @@ function QueryClauseActions() {
           }
         )}
         <TraceItemFilterRows
+          onRemoveFilter={removeSearchFilter}
           orderStart={QUERY_ACTION_ORDER.filter}
           pendingRows={draftFilters.pendingRows}
           summary={draftQuery}

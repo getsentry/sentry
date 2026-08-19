@@ -1,4 +1,4 @@
-import {memo, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {Text} from '@sentry/scraps/text';
@@ -119,6 +119,12 @@ export function getFilterRows(query: string): string[] {
   }
 
   return tokens.flatMap(token => (token.type === Token.FILTER ? [token.text] : []));
+}
+
+export function removeSearchFilterFromQuery(query: string, filterIndex: number): string {
+  return getFilterRows(query)
+    .filter((_, index) => index !== filterIndex)
+    .join(' ');
 }
 
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
@@ -256,6 +262,7 @@ function TraceItemFilterActionsComponent({
 export const TraceItemFilterActions = memo(TraceItemFilterActionsComponent);
 
 function TraceItemFilterRowsComponent({
+  onRemoveFilter,
   orderStart,
   pendingRows,
   summary,
@@ -265,26 +272,41 @@ function TraceItemFilterRowsComponent({
   pendingRows: number;
   summary: string;
   targetAction: string;
+  onRemoveFilter?: (index: number) => void;
 }) {
   const filters = getFilterRows(summary);
   const rows = [...filters, ...Array.from({length: pendingRows}, () => '')];
 
   return rows.map((filter, index) => {
     const rowId = `trace-item-filter-${index}`;
+    const filterActionLabel =
+      rows.length > 1 ? t('Delete Filter') : filter ? t('Clear Filter') : null;
 
     return (
-      <CMDKAction
-        key={rowId}
-        id={rowId}
-        actionContext={`filter:${index}`}
-        display={{
-          label: t('Filter By'),
-          trailingItem: <QueryValue value={filter} />,
-        }}
-        keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
-        order={orderStart + index}
-        targetAction={targetAction}
-      />
+      <Fragment key={rowId}>
+        <CMDKAction
+          id={rowId}
+          actionContext={`filter:${index}`}
+          display={{
+            label: t('Filter By'),
+            trailingItem: <QueryValue value={filter} />,
+          }}
+          keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
+          order={orderStart + index}
+          targetAction={targetAction}
+        />
+        {filterActionLabel && onRemoveFilter && (
+          <CMDKAction
+            actionPanel={{
+              context: `filter:${index}`,
+              label: filterActionLabel,
+              only: true,
+            }}
+            display={{label: filterActionLabel}}
+            onAction={() => onRemoveFilter(index)}
+          />
+        )}
+      </Fragment>
     );
   });
 }
