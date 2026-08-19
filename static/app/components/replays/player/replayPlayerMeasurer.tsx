@@ -58,8 +58,7 @@ export function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
   };
   const childDimensions = playerState.dimensions;
 
-  const {min} = Math;
-  const scale = min(
+  const scale = Math.min(
     divide(parentDimensions.height, childDimensions.height),
     divide(parentDimensions.width, childDimensions.width),
     MAX_ZOOM
