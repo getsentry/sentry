@@ -35,6 +35,7 @@ import {
   addSearchFilterToQuery,
   type SearchFilter,
   TraceItemFilterActions,
+  TraceItemFilterRows,
 } from 'sentry/views/explore/components/traceItemFilterActions';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -74,11 +75,10 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 const MORE_ACTIONS_ORDER = {
   addChart: 10,
   addEquation: 20,
-  addFilter: 30,
-  reorderCharts: 40,
-  deleteCharts: 50,
-  compareQueries: 60,
-  saveAs: 70,
+  addGroupBy: 30,
+  addFilter: 40,
+  reorderCharts: 50,
+  deleteChart: 60,
 } as const;
 
 export function canCompareQueries(visualizes: Visualize[]): boolean {
@@ -94,18 +94,15 @@ export function canReorderCharts(visualizes: readonly Visualize[]): boolean {
   );
 }
 
-export function canDeleteCharts(charts: readonly unknown[]): boolean {
+export function canDeleteChart(charts: readonly unknown[]): boolean {
   return charts.length >= 2;
 }
 
-export function deleteCharts<T extends {id: number}>(
+export function deleteChart<T extends {id: number}>(
   charts: readonly T[],
-  chartIds: readonly number[]
+  chartId: number
 ): T[] {
-  const chartIdsToDelete = new Set(chartIds);
-  const remainingCharts = charts.filter(chart => !chartIdsToDelete.has(chart.id));
-
-  return remainingCharts.length > 0 ? remainingCharts : [...charts];
+  return charts.filter(chart => chart.id !== chartId);
 }
 
 export function reorderCharts<T>(
@@ -153,14 +150,7 @@ function SaveAsActions() {
   const canAddToDashboard = organization.features.includes('dashboards-edit');
 
   return (
-    <CMDKAction
-      actionPanel={{
-        label: t('Save as'),
-        only: true,
-        order: MORE_ACTIONS_ORDER.saveAs,
-      }}
-      display={{label: t('Save as')}}
-    >
+    <CMDKAction display={{label: t('Save as')}}>
       <CMDKTerminalActionScope>
         <CMDKAction
           display={{label: t('New Query')}}
@@ -265,11 +255,9 @@ function SaveAsActions() {
 function SpansFilterActions({
   actionPanelOrder,
   addSearchFilter,
-  summary,
 }: {
   actionPanelOrder: number;
   addSearchFilter: (filter: SearchFilter) => void;
-  summary: string;
 }) {
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
@@ -280,7 +268,6 @@ function SpansFilterActions({
       actionPanelOrder={actionPanelOrder}
       booleanAttributes={booleanAttributes}
       stringAttributes={stringAttributes}
-      summary={summary}
       traceItemType={TraceItemDataset.SPANS}
     />
   );
@@ -433,7 +420,6 @@ function GroupByActions({
     <CMDKAction display={{label: t('Attribute')}}>
       {options.map(option => {
         const isSelected = groupBys.includes(option.value);
-        const selectedGroupBys = groupBys.filter(Boolean);
 
         return (
           <CMDKAction
@@ -452,54 +438,13 @@ function GroupByActions({
                     })
                   : option.trailingItems,
             }}
-            isSelected={isSelected}
             keywords={[option.value]}
-            onAction={() => {}}
-            onMultiSelect={() => {
-              setGroupBys(
-                isSelected
-                  ? groupBys.filter(groupBy => groupBy !== option.value)
-                  : [...groupBys.filter(Boolean), option.value]
-              );
+            onAction={() => {
+              if (!isSelected) {
+                setGroupBys([...groupBys.filter(Boolean), option.value]);
+              }
             }}
-          >
-            {selectedGroupBys.length > 1 ? (
-              <CMDKAction display={{label: t('Order by')}}>
-                {selectedGroupBys.map((selectedGroupBy, selectedIndex) => {
-                  const selectedOption = options.find(
-                    candidate => candidate.value === selectedGroupBy
-                  );
-
-                  return (
-                    <CMDKAction
-                      key={selectedGroupBy}
-                      display={{
-                        label: selectedOption?.textValue ?? selectedGroupBy,
-                      }}
-                      order={selectedIndex}
-                      onAction={() => {}}
-                      onReorder={direction => {
-                        const nextIndex =
-                          direction === 'up' ? selectedIndex - 1 : selectedIndex + 1;
-                        if (nextIndex < 0 || nextIndex >= selectedGroupBys.length) {
-                          return;
-                        }
-
-                        const reorderedGroupBys = [...selectedGroupBys];
-                        const nextGroupBy = reorderedGroupBys[nextIndex];
-                        if (nextGroupBy === undefined) {
-                          return;
-                        }
-                        [reorderedGroupBys[selectedIndex], reorderedGroupBys[nextIndex]] =
-                          [nextGroupBy, selectedGroupBy];
-                        setGroupBys(reorderedGroupBys);
-                      }}
-                    />
-                  );
-                })}
-              </CMDKAction>
-            ) : null}
-          </CMDKAction>
+          />
         );
       })}
     </CMDKAction>
@@ -669,7 +614,6 @@ function QueryClauseActions() {
   const [draftCharts, setDraftCharts] = useState(() =>
     visualizes.map((visualize, id) => ({id, visualize}))
   );
-  const [selectedChartIds, setSelectedChartIds] = useState<number[]>([]);
   const [draftGroupBys, setDraftGroupBys] = useState<string[]>([...groupBys]);
   const [draftSampleSortBys, setDraftSampleSortBys] = useState<Sort[]>([
     ...sampleSortBys,
@@ -682,9 +626,6 @@ function QueryClauseActions() {
     if (!commandPaletteState.open) {
       setDraftQuery(query);
       setDraftCharts(visualizes.map((visualize, id) => ({id, visualize})));
-      setSelectedChartIds(currentChartIds =>
-        currentChartIds.length > 0 ? [] : currentChartIds
-      );
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setDraftGroupBys([...groupBys]);
       // The palette intentionally snapshots URL state when it closes so a new
@@ -707,7 +648,6 @@ function QueryClauseActions() {
     setDraftQuery(currentQuery => addSearchFilterToQuery(currentQuery, filter));
   };
 
-  const groupBySummary = draftGroupBys.filter(Boolean).join(', ');
   const draftMode = draftGroupBys.some(Boolean) ? Mode.AGGREGATE : Mode.SAMPLES;
   const draftVisualizes = draftCharts.map(chart => chart.visualize);
   const draftSortBys =
@@ -735,11 +675,6 @@ function QueryClauseActions() {
       },
     ]);
   };
-  const deleteDraftCharts = (chartIds: readonly number[]) => {
-    setDraftCharts(currentCharts => deleteCharts(currentCharts, chartIds));
-    setSelectedChartIds([]);
-  };
-
   return (
     <CMDKChainedActionScope>
       <CMDKTerminalActionScope>
@@ -764,9 +699,10 @@ function QueryClauseActions() {
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
             <CMDKAction
+              actionContext="chart"
               actionPanel={{
+                context: 'chart',
                 label: t('Add Chart'),
-                only: true,
                 order: MORE_ACTIONS_ORDER.addChart,
               }}
               display={{label: t('Add Chart')}}
@@ -774,9 +710,10 @@ function QueryClauseActions() {
               onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
             <CMDKAction
+              actionContext="chart"
               actionPanel={{
+                context: 'chart',
                 label: t('Add Equation'),
-                only: true,
                 order: MORE_ACTIONS_ORDER.addEquation,
               }}
               display={{label: t('Add Equation')}}
@@ -785,11 +722,33 @@ function QueryClauseActions() {
             />
           </Fragment>
         )}
+        <CMDKAction
+          actionContext="group-by"
+          actionPanel={{
+            context: 'group-by',
+            label: t('Add Group By'),
+            order: MORE_ACTIONS_ORDER.addGroupBy,
+          }}
+          display={{label: t('Add Group By')}}
+          keywords={['add', 'group', 'by', 'attribute']}
+          prompt={t('Search for attribute')}
+        >
+          <GroupByActions
+            appliedGroupBys={groupBys}
+            groupBys={draftGroupBys}
+            setGroupBys={setDraftGroupBys}
+          />
+        </CMDKAction>
+        <SpansFilterActions
+          actionPanelOrder={MORE_ACTIONS_ORDER.addFilter}
+          addSearchFilter={addSearchFilter}
+        />
         {canReorderCharts(draftVisualizes) && (
           <CMDKAction
+            actionContext="chart"
             actionPanel={{
+              context: 'chart',
               label: t('Reorder Charts'),
-              only: true,
               order: MORE_ACTIONS_ORDER.reorderCharts,
             }}
             display={{label: t('Reorder Charts')}}
@@ -827,64 +786,8 @@ function QueryClauseActions() {
             })}
           </CMDKAction>
         )}
-        {canDeleteCharts(draftCharts) && (
-          <CMDKAction
-            actionPanel={{
-              label: t('Delete Charts'),
-              only: true,
-              order: MORE_ACTIONS_ORDER.deleteCharts,
-            }}
-            display={{label: t('Delete Charts')}}
-            keywords={['delete', 'remove', 'chart', 'series']}
-          >
-            {draftCharts.map((chart, index) => {
-              const isSelected = selectedChartIds.includes(chart.id);
-              const selectionLimitReached =
-                !isSelected && selectedChartIds.length >= draftCharts.length - 1;
-
-              return (
-                <CMDKAction
-                  key={`spans-delete-chart-${chart.id}`}
-                  id={`spans-delete-chart-${chart.id}`}
-                  disabled={selectionLimitReached}
-                  display={{
-                    label: t('Chart %s', String.fromCharCode(65 + index)),
-                    trailingItem: (
-                      <QueryValue
-                        value={
-                          isVisualizeEquation(chart.visualize)
-                            ? stripEquationPrefix(chart.visualize.yAxis)
-                            : chart.visualize.yAxis
-                        }
-                      />
-                    ),
-                  }}
-                  isSelected={isSelected}
-                  onAction={() =>
-                    deleteDraftCharts(
-                      isSelected ? selectedChartIds : [...selectedChartIds, chart.id]
-                    )
-                  }
-                  onMultiSelect={() =>
-                    setSelectedChartIds(currentChartIds => {
-                      const isCurrentlySelected = currentChartIds.includes(chart.id);
-                      return isCurrentlySelected
-                        ? currentChartIds.filter(chartId => chartId !== chart.id)
-                        : [...currentChartIds, chart.id];
-                    })
-                  }
-                />
-              );
-            })}
-          </CMDKAction>
-        )}
         {canCompareQueries(draftVisualizes) && (
           <CMDKAction
-            actionPanel={{
-              label: t('Compare Queries'),
-              only: true,
-              order: MORE_ACTIONS_ORDER.compareQueries,
-            }}
             disabled={hasCrossEvents}
             display={{label: t('Compare Queries')}}
             keywords={['compare', 'queries', 'charts']}
@@ -911,24 +814,21 @@ function QueryClauseActions() {
         <SaveAsActions />
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
-        <CMDKAction
-          display={{
-            label: t('Group By'),
-            trailingItem: <QueryValue value={groupBySummary} />,
-          }}
-          prompt={t('Search for attribute')}
-        >
-          <GroupByActions
-            appliedGroupBys={groupBys}
-            groupBys={draftGroupBys}
-            setGroupBys={setDraftGroupBys}
-          />
-        </CMDKAction>
-        <SpansFilterActions
-          actionPanelOrder={MORE_ACTIONS_ORDER.addFilter}
-          addSearchFilter={addSearchFilter}
-          summary={draftQuery}
-        />
+        {(draftGroupBys.some(Boolean) ? draftGroupBys.filter(Boolean) : ['']).map(
+          (groupBy, index) => (
+            <CMDKAction
+              key={`${groupBy}-${index}`}
+              actionContext={`group-by:${index}`}
+              display={{
+                label: t('Group By'),
+                trailingItem: <QueryValue value={groupBy} />,
+              }}
+              keywords={['group', 'by', 'attribute', groupBy]}
+              onAction={() => {}}
+            />
+          )
+        )}
+        <TraceItemFilterRows summary={draftQuery} />
         <CMDKAction
           id="spans-sort"
           display={{
@@ -950,8 +850,24 @@ function QueryClauseActions() {
         <CMDKAction
           key={`series-details-${chartId}`}
           id={`spans-series-details-${chartId}`}
+          actionContext={`chart:${chartId}`}
           display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
         >
+          {canDeleteChart(draftCharts) && (
+            <CMDKAction
+              actionPanel={{
+                context: `chart:${chartId}`,
+                label: t('Delete Chart'),
+                only: true,
+                order: MORE_ACTIONS_ORDER.deleteChart,
+              }}
+              display={{label: t('Delete Chart')}}
+              keywords={['delete', 'remove', 'chart', 'series']}
+              onAction={() =>
+                setDraftCharts(currentCharts => deleteChart(currentCharts, chartId))
+              }
+            />
+          )}
           <SeriesActions
             index={index}
             visualize={visualize}

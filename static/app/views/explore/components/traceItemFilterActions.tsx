@@ -108,7 +108,6 @@ interface TraceItemFilterActionsProps {
   addSearchFilter: (filter: SearchFilter) => void;
   booleanAttributes: TagCollection;
   stringAttributes: TagCollection;
-  summary: string;
   traceItemType: TraceItemDataset;
   actionPanelOrder?: number;
 }
@@ -118,7 +117,6 @@ export function TraceItemFilterActions({
   actionPanelOrder,
   booleanAttributes,
   stringAttributes,
-  summary,
   traceItemType,
 }: TraceItemFilterActionsProps) {
   const organization = useOrganization();
@@ -131,8 +129,6 @@ export function TraceItemFilterActions({
     () => orderBy(Object.values(booleanAttributes), ['key']),
     [booleanAttributes]
   );
-  const filterRows = getFilterRows(summary);
-
   const makeValueAction = (tag: Tag, operator: TermOperator, value: string) => {
     return {
       display: {label: value},
@@ -215,17 +211,16 @@ export function TraceItemFilterActions({
     );
   };
 
-  return (filterRows.length > 0 ? filterRows : ['']).map((filter, index) => (
+  return (
     <CMDKAction
-      key={`${filter}-${index}`}
-      actionPanel={
-        index === 0 ? {label: t('Add Filter'), order: actionPanelOrder} : undefined
-      }
-      display={{
-        label: t('Filter By'),
-        trailingItem: <QueryValue value={filter} />,
+      actionContext="filter"
+      actionPanel={{
+        context: 'filter',
+        label: t('Add Filter'),
+        order: actionPanelOrder,
       }}
-      keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
+      display={{label: t('Add Filter')}}
+      keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
       prompt={t('Search for attribute')}
     >
       {sortedStringAttributes.length + sortedBooleanAttributes.length > 0 && (
@@ -235,6 +230,24 @@ export function TraceItemFilterActions({
         </CMDKAction>
       )}
     </CMDKAction>
+  );
+}
+
+export function TraceItemFilterRows({summary}: {summary: string}) {
+  const filters = getFilterRows(summary);
+  const rows = filters.length > 0 ? filters : [''];
+
+  return rows.map((filter, index) => (
+    <CMDKAction
+      key={`${filter}-${index}`}
+      actionContext={`filter:${index}`}
+      display={{
+        label: t('Filter By'),
+        trailingItem: <QueryValue value={filter} />,
+      }}
+      keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
+      onAction={() => {}}
+    />
   ));
 }
 

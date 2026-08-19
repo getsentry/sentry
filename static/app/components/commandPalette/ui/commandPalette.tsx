@@ -192,15 +192,20 @@ export function CommandPalette({
     const contextualNodes = nodes.filter(isContextualNode);
 
     if (currentRootKey === null && state.query === '' && contextualNodes.length > 0) {
-      return contextualNodes.flatMap(node =>
+      const contextualActions = contextualNodes.flatMap(node =>
         node.children.length > 0 ? node.children : [node]
       );
+      const otherActions = nodes.filter(node => !isContextualNode(node));
+      return [...contextualActions, ...otherActions];
     }
 
     return nodes;
   }, [currentTextInput, store, state.action, state.query]);
 
-  const panelActions = useMemo(() => collectPanelActions(store.tree()), [store]);
+  const registeredPanelActions = useMemo(
+    () => collectPanelActions(store.tree()),
+    [store]
+  );
 
   const [computedActions, computedPrefixMap, computedIsSeerFallback] = useMemo<
     [CMDKFlatItem[], Map<string, string[]>, boolean]
@@ -326,6 +331,19 @@ export function CommandPalette({
     }),
     disabledKeys,
   });
+  const focusedAction = actions.find(
+    action => action.key === treeState.selectionManager.focusedKey
+  );
+  const focusedActionContext = focusedAction?.actionContext;
+  const panelActions = useMemo(
+    () =>
+      focusedActionContext === undefined
+        ? []
+        : registeredPanelActions.filter(action =>
+            matchesActionContext(focusedActionContext, action.actionPanel?.context)
+          ),
+    [focusedActionContext, registeredPanelActions]
+  );
   const hasNoMatchingActions =
     !currentTextInput && state.query.length > 0 && treeState.collection.size === 0;
   const canOpenActionsPanel = panelActions.length > 0 && !hasNoMatchingActions;
@@ -1039,6 +1057,16 @@ function collectPanelActions(
         (firstAction.actionPanel?.order ?? Number.MAX_SAFE_INTEGER) -
         (secondAction.actionPanel?.order ?? Number.MAX_SAFE_INTEGER)
     );
+}
+
+function matchesActionContext(
+  selectedContext: string,
+  panelContext: string | undefined
+): boolean {
+  return (
+    panelContext !== undefined &&
+    (selectedContext === panelContext || selectedContext.startsWith(`${panelContext}:`))
+  );
 }
 
 /**

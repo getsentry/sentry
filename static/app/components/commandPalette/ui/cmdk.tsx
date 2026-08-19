@@ -48,6 +48,8 @@ interface CMDKTextInput {
 }
 
 interface CMDKActionPanel {
+  /** Selection context in which this action is available. Hierarchical contexts match descendants. */
+  context: string;
   label: string;
   only?: boolean;
   order?: number;
@@ -55,6 +57,8 @@ interface CMDKActionPanel {
 
 interface CMDKActionDataBase {
   display: DisplayProps;
+  /** Semantic context represented by this row for the More Actions panel. */
+  actionContext?: string;
   actionPanel?: CMDKActionPanel;
   disabled?: boolean;
   keywords?: string[];
@@ -109,6 +113,8 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 
 interface CMDKActionProps<TData = unknown> {
   display: DisplayProps;
+  /** Semantic context represented by this row for the More Actions panel. */
+  actionContext?: string;
   /** Exposes this action in the contextual More Actions panel. */
   actionPanel?: CMDKActionPanel;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
@@ -198,6 +204,7 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
  * children function to fetch and populate async results.
  */
 export function CMDKAction<TData = unknown>({
+  actionContext,
   disabled,
   display,
   keywords,
@@ -230,6 +237,7 @@ export function CMDKAction<TData = unknown>({
       to === undefined
         ? onAction === undefined
           ? {
+              actionContext,
               disabled,
               display,
               keywords,
@@ -243,6 +251,7 @@ export function CMDKAction<TData = unknown>({
               slot: slotName ?? undefined,
             }
           : {
+              actionContext,
               disabled,
               display,
               keywords,
@@ -259,6 +268,7 @@ export function CMDKAction<TData = unknown>({
               textInput,
             }
         : {
+            actionContext,
             disabled,
             display,
             keywords,
@@ -271,6 +281,7 @@ export function CMDKAction<TData = unknown>({
             textInput,
           },
     [
+      actionContext,
       chainedActionScope,
       disabled,
       display,

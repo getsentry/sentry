@@ -420,70 +420,96 @@ describe('CommandPalette', () => {
     expect(await screen.findByText('Group by')).toBeInTheDocument();
   });
 
-  it('opens contextual actions from the More Actions panel', async () => {
+  it('shows only actions matching the highlighted row context', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Traces'}}>
-          <CMDKAction display={{label: 'Commands'}}>
-            <CMDKAction
-              actionPanel={{label: 'Add Chart', only: true}}
-              display={{label: 'Add Chart'}}
-              onAction={() => {}}
-            />
-          </CMDKAction>
-          <CMDKAction display={{label: 'Chart'}}>
-            <CMDKAction display={{label: 'Edit source'}} onAction={() => {}} />
-          </CMDKAction>
-          <CMDKAction display={{label: 'Query'}}>
-            <CMDKAction
-              display={{label: 'Filter by'}}
-              actionPanel={{label: 'Add Filter'}}
-              prompt="Search for attribute"
-            >
-              <CMDKAction display={{label: 'Attribute'}}>
-                <CMDKAction display={{label: 'environment'}} onAction={() => {}} />
-              </CMDKAction>
-            </CMDKAction>
-          </CMDKAction>
-        </CMDKAction>
+        <CMDKAction
+          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+          display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionPanel={{
+            context: 'chart:7',
+            label: 'Delete Chart',
+            only: true,
+          }}
+          display={{label: 'Delete Chart'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionPanel={{
+            context: 'chart:8',
+            label: 'Delete Other Chart',
+            only: true,
+          }}
+          display={{label: 'Delete Other Chart'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionPanel={{context: 'filter', label: 'Add Filter', only: true}}
+          display={{label: 'Add Filter'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionContext="chart:7"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
       </GlobalActionsComponent>
     );
 
     await screen.findByRole('textbox', {name: 'Search commands'});
-    expect(screen.queryByRole('option', {name: 'Commands'})).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('option', {name: 'Chart'}));
-    expect(screen.queryByRole('option', {name: 'Add Chart'})).not.toBeInTheDocument();
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
 
     const overlay = screen.getByRole('dialog', {name: 'More Actions'});
     expect(within(overlay).getByRole('option', {name: 'Add Chart'})).toBeInTheDocument();
-    expect(within(overlay).getByRole('option', {name: 'Add Filter'})).toBeInTheDocument();
-
-    await userEvent.click(within(overlay).getByRole('option', {name: 'Add Filter'}));
-
-    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
-    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
-      'placeholder',
-      'Search for attribute'
-    );
+    expect(
+      within(overlay).getByRole('option', {name: 'Delete Chart'})
+    ).toBeInTheDocument();
+    expect(
+      within(overlay).queryByRole('option', {name: 'Add Filter'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(overlay).queryByRole('option', {name: 'Delete Other Chart'})
+    ).not.toBeInTheDocument();
   });
 
   it('orders More Actions independently of registration order', async () => {
     render(
       <GlobalActionsComponent>
         <CMDKAction
-          actionPanel={{label: 'Add Filter', only: true, order: 30}}
+          actionContext="chart:0"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Filter',
+            only: true,
+            order: 30,
+          }}
           display={{label: 'Add Filter'}}
           onAction={() => {}}
         />
         <CMDKAction
-          actionPanel={{label: 'Reorder Charts', only: true, order: 40}}
+          actionPanel={{
+            context: 'chart',
+            label: 'Reorder Charts',
+            only: true,
+            order: 40,
+          }}
           display={{label: 'Reorder Charts'}}
           onAction={() => {}}
         />
         <CMDKAction
-          actionPanel={{label: 'Add Chart', only: true, order: 20}}
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            only: true,
+            order: 20,
+          }}
           display={{label: 'Add Chart'}}
           onAction={() => {}}
         />
@@ -501,6 +527,24 @@ describe('CommandPalette', () => {
     ).toEqual(['Add Chart', 'Add Filter', 'Reorder Charts']);
   });
 
+  it('disables More Actions when the highlighted row has no action context', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction display={{label: 'Apply Changes'}} onAction={() => {}} />
+        <CMDKAction
+          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+          display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Apply Changes'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+  });
+
   it('navigates More Actions with the arrow keys', async () => {
     const onAddChart = jest.fn();
     const onAddFilter = jest.fn();
@@ -508,12 +552,17 @@ describe('CommandPalette', () => {
     render(
       <GlobalActionsComponent>
         <CMDKAction
-          actionPanel={{label: 'Add Chart', only: true}}
+          actionContext="chart:0"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
+        <CMDKAction
+          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
           display={{label: 'Add Chart'}}
           onAction={onAddChart}
         />
         <CMDKAction
-          actionPanel={{label: 'Add Filter', only: true}}
+          actionPanel={{context: 'chart', label: 'Add Filter', only: true}}
           display={{label: 'Add Filter'}}
           onAction={onAddFilter}
         />
@@ -530,31 +579,26 @@ describe('CommandPalette', () => {
 
   it('restores arrow navigation after a panel action changes the collection', async () => {
     const onEditChart = jest.fn();
-    const onFilter = jest.fn();
 
     function DynamicChartActions() {
       const [charts, setCharts] = useState(['Chart A']);
 
       return (
-        <CMDKAction display={{label: 'Explore'}}>
-          <CMDKAction display={{label: 'Traces'}}>
-            <CMDKChainedActionScope>
-              <CMDKAction
-                actionPanel={{label: 'Add Chart', only: true}}
-                display={{label: 'Add Chart'}}
-                onAction={() => setCharts(current => [...current, 'Chart B'])}
-              />
-              <CMDKAction display={{label: 'Query'}}>
-                <CMDKAction display={{label: 'Filter'}} onAction={onFilter} />
-              </CMDKAction>
-              {charts.map(chart => (
-                <CMDKAction key={chart} display={{label: chart}}>
-                  <CMDKAction display={{label: `Edit ${chart}`}} onAction={onEditChart} />
-                </CMDKAction>
-              ))}
-            </CMDKChainedActionScope>
-          </CMDKAction>
-        </CMDKAction>
+        <Fragment>
+          <CMDKAction
+            actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+            display={{label: 'Add Chart'}}
+            onAction={() => setCharts(current => [...current, 'Chart B'])}
+          />
+          {charts.map((chart, index) => (
+            <CMDKAction
+              key={chart}
+              actionContext={`chart:${index}`}
+              display={{label: chart}}
+              onAction={onEditChart}
+            />
+          ))}
+        </Fragment>
       );
     }
 
@@ -564,9 +608,9 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
-    await userEvent.click(screen.getByRole('option', {name: 'Traces'}));
-    await userEvent.keyboard('{ArrowDown}');
+    const input = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
       within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
@@ -578,8 +622,7 @@ describe('CommandPalette', () => {
 
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
-    expect(onFilter).toHaveBeenCalledTimes(1);
-    expect(onEditChart).not.toHaveBeenCalled();
+    expect(onEditChart).toHaveBeenCalledTimes(1);
   });
 
   it('closes More Actions with escape without closing the palette', async () => {
@@ -588,8 +631,9 @@ describe('CommandPalette', () => {
     render(
       <GlobalActionsComponent>
         <CMDKAction
+          actionContext="filter:0"
           display={{label: 'Filter by'}}
-          actionPanel={{label: 'Add Filter'}}
+          actionPanel={{context: 'filter', label: 'Add Filter'}}
           prompt="Search for attribute"
         />
       </GlobalActionsComponent>
@@ -620,7 +664,8 @@ describe('CommandPalette', () => {
       <QueryClientProvider client={queryClient}>
         <GlobalActionsComponent>
           <CMDKAction
-            actionPanel={{label: 'Add Filter'}}
+            actionContext="filter:0"
+            actionPanel={{context: 'filter', label: 'Add Filter'}}
             display={{label: 'Filter'}}
             onAction={() => {}}
           />
@@ -628,7 +673,9 @@ describe('CommandPalette', () => {
       </QueryClientProvider>
     );
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
     await userEvent.type(input, 'does-not-match');
     await waitFor(() => {
       expect(screen.queryByText('More Actions')).not.toBeInTheDocument();
@@ -2215,10 +2262,12 @@ describe('CommandPalette', () => {
       expect(onAction).toHaveBeenCalledTimes(1);
     });
 
-    it('shows only contextual actions for an empty query', async () => {
+    it('shows contextual actions before global actions for an empty query', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+          <CommandPaletteSlot name="global">
+            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot>
           <CommandPaletteSlot name="page">
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
@@ -2230,9 +2279,11 @@ describe('CommandPalette', () => {
       expect(
         await screen.findByRole('option', {name: 'Page Action'})
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('option', {name: 'Global Action'})
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Global Action'})).toBeInTheDocument();
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'Page Action',
+        'Global Action',
+      ]);
     });
 
     it('omits redundant section headings for contextual actions', async () => {

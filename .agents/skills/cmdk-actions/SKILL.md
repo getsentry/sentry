@@ -91,9 +91,17 @@ interface CMDKActionProps {
   limit?: number;
 
   // Exposes this action in the Ctrl+Shift+Enter More Actions panel.
-  // The label is independent from the action's normal list label.
+  // It is shown when the highlighted row's actionContext matches context.
   // Set only to remove it from normal palette browsing and search.
-  actionPanel?: {label: string; only?: boolean; order?: number};
+  actionPanel?: {
+    context: string;
+    label: string;
+    only?: boolean;
+    order?: number;
+  };
+
+  // Semantic context represented by this selectable row.
+  actionContext?: string;
 }
 ```
 
@@ -716,17 +724,23 @@ Use `t('... %s', value)` (printf-style) rather than template literals so strings
 
 ## Contextual Actions Panel
 
-Set `actionPanel` on an existing action to expose it in the compact More Actions panel
-opened with Ctrl+Shift+Enter. Registration follows the normal component
-lifetime, so a page action is available throughout that page's mounted command
-palette scope and disappears when the page unmounts.
+Set `actionContext` on a selectable row and `actionPanel.context` on an existing
+action to expose it in the compact More Actions panel opened with
+Ctrl+Shift+Enter. The panel is disabled when the highlighted row has no matching
+contextual actions.
+
+Contexts may be hierarchical. For example, a row with `actionContext="chart:3"`
+matches panel actions registered for `context="chart"` as well as actions
+registered specifically for `context="chart:3"`. Prefer stable semantic contexts
+over translated labels or component-local selection state.
 
 Use a separate overlay label when the regular action label reflects current state:
 
 ```tsx
 <CMDKAction
-  display={{label: currentQuery ? t('Filter by') : t('Add Filter')}}
-  actionPanel={{label: t('Add Filter')}}
+  actionContext="filter"
+  display={{label: t('Add Filter')}}
+  actionPanel={{context: 'filter', label: t('Add Filter')}}
   prompt={t('Search for attribute')}
 >
   {/* filter picker actions */}
@@ -759,6 +773,7 @@ branches need an explicit order in the panel; lower values appear first.
 - [ ] Group icon reflects the current value of the setting it controls (priority, assignee, theme)
 - [ ] Dynamic action labels use `t('... %s', value)` not template literals, so strings stay translatable
 - [ ] Contextual panel actions reuse an existing action via `actionPanel`; they do not duplicate callback logic
+- [ ] More Actions uses stable `actionContext`/`actionPanel.context` values rather than matching display labels
 - [ ] Workflow action components extract state logic into a dedicated `use*State` hook and use a `canContinue` guard
 - [ ] Components that are not applicable return `null` early via a guard clause before rendering any JSX
 - [ ] Entity capability config (e.g. `getConfigForIssueType`) drives action availability rather than scattered type checks

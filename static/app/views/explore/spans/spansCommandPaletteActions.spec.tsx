@@ -10,9 +10,9 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {
   canCompareQueries,
-  canDeleteCharts,
+  canDeleteChart,
   canReorderCharts,
-  deleteCharts,
+  deleteChart,
   reorderCharts,
 } from 'sentry/views/explore/spans/spansCommandPaletteActions';
 
@@ -82,17 +82,17 @@ describe('chart deletion', () => {
   const charts = [{id: 0}, {id: 1}, {id: 2}];
 
   it('is available only with at least two charts', () => {
-    expect(canDeleteCharts(charts.slice(0, 1))).toBe(false);
-    expect(canDeleteCharts(charts.slice(0, 2))).toBe(true);
+    expect(canDeleteChart(charts.slice(0, 1))).toBe(false);
+    expect(canDeleteChart(charts.slice(0, 2))).toBe(true);
   });
 
-  it('deletes multiple charts without mutating the input', () => {
-    expect(deleteCharts(charts, [0, 2])).toEqual([{id: 1}]);
+  it('deletes only the selected chart without mutating the input', () => {
+    expect(deleteChart(charts, 1)).toEqual([{id: 0}, {id: 2}]);
     expect(charts).toHaveLength(3);
   });
 
-  it('keeps at least one chart', () => {
-    expect(deleteCharts(charts, [0, 1, 2])).toEqual(charts);
+  it('leaves charts unchanged when the selected id does not exist', () => {
+    expect(deleteChart(charts, 4)).toEqual(charts);
   });
 });
 
