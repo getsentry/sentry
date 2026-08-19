@@ -48,7 +48,7 @@ describe('OTPInput', () => {
     expect(document.querySelectorAll('[data-input-otp-slot]')).toHaveLength(6);
   });
 
-  it('renders format separators without including them in the value', async () => {
+  it('strips format separators from pasted numeric values', async () => {
     const onComplete = jest.fn();
     render(<OTPInput format="000-000" onComplete={onComplete} />);
 
@@ -57,20 +57,22 @@ describe('OTPInput', () => {
     const input = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'One-time password',
     });
-    await userEvent.type(input, '123456');
+    await userEvent.click(input);
+    await userEvent.paste('123-456');
 
     expect(input).toHaveValue('123456');
     expect(onComplete).toHaveBeenCalledWith('123456');
   });
 
-  it('supports alphanumeric codes and uppercases their value', async () => {
+  it('strips format separators and uppercases pasted alphanumeric values', async () => {
     const onComplete = jest.fn();
-    render(<OTPInput format="AAAA" onComplete={onComplete} uppercase />);
+    render(<OTPInput format="AA-AA" onComplete={onComplete} uppercase />);
 
     const input = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'One-time password',
     });
-    await userEvent.type(input, 'a1b2');
+    await userEvent.click(input);
+    await userEvent.paste('a1-b2');
 
     expect(input).toHaveValue('A1B2');
     expect(onComplete).toHaveBeenCalledWith('A1B2');
