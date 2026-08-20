@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
@@ -25,6 +26,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.utils.climate_impact import estimate_gco2e_from_duration_ms
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -1024,7 +1026,9 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
         for event in data:
             if event.get("event_type") == "span":
                 assert "estimated_climate_impact_co2e_grams" in event
-                assert event["estimated_climate_impact_co2e_grams"] == 1.0
+                assert event["estimated_climate_impact_co2e_grams"] == pytest.approx(
+                    estimate_gco2e_from_duration_ms(event["duration"])
+                )
             # Check children recursively
             if "children" in event:
                 self._check_children_for_climate_impact(event["children"])
@@ -1033,7 +1037,9 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
         for child in children:
             if child.get("event_type") == "span":
                 assert "estimated_climate_impact_co2e_grams" in child
-                assert child["estimated_climate_impact_co2e_grams"] == 1.0
+                assert child["estimated_climate_impact_co2e_grams"] == pytest.approx(
+                    estimate_gco2e_from_duration_ms(child["duration"])
+                )
             if "children" in child:
                 self._check_children_for_climate_impact(child["children"])
 
