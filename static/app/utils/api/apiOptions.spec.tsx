@@ -1,4 +1,3 @@
-/** @jest-environment jsdom */
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
