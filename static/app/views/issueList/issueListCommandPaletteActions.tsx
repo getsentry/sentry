@@ -59,6 +59,12 @@ interface IssueListCommandPaletteActionsProps {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
+export enum IssueListCommandPaletteActionId {
+  FILTER_BY = 'issue-list:filter-by',
+  ISSUE_FILTERS = 'issue-list:issue-filters',
+  ISSUES_FEED = 'issue-list:issues-feed',
+}
+
 /**
  * Extracts a flat list of string values from a tag's predefined values.
  * Handles both plain string arrays and SearchGroup arrays (with or without
@@ -237,6 +243,7 @@ function FilterActions({
 
   return (
     <CMDKAction.Group
+      id={IssueListCommandPaletteActionId.FILTER_BY}
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
@@ -254,6 +261,7 @@ function FilterActions({
         onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'my_teams'))}
       />
       <CMDKAction.Resource
+        id={IssueListCommandPaletteActionId.ISSUE_FILTERS}
         display={{label: t('Issues')}}
         prompt={t('Select a filter...')}
         limit={4}
@@ -414,7 +422,10 @@ export function IssueListCommandPaletteActions({
 }: IssueListCommandPaletteActionsProps) {
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction.Group display={{label: t('Issues Feed'), icon: <IconIssues />}}>
+      <CMDKAction.Group
+        id={IssueListCommandPaletteActionId.ISSUES_FEED}
+        display={{label: t('Issues Feed'), icon: <IconIssues />}}
+      >
         <FilterActions query={query} onQueryChange={onQueryChange} />
         <IssueListMarkAllCommandPaletteAction
           groupIds={groupIds}

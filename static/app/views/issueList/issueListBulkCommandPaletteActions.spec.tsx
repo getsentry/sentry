@@ -24,7 +24,10 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {GroupStatus} from 'sentry/types/group';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
+import {
+  IssueListCommandPaletteActionId,
+  IssueListCommandPaletteActions,
+} from 'sentry/views/issueList/issueListCommandPaletteActions';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
@@ -138,7 +141,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
     });
 
     const issueFeedNode = treeRef.current.find(
-      node => node.display.label === 'Issues Feed'
+      node => node.key === IssueListCommandPaletteActionId.ISSUES_FEED
     );
     expect(issueFeedNode).toBeDefined();
 
@@ -147,10 +150,10 @@ describe('IssueListBulkCommandPaletteActions', () => {
     expect(issueFeedLabels).toContain('Mark all issues as');
 
     const filterByNode = issueFeedNode!.children.find(
-      child => child.display.label === 'Filter by'
+      child => child.key === IssueListCommandPaletteActionId.FILTER_BY
     );
     const issueFiltersNode = filterByNode?.children.find(
-      child => child.display.label === 'Issues' && 'resource' in child
+      child => child.key === IssueListCommandPaletteActionId.ISSUE_FILTERS
     );
     expect(issueFiltersNode).toBeDefined();
     if (issueFiltersNode && 'resource' in issueFiltersNode) {
