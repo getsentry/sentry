@@ -1284,6 +1284,66 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('src/sentry/foo.py')).toHaveLength(1);
   });
 
+  it('prefetches PR file diffs when the code changes section is hovered', async () => {
+    mockOverview({
+      base: {
+        has_pull_request: [
+          {
+            ...rootCauseRun,
+            pullRequests: [
+              {
+                id: '77',
+                number: 42,
+                url: 'https://github.com/getsentry/sentry/pull/42',
+                status: 'open',
+                checksStatus: null,
+                reviewStatus: null,
+                failedChecks: [],
+                files: [
+                  {
+                    path: 'src/sentry/foo.py',
+                    additions: 2,
+                    deletions: 1,
+                    changeType: 'MODIFIED',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const filesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/pull-requests/77/files/`,
+      body: {
+        files: [
+          {
+            path: 'src/sentry/foo.py',
+            patch: '@@ -1,2 +1,3 @@\n keep\n-drop\n+addedone\n+addedtwo',
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    const section = await screen.findByText('Code Changes');
+    expect(filesRequest).not.toHaveBeenCalled();
+
+    await userEvent.hover(section);
+    await waitFor(() => expect(filesRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.unhover(section);
+    await userEvent.hover(section);
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
+    );
+    expect(await screen.findByText('addedone')).toBeInTheDocument();
+    expect(filesRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the deleted-file view when a deleted file has no patch', async () => {
     mockOverview({
       base: {
