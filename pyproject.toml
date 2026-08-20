@@ -1286,7 +1286,6 @@ module = [
     "sentry.sentry_apps.api.parsers.*",
     "sentry.sentry_apps.api.serializers.*",
     "sentry.sentry_apps.components",
-    "sentry.sentry_apps.external_requests.*",
     "sentry.sentry_apps.installations",
     "sentry.sentry_apps.logic",
     "sentry.sentry_apps.metrics",
