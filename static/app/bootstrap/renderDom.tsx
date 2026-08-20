@@ -1,6 +1,8 @@
 import type React from 'react';
 import {createRoot} from 'react-dom/client';
 
+import {captureSplashLoader} from 'sentry/utils/splashLoader';
+
 export function renderDom<T extends React.ComponentType<any>>(
   Component: T,
   container: string,
@@ -13,6 +15,8 @@ export function renderDom<T extends React.ComponentType<any>>(
   if (!rootEl) {
     return;
   }
+
+  captureSplashLoader(rootEl);
 
   const root = createRoot(rootEl);
   root.render(<Component {...props} />);
