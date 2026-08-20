@@ -1,5 +1,6 @@
 import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
 import {Autofix} from './components/autofix';
+import {AutofixRef} from './components/autofixRef';
 import {Chart} from './components/chart';
 import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
@@ -11,6 +12,7 @@ import {SeerEmbedRegistry} from './registry';
 const embeds = [
   AgentWriteApprovalEmbed,
   Autofix,
+  AutofixRef,
   Chart,
   Docs,
   Dsn,
