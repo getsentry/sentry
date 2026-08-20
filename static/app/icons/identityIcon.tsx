@@ -44,32 +44,66 @@ const IDENTITY_ICONS = {
   vsts,
 } satisfies Record<string, string>;
 
-export interface IdentityIconProps {
+export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   providerId: string | keyof typeof IDENTITY_ICONS;
+  /**
+   * @default flex
+   */
+  display?: 'flex' | 'inline-flex';
+  /** Render the icon without its white background or inset. */
+  noBackground?: boolean;
+  /**
+   * @default 36
+   */
+  size?: number;
 }
 
-export function IdentityIcon({providerId}: IdentityIconProps) {
+export function IdentityIcon({
+  providerId,
+  size = 36,
+  display = 'flex',
+  noBackground = false,
+  ref,
+}: IdentityIconProps) {
   return (
-    <StyledIdentityIconContainer size={36}>
-      <StyledIdentityIcon size={36} identitySrc={getIdentityIconSource(providerId)} />
+    <StyledIdentityIconContainer
+      ref={ref}
+      size={size}
+      $display={display}
+      $noBackground={noBackground}
+    >
+      <StyledIdentityIcon
+        size={size}
+        $noBackground={noBackground}
+        identitySrc={getIdentityIconSource(providerId)}
+      />
     </StyledIdentityIconContainer>
   );
 }
 
-const StyledIdentityIconContainer = styled('div')<{size: number}>`
+const StyledIdentityIconContainer = styled('div')<{
+  $display: NonNullable<IdentityIconProps['display']>;
+  $noBackground: boolean;
+  size: number;
+}>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
-  background-color: ${p => p.theme.colors.white};
+  background-color: ${p => (p.$noBackground ? 'transparent' : p.theme.colors.white)};
   border-radius: 2px;
-  display: flex;
+  display: ${p => p.$display};
+  vertical-align: text-bottom;
   align-items: center;
   justify-content: center;
 `;
 
-const StyledIdentityIcon = styled('div')<{identitySrc: string; size: number}>`
+const StyledIdentityIcon = styled('div')<{
+  $noBackground: boolean;
+  identitySrc: string;
+  size: number;
+}>`
   position: relative;
-  height: ${p => p.size - p.size * 0.2}px;
-  width: ${p => p.size - p.size * 0.2}px;
+  height: ${p => (p.$noBackground ? p.size : p.size - p.size * 0.2)}px;
+  width: ${p => (p.$noBackground ? p.size : p.size - p.size * 0.2)}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
