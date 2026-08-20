@@ -134,7 +134,9 @@ describe('equation draft selection', () => {
       await screen.findByRole('button', {name: 'Return to previous action'})
     );
 
-    const searchInput = screen.getByRole('textbox', {name: 'Search commands'});
+    const searchInput = screen.getByRole('textbox', {
+      name: 'Search commands',
+    });
     await waitFor(() => expect(searchInput).toHaveFocus());
     await userEvent.keyboard('{ArrowDown}');
     expect(searchInput).toHaveFocus();
@@ -218,7 +220,9 @@ describe('project scope selection', () => {
 
     render(<ProjectSelectionPalette />);
 
-    const projectsOption = await screen.findByRole('option', {name: 'Projects'});
+    const projectsOption = await screen.findByRole('option', {
+      name: 'Projects',
+    });
     expect(within(projectsOption).getByTestId('icon-my-projects')).toBeInTheDocument();
     expect(
       within(projectsOption).queryByTestId(/^platform-icon-/)
@@ -242,7 +246,9 @@ describe('project scope selection', () => {
 
     render(<ProjectSelectionPalette />);
 
-    const projectsOption = await screen.findByRole('option', {name: 'Projects'});
+    const projectsOption = await screen.findByRole('option', {
+      name: 'Projects',
+    });
     expect(within(projectsOption).getByTestId('icon-projects')).toBeInTheDocument();
     expect(
       within(projectsOption).queryByTestId(/^platform-icon-/)
@@ -329,7 +335,9 @@ describe('project scope selection', () => {
     );
     await userEvent.keyboard('{ArrowDown}{Shift>}{Enter}{/Shift}');
 
-    const selectedAndroid = await screen.findByRole('option', {name: /android/});
+    const selectedAndroid = await screen.findByRole('option', {
+      name: /android/,
+    });
     expect(within(selectedAndroid).getByRole('checkbox', {hidden: true})).toBeChecked();
     expect(within(selectedAndroid).queryByText('Current')).not.toBeInTheDocument();
     await userEvent.keyboard('{Enter}');
@@ -355,9 +363,10 @@ describe('project scope selection', () => {
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
     expect(router.location.query.project).toEqual(['1', '2']);
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Return to previous action'})
-    );
+    await userEvent.keyboard('{Enter}');
+    expect(
+      await screen.findByRole('option', {name: 'Apply Changes'})
+    ).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
     expect(PageFiltersStore.getState().selection.projects).toEqual([]);
     expect(PageFiltersStore.getState().selection.environments).toEqual([]);
@@ -455,12 +464,73 @@ describe('environment scope selection', () => {
     expect(PageFiltersStore.getState().selection.environments).toEqual(['production']);
     expect(router.location.query.environment).toBe('production');
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Return to previous action'})
-    );
+    await userEvent.keyboard('{Enter}');
+    expect(
+      await screen.findByRole('option', {name: 'Apply Changes'})
+    ).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
     expect(PageFiltersStore.getState().selection.environments).toEqual([]);
     await waitFor(() => expect(router.location.query.environment).toBeUndefined());
+  });
+});
+
+describe('time range selection', () => {
+  it('keeps changes in the draft, resets in place, and applies from the root', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', statsPeriod: '24h'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Time range'}));
+    expect(
+      await screen.findByRole('option', {name: 'Last 24 hours Current'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'Last 7 days'}));
+
+    expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.datetime.period).toBe('24h');
+    expect(router.location.query.statsPeriod).toBe('24h');
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Time range'}));
+    expect(
+      await screen.findByRole('option', {name: 'Last 7 days Current'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Reset Time Range',
+      })
+    );
+    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Select a time range')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().selection.datetime.period).toBe('24h');
+    expect(router.location.query.statsPeriod).toBe('24h');
+
+    await userEvent.keyboard('{Enter}');
+    expect(
+      await screen.findByRole('option', {name: 'Apply Changes'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'Apply Changes'}));
+
+    expect(PageFiltersStore.getState().selection.datetime.period).toBe('14d');
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('14d'));
   });
 });
 
@@ -481,7 +551,9 @@ describe('group by draft selection', () => {
 
     render(<ProjectSelectionPalette />);
 
-    const searchInput = await screen.findByRole('textbox', {name: 'Search commands'});
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
     await userEvent.type(searchInput, 'Group By');
     await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
@@ -526,7 +598,9 @@ describe('group by draft selection', () => {
     await userEvent.type(attributeInput, 'span.op');
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
-    const groupByRows = await screen.findAllByRole('option', {name: 'Group By'});
+    const groupByRows = await screen.findAllByRole('option', {
+      name: 'Group By',
+    });
     expect(groupByRows).toHaveLength(1);
     expect(within(groupByRows[0]!).getByText('span.op')).toBeInTheDocument();
   });

@@ -24,6 +24,7 @@ import {
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PlatformList} from 'sentry/components/platformList';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {
   IconAllProjects,
   IconClock,
@@ -462,6 +463,7 @@ function SpansScopeActions({
   const [currentPageFilters, setCurrentPageFilters] = useState(draftPageFilters);
   const lastMultiSelectedProjectRef = useRef<number | null>(null);
   const lastMultiSelectedEnvironmentRef = useRef<string | null>(null);
+  const didResetTimeRangeRef = useRef(false);
   const isSuperuser = isActiveSuperuser();
   const {maxPickableDays} = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
@@ -483,6 +485,7 @@ function SpansScopeActions({
   }
   useEffect(() => {
     if (!isScopePickerOpen) {
+      didResetTimeRangeRef.current = false;
       // This is an intentional step-0 snapshot, not derived render state. Picker edits
       // should not become "Current" until the user returns to the scope summary.
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
@@ -508,6 +511,10 @@ function SpansScopeActions({
   ].toSorted();
   const shouldShowProjectReset = selectedProjects.length > 0;
   const shouldShowEnvironmentReset = selectedEnvironments.length > 0;
+  const shouldShowTimeRangeReset =
+    draftPageFilters.datetime.period !== DEFAULT_STATS_PERIOD ||
+    draftPageFilters.datetime.start !== null ||
+    draftPageFilters.datetime.end !== null;
   const hasExplicitCurrentProjectSelection =
     currentPageFilters.projects.length > 0 &&
     !currentPageFilters.projects.includes(ALL_ACCESS_PROJECTS);
@@ -601,7 +608,10 @@ function SpansScopeActions({
               label: t('Reset Project Selection'),
               only: true,
             }}
-            display={{label: t('Reset Project Selection'), icon: <IconRefresh />}}
+            display={{
+              label: t('Reset Project Selection'),
+              icon: <IconRefresh />,
+            }}
             onAction={() =>
               setDraftPageFilters(current => ({
                 ...current,
@@ -690,7 +700,10 @@ function SpansScopeActions({
               label: t('Reset Environment Selection'),
               only: true,
             }}
-            display={{label: t('Reset Environment Selection'), icon: <IconRefresh />}}
+            display={{
+              label: t('Reset Environment Selection'),
+              icon: <IconRefresh />,
+            }}
             onAction={() =>
               setDraftPageFilters(current => ({
                 ...current,
@@ -764,6 +777,28 @@ function SpansScopeActions({
         keywords={['scope', 'time', 'date', 'range', 'period']}
         prompt={t('Select a time range')}
       >
+        <CMDKChainedActionScope>
+          <CMDKAction
+            actionPanel={{
+              context: 'time-range-selection',
+              label: t('Reset Time Range'),
+              only: true,
+            }}
+            display={{label: t('Reset Time Range'), icon: <IconRefresh />}}
+            onAction={() => {
+              didResetTimeRangeRef.current = true;
+              setDraftPageFilters(current => ({
+                ...current,
+                datetime: {
+                  end: null,
+                  period: DEFAULT_STATS_PERIOD,
+                  start: null,
+                  utc: null,
+                },
+              }));
+            }}
+          />
+        </CMDKChainedActionScope>
         {RELATIVE_TIME_RANGES.filter(option => option.days <= maxPickableDays).map(
           option => {
             const isSelected = draftPageFilters.datetime.period === option.period;
@@ -771,6 +806,9 @@ function SpansScopeActions({
             return (
               <CMDKAction
                 key={option.period}
+                actionContext={
+                  shouldShowTimeRangeReset ? 'time-range-selection' : undefined
+                }
                 display={{
                   label: option.label,
                   labelSuffix:
@@ -780,7 +818,11 @@ function SpansScopeActions({
                   icon: <IconClock />,
                 }}
                 isSelected={isSelected}
-                onAction={() =>
+                onAction={() => {
+                  if (didResetTimeRangeRef.current) {
+                    didResetTimeRangeRef.current = false;
+                    return;
+                  }
                   setDraftPageFilters(current => ({
                     ...current,
                     datetime: {
@@ -789,8 +831,8 @@ function SpansScopeActions({
                       start: null,
                       utc: null,
                     },
-                  }))
-                }
+                  }));
+                }}
               />
             );
           }
