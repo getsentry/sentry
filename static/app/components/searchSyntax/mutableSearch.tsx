@@ -533,12 +533,7 @@ export class MutableSearch {
   }
 
   addDisjunctionContainsFilterValues(key: string, values: string[]): this {
-    return this._addDisjunctionFilterValues(
-      key,
-      values,
-      true,
-      'addContainsFilterValue'
-    );
+    return this._addDisjunctionFilterValues(key, values, true, 'addContainsFilterValue');
   }
 
   addDisjunctionStartsWithFilterValues(key: string, values: string[]): this {
@@ -551,12 +546,7 @@ export class MutableSearch {
   }
 
   addDisjunctionEndsWithFilterValues(key: string, values: string[]): this {
-    return this._addDisjunctionFilterValues(
-      key,
-      values,
-      true,
-      'addEndsWithFilterValue'
-    );
+    return this._addDisjunctionFilterValues(key, values, true, 'addEndsWithFilterValue');
   }
 
   private _addFilterValue(
@@ -668,30 +658,15 @@ export class MutableSearch {
   }
 
   addContainsFilterValueList(key: string, values: string[]): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      true,
-      WildcardOperators.CONTAINS
-    );
+    return this._addFilterValueList(key, values, true, WildcardOperators.CONTAINS);
   }
 
   addStartsWithFilterValueList(key: string, values: string[]): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      true,
-      WildcardOperators.STARTS_WITH
-    );
+    return this._addFilterValueList(key, values, true, WildcardOperators.STARTS_WITH);
   }
 
   addEndsWithFilterValueList(key: string, values: string[]): this {
-    return this._addFilterValueList(
-      key,
-      values,
-      true,
-      WildcardOperators.ENDS_WITH
-    );
+    return this._addFilterValueList(key, values, true, WildcardOperators.ENDS_WITH);
   }
 
   getFilters(): Record<string, string[]> {

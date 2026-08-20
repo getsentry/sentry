@@ -39,10 +39,7 @@ export function PlaceHolder({
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
           {hasNewBreadcrumbs ? (
-            <TraceBreadcrumbs
-              organization={organization}
-              traceSlug={traceSlug}
-            />
+            <TraceBreadcrumbs organization={organization} traceSlug={traceSlug} />
           ) : (
             <TopBar.Slot name="title">
               <Breadcrumbs

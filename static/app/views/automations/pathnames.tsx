@@ -7,9 +7,7 @@ export const makeAutomationBasePathname = (orgSlug: string) => {
 };
 
 export const makeAutomationCreatePathname = (orgSlug: string) => {
-  return normalizeUrl(
-    `${makeAutomationBasePathname(orgSlug)}new/?${qs.stringify({})}`
-  );
+  return normalizeUrl(`${makeAutomationBasePathname(orgSlug)}new/?${qs.stringify({})}`);
 };
 
 export const makeAutomationDetailsPathname = (orgSlug: string, automationId: string) => {

@@ -161,9 +161,7 @@ export function makeTracePerformanceIssue(
   } as TraceTree.TracePerformanceIssue;
 }
 
-export function makeEventTransaction(
-  overrides: Partial<Event> = {}
-): EventTransaction {
+export function makeEventTransaction(overrides: Partial<Event> = {}): EventTransaction {
   return {
     contexts: {},
     tags: [],

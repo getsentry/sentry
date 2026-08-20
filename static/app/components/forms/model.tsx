@@ -410,11 +410,7 @@ export class FormModel {
     return (this.getError(id) || []).length === 0;
   }
 
-  doApiRequest({
-    data,
-  }: {
-    data: Record<PropertyKey, unknown>;
-  }) {
+  doApiRequest({data}: {data: Record<PropertyKey, unknown>}) {
     const endpoint = this.options.apiEndpoint || '';
     const method = this.options.apiMethod;
 

@@ -113,8 +113,7 @@ export function fenceContent(text: string): string {
   const overlapsProtected = (start: number, end: number) =>
     protectedRanges.some(r => start < r.end && end > r.start);
 
-  const candidates = DETECTORS
-    .flatMap(detector => detector.detect(text))
+  const candidates = DETECTORS.flatMap(detector => detector.detect(text))
     .filter(block => !overlapsProtected(block.start, block.end))
     // Earliest first; on a tie prefer the longer block.
     .sort((a, b) => a.start - b.start || b.end - a.end);
