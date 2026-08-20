@@ -39,6 +39,8 @@ import type {RouteBand} from './routeVisits';
 import {buildRouteVisits, ROUTE_OPS} from './routeVisits';
 import type {Row} from './rowConfig';
 import {ROW_CONFIG} from './rowConfig';
+import type {IdleAnalysis} from './timeScale';
+import {findIdlePeriods} from './timeScale';
 
 const REFERRER = 'api.explore.user-session-detail';
 
@@ -282,6 +284,15 @@ export interface SessionDetail {
    * the lanes are used to drive.
    */
   eventsByType: Record<SessionDatasetKey, SessionEvent[]>;
+  /**
+   * Where the session was idle, and how busy it was in between.
+   *
+   * Built from every fetched row rather than from the filtered ones, because the
+   * axis it feeds is a property of the session: one that reflowed as someone typed
+   * in the search box would change the session's shape mid-query, and the shape is
+   * what they are searching *within*.
+   */
+  idle: IdleAnalysis;
   /** True when a filter is hiding rows the session actually has. */
   isFiltered: boolean;
   /** True when any dataset returned a full page, so the timeline may be truncated. */
@@ -436,8 +447,7 @@ export function useSessionDetail(sessionId: string) {
       // Feedback rides on issuePlatform and is best-effort: a failure there must
       // not blank a timeline the other four datasets can still fill.
       isError: results.some(
-        (result, index) =>
-          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+        (result, index) => SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
       ),
     }),
   });
@@ -514,8 +524,7 @@ export function useSessionDetail(sessionId: string) {
       // Feedback rides on issuePlatform and is best-effort: a failure there must
       // not blank a timeline the other four datasets can still fill.
       isError: results.some(
-        (result, index) =>
-          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+        (result, index) => SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
       ),
     }),
   });
@@ -612,6 +621,16 @@ export function useSessionDetail(sessionId: string) {
       return (a.timestamp - b.timestamp) * order;
     });
 
+    // Every fetched item's extent, which is what the idle stretches are the
+    // complement of. Deliberately upstream of the filters below: see `idle`.
+    const activity: SessionRange[] = [];
+    events.forEach(event => {
+      const extent = extentOf(event);
+      if (extent !== undefined) {
+        activity.push(extent);
+      }
+    });
+
     // Filtered before grouping, so a run of same-trace spans is only collapsed
     // out of the rows that survive the filter.
     const selectedTypes = new Set(filters.types);
@@ -695,6 +714,10 @@ export function useSessionDetail(sessionId: string) {
       counts,
       eventsByKey,
       eventsByType,
+      idle:
+        bounds === undefined
+          ? {gaps: [], regions: []}
+          : findIdlePeriods(activity, bounds),
       items: visible,
       loadedEvents: events.length,
       isFiltered: visible.length < events.length,

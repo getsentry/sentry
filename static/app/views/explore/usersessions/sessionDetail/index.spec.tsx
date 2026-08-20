@@ -1070,6 +1070,172 @@ describe('SessionDetailView', () => {
     });
   });
 
+  describe('idle compression', () => {
+    /**
+     * An hour-long session that spends almost all of itself doing nothing: three
+     * logs at the start, three in the middle, three at the end. Two half-hour
+     * stretches of nothing between them, which is the shape the axis exists to
+     * compress.
+     */
+    function mockIdleSession() {
+      const offsets = [0, 1, 2, 1800, 1801, 1802, 3598, 3599, 3600];
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': offsets.length}]);
+      mockDataset(
+        'logs',
+        'rows',
+        offsets.map(offset => ({
+          id: `log${offset}`,
+          message: `log at ${offset}s`,
+          timestamp: new Date(
+            Date.parse('2024-01-01T00:00:00Z') + offset * 1000
+          ).toISOString(),
+        }))
+      );
+    }
+
+    beforeEach(() => {
+      // The toggle is remembered across sessions, so a test that flips it would
+      // otherwise decide what the next one is looking at.
+      localStorage.clear();
+    });
+
+    it('compresses a stretch of nothing into a marked break', async () => {
+      mockIdleSession();
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 1800s')).toBeInTheDocument();
+
+      // Two stretches, each named by how much time it stands for — which is the
+      // whole of what a break has to say, since it has no width to say it in.
+      const breaks = screen.getAllByTestId('session-break');
+      expect(breaks).toHaveLength(2);
+      expect(screen.getByText('30.0m')).toBeInTheDocument();
+      expect(screen.getByText('29.9m')).toBeInTheDocument();
+
+      // A twenty-four pixel band out of the eight hundred the track is assumed to
+      // have before jsdom measures it, which is three percent of the axis for a
+      // stretch that is half of the session.
+      expect(breaks[0]).toHaveStyle({width: '3%'});
+      // The duration rides inside the break rather than beside it, so the cut and
+      // what it stands for cannot be separated by a reflow.
+      expect(within(breaks[0]!).getByText('30.0m')).toBeInTheDocument();
+    });
+
+    it('leaves a session alone when nothing is short of room', async () => {
+      // Three logs five minutes apart. Both stretches between them are long enough
+      // to count as idle — minutes of nothing, twice — and neither is worth a break:
+      // three dots are three dots however the axis is drawn, so the marks either
+      // side have all the room they need already.
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': 3}]);
+      mockDataset('logs', 'rows', [
+        {id: 'log1', message: 'log at 0s', timestamp: '2024-01-01T00:00:00+00:00'},
+        {id: 'log2', message: 'log at 300s', timestamp: '2024-01-01T00:05:00+00:00'},
+        {id: 'log3', message: 'log at 600s', timestamp: '2024-01-01T00:10:00+00:00'},
+      ]);
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 300s')).toBeInTheDocument();
+      expect(screen.queryByTestId('session-break')).not.toBeInTheDocument();
+      // And no switch, because there is nothing it could change.
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('draws the lanes on the compressed axis, not the linear one', async () => {
+      mockIdleSession();
+
+      const {router} = render(<SessionDetailView />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('log at 1800s')).toBeInTheDocument();
+
+      // Drawn linearly, 350px of 1000 is the twenty-first minute — a stretch of
+      // this session where nothing at all happened. Compressed it is where the
+      // middle logs begin, because the half-hour of nothing before them has been
+      // taken out. The click finds them only because the axis moved under it.
+      clickTrack(trackWithGeometry(), {clientX: 350, clientY: laneY('Logs')});
+
+      await waitFor(() => {
+        expect(router.location.query.item).toBe('logs:log1800');
+      });
+    });
+
+    it('expands a break when it is clicked', async () => {
+      mockIdleSession();
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 3600s')).toBeInTheDocument();
+
+      // The first break, which the axis puts between the opening logs and the
+      // middle ones. Clicking it hands that half-hour back rather than opening
+      // anything: the stretch, and a little of what bracketed it, becomes the view.
+      clickTrack(trackWithGeometry(), {clientX: 328, clientY: laneY('Logs')});
+
+      await waitFor(() => {
+        expect(screen.queryByText('log at 3600s')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('log at 0s')).toBeInTheDocument();
+      expect(screen.getByText('log at 1800s')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
+    });
+
+    it('expands a break that is almost the whole session', async () => {
+      // Half an hour with three logs at each end and nothing at all in between,
+      // which is the shape this feature is *for* — and the one where a margin
+      // measured against the stretch overflows the session at both ends. A range
+      // that wide reads as no selection at all, which left the click doing nothing.
+      const offsets = [0, 1, 2, 1798, 1799, 1800];
+      mockEmptyDatasets(['logs']);
+      mockDataset('logs', 'count', [{'count()': offsets.length}]);
+      mockDataset(
+        'logs',
+        'rows',
+        offsets.map(offset => ({
+          id: `log${offset}`,
+          message: `log at ${offset}s`,
+          timestamp: new Date(
+            Date.parse('2024-01-01T00:00:00Z') + offset * 1000
+          ).toISOString(),
+        }))
+      );
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 1798s')).toBeInTheDocument();
+      expect(screen.getAllByTestId('session-break')).toHaveLength(1);
+
+      // The break sits between the two clusters, just under half way across.
+      clickTrack(trackWithGeometry(), {clientX: 500, clientY: laneY('Logs')});
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Reset zoom'})).toBeInTheDocument();
+      });
+      // Narrowed to the stretch itself, so the logs that bracket it are the only
+      // things left at its edges and everything outside has dropped away.
+      expect(screen.queryByText('log at 0s')).not.toBeInTheDocument();
+      expect(screen.queryByText('log at 1800s')).not.toBeInTheDocument();
+    });
+
+    it('gives the axis back when the switch is turned off', async () => {
+      mockIdleSession();
+
+      render(<SessionDetailView />, {organization, initialRouterConfig});
+
+      expect(await screen.findByText('log at 1800s')).toBeInTheDocument();
+      expect(screen.getAllByTestId('session-break')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Compress idle time'}));
+
+      expect(screen.queryByTestId('session-break')).not.toBeInTheDocument();
+    });
+  });
+
   it('filters the rail by a free-text search over title and detail', async () => {
     mockEmptyDatasets(['logs']);
     mockDataset('logs', 'count', [{'count()': 2}]);

@@ -5,12 +5,14 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {IconWindow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
@@ -18,6 +20,8 @@ import {itemKey} from './itemKey';
 import type {RouteBand, RouteVisit} from './routeVisits';
 import {formatDurationMs, formatOffset} from './sessionTime';
 import {TelemetryTypeIcon} from './telemetryTypeIcon';
+import type {IdleAnalysis, ScaleSegment, TimeScale} from './timeScale';
+import {BREAK_PX, buildTimeScale} from './timeScale';
 import type {SessionEvent, SessionRange} from './useSessionDetail';
 
 /**
@@ -105,12 +109,51 @@ const BUCKET_WIDTH = 6;
 const MIN_BUCKETS = 24;
 const MAX_BUCKETS = 160;
 
-/** Bucket count before the track has been measured (first paint, and jsdom). */
-const FALLBACK_BUCKETS = 60;
+/**
+ * Width to assume before the track has been measured (first paint, and jsdom).
+ *
+ * Everything answered in pixels reads this until a real measurement lands — the
+ * bucket count, and whether compressing an idle stretch buys more width than the
+ * break costs — so a chart's first frame is drawn the way its second one will be.
+ */
+const FALLBACK_WIDTH = 800;
 
 /** Roughly the width one axis label needs before its neighbour crowds it. */
 const TICK_SPACING = 130;
 const MAX_TICKS = 7;
+
+/**
+ * How wide a break can be drawn before it stops being one.
+ *
+ * A break says "time was taken out here", and past a few times its own width that
+ * is no longer what is happening: the viewport has been zoomed far enough into the
+ * stretch that the axis is showing it at an ordinary rate again. So the hatch and
+ * its label drop out, and the emptiness speaks for itself — by then the ticks
+ * across it are labelled in real elapsed time.
+ */
+const BREAK_MAX_PX = 3 * BREAK_PX;
+
+/**
+ * How much room a break's label claims either side of it in the axis row. Both it
+ * and a tick's label are centred on their own position, so this is half of one plus
+ * half of the other — enough that the tick nearest a break is dropped rather than
+ * printed half underneath it.
+ */
+const TICK_CLEARANCE_PX = 32;
+
+/**
+ * How much of a break's own duration is kept either side of it when it is clicked
+ * open, and how much of what is left of the session that margin may eat.
+ *
+ * A stretch expanded to exactly its own bounds is a screen with nothing on it, so a
+ * tenth at each end brings in the items that bracket it. The second number is what
+ * keeps that from swallowing the session: a stretch that *is* most of the session
+ * has very little either side of it, and a margin measured only against the stretch
+ * would reach past both ends — which `clampWindow` reads as no selection at all,
+ * leaving the click looking broken on exactly the sessions this feature exists for.
+ */
+const BREAK_MARGIN = 0.1;
+const BREAK_MARGIN_SHARE = 0.25;
 
 /** A drag shorter than this is a click, which means something else. */
 const MIN_DRAG_PX = 4;
@@ -204,6 +247,12 @@ interface Props {
   counts: Record<SessionDatasetKey, number>;
   /** Every plotted item per type, ascending, which is also what a click hits. */
   eventsByType: Record<SessionDatasetKey, SessionEvent[]>;
+  /**
+   * Where the session was idle, and how busy it was between those stretches. What
+   * the axis is built from — see {@link buildTimeScale} for which of these stretches
+   * actually get compressed, and why most sessions have none.
+   */
+  idle: IdleAnalysis;
   onChangeWindow: (window: SessionRange | null) => void;
   onSelectItem: (key: string) => void;
   onToggleType: (key: SessionDatasetKey) => void;
@@ -280,6 +329,7 @@ export function SessionScrubber({
   bounds,
   counts,
   eventsByType,
+  idle,
   routes,
   truncatedByType,
   selectedTypes,
@@ -316,15 +366,70 @@ export function SessionScrubber({
   /** The route segment under the pointer, which is a different aim than an item. */
   const [hoverRoute, setHoverRoute] = useState<RouteVisit | null>(null);
   const anchor = useRef<{clientX: number; timestamp: number} | null>(null);
+  /**
+   * Whether idle stretches are compressed. Kept in local storage rather than in the
+   * URL: it is a preference about how charts are read rather than a property of the
+   * session being looked at, so it should follow the person across sessions instead
+   * of riding along in a link to one.
+   */
+  const [compressIdle, setCompressIdle] = useLocalStorageState(
+    'session-scrubber-compress-idle',
+    true
+  );
 
   /**
-   * The domain everything here is drawn against — the whole session, until one is
-   * zoomed into. `bounds` stays what it always was: the session itself, which is
-   * what every range is clamped to and what the overview strip draws.
+   * The range in view — the whole session, until one is zoomed into. `bounds` stays
+   * what it always was: the session itself, which is what every range is clamped to
+   * and what the overview strip draws.
    */
   const view = pendingView ?? window ?? bounds;
-  const domain = view.end - view.start;
   const isZoomed = view.start > bounds.start || view.end < bounds.end;
+
+  const trackWidth = width > 0 ? width : FALLBACK_WIDTH;
+  const buckets = Math.min(
+    MAX_BUCKETS,
+    Math.max(MIN_BUCKETS, Math.floor(trackWidth / BUCKET_WIDTH))
+  );
+
+  /**
+   * The axis the chart is drawn against, which is not necessarily a straight line:
+   * a session that spent most of itself idle has those stretches compressed to a
+   * marked break, so the width goes to the parts that have something in them.
+   *
+   * Built from the session rather than from the viewport, and deliberately so. The
+   * alternative — re-deciding what counts as idle for whatever is currently on
+   * screen — would reflow the axis under every zoom notch, and a chart whose shape
+   * changes as you look into it cannot be read. Held this way it is a property of
+   * the session: zooming into a break simply magnifies its shallow slope, which
+   * hands the stretch back at an ordinary rate.
+   */
+  const compressed = useMemo(
+    () => buildTimeScale({bounds, idle, width: trackWidth, buckets}),
+    [bounds, buckets, idle, trackWidth]
+  );
+
+  /**
+   * The straight axis, kept alongside the compressed one rather than derived from
+   * the toggle. Building both is what lets the switch be offered only when it would
+   * change something: a session with idle stretches that are not worth compressing
+   * is indistinguishable, from the switch's side, from one with none at all.
+   */
+  const linear = useMemo(
+    () =>
+      buildTimeScale({bounds, idle: {gaps: [], regions: []}, width: trackWidth, buckets}),
+    [bounds, buckets, trackWidth]
+  );
+
+  const scale = compressIdle ? compressed : linear;
+
+  /**
+   * The viewport, in axis units. Every position on the chart is measured from these
+   * two rather than from `view` directly — the axis is what the pixels belong to,
+   * and the timestamps only reach them through it.
+   */
+  const viewStart = scale.toRatio(view.start);
+  // Floored so a viewport that has collapsed to an instant cannot divide by zero.
+  const viewSpan = Math.max(scale.toRatio(view.end) - viewStart, 1e-9);
   const enabled = useMemo(() => new Set(selectedTypes), [selectedTypes]);
   /**
    * What the lane counts and their truncation notes are talking about: a drag's own
@@ -438,11 +543,6 @@ export function SessionScrubber({
     [routePalette]
   );
 
-  const buckets =
-    width > 0
-      ? Math.min(MAX_BUCKETS, Math.max(MIN_BUCKETS, Math.floor(width / BUCKET_WIDTH)))
-      : FALLBACK_BUCKETS;
-
   // Evenly spaced offsets across the session, as many as fit without the labels
   // running into each other.
   const ticks = useMemo(() => {
@@ -451,9 +551,10 @@ export function SessionScrubber({
     return Array.from({length: count}, (_, index) => index / (count - 1));
   }, [width]);
 
+  /** Where a timestamp sits across the track, as a percentage of the viewport. */
   const toPercent = useCallback(
-    (timestamp: number) => ((timestamp - view.start) / domain) * 100,
-    [view.start, domain]
+    (timestamp: number) => ((scale.toRatio(timestamp) - viewStart) / viewSpan) * 100,
+    [scale, viewStart, viewSpan]
   );
 
   /**
@@ -474,16 +575,17 @@ export function SessionScrubber({
    */
   const toBucketCentre = useCallback(
     (timestamp: number) => {
-      if (width === 0 || timestamp < view.start || timestamp > view.start + domain) {
+      if (width === 0) {
         return null;
       }
-      const index = Math.min(
-        buckets - 1,
-        Math.max(0, Math.floor(((timestamp - view.start) / domain) * buckets))
-      );
+      const unit = (scale.toRatio(timestamp) - viewStart) / viewSpan;
+      if (unit < 0 || unit > 1) {
+        return null;
+      }
+      const index = Math.min(buckets - 1, Math.max(0, Math.floor(unit * buckets)));
       return ((index + 0.5) * width) / buckets;
     },
-    [buckets, domain, view.start, width]
+    [buckets, scale, viewSpan, viewStart, width]
   );
 
   const fromClientX = useCallback(
@@ -493,9 +595,9 @@ export function SessionScrubber({
         return view.start;
       }
       const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      return view.start + ratio * domain;
+      return scale.toTime(viewStart + ratio * viewSpan);
     },
-    [view.start, domain]
+    [scale, view.start, viewSpan, viewStart]
   );
 
   /**
@@ -583,23 +685,26 @@ export function SessionScrubber({
         return;
       }
       // Lines in Firefox, and screens on a page-sized gesture.
-      const scale =
+      const perUnit =
         event.deltaMode === 1 ? LINE_HEIGHT_PX : event.deltaMode === 2 ? rect.height : 1;
-      const dy = event.deltaY * scale;
-      const dx = event.deltaX * scale;
+      const dy = event.deltaY * perUnit;
+      const dx = event.deltaX * perUnit;
 
       // Where the gesture has already reached, which is ahead of what is drawn
       // whenever more than one notch landed inside a frame.
       const from = wheelView.current ? (wheelView.current.next ?? bounds) : view;
-      const span = from.end - from.start;
-      const at = from.start + ((event.clientX - rect.left) / rect.width) * span;
+      const fromStart = scale.toRatio(from.start);
+      const fromSpan = scale.toRatio(from.end) - fromStart;
+      const at = scale.toTime(
+        fromStart + ((event.clientX - rect.left) / rect.width) * fromSpan
+      );
 
       const next =
         event.shiftKey || Math.abs(dx) > Math.abs(dy)
           ? // Shift is reported as a horizontal delta by some browsers and a
             // vertical one by others, so whichever axis arrived is the pan.
-            panView(from, bounds, ((dx === 0 ? dy : dx) / rect.width) * span)
-          : zoomView(from, bounds, at, Math.exp(dy * ZOOM_PER_PIXEL));
+            panView(from, bounds, scale, ((dx === 0 ? dy : dx) / rect.width) * fromSpan)
+          : zoomView(from, bounds, scale, at, Math.exp(dy * ZOOM_PER_PIXEL));
 
       // Only claim the gesture when it actually moves something. Zooming out at the
       // full extent, or in at the floor, changes nothing — and swallowing the
@@ -627,7 +732,7 @@ export function SessionScrubber({
         });
       }
     },
-    [bounds, setView, view]
+    [bounds, scale, setView, view]
   );
 
   /**
@@ -679,19 +784,25 @@ export function SessionScrubber({
       }
 
       const at = fromClientX(clientX);
-      const toleranceMs = (HIT_TOLERANCE_PX / rect.width) * domain;
+      // The tolerance is a distance on screen, which on a compressed axis is not a
+      // fixed number of milliseconds — so it is read off the axis rather than
+      // computed against the domain: these are the times a few pixels either side
+      // of the pointer.
+      const from = fromClientX(clientX - HIT_TOLERANCE_PX);
+      const to = fromClientX(clientX + HIT_TOLERANCE_PX);
 
       let covering: SessionEvent | undefined;
       let coveringDuration = Infinity;
       let nearest: SessionEvent | undefined;
       let nearestDistance = Infinity;
+      let nearestStart = Infinity;
 
       eventsByType[config.key].forEach(event => {
         const extent = extentOf(event);
         if (!extent) {
           return;
         }
-        if (at >= extent.start - toleranceMs && at <= extent.end + toleranceMs) {
+        if (extent.start <= to && extent.end >= from) {
           const duration = extent.end - extent.start;
           if (duration < coveringDuration) {
             covering = event;
@@ -702,18 +813,21 @@ export function SessionScrubber({
         if (distance < nearestDistance) {
           nearest = event;
           nearestDistance = distance;
+          nearestStart = extent.start;
         }
       });
 
       const found =
-        covering ?? (nearestDistance <= toleranceMs ? nearest : undefined) ?? undefined;
+        covering ??
+        (nearestStart >= from && nearestStart <= to ? nearest : undefined) ??
+        undefined;
       if (!found) {
         return null;
       }
       const key = itemKey(found);
       return key === undefined ? null : {event: found, key, laneIndex};
     },
-    [enabled, eventsByType, fromClientX, domain, laneTop, visibleLanes]
+    [enabled, eventsByType, fromClientX, laneTop, visibleLanes]
   );
 
   /**
@@ -738,6 +852,52 @@ export function SessionScrubber({
       return routeVisits.find(visit => at >= visit.start && at <= visit.end) ?? null;
     },
     [fromClientX, hasRoutes, routeTop, routeVisits]
+  );
+
+  /**
+   * The breaks to draw, and where across the track they land.
+   *
+   * A break only exists while the stretch it stands for is actually compressed. Zoom
+   * far enough into one and the axis is handing that time back at an ordinary rate,
+   * at which point a hatch across the whole viewport would be claiming something
+   * that is no longer true — so it drops out, and the ticks over it take the
+   * explaining.
+   */
+  const breaks = useMemo(
+    () =>
+      scale.idle
+        .map(segment => {
+          const left = toPercent(segment.start);
+          const right = toPercent(segment.end);
+          return {
+            segment,
+            left,
+            right,
+            fromPx: (left / 100) * trackWidth,
+            toPx: (right / 100) * trackWidth,
+          };
+        })
+        .filter(
+          item =>
+            item.left < 100 && item.right > 0 && item.toPx - item.fromPx <= BREAK_MAX_PX
+        ),
+    [scale.idle, toPercent, trackWidth]
+  );
+
+  /**
+   * The break under the pointer, if any. Asked without a `y` because a break runs
+   * the full height of the track: it is time the axis took out, which is not
+   * something one lane can be missing and another have.
+   */
+  const breakAt = useCallback(
+    (clientX: number): ScaleSegment | null => {
+      const at = fromClientX(clientX);
+      return (
+        breaks.find(item => at >= item.segment.start && at <= item.segment.end)
+          ?.segment ?? null
+      );
+    },
+    [breaks, fromClientX]
   );
 
   /** Where the open item sits, so its lane can mark it. */
@@ -806,6 +966,24 @@ export function SessionScrubber({
     // several gestures, and throwing that away on a mis-aimed click is not a trade
     // worth making. The strip above, `Escape`, and scrolling back out are the ways
     // out, and unlike a click they are all things you meant.
+    // A break stands for time the axis took out, so a press on one puts it back.
+    // Checked before the route band because a break crosses it: the segment under a
+    // break is unreadable there anyway, and the stretch is the more specific answer
+    // to what was clicked.
+    const removed = breakAt(event.clientX);
+    if (removed) {
+      const span = removed.end - removed.start;
+      const margin = Math.min(
+        span * BREAK_MARGIN,
+        Math.max(0, (bounds.end - bounds.start - span) * BREAK_MARGIN_SHARE)
+      );
+      setView(
+        clampWindow({start: removed.start - margin, end: removed.end + margin}, bounds),
+        false
+      );
+      return;
+    }
+
     const visit = routeAt(event.clientX, event.clientY);
     if (visit) {
       setView(clampWindow({start: visit.start, end: visit.end}, bounds), false);
@@ -825,21 +1003,20 @@ export function SessionScrubber({
    * -session behaviour rather than reimplementing them a step out of date.
    */
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const step = domain / 8;
-    const centre = view.start + domain / 2;
+    const centre = scale.toTime(viewStart + viewSpan / 2);
 
     switch (event.key) {
       case 'ArrowRight':
-        setView(panView(view, bounds, step), false);
+        setView(panView(view, bounds, scale, viewSpan / 8), false);
         break;
       case 'ArrowLeft':
-        setView(panView(view, bounds, -step), false);
+        setView(panView(view, bounds, scale, -viewSpan / 8), false);
         break;
       case 'ArrowUp':
-        setView(zoomView(view, bounds, centre, 0.75), false);
+        setView(zoomView(view, bounds, scale, centre, 0.75), false);
         break;
       case 'ArrowDown':
-        setView(zoomView(view, bounds, centre, 4 / 3), false);
+        setView(zoomView(view, bounds, scale, centre, 4 / 3), false);
         break;
       case 'Escape':
       case 'Home':
@@ -865,31 +1042,52 @@ export function SessionScrubber({
           view={view}
           events={overviewEvents}
           buckets={buckets}
+          scale={scale}
           onChangeView={commitView}
         />
 
         <TimeHeader />
 
         <Axis>
-          {ticks.map(ratio => (
-            <Tick
-              key={ratio}
-              style={{
-                left: `${ratio * 100}%`,
-                // The end labels tuck inside the track instead of hanging off it.
-                transform: `translate(${ratio === 0 ? '0%' : ratio === 1 ? '-100%' : '-50%'}, -50%)`,
-              }}
-            >
-              {/*
-                Offsets from the session's start, not from the viewport's. A zoomed
-                axis labelled 0 would be a different clock than the rail's, and the
-                whole point of the ticks once zoomed is saying *where* you are.
-              */}
-              <Text size="xs" variant="muted" tabular>
-                {formatOffset(view.start - bounds.start + domain * ratio)}
-              </Text>
-            </Tick>
-          ))}
+          {ticks.map(ratio => {
+            // Read back through the axis rather than interpolated across it: with a
+            // stretch compressed, evenly spaced ticks are no longer evenly spaced
+            // times, and saying so is the point of labelling them at all.
+            const at = scale.toTime(viewStart + viewSpan * ratio);
+            // Dropped *near* a break rather than only inside one. A tick inside would
+            // name a single instant out of a stretch that is not drawn as instants,
+            // and one just outside would print half underneath the break's own
+            // label — which now sits in this row.
+            const x = ratio * trackWidth;
+            if (
+              breaks.some(
+                item =>
+                  x >= item.fromPx - TICK_CLEARANCE_PX &&
+                  x <= item.toPx + TICK_CLEARANCE_PX
+              )
+            ) {
+              return null;
+            }
+            return (
+              <Tick
+                key={ratio}
+                style={{
+                  left: `${ratio * 100}%`,
+                  // The end labels tuck inside the track instead of hanging off it.
+                  transform: `translate(${ratio === 0 ? '0%' : ratio === 1 ? '-100%' : '-50%'}, -50%)`,
+                }}
+              >
+                {/*
+                  Offsets from the session's start, not from the viewport's. A zoomed
+                  axis labelled 0 would be a different clock than the rail's, and the
+                  whole point of the ticks once zoomed is saying *where* you are.
+                */}
+                <Text size="xs" variant="muted" tabular>
+                  {formatOffset(at - bounds.start)}
+                </Text>
+              </Tick>
+            );
+          })}
         </Axis>
 
         {hasRoutes && (
@@ -925,8 +1123,9 @@ export function SessionScrubber({
           visits={hasRoutes ? routeVisits : EMPTY_VISITS}
           routeColor={routeColor}
           buckets={buckets}
-          domain={domain}
-          start={view.start}
+          scale={scale}
+          viewStart={viewStart}
+          viewSpan={viewSpan}
           width={width}
           firstLaneRow={firstLaneRow}
           tint={theme.tokens.background.transparent.neutral.muted}
@@ -1011,6 +1210,24 @@ export function SessionScrubber({
             the lanes are drawn against, so there is no longer an outside to veil —
             where the viewport sits within the session is the strip's job.
           */}
+          {/*
+            Drawn first, so a selection's veil and every highlight land on top: a
+            break is part of the axis rather than something laid over it.
+          */}
+          {breaks.map(({segment, left, right}) => {
+            const from = Math.max(0, left);
+            const duration = formatDurationMs(segment.end - segment.start);
+            return (
+              <Break
+                key={segment.start}
+                data-test-id="session-break"
+                title={t('%s with no telemetry. Click to expand.', duration)}
+                style={{left: `${from}%`, width: `${Math.min(100, right) - from}%`}}
+              >
+                <BreakLabel>{duration}</BreakLabel>
+              </Break>
+            );
+          })}
           {draft && (
             <Fragment>
               <Veil style={{left: 0, width: `${toPercent(draft.start)}%`}} />
@@ -1081,6 +1298,22 @@ export function SessionScrubber({
                 )}
         </Text>
         <Flex flex="1" />
+        {/*
+          Offered only when the session has stretches long enough to be worth
+          compressing, which most do not. A switch that cannot change anything is a
+          worse answer than no switch.
+        */}
+        {compressed.isCompressed && (
+          <Flex as="label" align="center" gap="sm">
+            <Switch
+              checked={compressIdle}
+              onChange={() => setCompressIdle(current => !current)}
+            />
+            <Text size="xs" variant="muted">
+              {t('Compress idle time')}
+            </Text>
+          </Flex>
+        )}
         {isZoomed && (
           <Button size="xs" onClick={() => setView(null, false)}>
             {t('Reset zoom')}
@@ -1271,6 +1504,11 @@ function clampWindow(range: SessionRange, bounds: SessionRange): SessionRange | 
 /**
  * Scales the viewport about a point, and keeps it inside the session.
  *
+ * Stepped along the axis rather than through time, which is what keeps a notch worth
+ * the same *distance* wherever it lands: a compressed axis spends a couple of dozen
+ * pixels on a stretch of minutes, and a zoom measured in milliseconds would crawl
+ * across the busy parts of a session and leap across the quiet ones.
+ *
  * `focus` holds its place in the viewport, which is what makes a wheel zoom feel
  * aimed rather than approximate: the timestamp under the pointer is still under the
  * pointer afterwards, so the thing being zoomed into does not slide out from under
@@ -1283,31 +1521,70 @@ function clampWindow(range: SessionRange, bounds: SessionRange): SessionRange | 
 function zoomView(
   view: SessionRange,
   bounds: SessionRange,
+  scale: TimeScale,
   focus: number,
   factor: number
 ): SessionRange | null {
-  const span = view.end - view.start;
-  const next = Math.max(MIN_VIEW_MS, Math.min(bounds.end - bounds.start, span * factor));
-  const ratio = span === 0 ? 0.5 : (focus - view.start) / span;
-  let start = focus - next * ratio;
-  if (start + next > bounds.end) {
-    start = bounds.end - next;
+  const from = scale.toRatio(view.start);
+  const span = scale.toRatio(view.end) - from;
+  const next = Math.min(1, span * factor);
+  const focusAt = scale.toRatio(focus);
+  const ratio = span <= 0 ? 0.5 : (focusAt - from) / span;
+  let start = focusAt - next * ratio;
+  if (start + next > 1) {
+    start = 1 - next;
   }
-  if (start < bounds.start) {
-    start = bounds.start;
+  if (start < 0) {
+    start = 0;
   }
-  return clampWindow({start, end: start + next}, bounds);
+  return clampWindow(
+    withMinSpan(
+      {start: scale.toTime(start), end: scale.toTime(start + next)},
+      bounds,
+      focus
+    ),
+    bounds
+  );
 }
 
-/** Slides the viewport without resizing it. */
+/**
+ * The floor on a viewport, applied once the axis has had its say.
+ *
+ * It cannot be applied before: a step along a compressed stretch is worth minutes,
+ * so the same fraction of the axis is a different number of milliseconds depending
+ * on where it lands. So the floor is imposed in time, about the point the gesture
+ * was aimed at, and slid back inside the session.
+ */
+function withMinSpan(
+  range: SessionRange,
+  bounds: SessionRange,
+  focus: number
+): SessionRange {
+  if (range.end - range.start >= MIN_VIEW_MS) {
+    return range;
+  }
+  const half = MIN_VIEW_MS / 2;
+  const centre = Math.min(
+    Math.max(focus, bounds.start + half),
+    Math.max(bounds.start + half, bounds.end - half)
+  );
+  return {start: centre - half, end: centre + half};
+}
+
+/** Slides the viewport without resizing it, by a distance along the axis. */
 function panView(
   view: SessionRange,
   bounds: SessionRange,
-  byMs: number
+  scale: TimeScale,
+  byRatio: number
 ): SessionRange | null {
-  const span = view.end - view.start;
-  const start = Math.max(bounds.start, Math.min(view.start + byMs, bounds.end - span));
-  return clampWindow({start, end: start + span}, bounds);
+  const from = scale.toRatio(view.start);
+  const span = scale.toRatio(view.end) - from;
+  const start = Math.max(0, Math.min(from + byRatio, Math.max(0, 1 - span)));
+  return clampWindow(
+    {start: scale.toTime(start), end: scale.toTime(start + span)},
+    bounds
+  );
 }
 
 /**
@@ -1606,12 +1883,19 @@ const Overview = memo(function OverviewImpl({
   view,
   events,
   buckets,
+  scale,
   onChangeView,
 }: {
   bounds: SessionRange;
   buckets: number;
   events: SessionEvent[];
   onChangeView: (next: SessionRange | null) => void;
+  /**
+   * The same axis the lanes are drawn against. The strip has to share it or the
+   * frame it draws would sit at a different place in the session than the range it
+   * stands for.
+   */
+  scale: TimeScale;
   view: SessionRange;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -1634,7 +1918,6 @@ const Overview = memo(function OverviewImpl({
    */
   const [cursor, setCursor] = useState(cursorFor(null));
 
-  const domain = bounds.end - bounds.start;
   /**
    * With the whole session in view the frame *is* the strip, so there is nothing to
    * carry anywhere and every drag is a fresh selection. Grabbing only becomes a
@@ -1642,21 +1925,23 @@ const Overview = memo(function OverviewImpl({
    */
   const isZoomed = view.start > bounds.start || view.end < bounds.end;
 
+  /** How far along the strip a pointer is, which is also how far along the axis. */
+  const ratioFromClientX = useCallback((clientX: number) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) {
+      return 0;
+    }
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  }, []);
+
   const fromClientX = useCallback(
-    (clientX: number) => {
-      const rect = ref.current?.getBoundingClientRect();
-      if (!rect || rect.width === 0) {
-        return bounds.start;
-      }
-      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      return bounds.start + ratio * domain;
-    },
-    [bounds.start, domain]
+    (clientX: number) => scale.toTime(ratioFromClientX(clientX)),
+    [ratioFromClientX, scale]
   );
 
   const toPercent = useCallback(
-    (timestamp: number) => ((timestamp - bounds.start) / domain) * 100,
-    [bounds.start, domain]
+    (timestamp: number) => scale.toRatio(timestamp) * 100,
+    [scale]
   );
 
   /**
@@ -1673,7 +1958,7 @@ const Overview = memo(function OverviewImpl({
       }
       const index = Math.min(
         buckets - 1,
-        Math.max(0, Math.floor(((event.timestamp - bounds.start) / domain) * buckets))
+        Math.max(0, Math.floor(scale.toRatio(event.timestamp) * buckets))
       );
       counts[index]! += 1;
     });
@@ -1686,7 +1971,7 @@ const Overview = memo(function OverviewImpl({
         index,
         opacity: 0.35 + 0.65 * Math.pow(count / max, 0.55),
       }));
-  }, [events, buckets, bounds.start, domain]);
+  }, [events, buckets, scale]);
 
   /**
    * What a press at this point would take hold of, in pixels rather than in time. A
@@ -1759,11 +2044,11 @@ const Overview = memo(function OverviewImpl({
       if (!rect || rect.width === 0) {
         return;
       }
-      // Measured raw rather than through `fromClientX`, which clamps to the strip:
-      // two clamped ends would quietly shorten every drag that overshoots an edge,
-      // and the range itself is already held inside the session by `panView`.
-      const by = ((event.clientX - start.clientX) / rect.width) * domain;
-      setDraft(panView(start.from, bounds, by) ?? bounds);
+      // Measured raw rather than through `ratioFromClientX`, which clamps to the
+      // strip: two clamped ends would quietly shorten every drag that overshoots an
+      // edge, and the range itself is already held inside the session by `panView`.
+      const by = (event.clientX - start.clientX) / rect.width;
+      setDraft(panView(start.from, bounds, scale, by) ?? bounds);
       return;
     }
     const from = fromClientX(start.clientX);
@@ -1788,8 +2073,14 @@ const Overview = memo(function OverviewImpl({
       // move as the drag, for when the distance is far enough that dragging it is a
       // chore. On the frame it leaves it where it is: the gesture it began was a
       // carry or a pull on one end, and neither has a destination at zero distance.
-      const span = view.end - view.start;
-      next = panView(view, bounds, fromClientX(event.clientX) - (view.start + span / 2));
+      const from = scale.toRatio(view.start);
+      const span = scale.toRatio(view.end) - from;
+      next = panView(
+        view,
+        bounds,
+        scale,
+        ratioFromClientX(event.clientX) - (from + span / 2)
+      );
       onChangeView(next);
     }
 
@@ -1817,6 +2108,20 @@ const Overview = memo(function OverviewImpl({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
+      {/*
+        The strip draws the whole session on the same axis the lanes use, so it has
+        to say where that axis was cut — otherwise it is the one place on the chart
+        claiming the session is evenly spaced.
+      */}
+      {scale.idle.map(segment => (
+        <OverviewIdle
+          key={segment.start}
+          style={{
+            left: `${segment.u0 * 100}%`,
+            width: `${(segment.u1 - segment.u0) * 100}%`,
+          }}
+        />
+      ))}
       <OverviewTicks ticks={ticks} buckets={buckets} />
       <OverviewShade style={{left: 0, width: `${left}%`}} />
       <OverviewShade style={{left: `${right}%`, right: 0}} />
@@ -1894,19 +2199,21 @@ const LaneCanvas = memo(function LaneCanvasImpl({
   visits,
   routeColor,
   buckets,
-  domain,
-  start,
+  scale,
+  viewStart,
+  viewSpan,
   width,
   firstLaneRow,
   tint,
 }: {
   buckets: number;
-  domain: number;
   firstLaneRow: number;
   lanes: Array<{color: string; events: SessionEvent[]; isOn: boolean}>;
   routeColor: (visit: RouteVisit) => string;
-  start: number;
+  scale: TimeScale;
   tint: string;
+  viewSpan: number;
+  viewStart: number;
   visits: RouteVisit[];
   width: number;
 }) {
@@ -1935,7 +2242,9 @@ const LaneCanvas = memo(function LaneCanvasImpl({
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
 
-    const toX = (timestamp: number) => ((timestamp - start) / domain) * width;
+    const toUnit = (timestamp: number) =>
+      (scale.toRatio(timestamp) - viewStart) / viewSpan;
+    const toX = (timestamp: number) => toUnit(timestamp) * width;
 
     // The route's reach into the lanes, painted first so the marks land on top.
     visits.forEach((visit, index) => {
@@ -1969,7 +2278,7 @@ const LaneCanvas = memo(function LaneCanvasImpl({
 
       if (hasDurations(lane.events)) {
         context.globalAlpha *= 0.75;
-        for (const bar of durationBars(lane.events, domain, start)) {
+        for (const bar of durationBars(lane.events, toUnit)) {
           const left = bar.left * width;
           const barWidth = Math.max(BAR_MIN_PX, bar.width * width);
           context.beginPath();
@@ -1986,7 +2295,7 @@ const LaneCanvas = memo(function LaneCanvasImpl({
       }
 
       const bucketWidth = width / buckets;
-      for (const mark of densityMarks(lane.events, buckets, domain, start)) {
+      for (const mark of densityMarks(lane.events, buckets, toUnit)) {
         // Centred on its bucket, so a lone marker sits where the item is rather
         // than at the left edge of the slice it fell into.
         const centre = (mark.index + 0.5) * bucketWidth;
@@ -2005,7 +2314,18 @@ const LaneCanvas = memo(function LaneCanvasImpl({
     });
 
     context.globalAlpha = 1;
-  }, [lanes, visits, routeColor, buckets, domain, start, width, height, tint]);
+  }, [
+    lanes,
+    visits,
+    routeColor,
+    buckets,
+    scale,
+    viewStart,
+    viewSpan,
+    width,
+    height,
+    tint,
+  ]);
 
   return (
     <LaneSurface
@@ -2030,25 +2350,23 @@ function hasDurations(events: SessionEvent[]): boolean {
  */
 function durationBars(
   events: SessionEvent[],
-  domain: number,
-  start: number
+  toUnit: (timestamp: number) => number
 ): Array<{left: number; width: number}> {
   const bars: Array<{left: number; width: number}> = [];
   for (const event of events) {
     if (event.timestamp === undefined) {
       continue;
     }
+    const left = toUnit(event.timestamp);
+    const right = toUnit(event.timestamp + (event.duration ?? 0));
     // Culled rather than drawn and clipped: off-screen bars cost a path each.
-    if (
-      event.timestamp + (event.duration ?? 0) < start ||
-      event.timestamp > start + domain
-    ) {
+    if (right < 0 || left > 1) {
       continue;
     }
-    bars.push({
-      left: (event.timestamp - start) / domain,
-      width: (event.duration ?? 0) / domain,
-    });
+    // A bar is never drawn across a break: a compressed stretch is one with nothing
+    // in it, so no item's extent reaches into one. Its width is therefore read at
+    // one scale, whatever the rest of the axis is doing.
+    bars.push({left, width: right - left});
   }
   return bars;
 }
@@ -2066,27 +2384,22 @@ function durationBars(
 function densityMarks(
   events: SessionEvent[],
   buckets: number,
-  domain: number,
-  start: number
+  toUnit: (timestamp: number) => number
 ): Array<{height: number; index: number}> {
   const counts = Array.from<number>({length: buckets}).fill(0);
-  const end = start + domain;
   for (const event of events) {
-    // Dropped rather than clamped. The index clamp below is there for the item
-    // landing exactly on `end`; letting it absorb everything *outside* the
-    // viewport as well would pile the session's other half into the first bucket
-    // and invent a burst at each edge of every zoom.
-    if (
-      event.timestamp === undefined ||
-      event.timestamp < start ||
-      event.timestamp > end
-    ) {
+    if (event.timestamp === undefined) {
       continue;
     }
-    const index = Math.min(
-      buckets - 1,
-      Math.max(0, Math.floor(((event.timestamp - start) / domain) * buckets))
-    );
+    const unit = toUnit(event.timestamp);
+    // Dropped rather than clamped. The index clamp below is there for the item
+    // landing exactly on the viewport's end; letting it absorb everything *outside*
+    // the viewport as well would pile the session's other half into the first bucket
+    // and invent a burst at each edge of every zoom.
+    if (unit < 0 || unit > 1) {
+      continue;
+    }
+    const index = Math.min(buckets - 1, Math.max(0, Math.floor(unit * buckets)));
     counts[index]! += 1;
   }
 
@@ -2142,6 +2455,35 @@ const Chart = styled('div')<{hasRoutes: boolean; laneCount: number}>`
   --scrubber-label-padding: ${p => p.theme.space.lg};
   --scrubber-label-hover: ${p => p.theme.tokens.background.secondary};
   --scrubber-tick-padding: ${p => p.theme.space.xs};
+
+  /*
+   * How a compressed stretch is drawn, in both of the places one is drawn: the
+   * track and the strip above it.
+   *
+   * Three quiet signals rather than one loud one, and the balance between them is
+   * the whole design. A flat surface change carries most of it — a compressed
+   * stretch holds no marks, so saying it is not plot area is both the clearest
+   * reading and a true one. One step down from the panel's own surface is enough for
+   * that; the depth token below it turned the band into a slab, which is a lot of
+   * emphasis for time where nothing happened. The hatch over it only has to confirm
+   * the surface, so it is sparse and faint. The edges are the same rule the lanes
+   * are closed with, which is what makes the band read as part of the chart.
+   *
+   * Both are mixed from the *text* colour rather than from a border tone: a rule
+   * that reads quietly on white all but disappears on the dark ground, while the
+   * colour the chart's own labels are set in has to carry in both by definition.
+   *
+   * (No backticks in here: this comment is inside a template literal, and one would
+   * end it.)
+   */
+  --scrubber-cut-surface: ${p => p.theme.tokens.background.secondary};
+  --scrubber-cut-hatch: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    color-mix(in srgb, ${p => p.theme.tokens.content.secondary} 18%, transparent) 5px,
+    color-mix(in srgb, ${p => p.theme.tokens.content.secondary} 18%, transparent) 6px
+  );
 `;
 
 /**
@@ -2251,6 +2593,15 @@ const OverviewTick = styled('div')`
   bottom: 3px;
   width: 1px;
   background: var(--scrubber-tick-color);
+`;
+
+/** A stretch the axis compressed, drawn the same way the track's breaks are. */
+const OverviewIdle = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: var(--scrubber-cut-surface);
+  background-image: var(--scrubber-cut-hatch);
 `;
 
 /** Outside the viewport, which here is most of the strip most of the time. */
@@ -2427,6 +2778,58 @@ const Window = styled('div')`
     transparent
   );
   pointer-events: none;
+`;
+
+/**
+ * Time the axis took out, said with a hatch rather than with an absence.
+ *
+ * Runs from the axis down through every lane, because what it cuts is the whole
+ * chart: a break that stopped short of the lanes would read as the user staying on
+ * one page while the lanes below carried on without them.
+ *
+ * The one overlay here that takes the pointer. It carries its own tooltip and its
+ * own cursor, and a press still reaches the track underneath — pointer events
+ * bubble, so the gesture is handled in the one place every other gesture is.
+ */
+const Break = styled('div')`
+  position: absolute;
+  /*
+   * From the very top of the track, which is the axis row rather than the first
+   * lane. The axis is the thing that was cut, so the cut has to run through the
+   * times as well as through what is plotted against them — stopping below them
+   * left the row of offsets reading as though it ran evenly across the session.
+   */
+  top: 0;
+  bottom: 0;
+  cursor: zoom-in;
+  border-left: 1px solid var(--scrubber-rule);
+  border-right: 1px solid var(--scrubber-rule);
+  background-color: var(--scrubber-cut-surface);
+  background-image: var(--scrubber-cut-hatch);
+`;
+
+/**
+ * How much time the break stands for, in the axis row the cut now runs through —
+ * where a time already belongs, and the only row with the height to carry text.
+ *
+ * Centred on a band two dozen pixels wide, so it overhangs both sides; the frame
+ * clips it at the chart's edge, which is the same bargain the guide's own label
+ * makes. It carries the cut's own surface as its background, so it reads as a patch
+ * left clear in the hatch rather than as a chip laid over it.
+ */
+const BreakLabel = styled('span')`
+  position: absolute;
+  top: ${HEADER_HEIGHT / 2}px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.xs};
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding: 0 ${p => p.theme.space['2xs']};
+  border-radius: ${p => p.theme.radius.xs};
+  background: var(--scrubber-cut-surface);
+  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 /**

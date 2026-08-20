@@ -48,6 +48,7 @@ export default function SessionDetailView() {
     eventsByKey,
     eventsByType,
     filters,
+    idle,
     isFiltered,
     isTruncated,
     isPending,
@@ -100,6 +101,7 @@ export default function SessionDetailView() {
       bounds={bounds}
       counts={counts}
       eventsByType={eventsByType}
+      idle={idle}
       routes={routes}
       truncatedByType={truncatedByType}
       selectedTypes={filters.types}
