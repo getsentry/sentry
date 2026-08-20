@@ -218,20 +218,22 @@ function FilterActions({
               },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
             })),
-          enabled: hasPredefined || ctx.state === 'selected',
+          enabled: ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource = (tags: Tag[], cacheKey: string) => (_q: string) =>
-    // Feed query in key ensures onAction closures reference the current query.
-    // eslint-disable-next-line @tanstack/query/exhaustive-deps
-    cmdkQueryOptions({
-      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-      queryFn: () => tags.map(makeFilterKeyItem),
-      staleTime: Infinity,
-    });
+  const makeSectionResource =
+    (tags: Tag[], cacheKey: string) => (_q: string, ctx: CMDKResourceContext) =>
+      // Feed query in key ensures onAction closures reference the current query.
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      cmdkQueryOptions({
+        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+        queryFn: () => tags.map(makeFilterKeyItem),
+        enabled: ctx.state === 'selected',
+        staleTime: Infinity,
+      });
 
   return (
     <CMDKAction.Group

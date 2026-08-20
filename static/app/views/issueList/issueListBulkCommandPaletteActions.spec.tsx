@@ -146,6 +146,18 @@ describe('IssueListBulkCommandPaletteActions', () => {
     expect(issueFeedLabels).toContain('Filter by');
     expect(issueFeedLabels).toContain('Mark all issues as');
 
+    const filterByNode = issueFeedNode!.children.find(
+      child => child.display.label === 'Filter by'
+    );
+    const issueFiltersNode = filterByNode?.children.find(
+      child => child.display.label === 'Issues' && 'resource' in child
+    );
+    expect(issueFiltersNode).toBeDefined();
+    if (issueFiltersNode && 'resource' in issueFiltersNode) {
+      expect(issueFiltersNode.resource('', {state: undefined}).enabled).toBe(false);
+      expect(issueFiltersNode.resource('', {state: 'selected'}).enabled).toBe(true);
+    }
+
     const markAllNode = issueFeedNode!.children.find(
       child => child.display.label === 'Mark all issues as'
     );
