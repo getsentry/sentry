@@ -738,6 +738,33 @@ describe('SessionDetailView', () => {
     });
   });
 
+  it('brings the empty lanes back when the setting is turned off', async () => {
+    mockEmptyDatasets(['logs']);
+    mockDataset('logs', 'count', [{'count()': 2}]);
+    mockDataset('logs', 'rows', [
+      {id: 'log1', message: 'early log', timestamp: '2024-01-01T00:00:00+00:00'},
+      {id: 'log2', message: 'late log', timestamp: '2024-01-01T00:01:00+00:00'},
+    ]);
+
+    render(<SessionDetailView />, {organization, initialRouterConfig});
+
+    expect(await screen.findByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Errors 0'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Timeline settings'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Hide empty telemetry/})
+    );
+
+    // Every lane the session could have had is drawn now, flat at zero, so the
+    // chart says what the session has none of as well as what it has.
+    expect(await screen.findByRole('button', {name: 'Errors 0'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Traces 0'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Metrics 0'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Feedback 0'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Logs 2'})).toBeInTheDocument();
+  });
+
   it('keeps an emptied lane while a window is what emptied it', async () => {
     // The lanes follow the session rather than the viewport: a zoom that leaves a
     // lane with nothing in it has to leave the lane there, or the chart would
@@ -1222,7 +1249,7 @@ describe('SessionDetailView', () => {
       expect(screen.queryByText('log at 1800s')).not.toBeInTheDocument();
     });
 
-    it('gives the axis back when the switch is turned off', async () => {
+    it('gives the axis back when the setting is turned off', async () => {
       mockIdleSession();
 
       render(<SessionDetailView />, {organization, initialRouterConfig});
@@ -1230,7 +1257,10 @@ describe('SessionDetailView', () => {
       expect(await screen.findByText('log at 1800s')).toBeInTheDocument();
       expect(screen.getAllByTestId('session-break')).toHaveLength(2);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Compress idle time'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Timeline settings'}));
+      await userEvent.click(
+        await screen.findByRole('option', {name: /Compress inactive time/})
+      );
 
       expect(screen.queryByTestId('session-break')).not.toBeInTheDocument();
     });

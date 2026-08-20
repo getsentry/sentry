@@ -5,14 +5,12 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {IconWindow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {SessionDatasetKey} from 'sentry/views/explore/usersessions/datasets';
 import {SESSION_DATASETS} from 'sentry/views/explore/usersessions/datasets';
 
@@ -20,6 +18,7 @@ import {itemKey} from './itemKey';
 import type {RouteBand, RouteVisit} from './routeVisits';
 import {formatDurationMs, formatOffset} from './sessionTime';
 import {TelemetryTypeIcon} from './telemetryTypeIcon';
+import {TimelineSettings} from './timelineSettings';
 import type {IdleAnalysis, ScaleSegment, TimeScale} from './timeScale';
 import {BREAK_PX, buildTimeScale} from './timeScale';
 import type {SessionEvent, SessionRange} from './useSessionDetail';
@@ -367,15 +366,16 @@ export function SessionScrubber({
   const [hoverRoute, setHoverRoute] = useState<RouteVisit | null>(null);
   const anchor = useRef<{clientX: number; timestamp: number} | null>(null);
   /**
-   * Whether idle stretches are compressed. Kept in local storage rather than in the
-   * URL: it is a preference about how charts are read rather than a property of the
-   * session being looked at, so it should follow the person across sessions instead
-   * of riding along in a link to one.
+   * How the chart is drawn, as opposed to what it is drawn from. Both come from the
+   * settings menu below the lanes, and both are on by default: the shapes are what
+   * the timeline is read for, and the defaults are what give them the most width.
+   *
+   * Held here rather than in the URL or in local storage. It is a preference about
+   * reading charts rather than a property of the session, so it has no business in a
+   * link to one — and until the pair has settled it is not worth outliving the page.
    */
-  const [compressIdle, setCompressIdle] = useLocalStorageState(
-    'session-scrubber-compress-idle',
-    true
-  );
+  const [compressIdle, setCompressIdle] = useState(true);
+  const [hideEmptyLanes, setHideEmptyLanes] = useState(true);
 
   /**
    * The range in view — the whole session, until one is zoomed into. `bounds` stays
@@ -409,10 +409,9 @@ export function SessionScrubber({
   );
 
   /**
-   * The straight axis, kept alongside the compressed one rather than derived from
-   * the toggle. Building both is what lets the switch be offered only when it would
-   * change something: a session with idle stretches that are not worth compressing
-   * is indistinguishable, from the switch's side, from one with none at all.
+   * The straight axis, kept alongside the compressed one rather than rebuilt when
+   * the toggle flips. Both are cheap and neither depends on the setting, so holding
+   * the pair makes switching between them a re-render rather than a recompute.
    */
   const linear = useMemo(
     () =>
@@ -455,11 +454,19 @@ export function SessionScrubber({
    * Nothing counted anywhere leaves every lane in place. That is rows without
    * aggregates, which only a failed count query produces, and five empty lanes are
    * a better answer there than a chart with no lanes at all.
+   *
+   * Switchable from the settings menu, because the omission is not free either: a
+   * lane that is absent and a lane that is empty look the same until you know the
+   * chart drops them, and "did this session log anything at all" is a question the
+   * flat lane answers and a missing one does not.
    */
   const visibleLanes = useMemo(() => {
+    if (!hideEmptyLanes) {
+      return LANES;
+    }
     const present = LANES.filter(config => counts[config.key] > 0);
     return present.length > 0 ? present : LANES;
-  }, [counts]);
+  }, [counts, hideEmptyLanes]);
 
   /**
    * Every plotted item of every enabled type, for the overview strip's single row.
@@ -1298,27 +1305,25 @@ export function SessionScrubber({
                 )}
         </Text>
         <Flex flex="1" />
-        {/*
-          Offered only when the session has stretches long enough to be worth
-          compressing, which most do not. A switch that cannot change anything is a
-          worse answer than no switch.
-        */}
-        {compressed.isCompressed && (
-          <Flex as="label" align="center" gap="sm">
-            <Switch
-              checked={compressIdle}
-              onChange={() => setCompressIdle(current => !current)}
-            />
-            <Text size="xs" variant="muted">
-              {t('Compress idle time')}
-            </Text>
-          </Flex>
-        )}
         {isZoomed && (
           <Button size="xs" onClick={() => setView(null, false)}>
             {t('Reset zoom')}
           </Button>
         )}
+        {/*
+          Both of these used to be decided for you, and one of them was an inline
+          switch that appeared only when the session had stretches worth
+          compressing. A menu that changes shape between sessions is a worse answer
+          than one that is always the same two lines, so they are both always
+          offered — on a session with nothing to compress the first is simply a
+          no-op, which is what its own default already was.
+        */}
+        <TimelineSettings
+          compressIdle={compressIdle}
+          hideEmptyLanes={hideEmptyLanes}
+          onToggleCompressIdle={() => setCompressIdle(current => !current)}
+          onToggleHideEmptyLanes={() => setHideEmptyLanes(current => !current)}
+        />
       </Flex>
     </Stack>
   );
