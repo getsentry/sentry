@@ -6,12 +6,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
-import {
-  EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
-  EVENT_CONTEXT_TARGET_QUERY_PARAM,
-  getEventContextTargetId,
-  getEventContextTargetIds,
-} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
+import {useEventContextFocus} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
+import {getEventContextTargetId} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import {ViewMorePulse} from 'sentry/components/events/eventContextTimeline/eventContextViewMorePulse';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
@@ -154,9 +150,7 @@ function OurlogsSectionContent({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const logsUrl = useEventLogsUrl(event);
-  const focusedLogIds = getEventContextTargetIds(
-    location.query[EVENT_CONTEXT_TARGET_QUERY_PARAM]
-  );
+  const {ids: focusedLogIds, pulse: focusPulse} = useEventContextFocus(SectionKey.LOGS);
 
   // A timeline marker can address a log that lives past the abbreviated preview (only
   // reachable via "View more"). Detect that so we can flag where the row went.
@@ -164,8 +158,6 @@ function OurlogsSectionContent({
     const index = (tableData.data ?? []).findIndex(row => String(row.id) === id);
     return index >= abbreviatedTableData.length;
   });
-  // Remount the pulse per click so its one-shot animation replays every time.
-  const focusNonce = String(location.query[EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM] ?? '');
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
@@ -301,7 +293,7 @@ function OurlogsSectionContent({
         </SmallTable>
         {tableData.data && tableData.data.length > 5 ? (
           <ViewMorePulse
-            key={focusedRowIsHidden ? focusNonce : 'idle'}
+            key={focusedRowIsHidden ? focusPulse : 'idle'}
             active={focusedRowIsHidden}
           >
             <Button

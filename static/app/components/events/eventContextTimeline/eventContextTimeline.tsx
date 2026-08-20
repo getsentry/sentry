@@ -1,10 +1,9 @@
 import type {ReactNode} from 'react';
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-import moment from 'moment-timezone';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -15,13 +14,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {getEnhancedBreadcrumbs} from 'sentry/components/events/breadcrumbs/utils';
-import {
-  EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
-  EVENT_CONTEXT_TARGET_QUERY_PARAM,
-} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
-import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
+import {focusEventContextRows} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
@@ -40,13 +36,11 @@ import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogRowTimestampMillis} from 'sentry/views/explore/logs/utils';
-import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {USER_SESSIONS_SUB_PATH} from 'sentry/views/explore/usersessions/settings';
@@ -102,16 +96,16 @@ interface TraceEvent {
 /**
  * Everything else in the trace, so the timeline isn't limited to what this one
  * SDK happened to record as breadcrumbs.
+ *
+ * Only the DISCOVER dataset, so this covers errors and transactions but not
+ * issue-platform occurrences (performance issues, rage clicks). Those need the second
+ * ISSUE_PLATFORM query that `useTraceTimelineEvents` runs; until then the "Other Issues"
+ * lane is errors-only.
  */
-function useTraceEvents(event: Event) {
+function useTraceDiscoverEvents(event: Event) {
   const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
-  const eventSeconds =
-    moment(event.dateReceived || event.dateCreated).valueOf() / 1000 || 0;
-  const {start, end} = getTraceDateTimeRange({
-    start: eventSeconds,
-    end: eventSeconds,
-  });
+  const {start, end} = getTraceTimeRangeFromEvent(event);
 
   return useQuery({
     ...apiOptions.as<{data: TraceEvent[]}>()(
@@ -145,20 +139,23 @@ function useTraceEvents(event: Event) {
   });
 }
 
-/** Fraction of the timeline covered by the window before the user drags it. */
 /** Content stays this far from either track edge, so nothing renders flush against it. */
-const EDGE_PAD = 0.04;
+export const EDGE_PAD = 0.04;
+/**
+ * Insets a scale fraction (0–1 of the compressed timeline) into the padded band the
+ * track actually draws in. Markers, idle bands, the event line and the axis ticks all
+ * go through here, so they stay on one coordinate system.
+ */
+const toDisplay = (fraction: number) => EDGE_PAD + fraction * (1 - 2 * EDGE_PAD);
 /** Quiet stretches at least this long collapse into a fixed-width column. */
 export const IDLE_GAP_THRESHOLD_MS = 4000;
 /** Share of the axis each collapsed gap takes, so idle time can't crowd out real events. */
 const IDLE_GAP_FRACTION = 0.07;
 const MAX_TOTAL_IDLE_FRACTION = 0.4;
 /** Where time marks sit along the axis, as fractions of the (compressed) timeline. */
-const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
+export const AXIS_TICKS = [0, 0.25, 0.5, 0.75, 1];
 const MAX_TOOLTIP_TITLE_LENGTH = 80;
 const MAX_TOOLTIP_SUBTITLE_LENGTH = 240;
-/** How long a logs/metrics row stays highlighted after it's addressed from the timeline. */
-const HIGHLIGHT_DURATION_MS = 3000;
 /**
  * Logs can be extremely high-volume, so the timeline shows only the most recent
  * handful to stay legible; the full set lives in the Logs section below. Metrics are
@@ -360,6 +357,87 @@ function TimelineClusterTooltip({items}: {items: TimelineItem[]}) {
   );
 }
 
+/**
+ * One row of the timeline: the lane's label plus its markers.
+ *
+ * Memoized because a lane can hold a hundred markers, each of which mounts a `Tooltip`
+ * — and every `Tooltip` costs a hover-overlay hook and a portal even while closed. The
+ * parent re-renders on any location change on the issue page; the lanes must not.
+ */
+const TimelineLane = memo(function TimelineLaneRow({
+  label,
+  hint,
+  clusters,
+  onActivateItem,
+  onActivateCluster,
+}: {
+  clusters: MarkerCluster[];
+  label: string;
+  onActivateCluster: (items: TimelineItem[]) => void;
+  onActivateItem: (item: TimelineItem) => void;
+  hint?: string;
+}) {
+  return (
+    <Fragment>
+      <LaneLabel>
+        <Text size="sm" variant="muted" ellipsis>
+          {label}
+        </Text>
+        {hint && <InfoTip size="xs" title={hint} />}
+      </LaneLabel>
+      <LaneTrack>
+        {clusters.map(cluster => {
+          if (cluster.items.length === 1) {
+            const item = cluster.items[0]!;
+            const actionable = Boolean(item.target ?? item.to);
+            return (
+              <Tooltip
+                key={item.key}
+                title={<TimelineMarkerTooltip item={item} />}
+                skipWrapper
+              >
+                <Marker
+                  type="button"
+                  aria-label={t('View %s details', item.title)}
+                  markerColor={item.color}
+                  left={cluster.left}
+                  // Deliberately not `disabled`. A disabled button leaves the tab order
+                  // and stops firing pointer events, so its tooltip becomes unreachable
+                  // by mouse *and* keyboard — and a marker with nothing to open is still
+                  // worth reading. Drop the handler instead and keep it hoverable.
+                  actionable={actionable}
+                  onClick={actionable ? () => onActivateItem(item) : undefined}
+                />
+              </Tooltip>
+            );
+          }
+
+          const representative = clusterRepresentative(cluster.items);
+          const actionable = Boolean(representative.target ?? representative.to);
+          return (
+            <Tooltip
+              key={`cluster-${cluster.items[0]!.key}`}
+              title={<TimelineClusterTooltip items={cluster.items} />}
+              skipWrapper
+            >
+              <ClusterMarker
+                type="button"
+                aria-label={tn('View %s event', 'View %s events', cluster.items.length)}
+                markerColor={representative.color}
+                left={cluster.left}
+                actionable={actionable}
+                onClick={actionable ? () => onActivateCluster(cluster.items) : undefined}
+              >
+                {cluster.items.length}
+              </ClusterMarker>
+            </Tooltip>
+          );
+        })}
+      </LaneTrack>
+    </Fragment>
+  );
+});
+
 // A breadcrumb's lane is its origin, not its severity: an errored fetch is a red
 // dot in Network, an errored click a red dot in User Activity. Severity is carried
 // by color alone (see `colorForLevel`), so error/warning crumbs are not pulled out
@@ -545,6 +623,38 @@ function buildScale(timestamps: number[], domainStart: number, domainEnd: number
   });
 }
 
+/** Maps a fraction of the compressed timeline back to the instant it stands for. */
+function scaleTimeAt(segments: Segment[], domainStart: number, fraction: number): number {
+  if (segments.length === 0) {
+    return domainStart;
+  }
+  const segment =
+    segments.find(
+      candidate =>
+        fraction >= candidate.startFraction && fraction <= candidate.endFraction
+    ) ?? segments.at(-1)!;
+  const span = segment.endFraction - segment.startFraction;
+  const ratio = span <= 0 ? 0 : (fraction - segment.startFraction) / span;
+  return segment.startTime + ratio * (segment.endTime - segment.startTime);
+}
+
+/**
+ * Where each time mark sits and what it reads.
+ *
+ * Ticks go through `toDisplay` like every marker does, so a tick labelled "0s" lands on
+ * the same pixel as a marker at the start of the domain. Positioning them on the raw
+ * scale instead put every label EDGE_PAD out of step with the data it described.
+ */
+export function getAxisTicks(
+  segments: Segment[],
+  domainStart: number
+): Array<{elapsedSeconds: number; left: number}> {
+  return AXIS_TICKS.map(fraction => ({
+    left: toDisplay(fraction) * 100,
+    elapsedSeconds: (scaleTimeAt(segments, domainStart, fraction) - domainStart) / 1000,
+  }));
+}
+
 /**
  * A compressed, multi-lane view of everything we know happened around this error.
  *
@@ -625,61 +735,7 @@ function EventContextTimelineContent({
   const {navScrollMargin, dispatch} = useIssueDetails();
   const organization = useOrganization();
   const sessionId = getSessionId(event);
-  const clearHighlightTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined
-  );
-  // The deferred highlight-clear runs seconds after a click, by which point the
-  // captured `location` is stale (it can still hold a previous hash). Read the
-  // latest location from a ref so clearing the focus never rewrites the hash and
-  // scrolls the page back to an earlier section.
-  const locationRef = useRef(location);
-  useEffect(() => {
-    locationRef.current = location;
-  }, [location]);
-
-  useEffect(() => () => clearTimeout(clearHighlightTimeout.current), []);
-
-  // Monotonic token appended to the focus param so re-clicking the same marker still
-  // changes the URL (re-firing the scroll and the "View more" pulse). A counter avoids
-  // the same-millisecond collisions a timestamp could hit on rapid clicks.
-  const focusNonce = useRef(0);
-
-  // Once the user drills into a section drawer, keep the focus in the URL while it's open:
-  // the drawer highlights the same rows, and the pending transient-clear navigation would
-  // otherwise drop that highlight and close the just-opened drawer (drawers close on
-  // location change). When the drawer closes we clear the focus ourselves so the rows and
-  // the emphasized "View more" button don't stay stuck.
-  const drawerIsOpen =
-    location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
-    location.query[LOGS_DRAWER_QUERY_PARAM] === 'true';
-  const drawerWasOpen = useRef(false);
-  useEffect(() => {
-    if (drawerIsOpen) {
-      clearTimeout(clearHighlightTimeout.current);
-      drawerWasOpen.current = true;
-      return;
-    }
-    if (!drawerWasOpen.current) {
-      return;
-    }
-    drawerWasOpen.current = false;
-    const current = locationRef.current;
-    if (current.query[EVENT_CONTEXT_TARGET_QUERY_PARAM] === undefined) {
-      return;
-    }
-    navigate(
-      {
-        ...current,
-        query: {
-          ...current.query,
-          [EVENT_CONTEXT_TARGET_QUERY_PARAM]: undefined,
-          [EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM]: undefined,
-        },
-      },
-      {replace: true}
-    );
-  }, [drawerIsOpen, navigate]);
-  const {data: traceResponse, isPending: isLoading} = useTraceEvents(event);
+  const {data: traceResponse, isPending: isLoading} = useTraceDiscoverEvents(event);
   const traceEvents = traceResponse?.data;
 
   // Color conveys severity, not lane: purple is the baseline for anything
@@ -915,131 +971,116 @@ function EventContextTimelineContent({
     [domainEnd, domainStart, items]
   );
 
-  const scaleFraction = (timestamp: number) => {
-    if (segments.length === 0) {
-      return 0.5;
-    }
-    if (timestamp <= domainStart) {
-      return 0;
-    }
-    if (timestamp >= domainEnd) {
-      return 1;
-    }
-    const segment =
-      segments.find(
-        candidate => timestamp >= candidate.startTime && timestamp <= candidate.endTime
-      ) ?? segments.at(-1)!;
-    const span = segment.endTime - segment.startTime;
-    const ratio = span <= 0 ? 0 : (timestamp - segment.startTime) / span;
-    return segment.startFraction + ratio * (segment.endFraction - segment.startFraction);
-  };
+  const scaleFraction = useCallback(
+    (timestamp: number) => {
+      if (segments.length === 0) {
+        return 0.5;
+      }
+      if (timestamp <= domainStart) {
+        return 0;
+      }
+      if (timestamp >= domainEnd) {
+        return 1;
+      }
+      const segment =
+        segments.find(
+          candidate => timestamp >= candidate.startTime && timestamp <= candidate.endTime
+        ) ?? segments.at(-1)!;
+      const span = segment.endTime - segment.startTime;
+      const ratio = span <= 0 ? 0 : (timestamp - segment.startTime) / span;
+      return (
+        segment.startFraction + ratio * (segment.endFraction - segment.startFraction)
+      );
+    },
+    [domainEnd, domainStart, segments]
+  );
 
-  const scaleTime = (fraction: number) => {
-    if (segments.length === 0) {
-      return domainStart;
-    }
-    const segment =
-      segments.find(
-        candidate =>
-          fraction >= candidate.startFraction && fraction <= candidate.endFraction
-      ) ?? segments.at(-1)!;
-    const span = segment.endFraction - segment.startFraction;
-    const ratio = span <= 0 ? 0 : (fraction - segment.startFraction) / span;
-    return segment.startTime + ratio * (segment.endTime - segment.startTime);
-  };
-
-  // Content is inset from the track edges so nothing sits flush against them, while the
-  // window still spans the full track and can be dragged all the way to either edge.
-  const toDisplay = (fraction: number) => EDGE_PAD + fraction * (1 - 2 * EDGE_PAD);
-  const toFraction = (timestamp: number) => toDisplay(scaleFraction(timestamp));
-  const fromFraction = (fraction: number) =>
-    scaleTime(Math.min(Math.max((fraction - EDGE_PAD) / (1 - 2 * EDGE_PAD), 0), 1));
+  const toFraction = useCallback(
+    (timestamp: number) => toDisplay(scaleFraction(timestamp)),
+    [scaleFraction]
+  );
 
   const eventFraction = eventTimestamp === null ? 1 : toFraction(eventTimestamp);
 
-  // Scrolls to a section and highlights the given rows (logs/metrics). A single id
-  // and a cluster of ids share this path; the query param carries one value or many.
-  const focusSection = (section: SectionKey, ids: string[]) => {
-    navigate(
-      {
-        ...location,
-        hash: `#${section}`,
-        query: {
-          ...location.query,
-          [EVENT_CONTEXT_TARGET_QUERY_PARAM]:
-            ids.length === 0 ? undefined : ids.length === 1 ? ids[0] : ids,
-          // A fresh token per click so re-clicking the same marker still changes the
-          // URL — that re-fires the scroll below and lets the "View more" pulse replay,
-          // without toggling the row highlight (which would cause a scroll stagger).
-          [EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM]:
-            ids.length === 0 ? undefined : String(++focusNonce.current),
-        },
-      },
-      {replace: true}
-    );
+  // Scrolls to a section and highlights the given rows (logs/metrics). Only the section
+  // hash goes in the URL — it's a durable, shareable address. The highlight itself is
+  // transient, so it lives in the focus store instead of being written and un-written
+  // as navigation.
+  const focusSection = useCallback(
+    (section: SectionKey, ids: string[]) => {
+      navigate({...location, hash: `#${section}`}, {replace: true});
+      focusEventContextRows(section, ids);
 
-    // Scroll on every click, even when the hash is unchanged. Router navigation
-    // is a no-op when the location doesn't change, so repeat clicks in the same
-    // lane would otherwise do nothing once the section is already addressed.
-    requestAnimationFrame(() => {
-      document
-        .getElementById(section)
-        ?.scrollIntoView({behavior: 'smooth', block: 'start'});
-    });
+      // Scroll on every click, even when the hash is unchanged. Router navigation
+      // is a no-op when the location doesn't change, so repeat clicks in the same
+      // lane would otherwise do nothing once the section is already addressed.
+      requestAnimationFrame(() => {
+        document
+          .getElementById(section)
+          ?.scrollIntoView({behavior: 'smooth', block: 'start'});
+      });
+    },
+    [location, navigate]
+  );
 
-    // Logs and metrics highlight the addressed row(s). Clear the focus after a beat
-    // so it reads as a brief pulse (fading out via the row's CSS transition)
-    // rather than a sticky selection.
-    clearTimeout(clearHighlightTimeout.current);
-    if (ids.length > 0) {
-      clearHighlightTimeout.current = setTimeout(() => {
-        const current = locationRef.current;
-        navigate(
-          {
-            ...current,
-            query: {
-              ...current.query,
-              [EVENT_CONTEXT_TARGET_QUERY_PARAM]: undefined,
-              [EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM]: undefined,
-            },
-          },
-          {replace: true}
-        );
-      }, HIGHLIGHT_DURATION_MS);
-    }
-  };
-
-  const activateItem = (item: TimelineItem) => {
-    // Errors link out to their own issue/event rather than staying on the page.
-    if (item.to) {
-      navigate(item.to);
-      return;
-    }
-    if (!item.target) {
-      return;
-    }
-    const {section, id} = item.target;
-    focusSection(section, id ? [id] : []);
-  };
+  const activateItem = useCallback(
+    (item: TimelineItem) => {
+      // Errors link out to their own issue/event rather than staying on the page.
+      if (item.to) {
+        navigate(item.to);
+        return;
+      }
+      if (!item.target) {
+        return;
+      }
+      const {section, id} = item.target;
+      focusSection(section, id ? [id] : []);
+    },
+    [focusSection, navigate]
+  );
 
   // Activating a cluster highlights every clustered item that shares the most severe
   // item's section, so all of e.g. three simultaneous metrics pulse at once instead
   // of only one.
-  const activateCluster = (clusterItems: TimelineItem[]) => {
-    const representative = clusterRepresentative(clusterItems);
-    if (representative.to) {
-      navigate(representative.to);
-      return;
-    }
-    if (!representative.target) {
-      return;
-    }
-    const {section} = representative.target;
-    const ids = clusterItems.flatMap(item =>
-      item.target?.section === section && item.target.id ? [item.target.id] : []
+  const activateCluster = useCallback(
+    (clusterItems: TimelineItem[]) => {
+      const representative = clusterRepresentative(clusterItems);
+      if (representative.to) {
+        navigate(representative.to);
+        return;
+      }
+      if (!representative.target) {
+        return;
+      }
+      const {section} = representative.target;
+      const ids = clusterItems.flatMap(item =>
+        item.target?.section === section && item.target.id ? [item.target.id] : []
+      );
+      focusSection(section, ids);
+    },
+    [focusSection, navigate]
+  );
+
+  // One pass over the drawn items produces every lane's clusters. Doing this inline in
+  // the JSX re-ran a filter, a map and a sort per lane on every render — including the
+  // renders caused by unrelated location changes on the issue page.
+  const clustersByLane = useMemo(() => {
+    const itemsByLane = new Map<LaneId, TimelineItem[]>();
+    drawnItems.forEach(item => {
+      const laneItems = itemsByLane.get(item.lane);
+      if (laneItems) {
+        laneItems.push(item);
+      } else {
+        itemsByLane.set(item.lane, [item]);
+      }
+    });
+    return new Map(
+      Array.from(itemsByLane, ([lane, laneItems]) => [
+        lane,
+        clusterLaneItems(laneItems, toFraction),
+      ])
     );
-    focusSection(section, ids);
-  };
+  }, [drawnItems, toFraction]);
 
   // The error on its own isn't a timeline worth showing.
   if (drawnItems.length === 0) {
@@ -1067,8 +1108,7 @@ function EventContextTimelineContent({
   ];
 
   // Only render lanes that actually have markers, so an empty lane doesn't take up a row.
-  const populatedLaneIds = new Set(drawnItems.map(item => item.lane));
-  const visibleLanes = lanes.filter(lane => populatedLaneIds.has(lane.id));
+  const visibleLanes = lanes.filter(lane => clustersByLane.has(lane.id));
 
   return (
     <Fragment>
@@ -1115,64 +1155,14 @@ function EventContextTimelineContent({
 
           <TimelineGrid>
             {visibleLanes.map(lane => (
-              <Fragment key={lane.id}>
-                <LaneLabel>
-                  <Text size="sm" variant="muted" ellipsis>
-                    {lane.label}
-                  </Text>
-                  {lane.hint && <InfoTip size="xs" title={lane.hint} />}
-                </LaneLabel>
-                <LaneTrack>
-                  {clusterLaneItems(
-                    drawnItems.filter(item => item.lane === lane.id),
-                    toFraction
-                  ).map(cluster => {
-                    if (cluster.items.length === 1) {
-                      const item = cluster.items[0]!;
-                      return (
-                        <Tooltip
-                          key={item.key}
-                          title={<TimelineMarkerTooltip item={item} />}
-                          skipWrapper
-                        >
-                          <Marker
-                            type="button"
-                            aria-label={t('View %s details', item.title)}
-                            markerColor={item.color}
-                            left={cluster.left}
-                            disabled={!item.target && !item.to}
-                            onClick={() => activateItem(item)}
-                          />
-                        </Tooltip>
-                      );
-                    }
-
-                    const representative = clusterRepresentative(cluster.items);
-                    return (
-                      <Tooltip
-                        key={`cluster-${lane.id}-${cluster.items[0]!.key}`}
-                        title={<TimelineClusterTooltip items={cluster.items} />}
-                        skipWrapper
-                      >
-                        <ClusterMarker
-                          type="button"
-                          aria-label={tn(
-                            'View %s event',
-                            'View %s events',
-                            cluster.items.length
-                          )}
-                          markerColor={representative.color}
-                          left={cluster.left}
-                          disabled={!representative.target && !representative.to}
-                          onClick={() => activateCluster(cluster.items)}
-                        >
-                          {cluster.items.length}
-                        </ClusterMarker>
-                      </Tooltip>
-                    );
-                  })}
-                </LaneTrack>
-              </Fragment>
+              <TimelineLane
+                key={lane.id}
+                label={lane.label}
+                hint={lane.hint}
+                clusters={clustersByLane.get(lane.id)!}
+                onActivateItem={activateItem}
+                onActivateCluster={activateCluster}
+              />
             ))}
 
             <Overlay>
@@ -1214,21 +1204,16 @@ function EventContextTimelineContent({
           </TimelineGrid>
 
           <AxisRow>
-            {AXIS_TICKS.map(fraction => {
-              const elapsed = (fromFraction(fraction) - domainStart) / 1000;
-              return (
-                <AxisTick
-                  key={fraction}
-                  left={fraction * 100}
-                  align={fraction === 0 ? 'start' : fraction === 1 ? 'end' : 'middle'}
-                >
-                  <TickMark />
-                  <Text size="xs" variant="muted" tabular>
-                    {elapsed <= 0 ? '0s' : getDuration(elapsed, 1, true)}
-                  </Text>
-                </AxisTick>
-              );
-            })}
+            {getAxisTicks(segments, domainStart).map(tick => (
+              <AxisTick key={tick.left} left={tick.left}>
+                <TickMark />
+                <Text size="xs" variant="muted" tabular>
+                  {tick.elapsedSeconds <= 0
+                    ? '0s'
+                    : getDuration(tick.elapsedSeconds, 1, true)}
+                </Text>
+              </AxisTick>
+            ))}
           </AxisRow>
         </Stack>
       </TimelineSection>
@@ -1269,7 +1254,11 @@ const LaneTrack = styled('div')`
   border-radius: ${p => p.theme.radius.sm};
 `;
 
-const Marker = styled('button')<{left: number; markerColor: string}>`
+const Marker = styled('button')<{
+  actionable: boolean;
+  left: number;
+  markerColor: string;
+}>`
   --marker-lift: 0px;
   position: absolute;
   z-index: ${MARKER_Z_INDEX};
@@ -1280,7 +1269,7 @@ const Marker = styled('button')<{left: number; markerColor: string}>`
   padding: 0;
   background: ${p => p.markerColor};
   border: 0;
-  cursor: pointer;
+  cursor: ${p => (p.actionable ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius['2xs']};
   transform: translate(-50%, calc(-50% - var(--marker-lift)));
   transition:
@@ -1288,14 +1277,14 @@ const Marker = styled('button')<{left: number; markerColor: string}>`
     box-shadow ${p => p.theme.motion.snap.fast};
 
   /* Lift slightly with a subtle shadow on hover, then press back down when clicked. */
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
+  &:hover,
+  &:focus-visible {
     --marker-lift: 1px;
     z-index: ${ACTIVE_MARKER_Z_INDEX};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
-  &:not(:disabled):active {
+  &:active {
     --marker-lift: 0px;
     box-shadow: none;
   }
@@ -1303,7 +1292,11 @@ const Marker = styled('button')<{left: number; markerColor: string}>`
 
 // A merged marker for simultaneous events: wider than a single dot and labeled with
 // how many items it stands in for, colored by the most severe one it hides.
-const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
+const ClusterMarker = styled('button')<{
+  actionable: boolean;
+  left: number;
+  markerColor: string;
+}>`
   --marker-lift: 0px;
   position: absolute;
   z-index: ${MARKER_Z_INDEX};
@@ -1318,7 +1311,7 @@ const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
   background: ${p => p.markerColor};
   color: ${p => p.theme.colors.white};
   border: 0;
-  cursor: pointer;
+  cursor: ${p => (p.actionable ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius['2xs']};
   font-size: ${p => p.theme.font.size.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -1328,14 +1321,14 @@ const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
     transform ${p => p.theme.motion.snap.fast},
     box-shadow ${p => p.theme.motion.snap.fast};
 
-  &:not(:disabled):hover,
-  &:not(:disabled):focus-visible {
+  &:hover,
+  &:focus-visible {
     --marker-lift: 1px;
     z-index: ${ACTIVE_MARKER_Z_INDEX};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
-  &:not(:disabled):active {
+  &:active {
     --marker-lift: 0px;
     box-shadow: none;
   }
@@ -1407,10 +1400,10 @@ const AxisRow = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const AxisTick = styled('div')<{
-  align: 'start' | 'middle' | 'end';
-  left: number;
-}>`
+// Always centred on its position. The ticks share the markers' padded coordinate space
+// (see `toDisplay`), so the EDGE_PAD band leaves room for the end labels — the previous
+// start/end alignment shifted the tick *mark* off its own position to make that room.
+const AxisTick = styled('div')<{left: number}>`
   position: absolute;
   top: 0;
   left: ${p => p.left}%;
@@ -1418,9 +1411,7 @@ const AxisTick = styled('div')<{
   flex-direction: column;
   align-items: center;
   gap: ${p => p.theme.space['2xs']};
-  transform: translateX(
-    ${p => (p.align === 'start' ? '0' : p.align === 'end' ? '-100%' : '-50%')}
-  );
+  transform: translateX(-50%);
 `;
 
 const TickMark = styled('span')`

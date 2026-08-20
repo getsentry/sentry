@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,7 +7,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
+  clearEventContextFocus,
+  useEventContextFocus,
+} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
+import {
+  AXIS_TICKS,
+  EDGE_PAD,
   EventContextTimeline,
+  getAxisTicks,
   IDLE_GAP_THRESHOLD_MS,
   MAX_TIMELINE_LOGS,
 } from 'sentry/components/events/eventContextTimeline/eventContextTimeline';
@@ -77,6 +85,23 @@ function eventWithGap(gapMs: number): Event {
   );
 }
 
+/**
+ * Reads the focus store through its public hook, so the tests assert what a real
+ * section would see rather than reaching into module state.
+ */
+function FocusProbe({section}: {section: SectionKey}) {
+  const {ids, pulse} = useEventContextFocus(section);
+  return <div data-test-id="focus-probe" data-ids={ids.join(',')} data-pulse={pulse} />;
+}
+
+function readFocus() {
+  const probe = screen.getByTestId('focus-probe');
+  return {
+    ids: probe.getAttribute('data-ids')!.split(',').filter(Boolean),
+    pulse: Number(probe.getAttribute('data-pulse')),
+  };
+}
+
 function TraceEventFixture(params: Record<string, unknown> = {}) {
   return {
     id: '9f81c2ab5d7e40b3aa6c1f9e2d834b57',
@@ -94,6 +119,7 @@ describe('EventContextTimeline', () => {
   let traceMock: jest.Mock;
 
   beforeEach(() => {
+    clearEventContextFocus();
     MockApiClient.clearMockResponses();
     traceMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -347,6 +373,47 @@ describe('EventContextTimeline', () => {
     ).not.toBeInTheDocument();
   });
 
+  describe('axis ticks', () => {
+    // One 10s stretch with no idle gap, so the compressed scale is the real one and the
+    // expected labels are readable by hand.
+    const domainStart = Date.parse('2024-03-14T10:00:00.000Z');
+    const domainEnd = domainStart + 10_000;
+    const segments = [
+      {
+        startTime: domainStart,
+        endTime: domainEnd,
+        startFraction: 0,
+        endFraction: 1,
+        isIdle: false,
+      },
+    ];
+
+    it('insets the ticks by the same edge padding as the markers', () => {
+      const ticks = getAxisTicks(segments, domainStart);
+
+      // A tick reading "0s" has to land on the pixel a marker at domainStart lands on.
+      // Positioning ticks on the raw 0–1 scale put every label EDGE_PAD out of step.
+      expect(ticks.map(tick => Number(tick.left.toFixed(4)))).toEqual([
+        4, 27, 50, 73, 96,
+      ]);
+      expect(ticks[0]!.left).toBeCloseTo(EDGE_PAD * 100);
+      expect(ticks.at(-1)!.left).toBeCloseTo((1 - EDGE_PAD) * 100);
+    });
+
+    it('labels each tick with the instant at its own position', () => {
+      const ticks = getAxisTicks(segments, domainStart);
+
+      expect(ticks.map(tick => tick.elapsedSeconds)).toEqual([0, 2.5, 5, 7.5, 10]);
+    });
+
+    it('reads the domain start as zero when the timeline has no scale yet', () => {
+      const ticks = getAxisTicks([], domainStart);
+
+      expect(ticks).toHaveLength(AXIS_TICKS.length);
+      expect(ticks.map(tick => tick.elapsedSeconds)).toEqual([0, 0, 0, 0, 0]);
+    });
+  });
+
   it('opens the other issue when its marker is selected', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -454,6 +521,19 @@ describe('EventContextTimeline', () => {
      * Newest first, matching the order the logs query returns. The two oldest carry a
      * distinct severity so the test can tell "kept the newest" apart from "kept any ten".
      */
+    function logFixtureAt(id: string, timestamp: number) {
+      return LogFixture({
+        [OurLogKnownFieldKey.ID]: id,
+        [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+        [OurLogKnownFieldKey.TRACE_ID]: TRACE_ID,
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+        [OurLogKnownFieldKey.MESSAGE]: `Handled request ${id}`,
+        [OurLogKnownFieldKey.TIMESTAMP]: new Date(timestamp).toISOString(),
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: String(BigInt(timestamp) * 1_000_000n),
+      });
+    }
+
     function logFixtures(count: number) {
       return Array.from({length: count}, (_, index) => {
         const timestamp = logsStart + (count - 1 - index) * 3000;
@@ -488,6 +568,106 @@ describe('EventContextTimeline', () => {
         url: `/organizations/${logsOrganization.slug}/recent-searches/`,
         body: [],
       });
+    });
+
+    it('highlights the addressed log when its marker is selected', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${logsOrganization.slug}/trace-logs/`,
+        body: {data: logFixtures(2), meta: {}},
+      });
+      const {router} = render(
+        <Fragment>
+          <EventContextTimeline event={eventWithBreadcrumbs([])} />
+          <FocusProbe section={SectionKey.LOGS} />
+        </Fragment>,
+        {organization: logsOrganization, initialRouterConfig: ROUTER_CONFIG}
+      );
+      await screen.findByText('Logs');
+
+      await userEvent.click(
+        screen.getAllByRole('button', {name: 'View info details'})[0]!
+      );
+
+      // The section address is durable and belongs in the URL; the highlight is
+      // transient and must not be, or every click becomes two navigations.
+      expect(router.location.hash).toBe(`#${SectionKey.LOGS}`);
+      expect(router.location.query).toEqual({});
+      expect(readFocus().ids).toHaveLength(1);
+    });
+
+    it('re-announces the same log when its marker is selected twice', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${logsOrganization.slug}/trace-logs/`,
+        body: {data: logFixtures(2), meta: {}},
+      });
+      render(
+        <Fragment>
+          <EventContextTimeline event={eventWithBreadcrumbs([])} />
+          <FocusProbe section={SectionKey.LOGS} />
+        </Fragment>,
+        {organization: logsOrganization, initialRouterConfig: ROUTER_CONFIG}
+      );
+      await screen.findByText('Logs');
+      const marker = screen.getAllByRole('button', {name: 'View info details'})[0]!;
+
+      await userEvent.click(marker);
+      const firstPulse = readFocus().pulse;
+      await userEvent.click(marker);
+
+      // A repeat click has to replay the highlight. Under the old query-param scheme
+      // the router treated it as a no-op, which is what the focus nonce existed for.
+      expect(readFocus().pulse).toBeGreaterThan(firstPulse);
+    });
+
+    it('highlights every clustered log when their merged marker is selected', async () => {
+      // Close enough to the event that no idle gap opens between them and it — an idle
+      // gap would stretch the 1ms between the two logs across most of the track.
+      const clusteredAt = Date.parse('2024-03-14T10:00:09.000Z');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${logsOrganization.slug}/trace-logs/`,
+        body: {
+          data: [
+            logFixtureAt('log-a', clusteredAt),
+            logFixtureAt('log-b', clusteredAt + 1),
+          ],
+          meta: {},
+        },
+      });
+      render(
+        <Fragment>
+          <EventContextTimeline event={eventWithBreadcrumbs([])} />
+          <FocusProbe section={SectionKey.LOGS} />
+        </Fragment>,
+        {organization: logsOrganization, initialRouterConfig: ROUTER_CONFIG}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View 2 events'}));
+
+      // Both logs hide behind one marker, so both have to pulse — highlighting only the
+      // representative would send the reader to a row they did not click.
+      expect(readFocus().ids).toEqual(['log-a', 'log-b']);
+    });
+
+    it('keeps a log marker with no row to open hoverable rather than disabled', async () => {
+      // A log without an id has no row to scroll to, so its marker has no action. It
+      // still carries a tooltip, and a disabled button leaves the tab order and stops
+      // firing pointer events — which would put that tooltip out of reach for mouse
+      // and keyboard alike.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${logsOrganization.slug}/trace-logs/`,
+        body: {
+          data: [logFixtureAt('', Date.parse('2024-03-14T10:00:09.000Z'))],
+          meta: {},
+        },
+      });
+      render(<EventContextTimeline event={eventWithBreadcrumbs([])} />, {
+        organization: logsOrganization,
+        initialRouterConfig: ROUTER_CONFIG,
+      });
+
+      const marker = await screen.findByRole('button', {name: 'View info details'});
+
+      expect(marker).toBeEnabled();
     });
 
     it('draws only the most recent logs once the lane is over its cap', async () => {

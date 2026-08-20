@@ -4,11 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
-import {
-  EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
-  EVENT_CONTEXT_TARGET_QUERY_PARAM,
-  getEventContextTargetIds,
-} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
+import {useEventContextFocus} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {ViewMorePulse} from 'sentry/components/events/eventContextTimeline/eventContextViewMorePulse';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
@@ -98,8 +94,8 @@ function MetricsSectionContent({
 
   // A timeline marker can address a metric that lives past the abbreviated preview (only
   // reachable via "View more"). Detect that so we can flag where the row went.
-  const focusedMetricIds = getEventContextTargetIds(
-    location.query[EVENT_CONTEXT_TARGET_QUERY_PARAM]
+  const {ids: focusedMetricIds, pulse: focusPulse} = useEventContextFocus(
+    SectionKey.METRICS
   );
   const focusedRowIsHidden =
     !!result.data &&
@@ -109,8 +105,6 @@ function MetricsSectionContent({
       );
       return index >= NUMBER_ABBREVIATED_METRICS;
     });
-  // Remount the pulse per click so its one-shot animation replays every time.
-  const focusNonce = String(location.query[EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM] ?? '');
 
   const onOpenMetricsDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -176,7 +170,7 @@ function MetricsSectionContent({
         />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <ViewMorePulse
-            key={focusedRowIsHidden ? focusNonce : 'idle'}
+            key={focusedRowIsHidden ? focusPulse : 'idle'}
             active={focusedRowIsHidden}
           >
             <Button

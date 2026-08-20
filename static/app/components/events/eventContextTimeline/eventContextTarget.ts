@@ -1,35 +1,9 @@
-import {SectionKey} from 'sentry/views/issueDetails/context';
-
-export const EVENT_CONTEXT_TARGET_QUERY_PARAM = 'eventContextTarget';
-
 /**
- * A per-click token written alongside the target so that re-clicking the *same* marker
- * still changes the URL. Without it the router treats the repeat click as a no-op and
- * nothing re-renders, so the section scroll and the "View more" pulse never replay.
+ * Stable DOM id for a row the timeline can address, so it can be found and scrolled to
+ * from outside the section that renders it.
  */
-export const EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM = 'eventContextFocusNonce';
-
-export type EventContextTarget =
-  | {id: string; section: SectionKey.LOGS; type: 'log'}
-  | {id: string; section: SectionKey.METRICS; type: 'metric'}
-  | {section: SectionKey.BREADCRUMBS; type: 'breadcrumb'};
-
 export function getEventContextTargetId(type: 'log' | 'metric', id: string) {
   return `event-context-${type}-${id}`;
-}
-
-/**
- * The focus query param holds one id for a single marker, or several when a cluster
- * of simultaneous items is addressed at once. Normalize either shape into a list so
- * consumers can highlight every matching row.
- */
-export function getEventContextTargetIds(
-  value: string | string[] | undefined | null
-): string[] {
-  if (Array.isArray(value)) {
-    return value.filter(Boolean);
-  }
-  return value ? [value] : [];
 }
 
 function findScrollableAncestor(element: HTMLElement): HTMLElement | null {

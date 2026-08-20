@@ -1,16 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  EVENT_CONTEXT_TARGET_QUERY_PARAM,
-  getEventContextTargetIds,
-} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
+import {useEventContextFocus} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {useLocation} from 'sentry/utils/useLocation';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   getTraceSamplesTableFields,
@@ -34,6 +30,7 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {mapMetricUnitToFieldType} from 'sentry/views/explore/metrics/utils';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
@@ -54,10 +51,7 @@ export function MetricsSamplesTable({
   overrideTableData,
 }: MetricsSamplesTableProps) {
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
-  const location = useLocation();
-  const focusedMetricIds = getEventContextTargetIds(
-    location.query[EVENT_CONTEXT_TARGET_QUERY_PARAM]
-  );
+  const {ids: focusedMetricIds} = useEventContextFocus(SectionKey.METRICS);
   const columns = isEmbedded
     ? TraceSamplesTableEmbeddedColumns
     : TraceSamplesTableColumns;

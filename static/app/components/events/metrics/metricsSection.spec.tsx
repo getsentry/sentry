@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -11,7 +12,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {
+  clearEventContextFocus,
+  focusEventContextRows,
+} from 'sentry/components/events/eventContextTimeline/eventContextFocus';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+import {SectionKey} from 'sentry/views/issueDetails/context';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -48,6 +54,8 @@ describe('MetricsSection', () => {
 
   beforeEach(() => {
     metricId = '22222222222222222222222222222222';
+    // The timeline focus is a module store, so it outlives a render.
+    clearEventContextFocus();
 
     ProjectsStore.loadInitialData([project]);
 
@@ -183,18 +191,28 @@ describe('MetricsSection', () => {
     Element.prototype.scrollIntoView = jest.fn();
     render(<MetricsSection event={event} project={project} group={group} />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {eventContextTarget: metricId},
-        },
-      },
     });
-
     const row = await screen.findByText('http.server.duration');
+
+    act(() => focusEventContextRows(SectionKey.METRICS, [metricId]));
+
     const container = row.closest(`[id="event-context-metric-${metricId}"]`);
     expect(container).toHaveAttribute('data-row-linked', 'true');
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('ignores a focus aimed at a different section', async () => {
+    render(<MetricsSection event={event} project={project} group={group} />, {
+      organization,
+    });
+    const row = await screen.findByText('http.server.duration');
+
+    act(() => focusEventContextRows(SectionKey.LOGS, [metricId]));
+
+    expect(row.closest(`[id="event-context-metric-${metricId}"]`)).not.toHaveAttribute(
+      'data-row-linked',
+      'true'
+    );
   });
 
   it('renders metrics section with data', async () => {
