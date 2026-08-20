@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
-import {GroupingIndicator} from 'sentry/components/events/interfaces/frame/groupingIndicator';
 import {
   getPlatform,
   isDotnet,
@@ -40,7 +39,6 @@ type Props = {
    * Determines if the frame potentially originates from a third party
    */
   isPotentiallyThirdParty?: boolean;
-  isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
 };
 
@@ -50,7 +48,6 @@ export function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
-  isUsedForGrouping,
   meta,
   isPotentiallyThirdParty,
 }: Props) {
@@ -243,10 +240,6 @@ export function DefaultTitle({
     );
   }
 
-  if (isUsedForGrouping) {
-    title.push(<StyledGroupingIndicator key="info-tooltip" />);
-  }
-
   return <Fragment>{title}</Fragment>;
 }
 
@@ -259,10 +252,6 @@ const StyledExternalLink = styled(ExternalLink)`
 const InFramePosition = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   opacity: 0.6;
-`;
-
-const StyledGroupingIndicator = styled(GroupingIndicator)`
-  margin-left: ${p => p.theme.space.sm};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

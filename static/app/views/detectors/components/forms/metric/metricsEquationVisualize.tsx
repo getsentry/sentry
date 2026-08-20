@@ -63,27 +63,15 @@ function computeEquationReferencedLabels(
 }
 
 interface MetricsEquationVisualizeProps {
-  /**
-   * Form field that stores the aggregate expression. Defaults to the metric
-   * detector field; the legacy alert form passes `aggregate`.
-   */
-  aggregateFieldName?: typeof METRIC_DETECTOR_FORM_FIELDS.aggregateFunction | 'aggregate';
   environments?: string[];
-  /**
-   * Called when the selected row's filter query changes. The legacy alert
-   * form uses this to run `onFilterSearch` so the threshold chart refresh
-   * on filter-bar edits.
-   */
-  onQueryChange?: (query: string) => void;
   projectIds?: number[];
 }
 
 export function MetricsEquationVisualize({
-  aggregateFieldName = METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
   projectIds,
   environments,
-  onQueryChange,
 }: MetricsEquationVisualizeProps) {
+  const aggregateFieldName = METRIC_DETECTOR_FORM_FIELDS.aggregateFunction;
   const aggregateFunction = useFormField<string>(aggregateFieldName);
   const query = useFormField<string>(METRIC_DETECTOR_FORM_FIELDS.query);
 
@@ -104,7 +92,6 @@ export function MetricsEquationVisualize({
         aggregateFieldName={aggregateFieldName}
         projectIds={projectIds}
         environments={environments}
-        onQueryChange={onQueryChange}
       />
     </LocalMultiMetricsQueryParamsProvider>
   );
@@ -114,11 +101,9 @@ function MetricsEquationVisualizeContent({
   aggregateFieldName,
   projectIds,
   environments,
-  onQueryChange,
 }: {
   aggregateFieldName: string;
   environments?: string[];
-  onQueryChange?: (query: string) => void;
   projectIds?: number[];
 }) {
   const formContext = useContext(FormContext);
@@ -156,9 +141,8 @@ function MetricsEquationVisualizeContent({
     }
     if (selectedFilter !== undefined) {
       formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, selectedFilter);
-      onQueryChange?.(selectedFilter);
     }
-  }, [metricQueries, selectedLabel, formContext.form, aggregateFieldName, onQueryChange]);
+  }, [metricQueries, selectedLabel, formContext.form, aggregateFieldName]);
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),

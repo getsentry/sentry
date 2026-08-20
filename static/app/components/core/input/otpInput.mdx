@@ -17,21 +17,6 @@ input for autofill, paste, keyboard navigation, and assistive technology.
 <OTPInput format="000000" onComplete={code => submit(code)} />
 ```
 
-## Sizes
-
-Use the size that matches the surrounding form controls.
-
-<Storybook.Demo>
-  <OTPInput format="000000" size="xs" onComplete={() => {}} />
-  <OTPInput format="000000" size="sm" onComplete={() => {}} />
-  <OTPInput format="000000" size="md" onComplete={() => {}} />
-</Storybook.Demo>
-```jsx
-<OTPInput format="000000" size="xs" onComplete={handleComplete} />
-<OTPInput format="000000" size="sm" onComplete={handleComplete} />
-<OTPInput format="000000" size="md" onComplete={handleComplete} />
-```
-
 ## Disabled
 
 <Storybook.Demo>
@@ -79,5 +64,4 @@ devices. The segmented slots are visual and hidden from the accessibility tree.
 | `format`     | `OTPFormat`               | —       | Defines the character set, length, and visual grouping. |
 | `onComplete` | `(value: string) => void` | —       | Called when every slot contains a character.            |
 | `uppercase`  | `boolean`                 | `false` | Converts alphanumeric input to uppercase.               |
-| `size`       | `'xs' \| 'sm' \| 'md'`    | `'md'`  | Size of each code slot.                                 |
 | `disabled`   | `boolean`                 | `false` | Disables code entry.                                    |

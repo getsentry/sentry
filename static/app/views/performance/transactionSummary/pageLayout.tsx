@@ -67,12 +67,11 @@ type Props = {
   organization: Organization;
   projects: Project[];
   tab: Tab;
-  features?: string[];
   fillSpace?: boolean;
 };
 
 export function PageLayout(props: Props) {
-  const {location, organization, projects, tab, getDocumentTitle, features = []} = props;
+  const {location, organization, projects, tab, getDocumentTitle} = props;
 
   let projectId: string | undefined;
   const filterProjects = location.query.project;
@@ -254,7 +253,7 @@ export function PageLayout(props: Props) {
       projectSlug={project?.slug}
     >
       <Feature
-        features={['performance-view', ...features]}
+        features={['performance-view']}
         organization={organization}
         renderDisabled={NoAccess}
       >
