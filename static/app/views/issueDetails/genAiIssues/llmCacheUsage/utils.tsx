@@ -259,6 +259,42 @@ export function buildCallSiteQuery({
 }
 
 /**
+ * The detection window as dates, or null when the occurrence carries none this
+ * page can query with.
+ *
+ * The parser only promises a string, not a parseable one, and an invalid date
+ * would reach the API as an unbounded range.
+ */
+export function getCallSiteWindow(
+  evidenceData: LlmCacheEvidenceData
+): {end: Date; start: Date} | null {
+  const {windowStart, windowEnd} = evidenceData;
+  if (windowStart === null || windowEnd === null) {
+    return null;
+  }
+  const start = new Date(windowStart);
+  const end = new Date(windowEnd);
+  if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) {
+    return null;
+  }
+  return {start, end};
+}
+
+/**
+ * Whether this page's live queries can be scoped to the call site at all.
+ *
+ * They need both a call site the search grammar can express and a window that
+ * parses, and an occurrence carrying neither is ordinary rather than broken.
+ * Sections that hold nothing but a live query test this so they can be left out
+ * entirely, rather than rendering a heading with nothing under it.
+ */
+export function canQueryCallSite(evidenceData: LlmCacheEvidenceData): boolean {
+  return (
+    buildCallSiteQuery(evidenceData) !== null && getCallSiteWindow(evidenceData) !== null
+  );
+}
+
+/**
  * How a call site is written on the page, mirroring the issue's own subtitle.
  *
  * Gen-AI span names conventionally embed the agent (`invoke_agent Planner`), so

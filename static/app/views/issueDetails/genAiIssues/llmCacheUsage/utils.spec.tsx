@@ -1,5 +1,6 @@
 import {
   buildCallSiteQuery,
+  canQueryCallSite,
   formatCacheEligibleCalls,
   formatCallSiteLabel,
   formatCharacters,
@@ -255,6 +256,39 @@ describe('buildCallSiteQuery', () => {
         model: 'gpt-4',
       })
     ).toBeNull();
+  });
+});
+
+describe('canQueryCallSite', () => {
+  const queryable = getLlmCacheEvidenceData({
+    outcome: 'not_caching',
+    agentLabel: 'Planner',
+    agentLabelSource: 'gen_ai.agent.name',
+    spanName: 'generate_content claude-sonnet-4',
+    model: 'claude-sonnet-4',
+    windowStart: '2026-08-10T00:00:00+00:00',
+    windowEnd: '2026-08-17T00:00:00+00:00',
+  });
+
+  it('accepts an occurrence carrying a call site and a window', () => {
+    expect(canQueryCallSite(queryable)).toBe(true);
+  });
+
+  it('rejects a call site the search grammar cannot express', () => {
+    // A trailing backslash would escape the term's own closing quote.
+    expect(canQueryCallSite({...queryable, spanName: 'generate_content claude\\'})).toBe(
+      false
+    );
+  });
+
+  it('rejects an occurrence with no detection window', () => {
+    expect(canQueryCallSite({...queryable, windowStart: null})).toBe(false);
+  });
+
+  it('rejects a window that does not parse', () => {
+    // The parser promises a string, not a date, and an unbounded range would
+    // otherwise reach the API.
+    expect(canQueryCallSite({...queryable, windowEnd: 'the other tuesday'})).toBe(false);
   });
 });
 

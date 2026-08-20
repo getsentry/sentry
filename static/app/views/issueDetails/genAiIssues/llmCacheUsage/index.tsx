@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -12,7 +11,7 @@ import {LlmCacheExampleCalls} from './llmCacheExampleCalls';
 import {LlmCacheProblemSection} from './llmCacheProblemSection';
 import {LlmCachePromptShapeSection} from './llmCachePromptShapeSection';
 import {LlmCacheTroubleshootingSection} from './llmCacheTroubleshootingSection';
-import {getLlmCacheEvidenceData} from './utils';
+import {canQueryCallSite, getLlmCacheEvidenceData} from './utils';
 
 interface LlmCacheUsageSectionsProps {
   event: Event;
@@ -49,14 +48,14 @@ export function LlmCacheUsageSections({event}: LlmCacheUsageSectionsProps) {
           <LlmCacheComparisonSection evidenceData={evidenceData} />
         </FoldSection>
       )}
-      <ErrorBoundary mini>
+      {canQueryCallSite(evidenceData) && (
         <FoldSection
           sectionKey={SectionKey.LLM_CACHE_ACTIVITY}
           title={t('Cache Activity')}
         >
           <LlmCacheActivityChart evidenceData={evidenceData} />
         </FoldSection>
-      </ErrorBoundary>
+      )}
       {evidenceData.sampleCalls.length > 0 && (
         <FoldSection
           sectionKey={SectionKey.LLM_CACHE_EXAMPLE_CALLS}

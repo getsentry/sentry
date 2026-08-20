@@ -1,5 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+
 import {LlmCacheActivityChart} from './llmCacheActivityChart';
 import type {LlmCacheEvidenceData} from './types';
 
@@ -43,6 +45,7 @@ function series(yAxis: string, values: Array<number | null>) {
 describe('LlmCacheActivityChart', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    PageFiltersStore.init();
   });
 
   it('queries the call site over the detection window', async () => {
@@ -66,6 +69,31 @@ describe('LlmCacheActivityChart', () => {
         query: expect.objectContaining({
           query: expect.stringContaining('gen_ai.agent.name:Executor'),
         }),
+      })
+    );
+  });
+
+  it('ignores the environment the reader has pinned elsewhere', async () => {
+    // The detector applied no environment filter, and this page renders no
+    // filter bar. Inheriting one would quietly chart a slice of the traffic the
+    // finding was measured over, with nothing on screen to say so.
+    PageFiltersStore.onInitializeUrlState({
+      projects: [],
+      environments: ['production'],
+      datetime: {start: null, end: null, period: '14d', utc: null},
+    });
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [series('sum(gen_ai.usage.input_tokens)', [1000, 1000])]},
+    });
+
+    render(<LlmCacheActivityChart evidenceData={evidence} />);
+
+    expect(await screen.findByText(/Live data for this call site/)).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({environment: []}),
       })
     );
   });
