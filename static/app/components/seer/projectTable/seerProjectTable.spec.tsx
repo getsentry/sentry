@@ -32,12 +32,17 @@ describe('SeerProjectTable', () => {
   const organization = OrganizationFixture({access: ['org:write']});
   const project = ProjectFixture({id: '2', slug: 'project-slug'});
 
-  function mockBaseEndpoints() {
+  function mockBaseEndpoints({
+    codingAgentsAsyncDelay,
+  }: {codingAgentsAsyncDelay?: number} = {}) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {
         integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
       },
+      ...(codingAgentsAsyncDelay === undefined
+        ? {}
+        : {asyncDelay: codingAgentsAsyncDelay}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -187,5 +192,30 @@ describe('SeerProjectTable', () => {
     // The check passes, so the selection is persisted and no warning is shown.
     await waitFor(() => expect(settingsPut).toHaveBeenCalled());
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('disables the agent select while agent options are still loading', async () => {
+    // Overrides the beforeEach mock with one that never resolves within the
+    // test, keeping the agentSelectOptions query pending indefinitely.
+    mockBaseEndpoints({codingAgentsAsyncDelay: 100_000});
+
+    renderTable();
+
+    // The project row itself has loaded (its own query is unaffected), but the
+    // agent select must stay disabled rather than showing a select with an
+    // empty/mismatched value.
+    await screen.findByText('project-slug');
+    const select = await screen.findByRole('textbox', {name: 'Agent'});
+    await waitFor(() => expect(select).toBeDisabled());
+  });
+
+  it('enables the agent select once options finish loading', async () => {
+    mockBaseEndpoints({codingAgentsAsyncDelay: 10});
+
+    renderTable();
+
+    const select = await screen.findByRole('textbox', {name: 'Agent'});
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(await screen.findByText('Seer')).toBeInTheDocument();
   });
 });
