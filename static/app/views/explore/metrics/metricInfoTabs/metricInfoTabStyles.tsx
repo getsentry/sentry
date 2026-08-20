@@ -170,4 +170,12 @@ export const TableRowContainer = styled('div')`
 
   margin-right: -15px;
   padding-right: calc(15px);
+
+  /* Fade the background so the timeline's transient row highlight eases in and out. */
+  transition: background-color 250ms ease;
+
+  &[data-row-linked='true'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+  }
 `;

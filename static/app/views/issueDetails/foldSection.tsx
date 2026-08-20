@@ -1,4 +1,11 @@
-import React, {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -10,6 +17,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {FoldSectionKey} from 'sentry/views/issueDetails/context';
@@ -136,6 +144,7 @@ export function FoldSection({
     initialCollapse,
     disableCollapsePersistence
   );
+  const location = useLocation();
 
   const expanded = !isCollapsed;
   const scrollToSection = useScrollToSection(sectionKey, expanded, setIsCollapsed);
@@ -146,6 +155,24 @@ export function FoldSection({
       setIsCollapsed(false);
     }
   }, [preventCollapse, setIsCollapsed]);
+
+  // In-page timeline navigation changes the hash without remounting sections.
+  // Expand only the addressed section; this keeps lazy content unloaded otherwise.
+  useEffect(() => {
+    if (location.hash !== `#${sectionKey}`) {
+      return;
+    }
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      return;
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(sectionKey)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [isCollapsed, location.hash, sectionKey, setIsCollapsed]);
 
   useLayoutEffect(() => {
     if (!Object.hasOwn(sectionData, sectionKey)) {

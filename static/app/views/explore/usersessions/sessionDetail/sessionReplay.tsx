@@ -29,23 +29,26 @@ function useSessionReplays(sessionId: string) {
   const enabled = isReady && Boolean(sessionId);
 
   const {data} = useQuery(
-    apiOptions.as<ReplayIndexResponse>()('/organizations/$organizationIdOrSlug/replays/', {
-      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-      query: {
-        ...normalizeDateTimeParams(selection.datetime),
-        project: selection.projects,
-        environment: selection.environments,
-        field: ['id'],
-        // The replay index treats any unknown filter as a tag, so the bare key is
-        // correct here — `tags[session.id]` fails to parse and silently returns
-        // every replay in the project.
-        query: `${SESSION_ID}:"${sessionId}"`,
-        sort: '-started_at',
-        per_page: 10,
-        referrer: REFERRER,
-      },
-      staleTime: 0,
-    })
+    apiOptions.as<ReplayIndexResponse>()(
+      '/organizations/$organizationIdOrSlug/replays/',
+      {
+        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {
+          ...normalizeDateTimeParams(selection.datetime),
+          project: selection.projects,
+          environment: selection.environments,
+          field: ['id'],
+          // The replay index treats any unknown filter as a tag, so the bare key is
+          // correct here — `tags[session.id]` fails to parse and silently returns
+          // every replay in the project.
+          query: `${SESSION_ID}:"${sessionId}"`,
+          sort: '-started_at',
+          per_page: 10,
+          referrer: REFERRER,
+        },
+        staleTime: 0,
+      }
+    )
   );
 
   return {replayIds: data?.data.map(replay => replay.id) ?? []};

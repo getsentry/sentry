@@ -39,6 +39,8 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
   &:not(thead > &) {
     cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
+    /* Fade the background so the timeline's transient row highlight eases in and out. */
+    transition: background-color 250ms ease;
 
     &:hover {
       background-color: ${p =>

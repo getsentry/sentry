@@ -4,6 +4,12 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
+import {
+  EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
+  EVENT_CONTEXT_TARGET_QUERY_PARAM,
+  getEventContextTargetIds,
+} from 'sentry/components/events/eventContextTarget';
+import {ViewMorePulse} from 'sentry/components/events/eventContextViewMorePulse';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
@@ -20,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
@@ -89,6 +96,22 @@ function MetricsSectionContent({
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
 
+  // A timeline marker can address a metric that lives past the abbreviated preview (only
+  // reachable via "View more"). Detect that so we can flag where the row went.
+  const focusedMetricIds = getEventContextTargetIds(
+    location.query[EVENT_CONTEXT_TARGET_QUERY_PARAM]
+  );
+  const focusedRowIsHidden =
+    !!result.data &&
+    focusedMetricIds.some(id => {
+      const index = result.data!.findIndex(
+        row => String(row[TraceMetricKnownFieldKey.ID] ?? '') === id
+      );
+      return index >= NUMBER_ABBREVIATED_METRICS;
+    });
+  // Remount the pulse per click so its one-shot animation replays every time.
+  const focusNonce = String(location.query[EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM] ?? '');
+
   const onOpenMetricsDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
     trackAnalytics('metrics.issue_details.drawer_opened', {
@@ -152,17 +175,21 @@ function MetricsSectionContent({
           overrideTableData={abbreviatedTableData}
         />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
-          <div>
+          <ViewMorePulse
+            key={focusedRowIsHidden ? focusNonce : 'idle'}
+            active={focusedRowIsHidden}
+          >
             <Button
               icon={<IconChevron direction="right" />}
               aria-label={t('View more')}
               size="sm"
+              priority={focusedRowIsHidden ? 'primary' : 'default'}
               onClick={onOpenMetricsDrawer}
               ref={viewAllButtonRef}
             >
               {t('View more')}
             </Button>
-          </div>
+          </ViewMorePulse>
         ) : null}
       </Stack>
     </FoldSection>

@@ -6,6 +6,13 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
+import {
+  EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
+  EVENT_CONTEXT_TARGET_QUERY_PARAM,
+  getEventContextTargetId,
+  getEventContextTargetIds,
+} from 'sentry/components/events/eventContextTarget';
+import {ViewMorePulse} from 'sentry/components/events/eventContextViewMorePulse';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
@@ -147,6 +154,18 @@ function OurlogsSectionContent({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const logsUrl = useEventLogsUrl(event);
+  const focusedLogIds = getEventContextTargetIds(
+    location.query[EVENT_CONTEXT_TARGET_QUERY_PARAM]
+  );
+
+  // A timeline marker can address a log that lives past the abbreviated preview (only
+  // reachable via "View more"). Detect that so we can flag where the row went.
+  const focusedRowIsHidden = focusedLogIds.some(id => {
+    const index = (tableData.data ?? []).findIndex(row => String(row.id) === id);
+    return index >= abbreviatedTableData.length;
+  });
+  // Remount the pulse per click so its one-shot animation replays every time.
+  const focusNonce = String(location.query[EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM] ?? '');
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
@@ -261,32 +280,41 @@ function OurlogsSectionContent({
       <Stack>
         <SmallTable>
           <TableBody>
-            {abbreviatedTableData?.map((row, index) => (
-              <LogRowContent
-                dataRow={row}
-                meta={tableData.meta}
-                highlightTerms={highlightTerms}
-                embedded
-                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                key={index}
-                blockRowExpanding
-                onEmbeddedRowClick={onEmbeddedRowClick}
-              />
-            ))}
+            {abbreviatedTableData?.map((row, index) => {
+              const rowId = String(row.id);
+              return (
+                <LogRowContent
+                  dataRow={row}
+                  meta={tableData.meta}
+                  highlightTerms={highlightTerms}
+                  embedded
+                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  key={index}
+                  blockRowExpanding
+                  elementId={getEventContextTargetId('log', rowId)}
+                  isHighlighted={focusedLogIds.includes(rowId)}
+                  onEmbeddedRowClick={onEmbeddedRowClick}
+                />
+              );
+            })}
           </TableBody>
         </SmallTable>
         {tableData.data && tableData.data.length > 5 ? (
-          <div>
+          <ViewMorePulse
+            key={focusedRowIsHidden ? focusNonce : 'idle'}
+            active={focusedRowIsHidden}
+          >
             <Button
               icon={<IconChevron direction="right" />}
               aria-label={t('View more')}
               size="sm"
+              priority={focusedRowIsHidden ? 'primary' : 'default'}
               onClick={onOpenLogsDrawer}
               ref={viewAllButtonRef}
             >
               {t('View more')}
             </Button>
-          </div>
+          </ViewMorePulse>
         ) : null}
       </Stack>
     </FoldSection>

@@ -209,6 +209,24 @@ describe('OurlogsSection', () => {
     });
   });
 
+  it('highlights a log targeted by the event context timeline', async () => {
+    Element.prototype.scrollIntoView = jest.fn();
+    render(<OurlogsSection event={event} project={project} group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {eventContextTarget: logId},
+        },
+      },
+    });
+
+    const row = await screen.findByTestId('log-table-row');
+    expect(row).toHaveAttribute('id', `event-context-log-${logId}`);
+    expect(row).toHaveAttribute('data-row-linked', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
   it('renders logs', async () => {
     const mockRowDetailsRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${logId}/`,

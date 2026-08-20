@@ -258,8 +258,7 @@ export function useUserSessions({
       // Feedback rides on issuePlatform and is best-effort — see the discovery
       // combine above.
       isError: results.some(
-        (result, index) =>
-          SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
+        (result, index) => SESSION_DATASETS[index]!.key !== 'feedback' && result.isError
       ),
       error: results.find(result => result.error)?.error ?? null,
     }),

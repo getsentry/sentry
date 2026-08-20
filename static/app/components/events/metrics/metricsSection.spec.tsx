@@ -179,6 +179,24 @@ describe('MetricsSection', () => {
     });
   });
 
+  it('highlights a metric targeted by the event context timeline', async () => {
+    Element.prototype.scrollIntoView = jest.fn();
+    render(<MetricsSection event={event} project={project} group={group} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {eventContextTarget: metricId},
+        },
+      },
+    });
+
+    const row = await screen.findByText('http.server.duration');
+    const container = row.closest(`[id="event-context-metric-${metricId}"]`);
+    expect(container).toHaveAttribute('data-row-linked', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
   it('renders metrics section with data', async () => {
     render(<MetricsSection event={event} project={project} group={group} />, {
       organization,

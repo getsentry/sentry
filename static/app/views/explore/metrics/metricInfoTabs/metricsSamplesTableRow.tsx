@@ -1,4 +1,4 @@
-import {useRef, useState, type ReactNode} from 'react';
+import {useEffect, useRef, useState, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,6 +6,10 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {
+  getEventContextTargetId,
+  scrollEventContextRowIntoView,
+} from 'sentry/components/events/eventContextTarget';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -169,6 +173,7 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
+  isHighlighted?: boolean;
   ref?: (element: HTMLElement | null) => void;
   source?: MetricsSamplesTableSource;
 }
@@ -214,12 +219,14 @@ export function SampleTableRow({
   meta,
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   ref,
+  isHighlighted = false,
 }: SampleTableRowProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const measureRef = useRef<HTMLTableRowElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const projects = useProjects();
   const projectId = row[TraceMetricKnownFieldKey.PROJECT_ID];
   const project = projects.projects.find(p => p.id === '' + projectId);
@@ -348,8 +355,23 @@ export function SampleTableRow({
     return renderMap[field]?.() ?? renderDefaultCell(field);
   };
 
+  const metricId = String(row[TraceMetricKnownFieldKey.ID] ?? '');
+
+  useEffect(() => {
+    if (isHighlighted) {
+      scrollEventContextRowIntoView(rowRef.current);
+    }
+  }, [isHighlighted]);
+
   return (
-    <TableRowContainer ref={ref}>
+    <TableRowContainer
+      ref={element => {
+        rowRef.current = element;
+        ref?.(element);
+      }}
+      id={metricId ? getEventContextTargetId('metric', metricId) : undefined}
+      data-row-linked={isHighlighted || undefined}
+    >
       <StickyTableRow sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;

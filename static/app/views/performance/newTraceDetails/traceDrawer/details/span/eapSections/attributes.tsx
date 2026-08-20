@@ -1,9 +1,8 @@
 import {useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptorObject} from 'history';
-
 import {SESSION_ID} from '@sentry/conventions/attributes';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
