@@ -242,6 +242,12 @@ export type RequestOptions = RequestCallbacks & {
    */
   query?: Record<string, any>;
   /**
+   * How to decode the response body. `arraybuffer` is required for binary
+   * payloads (for example UTF-16 attachments) because `response.text()` is
+   * always UTF-8 per the Fetch spec.
+   */
+  responseType?: 'arraybuffer';
+  /**
    * By default, requests will be aborted anytime api.clear() is called,
    * which is commonly used on unmounts. When skipAbort is true, the
    * request is opted out of this behavior. Useful for when you still
@@ -495,17 +501,30 @@ export class Client {
           // Response objects need to be cloned before its body can be used.
           let responseJSON: any;
           let responseText: any;
+          let responseData: any;
 
           const {status, statusText} = response;
           let {ok} = response;
           let errorReason = 'Request not OK'; // the default error reason
           let twoHundredErrorReason: string | undefined;
 
-          // Try to get text out of the response no matter the status
+          const useArrayBuffer = options.responseType === 'arraybuffer';
+          // Error bodies are JSON (sso-required, sudo-required, …). Only decode
+          // successful responses as ArrayBuffer so global error handlers still work.
+          const decodeAsArrayBuffer = useArrayBuffer && response.ok;
+
+          // Try to get the body out of the response no matter the status
           try {
-            responseText = await response.text();
+            if (decodeAsArrayBuffer) {
+              responseData = await response.arrayBuffer();
+              responseText = '';
+            } else {
+              responseText = await response.text();
+            }
           } catch (error: any) {
-            twoHundredErrorReason = 'Failed awaiting response.text()';
+            twoHundredErrorReason = decodeAsArrayBuffer
+              ? 'Failed awaiting response.arrayBuffer()'
+              : 'Failed awaiting response.text()';
             ok = false;
             if (error.name === 'AbortError') {
               errorReason = 'Request was aborted';
@@ -520,7 +539,7 @@ export class Client {
             requestHeaders.get('Accept') === Client.JSON_HEADERS.Accept;
 
           const isStatus3XX = status >= 300 && status < 400;
-          if (status !== 204 && !isStatus3XX) {
+          if (!decodeAsArrayBuffer && status !== 204 && !isStatus3XX) {
             try {
               responseJSON = JSON.parse(responseText);
             } catch (error: any) {
@@ -556,7 +575,9 @@ export class Client {
           };
 
           // Respect the response content-type header
-          const responseData = isResponseJSON ? responseJSON : responseText;
+          if (!decodeAsArrayBuffer) {
+            responseData = isResponseJSON ? responseJSON : responseText;
+          }
 
           if (ok) {
             successHandler(responseMeta, statusText, responseData);

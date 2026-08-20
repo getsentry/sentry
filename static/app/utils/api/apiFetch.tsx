@@ -28,6 +28,7 @@ export async function apiFetch<TQueryFnData = unknown>(
     data: options?.data,
     query: options?.query,
     headers: options?.headers,
+    responseType: options?.responseType,
   });
 
   const hits = response?.getResponseHeader('X-Hits');

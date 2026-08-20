@@ -105,4 +105,35 @@ describe('api', () => {
       )
     ).not.toThrow();
   });
+
+  it('parses JSON error bodies when responseType is arraybuffer', async () => {
+    fetchMock.mockResponse(
+      JSON.stringify({
+        detail: {code: 'sso-required', extra: {loginUrl: '/sso/'}},
+      }),
+      {status: 400, headers: {'Content-Type': 'application/json'}}
+    );
+
+    await expect(
+      new Client().requestPromise('/test/', {responseType: 'arraybuffer'})
+    ).rejects.toMatchObject({
+      status: 400,
+      responseJSON: {
+        detail: {code: 'sso-required', extra: {loginUrl: '/sso/'}},
+      },
+    });
+  });
+
+  it('returns ArrayBuffer for successful arraybuffer responses', async () => {
+    fetchMock.mockResponse('hello', {
+      status: 200,
+      headers: {'Content-Type': 'text/plain'},
+    });
+
+    const data = await new Client().requestPromise('/test/', {
+      responseType: 'arraybuffer',
+    });
+
+    expect(new TextDecoder().decode(data as ArrayBuffer)).toBe('hello');
+  });
 });
