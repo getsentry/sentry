@@ -162,6 +162,10 @@ describe('equation draft selection', () => {
     expect(
       within(actions).getByRole('option', {name: 'Reset Chart'})
     ).toBeInTheDocument();
+    expect(within(actions).getByRole('option', {name: 'Add Chart'})).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Add Equation'})
+    ).toBeInTheDocument();
     expect(
       within(actions).queryByRole('option', {name: 'Delete Chart'})
     ).not.toBeInTheDocument();
@@ -179,6 +183,10 @@ describe('equation draft selection', () => {
     actions = screen.getByRole('dialog', {name: 'More Actions'});
     expect(
       within(actions).getByRole('option', {name: 'Reset Equation'})
+    ).toBeInTheDocument();
+    expect(within(actions).getByRole('option', {name: 'Add Chart'})).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Add Equation'})
     ).toBeInTheDocument();
     expect(
       within(actions).getByRole('option', {name: 'Delete Chart'})

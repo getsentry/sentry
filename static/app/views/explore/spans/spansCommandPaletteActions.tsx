@@ -1645,6 +1645,26 @@ function QueryClauseActionsEditor() {
               keywords={['add', 'chart', 'equation', 'series', 'visualization']}
               onAction={() => addDraftChart(new VisualizeEquation(EQUATION_PREFIX))}
             />
+            <CMDKAction
+              actionPanel={{
+                context: 'chart',
+                label: t('Add Chart'),
+                only: true,
+                order: MORE_ACTIONS_ORDER.addChart,
+              }}
+              display={{label: t('Add Chart')}}
+              onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
+            />
+            <CMDKAction
+              actionPanel={{
+                context: 'chart',
+                label: t('Add Equation'),
+                only: true,
+                order: MORE_ACTIONS_ORDER.addEquation,
+              }}
+              display={{label: t('Add Equation')}}
+              onAction={() => addDraftChart(new VisualizeEquation(EQUATION_PREFIX))}
+            />
           </Fragment>
         )}
         <CMDKAction
@@ -1764,7 +1784,7 @@ function QueryClauseActionsEditor() {
         )}
         <SaveAsActions pageFilters={draftPageFilters} queryParams={draftQueryParams} />
       </CMDKAction>
-      <CMDKAction display={{label: t('Query')}}>
+      <CMDKAction display={{label: t('Query')}} order={1000}>
         {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(
           (groupBy, index, rows) => {
             const rowId = `spans-group-by-${index}`;
@@ -1866,6 +1886,7 @@ function QueryClauseActionsEditor() {
             id={`spans-series-details-${chartId}`}
             actionContext={`chart:${chartId}`}
             display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
+            order={100 + index}
           >
             {canDeleteChart(draftCharts) && (
               <CMDKAction
