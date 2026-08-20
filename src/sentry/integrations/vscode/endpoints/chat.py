@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.paginator import DateTimePaginator
 from sentry.integrations.vscode.endpoints.utils import (
     VSCodeEndpointPermission,
     create_session_id,
@@ -24,7 +25,7 @@ from sentry.seer.entrypoints.operator import SeerAgentOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.entrypoints.vscode.entrypoint import VSCodeAgentEntrypoint
 from sentry.seer.models import SeerApiError
-from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 
 
 class VSCodeChatSerializer(serializers.Serializer[dict[str, object]]):
@@ -33,45 +34,47 @@ class VSCodeChatSerializer(serializers.Serializer[dict[str, object]]):
 
 
 @cell_silo_endpoint
-class VSCodeChatEndpoint(OrganizationEndpoint):
+class VSCodeChatIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (VSCodeEndpointPermission,)
 
-    def get(self, request: Request, organization: Organization, session_id: str) -> HttpResponse:
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
         """
-        Polling session state
+        List chat sessions
         """
         user_id = validate_vscode_access(request=request, organization=organization)
-        try:
-            run = get_run_from_session_id(
-                organization=organization, user_id=user_id, session_id=session_id
-            )
-        except serializers.ValidationError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        runs = SeerRun.objects.filter(
+            organization=organization,
+            user_id=user_id,
+            type=SeerRunType.EXPLORER,
+            agent__source=SeerEntrypointKey.VSCODE.value,
+        ).select_related("agent")
+        query = request.GET.get("query", "").strip()
+        if query:
+            runs = runs.filter(agent__title__icontains=query)
 
-        if run.mirror_status == SeerRunMirrorStatus.FAILED:
-            return Response(
-                editor_response(
-                    run,
-                    run.agent,
-                    status="failed",
-                    errors=["Seer could not start this session."],
-                )
-            )
-        if run.seer_run_state_id is None:
-            return Response(editor_response(run, run.agent, status="pending"))
-
-        try:
-            state = SeerAgentClient(organization, request.user).get_run(run.seer_run_state_id)
-        except SeerApiError:
-            return Response({"detail": "Failed to fetch editor session."}, status=502)
-        return Response(serialize_editor_state(run, run.agent, state))
+        return self.paginate(
+            request=request,
+            queryset=runs,
+            paginator_cls=DateTimePaginator,
+            order_by="-last_triggered_at",
+            default_per_page=25,
+            max_per_page=100,
+            on_results=lambda values: [
+                {
+                    "id": str(run.uuid),
+                    "title": run.agent.title,
+                    "createdAt": run.date_added.isoformat(),
+                    "updatedAt": run.last_triggered_at.isoformat(),
+                }
+                for run in values
+            ],
+        )
 
     def post(self, request: Request, organization: Organization) -> HttpResponse:
         """
@@ -113,6 +116,47 @@ class VSCodeChatEndpoint(OrganizationEndpoint):
             editor_response(run, run.agent, status="running"),
             status=status.HTTP_201_CREATED,
         )
+
+
+@cell_silo_endpoint
+class VSCodeChatDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.COMMUNITY
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    permission_classes = (VSCodeEndpointPermission,)
+
+    def get(self, request: Request, organization: Organization, session_id: str) -> HttpResponse:
+        """
+        Polling session state
+        """
+        user_id = validate_vscode_access(request=request, organization=organization)
+        try:
+            run = get_run_from_session_id(
+                organization=organization, user_id=user_id, session_id=session_id
+            )
+        except serializers.ValidationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if run.mirror_status == SeerRunMirrorStatus.FAILED:
+            return Response(
+                editor_response(
+                    run,
+                    run.agent,
+                    status="failed",
+                    errors=["Seer could not start this session."],
+                )
+            )
+        if run.seer_run_state_id is None:
+            return Response(editor_response(run, run.agent, status="pending"))
+
+        try:
+            state = SeerAgentClient(organization, request.user).get_run(run.seer_run_state_id)
+        except SeerApiError:
+            return Response({"detail": "Failed to fetch editor session."}, status=502)
+        return Response(serialize_editor_state(run, run.agent, state))
 
     def put(self, request: Request, organization: Organization, session_id: str) -> Response:
         """
