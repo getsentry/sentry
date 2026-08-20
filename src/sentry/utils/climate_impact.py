@@ -6,9 +6,7 @@ from typing import Any
 # intensity rounds EPA's ~394 gCO2e/kWh estimate to avoid false precision in a rough model.
 ACTIVE_CPU_WATTS = 15.0
 GRID_INTENSITY_GCO2E_PER_KWH = 400.0
-_GCO2E_PER_MILLISECOND = (
-    ACTIVE_CPU_WATTS * GRID_INTENSITY_GCO2E_PER_KWH / 3_600_000_000
-)
+_GCO2E_PER_MILLISECOND = ACTIVE_CPU_WATTS * GRID_INTENSITY_GCO2E_PER_KWH / 3_600_000_000
 
 
 def estimate_gco2e_from_duration_ms(duration_ms: float) -> float:
