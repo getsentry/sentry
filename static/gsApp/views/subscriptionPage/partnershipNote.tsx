@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
@@ -24,7 +26,12 @@ export function PartnershipNote({subscription}: Props) {
           <TextBlock
             noMargin
             dangerouslySetInnerHTML={{
-              __html: subscription.partner?.partnership.supportNote || '',
+              __html: DOMPurify.sanitize(
+                subscription.partner?.partnership.supportNote || '',
+                // `target` is not in DOMPurify's default allowlist, and the note
+                // links out to the partner's own support site.
+                {ADD_ATTR: ['target']}
+              ),
             }}
           />
         ) : (
