@@ -152,5 +152,6 @@ export function useCancelSecondFactorAuth() {
         )
       : null,
     isPending: mutation.isPending,
+    reset: mutation.reset,
   };
 }
