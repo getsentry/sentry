@@ -36,7 +36,7 @@ interface DisplayProps {
   trailingItem?: React.ReactNode;
 }
 
-export interface CMDKTextInput {
+interface CMDKTextInput {
   /** Accessible label for the palette input while editing. */
   ariaLabel: string;
   /** Called with the raw input value when Enter is pressed. */
@@ -47,7 +47,7 @@ export interface CMDKTextInput {
   initialValue?: string;
 }
 
-export interface CMDKActionPanel {
+interface CMDKActionPanel {
   /** Selection context in which this action is available. Hierarchical contexts match descendants. */
   context: string;
   label: string;

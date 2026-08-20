@@ -156,7 +156,11 @@ describe('IssueListBulkCommandPaletteActions', () => {
       child => child.key === IssueListCommandPaletteActionId.ISSUE_FILTERS
     );
     expect(issueFiltersNode).toBeDefined();
-    if (issueFiltersNode && 'resource' in issueFiltersNode) {
+    if (
+      issueFiltersNode &&
+      'resource' in issueFiltersNode &&
+      typeof issueFiltersNode.resource === 'function'
+    ) {
       expect(issueFiltersNode.resource('', {state: undefined}).enabled).toBe(false);
       expect(issueFiltersNode.resource('', {state: 'selected'}).enabled).toBe(true);
     }
