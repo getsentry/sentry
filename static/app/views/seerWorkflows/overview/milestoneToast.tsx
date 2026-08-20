@@ -23,11 +23,11 @@ import {
 import type {AutofixOverviewResponse, MilestoneKey, OverviewRun} from './types';
 import {detectMilestoneAdvances, type MilestoneAdvance} from './useAutofixOverview';
 
-const MILESTONE_LABELS: Record<MilestoneKey, string> = {
-  autofix_root_cause: t('Root Cause'),
-  autofix_solution: t('Solution'),
-  autofix_code_changes: t('Code Changes'),
-  has_pull_request: t('Pull Request'),
+const MILESTONE_ACTION_LABELS: Record<MilestoneKey, string> = {
+  autofix_root_cause: t('Root Cause Found'),
+  autofix_solution: t('Plan Created'),
+  autofix_code_changes: t('Code Generated'),
+  has_pull_request: t('PR Opened'),
   pull_requests_merged: t('Merged'),
 };
 
@@ -69,7 +69,7 @@ function NextActionButton({
   return (
     <Button
       size="xs"
-      variant="primary"
+      variant="secondary"
       busy={isDispatched}
       disabled={isDispatched || isCreatePrGatePending}
       icon={<config.Icon />}
@@ -90,7 +90,7 @@ export function MilestoneToast({
   const sectionKey = sectionKeyForMilestone(toMilestone);
   return (
     <Flex align="center" gap="md">
-      <Text>{t('%s reached %s', run.shortId, MILESTONE_LABELS[toMilestone])}</Text>
+      <Text>{t('%s: %s', run.shortId, MILESTONE_ACTION_LABELS[toMilestone])}</Text>
       {isActionableSection(sectionKey) && run.status !== 'processing' && (
         <NextActionButton run={run} sectionKey={sectionKey} />
       )}
