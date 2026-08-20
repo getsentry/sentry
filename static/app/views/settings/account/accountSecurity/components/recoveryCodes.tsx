@@ -31,9 +31,17 @@ export function RecoveryCodes({
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     // eslint-disable-next-line @typescript-eslint/dot-notation
     const iframe = window.frames['printable'];
-    iframe.document.write(codes.join('<br>'));
+    const doc = iframe.document;
+
+    doc.body.replaceChildren();
+    codes.forEach((code, i) => {
+      if (i > 0) {
+        doc.body.appendChild(doc.createElement('br'));
+      }
+      doc.body.appendChild(doc.createTextNode(code));
+    });
+
     iframe.print();
-    iframe.document.close();
   };
 
   if (!isEnrolled || !codes) {
