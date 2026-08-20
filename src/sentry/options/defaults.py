@@ -3505,6 +3505,14 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Workflows for which to always try to record evaluation logs.
+register(
+    "workflow_engine.evaluation_log_target_workflow_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
 # logger (which also logs to Sentry).
 register(
