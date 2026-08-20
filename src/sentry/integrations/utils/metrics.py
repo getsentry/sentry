@@ -10,6 +10,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 import sentry_sdk
+from requests.exceptions import ChunkedEncodingError
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -365,6 +366,15 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
+        if exc_value is not None and isinstance(exc_value, ChunkedEncodingError):
+            # ChunkedEncodingError is a transient network error (connection dropped
+            # while reading a response body). It is not a code defect and should not
+            # create a Sentry issue on every occurrence. Route it to halt so it is
+            # still counted in SLO metrics.
+            self.record_halt(exc_value)
+            return
+
         super().__exit__(exc_type, exc_value, traceback)
 
 
