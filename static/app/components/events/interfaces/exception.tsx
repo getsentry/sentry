@@ -21,7 +21,6 @@ type Props = {
   group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hideGuide?: boolean;
 };
 
 export function Exception({

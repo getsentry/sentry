@@ -116,7 +116,7 @@ function makeReleaseListApiOptions({
 const releasesFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
   tags: {
-    ['feedback.source']: 'releases-list-header',
+    'feedback.source': 'releases-list-header',
   },
 };
 
