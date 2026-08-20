@@ -540,6 +540,7 @@ const appConfig: Configuration = {
   },
   output: {
     crossOriginLoading: 'anonymous',
+    trustedTypes: {policyName: 'sentry-bundler', onPolicyCreationFailure: 'continue'},
     // Clean the output dir before emit, but keep the service-worker assets
     // emitted by the separate `workerConfig` compiler below. Both compilers
     // write to this same `dist` path and run in parallel, so without `keep`
