@@ -1,7 +1,5 @@
 from typing import Any, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry import features
 from sentry.issues.action_log.types import ActionSource
 from sentry.models.organization import Organization
@@ -15,8 +13,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 
 
 class VSCodeCachePayload(TypedDict):
@@ -40,11 +36,8 @@ class VSCodeAgentEntrypoint(SeerAgentEntrypoint[VSCodeCachePayload]):
         self.user_id = user_id
 
     @staticmethod
-    def has_access(
-        organization: Organization | RpcOrganization,
-        actor: User | RpcUser | AnonymousUser | None = None,
-    ) -> bool:
-        return features.has("organizations:integrations-vscode", organization, actor=actor)
+    def has_access(organization: Organization | RpcOrganization) -> bool:
+        return features.has("organizations:integrations-vscode", organization)
 
     @staticmethod
     def get_code_mode_tools(organization: Organization) -> str:
