@@ -3500,6 +3500,15 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Diagnostic: workflow ids for which per-condition action-filter (IF) evaluations
+# are logged. Scoped to specific workflow ids so log volume stays bounded on orgs
+# with many workflows (where broad evaluation logging would be rate-limited).
+register(
+    "workflow_engine.debug.log_condition_evaluations_workflow_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
 # logger (which also logs to Sentry).
 register(

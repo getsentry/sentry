@@ -3,6 +3,7 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Q
@@ -248,6 +249,173 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats, trigger_evals
 
 
+def _latest_adopted_release_debug_extras(
+    condition: DataCondition, value: WorkflowEventData
+) -> dict[str, Any]:
+    """
+    Surface the internal/cached values behind a ``latest_adopted_release`` evaluation so a
+    ``False`` result is explainable. This mirrors the handler's logic and calls the same
+    (cached) helpers, so within a single event it reports the exact values the handler saw,
+    and pinpoints which short-circuit produced the result.
+    """
+    # Local imports: debug-only path, and avoids import cycles with the handler module.
+    from sentry.models.environment import Environment
+    from sentry.models.release import follows_semver_versioning_scheme
+    from sentry.rules.age import AgeComparisonType
+    from sentry.rules.filters.latest_adopted_release_filter import (
+        get_first_last_release_for_event,
+        is_newer_release,
+    )
+    from sentry.search.utils import LatestReleaseOrders
+    from sentry.workflow_engine.handlers.condition.latest_release_handler import (
+        get_latest_adopted_release_for_env,
+    )
+
+    extras: dict[str, Any] = {}
+    event = value.event
+    if not isinstance(event, GroupEvent):
+        extras["reason"] = "event_is_not_group_event"
+        return extras
+
+    comparison = condition.comparison or {}
+    release_age_type = comparison.get("release_age_type")
+    age_comparison = comparison.get("age_comparison")
+    environment_name = comparison.get("environment")
+
+    follows_semver = follows_semver_versioning_scheme(event.organization.id, event.project.id)
+    order_type = LatestReleaseOrders.SEMVER if follows_semver else LatestReleaseOrders.DATE
+    extras["follows_semver"] = follows_semver
+    extras["order_type"] = order_type.name
+
+    try:
+        environment = Environment.get_for_organization_id(
+            event.project.organization_id, environment_name
+        )
+    except Environment.DoesNotExist:
+        extras["reason"] = "environment_not_found"
+        return extras
+    extras["resolved_environment_id"] = environment.id
+
+    latest_adopted = get_latest_adopted_release_for_env(environment, event)
+    extras["latest_adopted_release"] = latest_adopted.version if latest_adopted else None
+    if not latest_adopted:
+        extras["reason"] = "no_latest_adopted_release"
+        return extras
+    extras["latest_adopted_is_semver"] = latest_adopted.is_semver_release
+
+    issue_release = get_first_last_release_for_event(event, release_age_type, order_type)
+    extras["issue_release"] = issue_release.version if issue_release else None
+    if not issue_release:
+        extras["reason"] = "no_first_last_release_for_issue"
+        return extras
+    extras["issue_release_is_semver"] = issue_release.is_semver_release
+
+    if age_comparison == AgeComparisonType.NEWER:
+        extras["comparison_result"] = is_newer_release(issue_release, latest_adopted, order_type)
+    elif age_comparison == AgeComparisonType.OLDER:
+        extras["comparison_result"] = is_newer_release(latest_adopted, issue_release, order_type)
+    else:
+        extras["reason"] = "unknown_age_comparison"
+    return extras
+
+
+def _condition_debug_extras(condition: DataCondition, value: WorkflowEventData) -> dict[str, Any]:
+    """
+    Best-effort per-condition-type internals that explain *why* a condition evaluated the way
+    it did -- including the resolved/cached values the handler read. Wrapped in a broad except
+    so a diagnostic failure never affects evaluation. Only the condition types used by the
+    targeted workflow are covered; extend as needed.
+    """
+    from sentry.constants import parse_log_level
+    from sentry.workflow_engine.models.data_condition import Condition
+
+    extras: dict[str, Any] = {}
+    try:
+        condition_type = Condition(condition.type)
+        event = value.event
+        comparison = condition.comparison or {}
+
+        if condition_type == Condition.LEVEL:
+            raw = event.get_tag("level") if isinstance(event, GroupEvent) else None
+            extras["level_tag_raw"] = raw
+            extras["level_tag_parsed"] = parse_log_level(raw) if raw is not None else None
+        elif condition_type == Condition.TAGGED_EVENT:
+            key = str(comparison.get("key", "")).lower()
+            tags = event.tags if isinstance(event, GroupEvent) else []
+            extras["tag_key"] = key
+            extras["tag_values_for_key"] = [v for k, v in tags if k.lower() == key]
+            extras["tag_key_present"] = key in {k.lower() for k, _ in tags}
+        elif condition_type == Condition.ISSUE_CATEGORY:
+            extras["group_issue_category"] = int(value.group.issue_category)
+        elif condition_type == Condition.LATEST_ADOPTED_RELEASE:
+            extras.update(_latest_adopted_release_debug_extras(condition, value))
+    except Exception as e:
+        extras["debug_extras_error"] = repr(e)
+    return extras
+
+
+def _log_action_filter_condition_evaluations(
+    *,
+    workflow: Workflow,
+    action_condition_group: DataConditionGroup,
+    conditions: list[DataCondition] | None,
+    value: WorkflowEventData,
+    group_evaluation: DataConditionGroupEvaluation,
+    event_data: WorkflowEventData,
+) -> None:
+    """
+    Emit a per-condition INFO log for a targeted workflow's action-filter (IF) group.
+
+    Gated by the ``workflow_engine.debug.log_condition_evaluations_workflow_ids`` option
+    (a list of workflow ids) so it only runs for explicitly-listed workflows. This keeps
+    log volume bounded on orgs with many workflows, where broad evaluation logging would
+    otherwise be rate-limited.
+
+    Conditions are re-evaluated here rather than read from ``group_evaluation`` because the
+    group evaluation only retains the *passing* conditions (it drops failing ones), so
+    re-evaluating is the simplest way to report both passing and failing conditions.
+    Re-evaluation is acceptable because these are fast, read-only conditions and this path
+    only runs for the explicitly targeted workflow ids.
+    """
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+    for condition in conditions or []:
+        triggered: bool | None
+        result: object = None
+        error: str | None = None
+        try:
+            evaluation = condition.evaluate_value(value)
+            triggered = evaluation.triggered
+            result = evaluation.result
+        except Exception as e:
+            triggered = None
+            error = str(e)
+
+        logger.info(
+            "workflow_engine.debug.action_filter_condition_evaluation",
+            extra={
+                "workflow_id": workflow.id,
+                "group_id": event_data.group.id,
+                "event_id": event_id,
+                "action_condition_group_id": action_condition_group.id,
+                "group_logic_type": action_condition_group.logic_type,
+                "group_triggered": group_evaluation.triggered,
+                "condition_id": condition.id,
+                "condition_type": condition.type,
+                "comparison": condition.comparison,
+                "condition_result": condition.condition_result,
+                "evaluated_triggered": triggered,
+                "evaluated_result": result,
+                "error": error,
+                # Per-condition-type internals (resolved/cached values) explaining the result.
+                "debug_extras": _condition_debug_extras(condition, value),
+            },
+        )
+
+
 @trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
@@ -305,6 +473,9 @@ def evaluate_workflows_action_filters(
         wf.id: result for wf, result in triggered_workflows.items()
     }
     filter_evals_by_workflow: dict[Workflow, list[DataConditionGroupEvaluation]] = defaultdict(list)
+    debug_log_workflow_ids = set(
+        options.get("workflow_engine.debug.log_condition_evaluations_workflow_ids")
+    )
     for action_condition_group, workflow in action_conditions_to_workflow.items():
         env = env_by_id.get(workflow.environment_id) if workflow.environment_id else None
         workflow_event_data = replace(event_data, workflow_env=env)
@@ -314,6 +485,16 @@ def evaluate_workflows_action_filters(
             data_conditions_by_dcg_id.get(action_condition_group.id),
         )
         filter_evals_by_workflow[workflow].append(group_evaluation)
+
+        if workflow.id in debug_log_workflow_ids:
+            _log_action_filter_condition_evaluations(
+                workflow=workflow,
+                action_condition_group=action_condition_group,
+                conditions=data_conditions_by_dcg_id.get(action_condition_group.id),
+                value=workflow_event_data,
+                group_evaluation=group_evaluation,
+                event_data=event_data,
+            )
 
         if slow_conditions:
             # If there are remaining conditions for the action filter to evaluate,
