@@ -2589,9 +2589,9 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
 
         # Check that the trace has climate impact field
         trace = data[0]
-        assert "estimatedClimateImpact" in trace
+        assert "estimatedClimateImpactCo2eGrams" in trace
         # Should be 2.0 (2 spans * 1g CO₂e each)
-        assert trace["estimatedClimateImpact"] == 2.0
+        assert trace["estimatedClimateImpactCo2eGrams"] == 2.0
 
     @with_feature("organizations:visibility-explore-view")
     def test_climate_impact_data_feature_disabled(self) -> None:
@@ -2624,4 +2624,4 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
 
         # Check that the trace does not have climate impact field
         trace = data[0]
-        assert "estimatedClimateImpact" not in trace
+        assert "estimatedClimateImpactCo2eGrams" not in trace

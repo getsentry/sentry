@@ -1023,8 +1023,8 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
         # Check that spans have the climate impact field
         for event in data:
             if event.get("event_type") == "span":
-                assert "estimated_climate_impact" in event
-                assert event["estimated_climate_impact"] == 1.0
+                assert "estimated_climate_impact_co2e_grams" in event
+                assert event["estimated_climate_impact_co2e_grams"] == 1.0
             # Check children recursively
             if "children" in event:
                 self._check_children_for_climate_impact(event["children"])
@@ -1032,8 +1032,8 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
     def _check_children_for_climate_impact(self, children: list) -> None:
         for child in children:
             if child.get("event_type") == "span":
-                assert "estimated_climate_impact" in child
-                assert child["estimated_climate_impact"] == 1.0
+                assert "estimated_climate_impact_co2e_grams" in child
+                assert child["estimated_climate_impact_co2e_grams"] == 1.0
             if "children" in child:
                 self._check_children_for_climate_impact(child["children"])
 
@@ -1048,13 +1048,13 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
 
         # Check that spans do not have the climate impact field
         for event in data:
-            assert "estimated_climate_impact" not in event
+            assert "estimated_climate_impact_co2e_grams" not in event
             if "children" in event:
                 self._check_children_no_climate_impact(event["children"])
 
     def _check_children_no_climate_impact(self, children: list) -> None:
         for child in children:
-            assert "estimated_climate_impact" not in child
+            assert "estimated_climate_impact_co2e_grams" not in child
             if "children" in child:
                 self._check_children_no_climate_impact(child["children"])
 
