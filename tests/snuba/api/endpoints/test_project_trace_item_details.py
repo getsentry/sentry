@@ -896,8 +896,8 @@ class ProjectTraceItemDetailsEndpointTest(
 
         response = self.do_request("spans", span["span_id"])
         assert response.status_code == 200, response.content
-        assert "estimatedClimateImpactUsd" in response.data
-        assert response.data["estimatedClimateImpactUsd"] == 1.0
+        assert "estimatedClimateImpact" in response.data
+        assert response.data["estimatedClimateImpact"] == 1.0
 
     def test_climate_impact_data_feature_disabled_for_spans(self) -> None:
         span = self.create_span({"description": "foo"}, start_ts=self.one_min_ago)
@@ -906,7 +906,7 @@ class ProjectTraceItemDetailsEndpointTest(
 
         response = self.do_request("spans", span["span_id"])
         assert response.status_code == 200, response.content
-        assert "estimatedClimateImpactUsd" not in response.data
+        assert "estimatedClimateImpact" not in response.data
 
     @with_feature("organizations:climate-impact-data")
     def test_climate_impact_data_not_added_for_logs(self) -> None:
@@ -922,4 +922,4 @@ class ProjectTraceItemDetailsEndpointTest(
 
         response = self.do_request("logs", item_id)
         assert response.status_code == 200, response.content
-        assert "estimatedClimateImpactUsd" not in response.data
+        assert "estimatedClimateImpact" not in response.data
