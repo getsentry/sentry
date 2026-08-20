@@ -29,7 +29,7 @@ class InvestigationSerializerTest(TestCase):
             "id": str(self.investigation.id),
             "title": "Latency spike",
             "status": self.investigation.status,
-            "sourceType": self.investigation.source_type,
+            "sourceType": "manual",
             "createdBy": str(self.user.id),
             "dateCreated": self.investigation.date_added,
             "dateUpdated": self.investigation.date_updated,
@@ -161,7 +161,7 @@ class InvestigationDetailsSerializerTest(TestCase):
         detail = self.serialize_detail()
 
         assert detail["template"] is None
-        assert detail["source"]["type"] == self.investigation.source_type
+        assert detail["source"]["type"] == "manual"
         assert detail["titleGeneration"] == {"status": None}
 
     def test_reports_the_template_that_created_the_investigation(self) -> None:
