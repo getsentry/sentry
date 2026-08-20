@@ -2,6 +2,8 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -22,6 +24,7 @@ import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {formatCarbonEmissions} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -609,6 +612,15 @@ function EAPSpanNodeDetailsContent({
           organization={organization}
           project={project}
         />
+
+        {defined(node.value.estimated_climate_impact_co2e_grams) ? (
+          <Flex align="center" gap="md">
+            <Text bold>{t('Climate Impact')}</Text>
+            <Text variant="muted">
+              {formatCarbonEmissions(node.value.estimated_climate_impact_co2e_grams)}
+            </Text>
+          </Flex>
+        ) : null}
 
         {isTransaction && (contexts || extra) ? (
           <Contexts contexts={contexts} extra={extra} project={project} />
