@@ -9,6 +9,7 @@ describe('Register', () => {
     githubLoginLink: '',
     googleLoginLink: '',
     hasNewsletter: false,
+    pendingMfa: null,
     serverHostname: '',
     vstsLoginLink: '',
   };

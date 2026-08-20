@@ -8,6 +8,7 @@ describe('SsoForm', () => {
     githubLoginLink: '',
     googleLoginLink: '',
     hasNewsletter: false,
+    pendingMfa: null,
     serverHostname: '',
     vstsLoginLink: '',
   };
