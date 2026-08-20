@@ -75,13 +75,13 @@ const TOOLS_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.GEN_AI_TOOL_NAME,
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
