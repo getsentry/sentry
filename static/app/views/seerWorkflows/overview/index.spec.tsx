@@ -1589,6 +1589,24 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
+  it('retries the project config request from the error state', async () => {
+    const {projectConfigRequest} = mockOverview({
+      base: {},
+      baseStatusCode: 500,
+      enrichedStatusCode: 500,
+      projectConfig: [{id: '2', slug: 'project-slug', hasReposConnected: false}],
+    });
+
+    renderPage();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'}, {timeout: 5000});
+    expect(projectConfigRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(projectConfigRequest).toHaveBeenCalledTimes(2));
+  });
+
   it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
     const {statusPollRequest, enrichedRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},

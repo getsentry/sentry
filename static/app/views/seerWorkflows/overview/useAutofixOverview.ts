@@ -214,6 +214,7 @@ export function useAutofixOverview({
     refetch: () => {
       statusPollQuery.refetch();
       enrichedQuery.refetch();
+      projectConfigQuery.refetch();
     },
   };
 }
