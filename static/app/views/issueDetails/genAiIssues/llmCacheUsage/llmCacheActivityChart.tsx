@@ -15,8 +15,9 @@ import {useCallSitePageFilters} from './useCallSitePageFilters';
 import {buildCallSiteQuery, LLM_CACHE_REFERRER} from './utils';
 
 // The canonical attribute names, which are also the ones the detector summed.
-// Most SDKs write the deprecated aliases instead, but the resolver back-fills
-// those onto these, so the chart plots the same data the finding was derived
+// Most SDKs write the deprecated aliases instead; those are declared in
+// sentry_conventions as back-filled onto these, and the back-fill is applied to
+// the stored span, so the chart plots the same data the finding was derived
 // from rather than a subset of it.
 const INPUT_TOKENS = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})` as const;
 const CACHE_READ_TOKENS =
