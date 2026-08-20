@@ -93,7 +93,6 @@ interface ActivitySectionProps {
    * Activity to render instead of the activity embedded in the group response.
    */
   activities?: GroupActivity[];
-  enableMentionComposer?: boolean;
   /**
    * Whether to filter the activity to only show comments.
    */
@@ -121,7 +120,6 @@ export function ActivitySection({
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
-  enableMentionComposer = false,
 }: ActivitySectionProps) {
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -204,7 +202,6 @@ export function ActivitySection({
         setInputId(uniqueId());
       }}
       variant={inputVariant}
-      enableMentionComposer={enableMentionComposer}
       {...noteProps}
     />
   );

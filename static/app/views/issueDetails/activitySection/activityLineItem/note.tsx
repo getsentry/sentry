@@ -1,16 +1,20 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
+import {MentionEditor} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import type {NoteType} from 'sentry/types/alerts';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
+import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 
 import {getActivityNoteAuthor} from './activityItem';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
@@ -45,7 +49,6 @@ export function ActivityLineNote({
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-
   return (
     <ActivityLineRow>
       <ActivityLineMarker item={activity} showProgress={showProgress} />
@@ -65,19 +68,12 @@ export function ActivityLineNote({
       />
       <ActivityLineContent>
         {editing ? (
-          <ActivityNoteInput
-            itemKey={activity.id}
-            storageKey={`groupinput:${activity.id}`}
-            minHeight={96}
-            variant={inputVariant}
-            text={activity.data.text}
-            noteId={activity.id}
+          <ActivityNoteEditor
+            activity={activity}
             group={group}
-            onCommentEdited={updatedActivity => {
-              onCommentEdited?.(updatedActivity);
-              setEditing(false);
-            }}
+            inputVariant={inputVariant}
             onCancel={() => setEditing(false)}
+            onCommentEdited={onCommentEdited}
           />
         ) : (
           <ActivityNoteBubble>
@@ -86,6 +82,51 @@ export function ActivityLineNote({
         )}
       </ActivityLineContent>
     </ActivityLineRow>
+  );
+}
+
+function ActivityNoteEditor({
+  activity,
+  group,
+  inputVariant,
+  onCancel,
+  onCommentEdited,
+}: {
+  activity: GroupActivityNote;
+  group: Group;
+  inputVariant: ActivityLineVariant;
+  onCancel: () => void;
+  onCommentEdited?: (activity: GroupActivity[]) => void;
+}) {
+  const organization = useOrganization();
+  const mutators = useMutateActivity({organization, group});
+  const handleUpdate = useCallback(
+    async (data: NoteType) => {
+      const result = await mutators.handleUpdate(data, activity.id, {
+        onSuccess: () => {
+          addSuccessMessage(t('Comment updated'));
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to update comment'));
+        },
+      });
+
+      trackAnalytics('issue_details.comment_updated', {organization});
+      onCommentEdited?.(
+        group.activity.map(item => (item.id === result.id ? result : item))
+      );
+      onCancel();
+    },
+    [activity.id, group.activity, mutators, onCancel, onCommentEdited, organization]
+  );
+  return (
+    <MentionEditor
+      initialValue={activity.data.text}
+      minHeight={96}
+      onCancel={onCancel}
+      onSubmit={handleUpdate}
+      variant={inputVariant}
+    />
   );
 }
 

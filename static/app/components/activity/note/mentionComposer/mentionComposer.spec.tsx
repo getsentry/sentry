@@ -4,11 +4,14 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import {
+  MentionComposer,
+  MentionEditor,
+} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
 import {TeamStore} from 'sentry/stores/teamStore';
 
-function getEditor() {
-  const editor = screen.getByRole('combobox', {name: 'Add a comment'});
+function getEditor(name = 'Add a comment') {
+  const editor = screen.getByRole('combobox', {name});
   // user-event does not yet recognize contenteditable="plaintext-only".
   editor.setAttribute('contenteditable', 'true');
   return editor;
@@ -101,5 +104,30 @@ describe('MentionComposer', () => {
     await userEvent.click(screen.getByRole('radio', {name: 'Preview'}));
 
     expect(screen.getByText('@Alice Example').closest('strong')).toBeInTheDocument();
+  });
+
+  it('edits and cancels an existing comment', async () => {
+    const onCancel = jest.fn();
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    render(
+      <MentionEditor
+        initialValue="Existing comment"
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />
+    );
+
+    const editor = getEditor('Edit comment');
+    await userEvent.click(editor);
+    await userEvent.keyboard('{End} updated');
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      text: 'Existing comment updated',
+      mentions: [],
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    expect(onCancel).toHaveBeenCalled();
   });
 });
