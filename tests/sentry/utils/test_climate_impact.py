@@ -48,7 +48,7 @@ def test_estimate_span_climate_impact_omits_unknown_duration(span: dict[str, Any
 
 
 def test_annotate_trace_tree() -> None:
-    events = [
+    events: list[dict[str, Any]] = [
         {
             "event_type": "span",
             "duration": 1000,
@@ -74,7 +74,7 @@ def test_annotate_trace_tree() -> None:
 
 
 def test_annotate_trace_summaries() -> None:
-    traces = {"data": [{"duration": 60_000}, {}]}
+    traces: dict[str, list[dict[str, Any]]] = {"data": [{"duration": 60_000}, {}]}
 
     annotate_trace_summaries(traces)
 
@@ -85,8 +85,8 @@ def test_annotate_trace_summaries() -> None:
 
 
 def test_annotate_trace_item() -> None:
-    item = {"attributes": [{"name": "span.duration", "value": "1000"}]}
-    empty = {"attributes": []}
+    item: dict[str, Any] = {"attributes": [{"name": "span.duration", "value": "1000"}]}
+    empty: dict[str, Any] = {"attributes": []}
 
     annotate_trace_item(item)
     annotate_trace_item(empty)
