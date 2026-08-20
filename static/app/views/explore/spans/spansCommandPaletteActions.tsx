@@ -123,6 +123,10 @@ function getChangeFilterValueActionId(index: number): string {
   return `spans-change-filter-value-${index}`;
 }
 
+function getChangeFilterAttributeActionId(index: number): string {
+  return `spans-change-filter-attribute-${index}`;
+}
+
 function getChangeGroupByActionId(index: number): string {
   return `spans-change-group-by-attribute-${index}`;
 }
@@ -846,8 +850,17 @@ function SpansFilterActionsComponent({
               }}
               addSearchFilter={onChange}
               booleanAttributes={booleanAttributes}
+              currentFilter={
+                descriptor
+                  ? {
+                      key: descriptor.attributeKey,
+                      op: descriptor.operator,
+                      value: descriptor.value,
+                    }
+                  : undefined
+              }
               displayLabel={t('Change Filter Attribute')}
-              id={`spans-change-filter-attribute-${filterIndex}`}
+              id={getChangeFilterAttributeActionId(filterIndex)}
               stringAttributes={stringAttributes}
               traceItemType={TraceItemDataset.SPANS}
             />
@@ -1724,7 +1737,7 @@ function QueryClauseActionsEditor() {
           summary={draftQuery}
           targetAction={(filter, index) =>
             filter && getSearchFilterDescriptor(filter)
-              ? getChangeFilterValueActionId(index)
+              ? getChangeFilterAttributeActionId(index)
               : ADD_FILTER_ACTION_ID
           }
         />

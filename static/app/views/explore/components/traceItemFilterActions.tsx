@@ -147,7 +147,7 @@ export function getSearchFilterAttribute(query: string): string | null {
 
 export function getSearchFilterDescriptor(
   query: string
-): {attributeKey: string; operator: TermOperator} | null {
+): {attributeKey: string; operator: TermOperator; value: string} | null {
   const tokens = parseSearch(query);
   const filters = tokens?.filter(token => token.type === Token.FILTER) ?? [];
   if (filters.length !== 1) {
@@ -175,7 +175,7 @@ export function getSearchFilterDescriptor(
     }
   }
 
-  return {attributeKey: filter.key.text, operator};
+  return {attributeKey: filter.key.text, operator, value: filter.value.text};
 }
 
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
@@ -197,6 +197,7 @@ interface TraceItemFilterActionsProps {
     only?: boolean;
     order?: number;
   };
+  currentFilter?: SearchFilter;
   displayLabel?: string;
   initialAttributeKey?: string;
   initialOperator?: TermOperator;
@@ -206,6 +207,7 @@ function TraceItemFilterActionsComponent({
   addSearchFilter,
   actionPanel,
   booleanAttributes,
+  currentFilter,
   displayLabel,
   id,
   initialAttributeKey,
@@ -224,8 +226,15 @@ function TraceItemFilterActionsComponent({
     [booleanAttributes]
   );
   const makeValueAction = (tag: Tag, operator: TermOperator, value: string) => {
+    const isCurrent =
+      currentFilter?.key === tag.key &&
+      currentFilter.op === operator &&
+      String(currentFilter.value) === value;
     return {
-      display: {label: value},
+      display: {
+        label: value,
+        labelSuffix: isCurrent ? <Text size="sm">{t('Current')}</Text> : undefined,
+      },
       onAction: () => addSearchFilter({key: tag.key, op: operator, value}),
     };
   };
@@ -261,7 +270,13 @@ function TraceItemFilterActionsComponent({
     return (
       <CMDKAction display={{label: t('Operator')}}>
         {operators.map(operator => {
-          const display = {label: OP_LABELS[operator]};
+          const display = {
+            label: OP_LABELS[operator],
+            labelSuffix:
+              currentFilter?.key === tag.key && currentFilter.op === operator ? (
+                <Text size="sm">{t('Current')}</Text>
+              ) : undefined,
+          };
 
           if (type === 'boolean') {
             return (
@@ -298,6 +313,10 @@ function TraceItemFilterActionsComponent({
         key={`${type}-${tag.key}`}
         display={{
           label: tag.name ?? tag.key,
+          labelSuffix:
+            currentFilter?.key === tag.key ? (
+              <Text size="sm">{t('Current')}</Text>
+            ) : undefined,
           trailingItem: <TypeBadge kind={tag.kind} />,
         }}
         keywords={[tag.key]}

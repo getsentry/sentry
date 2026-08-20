@@ -543,6 +543,52 @@ describe('group by draft selection', () => {
 });
 
 describe('filter draft selection', () => {
+  it('reopens an existing filter at the attribute step with current values', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/span.op/values/',
+      body: [{value: 'http.server'}],
+    });
+
+    render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            project: '1',
+            query: 'span.op:http.server',
+            statsPeriod: '24h',
+          },
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
+    expect(screen.getByPlaceholderText('Search for attribute')).toBeInTheDocument();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'span.op'
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'span.op Current'}));
+    expect(screen.getByPlaceholderText('Search for operator')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('option', {name: 'is Current'}));
+    expect(screen.getByPlaceholderText('Search for value')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('option', {name: 'http.server Current'})
+    ).toBeInTheDocument();
+  });
+
   it('keeps a selected filter in the palette and out of the URL until apply', async () => {
     // React Aria's virtual focus schedules a passive update after the keyboard action.
     jest.spyOn(console, 'error').mockImplementation();
