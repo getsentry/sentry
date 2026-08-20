@@ -23,9 +23,11 @@ import {
   ListBox,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
+import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
@@ -494,6 +496,13 @@ export function SearchQueryBuilderCombobox<
       },
       onKeyDown: e => {
         onKeyDown?.(e, {state});
+
+        // React Aria's selectable collection stops key events from bubbling out of
+        // an open combobox. Let the global command palette shortcut through.
+        if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
+          e.continuePropagation();
+          return;
+        }
 
         if (e.key === 'Escape') {
           state.close();

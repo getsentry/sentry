@@ -196,6 +196,26 @@ describe('SearchQueryBuilder', () => {
     searchSource: '',
   };
 
+  it('allows the command palette shortcut while filter suggestions are open', async () => {
+    const pressedKeys: KeyboardEvent[] = [];
+    const onKeyDown = (event: KeyboardEvent) => pressedKeys.push(event);
+    document.addEventListener('keydown', onKeyDown);
+
+    try {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+      await screen.findByRole('listbox');
+      await userEvent.keyboard('{Control>}k{/Control}');
+
+      expect(pressedKeys).toContainEqual(
+        expect.objectContaining({key: 'k', ctrlKey: true})
+      );
+    } finally {
+      document.removeEventListener('keydown', onKeyDown);
+    }
+  });
+
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
