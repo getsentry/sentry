@@ -339,6 +339,42 @@ function TraceItemFilterActionsComponent({
     );
   };
 
+  const attributeLessActions = (
+    <CMDKAction
+      display={{label: t('None')}}
+      keywords={['none', 'has']}
+      prompt={t('Search for operator')}
+    >
+      <CMDKAction display={{label: t('Operator')}}>
+        <CMDKAction
+          display={{label: t('has')}}
+          prompt={t('Enter filter value')}
+          resource={(query, context) =>
+            cmdkQueryOptions({
+              queryKey: ['command-palette', 'filter', 'has', query],
+              queryFn: () => Promise.resolve(query.trim()),
+              select: value =>
+                value
+                  ? [
+                      {
+                        display: {label: value},
+                        onAction: () =>
+                          addSearchFilter({
+                            key: 'has',
+                            op: TermOperator.DEFAULT,
+                            value,
+                          }),
+                      },
+                    ]
+                  : [],
+              enabled: context.state === 'selected',
+            })
+          }
+        />
+      </CMDKAction>
+    </CMDKAction>
+  );
+
   const initialStringAttribute = initialAttributeKey
     ? stringAttributes[initialAttributeKey]
     : undefined;
@@ -391,16 +427,17 @@ function TraceItemFilterActionsComponent({
       keywords={['add', 'search', 'filter', 'narrow', 'where', 'show']}
       prompt={initialAttributeKey ? t('Search for operator') : t('Search for attribute')}
     >
-      {initialStringAttribute
-        ? renderOperatorActions(initialStringAttribute, 'string')
-        : initialBooleanAttribute
-          ? renderOperatorActions(initialBooleanAttribute, 'boolean')
-          : sortedStringAttributes.length + sortedBooleanAttributes.length > 0 && (
-              <CMDKAction display={{label: t('Attribute')}}>
-                {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
-                {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
-              </CMDKAction>
-            )}
+      {initialStringAttribute ? (
+        renderOperatorActions(initialStringAttribute, 'string')
+      ) : initialBooleanAttribute ? (
+        renderOperatorActions(initialBooleanAttribute, 'boolean')
+      ) : (
+        <CMDKAction display={{label: t('Attribute')}}>
+          {attributeLessActions}
+          {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
+          {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
+        </CMDKAction>
+      )}
     </CMDKAction>
   );
 }

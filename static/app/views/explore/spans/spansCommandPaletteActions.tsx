@@ -618,12 +618,12 @@ function SpansScopeActions({
           <CMDKAction
             actionPanel={{
               context: 'project-selection',
-              label: t('Reset Project Selection'),
+              label: t('Reset Projects'),
               only: true,
               preserveView: true,
             }}
             display={{
-              label: t('Reset Project Selection'),
+              label: t('Reset Projects'),
               icon: <IconRefresh />,
             }}
             onAction={() =>
@@ -712,12 +712,12 @@ function SpansScopeActions({
           <CMDKAction
             actionPanel={{
               context: 'environment-selection',
-              label: t('Reset Environment Selection'),
+              label: t('Reset Environments'),
               only: true,
               preserveView: true,
             }}
             display={{
-              label: t('Reset Environment Selection'),
+              label: t('Reset Environments'),
               icon: <IconRefresh />,
             }}
             onAction={() =>
@@ -798,11 +798,11 @@ function SpansScopeActions({
           <CMDKAction
             actionPanel={{
               context: 'time-range-selection',
-              label: t('Reset Time Range'),
+              label: t('Reset Time range'),
               only: true,
               preserveView: true,
             }}
-            display={{label: t('Reset Time Range'), icon: <IconRefresh />}}
+            display={{label: t('Reset Time range'), icon: <IconRefresh />}}
             onAction={() => {
               didResetTimeRangeRef.current = true;
               setDraftPageFilters(current => ({

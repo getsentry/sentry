@@ -435,7 +435,7 @@ describe('project scope selection', () => {
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
       within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
-        name: 'Reset Project Selection',
+        name: 'Reset Projects',
       })
     );
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
@@ -458,9 +458,9 @@ describe('project scope selection', () => {
 
 describe('scope summary reset actions', () => {
   it.each([
-    ['Projects', 'Reset Project Selection', 'My Projects'],
-    ['Environments', 'Reset Environment Selection', 'All Environments'],
-    ['Time range', 'Reset Time Range', 'Last 14 days'],
+    ['Projects', 'Reset Projects', 'My Projects'],
+    ['Environments', 'Reset Environments', 'All Environments'],
+    ['Time range', 'Reset Time range', 'Last 14 days'],
   ])('resets %s directly on the root summary', async (summary, reset, resetValue) => {
     jest.spyOn(console, 'error').mockImplementation();
     ProjectsStore.loadInitialData([
@@ -583,7 +583,7 @@ describe('environment scope selection', () => {
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
       within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
-        name: 'Reset Environment Selection',
+        name: 'Reset Environments',
       })
     );
     expect(await screen.findByText('All Environments')).toBeInTheDocument();
@@ -642,7 +642,7 @@ describe('time range selection', () => {
     await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
     await userEvent.click(
       within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
-        name: 'Reset Time Range',
+        name: 'Reset Time range',
       })
     );
     expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
@@ -1031,6 +1031,42 @@ describe('filter draft selection', () => {
       await screen.findByRole('option', {name: 'gen_ai.output_messages'})
     );
     await userEvent.click(await screen.findByRole('option', {name: 'has'}));
+
+    expect(await screen.findByText('has:gen_ai.output_messages')).toBeInTheDocument();
+    expect(router.location.query.query).toBeUndefined();
+  });
+
+  it('adds a has filter without selecting an attribute', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', statsPeriod: '24h'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'None'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'has'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'gen_ai.output_messages'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'gen_ai.output_messages'})
+    );
 
     expect(await screen.findByText('has:gen_ai.output_messages')).toBeInTheDocument();
     expect(router.location.query.query).toBeUndefined();
