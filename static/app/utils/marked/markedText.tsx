@@ -64,5 +64,6 @@ export function MarkedText<T extends React.ElementType = typeof defaultElement>(
 
   const Component = as || defaultElement;
 
+  // eslint-disable-next-line @sentry/no-trusted-types-sinks -- renderedHtml comes from the sanitized marked renderers
   return <Component dangerouslySetInnerHTML={{__html: renderedHtml}} {...props} />;
 }

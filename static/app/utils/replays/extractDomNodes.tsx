@@ -112,6 +112,7 @@ function removeNodesAtLevel(html: string, level: number): string {
   const parser = new DOMParser();
 
   try {
+    // eslint-disable-next-line @sentry/no-trusted-types-sinks -- TODO: replay HTML genuinely needs a TrustedHTML
     const doc = parser.parseFromString(html, 'text/html');
     removeChildLevel(level, doc.body.children);
     return doc.body.innerHTML;

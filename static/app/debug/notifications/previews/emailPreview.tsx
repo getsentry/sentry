@@ -88,6 +88,7 @@ function EmailHtmlPreview({html}: {html: string}) {
       if (!node) {
         return;
       }
+      // eslint-disable-next-line @sentry/no-trusted-types-sinks -- sanitized above; the rule cannot see through useMemo
       node.srcdoc = sanitized;
       node.onload = () => {
         const doc = node.contentDocument;

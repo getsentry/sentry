@@ -72,6 +72,7 @@ function initDemoAnalytics() {
     mainScript.id = 'plausible-script';
     mainScript.defer = true;
     mainScript.setAttribute('data-domain', window.location.hostname);
+    // eslint-disable-next-line @sentry/no-trusted-types-sinks -- TODO: cross-origin script, needs a policy decision
     mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
 
     const queueScript = document.createElement('script');
