@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import responses
 from django.http import HttpRequest
+from django.test import override_settings
 
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
 from sentry.testutils.cases import TestCase
@@ -124,6 +125,7 @@ class SmsInterfaceTest(TestCase):
 
     @patch("sentry.utils.sms.logger.info")
     @patch("sentry.utils.sms.requests.post")
+    @override_settings(DEBUG=True)
     def test_console_backend(self, requests_post: MagicMock, logger_info: MagicMock) -> None:
         with self.options({"sms.backend": "console", "sms.twilio-account": ""}):
             assert sms_available()
@@ -137,6 +139,15 @@ class SmsInterfaceTest(TestCase):
                 "body": "123456 is your Sentry authentication code.",
             },
         )
+
+    @override_settings(DEBUG=False)
+    def test_console_backend_outside_debug_mode(self) -> None:
+        with self.options({"sms.backend": "console", "sms.twilio-account": ""}):
+            assert not sms_available()
+            with pytest.raises(
+                RuntimeError, match="Console SMS backend is only available in debug mode"
+            ):
+                send_sms("message", "2125550199")
 
     def test_unknown_backend(self) -> None:
         with self.options({"sms.backend": "unknown"}):
