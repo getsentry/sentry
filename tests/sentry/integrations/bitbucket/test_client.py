@@ -1,3 +1,5 @@
+from unittest import mock
+
 import jwt
 import pytest
 import responses
@@ -5,6 +7,7 @@ from requests import Request
 
 from sentry.integrations.bitbucket.client import BitbucketApiClient, BitbucketAPIPath
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -157,3 +160,42 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             self.config.project_repository.repository, ref=self.config.default_branch
         )
         assert result == BITBUCKET_CODEOWNERS
+
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_check_file_5xx_returns_none_and_records_halt(self, mock_record: mock.MagicMock) -> None:
+        """A 5xx response from Bitbucket should be treated as a transient halt,
+        not a hard failure that creates a Sentry issue."""
+        path = "src/sentry/integrations/bitbucket/client.py"
+        version = "master"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.repo.name}/src/{version}/{path}"
+
+        responses.add(method=responses.HEAD, url=url, status=503)
+
+        result = self.install.check_file(self.repo, path, version)
+
+        assert result is None
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert EventLifecycleOutcome.STARTED in outcomes
+        assert EventLifecycleOutcome.HALTED in outcomes
+        assert EventLifecycleOutcome.FAILURE not in outcomes
+
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_stacktrace_link_5xx_returns_none(self, mock_record: mock.MagicMock) -> None:
+        """A 5xx response from Bitbucket during stacktrace link resolution should not
+        create a Sentry issue. The outer get_stacktrace_link lifecycle should record
+        success (the integration worked; the file was simply not resolvable)."""
+        path = "/src/sentry/integrations/bitbucket/client.py"
+        version = "master"
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.repo.name}/src/{version}/{path.lstrip('/')}"
+
+        responses.add(method=responses.HEAD, url=url, status=503)
+
+        result = self.install.get_stacktrace_link(self.repo, path, "master", version)
+
+        assert result is None
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert EventLifecycleOutcome.FAILURE not in outcomes
