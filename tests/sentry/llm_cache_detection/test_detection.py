@@ -6,6 +6,7 @@ from sentry.llm_cache_detection.detection import (
     MIN_AVG_INPUT_TOKENS,
     MIN_CACHEABLE_SHARE,
     MIN_CALLS_FOR_CONFIDENCE,
+    MIN_SAMPLED_CALLS,
     MIN_STABLE_BLOCK_CHARS,
     AgentLabelSource,
     CacheFinding,
@@ -13,6 +14,7 @@ from sentry.llm_cache_detection.detection import (
     CallSiteStats,
     CallSiteWarmth,
     DivergenceKind,
+    WarmthBucket,
     classify_call_site,
     diagnose_prompt_divergence,
     find_contrast_anchor,
@@ -32,8 +34,13 @@ def make_stats(
     avg_input_tokens: float,
     hit_rate: float = 0.0,
     write_read_ratio: float = 0.0,
+    sampled_call_count: int | None = None,
 ) -> CallSiteStats:
-    """Build stats from hit-rate and write:read ratios rather than raw token sums."""
+    """Build stats from hit-rate and write:read ratios rather than raw token sums.
+
+    Defaults to every call being stored, so a case that says nothing about
+    sampling reads as unsampled rather than as evidence-starved.
+    """
     sum_input = call_count * avg_input_tokens
     sum_read = hit_rate * sum_input
     sum_creation = write_read_ratio * sum_read
@@ -43,6 +50,7 @@ def make_stats(
         span_name=span_name,
         model=model,
         call_count=call_count,
+        sampled_call_count=call_count if sampled_call_count is None else sampled_call_count,
         sum_input_tokens=sum_input,
         sum_cache_read_tokens=sum_read,
         sum_cache_creation_tokens=sum_creation,
@@ -124,6 +132,22 @@ def make_stats(
             id="eligibility-thresholds-inclusive",
         ),
         pytest.param(
+            # Sampling can clear the call floor on a handful of stored spans, and
+            # the hit rate would then be read off that handful.
+            make_stats(call_count=400_000, avg_input_tokens=8_000, sampled_call_count=4),
+            CacheOutcome.INELIGIBLE,
+            id="ineligible-call-floor-cleared-by-extrapolation",
+        ),
+        pytest.param(
+            make_stats(
+                call_count=400_000,
+                avg_input_tokens=8_000,
+                sampled_call_count=MIN_SAMPLED_CALLS,
+            ),
+            CacheOutcome.NOT_CACHING,
+            id="sample-floor-inclusive",
+        ),
+        pytest.param(
             # A burst workload: dozens of calls inside a minute and then nothing
             # for hours. It averages far under one call per cache TTL across the
             # window, which says nothing about whether its cache stays warm.
@@ -180,10 +204,15 @@ def test_classify_call_site(stats: CallSiteStats, expected: CacheOutcome) -> Non
     assert classify_call_site(stats) == expected
 
 
+def unsampled(*call_counts: float) -> list[WarmthBucket]:
+    """Buckets from a project storing every span, where count and evidence agree."""
+    return [WarmthBucket(call_count=count, sample_count=count) for count in call_counts]
+
+
 def test_warmth_charges_one_cold_start_per_bucket() -> None:
     # Every call after the first in a bucket had a predecessor inside the TTL;
     # empty buckets are not cold starts because nothing was called in them.
-    warmth = CallSiteWarmth.from_bucket_counts([5, 0, 3, 1, 0])
+    warmth = CallSiteWarmth.from_buckets(unsampled(5, 0, 3, 1, 0))
 
     assert warmth.total_call_count == 9
     assert warmth.warm_call_count == 6
@@ -191,10 +220,47 @@ def test_warmth_charges_one_cold_start_per_bucket() -> None:
 
 
 def test_warmth_of_a_call_site_that_never_called() -> None:
-    warmth = CallSiteWarmth.from_bucket_counts([0, 0])
+    warmth = CallSiteWarmth.from_buckets(unsampled(0, 0))
 
     assert warmth.warm_call_count == 0
     assert warmth.cacheable_share == 0
+
+
+def test_sampling_does_not_manufacture_warmth() -> None:
+    # A call site making one call every TTL is cold on every one of them. Stored
+    # at 10%, the calls that survive land one per bucket and each stands for the
+    # ten the bucket extrapolates to -- all of which are cold too. Counting the
+    # bucket once instead would read this as 90% cacheable, which is the sampling
+    # rate wearing the shape of a verdict.
+    warmth = CallSiteWarmth.from_buckets(
+        [WarmthBucket(call_count=10, sample_count=1) for _ in range(200)]
+    )
+
+    assert warmth.total_call_count == 2_000
+    assert warmth.warm_call_count == 0
+    assert warmth.cacheable_share == 0
+
+
+def test_sampling_understates_warmth_rather_than_inventing_it() -> None:
+    # Genuinely dense traffic: 10 calls a bucket, 9 of them warm. Only 2 spans
+    # per bucket are stored, which cannot show that, so warmth reads as half of
+    # what it is. Wrong in the direction that costs a finding.
+    warmth = CallSiteWarmth.from_buckets(
+        [WarmthBucket(call_count=10, sample_count=2) for _ in range(200)]
+    )
+
+    assert warmth.total_call_count == 2_000
+    assert warmth.cacheable_share == pytest.approx(0.5)
+    assert warmth.cacheable_share < 0.9
+
+
+def test_warmth_without_a_sample_count_claims_nothing() -> None:
+    # A bucket that reports calls but no evidence of how many spans they came
+    # from cannot say anything arrived close together.
+    warmth = CallSiteWarmth.from_buckets([WarmthBucket(call_count=50, sample_count=0)])
+
+    assert warmth.total_call_count == 50
+    assert warmth.warm_call_count == 0
 
 
 @pytest.mark.parametrize(
@@ -420,6 +486,7 @@ def test_uncached_tokens() -> None:
         span_name="s",
         model="m",
         call_count=10_000,
+        sampled_call_count=10_000,
         sum_input_tokens=1_000_000,
         sum_cache_read_tokens=100_000,
         sum_cache_creation_tokens=50_000,
@@ -445,6 +512,7 @@ def test_unrecouped_cache_write_tokens() -> None:
         span_name="s",
         model="m",
         call_count=10_000,
+        sampled_call_count=10_000,
         sum_input_tokens=1_000_000,
         sum_cache_read_tokens=100_000,
         sum_cache_creation_tokens=150_000,

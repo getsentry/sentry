@@ -55,6 +55,7 @@ def make_stats(
         span_name="generate_content claude-sonnet-4",
         model=model,
         call_count=5_000,
+        sampled_call_count=5_000,
         sum_input_tokens=sum_input_tokens,
         sum_cache_read_tokens=sum_cache_read_tokens,
         sum_cache_creation_tokens=sum_cache_creation_tokens,

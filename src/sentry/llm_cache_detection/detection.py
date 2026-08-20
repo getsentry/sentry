@@ -29,6 +29,15 @@ MIN_AVG_INPUT_TOKENS = 1024
 # than that; the number is a question about evidence, not about caching.
 MIN_CALLS_FOR_CONFIDENCE = 200
 
+# The floor above counts calls the call site really made, which sampling lets a
+# far smaller number of spans stand for. The ratios are only ever computed over
+# the spans that were stored, so they need a floor of their own: an org sampled
+# at a low rate would otherwise clear 200 calls on a couple of dozen spans and
+# have a hit rate read off those. Set well below the call floor because the
+# rates this flags are bimodal -- telling near-zero from healthy takes far fewer
+# observations than pinning down where in between a rate sits.
+MIN_SAMPLED_CALLS = 50
+
 # Whether a call site can cache at all is a property of the gaps between its
 # calls rather than of how many it makes: traffic spaced wider than the TTL
 # meets a cold cache however much of it there is. Hit rates still count every
@@ -116,6 +125,20 @@ FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
 
 @dataclass(frozen=True)
+class WarmthBucket:
+    """One cache-TTL bucket of a call site's traffic, as EAP reports it.
+
+    ``call_count`` is extrapolated to the volume the bucket stands for, while
+    ``sample_count`` is how many stored spans that estimate rests on. Warmth
+    needs both: the first is the quantity being split into warm and cold, the
+    second is the resolution the split can be seen at.
+    """
+
+    call_count: float
+    sample_count: float
+
+
+@dataclass(frozen=True)
 class CallSiteWarmth:
     """How much of a call site's traffic could have met a warm cache.
 
@@ -125,20 +148,35 @@ class CallSiteWarmth:
     start. Two calls a second apart on either side of a bucket boundary
     therefore read as two cold starts, which understates warmth -- the direction
     that costs a finding rather than inventing one.
+
+    Bucket occupancy is a claim about spacing, and spacing is exactly what
+    sampling erases: a bucket whose spans were all dropped is indistinguishable
+    from one that saw no traffic. So a bucket is charged one cold start per
+    stored span rather than one per bucket, which is the same thing when every
+    span is stored and errs the same conservative way when they are not.
     """
 
     total_call_count: float
     warm_call_count: float
 
     @classmethod
-    def from_bucket_counts(cls, bucket_counts: Iterable[float]) -> CallSiteWarmth:
+    def from_buckets(cls, buckets: Iterable[WarmthBucket]) -> CallSiteWarmth:
         total_call_count = 0.0
-        cold_starts = 0
-        for count in bucket_counts:
-            if count <= 0:
+        cold_starts = 0.0
+        for bucket in buckets:
+            if bucket.call_count <= 0:
                 continue
-            total_call_count += count
-            cold_starts += 1
+            total_call_count += bucket.call_count
+            # Each stored span is evidence of at most one cold start, and speaks
+            # for the calls its bucket extrapolates it to. Unsampled that is the
+            # single cold start a bucket's first call always is; sampled, the
+            # calls it speaks for are charged as cold alongside it, because
+            # nothing in the bucket says they arrived close enough to be warm.
+            cold_starts += (
+                bucket.call_count / bucket.sample_count
+                if bucket.sample_count > 0
+                else bucket.call_count
+            )
         return cls(
             total_call_count=total_call_count,
             warm_call_count=max(total_call_count - cold_starts, 0.0),
@@ -159,6 +197,12 @@ class CallSiteStats:
     a task and from a request handler is one place in the code with one cache
     configuration, and splitting it by entry point would file the same finding
     twice.
+
+    ``call_count`` is extrapolated to the traffic the call site really carries,
+    which is the right number for how much a finding is worth. How far the
+    evidence can be trusted is a different question, answered by
+    ``sampled_call_count`` -- the spans actually stored, which every sum here
+    was computed from.
     """
 
     agent_label: str
@@ -166,6 +210,7 @@ class CallSiteStats:
     span_name: str
     model: str
     call_count: int
+    sampled_call_count: int
     sum_input_tokens: float
     sum_cache_read_tokens: float
     sum_cache_creation_tokens: float
@@ -270,7 +315,11 @@ def classify_call_site(stats: CallSiteStats) -> CacheOutcome:
     is true, since a group whose spans never carry cache attributes at all is
     indistinguishable from a 0%-hit group by sums alone.
     """
-    if stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS or stats.call_count < MIN_CALLS_FOR_CONFIDENCE:
+    if (
+        stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS
+        or stats.call_count < MIN_CALLS_FOR_CONFIDENCE
+        or stats.sampled_call_count < MIN_SAMPLED_CALLS
+    ):
         return CacheOutcome.INELIGIBLE
 
     creation_tokens = stats.sum_cache_creation_tokens

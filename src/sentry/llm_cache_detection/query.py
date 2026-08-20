@@ -13,12 +13,14 @@ from sentry.llm_cache_detection.detection import (
     CallSiteStats,
     CallSiteWarmth,
     DetectionWindow,
+    WarmthBucket,
 )
 from sentry.models.project import Project
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.snuba import SnubaTSResult
 
 # `ai_client` is added during ingestion from the op, so it matches an LLM call
 # whichever op the SDK chose; matching an op directly would cover one integration.
@@ -65,6 +67,10 @@ SUM_INPUT_TOKENS = f"sum({INPUT_TOKENS})"
 AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
 SUM_CACHE_READ_TOKENS = f"sum({CACHE_READ_TOKENS})"
 SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
+COUNT = "count()"
+# `count()` is extrapolated to the traffic the spans stand for; this one is not,
+# so the pair says how much evidence each aggregate beside it was computed from.
+COUNT_SAMPLE = "count_sample()"
 
 # Sorting by total input tokens keeps the worst offenders inside the cap even
 # when a project has more distinct call sites than this.
@@ -218,6 +224,7 @@ def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
     return replace(
         left,
         call_count=call_count,
+        sampled_call_count=left.sampled_call_count + right.sampled_call_count,
         sum_input_tokens=left.sum_input_tokens + right.sum_input_tokens,
         sum_cache_read_tokens=left.sum_cache_read_tokens + right.sum_cache_read_tokens,
         sum_cache_creation_tokens=(
@@ -248,7 +255,8 @@ def _to_call_sites(rows: Iterable[SnubaRow]) -> list[CallSiteStats]:
             agent_label_source=agent_label_source,
             span_name=span_name,
             model=model,
-            call_count=int(row.get("count()") or 0),
+            call_count=int(row.get(COUNT) or 0),
+            sampled_call_count=int(row.get(COUNT_SAMPLE) or 0),
             sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
             sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
             sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
@@ -270,7 +278,8 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> list[Cal
             OPERATION_NAME,
             SPAN_NAME,
             MODEL,
-            "count()",
+            COUNT,
+            COUNT_SAMPLE,
             SUM_INPUT_TOKENS,
             SUM_CACHE_READ_TOKENS,
             SUM_CACHE_CREATION_TOKENS,
@@ -296,6 +305,11 @@ def fetch_call_site_warmth(
     agent, as its identity does -- so the counts arrive already folded, and the
     first call in a bucket is the only cold start in it.
 
+    Each bucket's stored-span count is read alongside its call count, because
+    ``count()`` is extrapolated and bucket occupancy is not: counting a bucket
+    once while counting its calls at full volume would divide two different
+    scales.
+
     Returns None when the group cannot be queried, meaning warmth is unknowable.
     """
     group_filter = _build_group_filter(stats)
@@ -310,14 +324,34 @@ def fetch_call_site_warmth(
             granularity_secs=WARMTH_GRANULARITY_SECS,
         ),
         query_string=group_filter,
-        y_axes=["count()"],
+        y_axes=[COUNT],
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_WARMTH.value,
         config=SearchResolverConfig(auto_fields=True),
         sampling_mode="NORMAL",
     )
-    return CallSiteWarmth.from_bucket_counts(
-        float(point.get("count()") or 0) for point in result.data.get("data", [])
-    )
+    return CallSiteWarmth.from_buckets(_warmth_buckets(result))
+
+
+def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
+    """Pair each timeseries bucket's extrapolated count with its stored-span count.
+
+    ``processed_timeseries`` carries the two as separate lists indexed alike.
+    A bucket missing its sample count is passed through with zero, which
+    ``CallSiteWarmth`` reads as "no evidence of warmth here".
+    """
+    processed = result.data.get("processed_timeseries")
+    if processed is None:
+        return []
+    sample_counts = processed.sample_count
+    return [
+        WarmthBucket(
+            call_count=float(point.get(COUNT) or 0),
+            sample_count=(
+                float(sample_counts[index].get(COUNT) or 0) if index < len(sample_counts) else 0.0
+            ),
+        )
+        for index, point in enumerate(processed.timeseries)
+    ]
 
 
 def count_spans_with_cache_attributes(
@@ -337,7 +371,7 @@ def count_spans_with_cache_attributes(
         project,
         window,
         query_string=f"{group_filter} ({cache_attribute_present})",
-        selected_columns=["count()"],
+        selected_columns=[COUNT],
         orderby=None,
         limit=1,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_CACHE_PRESENCE,
@@ -345,7 +379,7 @@ def count_spans_with_cache_attributes(
     data = result.get("data", [])
     if not data:
         return 0
-    return int(data[0].get("count()") or 0)
+    return int(data[0].get(COUNT) or 0)
 
 
 def fetch_sample_calls(

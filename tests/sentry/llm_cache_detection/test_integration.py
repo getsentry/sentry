@@ -570,6 +570,7 @@ class FetchSamplePromptsTest(LLMCacheDetectionIntegrationTest):
 # Each seeded call site is a handful of spans; which volumes the eligibility
 # floors let through is settled in the detection tests.
 @patch("sentry.llm_cache_detection.detection.MIN_CALLS_FOR_CONFIDENCE", 1)
+@patch("sentry.llm_cache_detection.detection.MIN_SAMPLED_CALLS", 1)
 @patch("sentry.llm_cache_detection.issue_platform_adapter.produce_occurrence_to_kafka")
 class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
     def test_flags_a_call_site_that_never_caches(self, mock_produce: MagicMock) -> None:
