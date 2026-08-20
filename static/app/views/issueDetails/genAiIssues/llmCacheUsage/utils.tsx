@@ -16,14 +16,6 @@ import type {
   LlmCacheSampleCall,
 } from './types';
 
-/**
- * Span attributes the detector aggregates. The resolver back-fills the
- * deprecated aliases onto these names, so querying them here reads the same
- * data the finding was derived from.
- */
-export const INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.input_tokens';
-export const CACHE_READ_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read.input_tokens';
-export const CACHE_CREATION_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation.input_tokens';
 const MODEL_ATTRIBUTE = 'gen_ai.request.model';
 const SPAN_NAME_ATTRIBUTE = 'span.name';
 const AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
