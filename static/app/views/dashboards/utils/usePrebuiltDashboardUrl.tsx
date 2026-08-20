@@ -54,5 +54,7 @@ export function usePrebuiltDashboardUrl(
 
   applyDashboardFilters(queryParams, filters);
   const query = Object.keys(queryParams).length ? `?${qs.stringify(queryParams)}` : '';
-  return normalizeUrl(`/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`);
+  return normalizeUrl(
+    `/organizations/${slug}/dashboard/${prebuiltDashboard.id}/${query}`
+  );
 }

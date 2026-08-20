@@ -12,11 +12,7 @@ export interface SpringContext {
   [SpringContextKeys.ACTIVE_PROFILES]?: string[];
 }
 
-export function getSpringContextData({
-  data,
-}: {
-  data: SpringContext;
-}): KeyValueListData {
+export function getSpringContextData({data}: {data: SpringContext}): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case SpringContextKeys.ACTIVE_PROFILES:

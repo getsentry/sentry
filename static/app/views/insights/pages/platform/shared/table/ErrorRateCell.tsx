@@ -8,13 +8,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
 
-export function ErrorRateCell({
-  errorRate,
-  total,
-}: {
-  errorRate: number;
-  total: number;
-}) {
+export function ErrorRateCell({errorRate, total}: {errorRate: number; total: number}) {
   const theme = useTheme();
   const errorCount = Math.floor(errorRate * total);
 
