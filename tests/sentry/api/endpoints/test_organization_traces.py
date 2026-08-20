@@ -17,6 +17,7 @@ from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils.climate_impact import estimate_gco2e_from_duration_ms
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_query
 
@@ -2550,27 +2551,31 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
     @with_feature("organizations:visibility-explore-view")
     def test_climate_impact_data_feature_enabled(self) -> None:
         trace_id = uuid4().hex
-        self.store_span(
-            {
-                "trace_id": trace_id,
-                "span_id": "a" * 16,
-                "parent_span_id": None,
-                "is_segment": True,
-                "transaction": "api/test",
-                "op": "http.server",
-                "description": "GET /api/test",
-            }
+        start = before_now(minutes=10)
+        self.store_segment(
+            project_id=self.project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id="a" * 16,
+            transaction="api/test",
+            op="http.server",
+            duration=2_000,
+            exclusive_time=1_000,
+            timestamp=start,
+            organization_id=self.organization.id,
         )
-        self.store_span(
-            {
-                "trace_id": trace_id,
-                "span_id": "b" * 16,
-                "parent_span_id": "a" * 16,
-                "is_segment": False,
-                "transaction": "api/test",
-                "op": "db",
-                "description": "SELECT * FROM table",
-            }
+        self.store_segment(
+            project_id=self.project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id="b" * 16,
+            parent_span_id="a" * 16,
+            transaction="api/test",
+            op="db",
+            duration=1_000,
+            exclusive_time=1_000,
+            timestamp=start,
+            organization_id=self.organization.id,
         )
 
         response = self.client.get(
@@ -2587,25 +2592,26 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
         data = response.data["data"]
         assert len(data) == 1
 
-        # Check that the trace has climate impact field
         trace = data[0]
         assert "estimatedClimateImpactCo2eGrams" in trace
-        # Should be 2.0 (2 spans * 1g CO₂e each)
-        assert trace["estimatedClimateImpactCo2eGrams"] == 2.0
+        assert trace["estimatedClimateImpactCo2eGrams"] == pytest.approx(
+            estimate_gco2e_from_duration_ms(trace["duration"])
+        )
 
     @with_feature("organizations:visibility-explore-view")
     def test_climate_impact_data_feature_disabled(self) -> None:
         trace_id = uuid4().hex
-        self.store_span(
-            {
-                "trace_id": trace_id,
-                "span_id": "a" * 16,
-                "parent_span_id": None,
-                "is_segment": True,
-                "transaction": "api/test",
-                "op": "http.server",
-                "description": "GET /api/test",
-            }
+        self.store_segment(
+            project_id=self.project.id,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id="a" * 16,
+            transaction="api/test",
+            op="http.server",
+            duration=1_000,
+            exclusive_time=1_000,
+            timestamp=before_now(minutes=10),
+            organization_id=self.organization.id,
         )
 
         response = self.client.get(
@@ -2622,6 +2628,5 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
         data = response.data["data"]
         assert len(data) == 1
 
-        # Check that the trace does not have climate impact field
         trace = data[0]
         assert "estimatedClimateImpactCo2eGrams" not in trace

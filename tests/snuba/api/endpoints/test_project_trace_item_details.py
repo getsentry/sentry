@@ -18,6 +18,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
+from sentry.utils.climate_impact import estimate_gco2e_from_duration_ms
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
@@ -897,7 +898,9 @@ class ProjectTraceItemDetailsEndpointTest(
         response = self.do_request("spans", span["span_id"])
         assert response.status_code == 200, response.content
         assert "estimatedClimateImpactCo2eGrams" in response.data
-        assert response.data["estimatedClimateImpactCo2eGrams"] == 1.0
+        assert response.data["estimatedClimateImpactCo2eGrams"] == pytest.approx(
+            estimate_gco2e_from_duration_ms(1000)
+        )
 
     def test_climate_impact_data_feature_disabled_for_spans(self) -> None:
         span = self.create_span({"description": "foo"}, start_ts=self.one_min_ago)
