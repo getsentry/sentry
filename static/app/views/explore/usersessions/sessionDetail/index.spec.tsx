@@ -753,7 +753,7 @@ describe('SessionDetailView', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Timeline settings'}));
     await userEvent.click(
-      await screen.findByRole('option', {name: /Hide empty telemetry/})
+      await screen.findByRole('option', {name: /Hide empty categories/})
     );
 
     // Every lane the session could have had is drawn now, flat at zero, so the
@@ -1258,9 +1258,7 @@ describe('SessionDetailView', () => {
       expect(screen.getAllByTestId('session-break')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('button', {name: 'Timeline settings'}));
-      await userEvent.click(
-        await screen.findByRole('option', {name: /Compress inactive time/})
-      );
+      await userEvent.click(await screen.findByRole('option', {name: /Hide inactivity/}));
 
       expect(screen.queryByTestId('session-break')).not.toBeInTheDocument();
     });
