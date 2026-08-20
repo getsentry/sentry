@@ -735,7 +735,7 @@ function SpansScopeActions({
             label: t('All Environments'),
             icon: <IconGlobe />,
             labelSuffix:
-              currentPageFilters.environments.length === 0 ? (
+              selectedEnvironments.length === 0 ? (
                 <QueryValue value={t('Current')} />
               ) : undefined,
           }}
@@ -770,9 +770,7 @@ function SpansScopeActions({
               display={{
                 label: environment,
                 icon: <IconGlobe />,
-                labelSuffix: currentPageFilters.environments.includes(environment) ? (
-                  <QueryValue value={t('Current')} />
-                ) : undefined,
+                labelSuffix: isSelected ? <QueryValue value={t('Current')} /> : undefined,
               }}
               isSelected={isSelected}
               onAction={commitEnvironment}
@@ -825,10 +823,9 @@ function SpansScopeActions({
                 }
                 display={{
                   label: option.label,
-                  labelSuffix:
-                    currentPageFilters.datetime.period === option.period ? (
-                      <QueryValue value={t('Current')} />
-                    ) : undefined,
+                  labelSuffix: isSelected ? (
+                    <QueryValue value={t('Current')} />
+                  ) : undefined,
                   icon: <IconClock />,
                 }}
                 isSelected={isSelected}
