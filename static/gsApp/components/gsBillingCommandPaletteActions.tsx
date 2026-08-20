@@ -18,7 +18,7 @@ export function GsBillingCommandPaletteActions() {
   return (
     <Fragment>
       {canViewSubscription && (
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Subscription'), icon: <IconCreditCard />}}
           keywords={[
             'billing',
@@ -36,7 +36,7 @@ export function GsBillingCommandPaletteActions() {
         />
       )}
       {organization.features.includes('spend-allocations') && (
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Spend Allocations'), icon: <IconGraph />}}
           keywords={[
             'budget',
@@ -51,7 +51,7 @@ export function GsBillingCommandPaletteActions() {
           to={`${prefix}/subscription/spend-allocations/`}
         />
       )}
-      <CMDKAction
+      <CMDKAction.Link
         display={{label: t('Spike Protection'), icon: <IconLightning />}}
         keywords={[
           'billing',
@@ -65,12 +65,12 @@ export function GsBillingCommandPaletteActions() {
         ]}
         to={`${prefix}/spike-protection/`}
       />
-      <CMDKAction
+      <CMDKAction.Link
         display={{label: t('Redeem Promo Code'), icon: <IconTag />}}
         keywords={['coupon', 'discount', 'promotional', 'billing', 'voucher', 'offer']}
         to={`${prefix}/subscription/redeem-code/`}
       />
-      <CMDKAction
+      <CMDKAction.Link
         display={{label: t('Legal & Compliance'), icon: <IconDocs />}}
         keywords={['terms', 'privacy', 'gdpr', 'dpa', 'tos', 'ccpa', 'soc2']}
         to={`${prefix}/legal/`}

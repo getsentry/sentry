@@ -36,7 +36,7 @@ interface DisplayProps {
   trailingItem?: React.ReactNode;
 }
 
-interface CMDKTextInput {
+export interface CMDKTextInput {
   /** Accessible label for the palette input while editing. */
   ariaLabel: string;
   /** Called with the raw input value when Enter is pressed. */
@@ -47,14 +47,14 @@ interface CMDKTextInput {
   initialValue?: string;
 }
 
-interface CMDKActionPanel {
+export interface CMDKActionPanel {
   /** Selection context in which this action is available. Hierarchical contexts match descendants. */
   context: string;
   label: string;
-  only?: boolean;
-  order?: number;
   /** Runs a callback without changing the palette's current navigation step. */
-  preserveView?: boolean;
+  execution?: 'navigate' | 'preserve-view';
+  order?: number;
+  placement?: 'palette-and-panel' | 'panel-only';
 }
 
 interface CMDKActionDataBase {
@@ -76,6 +76,7 @@ interface CMDKActionDataBase {
 
 interface CMDKActionDataTo extends CMDKActionDataBase {
   to: LocationDescriptor;
+  onNavigate?: () => void;
 }
 
 interface CMDKActionDataOnAction extends CMDKActionDataBase {
@@ -116,7 +117,7 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-interface CMDKActionProps<TData = unknown> {
+interface CMDKActionRegistrationProps<TData = unknown> {
   display: DisplayProps;
   /** Semantic context represented by this row for the More Actions panel. */
   actionContext?: string;
@@ -145,6 +146,7 @@ interface CMDKActionProps<TData = unknown> {
   limit?: number;
   onAction?: () => void;
   onMultiSelect?: () => void;
+  onNavigate?: () => void;
   onReorder?: (direction: 'up' | 'down') => void;
   /** Explicit sibling position for reorderable action lists. */
   order?: number;
@@ -197,15 +199,19 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
   if ('actions' in action) {
     const {actions, ...props} = action;
     return (
-      <CMDKAction {...props}>
+      <CMDKAction.Group {...props}>
         {actions.map((child, index) => (
           <CMDKActionFromData key={index} action={child} />
         ))}
-      </CMDKAction>
+      </CMDKAction.Group>
     );
   }
 
-  return <CMDKAction {...action} />;
+  return 'to' in action ? (
+    <CMDKAction.Link {...action} />
+  ) : (
+    <CMDKAction.Callback {...action} />
+  );
 }
 
 /**
@@ -214,7 +220,7 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
  * navigation, `onAction` for a callback, or `resource` with a render-prop
  * children function to fetch and populate async results.
  */
-export function CMDKAction<TData = unknown>({
+function CMDKActionRegistration<TData = unknown>({
   actionContext,
   autoFocusFirst,
   deferChildren,
@@ -227,6 +233,7 @@ export function CMDKAction<TData = unknown>({
   to,
   onAction,
   onMultiSelect,
+  onNavigate,
   onReorder,
   order,
   prompt,
@@ -235,7 +242,7 @@ export function CMDKAction<TData = unknown>({
   textInput,
   limit,
   actionPanel,
-}: CMDKActionProps<TData>) {
+}: CMDKActionRegistrationProps<TData>) {
   const slotName = useCommandPaletteSlotName();
   const parentKey = useContext(CMDKCollection.Context);
   const chainedActionScope = useCMDKChainedActionScope();
@@ -288,6 +295,7 @@ export function CMDKAction<TData = unknown>({
             disabled,
             display,
             keywords,
+            onNavigate,
             to,
             limit: effectiveLimit,
             actionPanel,
@@ -308,6 +316,7 @@ export function CMDKAction<TData = unknown>({
       actionPanel,
       onAction,
       onMultiSelect,
+      onNavigate,
       onReorder,
       order,
       prompt,
@@ -379,3 +388,90 @@ export function CMDKAction<TData = unknown>({
     </CMDKCollection.Context.Provider>
   );
 }
+
+type CommonActionProps = Pick<
+  CMDKActionRegistrationProps,
+  | 'actionContext'
+  | 'actionPanel'
+  | 'disabled'
+  | 'display'
+  | 'id'
+  | 'keywords'
+  | 'limit'
+  | 'order'
+>;
+
+interface GroupActionProps extends CommonActionProps {
+  children?: React.ReactNode;
+  initialFocus?: 'search' | 'first-action';
+  mount?: 'eager' | 'on-open';
+  prompt?: string;
+}
+
+interface LinkActionProps extends CommonActionProps {
+  to: LocationDescriptor;
+  children?: React.ReactNode;
+  onNavigate?: () => void;
+}
+
+interface CallbackActionProps extends CommonActionProps {
+  onAction: () => void;
+  children?: React.ReactNode;
+  isSelected?: boolean;
+  onMultiSelect?: () => void;
+  onReorder?: (direction: 'up' | 'down') => void;
+}
+
+interface ResourceActionProps<TData = unknown> extends CommonActionProps {
+  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
+  children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  prompt?: string;
+}
+
+interface TextInputActionProps extends CommonActionProps {
+  input: CMDKTextInput;
+}
+
+interface TargetActionProps extends CommonActionProps {
+  target: string;
+}
+
+function GroupAction({initialFocus, mount, ...props}: GroupActionProps) {
+  return (
+    <CMDKActionRegistration
+      {...props}
+      autoFocusFirst={initialFocus === 'first-action'}
+      deferChildren={mount === 'on-open'}
+    />
+  );
+}
+
+function LinkAction({onNavigate, ...props}: LinkActionProps) {
+  return <CMDKActionRegistration {...props} onNavigate={onNavigate} />;
+}
+
+function CallbackAction(props: CallbackActionProps) {
+  return <CMDKActionRegistration {...props} />;
+}
+
+function ResourceAction<TData = unknown>(props: ResourceActionProps<TData>) {
+  return <CMDKActionRegistration {...props} />;
+}
+
+function TextInputAction({input, ...props}: TextInputActionProps) {
+  return <CMDKActionRegistration {...props} textInput={input} />;
+}
+
+function TargetAction({target, ...props}: TargetActionProps) {
+  return <CMDKActionRegistration {...props} targetAction={target} />;
+}
+
+/** Action variants make incompatible behaviors impossible to combine. */
+export const CMDKAction = {
+  Callback: CallbackAction,
+  Group: GroupAction,
+  Link: LinkAction,
+  Resource: ResourceAction,
+  Target: TargetAction,
+  TextInput: TextInputAction,
+};

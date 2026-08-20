@@ -106,13 +106,13 @@ const onChild = jest.fn();
 function AllActions() {
   return (
     <Fragment>
-      <CMDKAction to="/target/" display={{label: 'Go to route'}} />
-      <CMDKAction to="/other/" display={{label: 'Other'}} />
-      <CMDKAction display={{label: 'Parent Label'}}>
-        <CMDKAction display={{label: 'Parent Group Action'}}>
-          <CMDKAction onAction={onChild} display={{label: 'Child Action'}} />
-        </CMDKAction>
-      </CMDKAction>
+      <CMDKAction.Link to="/target/" display={{label: 'Go to route'}} />
+      <CMDKAction.Link to="/other/" display={{label: 'Other'}} />
+      <CMDKAction.Group display={{label: 'Parent Label'}}>
+        <CMDKAction.Group display={{label: 'Parent Group Action'}}>
+          <CMDKAction.Callback onAction={onChild} display={{label: 'Child Action'}} />
+        </CMDKAction.Group>
+      </CMDKAction.Group>
     </Fragment>
   );
 }
@@ -155,7 +155,7 @@ describe('CommandPalette', () => {
     const secondAction = jest.fn();
     const {rerender} = render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           id="second-action"
           display={{label: 'Second action'}}
           onAction={secondAction}
@@ -167,13 +167,13 @@ describe('CommandPalette', () => {
     await screen.findByRole('option', {name: 'Second action'});
     rerender(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           id="first-action"
           display={{label: 'First action'}}
           onAction={firstAction}
           order={0}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           id="second-action"
           display={{label: 'Second action'}}
           onAction={secondAction}
@@ -242,7 +242,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+        <CMDKAction.Link to="/target/" display={{label: 'Go to route'}} />
       </GlobalActionsComponent>
     );
 
@@ -259,12 +259,30 @@ describe('CommandPalette', () => {
     openSpy.mockRestore();
   });
 
+  it('runs link side effects before navigating', async () => {
+    const onNavigate = jest.fn();
+    const {router} = render(
+      <GlobalActionsComponent>
+        <CMDKAction.Link
+          display={{label: 'Tracked route'}}
+          onNavigate={onNavigate}
+          to="/target/"
+        />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(router.location.pathname).toBe('/target/'));
+  });
+
   it('shows a trailing indicator only for external link actions', async () => {
     render(
       <GlobalActionsComponent>
         <Fragment>
-          <CMDKAction to="/target/" display={{label: 'Internal'}} />
-          <CMDKAction to="https://docs.sentry.io" display={{label: 'External'}} />
+          <CMDKAction.Link to="/target/" display={{label: 'Internal'}} />
+          <CMDKAction.Link to="https://docs.sentry.io" display={{label: 'External'}} />
         </Fragment>
       </GlobalActionsComponent>
     );
@@ -287,7 +305,7 @@ describe('CommandPalette', () => {
   it('renders both a custom trailingItem and the link indicator for a link action', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Link
           to="https://docs.sentry.io/target/"
           display={{
             label: 'Action with trailing',
@@ -364,16 +382,22 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Query clauses'}}>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
           <CMDKChainedActionScope>
-            <CMDKAction display={{label: 'Visualize'}}>
-              <CMDKAction display={{label: 'Count spans'}} onAction={onChainedAction} />
-            </CMDKAction>
-            <CMDKAction display={{label: 'Group by'}}>
-              <CMDKAction display={{label: 'Span operation'}} onAction={() => {}} />
-            </CMDKAction>
+            <CMDKAction.Group display={{label: 'Visualize'}}>
+              <CMDKAction.Callback
+                display={{label: 'Count spans'}}
+                onAction={onChainedAction}
+              />
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Callback
+                display={{label: 'Span operation'}}
+                onAction={() => {}}
+              />
+            </CMDKAction.Group>
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -397,26 +421,29 @@ describe('CommandPalette', () => {
 
       return (
         <CommandPaletteSlot name="page">
-          <CMDKAction display={{label: 'Traces'}}>
+          <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
-              <CMDKAction display={{label: 'Commands'}}>
-                <CMDKAction display={{label: 'Add Chart'}} onAction={() => {}} />
-              </CMDKAction>
-              <CMDKAction display={{label: 'Chart A'}}>
-                <CMDKAction
-                  display={{label: 'Aggregate function', trailingItem: aggregate}}
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback display={{label: 'Add Chart'}} onAction={() => {}} />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Chart A'}}>
+                <CMDKAction.Group
+                  display={{
+                    label: 'Aggregate function',
+                    trailingItem: aggregate,
+                  }}
                 >
-                  <CMDKAction
+                  <CMDKAction.Callback
                     display={{
                       label: 'avg',
                       labelSuffix: aggregate === 'avg' ? 'Current' : undefined,
                     }}
                     onAction={() => setAggregate('avg')}
                   />
-                </CMDKAction>
-              </CMDKAction>
+                </CMDKAction.Group>
+              </CMDKAction.Group>
             </CMDKChainedActionScope>
-          </CMDKAction>
+          </CMDKAction.Group>
         </CommandPaletteSlot>
       );
     }
@@ -449,17 +476,17 @@ describe('CommandPalette', () => {
 
       return (
         <CommandPaletteSlot name="page">
-          <CMDKAction display={{label: 'Traces'}}>
+          <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
-              <CMDKAction display={{label: 'Global'}}>
-                <CMDKAction
+              <CMDKAction.Group display={{label: 'Global'}}>
+                <CMDKAction.Group
                   display={{
                     label: 'Projects',
                     trailingItem: `${projects.length} projects`,
                   }}
                 >
                   {[1, 2, 3].map(project => (
-                    <CMDKAction
+                    <CMDKAction.Callback
                       key={project}
                       display={{label: `Project ${project}`}}
                       isSelected={projects.includes(project)}
@@ -471,15 +498,15 @@ describe('CommandPalette', () => {
                       onMultiSelect={() => {}}
                     />
                   ))}
-                </CMDKAction>
-              </CMDKAction>
-              <CMDKAction display={{label: 'Commands'}}>
-                <CMDKAction
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Group
                   id="add-group-by"
                   display={{label: 'Add Group By'}}
                   prompt="Search for attribute"
                 >
-                  <CMDKAction
+                  <CMDKAction.Callback
                     display={{label: 'environment'}}
                     onAction={() =>
                       setGroupBys(current =>
@@ -489,20 +516,20 @@ describe('CommandPalette', () => {
                       )
                     }
                   />
-                </CMDKAction>
-              </CMDKAction>
-              <CMDKAction display={{label: 'Query'}}>
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
                 {(groupBys.length > 0 ? groupBys : ['']).map((groupBy, index) => (
-                  <CMDKAction
+                  <CMDKAction.Target
                     key={index}
                     id={`group-by-${index}`}
                     display={{label: 'Group By', trailingItem: groupBy}}
-                    targetAction="add-group-by"
+                    target="add-group-by"
                   />
                 ))}
-              </CMDKAction>
+              </CMDKAction.Group>
             </CMDKChainedActionScope>
-          </CMDKAction>
+          </CMDKAction.Group>
         </CommandPaletteSlot>
       );
     }
@@ -542,12 +569,12 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Group By'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'Group By'}}>
+          <CMDKAction.Callback
             display={{label: longLabel, labelSuffix: 'Current'}}
             onAction={() => {}}
           />
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -562,7 +589,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           display={{
             label: 'Filter By',
             trailingItem: <span>{longValue}</span>,
@@ -587,31 +614,31 @@ describe('CommandPalette', () => {
 
       return (
         <CommandPaletteSlot name="page">
-          <CMDKAction display={{label: 'Traces'}}>
+          <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
-              <CMDKAction display={{label: 'Commands'}}>
-                <CMDKAction display={{label: 'Add Chart'}} onAction={() => {}} />
-                <CMDKAction
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback display={{label: 'Add Chart'}} onAction={() => {}} />
+                <CMDKAction.Group
                   id={targetId}
                   display={{label: `Add ${label}`}}
                   prompt="Search for attribute"
                 >
-                  <CMDKAction
+                  <CMDKAction.Callback
                     display={{label: 'environment'}}
                     onAction={() => setValue('environment')}
                   />
-                </CMDKAction>
-              </CMDKAction>
-              <CMDKAction display={{label: 'Query'}}>
-                <CMDKAction
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
+                <CMDKAction.Target
                   key={value || `pending-${id}`}
                   id={rowId}
                   display={{label, trailingItem: value}}
-                  targetAction={targetId}
+                  target={targetId}
                 />
-              </CMDKAction>
+              </CMDKAction.Group>
             </CMDKChainedActionScope>
-          </CMDKAction>
+          </CMDKAction.Group>
         </CommandPaletteSlot>
       );
     }
@@ -641,11 +668,11 @@ describe('CommandPalette', () => {
       const [isEnvironmentSelected, setIsEnvironmentSelected] = useState(true);
 
       return (
-        <CMDKAction display={{label: 'Commands'}}>
+        <CMDKAction.Group display={{label: 'Commands'}}>
           <CMDKChainedActionScope>
-            <CMDKAction display={{label: 'Group by'}}>
-              <CMDKAction display={{label: 'Attribute'}}>
-                <CMDKAction
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Group display={{label: 'Attribute'}}>
+                <CMDKAction.Callback
                   display={{label: 'Environment', labelSuffix: 'Current'}}
                   isSelected={isEnvironmentSelected}
                   onAction={onAction}
@@ -654,15 +681,15 @@ describe('CommandPalette', () => {
                     setIsEnvironmentSelected(selected => !selected);
                   }}
                 />
-                <CMDKAction
+                <CMDKAction.Callback
                   display={{label: 'Release'}}
                   onAction={() => {}}
                   onMultiSelect={() => {}}
                 />
-              </CMDKAction>
-            </CMDKAction>
+              </CMDKAction.Group>
+            </CMDKAction.Group>
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       );
     }
 
@@ -703,28 +730,28 @@ describe('CommandPalette', () => {
   it('shows only the action matching the highlighted command', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="add-chart"
           actionPanel={{context: 'add-chart', label: 'Add Chart'}}
           display={{label: 'Add Chart'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="add-equation"
           actionPanel={{context: 'add-equation', label: 'Add Equation'}}
           display={{label: 'Add Equation'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="chart:7"
           display={{label: 'Chart A'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionPanel={{
             context: 'chart:7',
             label: 'Delete Chart',
-            only: true,
+            placement: 'panel-only',
           }}
           display={{label: 'Delete Chart'}}
           onAction={() => {}}
@@ -761,36 +788,36 @@ describe('CommandPalette', () => {
   it('orders More Actions independently of registration order', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="chart:0"
           display={{label: 'Chart A'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionPanel={{
             context: 'chart',
             label: 'Add Filter',
-            only: true,
+            placement: 'panel-only',
             order: 30,
           }}
           display={{label: 'Add Filter'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionPanel={{
             context: 'chart',
             label: 'Reorder Charts',
-            only: true,
+            placement: 'panel-only',
             order: 40,
           }}
           display={{label: 'Reorder Charts'}}
           onAction={() => {}}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionPanel={{
             context: 'chart',
             label: 'Add Chart',
-            only: true,
+            placement: 'panel-only',
             order: 20,
           }}
           display={{label: 'Add Chart'}}
@@ -813,9 +840,13 @@ describe('CommandPalette', () => {
   it('disables More Actions when the highlighted row has no action context', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Apply Changes'}} onAction={() => {}} />
-        <CMDKAction
-          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+        <CMDKAction.Callback display={{label: 'Apply Changes'}} onAction={() => {}} />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            placement: 'panel-only',
+          }}
           display={{label: 'Add Chart'}}
           onAction={() => {}}
         />
@@ -834,18 +865,26 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="chart:0"
           display={{label: 'Chart A'}}
           onAction={() => {}}
         />
-        <CMDKAction
-          actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            placement: 'panel-only',
+          }}
           display={{label: 'Add Chart'}}
           onAction={onAddChart}
         />
-        <CMDKAction
-          actionPanel={{context: 'chart', label: 'Add Filter', only: true}}
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Filter',
+            placement: 'panel-only',
+          }}
           display={{label: 'Add Filter'}}
           onAction={onAddFilter}
         />
@@ -868,13 +907,17 @@ describe('CommandPalette', () => {
 
       return (
         <Fragment>
-          <CMDKAction
-            actionPanel={{context: 'chart', label: 'Add Chart', only: true}}
+          <CMDKAction.Callback
+            actionPanel={{
+              context: 'chart',
+              label: 'Add Chart',
+              placement: 'panel-only',
+            }}
             display={{label: 'Add Chart'}}
             onAction={() => setCharts(current => [...current, 'Chart B'])}
           />
           {charts.map((chart, index) => (
-            <CMDKAction
+            <CMDKAction.Callback
               key={chart}
               actionContext={`chart:${index}`}
               display={{label: chart}}
@@ -887,9 +930,9 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Traces'}} prompt="Search traces">
+        <CMDKAction.Group display={{label: 'Traces'}} prompt="Search traces">
           <DynamicChartActions />
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -918,9 +961,9 @@ describe('CommandPalette', () => {
       const [charts, setCharts] = useState(['Chart A']);
 
       return (
-        <CMDKAction display={{label: 'Traces'}}>
+        <CMDKAction.Group display={{label: 'Traces'}}>
           <CMDKChainedActionScope>
-            <CMDKAction
+            <CMDKAction.Callback
               display={{label: 'Add Chart'}}
               onAction={() =>
                 setCharts(current => [
@@ -930,10 +973,14 @@ describe('CommandPalette', () => {
               }
             />
             {charts.map(chart => (
-              <CMDKAction key={chart} display={{label: chart}} onAction={() => {}} />
+              <CMDKAction.Callback
+                key={chart}
+                display={{label: chart}}
+                onAction={() => {}}
+              />
             ))}
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       );
     }
 
@@ -957,19 +1004,23 @@ describe('CommandPalette', () => {
 
       return (
         <Fragment>
-          <CMDKAction
-            actionPanel={{context: 'query', label: 'Add Group By', only: true}}
+          <CMDKAction.Callback
+            actionPanel={{
+              context: 'query',
+              label: 'Add Group By',
+              placement: 'panel-only',
+            }}
             display={{label: 'Add Group By'}}
             onAction={() => setHasGroupBy(true)}
           />
-          <CMDKAction
+          <CMDKAction.Callback
             actionContext="query"
             display={{label: 'Filter By'}}
             order={200}
             onAction={() => {}}
           />
           {hasGroupBy && (
-            <CMDKAction
+            <CMDKAction.Callback
               actionContext="query"
               display={{label: 'Group By'}}
               order={100}
@@ -1001,7 +1052,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Group
           actionContext="filter:0"
           display={{label: 'Filter by'}}
           actionPanel={{context: 'filter', label: 'Add Filter'}}
@@ -1034,7 +1085,7 @@ describe('CommandPalette', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Callback
             actionContext="filter:0"
             actionPanel={{context: 'filter', label: 'Add Filter'}}
             display={{label: 'Filter'}}
@@ -1064,33 +1115,33 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Commands'}}>
+        <CMDKAction.Group display={{label: 'Commands'}}>
           <CMDKChainedActionScope>
-            <CMDKAction display={{label: 'Group by'}}>
-              <CMDKAction display={{label: 'Attribute'}}>
-                <CMDKAction
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Group display={{label: 'Attribute'}}>
+                <CMDKAction.Callback
                   display={{label: 'Environment'}}
                   isSelected
                   onAction={onAction}
                   onMultiSelect={onMultiSelect}
                 >
-                  <CMDKAction display={{label: 'Order by'}}>
-                    <CMDKAction
+                  <CMDKAction.Group display={{label: 'Order by'}}>
+                    <CMDKAction.Callback
                       display={{label: 'Environment'}}
                       onAction={() => {}}
                       onReorder={onReorder}
                     />
-                    <CMDKAction
+                    <CMDKAction.Callback
                       display={{label: 'Project'}}
                       onAction={() => {}}
                       onReorder={onReorder}
                     />
-                  </CMDKAction>
-                </CMDKAction>
-              </CMDKAction>
-            </CMDKAction>
+                  </CMDKAction.Group>
+                </CMDKAction.Callback>
+              </CMDKAction.Group>
+            </CMDKAction.Group>
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -1116,13 +1167,19 @@ describe('CommandPalette', () => {
   it('shows filter attributes immediately under their section heading', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Add Filter by'}} prompt="Search for attribute">
-          <CMDKAction display={{label: 'Attribute'}}>
-            <CMDKAction display={{label: 'environment'}} prompt="Search for operator">
-              <CMDKAction display={{label: 'is'}} onAction={() => {}} />
-            </CMDKAction>
-          </CMDKAction>
-        </CMDKAction>
+        <CMDKAction.Group
+          display={{label: 'Add Filter by'}}
+          prompt="Search for attribute"
+        >
+          <CMDKAction.Group display={{label: 'Attribute'}}>
+            <CMDKAction.Group
+              display={{label: 'environment'}}
+              prompt="Search for operator"
+            >
+              <CMDKAction.Callback display={{label: 'is'}} onAction={() => {}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -1139,20 +1196,20 @@ describe('CommandPalette', () => {
   it('opens a shared picker from a lightweight row with Enter', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Commands'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'Commands'}}>
+          <CMDKAction.Group
             id="add-filter"
             display={{label: 'Add Filter By'}}
             prompt="Search for attribute"
           >
-            <CMDKAction display={{label: 'Attribute'}}>
-              <CMDKAction display={{label: 'environment'}} onAction={() => {}} />
-            </CMDKAction>
-          </CMDKAction>
-        </CMDKAction>
-        <CMDKAction display={{label: 'Query'}}>
-          <CMDKAction display={{label: 'Filter By'}} targetAction="add-filter" />
-        </CMDKAction>
+            <CMDKAction.Group display={{label: 'Attribute'}}>
+              <CMDKAction.Callback display={{label: 'environment'}} onAction={() => {}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
+        <CMDKAction.Group display={{label: 'Query'}}>
+          <CMDKAction.Target display={{label: 'Filter By'}} target="add-filter" />
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -1172,18 +1229,21 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Query clauses'}}>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
           <CMDKChainedActionScope>
-            <CMDKAction display={{label: 'Commands'}}>
-              <CMDKAction display={{label: 'Edit Sort By'}}>
-                <CMDKAction display={{label: 'Descending'}} onAction={() => {}} />
-              </CMDKAction>
-            </CMDKAction>
-            <CMDKAction display={{label: 'Series A'}}>
-              <CMDKAction display={{label: 'Edit Source'}} onAction={() => {}} />
-            </CMDKAction>
+            <CMDKAction.Group display={{label: 'Commands'}}>
+              <CMDKAction.Group display={{label: 'Edit Sort By'}}>
+                <CMDKAction.Callback
+                  display={{label: 'Descending'}}
+                  onAction={() => {}}
+                />
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Series A'}}>
+              <CMDKAction.Callback display={{label: 'Edit Source'}} onAction={() => {}} />
+            </CMDKAction.Group>
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -1201,13 +1261,16 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction display={{label: 'Query clauses'}}>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
           <CMDKChainedActionScope>
             <CMDKTerminalActionScope>
-              <CMDKAction display={{label: 'Apply Changes'}} onAction={() => {}} />
+              <CMDKAction.Callback
+                display={{label: 'Apply Changes'}}
+                onAction={() => {}}
+              />
             </CMDKTerminalActionScope>
           </CMDKChainedActionScope>
-        </CMDKAction>
+        </CMDKAction.Group>
       </GlobalActionsComponent>
     );
 
@@ -1226,7 +1289,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: 'Open a modal'}}
           onAction={() => modalActions.openModal(() => <div>modal content</div>)}
         />
@@ -1336,15 +1399,15 @@ describe('CommandPalette', () => {
     it('does not expand unrelated children when only a group matches', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Go to...'}}>
-            <CMDKAction display={{label: 'Settings'}} limit={1}>
-              <CMDKAction display={{label: 'Auth'}} to="/settings/auth/" />
-              <CMDKAction
+          <CMDKAction.Group display={{label: 'Go to...'}}>
+            <CMDKAction.Group display={{label: 'Settings'}} limit={1}>
+              <CMDKAction.Link display={{label: 'Auth'}} to="/settings/auth/" />
+              <CMDKAction.Link
                 display={{label: 'Integrations'}}
                 to="/settings/integrations/"
               />
-            </CMDKAction>
-          </CMDKAction>
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1362,9 +1425,9 @@ describe('CommandPalette', () => {
     it('does not repeat a matching group below its own results section', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Go to...'}}>
-            <CMDKAction display={{label: 'Outgoing API Calls'}} to="/outgoing/" />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Go to...'}}>
+            <CMDKAction.Link display={{label: 'Outgoing API Calls'}} to="/outgoing/" />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1383,8 +1446,8 @@ describe('CommandPalette', () => {
     it('requires contiguous matches for very short queries', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Godot'}} to="/projects/godot/" />
-          <CMDKAction display={{label: 'Issue Grouping'}} to="/settings/grouping/" />
+          <CMDKAction.Link display={{label: 'Godot'}} to="/projects/godot/" />
+          <CMDKAction.Link display={{label: 'Issue Grouping'}} to="/settings/grouping/" />
         </GlobalActionsComponent>
       );
 
@@ -1432,8 +1495,8 @@ describe('CommandPalette', () => {
     it('actions are ranked by match quality — better matches appear first', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction to="/a/" display={{label: 'Something with issues buried'}} />
-          <CMDKAction to="/b/" display={{label: 'Issues'}} />
+          <CMDKAction.Link to="/a/" display={{label: 'Something with issues buried'}} />
+          <CMDKAction.Link to="/b/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
       const input = await screen.findByRole('textbox', {
@@ -1451,10 +1514,10 @@ describe('CommandPalette', () => {
     it('top-level actions rank before child actions when both match the query', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Group'}}>
-            <CMDKAction to="/child/" display={{label: 'Issues child'}} />
-          </CMDKAction>
-          <CMDKAction to="/top/" display={{label: 'Issues'}} />
+          <CMDKAction.Group display={{label: 'Group'}}>
+            <CMDKAction.Link to="/child/" display={{label: 'Issues child'}} />
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/top/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
       const input = await screen.findByRole('textbox', {
@@ -1472,7 +1535,7 @@ describe('CommandPalette', () => {
     it('actions with matching keywords are included in results', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Link
             to="/shortcuts/"
             display={{label: 'Keyboard shortcuts'}}
             keywords={['hotkeys', 'keybindings']}
@@ -1492,12 +1555,12 @@ describe('CommandPalette', () => {
     it("searching within a drilled-in group filters that group's children", async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Settings'}}>
-            <CMDKAction display={{label: 'Theme'}}>
-              <CMDKAction onAction={jest.fn()} display={{label: 'Light'}} />
-              <CMDKAction onAction={jest.fn()} display={{label: 'Dark'}} />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Settings'}}>
+            <CMDKAction.Group display={{label: 'Theme'}}>
+              <CMDKAction.Callback onAction={jest.fn()} display={{label: 'Light'}} />
+              <CMDKAction.Callback onAction={jest.fn()} display={{label: 'Dark'}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1516,10 +1579,10 @@ describe('CommandPalette', () => {
     it('shows a compact preview when a top-level group matches', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Help'}}>
-            <CMDKAction to="/docs/" display={{label: 'Open Documentation'}} />
-            <CMDKAction to="/discord/" display={{label: 'Join Discord'}} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Help'}}>
+            <CMDKAction.Link to="/docs/" display={{label: 'Open Documentation'}} />
+            <CMDKAction.Link to="/discord/" display={{label: 'Join Discord'}} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1546,14 +1609,17 @@ describe('CommandPalette', () => {
       // must be a child item — matching how "Parent Group Action" works in allActions.
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Outer Group'}}>
-            <CMDKAction display={{label: 'Primary Action'}} onAction={primaryCallback}>
-              <CMDKAction
+          <CMDKAction.Group display={{label: 'Outer Group'}}>
+            <CMDKAction.Callback
+              display={{label: 'Primary Action'}}
+              onAction={primaryCallback}
+            >
+              <CMDKAction.Callback
                 display={{label: 'Secondary Action'}}
                 onAction={secondaryCallback}
               />
-            </CMDKAction>
-          </CMDKAction>
+            </CMDKAction.Callback>
+          </CMDKAction.Group>
           <CommandPalette {...makeRenderProps(closeModal)} />
         </CommandPaletteProvider>
       );
@@ -1592,7 +1658,7 @@ describe('CommandPalette', () => {
     it('auto-renders composed groups returned by a resource', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             resource={() =>
               cmdkQueryOptions({
@@ -1623,7 +1689,7 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             resource={() =>
               cmdkQueryOptions({
@@ -1635,7 +1701,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -1643,7 +1709,7 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
@@ -1660,12 +1726,12 @@ describe('CommandPalette', () => {
     it('limits static children when limit prop is set', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1682,13 +1748,13 @@ describe('CommandPalette', () => {
     it('does not limit static children when limit prop is not set', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 5'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 5'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1702,12 +1768,12 @@ describe('CommandPalette', () => {
     it('items beyond the limit are still searchable', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Alpha 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Alpha 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Beta 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Beta 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Alpha 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Alpha 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Beta 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Beta 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1728,12 +1794,12 @@ describe('CommandPalette', () => {
     it('limit is applied after search — only top matches up to the limit are shown', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1755,14 +1821,26 @@ describe('CommandPalette', () => {
       // flat items in search results with no limit applied.
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'DSN'}}>
-            <CMDKAction display={{label: 'Project Keys'}} limit={2}>
-              <CMDKAction display={{label: 'Project Alpha'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Beta'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Gamma'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Delta'}} onAction={jest.fn()} />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'DSN'}}>
+            <CMDKAction.Group display={{label: 'Project Keys'}} limit={2}>
+              <CMDKAction.Callback
+                display={{label: 'Project Alpha'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Beta'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Gamma'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Delta'}}
+                onAction={jest.fn()}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1798,7 +1876,7 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             limit={2}
             resource={() =>
@@ -1811,7 +1889,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -1819,7 +1897,7 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
@@ -1839,7 +1917,7 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             limit={2}
             resource={() =>
@@ -1852,7 +1930,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -1860,7 +1938,7 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
@@ -1875,12 +1953,12 @@ describe('CommandPalette', () => {
     it('clicking see more drills into the full limited group in browse mode', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1894,12 +1972,12 @@ describe('CommandPalette', () => {
     it('clicking see more drills into the full limited group in search mode', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1917,12 +1995,12 @@ describe('CommandPalette', () => {
     it('clicking see more preserves the active query in the expanded group', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1942,15 +2020,15 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: 'Static Group'}}
             limit={2}
             onAction={parentCallback}
           >
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-          </CMDKAction>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction.Callback>
         </GlobalActionsComponent>
       );
 
@@ -1963,11 +2041,11 @@ describe('CommandPalette', () => {
     it('clicking see more does not inherit the parent link indicator', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2} to="/group/">
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Link display={{label: 'Static Group'}} limit={2} to="/group/">
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction.Link>
         </GlobalActionsComponent>
       );
 
@@ -1980,12 +2058,24 @@ describe('CommandPalette', () => {
     it('keeps expanded search results sorted by match quality after clicking see more', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'SDKs'}} limit={2}>
-            <CMDKAction display={{label: 'gkojavascript-nextjs'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'gkojavascript-astro'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'java-spring-boot'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'java-spring-boot-test'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'SDKs'}} limit={2}>
+            <CMDKAction.Callback
+              display={{label: 'gkojavascript-nextjs'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'gkojavascript-astro'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'java-spring-boot'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'java-spring-boot-test'}}
+              onAction={jest.fn()}
+            />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -2020,11 +2110,11 @@ describe('CommandPalette', () => {
     it('breaks equal search scores by shorter label length', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Paths'}} limit={2}>
-            <CMDKAction display={{label: 'path-cccccc'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'path-aaa'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'path-b'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Paths'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'path-cccccc'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'path-aaa'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'path-b'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -2051,8 +2141,8 @@ describe('CommandPalette', () => {
       render(
         <QueryClientProvider client={queryClient}>
           <GlobalActionsComponent>
-            <CMDKAction display={{label: 'Resource Group'}}>
-              <CMDKAction
+            <CMDKAction.Group display={{label: 'Resource Group'}}>
+              <CMDKAction.Resource
                 display={{label: 'Lazy Resource'}}
                 prompt="Enter a value..."
                 resource={(_query, {state}) =>
@@ -2063,7 +2153,7 @@ describe('CommandPalette', () => {
                   })
                 }
               />
-            </CMDKAction>
+            </CMDKAction.Group>
           </GlobalActionsComponent>
         </QueryClientProvider>
       );
@@ -2083,7 +2173,7 @@ describe('CommandPalette', () => {
       render(
         <QueryClientProvider client={queryClient}>
           <GlobalActionsComponent>
-            <CMDKAction
+            <CMDKAction.Resource
               display={{label: 'Project'}}
               prompt="Search for operator"
               resource={(_query, {state}) =>
@@ -2095,7 +2185,7 @@ describe('CommandPalette', () => {
               }
             >
               {() => (
-                <CMDKAction
+                <CMDKAction.Resource
                   display={{label: 'is'}}
                   prompt="Search for value"
                   resource={(_query, {state}) =>
@@ -2112,15 +2202,17 @@ describe('CommandPalette', () => {
                   }
                 >
                   {values => (
-                    <CMDKAction display={{label: 'Value'}}>
+                    <CMDKAction.Group display={{label: 'Value'}}>
                       {values.map((value, index) =>
-                        'onAction' in value ? <CMDKAction key={index} {...value} /> : null
+                        'onAction' in value ? (
+                          <CMDKAction.Callback key={index} {...value} />
+                        ) : null
                       )}
-                    </CMDKAction>
+                    </CMDKAction.Group>
                   )}
-                </CMDKAction>
+                </CMDKAction.Resource>
               )}
-            </CMDKAction>
+            </CMDKAction.Resource>
           </GlobalActionsComponent>
         </QueryClientProvider>
       );
@@ -2139,18 +2231,20 @@ describe('CommandPalette', () => {
 
       function ExpensiveChildren() {
         renderChildren();
-        return <CMDKAction display={{label: 'span.duration'}} onAction={() => {}} />;
+        return (
+          <CMDKAction.Callback display={{label: 'span.duration'}} onAction={() => {}} />
+        );
       }
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
-            deferChildren
+          <CMDKAction.Group
+            mount="on-open"
             display={{label: 'Source'}}
             prompt="Search for sources"
           >
             <ExpensiveChildren />
-          </CMDKAction>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -2167,8 +2261,8 @@ describe('CommandPalette', () => {
 
     function PromptAction() {
       return (
-        <CMDKAction display={{label: 'DSN Tools'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'DSN Tools'}}>
+          <CMDKAction.Resource
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
             resource={() =>
@@ -2179,14 +2273,17 @@ describe('CommandPalette', () => {
               })
             }
           />
-        </CMDKAction>
+        </CMDKAction.Group>
       );
     }
 
     it('a top-level prompt action is not filtered out in browse mode', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
+          <CMDKAction.Group
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+          />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2198,11 +2295,14 @@ describe('CommandPalette', () => {
     it('a prompt action appearing as a direct top-level child after drilling into its parent group is visible', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Outer'}}>
-            <CMDKAction display={{label: 'Inner Group'}}>
-              <CMDKAction display={{label: 'Prompt Child'}} prompt="Enter value..." />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Outer'}}>
+            <CMDKAction.Group display={{label: 'Inner Group'}}>
+              <CMDKAction.Group
+                display={{label: 'Prompt Child'}}
+                prompt="Enter value..."
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -2294,22 +2394,22 @@ describe('CommandPalette', () => {
       function ProgressiveGroup({loaded}: {loaded: boolean}) {
         return (
           <GlobalActionsComponent>
-            <CMDKAction id="progressive-section" display={{label: 'Section'}}>
-              <CMDKAction id="progressive-group" display={{label: 'Group by'}}>
+            <CMDKAction.Group id="progressive-section" display={{label: 'Section'}}>
+              <CMDKAction.Group id="progressive-group" display={{label: 'Group by'}}>
                 {loaded && (
-                  <CMDKAction
+                  <CMDKAction.Callback
                     id="progressive-first"
                     display={{label: 'First Attribute'}}
                     onAction={() => {}}
                   />
                 )}
-                <CMDKAction
+                <CMDKAction.Callback
                   id="progressive-current"
                   display={{label: 'Current Attribute'}}
                   onAction={() => {}}
                 />
-              </CMDKAction>
-            </CMDKAction>
+              </CMDKAction.Group>
+            </CMDKAction.Group>
           </GlobalActionsComponent>
         );
       }
@@ -2431,14 +2531,17 @@ describe('CommandPalette', () => {
     it('restores the previously focused root action after navigating back', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Section'}}>
-            <CMDKAction display={{label: 'First Group'}}>
-              <CMDKAction display={{label: 'First Child'}} onAction={() => {}} />
-            </CMDKAction>
-            <CMDKAction display={{label: 'Second Group'}}>
-              <CMDKAction display={{label: 'Second Child'}} onAction={() => {}} />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'First Group'}}>
+              <CMDKAction.Callback display={{label: 'First Child'}} onAction={() => {}} />
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Second Group'}}>
+              <CMDKAction.Callback
+                display={{label: 'Second Child'}}
+                onAction={() => {}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -2462,12 +2565,15 @@ describe('CommandPalette', () => {
     function ToggleablePalette({showPalette}: {showPalette: boolean}) {
       return (
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Section'}}>
-            <CMDKAction display={{label: 'Drillable Group'}}>
-              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'Drillable Group'}}>
+              <CMDKAction.Callback
+                onAction={jest.fn()}
+                display={{label: 'Child Action'}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/root/" display={{label: 'Root Action'}} />
           {showPalette && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </CommandPaletteProvider>
       );
@@ -2540,12 +2646,15 @@ describe('CommandPalette', () => {
       const state = useCommandPaletteState();
       return (
         <Fragment>
-          <CMDKAction display={{label: 'Section'}}>
-            <CMDKAction display={{label: 'Drillable Group'}}>
-              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'Drillable Group'}}>
+              <CMDKAction.Callback
+                onAction={jest.fn()}
+                display={{label: 'Child Action'}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/root/" display={{label: 'Root Action'}} />
           {state.open && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </Fragment>
       );
@@ -2620,24 +2729,33 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Traces'}}>
-              <CMDKAction display={{label: 'Commands'}}>
-                <CMDKAction display={{label: 'Apply Changes'}} onAction={jest.fn()} />
-                <CMDKAction display={{label: 'Add Series'}} onAction={jest.fn()} />
-                <CMDKAction display={{label: 'Add Equation'}} onAction={jest.fn()} />
-              </CMDKAction>
-              <CMDKAction display={{label: 'Query'}}>
-                <CMDKAction display={{label: 'Group by'}} onAction={jest.fn()} />
-                <CMDKAction display={{label: 'Sort by'}} onAction={jest.fn()} />
-              </CMDKAction>
-              <CMDKAction display={{label: 'Series A'}}>
-                <CMDKAction display={{label: 'Source'}} onAction={jest.fn()} />
-                <CMDKAction
+            <CMDKAction.Group display={{label: 'Traces'}}>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback
+                  display={{label: 'Apply Changes'}}
+                  onAction={jest.fn()}
+                />
+                <CMDKAction.Callback
+                  display={{label: 'Add Series'}}
+                  onAction={jest.fn()}
+                />
+                <CMDKAction.Callback
+                  display={{label: 'Add Equation'}}
+                  onAction={jest.fn()}
+                />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
+                <CMDKAction.Callback display={{label: 'Group by'}} onAction={jest.fn()} />
+                <CMDKAction.Callback display={{label: 'Sort by'}} onAction={jest.fn()} />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Series A'}}>
+                <CMDKAction.Callback display={{label: 'Source'}} onAction={jest.fn()} />
+                <CMDKAction.Callback
                   display={{label: 'Aggregate function'}}
                   onAction={jest.fn()}
                 />
-              </CMDKAction>
-            </CMDKAction>
+              </CMDKAction.Group>
+            </CMDKAction.Group>
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2671,7 +2789,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2689,7 +2807,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
+            <CMDKAction.Callback display={{label: 'Task Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2704,7 +2822,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2722,7 +2840,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2737,10 +2855,13 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
           </CommandPaletteSlot>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2761,9 +2882,12 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Current Page'}}>
-              <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-            </CMDKAction>
+            <CMDKAction.Group display={{label: 'Current Page'}}>
+              <CMDKAction.Callback
+                display={{label: 'Page Action'}}
+                onAction={jest.fn()}
+              />
+            </CMDKAction.Group>
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2782,10 +2906,13 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
           </CommandPaletteSlot>
           <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2807,7 +2934,10 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
           </CommandPaletteSlot>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
@@ -2826,8 +2956,8 @@ describe('CommandPalette', () => {
       function ActionsViaGlobalSlot() {
         return (
           <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Action A'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Action B'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Action A'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Action B'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
         );
       }
@@ -2851,8 +2981,8 @@ describe('CommandPalette', () => {
     it('a group with no children is omitted from the list', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Empty Group'}} />
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          <CMDKAction.Group display={{label: 'Empty Group'}} />
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2866,7 +2996,7 @@ describe('CommandPalette', () => {
     it('direct CMDKAction registrations outside slots are not duplicated', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Direct Action'}} onAction={jest.fn()} />
+          <CMDKAction.Callback display={{label: 'Direct Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2888,14 +3018,17 @@ describe('CommandPalette', () => {
     it('is omitted from browse mode at the top level', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Resource
+            display={{label: 'Async Resource'}}
+            resource={emptyResource}
+          >
             {data =>
               data.map((_, i) => (
-                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
               ))
             }
-          </CMDKAction>
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          </CMDKAction.Resource>
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2909,16 +3042,19 @@ describe('CommandPalette', () => {
     it('is omitted from browse mode when nested inside a group', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Group'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'Group'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-            <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          </CMDKAction>
+            </CMDKAction.Resource>
+            <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2935,16 +3071,19 @@ describe('CommandPalette', () => {
       // skipped, an orphaned, non-selectable section header was left in the list.
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'All Empty Group'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'All Empty Group'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+            </CMDKAction.Resource>
+          </CMDKAction.Group>
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2959,16 +3098,19 @@ describe('CommandPalette', () => {
     it('is omitted from search mode when nested inside a group whose label matches the query', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Navigate'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'Navigate'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+            </CMDKAction.Resource>
+          </CMDKAction.Group>
+          <CMDKAction.Callback display={{label: 'Other'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -2990,14 +3132,17 @@ describe('CommandPalette', () => {
     it('is omitted from search mode even when the label matches the query', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Resource
+            display={{label: 'Async Resource'}}
+            resource={emptyResource}
+          >
             {data =>
               data.map((_, i) => (
-                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
               ))
             }
-          </CMDKAction>
-          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+          </CMDKAction.Resource>
+          <CMDKAction.Callback display={{label: 'Other'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );

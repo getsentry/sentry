@@ -80,7 +80,7 @@ function AssignActionItems({
   return (
     <Fragment>
       {user && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{
             label: t('Assign to me'),
             icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
@@ -95,7 +95,7 @@ function AssignActionItems({
           }
         />
       )}
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Unassign'), icon: <IconUser />}}
         keywords={['unassign', 'clear', 'remove assignee', 'nobody']}
         onAction={() =>
@@ -107,7 +107,7 @@ function AssignActionItems({
         }
       />
       {sortedTeams.map(team => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={`team-${team.id}`}
           display={{
             label: `#${team.slug}`,
@@ -123,7 +123,7 @@ function AssignActionItems({
         />
       ))}
       {assignableMembers.map(m => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={`member-${m.user.id}`}
           display={{
             label: m.user.name || m.user.email,
@@ -163,7 +163,7 @@ function AssignActions({
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{label, icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
@@ -172,7 +172,7 @@ function AssignActions({
         onBulkUpdate={onBulkUpdate}
         onConfirmBulkUpdate={onConfirmBulkUpdate}
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -182,11 +182,11 @@ function PriorityActions({
   onConfirmUpdate: (actionLabel: string, data: IssueUpdateData) => void;
 }) {
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{label: t('Set Priority'), icon: <IconCellSignal bars={2} />}}
       keywords={['priority', 'urgency', 'critical', 'high', 'medium', 'low']}
     >
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to high'), {
@@ -194,7 +194,7 @@ function PriorityActions({
           })
         }
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to medium'), {
@@ -202,7 +202,7 @@ function PriorityActions({
           })
         }
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to low'), {
@@ -210,7 +210,7 @@ function PriorityActions({
           })
         }
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -304,7 +304,11 @@ function useIssueListBulkCommandPaletteActions({
       }
       return t('All %s Issues Matching Search', queryCount);
     }
-    return `${tn('%s Selected Issue', '%s Selected Issues', numIssues)} (${selectedIssueIds})`;
+    return `${tn(
+      '%s Selected Issue',
+      '%s Selected Issues',
+      numIssues
+    )} (${selectedIssueIds})`;
   }, [allInQuerySelected, queryCount, numIssues, selectedIssueIds]);
 
   function confirmBulkAction(
@@ -365,14 +369,14 @@ export function IssueListMarkAllCommandPaletteAction(
     handleBulkUpdate(data, true);
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{
         label: t('Mark all issues as'),
         icon: <IconIssues />,
       }}
       keywords={['issues', 'all issues', 'bulk', 'resolve', 'archive', 'assign']}
     >
-      <CMDKAction
+      <CMDKAction.Group
         display={{label: t('Assigned to'), icon: <IconUser />}}
         keywords={['assign', 'owner', 'assignee']}
         prompt={t('Search assignees...')}
@@ -383,8 +387,8 @@ export function IssueListMarkAllCommandPaletteAction(
             confirmBulkAction(actionLabel, onConfirm, 'allInQuery')
           }
         />
-      </CMDKAction>
-      <CMDKAction
+      </CMDKAction.Group>
+      <CMDKAction.Callback
         display={{label: t('Resolved'), icon: <IconCheckmark />}}
         keywords={['resolve', 'fix', 'done', 'close']}
         onAction={() =>
@@ -400,7 +404,7 @@ export function IssueListMarkAllCommandPaletteAction(
           )
         }
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Archived'), icon: <IconClock />}}
         keywords={['archive', 'ignore', 'snooze', 'mute']}
         onAction={() =>
@@ -416,7 +420,7 @@ export function IssueListMarkAllCommandPaletteAction(
           )
         }
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -439,14 +443,14 @@ export function IssueListBulkCommandPaletteActions(
 
   return (
     <CommandPaletteSlot name="task">
-      <CMDKAction
+      <CMDKAction.Group
         display={{
           label,
           icon: <IconIssues />,
         }}
       >
         {canResolve && (
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('Resolve'), icon: <IconCheckmark />}}
             keywords={['resolve', 'fix', 'done', 'close']}
             onAction={() =>
@@ -461,7 +465,7 @@ export function IssueListBulkCommandPaletteActions(
           />
         )}
         {canArchive && (
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('Archive'), icon: <IconClock />}}
             keywords={['archive', 'ignore', 'snooze', 'mute']}
             onAction={() =>
@@ -484,7 +488,7 @@ export function IssueListBulkCommandPaletteActions(
           onBulkUpdate={handleBulkUpdate}
           onConfirmBulkUpdate={confirmBulkAction}
         />
-      </CMDKAction>
+      </CMDKAction.Group>
     </CommandPaletteSlot>
   );
 }

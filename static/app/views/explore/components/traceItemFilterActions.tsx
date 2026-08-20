@@ -207,8 +207,8 @@ interface TraceItemFilterActionsProps {
   actionPanel?: {
     context: string;
     label: string;
-    only?: boolean;
     order?: number;
+    placement?: 'palette-and-panel' | 'panel-only';
   };
   currentFilter?: SearchFilter;
   displayLabel?: string;
@@ -299,7 +299,7 @@ function TraceItemFilterActionsComponent({
     const operators = FILTER_OPERATORS[type];
 
     return (
-      <CMDKAction display={{label: t('Operator')}}>
+      <CMDKAction.Group display={{label: t('Operator')}}>
         {operators.map(operator => {
           const display = {
             label: OP_LABELS[operator],
@@ -311,23 +311,26 @@ function TraceItemFilterActionsComponent({
 
           if (type === 'boolean') {
             return (
-              <CMDKAction
+              <CMDKAction.Group
                 key={operator || 'is'}
                 display={display}
                 prompt={t('Search for value')}
               >
-                <CMDKAction display={{label: t('Value')}}>
+                <CMDKAction.Group display={{label: t('Value')}}>
                   {BOOLEAN_FILTER_VALUES.map(value => (
-                    <CMDKAction key={value} {...makeValueAction(tag, operator, value)} />
+                    <CMDKAction.Callback
+                      key={value}
+                      {...makeValueAction(tag, operator, value)}
+                    />
                   ))}
-                </CMDKAction>
-              </CMDKAction>
+                </CMDKAction.Group>
+              </CMDKAction.Group>
             );
           }
 
           if (type === 'number') {
             return (
-              <CMDKAction
+              <CMDKAction.Resource
                 key={operator || 'is'}
                 display={display}
                 prompt={t('Search for value')}
@@ -337,7 +340,7 @@ function TraceItemFilterActionsComponent({
           }
 
           return (
-            <CMDKAction
+            <CMDKAction.Resource
               key={operator || 'is'}
               display={display}
               prompt={t('Search for value')}
@@ -346,7 +349,7 @@ function TraceItemFilterActionsComponent({
           );
         })}
         {type !== 'boolean' && (
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('has')}}
             onAction={() =>
               addSearchFilter({
@@ -357,13 +360,13 @@ function TraceItemFilterActionsComponent({
             }
           />
         )}
-      </CMDKAction>
+      </CMDKAction.Group>
     );
   };
 
   const renderAttribute = (tag: Tag, type: 'boolean' | 'number' | 'string') => {
     return (
-      <CMDKAction
+      <CMDKAction.Group
         key={`${type}-${tag.key}`}
         display={{
           label: tag.name ?? tag.key,
@@ -377,19 +380,19 @@ function TraceItemFilterActionsComponent({
         prompt={t('Search for operator')}
       >
         {renderOperatorActions(tag, type)}
-      </CMDKAction>
+      </CMDKAction.Group>
     );
   };
 
   const attributeLessActions = (
-    <CMDKAction
-      autoFocusFirst
+    <CMDKAction.Group
+      initialFocus="first-action"
       display={{label: t('None')}}
       keywords={['none', 'has']}
       prompt={t('Search for operator')}
     >
-      <CMDKAction display={{label: t('Operator')}}>
-        <CMDKAction
+      <CMDKAction.Group display={{label: t('Operator')}}>
+        <CMDKAction.Resource
           display={{label: t('has')}}
           prompt={t('Enter filter value')}
           resource={(query, context) =>
@@ -436,8 +439,8 @@ function TraceItemFilterActionsComponent({
             })
           }
         />
-      </CMDKAction>
-    </CMDKAction>
+      </CMDKAction.Group>
+    </CMDKAction.Group>
   );
 
   const initialStringAttribute = initialAttributeKey
@@ -452,7 +455,7 @@ function TraceItemFilterActionsComponent({
 
   if (initialOperator !== undefined && initialStringAttribute) {
     return (
-      <CMDKAction
+      <CMDKAction.Resource
         id={id}
         actionPanel={actionPanel}
         actionContext="filter"
@@ -466,7 +469,7 @@ function TraceItemFilterActionsComponent({
 
   if (initialOperator !== undefined && initialNumberAttribute) {
     return (
-      <CMDKAction
+      <CMDKAction.Resource
         id={id}
         actionPanel={actionPanel}
         actionContext="filter"
@@ -480,29 +483,29 @@ function TraceItemFilterActionsComponent({
 
   if (initialOperator !== undefined && initialBooleanAttribute) {
     return (
-      <CMDKAction
+      <CMDKAction.Group
         id={id}
         actionPanel={actionPanel}
         actionContext="filter"
         display={{label: displayLabel ?? t('Change Filter Value')}}
         keywords={['change', 'filter', 'value']}
       >
-        <CMDKAction display={{label: t('Value')}}>
+        <CMDKAction.Group display={{label: t('Value')}}>
           {BOOLEAN_FILTER_VALUES.map(value => (
-            <CMDKAction
+            <CMDKAction.Group
               key={value}
               {...makeValueAction(initialBooleanAttribute, initialOperator, value)}
             />
           ))}
-        </CMDKAction>
-      </CMDKAction>
+        </CMDKAction.Group>
+      </CMDKAction.Group>
     );
   }
 
   return (
-    <CMDKAction
-      autoFocusFirst={!initialAttributeKey}
-      deferChildren
+    <CMDKAction.Group
+      initialFocus={initialAttributeKey ? 'search' : 'first-action'}
+      mount="on-open"
       id={id}
       actionPanel={actionPanel}
       actionContext="filter"
@@ -517,14 +520,14 @@ function TraceItemFilterActionsComponent({
       ) : initialBooleanAttribute ? (
         renderOperatorActions(initialBooleanAttribute, 'boolean')
       ) : (
-        <CMDKAction display={{label: t('Attribute')}}>
+        <CMDKAction.Group display={{label: t('Attribute')}}>
           {attributeLessActions}
           {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
           {sortedNumberAttributes.map(tag => renderAttribute(tag, 'number'))}
           {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
-        </CMDKAction>
+        </CMDKAction.Group>
       )}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -553,7 +556,7 @@ function TraceItemFilterRowsComponent({
 
     return (
       <Fragment key={rowId}>
-        <CMDKAction
+        <CMDKAction.Target
           id={rowId}
           actionContext={`filter:${index}`}
           display={{
@@ -562,29 +565,29 @@ function TraceItemFilterRowsComponent({
           }}
           keywords={['search', 'filter', 'narrow', 'where', 'show', filter]}
           order={orderStart + index}
-          targetAction={
+          target={
             typeof targetAction === 'function'
               ? targetAction(filter, index)
               : targetAction
           }
         />
         {filter && onClearFilter && (
-          <CMDKAction
+          <CMDKAction.Callback
             actionPanel={{
               context: `filter:${index}`,
               label: t('Clear Filter'),
-              only: true,
+              placement: 'panel-only',
             }}
             display={{label: t('Clear Filter')}}
             onAction={() => onClearFilter(index)}
           />
         )}
         {rows.length > 1 && onDeleteFilter && (
-          <CMDKAction
+          <CMDKAction.Callback
             actionPanel={{
               context: `filter:${index}`,
               label: t('Delete Filter'),
-              only: true,
+              placement: 'panel-only',
             }}
             display={{label: t('Delete Filter')}}
             onAction={() => onDeleteFilter(index)}

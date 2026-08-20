@@ -89,7 +89,7 @@ describe('CommandPaletteModal', () => {
     render(
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
-          <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
+          <CMDKAction.Callback display={{label: 'Leaf Action'}} onAction={onActionSpy} />
         </CommandPaletteSlot>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
@@ -113,7 +113,7 @@ describe('CommandPaletteModal', () => {
     render(
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
-          <CMDKAction
+          <CMDKAction.Callback
             disabled
             display={{label: 'Delete Series'}}
             onAction={disabledActionSpy}
@@ -138,8 +138,8 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <CMDKAction display={{label: 'DSN Tools'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'DSN Tools'}}>
+          <CMDKAction.Resource
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
             resource={() =>
@@ -150,7 +150,7 @@ describe('CommandPaletteModal', () => {
               })
             }
           />
-        </CMDKAction>
+        </CMDKAction.Group>
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );
@@ -173,12 +173,18 @@ describe('CommandPaletteModal', () => {
     render(
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
-          <CMDKAction display={{label: 'Outer Group'}}>
+          <CMDKAction.Group display={{label: 'Outer Group'}}>
             <CMDKChainedActionScope>
-              <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy} />
-              <CMDKAction display={{label: 'Child Action'}} onAction={jest.fn()} />
+              <CMDKAction.Callback
+                display={{label: 'Parent Action'}}
+                onAction={onActionSpy}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Child Action'}}
+                onAction={jest.fn()}
+              />
             </CMDKChainedActionScope>
-          </CMDKAction>
+          </CMDKAction.Group>
         </CommandPaletteSlot>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
@@ -201,7 +207,10 @@ describe('CommandPaletteModal', () => {
     render(
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
-          <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
+          <CMDKAction.Link
+            to="https://docs.sentry.io"
+            display={{label: 'External Link'}}
+          />
         </CommandPaletteSlot>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
@@ -226,7 +235,7 @@ describe('CommandPaletteModal', () => {
     render(
       <CommandPaletteProvider>
         <CommandPaletteSlot name="task">
-          <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
+          <CMDKAction.Link to="/target/" display={{label: 'Internal Link'}} />
         </CommandPaletteSlot>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />

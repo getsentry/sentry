@@ -45,33 +45,33 @@ function YourComponent() {
   return (
     <CommandPaletteProvider>
       {/* Navigation action */}
-      <CMDKAction display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
+      <CMDKAction.Link display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
 
       {/* Callback action */}
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: 'Execute an action'}}
         onAction={() => addSuccessMessage('Action executed')}
       />
 
       {/* Grouped actions */}
-      <CMDKAction display={{label: 'Parent action'}}>
-        <CMDKAction
+      <CMDKAction.Group display={{label: 'Parent action'}}>
+        <CMDKAction.Callback
           display={{label: 'Child action'}}
           onAction={() => addSuccessMessage('Child action executed')}
         />
-      </CMDKAction>
+      </CMDKAction.Group>
 
       {/* Inline actions — register them directly inside the provider */}
-      <CMDKAction display={{label: 'Issues List'}}>
-        <CMDKAction
+      <CMDKAction.Group display={{label: 'Issues List'}}>
+        <CMDKAction.Callback
           display={{label: 'Select all'}}
           onAction={() => addSuccessMessage('Select all')}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: 'Deselect all'}}
           onAction={() => addSuccessMessage('Deselect all')}
         />
-      </CMDKAction>
+      </CMDKAction.Group>
 
       {/* The command palette UI */}
       <CommandPalette />
@@ -87,7 +87,7 @@ function YourComponent() {
 ```tsx
 import type {CommandPaletteAsyncResult} from 'sentry/components/commandPalette/types';
 
-<CMDKAction
+<CMDKAction.Resource
   display={{label: 'Projects'}}
   resource={query => ({
     queryKey: ['/projects/', {query}],
@@ -102,8 +102,8 @@ import type {CommandPaletteAsyncResult} from 'sentry/components/commandPalette/t
 >
   {(results: CommandPaletteAsyncResult[]) =>
     results.map(r => (
-      <CMDKAction key={'label' in r.display ? r.display.label : ''} {...r} />
+      <CMDKAction.Group key={'label' in r.display ? r.display.label : ''} {...r} />
     ))
   }
-</CMDKAction>;
+</CMDKAction.Resource>;
 ```

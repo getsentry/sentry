@@ -249,9 +249,9 @@ function SaveAsActionsComponent({
   const canAddToDashboard = organization.features.includes('dashboards-edit');
 
   return (
-    <CMDKAction display={{label: t('Save as')}}>
+    <CMDKAction.Group display={{label: t('Save as')}}>
       <CMDKTerminalActionScope>
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('New Query')}}
           onAction={() => {
             trackAnalytics('trace_explorer.save_query_modal', {
@@ -270,7 +270,7 @@ function SaveAsActionsComponent({
         />
       </CMDKTerminalActionScope>
       {canCreateMonitors && visualizeYAxes.length > 0 && (
-        <CMDKAction
+        <CMDKAction.Group
           display={{label: t('Monitor for')}}
           prompt={t('Select a series to monitor')}
         >
@@ -279,7 +279,7 @@ function SaveAsActionsComponent({
             const label = parsedFunction ? prettifyParsedFunction(parsedFunction) : yAxis;
 
             return (
-              <CMDKAction
+              <CMDKAction.Link
                 key={`${yAxis}-${index}`}
                 display={{label}}
                 to={getAlertsUrl({
@@ -291,7 +291,7 @@ function SaveAsActionsComponent({
                   dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
                   interval,
                 })}
-                onAction={() => {
+                onNavigate={() => {
                   trackAnalytics('trace_explorer.save_as', {
                     save_type: 'alert',
                     ui_source: 'toolbar',
@@ -301,12 +301,12 @@ function SaveAsActionsComponent({
               />
             );
           })}
-        </CMDKAction>
+        </CMDKAction.Group>
       )}
       {canAddToDashboard && visualizeYAxes.length > 0 && (
         <CMDKTerminalActionScope>
           {visualizeYAxes.length === 1 ? (
-            <CMDKAction
+            <CMDKAction.Callback
               display={{label: t('Dashboard widget')}}
               onAction={() => {
                 trackAnalytics('trace_explorer.save_as', {
@@ -318,14 +318,14 @@ function SaveAsActionsComponent({
               }}
             />
           ) : (
-            <CMDKAction
+            <CMDKAction.Group
               display={{label: t('Dashboard widget')}}
               prompt={t('Select a series for the dashboard widget')}
             >
               {visualizeYAxes.map((yAxis, index) => {
                 const parsedFunction = parseFunction(yAxis);
                 return (
-                  <CMDKAction
+                  <CMDKAction.Callback
                     key={`${yAxis}-${index}`}
                     display={{
                       label: parsedFunction
@@ -343,11 +343,11 @@ function SaveAsActionsComponent({
                   />
                 );
               })}
-            </CMDKAction>
+            </CMDKAction.Group>
           )}
         </CMDKTerminalActionScope>
       )}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -581,11 +581,11 @@ function SpansScopeActions({
   };
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{label: t('Global')}}
       keywords={['global', 'scope', 'selectors', 'project', 'environment', 'time']}
     >
-      <CMDKAction
+      <CMDKAction.Group
         actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
         display={{
           label: t('Projects'),
@@ -614,12 +614,12 @@ function SpansScopeActions({
         prompt={t('Search for projects')}
       >
         <CMDKChainedActionScope>
-          <CMDKAction
+          <CMDKAction.Callback
             actionPanel={{
               context: 'project-selection',
               label: t('Reset Projects'),
-              only: true,
-              preserveView: true,
+              placement: 'panel-only',
+              execution: 'preserve-view',
             }}
             display={{
               label: t('Reset Projects'),
@@ -636,7 +636,7 @@ function SpansScopeActions({
             }
           />
         </CMDKChainedActionScope>
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
           display={{
             label: t('My Projects'),
@@ -649,7 +649,7 @@ function SpansScopeActions({
           isSelected={selectedProjects.length === 0}
           onAction={() => setProjects([])}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
           display={{
             label: t('All Projects'),
@@ -669,7 +669,7 @@ function SpansScopeActions({
             projectId
           );
           return (
-            <CMDKAction
+            <CMDKAction.Callback
               key={project.id}
               actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
               disabled={toggledProjects === undefined}
@@ -695,9 +695,9 @@ function SpansScopeActions({
             />
           );
         })}
-      </CMDKAction>
+      </CMDKAction.Group>
 
-      <CMDKAction
+      <CMDKAction.Group
         actionContext={shouldShowEnvironmentReset ? 'environment-selection' : undefined}
         display={{
           label: t('Environments'),
@@ -710,12 +710,12 @@ function SpansScopeActions({
         prompt={t('Search for environments')}
       >
         <CMDKChainedActionScope>
-          <CMDKAction
+          <CMDKAction.Callback
             actionPanel={{
               context: 'environment-selection',
               label: t('Reset Environments'),
-              only: true,
-              preserveView: true,
+              placement: 'panel-only',
+              execution: 'preserve-view',
             }}
             display={{
               label: t('Reset Environments'),
@@ -729,7 +729,7 @@ function SpansScopeActions({
             }
           />
         </CMDKChainedActionScope>
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext={shouldShowEnvironmentReset ? 'environment-selection' : undefined}
           display={{
             label: t('All Environments'),
@@ -762,7 +762,7 @@ function SpansScopeActions({
           };
 
           return (
-            <CMDKAction
+            <CMDKAction.Callback
               key={environment}
               actionContext={
                 shouldShowEnvironmentReset ? 'environment-selection' : undefined
@@ -781,9 +781,9 @@ function SpansScopeActions({
             />
           );
         })}
-      </CMDKAction>
+      </CMDKAction.Group>
 
-      <CMDKAction
+      <CMDKAction.Group
         actionContext={shouldShowTimeRangeReset ? 'time-range-selection' : undefined}
         display={{
           label: t('Time range'),
@@ -794,12 +794,12 @@ function SpansScopeActions({
         prompt={t('Select a time range')}
       >
         <CMDKChainedActionScope>
-          <CMDKAction
+          <CMDKAction.Callback
             actionPanel={{
               context: 'time-range-selection',
               label: t('Reset Time range'),
-              only: true,
-              preserveView: true,
+              placement: 'panel-only',
+              execution: 'preserve-view',
             }}
             display={{label: t('Reset Time range'), icon: <IconRefresh />}}
             onAction={() => {
@@ -816,7 +816,7 @@ function SpansScopeActions({
             const isSelected = draftPageFilters.datetime.period === option.period;
 
             return (
-              <CMDKAction
+              <CMDKAction.Callback
                 key={option.period}
                 actionContext={
                   shouldShowTimeRangeReset ? 'time-range-selection' : undefined
@@ -848,8 +848,8 @@ function SpansScopeActions({
             );
           }
         )}
-      </CMDKAction>
-    </CMDKAction>
+      </CMDKAction.Group>
+    </CMDKAction.Group>
   );
 }
 
@@ -862,8 +862,8 @@ function SpansFilterActionsComponent({
   actionPanel: {
     context: string;
     label: string;
-    only: boolean;
     order: number;
+    placement: 'panel-only';
   };
   addSearchFilter: (filter: SearchFilter) => void;
   filters: readonly string[];
@@ -902,7 +902,7 @@ function SpansFilterActionsComponent({
               actionPanel={{
                 context: actionContext,
                 label: t('Change Filter Attribute'),
-                only: true,
+                placement: 'panel-only',
               }}
               addSearchFilter={onChange}
               booleanAttributes={booleanAttributes}
@@ -926,7 +926,7 @@ function SpansFilterActionsComponent({
                 actionPanel={{
                   context: actionContext,
                   label: t('Change Filter Operator'),
-                  only: true,
+                  placement: 'panel-only',
                 }}
                 addSearchFilter={onChange}
                 booleanAttributes={booleanAttributes}
@@ -943,7 +943,7 @@ function SpansFilterActionsComponent({
                 actionPanel={{
                   context: actionContext,
                   label: t('Change Filter Value'),
-                  only: true,
+                  placement: 'panel-only',
                 }}
                 addSearchFilter={onChange}
                 booleanAttributes={booleanAttributes}
@@ -987,13 +987,13 @@ function SeriesActionsComponent({
 
     return (
       <Fragment>
-        <CMDKAction
+        <CMDKAction.TextInput
           id={`${seriesId}-equation`}
           display={{
             label: t('Edit Equation'),
             trailingItem: <QueryValue value={expression} />,
           }}
-          textInput={{
+          input={{
             ariaLabel: t('Edit Equation'),
             initialValue: expression,
             onSubmit: value =>
@@ -1004,11 +1004,11 @@ function SeriesActionsComponent({
             footer: <EquationFooter index={index} visualizes={visualizes} />,
           }}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           actionPanel={{
             context: `chart:${chartId}`,
             label: t('Reset Equation'),
-            only: true,
+            placement: 'panel-only',
           }}
           display={{label: t('Reset Equation')}}
           onAction={() =>
@@ -1025,21 +1025,21 @@ function SeriesActionsComponent({
 
   return (
     <Fragment>
-      <CMDKAction
+      <CMDKAction.Callback
         actionPanel={{
           context: `chart:${chartId}`,
           label: t('Reset Chart'),
-          only: true,
+          placement: 'panel-only',
         }}
         display={{label: t('Reset Chart')}}
         onAction={() =>
           updateVisualize(chartId, new VisualizeFunction(DEFAULT_VISUALIZATION))
         }
       />
-      <CMDKAction
+      <CMDKAction.Group
         id={`${seriesId}-source`}
         actionContext={`chart:${chartId}`}
-        deferChildren
+        mount="on-open"
         display={{
           label: t('Source'),
           trailingItem: <QueryValue value={sourceSummary} />,
@@ -1050,8 +1050,8 @@ function SeriesActionsComponent({
           visualize={visualize}
           onChange={nextVisualize => updateVisualize(chartId, nextVisualize)}
         />
-      </CMDKAction>
-      <CMDKAction
+      </CMDKAction.Group>
+      <CMDKAction.Group
         id={`${seriesId}-aggregate`}
         actionContext={`chart:${chartId}`}
         display={{
@@ -1062,7 +1062,7 @@ function SeriesActionsComponent({
       >
         {isVisualizeFunction(visualize) &&
           ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => (
-            <CMDKAction
+            <CMDKAction.Callback
               key={aggregate}
               display={{
                 label: aggregate,
@@ -1090,7 +1090,7 @@ function SeriesActionsComponent({
               }}
             />
           ))}
-      </CMDKAction>
+      </CMDKAction.Group>
     </Fragment>
   );
 }
@@ -1181,7 +1181,7 @@ function GroupByActionsComponent({
   }).filter(option => option.value !== UNGROUPED);
 
   return (
-    <CMDKAction display={{label: t('Attribute')}}>
+    <CMDKAction.Group display={{label: t('Attribute')}}>
       {options.map(option => {
         const isCurrent = currentGroupBy
           ? option.value === currentGroupBy
@@ -1189,7 +1189,7 @@ function GroupByActionsComponent({
         const isUnavailable = groupBys.includes(option.value) && !isCurrent;
 
         return (
-          <CMDKAction
+          <CMDKAction.Callback
             key={option.value}
             disabled={isUnavailable}
             display={{
@@ -1213,7 +1213,7 @@ function GroupByActionsComponent({
           />
         );
       })}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -1244,9 +1244,9 @@ function SortActions({
   const currentSortKind = currentSort?.kind ?? 'desc';
 
   return (
-    <CMDKAction display={{label: t('Sort by')}}>
+    <CMDKAction.Group display={{label: t('Sort by')}}>
       {fieldOptions.map(option => (
-        <CMDKAction
+        <CMDKAction.Group
           key={option.value}
           display={{
             label: option.textValue ?? option.value,
@@ -1266,9 +1266,9 @@ function SortActions({
           keywords={[option.value]}
           prompt={t('Select sort order')}
         >
-          <CMDKAction display={{label: t('Order by')}}>
+          <CMDKAction.Group display={{label: t('Order by')}}>
             {(['desc', 'asc'] as const).map(kind => (
-              <CMDKAction
+              <CMDKAction.Callback
                 key={kind}
                 display={{
                   label: kind === 'desc' ? t('Desc') : t('Asc'),
@@ -1280,10 +1280,10 @@ function SortActions({
                 onAction={() => setSortBys([{field: option.value, kind}])}
               />
             ))}
-          </CMDKAction>
-        </CMDKAction>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
       ))}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -1311,7 +1311,7 @@ function SourceActions({
   }
 
   return options.map(option => (
-    <CMDKAction
+    <CMDKAction.Callback
       key={option.value}
       display={{
         label: option.textValue ?? option.value,
@@ -1615,7 +1615,7 @@ function QueryClauseActionsEditor() {
   return (
     <CMDKChainedActionScope>
       <CMDKTerminalActionScope>
-        <CMDKAction
+        <CMDKAction.Callback
           disabled={projectSelectionLimitExceeded}
           display={{
             label: t('Apply Changes'),
@@ -1632,10 +1632,10 @@ function QueryClauseActionsEditor() {
         persistedPageFilters={persistedPageFilters}
         setDraftPageFilters={updateDraftPageFilters}
       />
-      <CMDKAction display={{label: t('Commands')}}>
+      <CMDKAction.Group display={{label: t('Commands')}}>
         {draftVisualizes.length < MAX_VISUALIZES && (
           <Fragment>
-            <CMDKAction
+            <CMDKAction.Callback
               actionContext="add-chart"
               actionPanel={{
                 context: 'add-chart',
@@ -1646,7 +1646,7 @@ function QueryClauseActionsEditor() {
               keywords={['add', 'chart', 'series', 'source', 'visualization']}
               onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
-            <CMDKAction
+            <CMDKAction.Callback
               actionContext="add-equation"
               actionPanel={{
                 context: 'add-equation',
@@ -1657,21 +1657,21 @@ function QueryClauseActionsEditor() {
               keywords={['add', 'chart', 'equation', 'series', 'visualization']}
               onAction={() => addDraftChart(new VisualizeEquation(EQUATION_PREFIX))}
             />
-            <CMDKAction
+            <CMDKAction.Callback
               actionPanel={{
                 context: 'chart',
                 label: t('Add Chart'),
-                only: true,
+                placement: 'panel-only',
                 order: MORE_ACTIONS_ORDER.addChart,
               }}
               display={{label: t('Add Chart')}}
               onAction={() => addDraftChart(new VisualizeFunction(DEFAULT_VISUALIZATION))}
             />
-            <CMDKAction
+            <CMDKAction.Callback
               actionPanel={{
                 context: 'chart',
                 label: t('Add Equation'),
-                only: true,
+                placement: 'panel-only',
                 order: MORE_ACTIONS_ORDER.addEquation,
               }}
               display={{label: t('Add Equation')}}
@@ -1679,36 +1679,36 @@ function QueryClauseActionsEditor() {
             />
           </Fragment>
         )}
-        <CMDKAction
+        <CMDKAction.Callback
           actionContext="group-by"
           actionPanel={{
             context: 'group-by',
             label: t('Add Group By'),
-            only: true,
+            placement: 'panel-only',
             order: MORE_ACTIONS_ORDER.addGroupBy,
           }}
           display={{label: t('Add Group By')}}
           keywords={['add', 'group', 'by', 'attribute']}
           onAction={addPendingGroupByRow}
         />
-        <CMDKAction
+        <CMDKAction.Group
           id={ADD_GROUP_BY_ACTION_ID}
           actionPanel={{
             context: 'group-by-picker',
             label: t('Choose Group By Attribute'),
-            only: true,
+            placement: 'panel-only',
           }}
           display={{label: t('Choose Group By Attribute')}}
           prompt={t('Search for attribute')}
         >
           <GroupByActions groupBys={draftGroupBys} onSelect={addGroupBy} />
-        </CMDKAction>
-        <CMDKAction
+        </CMDKAction.Group>
+        <CMDKAction.Callback
           actionContext="filter"
           actionPanel={{
             context: 'filter',
             label: t('Add Filter By'),
-            only: true,
+            placement: 'panel-only',
             order: MORE_ACTIONS_ORDER.addFilter,
           }}
           display={{label: t('Add Filter By')}}
@@ -1720,14 +1720,14 @@ function QueryClauseActionsEditor() {
           actionPanel={{
             context: 'filter-picker',
             label: t('Choose Filter Attribute'),
-            only: true,
+            placement: 'panel-only',
             order: MORE_ACTIONS_ORDER.addFilter,
           }}
           filters={getFilterRows(draftQuery)}
           replaceSearchFilter={replaceSearchFilter}
         />
         {canReorderCharts(draftVisualizes) && (
-          <CMDKAction
+          <CMDKAction.Group
             actionContext="reorder-charts"
             actionPanel={{
               context: 'reorder-charts',
@@ -1742,7 +1742,7 @@ function QueryClauseActionsEditor() {
               const id = `spans-reorder-chart-${chartId}`;
 
               return (
-                <CMDKAction
+                <CMDKAction.Callback
                   key={id}
                   id={id}
                   display={{
@@ -1767,10 +1767,10 @@ function QueryClauseActionsEditor() {
                 />
               );
             })}
-          </CMDKAction>
+          </CMDKAction.Group>
         )}
         {canCompareQueries(draftVisualizes) && (
-          <CMDKAction
+          <CMDKAction.Link
             disabled={hasCrossEvents}
             display={{label: t('Compare Charts')}}
             keywords={['compare', 'queries', 'charts']}
@@ -1787,7 +1787,7 @@ function QueryClauseActionsEditor() {
                 caseInsensitive: caseInsensitive ? '1' : undefined,
               })),
             })}
-            onAction={() =>
+            onNavigate={() =>
               trackAnalytics('trace_explorer.compare', {
                 organization,
               })
@@ -1795,8 +1795,8 @@ function QueryClauseActionsEditor() {
           />
         )}
         <SaveAsActions pageFilters={draftPageFilters} queryParams={draftQueryParams} />
-      </CMDKAction>
-      <CMDKAction display={{label: t('Query')}} order={1000}>
+      </CMDKAction.Group>
+      <CMDKAction.Group display={{label: t('Query')}} order={1000}>
         {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(
           (groupBy, index, rows) => {
             const rowId = `spans-group-by-${index}`;
@@ -1804,7 +1804,7 @@ function QueryClauseActionsEditor() {
 
             return (
               <Fragment key={rowId}>
-                <CMDKAction
+                <CMDKAction.Target
                   id={rowId}
                   actionContext={actionContext}
                   display={{
@@ -1813,18 +1813,18 @@ function QueryClauseActionsEditor() {
                   }}
                   keywords={['group', 'by', 'attribute', groupBy]}
                   order={QUERY_ACTION_ORDER.groupBy + index}
-                  targetAction={
+                  target={
                     groupBy ? getChangeGroupByActionId(index) : ADD_GROUP_BY_ACTION_ID
                   }
                 />
                 {groupBy && (
                   <Fragment>
-                    <CMDKAction
+                    <CMDKAction.Group
                       id={getChangeGroupByActionId(index)}
                       actionPanel={{
                         context: actionContext,
                         label: t('Change Group By Attribute'),
-                        only: true,
+                        placement: 'panel-only',
                       }}
                       display={{label: t('Change Group By Attribute')}}
                       prompt={t('Search for attribute')}
@@ -1834,12 +1834,12 @@ function QueryClauseActionsEditor() {
                         groupBys={draftGroupBys}
                         onSelect={value => replaceGroupBy(index, value)}
                       />
-                    </CMDKAction>
-                    <CMDKAction
+                    </CMDKAction.Group>
+                    <CMDKAction.Callback
                       actionPanel={{
                         context: actionContext,
                         label: t('Clear Group By'),
-                        only: true,
+                        placement: 'panel-only',
                       }}
                       display={{label: t('Clear Group By')}}
                       onAction={() => clearGroupBy(index)}
@@ -1847,11 +1847,11 @@ function QueryClauseActionsEditor() {
                   </Fragment>
                 )}
                 {rows.length > 1 && (
-                  <CMDKAction
+                  <CMDKAction.Callback
                     actionPanel={{
                       context: actionContext,
                       label: t('Delete Group By'),
-                      only: true,
+                      placement: 'panel-only',
                     }}
                     display={{label: t('Delete Group By')}}
                     onAction={() => removeGroupBy(index)}
@@ -1873,7 +1873,7 @@ function QueryClauseActionsEditor() {
               : ADD_FILTER_ACTION_ID
           }
         />
-        <CMDKAction
+        <CMDKAction.Group
           id="spans-sort"
           display={{
             label: t('Sort by'),
@@ -1889,11 +1889,11 @@ function QueryClauseActionsEditor() {
             sortBys={draftSortBys}
             visualizes={draftVisualizes}
           />
-        </CMDKAction>
-      </CMDKAction>
+        </CMDKAction.Group>
+      </CMDKAction.Group>
       {draftCharts.map(({id: chartId, visualize}, index) => {
         return (
-          <CMDKAction
+          <CMDKAction.Group
             key={`series-details-${chartId}`}
             id={`spans-series-details-${chartId}`}
             actionContext={`chart:${chartId}`}
@@ -1901,11 +1901,11 @@ function QueryClauseActionsEditor() {
             order={100 + index}
           >
             {canDeleteChart(draftCharts) && (
-              <CMDKAction
+              <CMDKAction.Callback
                 actionPanel={{
                   context: `chart:${chartId}`,
                   label: t('Delete Chart'),
-                  only: true,
+                  placement: 'panel-only',
                   order: MORE_ACTIONS_ORDER.deleteChart,
                 }}
                 display={{label: t('Delete Chart')}}
@@ -1923,7 +1923,7 @@ function QueryClauseActionsEditor() {
               visualize={visualize}
               visualizes={draftVisualizes}
             />
-          </CMDKAction>
+          </CMDKAction.Group>
         );
       })}
     </CMDKChainedActionScope>
@@ -1933,9 +1933,9 @@ function QueryClauseActionsEditor() {
 export function SpansCommandPaletteActions() {
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction display={{label: t('Traces'), icon: <IconSpan />}}>
+      <CMDKAction.Group display={{label: t('Traces'), icon: <IconSpan />}}>
         <QueryClauseActions />
-      </CMDKAction>
+      </CMDKAction.Group>
     </CommandPaletteSlot>
   );
 }

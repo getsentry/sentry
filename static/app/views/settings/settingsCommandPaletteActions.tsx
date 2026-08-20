@@ -27,7 +27,9 @@ function normalizeRouteForLookup(route: string): string {
 }
 
 function resolveRoutePath(route: string, orgSlug: string): string {
-  return replaceRouterParams(normalizeRouteForLookup(route), {orgId: orgSlug});
+  return replaceRouterParams(normalizeRouteForLookup(route), {
+    orgId: orgSlug,
+  });
 }
 
 function titleFromRoute(route: string): string {
@@ -148,23 +150,23 @@ export function SettingsCommandPaletteActions() {
 
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction display={{label: t('Settings Fields'), icon: <IconSettings />}}>
+      <CMDKAction.Group display={{label: t('Settings Fields'), icon: <IconSettings />}}>
         {sections.map(section => (
-          <CMDKAction
+          <CMDKAction.Group
             key={section.key}
             display={{label: section.title, icon: section.icon}}
           >
             {section.fields.map(field => (
-              <CMDKAction
+              <CMDKAction.Link
                 key={field.key}
                 display={field.display}
                 keywords={field.keywords}
                 to={field.to}
               />
             ))}
-          </CMDKAction>
+          </CMDKAction.Group>
         ))}
-      </CMDKAction>
+      </CMDKAction.Group>
     </CommandPaletteSlot>
   );
 }

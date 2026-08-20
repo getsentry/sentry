@@ -149,10 +149,10 @@ const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
-    return <CMDKAction key={index} {...item} />;
+    return <CMDKAction.Link key={index} {...item} />;
   }
   if ('onAction' in item) {
-    return <CMDKAction key={index} {...item} />;
+    return <CMDKAction.Callback key={index} {...item} />;
   }
   return null;
 }
@@ -235,7 +235,7 @@ function ResolvedIdentifierCommandPaletteAction() {
   }
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{
         label:
           data.kind === 'event'
@@ -246,16 +246,16 @@ function ResolvedIdentifierCommandPaletteAction() {
       }}
     >
       {data.kind === 'event' && (
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Go to event')}}
           to={`/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`}
         />
       )}
-      <CMDKAction
+      <CMDKAction.Link
         display={{label: t('Go to issue')}}
         to={`/organizations/${organization.slug}/issues/${data.groupId}/`}
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -278,7 +278,7 @@ function KeyboardShortcutsActionWithLocalDrawer() {
 
 function KeyboardShortcutsAction({onAction}: {onAction: () => void}) {
   return (
-    <CMDKAction
+    <CMDKAction.Callback
       display={{label: t('View Keyboard Shortcuts')}}
       keywords={[t('hotkeys'), t('cheat sheet'), t('commands')]}
       onAction={onAction}
@@ -401,12 +401,12 @@ export function GlobalCommandPaletteActions({
     useNotificationPermission();
   return (
     <CommandPaletteSlot name="global">
-      <CMDKAction
+      <CMDKAction.Group
         display={{label: t('Go to')}}
         keywords={[t('go'), t('go to'), t('navigate')]}
       >
-        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
+          <CMDKAction.Link
             display={{label: t('Feed')}}
             keywords={[t('issues')]}
             to={`${prefix}/issues/`}
@@ -418,55 +418,64 @@ export function GlobalCommandPaletteActions({
                 featureFlags.some(feature => organization.features.includes(feature))
             )
             .map(config => (
-              <CMDKAction
+              <CMDKAction.Link
                 key={config.key}
                 display={{label: config.label}}
                 to={`${prefix}/issues/${config.key}/`}
               />
             ))}
-          <CMDKAction
+          <CMDKAction.Link
             display={{label: t('User Feedback')}}
             to={`${prefix}/issues/feedback/`}
           />
-          <CMDKAction display={{label: t('All Views')}} to={`${prefix}/issues/views/`} />
+          <CMDKAction.Link
+            display={{label: t('All Views')}}
+            to={`${prefix}/issues/views/`}
+          />
           {starredViews.map(starredView => (
-            <CMDKAction
+            <CMDKAction.Link
               key={starredView.id}
               display={{label: starredView.label, icon: <IconStar />}}
               to={`${prefix}/issues/views/${starredView.id}/`}
             />
           ))}
-          <CMDKAction display={{label: t('Autofix')}}>
-            <CMDKAction
+          <CMDKAction.Group display={{label: t('Autofix')}}>
+            <CMDKAction.Link
               display={{label: t('Recently Run')}}
               to={`${prefix}/issues/autofix/recent/`}
             />
-          </CMDKAction>
-        </CMDKAction>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
-          <CMDKAction
+        <CMDKAction.Group
+          display={{label: t('Explore'), icon: <IconCompass />}}
+          limit={4}
+        >
+          <CMDKAction.Link
             display={{label: t('Traces')}}
             keywords={[t('spans'), t('trace explorer')]}
             to={`${prefix}/explore/traces/`}
           />
           {organization.features.includes('ourlogs-enabled') && (
-            <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
+            <CMDKAction.Link
+              display={{label: t('Logs')}}
+              to={`${prefix}/explore/logs/`}
+            />
           )}
           {organization.features.includes('tracemetrics-enabled') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Application Metrics')}}
               to={`${prefix}/explore/metrics/`}
             />
           )}
           {organization.features.includes('explore-errors') &&
             !getDiscoverDeprecation(organization) && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Errors')}}
                 to={`${prefix}/explore/errors-v2/`}
               />
             )}
-          <CMDKAction
+          <CMDKAction.Link
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
@@ -477,69 +486,72 @@ export function GlobalCommandPaletteActions({
             }
           />
           {organization.features.includes('profiling') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Profiles')}}
               keywords={[t('profiling')]}
               to={`${prefix}/explore/profiles/`}
             />
           )}
           {organization.features.includes('session-replay-ui') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Replays')}}
               keywords={[t('rum'), t('session replay')]}
               to={`${prefix}/explore/replays/`}
             />
           )}
-          <CMDKAction
+          <CMDKAction.Link
             display={{label: t('Releases')}}
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Agents')}}
               to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
             />
           )}
-          <CMDKAction
+          <CMDKAction.Link
             display={{label: t('All Queries')}}
             to={`${prefix}/explore/saved-queries/`}
           />
           {starredSavedQueries.map(query => (
-            <CMDKAction
+            <CMDKAction.Link
               key={query.id}
               display={{label: query.name, icon: <IconStar />}}
-              to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+              to={getSavedQueryTraceItemUrl({
+                savedQuery: query,
+                organization,
+              })}
             />
           ))}
-        </CMDKAction>
+        </CMDKAction.Group>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+          <CMDKAction.Link
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Sentry Built')}}
               to={`${prefix}/dashboards/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
             />
           )}
           {starredDashboards.length > 0 && (
-            <CMDKAction
+            <CMDKAction.Group
               display={{label: t('Starred Dashboards'), icon: <IconStar />}}
               keywords={[t('bookmarked'), t('favorites')]}
             >
               {starredDashboards.map(dashboard => (
-                <CMDKAction
+                <CMDKAction.Link
                   key={dashboard.id}
                   display={{label: dashboard.title, icon: <IconStar />}}
                   to={`${prefix}/dashboard/${dashboard.id}/`}
                 />
               ))}
-            </CMDKAction>
+            </CMDKAction.Group>
           )}
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: t('Search Dashboards'), icon: <IconSearch />}}
             prompt={t('Search for a dashboard...')}
             limit={5}
@@ -562,13 +574,13 @@ export function GlobalCommandPaletteActions({
             }
           >
             {data => data.map((item, i) => renderAsyncResult(item, i))}
-          </CMDKAction>
-        </CMDKAction>
+          </CMDKAction.Resource>
+        </CMDKAction.Group>
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
         {organization.features.includes('performance-view') && !hasInsightsRollout && (
-          <CMDKAction
+          <CMDKAction.Group
             display={{
               label: t('Insights'),
               icon: <IconGraph type="area" />,
@@ -576,98 +588,116 @@ export function GlobalCommandPaletteActions({
             limit={4}
           >
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Frontend')}}
                 keywords={[t('apdex'), t('web vitals'), t('performance score')]}
                 to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
               />
             )}
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Backend')}}
                 to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
               />
             )}
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Mobile')}}
                 to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
               />
             )}
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Agents')}}
                 to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
               />
             )}
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('MCP')}}
                 to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
               />
             )}
             {!hasInsightsRollout && (
-              <CMDKAction
+              <CMDKAction.Link
                 display={{label: t('Projects')}}
                 to={`${prefix}/insights/projects/`}
               />
             )}
-          </CMDKAction>
+          </CMDKAction.Group>
         )}
 
-        <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
-          <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
-          <CMDKAction
+        <CMDKAction.Group display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
+          <CMDKAction.Link
+            display={{label: t('All Monitors')}}
+            to={`${prefix}/monitors/`}
+          />
+          <CMDKAction.Link
             display={{label: t('My Monitors')}}
             to={`${prefix}/monitors/my-monitors/`}
           />
-          <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
-          <CMDKAction display={{label: t('Metric')}} to={`${prefix}/monitors/metrics/`} />
-          <CMDKAction
+          <CMDKAction.Link
+            display={{label: t('Error')}}
+            to={`${prefix}/monitors/errors/`}
+          />
+          <CMDKAction.Link
+            display={{label: t('Metric')}}
+            to={`${prefix}/monitors/metrics/`}
+          />
+          <CMDKAction.Link
             display={{label: t('Cron')}}
             keywords={[t('jobs'), t('cron jobs')]}
             to={`${prefix}/monitors/crons/`}
           />
           {organization.features.includes('uptime') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Uptime')}}
               keywords={[t('uptime monitors'), t('monitors')]}
               to={`${prefix}/monitors/uptime/`}
             />
           )}
           {organization.features.includes('preprod-size-monitors-frontend') && (
-            <CMDKAction
+            <CMDKAction.Link
               display={{label: t('Mobile Build')}}
               to={`${prefix}/monitors/mobile-builds/`}
             />
           )}
-          <CMDKAction
+          <CMDKAction.Link
             display={{label: t('Alerts')}}
             keywords={[t('alert rules'), t('issue alert')]}
             to={`${prefix}/monitors/alerts/`}
           />
-        </CMDKAction>
+        </CMDKAction.Group>
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
+        <CMDKAction.Group
+          display={{label: t('Settings'), icon: <IconSettings />}}
+          limit={4}
+        >
           {visibleOrgSettingsNavItems.map(item => (
-            <CMDKAction
+            <CMDKAction.Link
               key={item.path}
-              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              display={{
+                label: item.title,
+                icon: ORG_SETTINGS_ICONS[item.path],
+              }}
               keywords={item.keywords}
               to={item.path}
             />
           ))}
           <Override name="cmdk:global-settings-actions" />
-        </CMDKAction>
+        </CMDKAction.Group>
 
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Projects'), icon: <IconAllProjects />}}
           to={makeProjectsPathname({path: '/', organization})}
         />
 
         {!sentryConfig.singleOrganization && !isDemoModeActive() && (
-          <CMDKAction
-            display={{label: t('Switch Organization'), icon: <IconBuilding />}}
+          <CMDKAction.Resource
+            display={{
+              label: t('Switch Organization'),
+              icon: <IconBuilding />,
+            }}
             keywords={[t('organization'), t('change'), t('change organization')]}
             prompt={t('Select an organization...')}
             resource={(_query, {state}) =>
@@ -730,12 +760,12 @@ export function GlobalCommandPaletteActions({
           />
         )}
 
-        <CMDKAction
+        <CMDKAction.Group
           display={{label: t('Project Settings'), icon: <IconSettings />}}
           limit={4}
         >
           {currentProjects.map(project => (
-            <CMDKAction
+            <CMDKAction.Link
               key={`current-dsn-${project.slug}`}
               display={{
                 label: t('Client Keys (DSN) - %s', project.slug),
@@ -760,9 +790,12 @@ export function GlobalCommandPaletteActions({
               ''
             );
             return (
-              <CMDKAction
+              <CMDKAction.Resource
                 key={navItem.path}
-                display={{label: navItem.title, icon: PROJECT_SETTINGS_ICONS[suffix]}}
+                display={{
+                  label: navItem.title,
+                  icon: PROJECT_SETTINGS_ICONS[suffix],
+                }}
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
                 limit={4}
@@ -803,18 +836,18 @@ export function GlobalCommandPaletteActions({
               />
             );
           })}
-        </CMDKAction>
-      </CMDKAction>
+        </CMDKAction.Group>
+      </CMDKAction.Group>
 
       {user.isStaff && (
-        <CMDKAction display={{label: t('Admin')}}>
+        <CMDKAction.Group display={{label: t('Admin')}}>
           <FeatureFlagCommandPaletteActions />
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
             onAction={() => window.open('/_admin/', '_blank', 'noreferrer')}
           />
-          <CMDKAction
+          <CMDKAction.Callback
             display={{
               label: t('Open %s in _admin', organization.name),
               icon: <IconOpen />,
@@ -829,39 +862,45 @@ export function GlobalCommandPaletteActions({
             }
           />
           {!isActiveSuperuser() && (
-            <CMDKAction
-              display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
+            <CMDKAction.Callback
+              display={{
+                label: t('Open Superuser Modal'),
+                icon: <IconLock locked />,
+              }}
               keywords={[t('superuser')]}
               onAction={() => openSudo({isSuperuser: true, needsReload: true})}
             />
           )}
           {isActiveSuperuser() && (
-            <CMDKAction
-              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
+            <CMDKAction.Callback
+              display={{
+                label: t('Exit Superuser'),
+                icon: <IconLock locked={false} />,
+              }}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
             />
           )}
-        </CMDKAction>
+        </CMDKAction.Group>
       )}
 
-      <CMDKAction display={{label: t('Add')}}>
-        <CMDKAction
+      <CMDKAction.Group display={{label: t('Add')}}>
+        <CMDKAction.Link
           display={{label: t('Create Dashboard'), icon: <IconAdd />}}
           keywords={[t('add dashboard')]}
           to={`${prefix}/dashboards/new/`}
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Create Alert'), icon: <IconAdd />}}
           keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
           to={`${prefix}/issues/alerts/wizard/`}
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Create Project'), icon: <IconAdd />}}
           keywords={[t('add project')]}
           to={`${prefix}/projects/new/`}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Invite Members'), icon: <IconUser />}}
           keywords={[
             t('team invite'),
@@ -872,14 +911,14 @@ export function GlobalCommandPaletteActions({
           ]}
           onAction={openInviteMembersModal}
         />
-      </CMDKAction>
+      </CMDKAction.Group>
 
-      <CMDKAction
+      <CMDKAction.Group
         display={{label: t('DSN')}}
         keywords={[t('client keys'), t('sentry dsn')]}
       >
         {currentDsnProject ? (
-          <CMDKAction
+          <CMDKAction.Callback
             display={{
               label: t('Copy DSN - %s', currentDsnProject.slug),
               icon: <IconCopy />,
@@ -888,7 +927,7 @@ export function GlobalCommandPaletteActions({
             onAction={() => copyProjectDsn(currentDsnProject)}
           />
         ) : (
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: t('Copy project DSN'), icon: <IconCopy />}}
             keywords={[t('copy dsn'), t('client key'), 'SENTRY_DSN']}
             prompt={t('Select a project...')}
@@ -919,7 +958,7 @@ export function GlobalCommandPaletteActions({
             }
           />
         )}
-        <CMDKAction
+        <CMDKAction.Resource
           display={{
             label: t('Reverse DSN lookup'),
             details: t(
@@ -953,12 +992,12 @@ export function GlobalCommandPaletteActions({
           }}
         >
           {data => data.map((item, i) => renderAsyncResult(item, i))}
-        </CMDKAction>
-      </CMDKAction>
+        </CMDKAction.Resource>
+      </CMDKAction.Group>
 
       <ResolvedIdentifierCommandPaletteAction />
 
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('People'), icon: <IconUser />}}
         keywords={[t('member'), t('user'), t('person'), t('assign')]}
         limit={4}
@@ -991,9 +1030,9 @@ export function GlobalCommandPaletteActions({
         }}
       >
         {data => data.map((item, i) => renderAsyncResult(item, i))}
-      </CMDKAction>
+      </CMDKAction.Resource>
 
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('Teams'), icon: <IconGroup />}}
         keywords={[t('team'), t('squad')]}
         limit={4}
@@ -1020,9 +1059,9 @@ export function GlobalCommandPaletteActions({
         }}
       >
         {data => data.map((item, i) => renderAsyncResult(item, i))}
-      </CMDKAction>
+      </CMDKAction.Resource>
 
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('Projects'), icon: <IconAllProjects />}}
         prompt={t('Search for a project...')}
         limit={4}
@@ -1053,9 +1092,9 @@ export function GlobalCommandPaletteActions({
         }}
       >
         {data => data.map((item, i) => renderAsyncResult(item, i))}
-      </CMDKAction>
+      </CMDKAction.Resource>
 
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('Open Project'), icon: <IconAllProjects />}}
         keywords={[
           t('project'),
@@ -1093,9 +1132,9 @@ export function GlobalCommandPaletteActions({
         }
       >
         {data => data.map((item, i) => renderAsyncResult(item, i))}
-      </CMDKAction>
+      </CMDKAction.Resource>
 
-      <CMDKAction
+      <CMDKAction.Resource
         id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         keywords={[t('support'), t('contact')]}
@@ -1115,7 +1154,9 @@ export function GlobalCommandPaletteActions({
                 for (const hit of index.hits) {
                   results.push({
                     display: {
-                      label: DOMPurify.sanitize(hit.title ?? '', {ALLOWED_TAGS: []}),
+                      label: DOMPurify.sanitize(hit.title ?? '', {
+                        ALLOWED_TAGS: [],
+                      }),
                       details: DOMPurify.sanitize(
                         hit.context?.context1 ?? hit.context?.context2 ?? '',
                         {ALLOWED_TAGS: []}
@@ -1137,28 +1178,30 @@ export function GlobalCommandPaletteActions({
         <KeyboardShortcutsCommandPaletteAction
           openKeyboardShortcutsDrawer={openKeyboardShortcutsDrawerProp}
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
           keywords={['docs', 'documentation']}
           to="https://docs.sentry.io"
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Join Discord'), icon: <IconDiscord />}}
           to="https://discord.gg/sentry"
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('Open GitHub Repository'), icon: <IconGithub />}}
           to="https://github.com/getsentry/sentry"
         />
-        <CMDKAction
+        <CMDKAction.Link
           display={{label: t('View Changelog'), icon: <IconOpen />}}
           to="https://sentry.io/changelog/"
         />
-      </CMDKAction>
+      </CMDKAction.Resource>
 
-      <CMDKAction display={{label: t('Interface')}}>
-        <CMDKAction display={{label: t('Change Color Theme'), icon: <IconSettings />}}>
-          <CMDKAction
+      <CMDKAction.Group display={{label: t('Interface')}}>
+        <CMDKAction.Group
+          display={{label: t('Change Color Theme'), icon: <IconSettings />}}
+        >
+          <CMDKAction.Callback
             display={{label: t('System')}}
             keywords={['default theme', 'system theme']}
             onAction={async () => {
@@ -1167,7 +1210,7 @@ export function GlobalCommandPaletteActions({
               addSuccessMessage(t('Theme preference saved: System'));
             }}
           />
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('Light')}}
             keywords={['light mode', 'light theme']}
             onAction={async () => {
@@ -1176,7 +1219,7 @@ export function GlobalCommandPaletteActions({
               addSuccessMessage(t('Theme preference saved: Light'));
             }}
           />
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: t('Dark')}}
             keywords={['dark mode', 'dark theme']}
             onAction={async () => {
@@ -1185,11 +1228,11 @@ export function GlobalCommandPaletteActions({
               addSuccessMessage(t('Theme preference saved: Dark'));
             }}
           />
-        </CMDKAction>
-      </CMDKAction>
+        </CMDKAction.Group>
+      </CMDKAction.Group>
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Open in Production'), icon: <IconOpen />}}
           keywords={['production', 'prod', 'live']}
           onAction={() => {
@@ -1203,7 +1246,7 @@ export function GlobalCommandPaletteActions({
       )}
 
       {NODE_ENV === 'production' && user.isStaff && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Open in Development'), icon: <IconOpen />}}
           keywords={['development', 'dev', 'dev-ui', 'localhost', 'local']}
           onAction={() => {
@@ -1217,8 +1260,11 @@ export function GlobalCommandPaletteActions({
       )}
 
       {(NODE_ENV === 'development' || user.isStaff) && (
-        <CMDKAction
-          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+        <CMDKAction.Callback
+          display={{
+            label: t('Toggle Translation Markers'),
+            icon: <IconFlag />,
+          }}
           keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
           onAction={() => {
             toggleLocaleDebug();
@@ -1228,16 +1274,22 @@ export function GlobalCommandPaletteActions({
 
       {user.isStaff &&
         (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
-          <CMDKAction
-            display={{label: 'Disable Analytics Debug Mode', icon: <IconOpen />}}
+          <CMDKAction.Callback
+            display={{
+              label: 'Disable Analytics Debug Mode',
+              icon: <IconOpen />,
+            }}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
               window.localStorage?.setItem('DEBUG_ANALYTICS', '0');
             }}
           />
         ) : (
-          <CMDKAction
-            display={{label: 'Enable Analytics Debug Mode', icon: <IconOpen />}}
+          <CMDKAction.Callback
+            display={{
+              label: 'Enable Analytics Debug Mode',
+              icon: <IconOpen />,
+            }}
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
               window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
@@ -1248,16 +1300,22 @@ export function GlobalCommandPaletteActions({
       {user.isStaff &&
         supportsNotifications &&
         (permission === 'granted' ? (
-          <CMDKAction
-            display={{label: 'Browser Notifications (granted)', icon: <IconSubscribed />}}
+          <CMDKAction.Callback
+            display={{
+              label: 'Browser Notifications (granted)',
+              icon: <IconSubscribed />,
+            }}
             keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
             onAction={() => {
               askNotificationPermission();
             }}
           />
         ) : (
-          <CMDKAction
-            display={{label: 'Allow Browser Notifications', icon: <IconSubscribed />}}
+          <CMDKAction.Callback
+            display={{
+              label: 'Allow Browser Notifications',
+              icon: <IconSubscribed />,
+            }}
             keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
             onAction={() => {
               askNotificationPermission();

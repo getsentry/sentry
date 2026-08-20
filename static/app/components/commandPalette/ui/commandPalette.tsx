@@ -285,7 +285,10 @@ export function CommandPalette({
               parent: null,
               children: [] as CMDKFlatItem[],
               listItemType: 'action' as const,
-              display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
+              display: {
+                label: t('Tell us what to improve'),
+                icon: <IconMegaphone />,
+              },
               onAction: () => openForm({tags: {'feedback.source': 'command_palette'}}),
             },
           ]
@@ -752,7 +755,10 @@ export function CommandPalette({
           retainedFocusRef.current =
             retainedFocusKey === null
               ? null
-              : {anchorKey: chainedActionAnchor.key, focusKey: retainedFocusKey};
+              : {
+                  anchorKey: chainedActionAnchor.key,
+                  focusKey: retainedFocusKey,
+                };
           action.onAction();
           startTransition(() =>
             dispatch({type: 'return to anchor', anchor: chainedActionAnchor})
@@ -771,6 +777,7 @@ export function CommandPalette({
       closeModal?.();
 
       if ('to' in action) {
+        action.onNavigate?.();
         const normalizedTo = normalizeUrl(action.to);
         if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
           window.open(getLocationHref(normalizedTo), '_blank', 'noreferrer');
@@ -804,7 +811,11 @@ export function CommandPalette({
     (key: string | number | null) => {
       setActionsPanelTargetKey(null);
       const action = panelActions.find(candidate => candidate.key === key);
-      if (action?.actionPanel?.preserveView && 'onAction' in action && action.onAction) {
+      if (
+        action?.actionPanel?.execution === 'preserve-view' &&
+        'onAction' in action &&
+        action.onAction
+      ) {
         action.onAction();
         dispatch({type: 'set query', query: state.query});
         state.input.current?.focus();
@@ -1142,7 +1153,7 @@ function filterActionPanelOnlyNodes(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
   return nodes.flatMap(node =>
-    node.actionPanel?.only
+    node.actionPanel?.placement === 'panel-only'
       ? []
       : [{...node, children: filterActionPanelOnlyNodes(node.children)}]
   );

@@ -140,7 +140,10 @@ function FilterActions({
     };
 
     if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
-      const values = await fetchFeatureFlagValues({...fetchParams, organization});
+      const values = await fetchFeatureFlagValues({
+        ...fetchParams,
+        organization,
+      });
       return values.map(v => v.value);
     }
 
@@ -192,7 +195,9 @@ function FilterActions({
     const predefined = getTagValueStrings(tag);
     const hasPredefined = predefined.length > 0;
     return {
-      display: {label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`},
+      display: {
+        label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`,
+      },
       keywords: [tag.key],
       prompt: t('Select a value...'),
       limit: 4,
@@ -229,11 +234,11 @@ function FilterActions({
     });
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
-      <CMDKAction
+      <CMDKAction.Callback
         display={{
           label: t('Assigned to me'),
           icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
@@ -241,19 +246,19 @@ function FilterActions({
         keywords={['mine', 'my issues', 'assign', 'assigned', 'me']}
         onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'me'))}
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Assigned to my teams'), icon: <IconGroup />}}
         keywords={['my teams', 'assign', 'assigned', 'teams']}
         onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'my_teams'))}
       />
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('Issues')}}
         prompt={t('Select a filter...')}
         limit={4}
         resource={makeSectionResource(issueFields, 'cmdk-filter-keys-issues')}
       />
       {eventFields.length > 0 && (
-        <CMDKAction
+        <CMDKAction.Resource
           display={{label: t('Event Filters')}}
           prompt={t('Select a filter...')}
           limit={4}
@@ -261,14 +266,14 @@ function FilterActions({
         />
       )}
       {eventTags.length > 0 && (
-        <CMDKAction
+        <CMDKAction.Resource
           display={{label: t('Event Tags')}}
           prompt={t('Select a filter...')}
           limit={4}
           resource={makeSectionResource(eventTags, 'cmdk-filter-keys-tags')}
         />
       )}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -296,7 +301,7 @@ function SortActions({
   ];
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{
         label: t('Sort by: %s', getSortLabel(sort)),
         icon: <IconSort />,
@@ -304,13 +309,13 @@ function SortActions({
       keywords={['order', 'arrange', 'last seen', 'age', 'events', 'users', 'trends']}
     >
       {sortKeys.map(key => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={key}
           display={{label: getSortLabel(key)}}
           onAction={() => onSortChange(key)}
         />
       ))}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }
 
@@ -338,7 +343,10 @@ function SaveViewActions({
     : false;
 
   const openSaveAsModal = () => {
-    trackAnalytics('issue_views.save_as.clicked', {organization, source: 'cmdk'});
+    trackAnalytics('issue_views.save_as.clicked', {
+      organization,
+      source: 'cmdk',
+    });
     openModal(props => (
       <CreateIssueViewModal
         {...props}
@@ -355,7 +363,10 @@ function SaveViewActions({
 
   const saveView = () => {
     if (view) {
-      trackAnalytics('issue_views.save.clicked', {organization, source: 'cmdk'});
+      trackAnalytics('issue_views.save.clicked', {
+        organization,
+        source: 'cmdk',
+      });
       updateGroupSearchView(
         {
           id: view.id,
@@ -374,13 +385,13 @@ function SaveViewActions({
   return (
     <Fragment>
       {canEdit && hasUnsavedChanges && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Save view'), icon: <IconBookmark />}}
           keywords={['save', 'update', 'persist']}
           onAction={saveView}
         />
       )}
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Save as new view'), icon: <IconBookmark />}}
         keywords={['save as', 'new view', 'create view', 'bookmark']}
         onAction={openSaveAsModal}
@@ -401,7 +412,7 @@ export function IssueListCommandPaletteActions({
 }: IssueListCommandPaletteActionsProps) {
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
+      <CMDKAction.Group display={{label: t('Issues Feed'), icon: <IconIssues />}}>
         <FilterActions query={query} onQueryChange={onQueryChange} />
         <IssueListMarkAllCommandPaletteAction
           groupIds={groupIds}
@@ -412,7 +423,7 @@ export function IssueListCommandPaletteActions({
         />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
-      </CMDKAction>
+      </CMDKAction.Group>
     </CommandPaletteSlot>
   );
 }

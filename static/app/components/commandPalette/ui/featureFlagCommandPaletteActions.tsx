@@ -160,11 +160,11 @@ export function FeatureFlagCommandPaletteActions() {
   };
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{label: t('Feature Flags'), icon: <IconFlag />}}
       keywords={[t('features'), t('flags'), t('override'), t('toggle')]}
     >
-      <CMDKAction
+      <CMDKAction.Resource
         display={{label: t('Toggle Org Feature Flag'), icon: <IconFlag />}}
         prompt={t('Search for a feature flag...')}
         resource={(_query, {state}) =>
@@ -197,7 +197,7 @@ export function FeatureFlagCommandPaletteActions() {
           })
         }
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Add Feature Flag'), icon: <IconAdd />}}
         keywords={[t('new flag'), t('create flag'), t('override')]}
         onAction={() =>
@@ -206,6 +206,6 @@ export function FeatureFlagCommandPaletteActions() {
           ))
         }
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }

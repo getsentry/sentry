@@ -15,27 +15,27 @@ import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette
 export function CommandPaletteDemo() {
   return (
     <CommandPaletteProvider>
-      <CMDKAction display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
-      <CMDKAction
+      <CMDKAction.Link display={{label: 'Go to Flex story'}} to="/stories/layout/flex/" />
+      <CMDKAction.Callback
         display={{label: 'Execute an action'}}
         onAction={() => addSuccessMessage('Action executed')}
       />
-      <CMDKAction display={{label: 'Parent action'}}>
-        <CMDKAction
+      <CMDKAction.Group display={{label: 'Parent action'}}>
+        <CMDKAction.Callback
           display={{label: 'Child action'}}
           onAction={() => addSuccessMessage('Child action executed')}
         />
-      </CMDKAction>
-      <CMDKAction display={{label: 'Issues List'}}>
-        <CMDKAction
+      </CMDKAction.Group>
+      <CMDKAction.Group display={{label: 'Issues List'}}>
+        <CMDKAction.Callback
           display={{label: 'Select all'}}
           onAction={() => addSuccessMessage('Select all')}
         />
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: 'Deselect all'}}
           onAction={() => addSuccessMessage('Deselect all')}
         />
-      </CMDKAction>
+      </CMDKAction.Group>
       <CommandPalette
         Body={ModalBody}
         Footer={ModalFooter}
