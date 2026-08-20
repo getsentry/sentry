@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth import BACKEND_SESSION_KEY, HASH_SESSION_KEY, SESSION_KEY
 from django.contrib.sessions.backends.signed_cookies import SessionStore
 
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user import User
@@ -57,6 +59,18 @@ class ReactAuthTest(AcceptanceTestCase):
             expires=None,
         )
 
+    def submit_second_factor(self, code: str) -> None:
+        self.browser.wait_until_script_execution(
+            """
+            return Array.from(document.querySelectorAll('[aria-label="One-time password"]'))
+              .some(input => input.offsetParent !== null);
+            """
+        )
+        inputs = self.browser.elements('[aria-label="One-time password"]')
+        next(input_element for input_element in inputs if input_element.is_displayed()).send_keys(
+            code
+        )
+
     def wait_for_authenticated_organization(self, organization_slug: str) -> None:
         expected_path = f"/organizations/{organization_slug}/issues/"
         self.browser.wait_until_script_execution(
@@ -79,6 +93,56 @@ class ReactAuthTest(AcceptanceTestCase):
             xpath="//*[contains(text(), 'Please enter a correct username and password')]"
         )
         assert self.browser.driver.current_url.endswith("/auth/login/")
+
+    def test_totp_authentication(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+
+        self.submit_credentials(user.email, PASSWORD)
+        self.submit_second_factor(totp.make_otp().generate_otp())
+
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_resumes_totp_authentication_after_refresh(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+
+        self.submit_credentials(user.email, PASSWORD)
+        self.browser.wait_until('[aria-label="One-time password"]')
+        self.browser.driver.refresh()
+        self.browser.wait_until('[aria-label="One-time password"]')
+        self.submit_second_factor(totp.make_otp().generate_otp())
+
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_wrong_totp(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+        valid_code = totp.make_otp().generate_otp()
+        invalid_code = f"{(int(valid_code) + 1) % 1_000_000:06d}"
+
+        self.submit_credentials(user.email, PASSWORD)
+        self.submit_second_factor(invalid_code)
+
+        self.browser.wait_until(
+            xpath="//*[contains(text(), 'Invalid two-factor authentication credentials')]"
+        )
+        assert self.browser.element_exists('[aria-label="One-time password"]')
+
+    def test_recovery_code_authentication(self) -> None:
+        user = self.create_login_user()
+        TotpInterface().enroll(user)
+        recovery = RecoveryCodeInterface()
+        recovery.enroll(user)
+
+        self.submit_credentials(user.email, PASSWORD)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Use recovery code']")
+        self.submit_second_factor(recovery.get_unused_codes()[0].replace("-", ""))
+
+        self.wait_for_authenticated_organization(self.organization.slug)
 
     def test_multi_organization_login(self) -> None:
         user = self.create_login_user("org-a")
