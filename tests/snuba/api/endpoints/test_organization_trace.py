@@ -22,6 +22,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_errors_query_eap
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.samples import load_data
@@ -1003,6 +1004,59 @@ class OrganizationEventsTraceEndpointTest(
             assert total == 2
             assert counts.get(file_io_type, 0) == 1
             assert counts.get(slow_db_type, 0) == 1
+
+
+class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEndpointBase):
+    url_name = "sentry-api-0-organization-trace"
+    FEATURES = ["organizations:performance-view"]
+
+    @with_feature("organizations:climate-impact-data")
+    def test_climate_impact_data_feature_enabled(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        # Check that spans have the climate impact field
+        for event in data:
+            if event.get("event_type") == "span":
+                assert "estimated_climate_impact_usd" in event
+                assert event["estimated_climate_impact_usd"] == 1.0
+            # Check children recursively
+            if "children" in event:
+                self._check_children_for_climate_impact(event["children"])
+
+    def _check_children_for_climate_impact(self, children: list) -> None:
+        for child in children:
+            if child.get("event_type") == "span":
+                assert "estimated_climate_impact_usd" in child
+                assert child["estimated_climate_impact_usd"] == 1.0
+            if "children" in child:
+                self._check_children_for_climate_impact(child["children"])
+
+    def test_climate_impact_data_feature_disabled(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        # Check that spans do not have the climate impact field
+        for event in data:
+            assert "estimated_climate_impact_usd" not in event
+            if "children" in event:
+                self._check_children_no_climate_impact(event["children"])
+
+    def _check_children_no_climate_impact(self, children: list) -> None:
+        for child in children:
+            assert "estimated_climate_impact_usd" not in child
+            if "children" in child:
+                self._check_children_no_climate_impact(child["children"])
 
 
 class TestTracingErrorsQueryEAP(TestCase, SnubaTestCase, OccurrenceTestCase):

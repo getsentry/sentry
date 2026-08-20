@@ -16,6 +16,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_query
 
@@ -2535,3 +2536,92 @@ def test_build_breakdown_error(
     mock_capture_exception.assert_called_with(
         exception, contexts={"bad_trace": {"trace": "a" * 32}}
     )
+
+
+class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
+    view = "sentry-api-0-organization-traces"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.url = reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug})
+
+    @with_feature("organizations:climate-impact-data")
+    @with_feature("organizations:visibility-explore-view")
+    def test_climate_impact_data_feature_enabled(self) -> None:
+        trace_id = uuid4().hex
+        self.store_span(
+            {
+                "trace_id": trace_id,
+                "span_id": "a" * 16,
+                "parent_span_id": None,
+                "is_segment": True,
+                "transaction": "api/test",
+                "op": "http.server",
+                "description": "GET /api/test",
+            }
+        )
+        self.store_span(
+            {
+                "trace_id": trace_id,
+                "span_id": "b" * 16,
+                "parent_span_id": "a" * 16,
+                "is_segment": False,
+                "transaction": "api/test",
+                "op": "db",
+                "description": "SELECT * FROM table",
+            }
+        )
+
+        response = self.client.get(
+            self.url,
+            data={
+                "dataset": "spans",
+                "query": f"trace:{trace_id}",
+                "project": self.project.id,
+                "statsPeriod": "1h",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+
+        # Check that the trace has climate impact field
+        trace = data[0]
+        assert "estimatedClimateImpactUsd" in trace
+        # Should be 2.0 (2 spans * $1 each)
+        assert trace["estimatedClimateImpactUsd"] == 2.0
+
+    @with_feature("organizations:visibility-explore-view")
+    def test_climate_impact_data_feature_disabled(self) -> None:
+        trace_id = uuid4().hex
+        self.store_span(
+            {
+                "trace_id": trace_id,
+                "span_id": "a" * 16,
+                "parent_span_id": None,
+                "is_segment": True,
+                "transaction": "api/test",
+                "op": "http.server",
+                "description": "GET /api/test",
+            }
+        )
+
+        response = self.client.get(
+            self.url,
+            data={
+                "dataset": "spans",
+                "query": f"trace:{trace_id}",
+                "project": self.project.id,
+                "statsPeriod": "1h",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+
+        # Check that the trace does not have climate impact field
+        trace = data[0]
+        assert "estimatedClimateImpactUsd" not in trace

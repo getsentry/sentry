@@ -41,6 +41,7 @@ from sentry.search.eap.utils import (
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.climate_impact import annotate_trace_item
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba_rpc import trace_item_details_rpc
 
@@ -506,5 +507,11 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 "raw_response": resp,
                 "raw_request": MessageToDict(req),
             }
+
+        if features.has(
+            "organizations:climate-impact-data", project.organization, actor=request.user
+        ):
+            if item_type == SupportedTraceItemType.SPANS.value:
+                annotate_trace_item(resp_dict)
 
         return Response(resp_dict)

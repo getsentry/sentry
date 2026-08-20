@@ -15,6 +15,7 @@ from sentry.testutils.cases import (
     TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
@@ -886,3 +887,39 @@ class ProjectTraceItemDetailsEndpointTest(
         assert by_name["transaction"]["value"] == "/api/users"
         assert by_name["transaction"]["type"] == "str"
         assert "sentry.segment.name" not in by_name
+
+    @with_feature("organizations:climate-impact-data")
+    def test_climate_impact_data_feature_enabled_for_spans(self) -> None:
+        span = self.create_span({"description": "foo"}, start_ts=self.one_min_ago)
+        span["trace_id"] = self.trace_uuid
+        self.store_span(span)
+
+        response = self.do_request("spans", span["span_id"])
+        assert response.status_code == 200, response.content
+        assert "estimatedClimateImpactUsd" in response.data
+        assert response.data["estimatedClimateImpactUsd"] == 1.0
+
+    def test_climate_impact_data_feature_disabled_for_spans(self) -> None:
+        span = self.create_span({"description": "foo"}, start_ts=self.one_min_ago)
+        span["trace_id"] = self.trace_uuid
+        self.store_span(span)
+
+        response = self.do_request("spans", span["span_id"])
+        assert response.status_code == 200, response.content
+        assert "estimatedClimateImpactUsd" not in response.data
+
+    @with_feature("organizations:climate-impact-data")
+    def test_climate_impact_data_not_added_for_logs(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        response = self.do_request("logs", item_id)
+        assert response.status_code == 200, response.content
+        assert "estimatedClimateImpactUsd" not in response.data

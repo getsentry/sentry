@@ -66,6 +66,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.climate_impact import annotate_trace_summaries
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_span_attribute
@@ -284,17 +285,24 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 ),
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=executor.execute),
-            on_results=lambda results: self.handle_results_with_meta(
+        def handle_results(results):
+            response = self.handle_results_with_meta(
                 request,
                 organization,
                 snuba_params.project_ids,
                 results,
                 standard_meta=True,
                 dataset=Dataset.SpansIndexed,
-            ),
+            )
+            if features.has("organizations:climate-impact-data", organization, actor=request.user):
+                if isinstance(response, dict) and "data" in response:
+                    annotate_trace_summaries(response)
+            return response
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=executor.execute),
+            on_results=handle_results,
         )
 
 

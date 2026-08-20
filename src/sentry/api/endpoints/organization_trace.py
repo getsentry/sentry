@@ -3,6 +3,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -18,6 +19,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.trace import SerializedTraceItem, query_trace_data
+from sentry.utils.climate_impact import annotate_trace_tree
 from sentry.utils.tracing import trace
 from sentry.utils.validators import is_event_id
 
@@ -186,7 +188,13 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                 )
             return spans
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
+
+        if features.has("organizations:climate-impact-data", organization, actor=request.user):
+            if response.status_code == 200 and isinstance(response.data, list):
+                annotate_trace_tree(response.data)
+
+        return response
