@@ -143,14 +143,12 @@ export function generateProfileRouteFromProfileReference({
   frameName,
   framePackage,
   reference,
-  query,
 }: {
   organization: Organization;
   projectSlug: Project['slug'];
   reference: Profiling.BaseProfileReference | Profiling.ProfileReference;
   frameName?: string;
   framePackage?: string;
-  query?: Location['query'];
 }): LocationDescriptor {
   if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithQuery({
@@ -158,7 +156,6 @@ export function generateProfileRouteFromProfileReference({
       projectSlug,
       profileId: reference,
       query: {
-        ...query,
         frameName,
         framePackage,
       },
@@ -179,7 +176,6 @@ export function generateProfileRouteFromProfileReference({
       start: new Date(Math.floor(reference.start * 1e3)).toISOString(),
       end: new Date(Math.ceil(reference.end * 1e3)).toISOString(),
       query: dropUndefinedKeys({
-        ...query,
         frameName,
         framePackage,
         eventId,
@@ -193,7 +189,7 @@ export function generateProfileRouteFromProfileReference({
       organization,
       projectSlug,
       profileId: reference.profile_id,
-      query: dropUndefinedKeys({...query, frameName, framePackage}),
+      query: dropUndefinedKeys({frameName, framePackage}),
     });
   }
 

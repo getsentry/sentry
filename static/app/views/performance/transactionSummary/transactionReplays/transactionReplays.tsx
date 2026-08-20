@@ -125,7 +125,7 @@ function ReplaysContent({
     events,
   });
 
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
 
   return (
     <Layout.Main width="full">

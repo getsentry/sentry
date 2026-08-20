@@ -33,13 +33,12 @@ import {categorizeDuration} from './categorizeDuration';
  */
 export function tooltipFormatter(
   value: number | null,
-  outputType: AggregationOutputType = 'number',
-  unit?: DataUnit
+  outputType: AggregationOutputType = 'number'
 ): string {
   if (!defined(value)) {
     return '\u2014';
   }
-  return tooltipFormatterUsingAggregateOutputType(value, outputType, unit);
+  return tooltipFormatterUsingAggregateOutputType(value, outputType);
 }
 
 /**
@@ -95,19 +94,13 @@ export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
   abbreviation = false,
-  durationUnit?: number,
-  rateUnit?: RateUnit,
-  decimalPlaces?: number,
-  sizeUnit?: DataUnit
+  durationUnit?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
     outputType,
     abbreviation,
-    durationUnit,
-    rateUnit,
-    decimalPlaces,
-    sizeUnit
+    durationUnit
   );
 }
 

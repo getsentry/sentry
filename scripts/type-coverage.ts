@@ -187,12 +187,11 @@ function recordNonNull(
   hits: NonNullHit[],
   sourceFile: ts.SourceFile,
   node: ts.Node,
-  kind: NonNullHit['kind'],
-  codeNode?: ts.Node
+  kind: NonNullHit['kind']
 ) {
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
-  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  const code = textPreview(node.getText(sourceFile));
   hits.push({
     file: relPath,
     line: pos.line + 1,
@@ -207,12 +206,11 @@ function recordTypeAssertion(
   sourceFile: ts.SourceFile,
   node: ts.Node,
   kind: TypeAssertionHit['kind'],
-  targetType: string,
-  codeNode?: ts.Node
+  targetType: string
 ) {
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
-  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  const code = textPreview(node.getText(sourceFile));
   hits.push({
     file: relPath,
     line: pos.line + 1,
@@ -223,9 +221,9 @@ function recordTypeAssertion(
   });
 }
 
-function textPreview(s: string, max = 80) {
+function textPreview(s: string) {
   const one = s.replace(/\s+/g, ' ').trim();
-  return one.length <= max ? one : one.slice(0, max - 1) + '…';
+  return one.length <= 80 ? one : one.slice(0, 79) + '…';
 }
 
 function countBindingPatternElements(

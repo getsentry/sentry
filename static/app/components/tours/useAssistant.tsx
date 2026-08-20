@@ -29,7 +29,6 @@ export function useAssistant(
 interface MutateAssistantData {
   guide: string;
   status: 'viewed' | 'dismissed' | 'restart';
-  useful?: boolean;
 }
 
 // Matching the logic from src/sentry/api/endpoints/assistant.py

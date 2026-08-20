@@ -6,13 +6,11 @@ import {useCallback, useLayoutEffect, useRef} from 'react';
  * It is useful for creating "growing" inputs that can resize to fit their content.
  *
  * @param options - Options for the autosize input functionality.
- * @param options.disabled - Set to `true` to disable the autosizing.
  * @param options.value - The value of the input, use when the input is controlled.
  * @returns A ref callback for the input element.
  */
 
 interface UseAutosizeInputOptions {
-  enabled?: boolean;
   value?: React.InputHTMLAttributes<HTMLInputElement>['value'] | undefined;
 }
 
@@ -40,7 +38,6 @@ function createSizingDiv(computedStyles: {
 export function useAutosizeInput(
   options?: UseAutosizeInputOptions
 ): React.RefCallback<HTMLInputElement> {
-  const enabled = options?.enabled ?? true;
   const sourceRef = useRef<HTMLInputElement | null>(null);
   // Cache the sizing div per hook instance to avoid create/destroy on every resize
   const sizingDivRef = useRef<HTMLDivElement | null>(null);
@@ -58,14 +55,10 @@ export function useAutosizeInput(
   // A controlled input value change does not trigger a change event,
   // so we need to manually observe the value...
   useLayoutEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
     if (sourceRef.current) {
       resize(sourceRef.current, sizingDivRef);
     }
-  }, [options?.value, enabled]);
+  }, [options?.value]);
 
   const onInputChange = useCallback((_event: any) => {
     if (sourceRef.current) {
@@ -75,7 +68,7 @@ export function useAutosizeInput(
 
   const autosizingCallbackRef = useCallback(
     (element: HTMLInputElement | null) => {
-      if (!enabled || !element) {
+      if (!element) {
         sourceRef.current?.removeEventListener('input', onInputChange);
       } else {
         resize(element, sizingDivRef);
@@ -84,7 +77,7 @@ export function useAutosizeInput(
 
       sourceRef.current = element;
     },
-    [onInputChange, enabled]
+    [onInputChange]
   );
 
   return autosizingCallbackRef;

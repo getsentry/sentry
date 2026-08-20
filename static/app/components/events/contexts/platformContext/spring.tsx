@@ -14,10 +14,8 @@ export interface SpringContext {
 
 export function getSpringContextData({
   data,
-  meta,
 }: {
   data: SpringContext;
-  meta?: Record<keyof SpringContext, any>;
 }): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
@@ -32,7 +30,7 @@ export function getSpringContextData({
           key: ctxKey,
           subject: ctxKey,
           value: data[ctxKey],
-          meta: meta?.[ctxKey]?.[''],
+          meta: undefined,
         };
     }
   });

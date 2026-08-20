@@ -6,14 +6,9 @@ export const makeAutomationBasePathname = (orgSlug: string) => {
   return normalizeUrl(`/organizations/${orgSlug}/monitors/alerts/`);
 };
 
-export const makeAutomationCreatePathname = (
-  orgSlug: string,
-  query: {
-    connectedIds?: string[];
-  } = {}
-) => {
+export const makeAutomationCreatePathname = (orgSlug: string) => {
   return normalizeUrl(
-    `${makeAutomationBasePathname(orgSlug)}new/?${qs.stringify(query)}`
+    `${makeAutomationBasePathname(orgSlug)}new/?${qs.stringify({})}`
   );
 };
 

@@ -81,12 +81,11 @@ function LegacyDashboardControls({
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const queryClient = useQueryClient();
-  function renderCancelButton(label = t('Cancel'), variant?: 'transparent') {
+  function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
         data-test-id="dashboard-cancel"
         size="sm"
-        variant={variant}
         onClick={e => {
           e.preventDefault();
           onCancel();

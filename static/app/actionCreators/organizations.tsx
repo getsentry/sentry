@@ -9,7 +9,6 @@ import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
@@ -176,11 +175,6 @@ type FetchOrganizationDetailsParams = {
   loadProjects?: boolean;
 
   /**
-   * Should load teams in TeamStore?
-   */
-  loadTeam?: boolean;
-
-  /**
    * Should set as active organization?
    */
   setActive?: boolean;
@@ -188,7 +182,7 @@ type FetchOrganizationDetailsParams = {
 export async function fetchOrganizationDetails(
   api: Client,
   orgId: string,
-  {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
+  {setActive, loadProjects}: FetchOrganizationDetailsParams
 ) {
   const data = await api.requestPromise(`/organizations/${orgId}/`, {
     query: {
@@ -198,10 +192,6 @@ export async function fetchOrganizationDetails(
 
   if (setActive) {
     setActiveOrganization(data);
-  }
-
-  if (loadTeam) {
-    TeamStore.loadInitialData(data.teams, false, null);
   }
 
   if (loadProjects) {

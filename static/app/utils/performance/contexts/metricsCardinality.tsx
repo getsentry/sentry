@@ -41,7 +41,6 @@ export function MetricsCardinalityProvider(props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
-  sendOutcomeAnalytics?: boolean;
 }) {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
@@ -92,7 +91,6 @@ export function MetricsCardinalityProvider(props: {
 
               return (
                 <Provider
-                  sendOutcomeAnalytics={props.sendOutcomeAnalytics}
                   organization={props.organization}
                   value={{
                     isLoading,
