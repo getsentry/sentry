@@ -587,6 +587,7 @@ function SpansScopeActions({
       keywords={['global', 'scope', 'selectors', 'project', 'environment', 'time']}
     >
       <CMDKAction
+        actionContext={shouldShowProjectReset ? 'project-selection' : undefined}
         display={{
           label: t('Projects'),
           trailingItem: (
@@ -619,6 +620,7 @@ function SpansScopeActions({
               context: 'project-selection',
               label: t('Reset Project Selection'),
               only: true,
+              preserveView: true,
             }}
             display={{
               label: t('Reset Project Selection'),
@@ -695,6 +697,7 @@ function SpansScopeActions({
       </CMDKAction>
 
       <CMDKAction
+        actionContext={shouldShowEnvironmentReset ? 'environment-selection' : undefined}
         display={{
           label: t('Environments'),
           trailingItem: (
@@ -711,6 +714,7 @@ function SpansScopeActions({
               context: 'environment-selection',
               label: t('Reset Environment Selection'),
               only: true,
+              preserveView: true,
             }}
             display={{
               label: t('Reset Environment Selection'),
@@ -781,6 +785,7 @@ function SpansScopeActions({
       </CMDKAction>
 
       <CMDKAction
+        actionContext={shouldShowTimeRangeReset ? 'time-range-selection' : undefined}
         display={{
           label: t('Time range'),
           trailingItem: <QueryValue value={timeRangeLabel} />,
@@ -795,6 +800,7 @@ function SpansScopeActions({
               context: 'time-range-selection',
               label: t('Reset Time Range'),
               only: true,
+              preserveView: true,
             }}
             display={{label: t('Reset Time Range'), icon: <IconRefresh />}}
             onAction={() => {

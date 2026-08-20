@@ -455,6 +455,53 @@ describe('project scope selection', () => {
   });
 });
 
+describe('scope summary reset actions', () => {
+  it.each([
+    ['Projects', 'Reset Project Selection', 'My Projects'],
+    ['Environments', 'Reset Environment Selection', 'All Environments'],
+    ['Time range', 'Reset Time Range', 'Last 14 days'],
+  ])('resets %s directly on the root summary', async (summary, reset, resetValue) => {
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        slug: 'frontend',
+        environments: ['production'],
+      }),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: ['production'],
+      datetime: {period: '7d', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    const searchInput = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(searchInput, summary);
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: reset,
+      })
+    );
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Return to previous action'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: new RegExp(summary)})).toHaveTextContent(
+      resetValue
+    );
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveValue(summary);
+  });
+});
+
 describe('environment scope selection', () => {
   it('summarizes selected environments like the PageFilterBar', () => {
     expect(getEnvironmentScopeLabel([])).toBe('All Environments');
@@ -944,6 +991,48 @@ describe('filter draft selection', () => {
 
     await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
     await waitFor(() => expect(router.location.query.query).toBe('span.op:http.server'));
+  });
+
+  it('adds a has filter for a string attribute', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeType: 'string',
+          key: 'gen_ai.output_messages',
+          name: 'gen_ai.output_messages',
+          attributeSource: {source_type: 'user'},
+        },
+      ],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', statsPeriod: '24h'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
+    await userEvent.type(
+      screen.getByPlaceholderText('Search for attribute'),
+      'gen_ai.output_messages'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'gen_ai.output_messages'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'has'}));
+
+    expect(await screen.findByText('has:gen_ai.output_messages')).toBeInTheDocument();
+    expect(router.location.query.query).toBeUndefined();
   });
 });
 

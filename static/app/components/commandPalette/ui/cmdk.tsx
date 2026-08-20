@@ -53,6 +53,8 @@ interface CMDKActionPanel {
   label: string;
   only?: boolean;
   order?: number;
+  /** Runs a callback without changing the palette's current navigation step. */
+  preserveView?: boolean;
 }
 
 interface CMDKActionDataBase {

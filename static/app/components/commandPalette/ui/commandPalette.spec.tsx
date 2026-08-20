@@ -2536,6 +2536,19 @@ describe('CommandPalette', () => {
       );
     }
 
+    it('focuses the first result whenever the palette opens', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await screen.findByRole('option', {name: 'Drillable Group'});
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+    });
+
     it('preserves state when toggled closed and open without navigating', async () => {
       render(<Wrapper />);
 

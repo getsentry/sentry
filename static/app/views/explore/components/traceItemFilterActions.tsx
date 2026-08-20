@@ -303,6 +303,18 @@ function TraceItemFilterActionsComponent({
             />
           );
         })}
+        {type === 'string' && (
+          <CMDKAction
+            display={{label: t('has')}}
+            onAction={() =>
+              addSearchFilter({
+                key: 'has',
+                op: TermOperator.DEFAULT,
+                value: tag.key,
+              })
+            }
+          />
+        )}
       </CMDKAction>
     );
   };

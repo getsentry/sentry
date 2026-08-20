@@ -803,12 +803,19 @@ export function CommandPalette({
   const onPanelActionSelection = useCallback(
     (key: string | number | null) => {
       setActionsPanelTargetKey(null);
+      const action = panelActions.find(candidate => candidate.key === key);
+      if (action?.actionPanel?.preserveView && 'onAction' in action && action.onAction) {
+        action.onAction();
+        dispatch({type: 'set query', query: state.query});
+        state.input.current?.focus();
+        return;
+      }
       onActionSelection(key, undefined, {
         actions: panelActions,
         prefixMap: EMPTY_PREFIX_MAP,
       });
     },
-    [onActionSelection, panelActions]
+    [dispatch, onActionSelection, panelActions, state.input, state.query]
   );
 
   const handleActionsKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -909,6 +916,7 @@ export function CommandPalette({
     <Stack width="100%" flex={1} minHeight={0} overflow="hidden">
       <ListBox
         key={listActionKey === null ? 'root' : `action:${listActionKey}`}
+        autoFocus={state.action === null ? 'first' : false}
         scrollContainerRef={resultsListRef}
         listState={treeState}
         keyDownHandler={() => true}
