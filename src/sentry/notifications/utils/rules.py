@@ -8,7 +8,11 @@ RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
 
 def get_key_from_rule_data(rule: Rule, key: str) -> str:
-    value = rule.data.get("actions", [{}])[0].get(key)
+    # actions may be missing or empty for some workflow/rule shapes; treat as [{}]
+    # so we raise AssertionError (handled by callers) instead of IndexError.
+    actions = rule.data.get("actions") or [{}]
+    first_action = actions[0] if isinstance(actions[0], dict) else {}
+    value = first_action.get(key)
     assert value is not None
     return value
 
