@@ -619,6 +619,13 @@ TRUSTED_TYPES_POLICIES = [
 # to the devtools console, which is enough for local work.
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
+if ENVIRONMENT == "development":
+    # Collect locally. Also needs CSP_REPORT_ONLY = False, otherwise django-csp
+    # owns the report-only header and the middleware stands down.
+    TRUSTED_TYPES_ENABLED = True
+    # The dev-server error overlay installs its own policy.
+    TRUSTED_TYPES_POLICIES += ["rspack-dev-server#overlay"]
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
