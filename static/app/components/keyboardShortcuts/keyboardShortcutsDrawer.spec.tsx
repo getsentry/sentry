@@ -1,5 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getKeyboardShortcutGroups, TOGGLE_SEER_SHORTCUTS} from './keyboardShortcuts';
 import {KeyboardShortcutsDrawer} from './keyboardShortcutsDrawer';
 import {KeyboardShortcutsHotkeys} from './useKeyboardShortcutsDrawer';
 
@@ -32,6 +33,14 @@ describe('KeyboardShortcutsDrawer', () => {
     expect(screen.getByText('More Actions')).toBeInTheDocument();
     expect(screen.getByText('Toggle selection')).toBeInTheDocument();
     expect(screen.getByText('Reorder selected item')).toBeInTheDocument();
+  });
+
+  it('lists every registered Toggle Seer shortcut', () => {
+    const toggleSeerShortcut = getKeyboardShortcutGroups()
+      .flatMap(group => group.shortcuts)
+      .find(shortcut => shortcut.label === 'Toggle Seer');
+
+    expect(toggleSeerShortcut?.keybindings).toEqual(TOGGLE_SEER_SHORTCUTS);
   });
 
   it('filters shortcuts by label and category', async () => {

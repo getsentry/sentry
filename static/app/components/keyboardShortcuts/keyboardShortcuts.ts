@@ -41,7 +41,7 @@ export function getKeyboardShortcutGroups(): KeyboardShortcutGroup[] {
         },
         {
           label: t('Toggle Seer'),
-          keybindings: [TOGGLE_SEER_SHORTCUTS[0]],
+          keybindings: TOGGLE_SEER_SHORTCUTS,
         },
       ],
     },
