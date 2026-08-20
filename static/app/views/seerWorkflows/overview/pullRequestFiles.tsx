@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -85,6 +85,7 @@ export function PullRequestFiles({
 }) {
   const files = pullRequest.files;
   const {expandedKeys, toggle} = useExpandedKeys();
+  const [shouldFetch, setShouldFetch] = useState(false);
 
   const {data, isPending, isError} = useQuery({
     ...apiOptions.as<PullRequestFilesResponse>()(
@@ -94,7 +95,7 @@ export function PullRequestFiles({
         staleTime: QUERY_STALE_TIME,
       }
     ),
-    enabled: expandedKeys.size > 0,
+    enabled: shouldFetch || expandedKeys.size > 0,
   });
 
   const diffByPath = useMemo(
@@ -123,6 +124,11 @@ export function PullRequestFiles({
   ];
 
   return (
-    <ChangedFilesSection groups={groups} expandedKeys={expandedKeys} onToggle={toggle} />
+    <ChangedFilesSection
+      groups={groups}
+      expandedKeys={expandedKeys}
+      onToggle={toggle}
+      onMouseEnter={() => setShouldFetch(true)}
+    />
   );
 }
