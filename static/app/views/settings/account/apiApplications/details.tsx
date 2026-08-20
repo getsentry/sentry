@@ -53,6 +53,7 @@ const schema = z.object({
   termsUrl: z.string(),
   redirectUris: z.string(),
   allowedOrigins: z.string(),
+  isAgent: z.boolean(),
 });
 
 function ApiApplicationsDetails() {
@@ -286,6 +287,26 @@ function ApiApplicationsDetails() {
                   placeholder="e.g. example.com"
                   autosize
                 />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </FormFieldGroup>
+
+        <FormFieldGroup title={t('Agent Settings')}>
+          <AutoSaveForm
+            name="isAgent"
+            schema={schema}
+            initialValue={app.isAgent}
+            mutationOptions={stringFieldMutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Agent Application')}
+                hintText={t(
+                  'When enabled, the OAuth token exchange returns biscuit capability tokens instead of regular access tokens. Requires org-level access.'
+                )}
+              >
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
           </AutoSaveForm>

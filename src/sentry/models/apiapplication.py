@@ -89,6 +89,7 @@ class ApiApplication(Model):
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
     requires_org_level_access = models.BooleanField(default=False, db_default=False)
+    is_agent = models.BooleanField(default=False, db_default=False)
     # Application version for feature-gating behavioral changes.
     # Existing apps are version 0 ("legacy"); new apps default to 0 until all
     # breaking changes are ready, then the default will be bumped to 1
@@ -151,6 +152,10 @@ class ApiApplication(Model):
         Public clients are created with client_secret=None.
         """
         return self.client_secret is None
+
+    @property
+    def emits_biscuit_tokens(self) -> bool:
+        return self.is_agent and self.requires_org_level_access
 
     def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")

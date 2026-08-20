@@ -31,6 +31,7 @@ class ApiApplicationSerializer(serializers.Serializer):
     privacyUrl = serializers.URLField(
         max_length=255, required=False, allow_null=True, allow_blank=True
     )
+    isAgent = serializers.BooleanField(required=False)
 
 
 class ApiApplicationEndpoint(Endpoint):
@@ -82,6 +83,10 @@ class ApiApplicationDetailsEndpoint(ApiApplicationEndpoint):
                 kwargs["privacy_url"] = result["privacyUrl"]
             if "termsUrl" in result:
                 kwargs["terms_url"] = result["termsUrl"]
+            if "isAgent" in result:
+                kwargs["is_agent"] = result["isAgent"]
+                if result["isAgent"]:
+                    kwargs["requires_org_level_access"] = True
             if kwargs:
                 application.update(**kwargs)
             return Response(serialize(application, request.user), status=200)

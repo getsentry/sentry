@@ -32,4 +32,5 @@ class ApiApplicationSerializer(Serializer):
             "redirectUris": obj.get_redirect_uris(),
             "scopes": obj.scopes,
             "requiresOrgLevelAccess": obj.requires_org_level_access,
+            "isAgent": obj.is_agent,
         }

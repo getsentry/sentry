@@ -282,6 +282,11 @@ class OAuthTokenView(View):
                 name=token_data["error"],
                 reason=token_data["reason"] if "reason" in token_data else None,
             )
+        if "biscuit" in token_data:
+            return self.process_agent_token_details(
+                token=token_data["token"],
+                biscuit_data=token_data["biscuit"],
+            )
         return self.process_token_details(
             token=token_data["token"],
             id_token=token_data["id_token"] if "id_token" in token_data else None,
@@ -400,6 +405,11 @@ class OAuthTokenView(View):
 
         token_data: dict[str, Any] = {"token": api_token}
 
+        if application.emits_biscuit_tokens and api_token.scoping_organization_id:
+            biscuit_data = self._mint_biscuit_for_agent(api_token)
+            if biscuit_data:
+                token_data["biscuit"] = biscuit_data
+
         # OpenID token generation (stays in endpoint)
         if grant_has_openid and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
@@ -443,7 +453,18 @@ class OAuthTokenView(View):
         except TokenRefreshError as e:
             return {"error": "invalid_grant", "reason": str(e)}
 
-        return {"token": refresh_token}
+        token_data: dict[str, Any] = {"token": refresh_token}
+
+        if application.emits_biscuit_tokens and refresh_token.scoping_organization_id:
+            session_id = request.POST.get("session_id")
+            if session_id:
+                biscuit_data = self._mint_biscuit_for_agent(
+                    refresh_token, session_id=session_id
+                )
+                if biscuit_data:
+                    token_data["biscuit"] = biscuit_data
+
+        return token_data
 
     def handle_device_code_grant(
         self, request: Request, application: ApiApplication
@@ -653,5 +674,87 @@ class OAuthTokenView(View):
             token_information["organization_id"] = str(token.scoping_organization_id)
         return HttpResponse(
             json.dumps(token_information),
+            content_type="application/json",
+        )
+
+    def _mint_biscuit_for_agent(
+        self, api_token: ApiToken, session_id: str | None = None
+    ) -> dict[str, Any] | None:
+        from uuid import uuid4
+
+        from sentry import features
+        from sentry.agent.biscuit_token import INITIAL_TOKEN_TTL, mint_biscuit_token
+        from sentry.models.organization import Organization
+        from sentry.seer.agent_token import compute_token_scopes
+
+        org_id = api_token.scoping_organization_id
+        if not org_id:
+            return None
+
+        try:
+            org = Organization.objects.get_from_cache(id=org_id)
+        except Organization.DoesNotExist:
+            return None
+
+        if not features.has(
+            "organizations:agent-biscuit-token-flow", org, actor=api_token.user
+        ):
+            return None
+
+        if session_id is None:
+            session_id = uuid4().hex
+        caller_scopes = api_token.get_scopes()
+        scopes = compute_token_scopes(
+            caller_scopes=caller_scopes,
+            organization_id=org_id,
+            user_id=api_token.user_id,
+            session_id=session_id,
+        )
+        max_scopes = sorted(set(caller_scopes))
+
+        biscuit_token, expires_at = mint_biscuit_token(
+            user_id=api_token.user_id,
+            organization_id=org_id,
+            scopes=scopes,
+            session_id=session_id,
+            max_scopes=max_scopes,
+            ttl=INITIAL_TOKEN_TTL,
+        )
+
+        return {
+            "access_token": biscuit_token,
+            "session_id": session_id,
+            "scopes": scopes,
+            "max_scopes": max_scopes,
+            "expires_at": expires_at,
+        }
+
+    def process_agent_token_details(
+        self, token: ApiToken, biscuit_data: dict[str, Any]
+    ) -> HttpResponse:
+        response: dict[str, Any] = {
+            "access_token": biscuit_data["access_token"],
+            "refresh_token": token.refresh_token,
+            "expires_in": (
+                int((biscuit_data["expires_at"] - timezone.now()).total_seconds())
+            ),
+            "expires_at": biscuit_data["expires_at"],
+            "token_type": "Bearer",
+            "scope": " ".join(token.get_scopes()),
+            "user": {
+                "id": str(token.user.id),
+                "name": token.user.name,
+                "email": token.user.email,
+            },
+            "token_format": "biscuit",
+            "biscuit_session_id": biscuit_data["session_id"],
+            "biscuit_scopes": biscuit_data["scopes"],
+            "biscuit_max_scopes": biscuit_data["max_scopes"],
+            "biscuit_expires_at": biscuit_data["expires_at"].isoformat(),
+        }
+        if token.scoping_organization_id:
+            response["organization_id"] = str(token.scoping_organization_id)
+        return HttpResponse(
+            json.dumps(response),
             content_type="application/json",
         )

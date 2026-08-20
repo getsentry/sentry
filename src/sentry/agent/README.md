@@ -91,17 +91,57 @@ Add the local MCP server to `.mcp.json` in the sentry repo root (or `~/.claude.j
 
 Restart Claude Code. It will trigger the OAuth flow in your browser against your local Sentry instance.
 
+### Alternative: Stdio transport with `--biscuit-mode`
+
+Instead of the Cloudflare HTTP flow, you can run the MCP server as a stdio subprocess. This avoids the OAuth/Miniflare setup and uses the v2 SDK's `inputRequired()` for URL elicitation (browser auto-opens on elevation).
+
+Steps 1–2 above (keypair + devserver) are still required.
+
+```bash
+cd ~/code/sentry-mcp
+pnpm install
+pnpm --filter @sentry/mcp-core run build
+pnpm --filter @sentry/mcp-server run build
+```
+
+Add a stdio entry to `.mcp.json` in the sentry repo (or `~/.claude.json`):
+
+```json
+{
+  "mcpServers": {
+    "sentry-stdio": {
+      "command": "pnpm",
+      "args": [
+        "--dir",
+        "/path/to/sentry-mcp/packages/mcp-server",
+        "start",
+        "--biscuit-mode",
+        "--organization-slug",
+        "default",
+        "--host",
+        "dev.getsentry.net:8000",
+        "--insecure-http"
+      ]
+    }
+  }
+}
+```
+
+On first connect, the server runs device-code auth to get a regular Sentry token, then mints a biscuit from it automatically. Write operations trigger `inputRequired()` URL elicitation — the client opens the approval page in the browser, and the tool call succeeds after approval without a manual retry.
+
 ## Architecture
 
 ```
 Bootstrap:  MCP OAuth → sntryu_ (transient) → mint sntryb_ → discard sntryu_
 Read:       Agent → Sentry API (Bearer sntryb_) → 200
-Write:      Agent → Sentry API (Bearer sntryb_) → 403
-            → MCP creates elevation request
-            → Returns approval URL to user
-            → User approves in browser
-            → MCP polls, picks up elevated biscuit
-            → Retries tool call → 200
+Write:      Agent → Sentry API (Bearer sntryb_) → 403 + WWW-Authenticate header
+            → MCP parses required scope(s) from WWW-Authenticate
+            → Creates elevation request with only needed scope(s)
+            → Throws -32042 UrlElicitationRequiredError
+            → Client auto-opens approval URL in browser
+            → User sees: current scopes (green), requesting (amber), max (gray)
+            → User approves → MCP picks up elevated biscuit via refresh
+            → Client auto-retries tool call → 200
 Decay:      ~5 min → auto-refresh → back to baseline (read-only)
 ```
 
@@ -111,6 +151,8 @@ Key properties:
 - Elevated biscuit goes Sentry → MCP server directly (never in LLM context)
 - `max_scopes` baked into authority block at bootstrap, immutable for the session
 - Refresh endpoint always mints baseline — elevated scopes silently drop
+- Scoped elevation: only the specific scope(s) the endpoint needs are requested (not all maxScopes)
+- Scopes stored as Biscuit facts in the authority block — no database lookup on verification
 
 ## Files
 
@@ -121,14 +163,15 @@ Key properties:
 - `endpoints/organization_biscuit_token.py` — mint endpoint
 - `endpoints/organization_biscuit_token_refresh.py` — refresh endpoint (auto-decay)
 - `endpoints/organization_biscuit_elevation.py` — create + poll elevation
-- `../web/frontend/agent_elevation.py` — browser approval view
-- `../templates/sentry/agent-elevate.html` — consent page
+- `../web/frontend/agent_elevation.py` — browser approval view with `SCOPE_LABELS`, three scope categories
+- `../templates/sentry/agent-elevate.html` — styled consent page (active/requesting/max scopes, anti-clickjacking)
 
 ### MCP server (`sentry-mcp` repo, branch `feat/biscuit-agent-tokens`)
 
 - `packages/mcp-core/src/auth/biscuit-token-manager.ts` — token lifecycle + pending elevation tracking
-- `packages/mcp-core/src/api-client/errors.ts` — `isApiPermissionErrorDeep()` for 403 detection
-- `packages/mcp-core/src/server.ts` — 403 interception + elevation URL return
+- `packages/mcp-core/src/api-client/errors.ts` — `ApiPermissionError.requiredScopes`, `parseScopesFromWwwAuthenticate()`, `isApiPermissionErrorDeep()`
+- `packages/mcp-core/src/api-client/client.ts` — passes `WWW-Authenticate` header to error factory
+- `packages/mcp-core/src/server.ts` — 403 → scoped elevation → `-32042` URL elicitation or `inputRequired()`
 - `packages/mcp-cloudflare/src/server/oauth/routes/callback.ts` — biscuit minting at OAuth bootstrap
 
 ### Config

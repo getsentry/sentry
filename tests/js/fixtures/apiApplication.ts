@@ -10,6 +10,7 @@ export function ApiApplicationFixture(
     dateCreated: '2024-01-15T12:00:00.000Z',
     homepageUrl: null,
     id: '123',
+    isAgent: false,
     isPublic: false,
     name: 'Adjusted Shrimp',
     privacyUrl: null,

@@ -105,6 +105,7 @@ export type ApiApplication = {
    * Public clients are used for CLIs, native apps, and SPAs that
    * cannot securely store a client secret (RFC 6749 §2.1).
    */
+  isAgent: boolean;
   isPublic: boolean;
   name: string;
   privacyUrl: string | null;

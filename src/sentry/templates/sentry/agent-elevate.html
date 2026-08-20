@@ -6,37 +6,148 @@
 {% block title %}{% trans "Approve Agent Permissions" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
+  <style>
+    .scope-section {
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .scope-section h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .scope-section ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .scope-section li {
+      padding: 4px 0;
+      font-size: 13px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .scope-key {
+      color: #80708f;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .scope-active {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+    }
+    .scope-active h4 { color: #2e7d32; }
+    .scope-requested {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+    }
+    .scope-requested h4 { color: #f57f17; }
+    .scope-max {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+    }
+    .scope-max h4 { color: #616161; }
+    .scope-max summary {
+      cursor: pointer;
+      font-size: 13px;
+      color: #757575;
+    }
+    .elevation-note {
+      font-size: 13px;
+      color: #757575;
+      margin-top: 4px;
+    }
+    .result-box {
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .result-approved {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+    }
+    .result-denied {
+      background: #ffebee;
+      border: 1px solid #ef9a9a;
+    }
+  </style>
+
   {% if approved %}
-    <div>
-      <h3>Permissions Approved</h3>
-      <p>The agent session has been granted elevated permissions. You can close this tab.</p>
-      <ul>
-        {% for scope in requested_scopes %}
-          <li>{{ scope }}</li>
-        {% endfor %}
-      </ul>
-      <p>These permissions will expire automatically after ~5 minutes.</p>
+    <div class="result-box result-approved">
+      <h3 style="margin-top:0;">&#x2705; Permissions Approved</h3>
+      <p>The agent session has been granted the following additional permissions:</p>
+      <div class="scope-section scope-active">
+        <h4>Granted</h4>
+        <ul>
+          {% for key, label in granted_scopes %}
+            <li>{{ label }} <span class="scope-key">{{ key }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <p class="elevation-note">These permissions will expire automatically after ~5 minutes. You can close this tab.</p>
     </div>
+
+    {% if new_active_scopes %}
+      <div class="scope-section scope-max">
+        <details>
+          <summary>Full active scope set ({{ new_active_scopes|length }} scopes)</summary>
+          <ul style="margin-top: 8px;">
+            {% for key, label in new_active_scopes %}
+              <li>{{ label }} <span class="scope-key">{{ key }}</span></li>
+            {% endfor %}
+          </ul>
+        </details>
+      </div>
+    {% endif %}
+
   {% elif denied %}
-    <div>
-      <h3>Permissions Denied</h3>
+    <div class="result-box result-denied">
+      <h3 style="margin-top:0;">&#x274C; Permissions Denied</h3>
       <p>The agent session was denied elevated permissions. You can close this tab.</p>
     </div>
+
   {% else %}
     <form class="form-stacked" action="." method="post" autocomplete="off">
       {% csrf_token %}
       <input type="hidden" name="tx_id" value="{{ tx_id }}">
       <input type="hidden" name="elevation_id" value="{{ elevation_id }}">
 
-      <div>
-        <p>An AI agent session is requesting additional permissions for your organization <strong>{{ org_name }}</strong>:</p>
+      <p>An AI agent session is requesting additional permissions for your organization <strong>{{ org_name }}</strong>.</p>
+
+      <div class="scope-section scope-active">
+        <h4>&#x2705; Current permissions</h4>
         <ul>
-          {% for scope in requested_scopes %}
-            <li>{{ scope }}</li>
+          {% for key, label in active_scopes %}
+            <li>{{ label }} <span class="scope-key">{{ key }}</span></li>
+          {% empty %}
+            <li><em>No active scopes</em></li>
           {% endfor %}
         </ul>
-        <p>These permissions will expire automatically after ~5 minutes.</p>
       </div>
+
+      <div class="scope-section scope-requested">
+        <h4>&#x26A0;&#xFE0F; Requesting</h4>
+        <ul>
+          {% for key, label in requested_scopes %}
+            <li>{{ label }} <span class="scope-key">{{ key }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="scope-section scope-max">
+        <details>
+          <summary>Maximum possible scopes ({{ max_scopes|length }} total)</summary>
+          <ul style="margin-top: 8px;">
+            {% for key, label in max_scopes %}
+              <li>{{ label }} <span class="scope-key">{{ key }}</span></li>
+            {% endfor %}
+          </ul>
+        </details>
+      </div>
+
+      <p class="elevation-note">Elevated permissions expire automatically after ~5 minutes.</p>
 
       <div class="auth-footer">
         <button type="submit" class="btn btn-primary" name="op" value="approve" disabled>{% trans "Approve" %}</button>
