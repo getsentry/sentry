@@ -4,9 +4,9 @@ import pytest
 
 from sentry.llm_cache_detection.detection import (
     MIN_AVG_INPUT_TOKENS,
-    MIN_CACHEABLE_PREFIX_CHARS,
     MIN_CACHEABLE_SHARE,
     MIN_CALLS_FOR_CONFIDENCE,
+    MIN_STABLE_BLOCK_CHARS,
     AgentLabelSource,
     CacheFinding,
     CacheOutcome,
@@ -613,27 +613,28 @@ def test_flags_a_template_holding_its_stable_content_behind_the_variable_part() 
     )
 
     assert divergence is not None
-    assert divergence.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
-    assert divergence.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.common_prefix_chars < MIN_STABLE_BLOCK_CHARS
+    assert divergence.stable_block_chars >= MIN_STABLE_BLOCK_CHARS
     assert divergence.template_misordered
 
 
-def test_does_not_call_it_misordered_when_the_shared_prefix_already_caches() -> None:
-    # The stable content is where a cache can reach it; that the tail varies
-    # after it is ordinary, not a template someone put together backwards.
-    shared = "A" * (MIN_CACHEABLE_PREFIX_CHARS + 1)
+def test_does_not_call_it_misordered_when_the_stable_content_already_comes_first() -> None:
+    # The stable content is in front of the divergence, which is where a cache
+    # reads from; that the tail varies after it is ordinary, not a template
+    # someone put together backwards.
+    shared = "A" * (MIN_STABLE_BLOCK_CHARS + 1)
     divergence = diagnose_prompt_divergence(
         [f"{shared}{STABLE_BLOCK}pears", f"{shared}{STABLE_BLOCK}apples"]
     )
 
     assert divergence is not None
-    assert divergence.common_prefix_chars > MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.common_prefix_chars > MIN_STABLE_BLOCK_CHARS
     assert not divergence.template_misordered
 
 
 def test_does_not_call_it_misordered_when_too_little_follows_the_divergence() -> None:
-    # Moving a block this small ahead of the timestamp would still not reach the
-    # provider's minimum cacheable prefix, so there is nothing to recommend.
+    # A block this small is not worth rewriting a template over, whatever it
+    # would add to the prefix, so there is nothing to recommend.
     divergence = diagnose_prompt_divergence(
         [
             make_prompt("Now: 2026-08-19T10:15:00Z. ", SHORT_BLOCK),
@@ -642,8 +643,27 @@ def test_does_not_call_it_misordered_when_too_little_follows_the_divergence() ->
     )
 
     assert divergence is not None
-    assert 0 < divergence.stable_block_chars < MIN_CACHEABLE_PREFIX_CHARS
+    assert 0 < divergence.stable_block_chars < MIN_STABLE_BLOCK_CHARS
     assert not divergence.template_misordered
+
+
+def test_flags_a_stranded_block_too_small_to_have_cached_on_its_own() -> None:
+    # A block does not have to clear a provider's minimum by itself to be worth
+    # moving, because ahead of the changing part it joins the prefix rather than
+    # standing alone.
+    modest_block = "Rank the candidate rows and explain the ranking briefly.\n" * 8
+    divergence = diagnose_prompt_divergence(
+        [
+            make_prompt("Now: 2026-08-19T10:15:00Z. ", modest_block),
+            make_prompt("Now: 2026-08-19T11:47:31Z. ", modest_block),
+        ]
+    )
+
+    assert divergence is not None
+    # A few hundred characters is nowhere near the thousand-odd tokens a provider
+    # asks of a prefix, and the template still reads as misordered.
+    assert MIN_STABLE_BLOCK_CHARS <= divergence.stable_block_chars < 1_000
+    assert divergence.template_misordered
 
 
 def test_finds_stable_content_stranded_between_two_variable_parts() -> None:
@@ -660,8 +680,8 @@ def test_finds_stable_content_stranded_between_two_variable_parts() -> None:
     )
 
     assert divergence is not None
-    assert divergence.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
-    assert divergence.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
+    assert divergence.common_prefix_chars < MIN_STABLE_BLOCK_CHARS
+    assert divergence.stable_block_chars >= MIN_STABLE_BLOCK_CHARS
     assert divergence.template_misordered
 
 

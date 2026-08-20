@@ -382,13 +382,10 @@ def find_contrast_anchor(
 # A shared prefix only means something once two invocations have been compared.
 MIN_PROMPT_SAMPLES = 2
 
-# Prompt lengths are read in characters because that is what the attribute
-# carries, while every cache threshold is denominated in tokens. Four characters
-# to a token is the rough English-prose ratio; it varies by tokenizer and by
-# language, so it is only ever used to put a character length on the same scale
-# as a token threshold, never to report a token count.
-CHARS_PER_TOKEN = 4
-MIN_CACHEABLE_PREFIX_CHARS = MIN_AVG_INPUT_TOKENS * CHARS_PER_TOKEN
+# How much identical content has to sit on one side of the divergence before a
+# prompt reads as misordered rather than merely variable: less than this shared
+# up front, and at least this much stranded behind.
+MIN_STABLE_BLOCK_CHARS = 256
 
 # How much of a prompt to read around the point where the samples stop agreeing.
 # What gets classified is the token straddling that point, and the longest of
@@ -488,14 +485,16 @@ class PromptDivergence:
     def template_misordered(self) -> bool:
         """Whether stable content is sitting behind the variable part.
 
-        The shared prefix is all a cache can hold, so a prefix under the
-        provider's minimum cacheable length caches nothing at all -- while an
-        identical block of at least that length sitting past the divergence is
-        content that would have cached, had the template put it first.
+        A cache holds a prefix and nothing else, so an identical block past the
+        divergence is content that would have been cacheable had the template put
+        it first, while what is shared ahead of the divergence is too little to
+        be the point. The block does not have to clear a provider's minimum on
+        its own: moved in front of the changing part it joins the prefix, and the
+        ordering is what the finding is about.
         """
         return (
-            self.common_prefix_chars < MIN_CACHEABLE_PREFIX_CHARS
-            and self.stable_block_chars >= MIN_CACHEABLE_PREFIX_CHARS
+            self.common_prefix_chars < MIN_STABLE_BLOCK_CHARS
+            and self.stable_block_chars >= MIN_STABLE_BLOCK_CHARS
         )
 
 
