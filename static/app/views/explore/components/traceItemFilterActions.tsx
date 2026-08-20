@@ -8,6 +8,7 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {
+  comparisonOperators,
   FilterType,
   filterTypeConfig,
   negationOperators,
@@ -156,6 +157,16 @@ export function getSearchFilterDescriptor(
 
   const filter = filters[0]!;
   let operator = filter.operator;
+  let value = filter.value.text;
+  if (operator === TermOperator.DEFAULT) {
+    const comparisonOperator = comparisonOperators.find(candidate =>
+      value.startsWith(candidate)
+    );
+    if (comparisonOperator) {
+      operator = comparisonOperator;
+      value = value.slice(comparisonOperator.length);
+    }
+  }
   if (filter.negated) {
     switch (operator) {
       case TermOperator.DEFAULT:
@@ -175,7 +186,7 @@ export function getSearchFilterDescriptor(
     }
   }
 
-  return {attributeKey: filter.key.text, operator, value: filter.value.text};
+  return {attributeKey: filter.key.text, operator, value};
 }
 
 const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;

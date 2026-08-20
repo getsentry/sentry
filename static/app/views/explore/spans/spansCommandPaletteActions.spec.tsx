@@ -43,6 +43,7 @@ import {TermOperator, WildcardOperators} from 'sentry/components/searchSyntax/pa
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   addSearchFilterToQuery,
+  getSearchFilterDescriptor,
   getSearchFilterAttribute,
   getFilterRows,
   removeSearchFilterFromQuery,
@@ -960,6 +961,50 @@ describe('filter draft selection', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('preserves the operator when changing a numeric filter value from Step 0', async () => {
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeType: 'number',
+          key: 'span.duration',
+          name: 'span.duration',
+          attributeSource: {source_type: 'builtin'},
+        },
+      ],
+    });
+
+    render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            project: '1',
+            query: 'span.duration:>=100ms',
+            statsPeriod: '24h',
+          },
+        },
+      },
+    });
+
+    await userEvent.click(
+      within(await openFilterActions('100ms')).getByRole('option', {
+        name: 'Change Filter Value',
+      })
+    );
+    await userEvent.type(screen.getByPlaceholderText('Enter value'), '200ms');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(await screen.findByText('span.duration:>=200ms')).toBeInTheDocument();
+  });
+
   it('adds a separate pending filter from an existing filter row', async () => {
     renderPaletteWithQuery('span.op:http.server');
 
@@ -1274,6 +1319,14 @@ describe('chart deletion', () => {
 });
 
 describe('addSearchFilterToQuery', () => {
+  it('extracts a comparison operator from a generically parsed attribute', () => {
+    expect(getSearchFilterDescriptor('span.duration:>=100ms')).toEqual({
+      attributeKey: 'span.duration',
+      operator: TermOperator.GREATER_THAN_EQUAL,
+      value: '100ms',
+    });
+  });
+
   it('does not add the same filter twice', () => {
     expect(
       addSearchFilterToQuery('project:frontend-react', {
