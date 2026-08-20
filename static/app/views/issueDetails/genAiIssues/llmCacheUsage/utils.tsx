@@ -30,7 +30,11 @@ const OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 const GEN_AI_CALL_FILTER =
   'gen_ai.operation.type:ai_client !gen_ai.operation.name:embeddings has:gen_ai.usage.input_tokens';
 
-export const LLM_CACHE_REFERRER = 'llm-cache-usage-issue';
+// Spelled the way the backend registers it. An unregistered referrer is not an
+// error -- the events endpoints quietly rewrite it to the generic one -- so a
+// near miss here would cost this page its own cost attribution and rate limit
+// without anything failing.
+export const LLM_CACHE_REFERRER = 'api.llm-cache-usage-issue';
 
 /**
  * Whether the call site is named after its operation because its spans carry no
