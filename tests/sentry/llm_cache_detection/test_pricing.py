@@ -165,9 +165,11 @@ class TestSavingsEstimate:
         assert estimate is not None
         assert estimate.overpay_vs_no_cache_usd is None
 
-    def test_clamps_exclusive_token_reporting_to_zero(self) -> None:
+    def test_declines_when_there_is_nothing_left_to_recover(self) -> None:
         # Providers that report input tokens exclusive of cached ones drive
-        # uncached_tokens to zero rather than negative.
+        # uncached_tokens to zero rather than negative, leaving no volume to
+        # price. A zero here would render as a measured amount rather than as
+        # the absence of one, so no estimate is made at all.
         stats = make_stats(
             sum_input_tokens=1_000_000,
             sum_cache_read_tokens=900_000,
@@ -175,10 +177,7 @@ class TestSavingsEstimate:
         )
         pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
 
-        estimate = pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
-
-        assert estimate is not None
-        assert estimate.estimated_savings_usd == 0
+        assert pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats)) is None
 
     def test_returns_none_for_an_unpriced_model(self) -> None:
         pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))

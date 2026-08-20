@@ -101,8 +101,14 @@ def _estimate_from_costs(finding: CacheFinding, costs: AIModelCost) -> SavingsEs
         savings = stats.uncached_tokens * (input_price - cached_input_price)
         overpay_vs_no_cache_usd = None
 
+    # Nothing to recover is not a number worth showing: rendered, it reads as a
+    # measured zero rather than as the absence of an estimate, and every surface
+    # already has a way to say nothing.
+    if savings <= 0:
+        return None
+
     return SavingsEstimate(
-        estimated_savings_usd=max(savings, 0.0),
+        estimated_savings_usd=savings,
         price_per_input_token=input_price,
         price_per_cached_input_token=cached_input_price,
         price_per_cache_write_token=cache_write_price,
