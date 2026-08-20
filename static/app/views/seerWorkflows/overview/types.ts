@@ -209,7 +209,14 @@ export interface OverviewRun {
   codeChanges?: OverviewCodeChangeFile[];
 }
 
+export interface ProjectConfig {
+  hasReposConnected: boolean;
+  id: string;
+  slug: string;
+}
+
 export interface AutofixOverviewResponse {
   runsByMilestone: Record<MilestoneKey, OverviewRun[]>;
+  projectConfig?: ProjectConfig[];
   truncatedMilestones?: MilestoneKey[];
 }
