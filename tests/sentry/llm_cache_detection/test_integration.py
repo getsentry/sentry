@@ -134,6 +134,18 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
 
 
 class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
+    def test_counts_stored_spans_alongside_the_traffic_they_stand_for(self) -> None:
+        # The evidence floor is read off the stored-span count, so it has to
+        # arrive from EAP rather than default to zero -- which would classify
+        # every call site as ineligible and look exactly like no traffic.
+        self.store_call_site(agent_name="Explorer", model=GEMINI)
+
+        [call_site] = fetch_call_site_stats(self.project, self.window)
+
+        assert call_site.call_count == CALLS_PER_CALL_SITE
+        # Nothing sampled these away, so the two counts agree.
+        assert call_site.sampled_call_count == CALLS_PER_CALL_SITE
+
     def test_separates_two_agents_sharing_a_span_name_and_model(self) -> None:
         # The span name is the SDK wrapper both agents call through. Keying on it
         # alone would average a broken call site into a healthy one and report
