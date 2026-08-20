@@ -42,8 +42,10 @@ describe('useFetchIssueTags', () => {
     };
   }
 
-  it('offers the LLM cache filters when the detection feature is enabled', async () => {
-    const organization = OrganizationFixture({features: ['llm-cache-detection']});
+  it('offers the LLM cache filters when the issues are visible', async () => {
+    const organization = OrganizationFixture({
+      features: ['issue-llm-cache-usage-visible'],
+    });
 
     const {issueTypes, issueCategories} = await fetchTagValues(organization);
 
@@ -51,8 +53,20 @@ describe('useFetchIssueTags', () => {
     expect(issueCategories).toContain(IssueCategory.GEN_AI);
   });
 
-  it('hides the LLM cache filters without the detection feature', async () => {
+  it('hides the LLM cache filters when the issues are not visible', async () => {
     const organization = OrganizationFixture({features: []});
+
+    const {issueTypes, issueCategories} = await fetchTagValues(organization);
+
+    expect(issueTypes).not.toContain(IssueType.LLM_CACHE_USAGE);
+    expect(issueCategories).not.toContain(IssueCategory.GEN_AI);
+  });
+
+  it('hides the LLM cache filters for an org that only runs the detector', async () => {
+    // Search resolves neither the category nor the type without the visibility
+    // flag, so offering them here would be a filter that always comes back
+    // empty for reasons the reader has no way to see.
+    const organization = OrganizationFixture({features: ['llm-cache-detection']});
 
     const {issueTypes, issueCategories} = await fetchTagValues(organization);
 

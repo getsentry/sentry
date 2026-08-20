@@ -246,9 +246,12 @@ function builtInIssuesFields({
   currentTags: TagCollection;
   organization: Organization;
 }): TagCollection {
-  // The type is hidden by default, so only orgs the detector runs for are
-  // offered a filter that can return anything.
-  const hasLLMCacheDetection = organization.features.includes('llm-cache-detection');
+  // The type is hidden by default, and this is the flag that unhides it: search
+  // drops the category and the type for anyone without it, so gating on
+  // anything else would offer a filter that returns nothing and says why.
+  const hasLLMCacheUsageIssues = organization.features.includes(
+    'issue-llm-cache-usage-visible'
+  );
 
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -320,7 +323,7 @@ function builtInIssuesFields({
       name: 'Issue Category',
       values: [
         ...SEARCHABLE_ISSUE_CATEGORIES,
-        ...(hasLLMCacheDetection ? [IssueCategory.GEN_AI] : []),
+        ...(hasLLMCacheUsageIssues ? [IssueCategory.GEN_AI] : []),
       ].map(value => ({
         icon: null,
         title: value,
@@ -341,7 +344,7 @@ function builtInIssuesFields({
         !organization.hideAiFeatures
           ? [...AI_DETECTED_ISSUE_TYPES]
           : []),
-        ...(hasLLMCacheDetection ? [IssueType.LLM_CACHE_USAGE] : []),
+        ...(hasLLMCacheUsageIssues ? [IssueType.LLM_CACHE_USAGE] : []),
       ].map(value => ({
         icon: null,
         title: value,
