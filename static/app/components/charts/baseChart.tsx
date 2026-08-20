@@ -116,6 +116,14 @@ export interface TooltipOption
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
+   * Returns extra HTML to render inside the series block, after the series rows. Use
+   * for content that explains the series, e.g. a legend for abbreviated names.
+   *
+   * Called each time the tooltip renders, so it is safe to build the HTML by
+   * rendering a React tree.
+   */
+  renderSeriesDetails?: () => string;
+  /**
    * If true does not display sublabels with a value of 0.
    */
   skipZeroValuedSubLabels?: boolean;

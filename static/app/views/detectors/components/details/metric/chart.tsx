@@ -1,10 +1,11 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {type Theme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
@@ -30,6 +31,7 @@ import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
 import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/details/metric/getDetectorOpenInDestination';
 import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
@@ -214,6 +216,14 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
+  // Some datasets can summarize the aggregate in a more readable form (e.g. "A + B" for
+  // trace metric equations), which the tooltip uses in place of the series name.
+  const query = datasetConfig.toSnubaQueryString(snubaQuery);
+  const aggregateSummary = useMemo(
+    () => datasetConfig.getAggregateSummary?.(snubaQuery.aggregate),
+    [datasetConfig, snubaQuery.aggregate]
+  );
+  const renderToString = useRenderToString();
   const {
     series,
     comparisonSeries,
@@ -229,7 +239,7 @@ export function useMetricDetectorChart({
       ? snubaQuery.aggregate
       : aggregate,
     interval: snubaQuery.timeWindow,
-    query: datasetConfig.toSnubaQueryString(snubaQuery),
+    query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
     eventTypes: snubaQuery.eventTypes,
@@ -421,6 +431,35 @@ export function useMetricDetectorChart({
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
+        // The series name is the raw aggregate, which for an equation is unreadable.
+        // Show the summarized expression, the filter it runs under, and explain the
+        // expression's labels underneath.
+        nameFormatter: aggregateSummary
+          ? () =>
+              renderToString(
+                <Flex as="span" display="inline-flex" gap="xs" align="baseline">
+                  <Text size="sm">{aggregateSummary.expression}</Text>
+                  {query ? (
+                    <Fragment>
+                      <Text size="sm" bold>
+                        {t('Where')}
+                      </Text>
+                      <Text size="sm">{query}</Text>
+                    </Fragment>
+                  ) : null}
+                </Flex>
+              )
+          : undefined,
+        renderSeriesDetails: aggregateSummary
+          ? () =>
+              renderToString(
+                // A plain wrapper so the tooltip's `.tooltip-series > div` flex rule
+                // lands here rather than on the table's own grid.
+                <Container paddingTop="md">
+                  <AggregateSummaryTable summary={aggregateSummary} />
+                </Container>
+              )
+          : undefined,
         // Data points are shifted to bucket-end timestamps
         // so we need to subtract the interval to get the bucket-start time.
         formatAxisLabel: (
@@ -455,6 +494,7 @@ export function useMetricDetectorChart({
   }, [
     additionalSeries,
     aggregate,
+    aggregateSummary,
     chartZoomProps,
     detectionType,
     error,
@@ -462,6 +502,8 @@ export function useMetricDetectorChart({
     height,
     isLoading,
     openPeriodMarkerResult,
+    query,
+    renderToString,
     series,
     serverOutputType,
     snubaQuery.timeWindow,

@@ -73,6 +73,32 @@ interface DetectorSeriesQueryOptions {
 }
 
 /**
+ * One aggregate referenced by an `AggregateSummary` expression.
+ */
+export interface AggregateSummaryComponent {
+  /** Reference label used by the expression, e.g. "A". */
+  label: string;
+  /** Describes this aggregate, positionally matching `AggregateSummary.headers`. */
+  values: string[];
+}
+
+/**
+ * A human readable rendering of an aggregate, for views that display a saved detector
+ * rather than edit it. Datasets name their own columns so this stays dataset agnostic.
+ */
+export interface AggregateSummary {
+  /** Each aggregate referenced by `expression`, in label order. */
+  components: AggregateSummaryComponent[];
+  /** The aggregate in compact form, e.g. "A + B". */
+  expression: string;
+  /**
+   * Column headers for `components[].values`, in the terms the edit form uses,
+   * e.g. ['Application Metric', 'Operation', 'Filter'].
+   */
+  headers: string[];
+}
+
+/**
  * Minimal configuration interface for detector dataset configs.
  * Contains only the properties actually used by the detectors form.
  */
@@ -158,6 +184,18 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    * e.g. For the errors dataset, count() will be formatted as 'Number of errors'
    */
   formatAggregateForTitle?: (aggregate: string) => string;
+
+  /**
+   * Break the raw API aggregate down into a human readable form for read-only displays.
+   * Receives the same input as `fromApiAggregate`.
+   *
+   * Return `null` when the aggregate reads no better broken down, in which case callers
+   * fall back to `fromApiAggregate`.
+   *
+   * e.g. For the tracemetrics dataset, an equation of two aggregates summarizes as
+   * 'A + B' using the same reference labels shown in the detector edit form.
+   */
+  getAggregateSummary?: (aggregate: string) => AggregateSummary | null;
 
   /**
    * Whether the dataset supports equations

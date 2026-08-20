@@ -118,6 +118,14 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
+     * Returns extra HTML to render inside the series block, after the series rows. Use
+     * for content that explains the series, e.g. a legend for abbreviated names.
+     *
+     * Called each time the tooltip renders, so it is safe to build the HTML by
+     * rendering a React tree.
+     */
+    renderSeriesDetails?: () => string;
+    /**
      * If true does not display sublabels with a value of 0.
      */
     skipZeroValuedSubLabels?: boolean;
@@ -141,6 +149,7 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
+  renderSeriesDetails,
   skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
@@ -296,9 +305,11 @@ export function getFormatter({
       }
     );
 
+    const seriesDetails = renderSeriesDetails?.() ?? '';
+
     if (subLabels.length > 0) {
       return [
-        `<div class="tooltip-series">${series.join('')}</div>`,
+        `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
         '<div class="tooltip-footer">',
         `<div><strong>${t('Date')}:</strong> ${date}</div>`,
         `<div><strong>${t('Total')}:</strong> ${valueFormatter(total)}</div>`,
@@ -308,7 +319,7 @@ export function getFormatter({
     }
 
     return [
-      `<div class="tooltip-series">${series.join('')}</div>`,
+      `<div class="tooltip-series">${series.join('')}${seriesDetails}</div>`,
       '<div class="tooltip-footer tooltip-footer-centered">',
       date,
       '</div>',
@@ -342,6 +353,7 @@ export function computeChartTooltip(
     nameFormatter,
     markerFormatter,
     hideDelay,
+    renderSeriesDetails,
     subLabels,
     chartId,
     skipZeroValuedSubLabels,
@@ -363,6 +375,7 @@ export function computeChartTooltip(
       valueFormatter,
       nameFormatter,
       markerFormatter,
+      renderSeriesDetails,
       subLabels,
       skipZeroValuedSubLabels,
     });
