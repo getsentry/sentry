@@ -1098,7 +1098,7 @@ function EventContextTimelineContent({
                   label={t('Events Shown')}
                   value={drawnItems.length}
                   hint={t(
-                    'What the timeline could place here. High-volume data is trimmed and each section loads on its own, so the sections below can hold more than this.'
+                    'Everything the timeline can show from this event and its trace. The sections below have the complete data.'
                   )}
                 />
               </Flex>
@@ -1204,8 +1204,10 @@ function EventContextTimelineContent({
                 ))}
 
               {eventTimestamp !== null && (
-                <EventLine left={eventFraction * 100}>
-                  <EventLineLabel>{t('This Issue')}</EventLineLabel>
+                <EventLine left={eventFraction * 100} lineColor={eventColor}>
+                  <EventLineLabel lineColor={eventColor}>
+                    {t('This Issue')}
+                  </EventLineLabel>
                 </EventLine>
               )}
             </Overlay>
@@ -1376,24 +1378,25 @@ const IdlePill = styled('div')`
   white-space: nowrap;
 `;
 
-// Deliberately neutral rather than severity-colored: this line marks *where* the focal
-// event sits, and the markers already use red and orange to mean "error" and "warning".
-// Tinting the line by severity would make the same red mean two different things.
-const EventLine = styled('div')<{left: number}>`
+// Severity-colored like the markers are. A neutral line reads as chrome and disappears
+// against the track, and this line is the one thing in the widget the eye needs to find
+// first, so it takes the focal event's own color.
+const EventLine = styled('div')<{left: number; lineColor: string}>`
   position: absolute;
   top: 0;
   bottom: 0;
   left: ${p => p.left}%;
-  border-left: 2px dashed ${p => p.theme.tokens.border.neutral.vibrant};
+  border-left: 2px dashed ${p => p.lineColor};
 `;
 
-const EventLineLabel = styled('span')`
+const EventLineLabel = styled('span')<{lineColor: string}>`
   position: absolute;
   top: -18px;
   right: 0;
   padding: 0 ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.primary};
+  color: ${p => p.lineColor};
   font-size: ${p => p.theme.font.size.xs};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
 `;
 
