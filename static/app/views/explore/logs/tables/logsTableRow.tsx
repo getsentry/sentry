@@ -10,7 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
-import {scrollEventContextRowIntoView} from 'sentry/components/events/eventContextTarget';
+import {scrollEventContextRowIntoView} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

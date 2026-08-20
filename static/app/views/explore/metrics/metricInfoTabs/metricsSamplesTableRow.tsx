@@ -9,7 +9,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   getEventContextTargetId,
   scrollEventContextRowIntoView,
-} from 'sentry/components/events/eventContextTarget';
+} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

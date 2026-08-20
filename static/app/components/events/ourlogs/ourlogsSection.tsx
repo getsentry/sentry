@@ -11,8 +11,8 @@ import {
   EVENT_CONTEXT_TARGET_QUERY_PARAM,
   getEventContextTargetId,
   getEventContextTargetIds,
-} from 'sentry/components/events/eventContextTarget';
-import {ViewMorePulse} from 'sentry/components/events/eventContextViewMorePulse';
+} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
+import {ViewMorePulse} from 'sentry/components/events/eventContextTimeline/eventContextViewMorePulse';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';

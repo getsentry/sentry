@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {
   EVENT_CONTEXT_TARGET_QUERY_PARAM,
   getEventContextTargetIds,
-} from 'sentry/components/events/eventContextTarget';
+} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';

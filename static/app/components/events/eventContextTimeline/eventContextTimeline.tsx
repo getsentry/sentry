@@ -18,7 +18,7 @@ import {getEnhancedBreadcrumbs} from 'sentry/components/events/breadcrumbs/utils
 import {
   EVENT_CONTEXT_FOCUS_NONCE_QUERY_PARAM,
   EVENT_CONTEXT_TARGET_QUERY_PARAM,
-} from 'sentry/components/events/eventContextTarget';
+} from 'sentry/components/events/eventContextTimeline/eventContextTarget';
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -149,7 +149,7 @@ function useTraceEvents(event: Event) {
 /** Content stays this far from either track edge, so nothing renders flush against it. */
 const EDGE_PAD = 0.04;
 /** Quiet stretches at least this long collapse into a fixed-width column. */
-const IDLE_GAP_THRESHOLD_MS = 4000;
+export const IDLE_GAP_THRESHOLD_MS = 4000;
 /** Share of the axis each collapsed gap takes, so idle time can't crowd out real events. */
 const IDLE_GAP_FRACTION = 0.07;
 const MAX_TOTAL_IDLE_FRACTION = 0.4;
@@ -164,7 +164,7 @@ const HIGHLIGHT_DURATION_MS = 3000;
  * handful to stay legible; the full set lives in the Logs section below. Metrics are
  * far fewer, so all fetched metrics are shown (clustering handles any bursts).
  */
-const MAX_TIMELINE_LOGS = 10;
+export const MAX_TIMELINE_LOGS = 10;
 
 function getSessionId(event: Event): string | undefined {
   return event.tags.find(tag => tag.key === 'session.id')?.value;
