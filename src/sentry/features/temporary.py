@@ -39,6 +39,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable climate impact data on trace endpoints
+    manager.add("organizations:climate-impact-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
