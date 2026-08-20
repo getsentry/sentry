@@ -329,9 +329,8 @@ export function GlobalCommandPaletteActions({
   const currentDsnProject = currentProjects.length === 1 ? currentProjects[0] : undefined;
   const dsnProjects = currentProjects.length > 0 ? currentProjects : projects;
 
-  const copyProjectDsn = async (project: Project) => {
-    addLoadingMessage(t('Loading DSN…'));
-    try {
+  const {mutate: copyProjectDsn} = useMutation({
+    mutationFn: async (project: Project) => {
       const {json: projectKeys} = await queryClient.fetchQuery(
         apiOptions.as<ProjectKey[]>()(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/',
@@ -344,18 +343,24 @@ export function GlobalCommandPaletteActions({
           }
         )
       );
-      const projectKey = projectKeys.find(key => key.isActive) ?? projectKeys[0];
+      return projectKeys.find(key => key.isActive) ?? projectKeys[0];
+    },
+    onMutate: () => {
+      addLoadingMessage(t('Loading DSN\u2026'));
+    },
+    onSuccess: projectKey => {
       if (!projectKey) {
         addErrorMessage(t('This project has no client keys'));
         return;
       }
-      await copyToClipboard(projectKey.dsn.public, {
+      return copyToClipboard(projectKey.dsn.public, {
         successMessage: t('DSN copied to clipboard'),
       });
-    } catch {
+    },
+    onError: () => {
       addErrorMessage(t('Unable to load the project DSN'));
-    }
-  };
+    },
+  });
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),

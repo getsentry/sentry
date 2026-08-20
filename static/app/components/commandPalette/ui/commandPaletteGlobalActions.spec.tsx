@@ -32,10 +32,13 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {
@@ -438,6 +441,42 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     );
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(projectKey.dsn.public));
+  });
+
+  it('shows an error when the selected project has no client keys', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [],
+    });
+    renderPalette(project.id);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Copy DSN - project-a/})
+    );
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith('This project has no client keys')
+    );
+  });
+
+  it('shows an error when loading the selected project client keys fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      statusCode: 500,
+    });
+    renderPalette(project.id);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Copy DSN - project-a/})
+    );
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith('Unable to load the project DSN')
+    );
   });
 
   it('limits the DSN project picker to the selected projects', async () => {
