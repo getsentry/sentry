@@ -12,21 +12,20 @@ const PAPER_CUT_MASK_URL = `data:image/svg+xml,${encodeURIComponent(PAPER_CUT_MA
 interface BrandLayoutArtProps {
   rightBleed: number;
   src: string;
-  alt?: string;
 }
 
 /**
  * Displays full-height artwork with a repeating paper-cut mask along its left edge.
  * `rightBleed` shifts transparent padding in the source image beyond the viewport.
  */
-export function BrandLayoutArt({alt = '', rightBleed, src}: BrandLayoutArtProps) {
+export function BrandLayoutArt({rightBleed, src}: BrandLayoutArtProps) {
   const [loadedImage, setLoadedImage] = useState<{src: string; width: number}>();
   const bleedRatio = loadedImage?.src === src ? rightBleed / loadedImage.width : 0;
 
   return (
     <Artwork
       src={src}
-      alt={alt}
+      alt=""
       draggable={false}
       $bleedRatio={bleedRatio}
       onLoad={event => {
