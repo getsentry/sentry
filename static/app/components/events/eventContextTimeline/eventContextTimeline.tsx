@@ -1237,9 +1237,17 @@ function EventContextTimelineContent({
 
 const LANE_LABEL_WIDTH = '128px';
 
+// One stacking order for everything inside TimelineGrid: lane backgrounds (implicit 0),
+// then the idle/event overlay, then the markers, then whichever marker is hovered.
+const OVERLAY_Z_INDEX = 1;
+const MARKER_Z_INDEX = 2;
+const ACTIVE_MARKER_Z_INDEX = 3;
+
 const TimelineGrid = styled('div')`
   position: relative;
   display: grid;
+  /* Bottom strip is where the idle pills land, so they never sit on the last lane. */
+  padding-bottom: ${p => p.theme.space['2xl']};
   grid-template-columns: ${LANE_LABEL_WIDTH} 1fr;
   row-gap: ${p => p.theme.space.md};
   align-items: center;
@@ -1262,6 +1270,7 @@ const LaneTrack = styled('div')`
 const Marker = styled('button')<{left: number; markerColor: string}>`
   --marker-lift: 0px;
   position: absolute;
+  z-index: ${MARKER_Z_INDEX};
   top: 50%;
   left: ${p => p.left}%;
   width: 10px;
@@ -1280,6 +1289,7 @@ const Marker = styled('button')<{left: number; markerColor: string}>`
   &:not(:disabled):hover,
   &:not(:disabled):focus-visible {
     --marker-lift: 1px;
+    z-index: ${ACTIVE_MARKER_Z_INDEX};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
@@ -1294,6 +1304,7 @@ const Marker = styled('button')<{left: number; markerColor: string}>`
 const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
   --marker-lift: 0px;
   position: absolute;
+  z-index: ${MARKER_Z_INDEX};
   top: 50%;
   left: ${p => p.left}%;
   display: inline-flex;
@@ -1318,6 +1329,7 @@ const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
   &:not(:disabled):hover,
   &:not(:disabled):focus-visible {
     --marker-lift: 1px;
+    z-index: ${ACTIVE_MARKER_Z_INDEX};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
@@ -1327,8 +1339,11 @@ const ClusterMarker = styled('button')<{left: number; markerColor: string}>`
   }
 `;
 
+// Sits between the lane backgrounds and the markers: the idle hatching has to tint the
+// lanes it spans, but it must never obscure the events drawn on them.
 const Overlay = styled('div')`
   position: absolute;
+  z-index: ${OVERLAY_Z_INDEX};
   inset: 0 0 0 ${LANE_LABEL_WIDTH};
   pointer-events: none;
 `;
