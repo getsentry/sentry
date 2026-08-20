@@ -102,6 +102,7 @@ _KNOWN_SCM_PROVIDERS = frozenset(
         IntegrationProviderSlug.GITHUB,
         IntegrationProviderSlug.GITHUB_ENTERPRISE,
         IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.GITEA,
         IntegrationProviderSlug.BITBUCKET,
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,

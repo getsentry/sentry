@@ -1362,6 +1362,10 @@ urlpatterns += [
                     include("sentry.integrations.gitlab.urls"),
                 ),
                 re_path(
+                    r"^gitea/",
+                    include("sentry.integrations.gitea.urls"),
+                ),
+                re_path(
                     r"^vsts/",
                     include("sentry.integrations.vsts.urls"),
                 ),

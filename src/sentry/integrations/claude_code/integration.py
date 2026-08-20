@@ -36,7 +36,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
+from sentry.models.pullrequest import normalize_scm_provider
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
@@ -85,11 +87,15 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     workspace_name: str | None = "default"
     agent_id: str | None = None
     agent_version: int | None = None
+    # Gitea sessions run a different agent definition — no GitHub MCP server, since
+    # there is no Gitea equivalent — so its id cannot share the field above.
+    gitea_agent_id: str | None = None
+    gitea_agent_version: int | None = None
     model: str | None = None
     # One vault per github installation so concurrent launches don't clobber each other's credentials.
     installation_vault_ids: dict[str, str] = {}
 
-    @validator("agent_version", pre=True)
+    @validator("agent_version", "gitea_agent_version", pre=True)
     def coerce_agent_version(cls, v: object) -> int | None:
         # Old SDK stored version as a timestamp string — drop it so the agent is recreated.
         # New versions come from the API as integers, so any string value is stale.
@@ -349,11 +355,19 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             agent_id=metadata.agent_id,
             agent_version=metadata.agent_version,
             model=metadata.model,
+            gitea_agent_id=metadata.gitea_agent_id,
+            gitea_agent_version=metadata.gitea_agent_version,
         )
 
     def _resolve_vault(self, client: Any, request: CodingAgentLaunchRequest) -> str | None:
         """Look up or create a vault for the request's GitHub installation under lock."""
         if not features.has("organizations:claude-code-vault-reuse", self.organization):
+            return None
+
+        # A vault holds one thing: the GitHub MCP credential. Sessions on other
+        # providers register no MCP server, so a vault for them would be empty — and
+        # keyed by an integration id from a different provider's id space at that.
+        if normalize_scm_provider(request.repository.provider) != IntegrationProviderSlug.GITHUB:
             return None
 
         installation_id = request.repository.integration_id
@@ -412,6 +426,11 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             if client.agent_id and client.agent_id != metadata.agent_id:
                 metadata.agent_id = client.agent_id
                 metadata.agent_version = client.agent_version
+                metadata_changed = True
+
+            if client.gitea_agent_id and client.gitea_agent_id != metadata.gitea_agent_id:
+                metadata.gitea_agent_id = client.gitea_agent_id
+                metadata.gitea_agent_version = client.gitea_agent_version
                 metadata_changed = True
 
             if metadata_changed:

@@ -19,7 +19,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 def has_supported_scm_integration(organization: Organization) -> bool:
-    """Check if the organization has an active and supported SCM, e.g. GitHub or GitHub Enterprise or GitLab integration."""
+    """Check if the organization has an active and supported SCM, e.g. GitHub or GitHub Enterprise or GitLab or Gitea integration."""
 
     providers = [
         IntegrationProviderSlug.GITHUB.value,
@@ -28,6 +28,9 @@ def has_supported_scm_integration(organization: Organization) -> bool:
 
     if features.has("organizations:seer-gitlab-support", organization):
         providers.append(IntegrationProviderSlug.GITLAB.value)
+
+    if features.has("organizations:seer-gitea-support", organization):
+        providers.append(IntegrationProviderSlug.GITEA.value)
 
     organization_integrations = integration_service.get_organization_integrations(
         organization_id=organization.id,

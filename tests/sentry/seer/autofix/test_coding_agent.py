@@ -9,7 +9,7 @@ from sentry.integrations.github_copilot.models import (
     GithubCopilotTask,
     GithubPullRequest,
 )
-from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.models.pullrequest import PullRequestAttributionSignalType, parse_pull_request_url
 from sentry.seer.autofix.coding_agent import (
     extract_result_from_events,
     poll_claude_code_agents,
@@ -662,9 +662,11 @@ class FakeClaudeCodeClient:
         return self.events
 
     def build_result_from_session(
-        self, *, agent_name: str, pr_url: str | None
+        self, *, agent_name: str, pr_url: str | None, session_id: str | None = None
     ) -> CodingAgentResult | None:
-        self.build_result_from_session_calls.append({"agent_name": agent_name, "pr_url": pr_url})
+        self.build_result_from_session_calls.append(
+            {"agent_name": agent_name, "pr_url": pr_url, "session_id": session_id}
+        )
         return self.result
 
 
@@ -729,6 +731,57 @@ class TestExtractResultFromEvents(TestCase):
         assert extracted.branch_name is None
         assert extracted.pr_number == 42
 
+    def test_extracts_gitea_pr_url(self) -> None:
+        text = "PR created: https://gitea.com/org/repo/pulls/123"
+        events = [_make_agent_event(text)]
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://gitea.com/org/repo/pulls/123"
+        assert extracted.text_block == text
+        assert extracted.branch_name is None
+        assert extracted.pr_number == 123
+
+    def test_extracts_gitea_branch_url(self) -> None:
+        text = "Pushed to https://gitea.com/org/repo/src/branch/my-branch"
+        events = [_make_agent_event(text)]
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://gitea.com/org/repo/src/branch/my-branch"
+        assert extracted.text_block == text
+        assert extracted.branch_name == "my-branch"
+        assert extracted.pr_number is None
+
+    def test_ignores_gitea_commit_and_tag_urls(self) -> None:
+        """``/src/commit`` and ``/src/tag`` are siblings of ``/src/branch`` that name no branch."""
+        for url in (
+            "https://gitea.com/org/repo/src/commit/0123456789abcdef",
+            "https://gitea.com/org/repo/src/tag/v1.2.3",
+        ):
+            extracted = extract_result_from_events([_make_agent_event(url)])
+            assert extracted.url is None, url
+            assert extracted.branch_name is None, url
+
+    def test_every_matched_pr_url_parses(self) -> None:
+        """``pr_pattern`` is strictly narrower than ``parse_pull_request_url``.
+
+        ``extract_result_from_events`` asserts on that, so a widened pattern that matched a
+        URL the parser rejects would raise -- and be swallowed into a FAILED status.
+        """
+        for url in (
+            "https://github.com/org/repo/pull/1",
+            "https://gitea.com/org/repo/pulls/1",
+            "https://gitea.example.com:3000/org/repo/pulls/1",
+            "https://gitea.com/org/repo/pulls/1/files",
+        ):
+            extracted = extract_result_from_events([_make_agent_event(url)])
+            assert extracted.pr_number == 1, url
+            assert parse_pull_request_url(extracted.url or "") is not None, url
+
+    def test_ignores_url_without_a_repo_path(self) -> None:
+        """Two path segments must precede the number, matching the parser's requirement."""
+        extracted = extract_result_from_events(
+            [_make_agent_event("https://gitea.com/repo/pulls/1")]
+        )
+        assert extracted.url is None
+
     def test_returns_none_when_no_url(self) -> None:
         events = [_make_agent_event("All done, no link.")]
         extracted = extract_result_from_events(events)
@@ -777,7 +830,7 @@ class TestPollClaudeCodeAgents(TestCase):
         self.integration_id = 99
 
     def _create_autofix_state_with_agents(
-        self, agents: dict[str, CodingAgentState]
+        self, agents: dict[str, CodingAgentState], repo_provider: str = "github"
     ) -> AutofixState:
         return AutofixState(
             run_id=self.run_id,
@@ -787,7 +840,7 @@ class TestPollClaudeCodeAgents(TestCase):
                 issue={"id": 1, "title": "Test Issue"},
                 repos=[
                     SeerRepoDefinition(
-                        provider="github",
+                        provider=repo_provider,
                         owner="getsentry",
                         name="sentry",
                         external_id="123456",
@@ -860,6 +913,112 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
         mock_integration_service.get_integration.assert_not_called()
+
+    @patch(MOCK_SYNC_STATUS_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_hands_the_session_id_to_the_client(
+        self, mock_integration_service, mock_import_string, mock_sync_status
+    ):
+        # A forge the sandbox cannot reach has no URL to scrape: the client needs the
+        # session ID to read the agent's patch and open the pull request itself.
+        self._mock_integration(mock_integration_service)
+        fake_client = FakeClaudeCodeClient(
+            events=[{"type": ClaudeSessionEventStatus.IDLE}],
+            result=CodingAgentResult(
+                description="",
+                repo_provider="gitea",
+                repo_full_name="getsentry/sentry",
+                pr_url="https://gitea.example.com/getsentry/sentry/pulls/7",
+                branch_name="seer/autofix-claude-session-123",
+            ),
+        )
+        mock_import_string.return_value = lambda **kwargs: fake_client
+
+        poll_claude_code_agents(
+            autofix_state=self._create_autofix_state_with_agents(
+                {"claude-session-123": self._create_claude_agent()}
+            )
+        )
+
+        assert fake_client.build_result_from_session_calls == [
+            {
+                "agent_name": "getsentry/sentry: Claude Agent",
+                "pr_url": None,
+                "session_id": "claude-session-123",
+            }
+        ]
+        call_kwargs = mock_sync_status.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        # The client resolved these itself; there was nothing in the prose to scrape.
+        assert call_kwargs["result"].pr_url == "https://gitea.example.com/getsentry/sentry/pulls/7"
+        assert call_kwargs["result"].branch_name == "seer/autofix-claude-session-123"
+
+    @patch(MOCK_SYNC_STATUS_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_fails_the_run_when_no_url_is_produced(
+        self, mock_integration_service, mock_import_string, mock_sync_status
+    ):
+        # A session that finished without producing a branch or a pull request has
+        # nothing to show the customer, whichever forge it ran against.
+        self._mock_integration(mock_integration_service)
+        fake_client = FakeClaudeCodeClient(
+            events=[{"type": ClaudeSessionEventStatus.IDLE}],
+            result=CodingAgentResult(
+                description="",
+                repo_provider="gitea",
+                repo_full_name="getsentry/sentry",
+                pr_url=None,
+            ),
+        )
+        mock_import_string.return_value = lambda **kwargs: fake_client
+
+        poll_claude_code_agents(
+            autofix_state=self._create_autofix_state_with_agents(
+                {"claude-session-123": self._create_claude_agent()}
+            )
+        )
+
+        assert mock_sync_status.call_args[1]["status"] == CodingAgentStatus.FAILED
+
+    @patch(MOCK_SYNC_STATUS_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_scraped_branch_fills_in_what_the_client_left_unset(
+        self, mock_integration_service, mock_import_string, mock_sync_status
+    ):
+        # The GitHub path still gets its branch and PR number from the agent's prose.
+        self._mock_integration(mock_integration_service)
+        fake_client = FakeClaudeCodeClient(
+            events=[
+                {
+                    "type": "agent.message",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Pushed https://github.com/getsentry/sentry/tree/my-branch",
+                        }
+                    ],
+                },
+                {"type": ClaudeSessionEventStatus.IDLE},
+            ],
+            result=CodingAgentResult(
+                description="",
+                repo_provider="github",
+                repo_full_name="getsentry/sentry",
+                pr_url="https://github.com/getsentry/sentry/tree/my-branch",
+            ),
+        )
+        mock_import_string.return_value = lambda **kwargs: fake_client
+
+        poll_claude_code_agents(
+            autofix_state=self._create_autofix_state_with_agents(
+                {"claude-session-123": self._create_claude_agent()}
+            )
+        )
+
+        assert mock_sync_status.call_args[1]["result"].branch_name == "my-branch"
 
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
@@ -981,6 +1140,45 @@ class TestPollClaudeCodeAgents(TestCase):
         poll_claude_code_agents(autofix_state=autofix_state)
 
         mock_attribute.assert_not_called()
+
+    @patch(MOCK_SYNC_STATUS_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_polls_running_agent_against_gitea_repo(
+        self, mock_integration_service, mock_import_string, mock_sync_status
+    ):
+        """A Gitea PR URL is a result, not a missing one -- the run completes rather than failing."""
+        self._mock_integration(mock_integration_service)
+        fake_client = FakeClaudeCodeClient(
+            events=[
+                {
+                    "type": "agent.message",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "PR created: https://gitea.com/getsentry/sentry/pulls/999",
+                        }
+                    ],
+                },
+                {"type": ClaudeSessionEventStatus.IDLE},
+            ],
+            result=CodingAgentResult(
+                description="",
+                repo_provider="gitea",
+                repo_full_name="getsentry/sentry",
+                pr_url="https://gitea.com/getsentry/sentry/pulls/999",
+            ),
+        )
+        mock_import_string.return_value = lambda **kwargs: fake_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents, repo_provider="gitea")
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"].pr_number == 999
 
     @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)

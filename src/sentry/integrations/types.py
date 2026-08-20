@@ -41,6 +41,7 @@ class IntegrationProviderSlug(StrEnum):
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
+    GITEA = "gitea"
     BITBUCKET = "bitbucket"
     BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"

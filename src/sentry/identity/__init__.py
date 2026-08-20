@@ -14,6 +14,7 @@ def _register_providers() -> None:
     from .datadog.provider import DatadogIdentityProvider, DatadogPatIdentityProvider
     from .discord.provider import DiscordIdentityProvider
     from .gcp.provider import GCPIdentityProvider
+    from .gitea.provider import GiteaIdentityProvider
     from .github.provider import GitHubIdentityProvider
     from .github_enterprise.provider import GitHubEnterpriseIdentityProvider
     from .gitlab.provider import GitlabIdentityProvider
@@ -32,6 +33,7 @@ def _register_providers() -> None:
     register(VSTSIdentityProvider)
     register(VercelIdentityProvider)
     register(BitbucketIdentityProvider)
+    register(GiteaIdentityProvider)
     register(GitlabIdentityProvider)
     register(GoogleIdentityProvider)
     register(DiscordIdentityProvider)

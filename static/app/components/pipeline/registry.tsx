@@ -7,6 +7,7 @@ import {cursorIntegrationPipeline} from './integrationCursor';
 import {datadogIntegrationPipeline} from './integrationDatadog';
 import {discordIntegrationPipeline} from './integrationDiscord';
 import {gcpIntegrationPipeline} from './integrationGcp';
+import {giteaIntegrationPipeline} from './integrationGitea';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
@@ -36,6 +37,7 @@ export const PIPELINE_REGISTRY = [
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
   gcpIntegrationPipeline,
+  giteaIntegrationPipeline,
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,

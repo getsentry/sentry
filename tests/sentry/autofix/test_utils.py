@@ -96,6 +96,56 @@ class TestGetRepoFromCodeMappings(TestCase):
         providers = {r["provider"] for r in repos}
         assert providers == {"integrations:github", "integrations:gitlab"}
 
+    def test_filters_out_gitea_repos_without_feature_flag(self) -> None:
+        project = self.create_project()
+        github_repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=github_repo)
+
+        gitea_repo = self.create_repo(
+            name="getsentry/sentry-gitea",
+            provider="integrations:gitea",
+            external_id="456",
+            integration_id=345,
+        )
+        self.create_code_mapping(
+            project=project, repo=gitea_repo, stack_root="gitea/", source_root="src/gitea/"
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 1
+        assert repos[0]["provider"] == "integrations:github"
+
+    @with_feature("organizations:seer-gitea-support")
+    def test_includes_gitea_repos_with_feature_flag(self) -> None:
+        project = self.create_project()
+        github_repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=github_repo)
+
+        gitea_repo = self.create_repo(
+            name="getsentry/sentry-gitea",
+            provider="integrations:gitea",
+            external_id="456",
+            integration_id=345,
+        )
+        self.create_code_mapping(
+            project=project, repo=gitea_repo, stack_root="gitea/", source_root="src/gitea/"
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 2
+        providers = {r["provider"] for r in repos}
+        assert providers == {"integrations:github", "integrations:gitea"}
+
     def test_filters_out_disabled_repos(self) -> None:
         project = self.create_project()
         active_repo = self.create_repo(

@@ -23,6 +23,10 @@ const FEATURE_GATED_PROVIDERS: Array<{
     flag: 'seer-gitlab-support',
     providerIds: ['gitlab', 'integrations:gitlab'],
   },
+  {
+    flag: 'seer-gitea-support',
+    providerIds: ['gitea', 'integrations:gitea'],
+  },
 ];
 
 /**

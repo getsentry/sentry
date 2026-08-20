@@ -10,6 +10,8 @@ SeerSCMProvider = Literal[
     "github",
     "github_enterprise",
     "gitlab",
+    "integrations:gitea",
+    "gitea",
 ]
 
 # GitHub providers (bare and `integrations:`-prefixed); mirrors frontend `isGitHubProvider`.
@@ -25,4 +27,9 @@ SEER_SUPPORTED_SCM_PROVIDERS = [*SEER_GITHUB_SCM_PROVIDERS]
 SEER_GITLAB_SCM_PROVIDERS = [
     "integrations:gitlab",
     IntegrationProviderSlug.GITLAB.value,
+]
+
+SEER_GITEA_SCM_PROVIDERS = [
+    "integrations:gitea",
+    IntegrationProviderSlug.GITEA.value,
 ]

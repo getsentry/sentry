@@ -395,3 +395,4 @@ class WebhookProviderIdentifier(IntEnum):
     DISCORD = 12
     VERCEL = 13
     GOOGLE = 14
+    GITEA = 15
