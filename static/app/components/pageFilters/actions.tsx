@@ -402,10 +402,6 @@ export function initializeUrlState({
   }
 }
 
-function isProjectsValid(projects: number[]) {
-  return Array.isArray(projects) && projects.every(isInteger);
-}
-
 /**
  * Updates store and selection URL param if `location` and `navigate` is supplied
  *
@@ -419,7 +415,7 @@ export function updateProjects(
   navigate?: ReactRouter3Navigate,
   options?: Options & {environments?: EnvironmentId[]}
 ) {
-  if (!isProjectsValid(projects)) {
+  if (!Array.isArray(projects)) {
     Sentry.withScope(scope => {
       scope.setExtra('projects', projects);
       Sentry.captureException(new Error('Invalid projects selected'));
@@ -427,9 +423,18 @@ export function updateProjects(
     return;
   }
 
-  PageFiltersStore.updateProjects(projects, options?.environments ?? null);
+  const validProjects = projects.filter(isInteger);
+  if (validProjects.length !== projects.length) {
+    Sentry.withScope(scope => {
+      scope.setExtra('projects', projects);
+      scope.setExtra('invalidProjects', projects.filter(p => !isInteger(p)));
+      Sentry.captureException(new Error('Invalid projects selected'));
+    });
+  }
+
+  PageFiltersStore.updateProjects(validProjects, options?.environments ?? null);
   updateParams(
-    {project: projects, environment: options?.environments},
+    {project: validProjects, environment: options?.environments},
     location,
     navigate,
     options
