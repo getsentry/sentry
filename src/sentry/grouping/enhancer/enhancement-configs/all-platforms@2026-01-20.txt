@@ -299,6 +299,15 @@ family:native package:**/Containers/Bundle/Application/**            +app
 family:native package:**.app/Contents/**                             +app
 family:native package:/Users/**                                      +app
 
+# Unity IL2CPP compiles engine and game code into a single binary, so the bundle rules above
+# would mark the whole thing in-app. Only source-attributed game code is in-app. Every rule is
+# qualified by the IL2CPP binary, since the paths alone are not specific to Unity.
+family:native package:**/GameAssembly.*                                                            -app
+family:native package:**/UnityPlayer.*                                                             -app
+family:native package:**/GameAssembly.* path:**/Library/Bee/artifacts/**/il2cppOutput/cpp/**       +app
+family:native package:**/GameAssembly.* path:**/Library/Bee/artifacts/**/il2cppOutput/cpp/*__*.cpp -app
+family:native package:**/GameAssembly.* path:**/Assets/**                                          +app
+
 # Unreal Engine
 
 ## UE internal fatal log message handling
@@ -370,6 +379,8 @@ family:native package:**/Frameworks/libswift*.dylib                  -app
 family:native package:**/Frameworks/KSCrash.framework/**             -app
 family:native package:**/Frameworks/SentrySwift.framework/**         -app
 family:native package:**/Frameworks/Sentry.framework/**              -app
+# Unity ships the Cocoa SDK as a plugin rather than an embedded framework
+family:native package:**/PlugIns/Sentry.*                            -app
 
 # Needed for versions < sentry-cocoa 7.0.0 and static linking.
 # Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
