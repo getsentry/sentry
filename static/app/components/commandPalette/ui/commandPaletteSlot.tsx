@@ -23,10 +23,11 @@ function CommandPaletteSlotConsumer({
   );
 }
 
-export const CommandPaletteSlot = Object.assign(CommandPaletteSlotConsumer, {
+export const CommandPaletteSlot = {
+  Root: CommandPaletteSlotConsumer,
   Provider: BaseCommandPaletteSlot.Provider,
   Outlet: BaseCommandPaletteSlot.Outlet,
-});
+};
 
 export function useCommandPaletteSlotName() {
   return useContext(CommandPaletteSlotContext);

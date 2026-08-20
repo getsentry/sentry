@@ -23,6 +23,7 @@ export type CMDKNavStack = {
     label: string;
     query: string;
     prompt?: string;
+    // Result row to restore when this stack entry is popped.
     returnFocusKey?: string | number;
   };
 };
@@ -77,6 +78,11 @@ function findActionInStack(stack: CMDKNavStack | null, key: string): CMDKNavStac
   return findActionInStack(stack.previous, key);
 }
 
+/**
+ * Returns the existing workflow anchor when it is already in the navigation
+ * path. Deferred action trees may register an anchor after navigation starts,
+ * so reconstruct it under the nearest known parent when it is absent.
+ */
 function makeChainedActionAnchorStack(
   stack: CMDKNavStack | null,
   anchor: CMDKChainedActionAnchor
@@ -106,6 +112,8 @@ function commandPaletteReducer(
     case 'freeze list':
       return {...state, list: 'frozen'};
     case 'toggle modal':
+      // Terminal actions keep their final view mounted during the close animation.
+      // Clear that deferred state only when the palette is opened again.
       if (!state.open && (state.resetOnOpen || state.pendingReset)) {
         return {
           ...state,
@@ -143,6 +151,7 @@ function commandPaletteReducer(
             key: action.key,
             label: action.label,
             prompt: action.prompt,
+            // Preserve this level's search so Back restores the same view.
             query: state.query,
             returnFocusKey: action.returnFocusKey,
           },
@@ -161,6 +170,8 @@ function commandPaletteReducer(
     case 'trigger action':
       return {...state, pendingReset: true, list: 'active'};
     case 'return to anchor':
+      // Chained callbacks continue editing instead of consuming pendingReset and
+      // closing like terminal actions.
       return {
         ...state,
         action: makeChainedActionAnchorStack(state.action, action.anchor),
@@ -241,6 +252,7 @@ export function CommandPaletteHotkeys() {
     dispatch({type: 'reset on open'});
   }, [location.pathname, dispatch]);
 
+  // Register during capture so focused widgets cannot swallow this app-level shortcut.
   useGlobalHotkeys([
     {
       match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],

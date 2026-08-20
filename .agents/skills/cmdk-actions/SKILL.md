@@ -34,14 +34,14 @@ inherit the enclosing slot. Do not mount a second `global` slot consumer.
 ```tsx
 function IssueActions({issue}: Props) {
   return (
-    <CommandPaletteSlot name="page">
+    <CommandPaletteSlot.Root name="page">
       <CMDKAction.Group display={{label: issue.title}}>
         <CMDKAction.Callback
           display={{label: t('Resolve')}}
           onAction={() => resolveIssue(issue.id)}
         />
       </CMDKAction.Group>
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }
 ```

@@ -391,7 +391,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   return (
     <Fragment>
       {!disabled && (
-        <CommandPaletteSlot name="page">
+        <CommandPaletteSlot.Root name="page">
           <CMDKAction.Group
             display={{
               label: issueCommandLabel,
@@ -469,7 +469,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             />
             <SeerCommandPaletteActions event={event} group={group} project={project} />
           </CMDKAction.Group>
-        </CommandPaletteSlot>
+        </CommandPaletteSlot.Root>
       )}
       <Flex align="center" gap="xs">
         {isResolved || isIgnored ? (

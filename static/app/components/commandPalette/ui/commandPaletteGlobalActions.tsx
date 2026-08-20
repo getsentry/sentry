@@ -400,7 +400,7 @@ export function GlobalCommandPaletteActions({
   const {supportsNotifications, permission, askNotificationPermission} =
     useNotificationPermission();
   return (
-    <CommandPaletteSlot name="global">
+    <CommandPaletteSlot.Root name="global">
       <CMDKAction.Group
         display={{label: t('Go to')}}
         keywords={[t('go'), t('go to'), t('navigate')]}
@@ -1322,6 +1322,6 @@ export function GlobalCommandPaletteActions({
             }}
           />
         ))}
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }

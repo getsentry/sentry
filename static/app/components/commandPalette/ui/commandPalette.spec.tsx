@@ -82,7 +82,7 @@ function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
 /**
  * Renders the slot outlets that live outside CommandPalette in the real app
  * (they are mounted in navigation/index.tsx). Tests that use
- * <CommandPaletteSlot name="…"> must include this component so slot consumers
+ * <CommandPaletteSlot.Root name="…"> must include this component so slot consumers
  * have a registered outlet element to portal into.
  */
 function SlotOutlets() {
@@ -420,7 +420,7 @@ describe('CommandPalette', () => {
       const [aggregate, setAggregate] = useState('count');
 
       return (
-        <CommandPaletteSlot name="page">
+        <CommandPaletteSlot.Root name="page">
           <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
               <CMDKAction.Group display={{label: 'Commands'}}>
@@ -444,7 +444,7 @@ describe('CommandPalette', () => {
               </CMDKAction.Group>
             </CMDKChainedActionScope>
           </CMDKAction.Group>
-        </CommandPaletteSlot>
+        </CommandPaletteSlot.Root>
       );
     }
 
@@ -475,7 +475,7 @@ describe('CommandPalette', () => {
       const [groupBys, setGroupBys] = useState<string[]>([]);
 
       return (
-        <CommandPaletteSlot name="page">
+        <CommandPaletteSlot.Root name="page">
           <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
               <CMDKAction.Group display={{label: 'Global'}}>
@@ -530,7 +530,7 @@ describe('CommandPalette', () => {
               </CMDKAction.Group>
             </CMDKChainedActionScope>
           </CMDKAction.Group>
-        </CommandPaletteSlot>
+        </CommandPaletteSlot.Root>
       );
     }
 
@@ -613,7 +613,7 @@ describe('CommandPalette', () => {
       const rowId = `${id}-row-0`;
 
       return (
-        <CommandPaletteSlot name="page">
+        <CommandPaletteSlot.Root name="page">
           <CMDKAction.Group display={{label: 'Traces'}}>
             <CMDKChainedActionScope>
               <CMDKAction.Group display={{label: 'Commands'}}>
@@ -639,7 +639,7 @@ describe('CommandPalette', () => {
               </CMDKAction.Group>
             </CMDKChainedActionScope>
           </CMDKAction.Group>
-        </CommandPaletteSlot>
+        </CommandPaletteSlot.Root>
       );
     }
 
@@ -2728,7 +2728,7 @@ describe('CommandPalette', () => {
     it('shows query controls and every series field in the page overview', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Group display={{label: 'Traces'}}>
               <CMDKAction.Group display={{label: 'Commands'}}>
                 <CMDKAction.Callback
@@ -2756,7 +2756,7 @@ describe('CommandPalette', () => {
                 />
               </CMDKAction.Group>
             </CMDKAction.Group>
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2788,9 +2788,9 @@ describe('CommandPalette', () => {
     it('task slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="task">
+          <CommandPaletteSlot.Root name="task">
             <CMDKAction.Callback display={{label: 'Task Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2806,9 +2806,9 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="task">
+          <CommandPaletteSlot.Root name="task">
             <CMDKAction.Callback display={{label: 'Task Action'}} onAction={onAction} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2821,9 +2821,9 @@ describe('CommandPalette', () => {
     it('page slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2839,9 +2839,9 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Callback display={{label: 'Page Action'}} onAction={onAction} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2854,15 +2854,15 @@ describe('CommandPalette', () => {
     it('shows contextual actions before global actions for an empty query', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="global">
+          <CommandPaletteSlot.Root name="global">
             <CMDKAction.Callback
               display={{label: 'Global Action'}}
               onAction={jest.fn()}
             />
-          </CommandPaletteSlot>
-          <CommandPaletteSlot name="page">
+          </CommandPaletteSlot.Root>
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2881,14 +2881,14 @@ describe('CommandPalette', () => {
     it('omits redundant section headings for contextual actions', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Group display={{label: 'Current Page'}}>
               <CMDKAction.Callback
                 display={{label: 'Page Action'}}
                 onAction={jest.fn()}
               />
             </CMDKAction.Group>
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2905,15 +2905,15 @@ describe('CommandPalette', () => {
     it('includes matching global actions when searching from a contextual page', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="global">
+          <CommandPaletteSlot.Root name="global">
             <CMDKAction.Callback
               display={{label: 'Global Action'}}
               onAction={jest.fn()}
             />
-          </CommandPaletteSlot>
-          <CommandPaletteSlot name="page">
+          </CommandPaletteSlot.Root>
+          <CommandPaletteSlot.Root name="page">
             <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2933,12 +2933,12 @@ describe('CommandPalette', () => {
     it('shows global actions when no contextual actions are registered', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="global">
+          <CommandPaletteSlot.Root name="global">
             <CMDKAction.Callback
               display={{label: 'Global Action'}}
               onAction={jest.fn()}
             />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -2950,15 +2950,15 @@ describe('CommandPalette', () => {
     });
 
     it('actions registered via a slot consumer are not duplicated', async () => {
-      // GlobalCommandPaletteActions uses <CommandPaletteSlot name="global"> internally.
+      // GlobalCommandPaletteActions uses <CommandPaletteSlot.Root name="global"> internally.
       // The slot consumer portals children into the outlet element. Registration must be
       // idempotent so the slot→portal transition never yields duplicates.
       function ActionsViaGlobalSlot() {
         return (
-          <CommandPaletteSlot name="global">
+          <CommandPaletteSlot.Root name="global">
             <CMDKAction.Callback display={{label: 'Action A'}} onAction={jest.fn()} />
             <CMDKAction.Callback display={{label: 'Action B'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
         );
       }
 

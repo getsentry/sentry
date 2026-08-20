@@ -195,7 +195,7 @@ export function ProjectSettingsCommandPaletteActions({
     <Fragment>
       {sections.map(section => {
         return (
-          <CommandPaletteSlot key={section.label} name="page">
+          <CommandPaletteSlot.Root key={section.label} name="page">
             <CMDKAction.Group display={{label: section.label, icon: section.icon}}>
               {section.items.map(item => {
                 if ('items' in item) {
@@ -214,7 +214,7 @@ export function ProjectSettingsCommandPaletteActions({
                 return <CMDKAction.Link key={item.to} {...item} />;
               })}
             </CMDKAction.Group>
-          </CommandPaletteSlot>
+          </CommandPaletteSlot.Root>
         );
       })}
     </Fragment>

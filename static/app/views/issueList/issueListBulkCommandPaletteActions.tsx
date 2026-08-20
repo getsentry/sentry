@@ -442,7 +442,7 @@ export function IssueListBulkCommandPaletteActions(
   }
 
   return (
-    <CommandPaletteSlot name="task">
+    <CommandPaletteSlot.Root name="task">
       <CMDKAction.Group
         display={{
           label,
@@ -489,6 +489,6 @@ export function IssueListBulkCommandPaletteActions(
           onConfirmBulkUpdate={confirmBulkAction}
         />
       </CMDKAction.Group>
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }

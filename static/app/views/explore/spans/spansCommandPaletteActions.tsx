@@ -1932,10 +1932,10 @@ function QueryClauseActionsEditor() {
 
 export function SpansCommandPaletteActions() {
   return (
-    <CommandPaletteSlot name="page">
+    <CommandPaletteSlot.Root name="page">
       <CMDKAction.Group display={{label: t('Traces'), icon: <IconSpan />}}>
         <QueryClauseActions />
       </CMDKAction.Group>
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }

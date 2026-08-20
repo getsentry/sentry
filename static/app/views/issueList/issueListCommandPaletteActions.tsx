@@ -421,7 +421,7 @@ export function IssueListCommandPaletteActions({
   onQueryChange,
 }: IssueListCommandPaletteActionsProps) {
   return (
-    <CommandPaletteSlot name="page">
+    <CommandPaletteSlot.Root name="page">
       <CMDKAction.Group
         id={IssueListCommandPaletteActionId.ISSUES_FEED}
         display={{label: t('Issues Feed'), icon: <IconIssues />}}
@@ -437,6 +437,6 @@ export function IssueListCommandPaletteActions({
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction.Group>
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }

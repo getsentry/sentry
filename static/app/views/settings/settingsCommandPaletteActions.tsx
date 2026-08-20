@@ -149,7 +149,7 @@ export function SettingsCommandPaletteActions() {
   }
 
   return (
-    <CommandPaletteSlot name="page">
+    <CommandPaletteSlot.Root name="page">
       <CMDKAction.Group display={{label: t('Settings Fields'), icon: <IconSettings />}}>
         {sections.map(section => (
           <CMDKAction.Group
@@ -167,6 +167,6 @@ export function SettingsCommandPaletteActions() {
           </CMDKAction.Group>
         ))}
       </CMDKAction.Group>
-    </CommandPaletteSlot>
+    </CommandPaletteSlot.Root>
   );
 }
