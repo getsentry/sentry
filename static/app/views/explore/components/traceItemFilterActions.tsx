@@ -182,6 +182,7 @@ const BOOLEAN_FILTER_VALUES = ['true', 'false'] as const;
 
 const FILTER_OPERATORS = {
   boolean: filterTypeConfig[FilterType.BOOLEAN].validOps,
+  number: filterTypeConfig[FilterType.NUMERIC].validOps,
   string: filterTypeConfig[FilterType.TEXT].validOps,
 } as const;
 
@@ -189,6 +190,7 @@ interface TraceItemFilterActionsProps {
   addSearchFilter: (filter: SearchFilter) => void;
   booleanAttributes: TagCollection;
   id: string;
+  numberAttributes: TagCollection;
   stringAttributes: TagCollection;
   traceItemType: TraceItemDataset;
   actionPanel?: {
@@ -212,6 +214,7 @@ function TraceItemFilterActionsComponent({
   id,
   initialAttributeKey,
   initialOperator,
+  numberAttributes,
   stringAttributes,
   traceItemType,
 }: TraceItemFilterActionsProps) {
@@ -224,6 +227,10 @@ function TraceItemFilterActionsComponent({
   const sortedBooleanAttributes = useMemo(
     () => orderBy(Object.values(booleanAttributes), ['key']),
     [booleanAttributes]
+  );
+  const sortedNumberAttributes = useMemo(
+    () => orderBy(Object.values(numberAttributes), ['key']),
+    [numberAttributes]
   );
   const makeValueAction = (tag: Tag, operator: TermOperator, value: string) => {
     const isCurrent =
@@ -239,7 +246,20 @@ function TraceItemFilterActionsComponent({
     };
   };
 
-  const valueResource =
+  const numberValueResource =
+    (tag: Tag, operator: TermOperator) =>
+    (query: string, context: {state?: 'selected'}) => {
+      const value = query.trim();
+      return cmdkQueryOptions({
+        queryKey: ['command-palette', 'filter', tag.key, operator, value],
+        queryFn: () => Promise.resolve(value),
+        select: selectedValue =>
+          selectedValue ? [makeValueAction(tag, operator, selectedValue)] : [],
+        enabled: context.state === 'selected',
+      });
+    };
+
+  const stringValueResource =
     (tag: Tag, operator: TermOperator) =>
     (query: string, context: {state?: 'selected'}) => {
       const options = traceItemAttributeValuesQueryOptions({
@@ -264,7 +284,7 @@ function TraceItemFilterActionsComponent({
       });
     };
 
-  const renderOperatorActions = (tag: Tag, type: 'boolean' | 'string') => {
+  const renderOperatorActions = (tag: Tag, type: 'boolean' | 'number' | 'string') => {
     const operators = FILTER_OPERATORS[type];
 
     return (
@@ -294,16 +314,27 @@ function TraceItemFilterActionsComponent({
             );
           }
 
+          if (type === 'number') {
+            return (
+              <CMDKAction
+                key={operator || 'is'}
+                display={display}
+                prompt={t('Search for value')}
+                resource={numberValueResource(tag, operator)}
+              />
+            );
+          }
+
           return (
             <CMDKAction
               key={operator || 'is'}
               display={display}
               prompt={t('Search for value')}
-              resource={valueResource(tag, operator)}
+              resource={stringValueResource(tag, operator)}
             />
           );
         })}
-        {type === 'string' && (
+        {type !== 'boolean' && (
           <CMDKAction
             display={{label: t('has')}}
             onAction={() =>
@@ -319,7 +350,7 @@ function TraceItemFilterActionsComponent({
     );
   };
 
-  const renderAttribute = (tag: Tag, type: 'boolean' | 'string') => {
+  const renderAttribute = (tag: Tag, type: 'boolean' | 'number' | 'string') => {
     return (
       <CMDKAction
         key={`${type}-${tag.key}`}
@@ -358,12 +389,14 @@ function TraceItemFilterActionsComponent({
                 'has',
                 query,
                 sortedStringAttributes,
+                sortedNumberAttributes,
                 sortedBooleanAttributes,
               ],
               queryFn: () => {
                 const typedValue = query.trim();
                 const knownValues = [
                   ...sortedStringAttributes,
+                  ...sortedNumberAttributes,
                   ...sortedBooleanAttributes,
                 ]
                   .map(tag => tag.key)
@@ -402,6 +435,9 @@ function TraceItemFilterActionsComponent({
   const initialBooleanAttribute = initialAttributeKey
     ? booleanAttributes[initialAttributeKey]
     : undefined;
+  const initialNumberAttribute = initialAttributeKey
+    ? numberAttributes[initialAttributeKey]
+    : undefined;
 
   if (initialOperator !== undefined && initialStringAttribute) {
     return (
@@ -412,7 +448,21 @@ function TraceItemFilterActionsComponent({
         display={{label: displayLabel ?? t('Change Filter Value')}}
         keywords={['change', 'filter', 'value']}
         prompt={t('Search for value')}
-        resource={valueResource(initialStringAttribute, initialOperator)}
+        resource={stringValueResource(initialStringAttribute, initialOperator)}
+      />
+    );
+  }
+
+  if (initialOperator !== undefined && initialNumberAttribute) {
+    return (
+      <CMDKAction
+        id={id}
+        actionPanel={actionPanel}
+        actionContext="filter"
+        display={{label: displayLabel ?? t('Change Filter Value')}}
+        keywords={['change', 'filter', 'value']}
+        prompt={t('Enter value')}
+        resource={numberValueResource(initialNumberAttribute, initialOperator)}
       />
     );
   }
@@ -451,12 +501,15 @@ function TraceItemFilterActionsComponent({
     >
       {initialStringAttribute ? (
         renderOperatorActions(initialStringAttribute, 'string')
+      ) : initialNumberAttribute ? (
+        renderOperatorActions(initialNumberAttribute, 'number')
       ) : initialBooleanAttribute ? (
         renderOperatorActions(initialBooleanAttribute, 'boolean')
       ) : (
         <CMDKAction display={{label: t('Attribute')}}>
           {attributeLessActions}
           {sortedStringAttributes.map(tag => renderAttribute(tag, 'string'))}
+          {sortedNumberAttributes.map(tag => renderAttribute(tag, 'number'))}
           {sortedBooleanAttributes.map(tag => renderAttribute(tag, 'boolean'))}
         </CMDKAction>
       )}

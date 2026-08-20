@@ -116,14 +116,7 @@ describe('equation draft selection', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [
-        {
-          attributeType: 'string',
-          key: 'gen_ai.output_messages',
-          name: 'gen_ai.output_messages',
-          attributeSource: {source_type: 'user'},
-        },
-      ],
+      body: [],
     });
 
     render(<ProjectSelectionPalette />);
@@ -1054,9 +1047,15 @@ describe('filter draft selection', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
         {
-          attributeType: 'string',
-          key: 'gen_ai.output_messages',
-          name: 'gen_ai.output_messages',
+          attributeType: 'number',
+          key: 'gen_ai.usage.total_cost',
+          name: 'gen_ai.usage.total_cost',
+          attributeSource: {source_type: 'user'},
+        },
+        {
+          attributeType: 'number',
+          key: 'gen_ai.usage.total_tokens',
+          name: 'gen_ai.usage.total_tokens',
           attributeSource: {source_type: 'user'},
         },
       ],
@@ -1073,14 +1072,23 @@ describe('filter draft selection', () => {
 
     await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
     await screen.findByRole('option', {name: 'None'});
+    expect(
+      screen.getByRole('option', {name: 'gen_ai.usage.total_cost'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'gen_ai.usage.total_tokens'})
+    ).toBeInTheDocument();
     await userEvent.keyboard('{Enter}');
     await screen.findByRole('option', {name: 'has'});
     await userEvent.keyboard('{Enter}');
+    expect(
+      await screen.findByRole('option', {name: 'gen_ai.usage.total_tokens'})
+    ).toBeInTheDocument();
     await userEvent.click(
-      await screen.findByRole('option', {name: 'gen_ai.output_messages'})
+      await screen.findByRole('option', {name: 'gen_ai.usage.total_cost'})
     );
 
-    expect(await screen.findByText('has:gen_ai.output_messages')).toBeInTheDocument();
+    expect(await screen.findByText('has:gen_ai.usage.total_cost')).toBeInTheDocument();
     expect(router.location.query.query).toBeUndefined();
   });
 });

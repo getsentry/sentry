@@ -877,6 +877,7 @@ function SpansFilterActionsComponent({
   replaceSearchFilter: (filterIndex: number, filter: SearchFilter) => void;
 }) {
   const {attributes: stringAttributes} = useSpanItemAttributes({}, 'string');
+  const {attributes: numberAttributes} = useSpanItemAttributes({}, 'number');
   const {attributes: booleanAttributes} = useSpanItemAttributes({}, 'boolean');
 
   return (
@@ -886,6 +887,7 @@ function SpansFilterActionsComponent({
         addSearchFilter={addSearchFilter}
         booleanAttributes={booleanAttributes}
         id={ADD_FILTER_ACTION_ID}
+        numberAttributes={numberAttributes}
         stringAttributes={stringAttributes}
         traceItemType={TraceItemDataset.SPANS}
       />
@@ -896,6 +898,7 @@ function SpansFilterActionsComponent({
         const hasAttribute =
           attributeKey !== null &&
           (stringAttributes[attributeKey] !== undefined ||
+            numberAttributes[attributeKey] !== undefined ||
             booleanAttributes[attributeKey] !== undefined);
         const onChange = (nextFilter: SearchFilter) =>
           replaceSearchFilter(filterIndex, nextFilter);
@@ -921,6 +924,7 @@ function SpansFilterActionsComponent({
               }
               displayLabel={t('Change Filter Attribute')}
               id={getChangeFilterAttributeActionId(filterIndex)}
+              numberAttributes={numberAttributes}
               stringAttributes={stringAttributes}
               traceItemType={TraceItemDataset.SPANS}
             />
@@ -936,6 +940,7 @@ function SpansFilterActionsComponent({
                 displayLabel={t('Change Filter Operator')}
                 id={`spans-change-filter-operator-${filterIndex}`}
                 initialAttributeKey={attributeKey}
+                numberAttributes={numberAttributes}
                 stringAttributes={stringAttributes}
                 traceItemType={TraceItemDataset.SPANS}
               />
@@ -953,6 +958,7 @@ function SpansFilterActionsComponent({
                 id={getChangeFilterValueActionId(filterIndex)}
                 initialAttributeKey={descriptor.attributeKey}
                 initialOperator={descriptor.operator}
+                numberAttributes={numberAttributes}
                 stringAttributes={stringAttributes}
                 traceItemType={TraceItemDataset.SPANS}
               />
