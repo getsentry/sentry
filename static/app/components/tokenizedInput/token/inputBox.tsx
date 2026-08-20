@@ -45,7 +45,7 @@ export function InputBox({
   onKeyDown,
   onKeyDownCapture,
   onPaste,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
   placeholder,
   ref,
   tabIndex,

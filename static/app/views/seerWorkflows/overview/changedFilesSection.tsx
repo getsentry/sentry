@@ -47,11 +47,11 @@ export function ChangedFilesSection({
   onToggle: (key: string, expanded: boolean) => void;
 }) {
   return (
-    <Stack gap="sm">
+    <Stack gap="md">
       <Flex gap="xs" align="center">
         <IconCode size="xs" variant="secondary" aria-hidden />
-        <Text size="xs" bold uppercase variant="secondary">
-          {t('Code changes')}
+        <Text size="xs" bold variant="secondary">
+          {t('Code Changes')}
         </Text>
       </Flex>
       <Container border="primary" radius="md" overflow="hidden" background="secondary">
@@ -60,14 +60,14 @@ export function ChangedFilesSection({
             <Flex
               gap="md"
               align="center"
-              padding="md xl"
+              padding="md"
               borderBottom="primary"
               borderTop={groupIndex > 0 ? 'primary' : undefined}
             >
               {group.repoName ? (
                 <Fragment>
                   <Tag variant="muted">{group.files.length}</Tag>
-                  <Text size="sm" monospace variant="secondary" ellipsis>
+                  <Text size="sm" bold variant="secondary" ellipsis>
                     {group.repoName}
                   </Text>
                 </Fragment>

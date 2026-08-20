@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -16,21 +18,17 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconBug,
   IconCheckmark,
-  IconCircle,
   IconClock,
   IconClose,
-  IconCode,
   IconCommit,
   IconGraph,
   IconMerge,
   IconOpen,
   IconPullRequest,
-  IconSearch,
   IconSeer,
   IconThumb,
   IconUser,
 } from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {
@@ -40,6 +38,9 @@ import type {
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {CodeChanges} from './codeChanges';
+import {OpenSeerButton} from './openSeerButton';
+import {getProcessingLabel} from './overviewActions';
+import {ButtonSpinner, OverviewCardAction} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -60,35 +61,10 @@ function selectReviewPullRequest(
   return actionable.at(-1) ?? pullRequests.at(-1);
 }
 
-interface ActionMeta {
-  Icon: React.ComponentType<SVGIconProps>;
-  description: string;
-  label: string;
-}
-
-// Live status overlays (Running/Retry/Add context) are intentionally omitted here.
-// The merged section has no action button, so it is excluded from the map.
-const ACTION_META: Record<Exclude<AutofixStateKey, 'merged'>, ActionMeta> = {
-  review_pr: {
-    Icon: IconPullRequest,
-    label: t('Review PR'),
-    description: t('Autofix opened a pull request. Review and merge it.'),
-  },
-  code_changes_ready: {
-    Icon: IconCommit,
-    label: t('Draft PR'),
-    description: t('Autofix wrote a diff. Review it and open a pull request.'),
-  },
-  solution_ready: {
-    Icon: IconCode,
-    label: t('Generate code'),
-    description: t('Autofix proposed a fix. Continue the pipeline to generate code.'),
-  },
-  needs_investigation: {
-    Icon: IconSearch,
-    label: t('Create Plan'),
-    description: t('Seer stopped at a diagnosis. Review the root cause to continue.'),
-  },
+const REVIEW_PR_META = {
+  Icon: IconPullRequest,
+  label: t('Review PR'),
+  description: t('Autofix opened a pull request. Review and merge it.'),
 };
 
 interface PullRequestStatusTagMeta {
@@ -97,6 +73,27 @@ interface PullRequestStatusTagMeta {
   variant: TagProps['variant'];
 }
 
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+// Inherits the tag's variant color via currentColor, like the other status icons.
+const ChecksSpinner = styled('span')`
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  animation: ${spin} 0.6s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 2.4s;
+  }
+`;
+
 const CHECKS_STATUS_TAGS = {
   failure: {
     icon: <IconClose />,
@@ -104,7 +101,7 @@ const CHECKS_STATUS_TAGS = {
     variant: 'danger',
   },
   pending: {
-    icon: <IconCircle />,
+    icon: <ChecksSpinner aria-hidden />,
     label: t('Checks Running'),
     variant: 'warning',
   },
@@ -131,30 +128,54 @@ const REVIEW_STATUS_TAGS = {
 
 function OverviewAction({
   sectionKey,
-  pullRequests,
+  run,
   reviewPullRequest,
   issueUrl,
   enrichmentPending,
 }: {
   enrichmentPending: boolean;
   issueUrl: string;
-  pullRequests: OverviewPullRequest[];
   reviewPullRequest: OverviewPullRequest | undefined;
+  run: OverviewRun;
   sectionKey: AutofixStateKey;
 }) {
+  const {pullRequests, status} = run;
+  if (status === 'processing') {
+    return (
+      <ButtonBar>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled
+          aria-busy
+          icon={<ButtonSpinner size={14} />}
+        >
+          {getProcessingLabel(sectionKey)}
+        </Button>
+        <OpenSeerButton run={run} size="sm" variant="secondary" />
+      </ButtonBar>
+    );
+  }
+
   if (sectionKey === 'merged') {
     if (pullRequests.length > 0) {
       return (
         <Stack gap="xs" align="end">
           {pullRequests.map(pullRequest => {
             const label = t('Merged #%s', pullRequest.number);
+            const title = t('The pull request for this fix was merged.');
+            if (!pullRequest.url) {
+              return (
+                <Tooltip key={pullRequest.id} title={title} skipWrapper>
+                  <Tag variant="muted" icon={<IconMerge />}>
+                    {label}
+                  </Tag>
+                </Tooltip>
+              );
+            }
             return (
-              <Tooltip
-                key={pullRequest.id}
-                title={t('The pull request for this fix was merged.')}
-                skipWrapper
-              >
-                {pullRequest.url ? (
+              <ButtonBar key={pullRequest.id}>
+                <Tooltip title={title} skipWrapper>
                   <LinkButton
                     size="sm"
                     variant="secondary"
@@ -164,12 +185,9 @@ function OverviewAction({
                   >
                     {label}
                   </LinkButton>
-                ) : (
-                  <Tag variant="muted" icon={<IconMerge />}>
-                    {label}
-                  </Tag>
-                )}
-              </Tooltip>
+                </Tooltip>
+                <OpenSeerButton run={run} size="sm" variant="secondary" />
+              </ButtonBar>
             );
           })}
         </Stack>
@@ -198,14 +216,17 @@ function OverviewAction({
 
     return (
       <Stack align="end" gap="xs">
-        <Tooltip title={ACTION_META.review_pr.description} skipWrapper>
-          <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
-            <Flex as="span" gap="xs" align="center">
-              {t('Review PR #%s', reviewPullRequest.number)}
-              <IconOpen size="xs" />
-            </Flex>
-          </LinkButton>
-        </Tooltip>
+        <ButtonBar>
+          <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+            <LinkButton size="sm" variant="primary" href={reviewPullRequest.url} external>
+              <Flex as="span" gap="xs" align="center">
+                {t('Review PR #%s', reviewPullRequest.number)}
+                <IconOpen size="xs" />
+              </Flex>
+            </LinkButton>
+          </Tooltip>
+          <OpenSeerButton run={run} size="sm" variant="primary" />
+        </ButtonBar>
         {enrichmentPending ? (
           // Two slots mirror the review + checks tags the enriched response
           // typically fills in, so the row height doesn't jump on resolve.
@@ -256,14 +277,22 @@ function OverviewAction({
     );
   }
 
-  const meta = ACTION_META[sectionKey];
-  return (
-    <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="sm" variant="secondary" icon={<meta.Icon />} to={issueUrl}>
-        {meta.label}
-      </LinkButton>
-    </Tooltip>
-  );
+  if (sectionKey === 'review_pr') {
+    return (
+      <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+        <LinkButton
+          size="sm"
+          variant="secondary"
+          icon={<REVIEW_PR_META.Icon />}
+          to={issueUrl}
+        >
+          {REVIEW_PR_META.label}
+        </LinkButton>
+      </Tooltip>
+    );
+  }
+
+  return <OverviewCardAction run={run} sectionKey={sectionKey} />;
 }
 
 const TitleLink = styled(Link)`
@@ -472,13 +501,27 @@ export function OverviewCard({
             <Grid columns="max-content minmax(0, 1fr)" gap="sm">
               <LevelBar level={run.issue.level ?? undefined} />
               <Stack minWidth="0" gap="xs">
-                <Text bold display="block" textWrap="pretty" size="lg">
+                <Text
+                  bold
+                  display="block"
+                  textWrap="pretty"
+                  wordBreak="break-word"
+                  size="lg"
+                >
                   <TitleLink to={issueUrl}>{run.title}</TitleLink>
                 </Text>
                 <Flex wrap="wrap" gap="md" align="center">
-                  <Text size="sm" monospace variant="muted">
-                    {run.shortId}
-                  </Text>
+                  <Flex gap="xs" align="center">
+                    <ProjectAvatar
+                      project={run.issue.project}
+                      size={12}
+                      hasTooltip
+                      tooltip={run.issue.project.slug}
+                    />
+                    <Text size="sm" monospace variant="muted">
+                      {run.shortId}
+                    </Text>
+                  </Flex>
                   <IssueVitals
                     run={run}
                     statsPeriod={statsPeriod}
@@ -518,7 +561,7 @@ export function OverviewCard({
           <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
             <OverviewAction
               sectionKey={sectionKey}
-              pullRequests={run.pullRequests}
+              run={run}
               reviewPullRequest={reviewPullRequest}
               issueUrl={issueUrl}
               enrichmentPending={enrichmentPending}

@@ -122,8 +122,8 @@ export function DomainViewHeader({
   const feedbackOptions = activeFeedback
     ? {
         tags: {
-          ['feedback.source']: activeFeedback.source,
-          ['feedback.owner']: activeFeedback.owner,
+          'feedback.source': activeFeedback.source,
+          'feedback.owner': activeFeedback.owner,
         },
       }
     : undefined;

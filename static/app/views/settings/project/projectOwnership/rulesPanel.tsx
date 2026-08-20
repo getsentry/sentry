@@ -29,7 +29,7 @@ export function RulesPanel({
   type,
   placeholder,
   controls,
-  ['data-test-id']: dataTestId,
+  'data-test-id': dataTestId,
 }: Props) {
   function renderIcon() {
     switch (provider ?? '') {
