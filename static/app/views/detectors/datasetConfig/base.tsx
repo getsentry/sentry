@@ -75,7 +75,7 @@ interface DetectorSeriesQueryOptions {
 /**
  * One aggregate referenced by an `AggregateSummary` expression.
  */
-export interface AggregateSummaryComponent {
+interface AggregateSummaryComponent {
   /** Reference label used by the expression, e.g. "A". */
   label: string;
   /** Describes this aggregate, positionally matching `AggregateSummary.headers`. */
