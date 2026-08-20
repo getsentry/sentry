@@ -1,16 +1,16 @@
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
-interface Props {
+interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   seconds: number;
   abbreviation?: boolean;
   exact?: boolean;
   fixedDigits?: number;
 }
 
-export function Duration({seconds, fixedDigits, abbreviation, exact}: Props) {
+export function Duration({seconds, fixedDigits, abbreviation, exact, ...props}: Props) {
   return (
-    <span>
+    <span {...props}>
       {exact
         ? getExactDuration(seconds, abbreviation)
         : getDuration(seconds, fixedDigits, abbreviation)}
