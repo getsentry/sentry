@@ -45,9 +45,11 @@ AGENT_NAME = AgentLabelSource.AGENT_NAME.value
 OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
 
 # Most integrations emit the deprecated aliases (`gen_ai.usage.input_tokens.cached`
-# and `.cache_write`); only langchain writes these names directly. The resolver
-# backfills each alias onto its replacement, so querying the canonical names
-# covers both -- and reading either family alongside them would double-count.
+# and `.cache_write`); only langchain writes these names directly. Each alias is
+# declared in `sentry_conventions` as a BACKFILL deprecation of the name below
+# it, and the backfill is applied to the stored item, so querying the canonical
+# names covers both -- and reading either family alongside them would
+# double-count.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
 CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
