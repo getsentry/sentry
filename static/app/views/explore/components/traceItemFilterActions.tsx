@@ -341,6 +341,7 @@ function TraceItemFilterActionsComponent({
 
   const attributeLessActions = (
     <CMDKAction
+      autoFocusFirst
       display={{label: t('None')}}
       keywords={['none', 'has']}
       prompt={t('Search for operator')}
@@ -351,22 +352,42 @@ function TraceItemFilterActionsComponent({
           prompt={t('Enter filter value')}
           resource={(query, context) =>
             cmdkQueryOptions({
-              queryKey: ['command-palette', 'filter', 'has', query],
-              queryFn: () => Promise.resolve(query.trim()),
-              select: value =>
-                value
-                  ? [
-                      {
-                        display: {label: value},
-                        onAction: () =>
-                          addSearchFilter({
-                            key: 'has',
-                            op: TermOperator.DEFAULT,
-                            value,
-                          }),
-                      },
-                    ]
-                  : [],
+              queryKey: [
+                'command-palette',
+                'filter',
+                'has',
+                query,
+                sortedStringAttributes,
+                sortedBooleanAttributes,
+              ],
+              queryFn: () => {
+                const typedValue = query.trim();
+                const knownValues = [
+                  ...sortedStringAttributes,
+                  ...sortedBooleanAttributes,
+                ]
+                  .map(tag => tag.key)
+                  .filter(value =>
+                    typedValue
+                      ? value.toLocaleLowerCase().includes(typedValue.toLocaleLowerCase())
+                      : true
+                  );
+                return Promise.resolve(
+                  typedValue && !knownValues.includes(typedValue)
+                    ? [typedValue, ...knownValues]
+                    : knownValues
+                );
+              },
+              select: values =>
+                values.map(value => ({
+                  display: {label: value},
+                  onAction: () =>
+                    addSearchFilter({
+                      key: 'has',
+                      op: TermOperator.DEFAULT,
+                      value,
+                    }),
+                })),
               enabled: context.state === 'selected',
             })
           }
@@ -419,6 +440,7 @@ function TraceItemFilterActionsComponent({
 
   return (
     <CMDKAction
+      autoFocusFirst={!initialAttributeKey}
       deferChildren
       id={id}
       actionPanel={actionPanel}

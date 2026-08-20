@@ -2427,6 +2427,31 @@ describe('CommandPalette', () => {
 
       await waitFor(() => expect(input).toHaveValue('parent'));
     });
+
+    it('restores the previously focused root action after navigating back', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'First Group'}}>
+              <CMDKAction display={{label: 'First Child'}} onAction={() => {}} />
+            </CMDKAction>
+            <CMDKAction display={{label: 'Second Group'}}>
+              <CMDKAction display={{label: 'Second Child'}} onAction={() => {}} />
+            </CMDKAction>
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Second Group'}));
+      await screen.findByRole('option', {name: 'Second Child'});
+      await userEvent.keyboard('{Backspace}');
+      await screen.findByRole('option', {name: 'Second Group'});
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByRole('option', {name: 'Second Child'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('deferred reset on close', () => {

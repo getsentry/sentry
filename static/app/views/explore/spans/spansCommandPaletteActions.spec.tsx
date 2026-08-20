@@ -116,7 +116,14 @@ describe('equation draft selection', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'gen_ai.output_messages',
+          name: 'gen_ai.output_messages',
+          attributeSource: {source_type: 'user'},
+        },
+      ],
     });
 
     render(<ProjectSelectionPalette />);
@@ -1045,7 +1052,14 @@ describe('filter draft selection', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [],
+      body: [
+        {
+          attributeType: 'string',
+          key: 'gen_ai.output_messages',
+          name: 'gen_ai.output_messages',
+          attributeSource: {source_type: 'user'},
+        },
+      ],
     });
 
     const {router} = render(<ProjectSelectionPalette />, {
@@ -1058,12 +1072,10 @@ describe('filter draft selection', () => {
     });
 
     await userEvent.click(await screen.findByRole('option', {name: 'Filter By'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'None'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'has'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search commands'}),
-      'gen_ai.output_messages'
-    );
+    await screen.findByRole('option', {name: 'None'});
+    await userEvent.keyboard('{Enter}');
+    await screen.findByRole('option', {name: 'has'});
+    await userEvent.keyboard('{Enter}');
     await userEvent.click(
       await screen.findByRole('option', {name: 'gen_ai.output_messages'})
     );

@@ -151,14 +151,16 @@ export function CommandPalette({
   const [actionsPanelTargetKey, setActionsPanelTargetKey] = useState<
     string | number | null
   >(null);
+  const [shouldAutoFocusRoot, setShouldAutoFocusRoot] = useState(true);
 
-  const currentTextInput = useMemo(() => {
+  const currentActionNode = useMemo(() => {
     const currentActionKey = state.action?.value.key;
     if (!currentActionKey) {
       return;
     }
-    return findCollectionNode(store.tree(), currentActionKey)?.textInput;
+    return findCollectionNode(store.tree(), currentActionKey);
   }, [state.action, store]);
+  const currentTextInput = currentActionNode?.textInput;
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
@@ -456,6 +458,7 @@ export function CommandPalette({
             anchorKey: state.action.previous?.value.key ?? null,
             focusKey: returnFocusKey,
           };
+    setShouldAutoFocusRoot(false);
     dispatch({type: 'pop action'});
   }, [dispatch, state.action]);
 
@@ -916,7 +919,12 @@ export function CommandPalette({
     <Stack width="100%" flex={1} minHeight={0} overflow="hidden">
       <ListBox
         key={listActionKey === null ? 'root' : `action:${listActionKey}`}
-        autoFocus={state.action === null ? 'first' : false}
+        autoFocus={
+          (state.action === null && shouldAutoFocusRoot) ||
+          currentActionNode?.autoFocusFirst
+            ? 'first'
+            : false
+        }
         scrollContainerRef={resultsListRef}
         listState={treeState}
         keyDownHandler={() => true}

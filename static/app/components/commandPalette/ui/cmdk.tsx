@@ -62,6 +62,8 @@ interface CMDKActionDataBase {
   /** Semantic context represented by this row for the More Actions panel. */
   actionContext?: string;
   actionPanel?: CMDKActionPanel;
+  /** Focuses the first child when this action is opened. */
+  autoFocusFirst?: boolean;
   disabled?: boolean;
   keywords?: string[];
   limit?: number;
@@ -120,6 +122,8 @@ interface CMDKActionProps<TData = unknown> {
   actionContext?: string;
   /** Exposes this action in the contextual More Actions panel. */
   actionPanel?: CMDKActionPanel;
+  /** Focuses the first child when this action is opened. */
+  autoFocusFirst?: boolean;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
   /** Mounts static children only after this prompt action is selected. */
   deferChildren?: boolean;
@@ -212,6 +216,7 @@ function CMDKActionFromData({action}: {action: CommandPaletteAction}) {
  */
 export function CMDKAction<TData = unknown>({
   actionContext,
+  autoFocusFirst,
   deferChildren,
   disabled,
   display,
@@ -246,6 +251,7 @@ export function CMDKAction<TData = unknown>({
         ? onAction === undefined
           ? {
               actionContext,
+              autoFocusFirst,
               disabled,
               display,
               keywords,
@@ -260,6 +266,7 @@ export function CMDKAction<TData = unknown>({
             }
           : {
               actionContext,
+              autoFocusFirst,
               disabled,
               display,
               keywords,
@@ -277,6 +284,7 @@ export function CMDKAction<TData = unknown>({
             }
         : {
             actionContext,
+            autoFocusFirst,
             disabled,
             display,
             keywords,
@@ -290,6 +298,7 @@ export function CMDKAction<TData = unknown>({
           },
     [
       actionContext,
+      autoFocusFirst,
       chainedActionScope,
       disabled,
       display,
