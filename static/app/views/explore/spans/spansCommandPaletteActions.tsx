@@ -981,23 +981,36 @@ function SeriesActionsComponent({
     const expression = stripEquationPrefix(visualize.yAxis);
 
     return (
-      <CMDKAction
-        id={`${seriesId}-equation`}
-        display={{
-          label: t('Edit Equation'),
-          trailingItem: <QueryValue value={expression} />,
-        }}
-        textInput={{
-          ariaLabel: t('Edit Equation'),
-          initialValue: expression,
-          onSubmit: value =>
-            updateVisualize(
-              chartId,
-              visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})
-            ),
-          footer: <EquationFooter index={index} visualizes={visualizes} />,
-        }}
-      />
+      <Fragment>
+        <CMDKAction
+          id={`${seriesId}-equation`}
+          display={{
+            label: t('Edit Equation'),
+            trailingItem: <QueryValue value={expression} />,
+          }}
+          textInput={{
+            ariaLabel: t('Edit Equation'),
+            initialValue: expression,
+            onSubmit: value =>
+              updateVisualize(
+                chartId,
+                visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})
+              ),
+            footer: <EquationFooter index={index} visualizes={visualizes} />,
+          }}
+        />
+        <CMDKAction
+          actionPanel={{
+            context: `chart:${chartId}`,
+            label: t('Reset Equation'),
+            only: true,
+          }}
+          display={{label: t('Reset Equation')}}
+          onAction={() =>
+            updateVisualize(chartId, new VisualizeEquation(EQUATION_PREFIX))
+          }
+        />
+      </Fragment>
     );
   }
 
@@ -1008,7 +1021,19 @@ function SeriesActionsComponent({
   return (
     <Fragment>
       <CMDKAction
+        actionPanel={{
+          context: `chart:${chartId}`,
+          label: t('Reset Chart'),
+          only: true,
+        }}
+        display={{label: t('Reset Chart')}}
+        onAction={() =>
+          updateVisualize(chartId, new VisualizeFunction(DEFAULT_VISUALIZATION))
+        }
+      />
+      <CMDKAction
         id={`${seriesId}-source`}
+        actionContext={`chart:${chartId}`}
         deferChildren
         display={{
           label: t('Source'),
@@ -1023,6 +1048,7 @@ function SeriesActionsComponent({
       </CMDKAction>
       <CMDKAction
         id={`${seriesId}-aggregate`}
+        actionContext={`chart:${chartId}`}
         display={{
           label: t('Aggregate function'),
           trailingItem: <QueryValue value={aggregateSummary} />,
@@ -1821,38 +1847,73 @@ function QueryClauseActionsEditor() {
           />
         </CMDKAction>
       </CMDKAction>
-      {draftCharts.map(({id: chartId, visualize}, index) => (
-        <CMDKAction
-          key={`series-details-${chartId}`}
-          id={`spans-series-details-${chartId}`}
-          actionContext={`chart:${chartId}`}
-          display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
-        >
-          {canDeleteChart(draftCharts) && (
-            <CMDKAction
-              actionPanel={{
-                context: `chart:${chartId}`,
-                label: t('Delete Chart'),
-                only: true,
-                order: MORE_ACTIONS_ORDER.deleteChart,
-              }}
-              display={{label: t('Delete Chart')}}
-              keywords={['delete', 'remove', 'chart', 'series']}
-              onAction={() =>
-                setDraftCharts(currentCharts => deleteChart(currentCharts, chartId))
-              }
-            />
-          )}
-          <SeriesActions
-            chartId={chartId}
-            index={index}
-            seriesId={`spans-series-${chartId}`}
-            updateVisualize={updateVisualize}
-            visualize={visualize}
-            visualizes={draftVisualizes}
-          />
-        </CMDKAction>
-      ))}
+      {draftCharts.map(({id: chartId, visualize}, index) => {
+        const isEquation = isVisualizeEquation(visualize);
+        const equationExpression = isEquation
+          ? stripEquationPrefix(visualize.yAxis)
+          : undefined;
+
+        return (
+          <CMDKAction
+            key={`series-details-${chartId}`}
+            id={`spans-series-details-${chartId}`}
+            actionContext={`chart:${chartId}`}
+            display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
+            textInput={
+              isEquation
+                ? {
+                    ariaLabel: t('Edit Equation'),
+                    initialValue: equationExpression ?? '',
+                    onSubmit: value =>
+                      updateVisualize(
+                        chartId,
+                        visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})
+                      ),
+                    footer: <EquationFooter index={index} visualizes={draftVisualizes} />,
+                  }
+                : undefined
+            }
+          >
+            {canDeleteChart(draftCharts) && (
+              <CMDKAction
+                actionPanel={{
+                  context: `chart:${chartId}`,
+                  label: t('Delete Chart'),
+                  only: true,
+                  order: MORE_ACTIONS_ORDER.deleteChart,
+                }}
+                display={{label: t('Delete Chart')}}
+                keywords={['delete', 'remove', 'chart', 'series']}
+                onAction={() =>
+                  setDraftCharts(currentCharts => deleteChart(currentCharts, chartId))
+                }
+              />
+            )}
+            {isEquation ? (
+              <CMDKAction
+                actionPanel={{
+                  context: `chart:${chartId}`,
+                  label: t('Reset Equation'),
+                  only: true,
+                }}
+                display={{label: t('Reset Equation')}}
+                onAction={() =>
+                  updateVisualize(chartId, new VisualizeEquation(EQUATION_PREFIX))
+                }
+              />
+            ) : (
+              <SeriesActions
+                chartId={chartId}
+                index={index}
+                seriesId={`spans-series-${chartId}`}
+                updateVisualize={updateVisualize}
+                visualize={visualize}
+                visualizes={draftVisualizes}
+              />
+            )}
+          </CMDKAction>
+        );
+      })}
     </CMDKChainedActionScope>
   );
 }

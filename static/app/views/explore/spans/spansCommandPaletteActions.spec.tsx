@@ -107,7 +107,7 @@ function ProjectSelectionPalette() {
 }
 
 describe('equation draft selection', () => {
-  it('restores keyboard navigation after adding an equation and returning', async () => {
+  it('saves an equation and restores root keyboard navigation', async () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -127,13 +127,9 @@ describe('equation draft selection', () => {
     );
     await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'Chart');
     await userEvent.click(await screen.findByRole('option', {name: 'Chart B'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Edit Equation'}));
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Edit Equation'}), '#1');
     await userEvent.keyboard('{Enter}');
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Return to previous action'})
-    );
 
     const searchInput = screen.getByRole('textbox', {
       name: 'Search commands',
@@ -142,6 +138,88 @@ describe('equation draft selection', () => {
     await userEvent.keyboard('{ArrowDown}');
     expect(searchInput).toHaveFocus();
   });
+
+  it('shows the applicable reset and conditional delete actions', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    const searchInput = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(searchInput, 'Chart A');
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    let actions = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(
+      within(actions).getByRole('option', {name: 'Reset Chart'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).queryByRole('option', {name: 'Delete Chart'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.clear(searchInput);
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Equation'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Return to previous action'})
+    );
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'Chart B');
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    actions = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(
+      within(actions).getByRole('option', {name: 'Reset Equation'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Delete Chart'})
+    ).toBeInTheDocument();
+  });
+
+  it.each(['Source', 'Aggregate function'])(
+    'resets a chart from its %s row without exiting the chart view',
+    async rowName => {
+      // React Aria's virtual focus schedules a passive update after the action.
+      jest.spyOn(console, 'error').mockImplementation();
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: [],
+        datetime: {period: '24h', start: null, end: null, utc: null},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        body: [],
+      });
+
+      render(<ProjectSelectionPalette />);
+
+      const searchInput = screen.getByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(searchInput, 'Chart A');
+      await userEvent.click(await screen.findByRole('option', {name: 'Chart A'}));
+      await userEvent.keyboard(
+        `${rowName === 'Source' ? '{ArrowDown}' : '{ArrowDown}{ArrowDown}'}{Control>}{Shift>}{Enter}{/Shift}{/Control}`
+      );
+      await userEvent.click(
+        within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+          name: 'Reset Chart',
+        })
+      );
+
+      expect(await screen.findByRole('option', {name: 'Source'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: 'Aggregate function'})
+      ).toBeInTheDocument();
+    }
+  );
 });
 
 describe('project scope selection', () => {
