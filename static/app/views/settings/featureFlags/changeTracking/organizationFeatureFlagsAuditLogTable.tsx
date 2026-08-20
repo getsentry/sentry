@@ -21,11 +21,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'createdAt', name: t('Date')},
 ];
 
-export function OrganizationFeatureFlagsAuditLogTable({
-  pageSize = 15,
-}: {
-  pageSize?: number;
-}) {
+export function OrganizationFeatureFlagsAuditLogTable() {
   const organization = useOrganization();
   const locationQuery = useLocationQuery({
     fields: {
@@ -45,10 +41,10 @@ export function OrganizationFeatureFlagsAuditLogTable({
     );
     return {
       ...filteredFields,
-      per_page: pageSize,
+      per_page: 15,
       queryReferrer: 'featureFlagsSettings',
     };
-  }, [locationQuery, pageSize]);
+  }, [locationQuery]);
 
   const {data, isPending, error} = useQuery({
     ...organizationFlagLogOptions({

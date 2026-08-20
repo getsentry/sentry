@@ -46,10 +46,9 @@ function projectHasModuleData(
 /**
  * Returns whether the module and current project selection has received a first insight span
  * @param module The name of the module that will be checked for a first span
- * @param projects The projects to check for the first span. If not provided, the selected projects will be used
  * @returns true if the module has a first span in the selected projects, false otherwise
  */
-export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boolean {
+export function useHasFirstSpan(module: ModuleName): boolean {
   const {projects: allProjects} = useProjects();
   const pageFilters = usePageFilters();
 
@@ -58,10 +57,6 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   }
 
   const checkedModule = module as Exclude<ModuleName, ExcludedModuleNames>;
-
-  if (projects) {
-    return projects.some(p => projectHasModuleData(p, checkedModule));
-  }
 
   let selectedProjects: Project[] = [];
 

@@ -17,7 +17,6 @@ export const useOpenSeerDrawer = ({
 }: {
   group: Group;
   project: Project;
-  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }) => {
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();

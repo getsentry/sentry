@@ -212,8 +212,8 @@ export function getUnselectedSeries(trendChangeType: TrendChangeType) {
   return trendUnselectedSeries[trendChangeType];
 }
 
-const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
-  return ASAP(data, resolution);
+const smoothTrend = (data: Array<[number, number]>) => {
+  return ASAP(data, 100);
 };
 
 export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {

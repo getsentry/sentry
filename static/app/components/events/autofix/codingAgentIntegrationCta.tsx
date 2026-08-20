@@ -31,8 +31,6 @@ interface AgentConfig {
   pluginId: string;
   provider: string;
   target: SeerAutomationHandoffConfiguration['target'];
-  // If unset, the CTA renders without a feature flag gate.
-  featureFlag?: string;
   headingName?: string;
 }
 
@@ -44,14 +42,12 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const user = useUser();
     const queryClient = useQueryClient();
 
-    const hasFeatureFlag =
-      !config.featureFlag || organization.features.includes(config.featureFlag);
     const {data: projectDetails, isPending: isLoadingProject} = useDetailedProject(
       {
         orgSlug: organization.slug,
         projectSlug: project.slug,
       },
-      {enabled: hasFeatureFlag}
+      {enabled: true}
     );
     const {data: knownAgents, isLoading: isLoadingIntegrations} = useQuery(
       knownAgentIntegrationsQueryOptions({organization})
@@ -122,10 +118,6 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         autoCreatePr: false,
       });
     };
-
-    if (!hasFeatureFlag) {
-      return null;
-    }
 
     if (
       isLoadingProject ||

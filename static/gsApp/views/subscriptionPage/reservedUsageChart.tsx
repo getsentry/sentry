@@ -76,8 +76,7 @@ function calculateCategoryPrepaidUsage(
   subscription: Subscription,
   prepaid: number,
   accepted?: number | null,
-  reservedCpe?: number | null,
-  reservedSpend?: number | null
+  reservedCpe?: number | null
 ): {
   onDemandUsage: number;
   prepaidPercentUsed: number;
@@ -94,7 +93,7 @@ function calculateCategoryPrepaidUsage(
   // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
   // try to extract them from subscription.reservedBudgets
   let effectiveReservedCpe = reservedCpe ?? undefined;
-  let effectiveReservedSpend = reservedSpend ?? undefined;
+  let effectiveReservedSpend: number | undefined;
 
   if (
     (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&

@@ -11,22 +11,18 @@ import {SECOND} from 'sentry/utils/formatters';
 
 /**
  * Returns elapsed ms between `startTime` and `endTime`.
- * While `endTime` is undefined, ticks every `intervalMs` to keep the value live.
+ * While `endTime` is undefined, ticks every 100ms to keep the value live.
  */
-function useElapsedTime(
-  startTime: Date,
-  endTime: Date | undefined,
-  intervalMs = 100
-): number {
+function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (endTime) {
       return;
     }
-    const id = setInterval(() => setNow(new Date()), intervalMs);
+    const id = setInterval(() => setNow(new Date()), 100);
     return () => clearInterval(id);
-  }, [endTime, intervalMs]);
+  }, [endTime]);
 
   return (endTime ?? now).getTime() - startTime.getTime();
 }
@@ -37,13 +33,13 @@ function useElapsedTime(
  * in even thirds so they fit the reserved space and never shift layout as the
  * count changes. Decorative — hidden from AT.
  */
-function AnimatedEllipsis({intervalMs = 400}: {intervalMs?: number}) {
+function AnimatedEllipsis() {
   const [count, setCount] = useState(1);
 
   useEffect(() => {
-    const id = setInterval(() => setCount(c => (c % 3) + 1), intervalMs);
+    const id = setInterval(() => setCount(c => (c % 3) + 1), 400);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, []);
 
   return (
     <span

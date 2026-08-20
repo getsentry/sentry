@@ -62,16 +62,12 @@ export const listSymbol = {
   bullet: 'bullet',
 };
 
-export function getListSymbolStyle(
-  theme: Theme,
-  symbol: keyof typeof listSymbol,
-  initialCounterValue?: number
-) {
+export function getListSymbolStyle(theme: Theme, symbol: keyof typeof listSymbol) {
   switch (symbol) {
     case 'numeric':
-      return numericStyle(theme, {initialCounterValue});
+      return numericStyle(theme, {});
     case 'colored-numeric':
-      return numericStyle(theme, {isSolid: true, initialCounterValue});
+      return numericStyle(theme, {isSolid: true});
     default:
       return bulletStyle(theme);
   }

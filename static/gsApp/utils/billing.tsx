@@ -1,6 +1,5 @@
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -530,9 +529,9 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
+export function getProductIcon(product: AddOnCategory) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
-    return <IconSeer size={size} />;
+    return <IconSeer />;
   }
   return null;
 }

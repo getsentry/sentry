@@ -35,21 +35,15 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
 
 const mepQueryParamBase: Record<string, string> = {};
 
-export function getMEPQueryParams(
-  mepContext: MetricsEnhancedSettingContext,
-  forceAuto?: boolean
-) {
+export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
-  if (mepContext.shouldQueryProvideMEPAutoParams || forceAuto) {
+  if (mepContext.shouldQueryProvideMEPAutoParams) {
     queryParams = {
       ...queryParams,
       ...base,
       dataset: 'metricsEnhanced',
     };
-    if (forceAuto) {
-      return queryParams;
-    }
   }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};

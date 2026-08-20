@@ -142,12 +142,8 @@ function getSortKeyFromField(
   return getSortField(fieldString, tableMeta);
 }
 
-export function isFieldSortable(
-  field: Field,
-  tableMeta?: MetaType,
-  useFunctionFormat?: boolean
-): boolean {
-  return !!getSortKeyFromField(field, tableMeta, useFunctionFormat);
+export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
+  return !!getSortKeyFromField(field, tableMeta);
 }
 
 const decodeFields = (location: Location): Field[] => {

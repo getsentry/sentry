@@ -18,7 +18,6 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
@@ -47,19 +46,16 @@ import {
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
-function getCrashFreeIcon(
-  crashFreePercent: number,
-  iconSize: SVGIconProps['size'] = 'sm'
-) {
+function getCrashFreeIcon(crashFreePercent: number) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire variant="danger" size={iconSize} />;
+    return <IconFire variant="danger" size="sm" />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning variant="warning" size={iconSize} />;
+    return <IconWarning variant="warning" size="sm" />;
   }
 
-  return <IconCheckmark variant="success" size={iconSize} />;
+  return <IconCheckmark variant="success" size="sm" />;
 }
 
 type Props = {
