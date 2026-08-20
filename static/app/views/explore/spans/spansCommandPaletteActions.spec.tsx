@@ -436,7 +436,7 @@ describe('project scope selection', () => {
 
     await userEvent.keyboard('{Enter}');
     const android = await screen.findByRole('option', {name: /android/});
-    expect(within(android).getByText('Current')).toBeInTheDocument();
+    expect(within(android).queryByText('Current')).not.toBeInTheDocument();
     expect(within(android).getByRole('checkbox', {hidden: true})).toBeChecked();
 
     await userEvent.keyboard('{ArrowDown}');
@@ -451,24 +451,86 @@ describe('project scope selection', () => {
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
     expect(router.location.query.project).toEqual(['1', '2']);
 
-    await userEvent.keyboard('{Enter}');
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Return to previous action'})
+    );
     expect(
       await screen.findByRole('option', {name: 'Apply Changes'})
     ).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
-    expect(PageFiltersStore.getState().selection.projects).toEqual([]);
-    expect(PageFiltersStore.getState().selection.environments).toEqual([]);
-    await waitFor(() => expect(router.location.query.project).toBeUndefined());
-    expect(router.location.query.environment).toBeUndefined();
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
+    expect(PageFiltersStore.getState().selection.environments).toEqual(['production']);
+    await waitFor(() => expect(router.location.query.project).toEqual(['1', '2']));
+    expect(router.location.query.environment).toBe('production');
     expect(router.location.query.statsPeriod).toBe('24h');
   });
 });
 
 describe('scope summary reset actions', () => {
+  it('resets Projects from Step 0 to the URL-persisted selection', async () => {
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', isMember: false}),
+      ProjectFixture({id: '2', slug: 'backend', isMember: false}),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', statsPeriod: '24h'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Projects'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'backend'
+    );
+    await userEvent.keyboard('{ArrowDown}{Shift>}{Enter}{/Shift}');
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Return to previous action'})
+    );
+
+    expect(await screen.findByText('frontend, backend')).toBeInTheDocument();
+
+    const searchInput = screen.getByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(searchInput, 'Projects');
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    expect(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Reset Projects',
+      })
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Projects/})).toHaveTextContent('frontend');
+    expect(
+      screen.queryByRole('button', {name: 'Return to previous action'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.clear(searchInput);
+    await userEvent.click(screen.getByRole('option', {name: 'Apply Changes'}));
+    expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
+    await waitFor(() => expect(router.location.query.project).toBe('1'));
+  });
+
   it.each([
     ['Projects', 'Reset Projects', 'My Projects'],
-    ['Environments', 'Reset Environments', 'All Environments'],
-    ['Time range', 'Reset Time range', 'Last 14 days'],
+    ['Environments', 'Reset Environments', 'production'],
+    ['Time range', 'Reset Time range', 'Last 7 days'],
   ])('resets %s directly on the root summary', async (summary, reset, resetValue) => {
     jest.spyOn(console, 'error').mockImplementation();
     ProjectsStore.loadInitialData([
@@ -488,7 +550,14 @@ describe('scope summary reset actions', () => {
       body: [],
     });
 
-    render(<ProjectSelectionPalette />);
+    render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {environment: 'production', project: '1', statsPeriod: '7d'},
+        },
+      },
+    });
 
     const searchInput = await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.type(searchInput, summary);

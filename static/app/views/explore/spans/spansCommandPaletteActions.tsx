@@ -21,6 +21,7 @@ import {
   ALL_ACCESS_PROJECTS,
   PROJECT_SELECTION_COUNT_LIMIT,
 } from 'sentry/components/pageFilters/constants';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PlatformList} from 'sentry/components/platformList';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
@@ -465,14 +466,16 @@ export function getEnvironmentScopeLabel(environments: string[]) {
 
 function SpansScopeActions({
   draftPageFilters,
+  persistedPageFilters,
   setDraftPageFilters,
 }: {
   draftPageFilters: PageFilters;
+  persistedPageFilters: PageFilters;
   setDraftPageFilters: React.Dispatch<React.SetStateAction<PageFilters>>;
 }) {
   const {projects} = useProjects();
   const commandPaletteState = useCommandPaletteState();
-  const [currentPageFilters, setCurrentPageFilters] = useState(draftPageFilters);
+  const [currentPageFilters] = useState(persistedPageFilters);
   const lastMultiSelectedProjectRef = useRef<number | null>(null);
   const lastMultiSelectedEnvironmentRef = useRef<string | null>(null);
   const didResetTimeRangeRef = useRef(false);
@@ -498,12 +501,8 @@ function SpansScopeActions({
   useEffect(() => {
     if (!isScopePickerOpen) {
       didResetTimeRangeRef.current = false;
-      // This is an intentional step-0 snapshot, not derived render state. Picker edits
-      // should not become "Current" until the user returns to the scope summary.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setCurrentPageFilters(draftPageFilters);
     }
-  }, [draftPageFilters, isScopePickerOpen]);
+  }, [isScopePickerOpen]);
   const projectsInDraftScope = getProjectsForSelection(
     projects,
     selectedProjects,
@@ -627,11 +626,13 @@ function SpansScopeActions({
               icon: <IconRefresh />,
             }}
             onAction={() =>
-              setDraftPageFilters(current => ({
-                ...current,
-                projects: [],
-                environments: [],
-              }))
+              setDraftPageFilters(current => {
+                return {
+                  ...current,
+                  projects: [...persistedPageFilters.projects],
+                  environments: [...persistedPageFilters.environments],
+                };
+              })
             }
           />
         </CMDKChainedActionScope>
@@ -723,7 +724,7 @@ function SpansScopeActions({
             onAction={() =>
               setDraftPageFilters(current => ({
                 ...current,
-                environments: [],
+                environments: [...persistedPageFilters.environments],
               }))
             }
           />
@@ -807,12 +808,7 @@ function SpansScopeActions({
               didResetTimeRangeRef.current = true;
               setDraftPageFilters(current => ({
                 ...current,
-                datetime: {
-                  end: null,
-                  period: DEFAULT_STATS_PERIOD,
-                  start: null,
-                  utc: null,
-                },
+                datetime: {...persistedPageFilters.datetime},
               }));
             }}
           />
@@ -1412,6 +1408,15 @@ function QueryClauseActionsEditor() {
   const query = useQueryParamsQuery();
   const crossEvents = useQueryParamsCrossEvents();
   const [caseInsensitive] = useCaseInsensitivity();
+  const [persistedPageFilters] = useState<PageFilters>(() => {
+    const persisted = PageFiltersStore.getState().selection;
+    return {
+      ...persisted,
+      datetime: {...persisted.datetime},
+      environments: [...persisted.environments],
+      projects: [...persisted.projects],
+    };
+  });
   const [draftFilters, setDraftFilters] = useState(() => ({
     pendingRows: getFilterRows(query).length === 0 ? 1 : 0,
     query,
@@ -1574,6 +1579,15 @@ function QueryClauseActionsEditor() {
     ]);
   };
   const latestDraftPageFiltersRef = useRef(draftPageFilters);
+  const updateDraftPageFilters: React.Dispatch<
+    React.SetStateAction<PageFilters>
+  > = action => {
+    setDraftPageFilters(current => {
+      const next = typeof action === 'function' ? action(current) : action;
+      latestDraftPageFiltersRef.current = next;
+      return next;
+    });
+  };
   useEffect(() => {
     latestDraftPageFiltersRef.current = draftPageFilters;
   }, [draftPageFilters]);
@@ -1618,7 +1632,8 @@ function QueryClauseActionsEditor() {
       </CMDKTerminalActionScope>
       <SpansScopeActions
         draftPageFilters={draftPageFilters}
-        setDraftPageFilters={setDraftPageFilters}
+        persistedPageFilters={persistedPageFilters}
+        setDraftPageFilters={updateDraftPageFilters}
       />
       <CMDKAction display={{label: t('Commands')}}>
         {draftVisualizes.length < MAX_VISUALIZES && (
