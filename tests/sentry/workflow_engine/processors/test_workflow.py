@@ -143,6 +143,26 @@ class TestProcessWorkflows(BaseWorkflowTest):
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert _triggered_workflow_ids(result) == {self.error_workflow.id}
 
+    @patch("sentry.workflow_engine.processors.workflow.log_context.set_verbose")
+    def test_enables_debug_logging_for_selected_workflow(self, mock_set_verbose: MagicMock) -> None:
+        with self.options(
+            {"workflow_engine.process_workflows_debug_workflow_ids": [self.error_workflow.id]}
+        ):
+            process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        mock_set_verbose.assert_called_once_with(True)
+
+    @patch("sentry.workflow_engine.processors.workflow.log_context.set_verbose")
+    def test_does_not_enable_debug_logging_for_unselected_workflow(
+        self, mock_set_verbose: MagicMock
+    ) -> None:
+        with self.options(
+            {"workflow_engine.process_workflows_debug_workflow_ids": [self.workflow.id]}
+        ):
+            process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
+
+        mock_set_verbose.assert_not_called()
+
     @patch("sentry.workflow_engine.processors.action.fire_actions")
     def test_process_workflows_event(self, mock_fire_actions: MagicMock) -> None:
         # Create an action so fire_actions will be called
