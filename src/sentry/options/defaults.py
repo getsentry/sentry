@@ -3513,6 +3513,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.process_workflows_debug_workflow_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Safe default limit for workflows. Should be high enough to cover almost all orgs,
 # low enough to have no concerns about stability impact.
 register(
