@@ -1854,31 +1854,12 @@ function QueryClauseActionsEditor() {
         </CMDKAction>
       </CMDKAction>
       {draftCharts.map(({id: chartId, visualize}, index) => {
-        const isEquation = isVisualizeEquation(visualize);
-        const equationExpression = isEquation
-          ? stripEquationPrefix(visualize.yAxis)
-          : undefined;
-
         return (
           <CMDKAction
             key={`series-details-${chartId}`}
             id={`spans-series-details-${chartId}`}
             actionContext={`chart:${chartId}`}
             display={{label: t('Chart %s', String.fromCharCode(65 + index))}}
-            textInput={
-              isEquation
-                ? {
-                    ariaLabel: t('Edit Equation'),
-                    initialValue: equationExpression ?? '',
-                    onSubmit: value =>
-                      updateVisualize(
-                        chartId,
-                        visualize.replace({yAxis: `${EQUATION_PREFIX}${value}`})
-                      ),
-                    footer: <EquationFooter index={index} visualizes={draftVisualizes} />,
-                  }
-                : undefined
-            }
           >
             {canDeleteChart(draftCharts) && (
               <CMDKAction
@@ -1895,28 +1876,14 @@ function QueryClauseActionsEditor() {
                 }
               />
             )}
-            {isEquation ? (
-              <CMDKAction
-                actionPanel={{
-                  context: `chart:${chartId}`,
-                  label: t('Reset Equation'),
-                  only: true,
-                }}
-                display={{label: t('Reset Equation')}}
-                onAction={() =>
-                  updateVisualize(chartId, new VisualizeEquation(EQUATION_PREFIX))
-                }
-              />
-            ) : (
-              <SeriesActions
-                chartId={chartId}
-                index={index}
-                seriesId={`spans-series-${chartId}`}
-                updateVisualize={updateVisualize}
-                visualize={visualize}
-                visualizes={draftVisualizes}
-              />
-            )}
+            <SeriesActions
+              chartId={chartId}
+              index={index}
+              seriesId={`spans-series-${chartId}`}
+              updateVisualize={updateVisualize}
+              visualize={visualize}
+              visualizes={draftVisualizes}
+            />
           </CMDKAction>
         );
       })}

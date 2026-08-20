@@ -127,6 +127,7 @@ describe('equation draft selection', () => {
     );
     await userEvent.type(screen.getByRole('textbox', {name: 'Search commands'}), 'Chart');
     await userEvent.click(await screen.findByRole('option', {name: 'Chart B'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Edit Equation'}));
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Edit Equation'}), '#1');
     await userEvent.keyboard('{Enter}');
