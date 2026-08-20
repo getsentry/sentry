@@ -13,7 +13,6 @@ type GroupPreviewTooltipProps = {
   issueCategory?: IssueCategory;
   issueType?: IssueType;
   project?: Project;
-  projectId?: string;
   query?: string;
 };
 

@@ -1,6 +1,5 @@
 import type {
   ChangeEventHandler,
-  ClipboardEventHandler,
   FocusEventHandler,
   KeyboardEventHandler,
   MouseEventHandler,
@@ -27,8 +26,6 @@ interface InputBoxProps {
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: KeyboardEventHandler<HTMLInputElement>;
-  onPaste?: ClipboardEventHandler<HTMLInputElement>;
-  placeholder?: string;
   ref?: Ref<HTMLInputElement>;
   tabIndex?: number;
 }
@@ -44,9 +41,7 @@ export function InputBox({
   onInputFocus,
   onKeyDown,
   onKeyDownCapture,
-  onPaste,
   'data-test-id': dataTestId,
-  placeholder,
   ref,
   tabIndex,
 }: InputBoxProps) {
@@ -116,7 +111,6 @@ export function InputBox({
         size="md"
         ref={mergeRefs(ref, inputRef, autosizeInputRef)}
         type="text"
-        placeholder={placeholder}
         onBlur={handleInputBlur}
         onClick={handleInputClick}
         onKeyDown={handleInputKeyDown}
@@ -124,7 +118,6 @@ export function InputBox({
         value={inputValue}
         onChange={onInputChange ?? (() => {})}
         tabIndex={tabIndex}
-        onPaste={onPaste}
         disabled={false}
         data-test-id={dataTestId}
       />

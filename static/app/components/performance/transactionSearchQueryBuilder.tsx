@@ -12,7 +12,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -31,27 +31,17 @@ import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
   searchSource: string;
-  datetime?: PageFilterDatetime;
-  disableLoadingTags?: boolean;
   disallowFreeText?: boolean;
-  filterKeyMenuWidth?: number;
   onSearch?: (query: string, state: CallbackSearchState) => void;
-  placeholder?: string;
   projects?: PageFilters['projects'] | readonly number[];
-  trailingItems?: React.ReactNode;
 }
 
 export function TransactionSearchQueryBuilder({
   initialQuery,
   searchSource,
-  datetime,
   onSearch,
-  placeholder,
   projects,
   disallowFreeText = true,
-  disableLoadingTags,
-  filterKeyMenuWidth,
-  trailingItems,
 }: TransactionSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -59,15 +49,9 @@ export function TransactionSearchQueryBuilder({
   const tags = useTags();
   const {addAlert} = useGlobalAlerts();
 
-  const placeholderText = useMemo(() => {
-    return placeholder ?? t('Search for events, users, tags, and more');
-  }, [placeholder]);
-
   useEffect(() => {
-    if (!disableLoadingTags) {
-      loadOrganizationTags(api, organization.slug, selection, addAlert);
-    }
-  }, [api, organization.slug, selection, disableLoadingTags, addAlert]);
+    loadOrganizationTags(api, organization.slug, selection, addAlert);
+  }, [api, organization.slug, selection, addAlert]);
 
   const filterTags = useMemo(() => {
     const measurements = getMeasurements();
@@ -126,7 +110,7 @@ export function TransactionSearchQueryBuilder({
           projectIds: projects?.map(String) ?? selection.projects?.map(String),
           includeTransactions: true,
           sort: '-count',
-          endpointParams: normalizeDateTimeParams(datetime ?? selection.datetime),
+          endpointParams: normalizeDateTimeParams(selection.datetime),
         });
 
         return results.filter(({name}) => defined(name)).map(({name}) => name);
@@ -134,12 +118,12 @@ export function TransactionSearchQueryBuilder({
         throw new Error(`Unable to fetch event field values: ${e}`);
       }
     },
-    [api, organization, datetime, projects, selection.datetime, selection.projects]
+    [api, organization, projects, selection.datetime, selection.projects]
   );
 
   return (
     <SearchQueryBuilder
-      placeholder={placeholderText}
+      placeholder={t('Search for events, users, tags, and more')}
       filterKeys={filterTags}
       initialQuery={initialQuery}
       onSearch={onSearch}
@@ -149,8 +133,6 @@ export function TransactionSearchQueryBuilder({
       disallowFreeText={disallowFreeText}
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.EVENT}
-      filterKeyMenuWidth={filterKeyMenuWidth}
-      trailingItems={trailingItems}
     />
   );
 }
