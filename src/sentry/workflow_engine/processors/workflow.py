@@ -589,6 +589,10 @@ def process_workflows(
         log_context.set_verbose(True)
 
     workflows = get_workflows_by_detectors(event_detectors.detectors, environment)
+    debug_workflow_ids = options.get("workflow_engine.process_workflows_debug_workflow_ids")
+    if any(workflow.id in debug_workflow_ids for workflow in workflows):
+        log_context.set_verbose(True)
+
     wrong_org_workflows = {wf for wf in workflows if wf.organization_id != organization.id}
     if wrong_org_workflows:
         logger.warning(
