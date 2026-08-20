@@ -9,10 +9,11 @@ from typing import NamedTuple, cast
 
 from django.db.models import Exists, OuterRef, Q
 from pydantic import ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -347,6 +348,11 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAutofixOverviewPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
+        if not features.has(
+            "organizations:autofix-overview-page", organization, actor=request.user
+        ):
+            raise PermissionDenied
+
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 

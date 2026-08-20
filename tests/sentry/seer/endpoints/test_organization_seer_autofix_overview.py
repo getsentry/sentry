@@ -84,6 +84,13 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+        feature = self.feature("organizations:autofix-overview-page")
+        feature.__enter__()
+        self.addCleanup(feature.__exit__, None, None, None)
+
+    def test_requires_autofix_overview_page_feature(self):
+        with self.feature({"organizations:autofix-overview-page": False}):
+            self.get_error_response(self.organization.slug, status_code=403)
 
     def _run_for_group(self, group, description):
         run = self.create_seer_run(organization=self.organization)
@@ -1105,6 +1112,9 @@ class OrganizationSeerAutofixOverviewStatusExpandTest(APITestCase, SnubaTestCase
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+        feature = self.feature("organizations:autofix-overview-page")
+        feature.__enter__()
+        self.addCleanup(feature.__exit__, None, None, None)
 
     def _run_for_group(self, group, description, state_id):
         run = self.create_seer_run(organization=self.organization)
