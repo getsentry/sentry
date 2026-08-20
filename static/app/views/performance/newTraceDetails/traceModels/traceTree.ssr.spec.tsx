@@ -22,14 +22,14 @@ const ssrTrace = makeTrace({
     makeTransaction({
       start_timestamp: start,
       timestamp: start + 2,
-      ['transaction.op']: 'http.server',
+      'transaction.op': 'http.server',
       event_id: '000',
       project_slug: 'project-0',
       children: [
         makeTransaction({
           start_timestamp: start,
           timestamp: start + 2,
-          ['transaction.op']: 'pageload',
+          'transaction.op': 'pageload',
           children: [],
           event_id: '001',
           project_slug: 'project-1',
@@ -118,15 +118,15 @@ describe('server side rendering', () => {
         transactions: [
           makeTransaction({
             transaction: 'SSR',
-            ['transaction.op']: 'http.server',
+            'transaction.op': 'http.server',
             children: [
               makeTransaction({
                 transaction: 'pageload',
-                ['transaction.op']: 'pageload',
+                'transaction.op': 'pageload',
               }),
               makeTransaction({
                 transaction: 'pageload',
-                ['transaction.op']: 'pageload',
+                'transaction.op': 'pageload',
               }),
             ],
           }),

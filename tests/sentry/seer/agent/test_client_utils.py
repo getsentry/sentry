@@ -1,4 +1,8 @@
+from typing import Any
+from unittest import mock
+
 import jwt
+import orjson
 from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -9,6 +13,7 @@ from sentry.seer.agent.client_utils import (
     _sanitize_json_strings,
     collect_user_org_context,
     enqueue_seer_run,
+    fetch_run_statuses,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
@@ -560,3 +565,51 @@ class EnqueueSeerRunSanitizeTest(TestCase):
         assert outbox.payload is not None
         title = outbox.payload["body"]["payload"]["candidates"][0]["title"]
         assert title == "System.FormatException: The input string '' was..."
+
+
+class FetchRunStatusesTest(TestCase):
+    _PATCH = "sentry.seer.agent.client_utils.make_signed_seer_api_request"
+
+    def _response(self, status: int, payload: dict) -> mock.Mock:
+        response = mock.Mock(status=status)
+        response.json.return_value = payload
+        return response
+
+    def test_empty_ids_makes_no_request(self) -> None:
+        with mock.patch(self._PATCH) as m:
+            assert fetch_run_statuses([], self.organization) == {}
+        assert m.call_count == 0
+
+    def test_maps_run_id_to_status_and_omits_null(self) -> None:
+        payload = {
+            "data": {
+                "7": {"status": "processing"},
+                "9": {"status": "completed"},
+                "11": {"status": None},
+            }
+        }
+        with mock.patch(self._PATCH, return_value=self._response(200, payload)) as m:
+            result = fetch_run_statuses([7, 9, 11], self.organization)
+
+        assert result == {7: "processing", 9: "completed"}
+        sent = orjson.loads(m.call_args.kwargs["body"])
+        assert sent == {"run_ids": [7, 9, 11]}
+        assert m.call_args.kwargs["viewer_context"] is not None
+
+    def test_seer_error_status_returns_empty(self) -> None:
+        with mock.patch(self._PATCH, return_value=self._response(500, {})):
+            assert fetch_run_statuses([7], self.organization) == {}
+
+    def test_request_exception_returns_empty(self) -> None:
+        with mock.patch(self._PATCH, side_effect=Exception("boom")):
+            assert fetch_run_statuses([7], self.organization) == {}
+
+    def test_malformed_payload_returns_empty(self) -> None:
+        payloads: list[dict[str, Any]] = [
+            {"data": None},
+            {"data": {"7": "not-a-dict"}},
+            {"data": {"x": {}}},
+        ]
+        for payload in payloads:
+            with mock.patch(self._PATCH, return_value=self._response(200, payload)):
+                assert fetch_run_statuses([7], self.organization) == {}
