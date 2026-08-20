@@ -1,7 +1,5 @@
 ---
-created: '2019-03-14T17:12:34.989073Z'
-creator: sentry
-source: tests/sentry/event_manager/interfaces/test_contexts.py
+source: tests/sentry/event_manager/interfaces/test_contexts.py::test_app
 ---
 errors: null
 tags:
@@ -12,3 +10,8 @@ to_json:
     app_id: '1234'
     device_app_hash: '5678'
     type: app
+  trace:
+    span_id: 0e96d09d6c1f43e1
+    status: unknown
+    trace_id: 0e96d09d6c1f43e194a51a8415bf2fa1
+    type: trace

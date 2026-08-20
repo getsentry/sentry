@@ -1,7 +1,5 @@
 ---
-created: '2019-03-14T17:12:34.971395Z'
-creator: sentry
-source: tests/sentry/event_manager/interfaces/test_contexts.py
+source: tests/sentry/event_manager/interfaces/test_contexts.py::test_device_with_alias
 ---
 errors: null
 tags:
@@ -16,3 +14,8 @@ to_json:
     title: My Title
     type: device
     version: 1.2.3
+  trace:
+    span_id: 29947e76db914adb
+    status: unknown
+    trace_id: 29947e76db914adb85b96317cc58211e
+    type: trace
