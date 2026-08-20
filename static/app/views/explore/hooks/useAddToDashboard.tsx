@@ -23,6 +23,7 @@ import {
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -33,18 +34,29 @@ export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
   [ChartType.HEATMAP]: DisplayType.HEATMAP,
 };
 
-export function useAddToDashboard() {
+export function useAddToDashboard(overrides?: {
+  pageFilters?: ReturnType<typeof usePageFilters>['selection'];
+  queryParams?: ReadableQueryParams;
+}) {
   const location = useLocation();
-  const {selection} = usePageFilters();
+  const {selection: currentSelection} = usePageFilters();
   const organization = useOrganization();
 
-  const mode = useQueryParamsMode();
+  const currentMode = useQueryParamsMode();
   const dataset = useSpansDataset();
-  const groupBys = useQueryParamsGroupBys();
-  const sampleSortBys = useQueryParamsSortBys();
-  const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const visualizes = useQueryParamsVisualizes();
-  const query = useQueryParamsQuery();
+  const currentGroupBys = useQueryParamsGroupBys();
+  const currentSampleSortBys = useQueryParamsSortBys();
+  const currentAggregateSortBys = useQueryParamsAggregateSortBys();
+  const currentVisualizes = useQueryParamsVisualizes();
+  const currentQuery = useQueryParamsQuery();
+  const selection = overrides?.pageFilters ?? currentSelection;
+  const mode = overrides?.queryParams?.mode ?? currentMode;
+  const groupBys = overrides?.queryParams?.groupBys ?? currentGroupBys;
+  const sampleSortBys = overrides?.queryParams?.sortBys ?? currentSampleSortBys;
+  const aggregateSortBys =
+    overrides?.queryParams?.aggregateSortBys ?? currentAggregateSortBys;
+  const visualizes = overrides?.queryParams?.visualizes ?? currentVisualizes;
+  const query = overrides?.queryParams?.query ?? currentQuery;
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 

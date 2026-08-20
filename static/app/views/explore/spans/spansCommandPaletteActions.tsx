@@ -81,6 +81,7 @@ import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttr
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
+  useQueryParams,
   useQueryParamsAggregateSortBys,
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -90,6 +91,7 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeFunction,
   isVisualizeEquation,
@@ -216,15 +218,25 @@ export function reorderCharts<T>(
   return reorderedCharts;
 }
 
-function SaveAsActionsComponent() {
+function SaveAsActionsComponent({
+  pageFilters: draftPageFilters,
+  queryParams,
+}: {
+  pageFilters: PageFilters;
+  queryParams: ReadableQueryParams;
+}) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
+  const currentPageFilters = usePageFilters();
+  const pageFilters = {...currentPageFilters, selection: draftPageFilters};
   const {projects} = useProjects();
   const [interval] = useChartInterval();
-  const {addToDashboard} = useAddToDashboard();
-  const {saveQuery} = useSpansSaveQuery();
-  const query = useQueryParamsQuery();
-  const visualizes = useQueryParamsVisualizes().filter(isVisualizeFunction);
+  const {addToDashboard} = useAddToDashboard({
+    pageFilters: draftPageFilters,
+    queryParams,
+  });
+  const {saveQuery} = useSpansSaveQuery({pageFilters, queryParams});
+  const query = queryParams.query;
+  const visualizes = queryParams.visualizes.filter(isVisualizeFunction);
   const visualizeYAxes = dedupeArray(visualizes.map(visualize => visualize.yAxis));
   const project =
     projects.length === 1
@@ -1354,6 +1366,7 @@ function QueryClauseActionsEditor() {
   const organization = useOrganization();
   const {selection: pageFilterSelection} = usePageFilters();
   const setQueryParams = useSetQueryParams();
+  const queryParams = useQueryParams();
   const visualizes = useQueryParamsVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const sampleSortBys = useQueryParamsSortBys();
@@ -1490,6 +1503,13 @@ function QueryClauseActionsEditor() {
   const draftSortBys =
     draftMode === Mode.SAMPLES ? draftSampleSortBys : draftAggregateSortBys;
   const draftVisualizeFunctions = draftVisualizes.filter(isVisualizeFunction);
+  const draftQueryParams = queryParams.replace({
+    aggregateFields: [...draftGroupBys.map(groupBy => ({groupBy})), ...draftVisualizes],
+    aggregateSortBys: draftAggregateSortBys,
+    mode: draftMode,
+    query: draftQuery,
+    sortBys: draftSampleSortBys,
+  });
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const projectSelectionLimitExceeded = isProjectSelectionLimitExceeded(
     draftPageFilters.projects
@@ -1682,7 +1702,7 @@ function QueryClauseActionsEditor() {
         {canCompareQueries(draftVisualizes) && (
           <CMDKAction
             disabled={hasCrossEvents}
-            display={{label: t('Compare Queries')}}
+            display={{label: t('Compare Charts')}}
             keywords={['compare', 'queries', 'charts']}
             to={generateExploreCompareRoute({
               organization,
@@ -1704,7 +1724,7 @@ function QueryClauseActionsEditor() {
             }
           />
         )}
-        <SaveAsActions />
+        <SaveAsActions pageFilters={draftPageFilters} queryParams={draftQueryParams} />
       </CMDKAction>
       <CMDKAction display={{label: t('Query')}}>
         {[...draftGroupBys, ...Array.from({length: pendingGroupByRows}, () => '')].map(

@@ -15,6 +15,7 @@ jest.mock('@tanstack/react-virtual', () => ({
   }),
 }));
 
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -531,6 +532,89 @@ describe('time range selection', () => {
 
     expect(PageFiltersStore.getState().selection.datetime.period).toBe('14d');
     await waitFor(() => expect(router.location.query.statsPeriod).toBe('14d'));
+  });
+});
+
+describe('draft command actions', () => {
+  it('uses temporary scope values in Save as navigation', async () => {
+    jest.spyOn(console, 'error').mockImplementation();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        environments: ['production', 'staging'],
+      }),
+    ]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: ['production'],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {router} = render(<ProjectSelectionPalette />, {
+      organization: OrganizationFixture({features: ['incidents']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            environment: 'production',
+            project: '1',
+            statsPeriod: '24h',
+          },
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Environments'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'production Current'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'Environments'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'staging'
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'staging'}));
+    expect(await screen.findByText('staging')).toBeInTheDocument();
+    expect(router.location.query.environment).toBe('production');
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Save as'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Monitor for'}));
+
+    const monitorOption = await screen.findByRole('option', {
+      name: 'count(spans)',
+    });
+    await userEvent.click(monitorOption);
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/monitors/new/settings'
+    );
+    expect(router.location.query.environment).toBe('staging');
+  });
+
+  it('shows Compare Charts after adding a second chart', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    render(<ProjectSelectionPalette />);
+
+    expect(
+      screen.queryByRole('option', {name: 'Compare Charts'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Chart'}));
+    expect(
+      await screen.findByRole('option', {name: 'Compare Charts'})
+    ).toBeInTheDocument();
   });
 });
 

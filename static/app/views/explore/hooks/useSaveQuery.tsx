@@ -66,10 +66,18 @@ type ExploreSavedQueryRequest = {
   start?: DateString;
 };
 
-function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
-  const pageFilters = usePageFilters();
+function useSavedQueryForDataset(
+  dataset: 'spans' | 'logs' | 'replays',
+  overrides?: {
+    pageFilters?: ReturnType<typeof usePageFilters>;
+    queryParams?: ReadableQueryParams;
+  }
+) {
+  const currentPageFilters = usePageFilters();
   const [interval] = useChartInterval();
-  const queryParams = useQueryParams();
+  const currentQueryParams = useQueryParams();
+  const pageFilters = overrides?.pageFilters ?? currentPageFilters;
+  const queryParams = overrides?.queryParams ?? currentQueryParams;
   const {id, title} = queryParams;
 
   const [caseInsensitive] = useCaseInsensitivity();
@@ -181,8 +189,11 @@ export function useFromSavedQuery() {
   return {saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
 
-export function useSpansSaveQuery() {
-  return useSavedQueryForDataset('spans');
+export function useSpansSaveQuery(overrides?: {
+  pageFilters?: ReturnType<typeof usePageFilters>;
+  queryParams?: ReadableQueryParams;
+}) {
+  return useSavedQueryForDataset('spans', overrides);
 }
 
 export function useLogsSaveQuery() {
