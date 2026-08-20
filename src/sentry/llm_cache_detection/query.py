@@ -90,6 +90,12 @@ SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 # shows up, without paying for a long list of very large attribute values.
 PROMPT_SAMPLES_LIMIT = 4
 PROMPT_SAMPLES_QUERY_LIMIT = PROMPT_SAMPLES_LIMIT * 3
+# Prompts are the one thing the detector reads that is customer content rather
+# than a measurement, so how much of it is pulled out of storage is bounded here
+# rather than left to whatever ingest happened to keep. Generous next to the
+# lengths the diagnosis reasons about, which is what keeps the truncation from
+# deciding the answer.
+PROMPT_MAX_CHARS = 32_768
 
 
 @dataclass(frozen=True)
@@ -166,6 +172,7 @@ def _run_spans_query(
     orderby: list[str] | None,
     limit: int,
     referrer: Referrer,
+    max_string_length: int | None = None,
 ) -> EAPResponse:
     return Spans.run_table_query(
         params=SnubaParams(
@@ -182,6 +189,7 @@ def _run_spans_query(
         referrer=referrer.value,
         config=SearchResolverConfig(auto_fields=True),
         sampling_mode="NORMAL",
+        max_string_length=max_string_length,
     )
 
 
@@ -460,6 +468,7 @@ def fetch_sample_prompts(
         orderby=["-timestamp"],
         limit=PROMPT_SAMPLES_QUERY_LIMIT,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION_PROMPT_SAMPLES,
+        max_string_length=PROMPT_MAX_CHARS,
     )
 
     prompts: list[str] = []

@@ -32,6 +32,7 @@ from sentry.tasks.llm_cache_issue_detection import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 
 INGEST_FEATURE = LLMCacheUsageGroupType.build_ingest_feature_name()
 DETECTION_FEATURE = "organizations:llm-cache-detection"
@@ -1071,6 +1072,31 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert [row.name for row in occurrence.evidence_display if row.important] == [
             "Cache hit rate"
         ]
+
+    def test_carries_no_prompt_text_into_the_occurrence(
+        self,
+        mock_fetch_stats: MagicMock,
+        mock_count_cache_attrs: MagicMock,
+        mock_fetch_traces: MagicMock,
+        mock_produce: MagicMock,
+    ) -> None:
+        # Prompts are customer content. Everything the diagnosis reports about
+        # them is a length, a count or the name of a pattern, and this asserts it
+        # over the whole payload rather than the fields that happen to be read
+        # above -- a leak would arrive through a field nobody thought to check.
+        project = self.create_project()
+        mock_fetch_stats.return_value = [NOT_CACHING_STATS]
+        mock_fetch_traces.return_value = SAMPLE_CALLS
+        self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
+
+        with self.enabled_features():
+            detect_llm_cache_issues_for_project(project.id)
+
+        payload = json.dumps(mock_produce.call_args.kwargs["occurrence"].to_dict())
+        assert "Summarize the rows below" not in payload
+        assert "2026-08-19T10:15:00Z" not in payload
+        for prompt in DIVERGING_PROMPTS:
+            assert prompt not in payload
 
     def test_does_not_name_a_divergence_it_could_not_recognise(
         self,

@@ -13,7 +13,9 @@ from sentry.llm_cache_detection.detection import (
     FLAGGED_OUTCOMES,
     CacheFinding,
     CacheOutcome,
+    CallSiteStats,
     DetectionWindow,
+    PromptDivergence,
     classify_call_site,
     diagnose_prompt_divergence,
     find_contrast_anchor,
@@ -66,6 +68,21 @@ def _record_projects_skipped(reason: str, amount: int = 1) -> None:
         tags={"reason": reason},
         sample_rate=1.0,
     )
+
+
+def _diagnose_prompts(
+    project: Project, stats: CallSiteStats, window: DetectionWindow
+) -> PromptDivergence | None:
+    """Reduce a call site's sampled prompts to a diagnosis of where they diverge.
+
+    Fetching and reducing are one step on purpose. Prompts are customer content
+    and everything derived from them is a measurement, so the text is confined
+    to a frame that does nothing else: any traceback raised further up -- from
+    producing the occurrence, most of all -- records the locals of the frames
+    it unwinds, and this keeps the prompts out of every one of them.
+    """
+    prompts = fetch_sample_prompts(project, stats, window)
+    return diagnose_prompt_divergence(prompts or ())
 
 
 def _projects_with_agent_spans(skipped: Counter[str]) -> Generator[tuple[int, int]]:
@@ -263,9 +280,8 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
             # their own because they run over candidates, of which there can be
             # hundreds; here the cap is the budget.
             sample_calls = fetch_sample_calls(project, finding.stats, window)
-            prompts = fetch_sample_prompts(project, finding.stats, window)
             savings = pricebook.estimate(finding)
-            divergence = diagnose_prompt_divergence(prompts or ())
+            divergence = _diagnose_prompts(project, finding.stats, window)
             send_llm_cache_issue_to_platform(
                 project, finding, sample_calls, window, savings, divergence
             )
