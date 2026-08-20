@@ -81,10 +81,27 @@ class TestModelCostsLookup:
 
         assert found is not None
 
-    def test_matches_the_wildcard_prefixed_key(self) -> None:
-        # The metadata feed namespaces ids by provider and registers a `*`-prefixed
-        # key for them; spans report the bare model name.
-        found = model_costs("claude-sonnet-4", config({"*claude-sonnet-4": costs()}))
+    def test_matches_a_model_the_span_reports_namespaced(self) -> None:
+        # Gateways like OpenRouter and Bedrock report the provider alongside the
+        # model; the metadata is keyed by the model alone.
+        found = model_costs("anthropic/claude-sonnet-4", config({"claude-sonnet-4": costs()}))
+
+        assert found is not None
+
+    def test_matches_a_namespaced_model_carrying_a_date_suffix(self) -> None:
+        found = model_costs(
+            "anthropic/claude-sonnet-4-20250514", config({"claude-sonnet-4": costs()})
+        )
+
+        assert found is not None
+
+    def test_matches_the_bare_key_beside_a_wildcard_prefixed_one(self) -> None:
+        # The feed registers a `*`-prefixed key for relay to glob-match against,
+        # always alongside the bare key. Nothing here reads the starred one, so
+        # this is the shape the fetcher really produces, not the starred key alone.
+        found = model_costs(
+            "claude-sonnet-4", config({"claude-sonnet-4": costs(), "*claude-sonnet-4": costs()})
+        )
 
         assert found is not None
 

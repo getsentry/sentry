@@ -106,10 +106,15 @@ def prefix_glob_model_name(model_id: str) -> str:
 def model_costs(model_id: str, config: AIModelMetadataConfig | None) -> AIModelCost | None:
     """Look up per-token prices for a model reported on a span.
 
-    Spans carry provider-specific model names, so the lookup mirrors how the
-    metadata is keyed: the id as reported, then with dates and versions
-    stripped, then the wildcard-prefixed key that covers ids the provider
-    namespaces (``anthropic/claude-sonnet-4``).
+    Spans carry provider-specific model names, so the lookup narrows the
+    reported id towards how the metadata is keyed: as reported, with dates and
+    versions stripped, then again without the namespace a gateway prefixes
+    (``anthropic/claude-sonnet-4``), which the pricebook keys without.
+
+    The pricebook also holds a ``*``-prefixed key per model, which is there for
+    relay to glob-match against and is not useful here: it is only ever added
+    alongside the bare key, so a dict lookup on it can never find a model the
+    bare key missed.
 
     Returns None when there is no metadata at all (air-gapped installs, a cold
     cache) or the model is unknown.
@@ -118,8 +123,13 @@ def model_costs(model_id: str, config: AIModelMetadataConfig | None) -> AIModelC
         return None
 
     models = config.get("models") or {}
-    normalized_model_id = normalize_model_id(model_id)
-    for key in (model_id, normalized_model_id, prefix_glob_model_name(normalized_model_id)):
+    bare_model_id = model_id.rsplit("/", 1)[-1]
+    for key in (
+        model_id,
+        normalize_model_id(model_id),
+        bare_model_id,
+        normalize_model_id(bare_model_id),
+    ):
         metadata = models.get(key)
         if metadata is not None:
             return metadata.get("costs")
