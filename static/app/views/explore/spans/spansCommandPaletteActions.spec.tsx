@@ -701,6 +701,85 @@ describe('group by draft selection', () => {
 });
 
 describe('filter draft selection', () => {
+  function renderPaletteWithQuery(query: string) {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
+    PageFiltersStore.onInitializeUrlState({
+      projects: [1],
+      environments: [],
+      datetime: {period: '24h', start: null, end: null, utc: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    return render(<ProjectSelectionPalette />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {project: '1', query, statsPeriod: '24h'},
+        },
+      },
+    });
+  }
+
+  async function openFilterActions(search: string) {
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
+    await userEvent.type(searchInput, search);
+    await userEvent.keyboard('{ArrowDown}{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    return screen.getByRole('dialog', {name: 'More Actions'});
+  }
+
+  it('offers row-specific filter actions without renaming them', async () => {
+    renderPaletteWithQuery('span.op:http.server');
+
+    const actions = await openFilterActions('http.server');
+
+    expect(
+      within(actions).getByRole('option', {name: 'Add Filter By'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Clear Filter'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Change Filter Attribute'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Change Filter Operator'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).getByRole('option', {name: 'Change Filter Value'})
+    ).toBeInTheDocument();
+    expect(
+      within(actions).queryByRole('option', {name: 'Delete Filter'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('adds a separate pending filter from an existing filter row', async () => {
+    renderPaletteWithQuery('span.op:http.server');
+
+    await userEvent.click(
+      within(await openFilterActions('http.server')).getByRole('option', {
+        name: 'Add Filter By',
+      })
+    );
+
+    expect(await screen.findAllByRole('option', {name: 'Filter By'})).toHaveLength(2);
+    expect(screen.queryByPlaceholderText('Search for attribute')).not.toBeInTheDocument();
+  });
+
+  it('only offers deletion when multiple filter rows exist', async () => {
+    renderPaletteWithQuery('span.op:http.server environment:production');
+
+    const actions = await openFilterActions('http.server');
+
+    expect(
+      within(actions).getByRole('option', {name: 'Delete Filter'})
+    ).toBeInTheDocument();
+  });
+
   it('reopens an existing filter at the attribute step with current values', async () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
     PageFiltersStore.onInitializeUrlState({
