@@ -1,101 +1,115 @@
 ---
 name: cmdk-actions
-description: Guide for adding new actions to Sentry's Command+K palette. Use when implementing new cmdk actions, registering page-level or global actions, building async resource pickers, or adding contextual actions to a view.
+description: Add or update actions in Sentry's Command+K palette, including task-, page-, and global-scoped actions, async resource pickers, chained workflows, text editors, and contextual More Actions entries.
 ---
 
-# Adding Actions to the Command Palette (cmdk)
+# Command Palette Actions
 
-Sentry's Command+K palette is built on a tree-collection system where `CMDKAction` components register themselves via React context. Actions render wherever in the component tree they live — no central registry to update.
+Sentry's Command+K palette uses a tree collection. `CMDKAction.*` components
+register wherever they are mounted; there is no central action registry.
 
-## Core files
+## Start Here
 
-- **`static/app/components/commandPalette/ui/cmdk.tsx`** — `CMDKAction` component (the only primitive you need)
-- **`static/app/components/commandPalette/types.tsx`** — public types + `cmdkQueryOptions` helper
-- **`static/app/components/commandPalette/ui/commandPaletteSlot.tsx`** — `CommandPaletteSlot` for scoping
-- **`static/app/components/commandPalette/ui/commandPaletteGlobalActions.tsx`** — always-on global actions
+Read the current types before adding a non-trivial action:
 
----
+- `static/app/components/commandPalette/ui/cmdk.tsx` — action variants and props
+- `static/app/components/commandPalette/types.tsx` — async result types and
+  `cmdkQueryOptions`
+- `static/app/components/commandPalette/ui/commandPaletteSlot.tsx` — slot names
+- `static/app/components/commandPalette/ui/commandPaletteGlobalActions.tsx` —
+  global registrations
 
-## The Three Slots
-
-Slots control sort order and lifetime. Import from `commandPaletteSlot.tsx`:
+Use the typed variant matching the behavior. Do not add incompatible behavior
+props to a variant or introduce boolean mode props.
 
 ```tsx
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+<CMDKAction.Group display={{label}}>{children}</CMDKAction.Group>
+<CMDKAction.Link display={{label}} to="/issues/" />
+<CMDKAction.Callback display={{label}} onAction={handleAction} />
+<CMDKAction.Resource display={{label}} resource={resource} />
+<CMDKAction.TextInput display={{label}} input={{ariaLabel, onSubmit}} />
+<CMDKAction.Target display={{label}} target="stable-action-id" />
 ```
 
-| Slot     | Order in palette         | Lifetime                                   | Use for                                                                 |
-| -------- | ------------------------ | ------------------------------------------ | ----------------------------------------------------------------------- |
-| `task`   | First (highest priority) | Reserved — not yet used in production      | Future transient workflow steps                                         |
-| `page`   | Second                   | Tied to the page component's mount/unmount | Contextual actions for the current view (issue details, settings pages) |
-| `global` | Last                     | Always present for any org                 | Org-wide navigation, create actions, help                               |
+Every variant requires `display`. Shared metadata includes `id`, `keywords`,
+`order`, `limit`, `disabled`, `actionContext`, and `actionPanel`.
 
-Wrap page-level actions in the slot provider:
+## Slots: Task, Page, and Global
+
+Slots determine root-level priority and registration lifetime:
+
+| Slot     | Priority | Lifetime and use                                                                                                       |
+| -------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `task`   | First    | Temporary task state, such as actions for the current issue-list bulk selection. Mount only while that task is active. |
+| `page`   | Second   | Contextual actions owned by the current page or entity view.                                                           |
+| `global` | Last     | Organization-wide navigation and actions that remain available across pages.                                           |
+
+`task` does not mean a background job. It is the highest-priority contextual
+bucket for a transient user task. The production reference is
+`static/app/views/issueList/issueListBulkCommandPaletteActions.tsx`.
+
+Register task and page actions near the state that owns their lifetime:
 
 ```tsx
-// In a page component or its sub-tree
+function IssueListBulkActions({selectedIssues}: Props) {
+  if (selectedIssues.length === 0) {
+    return null;
+  }
+
+  return (
+    <CommandPaletteSlot name="task">
+      <CMDKAction.Group display={{label: t('%s selected issues', selectedIssues.length)}}>
+        <CMDKAction.Callback
+          display={{label: t('Resolve selected issues')}}
+          onAction={resolveSelectedIssues}
+        />
+      </CMDKAction.Group>
+    </CommandPaletteSlot>
+  );
+}
+
 <CommandPaletteSlot name="page">
-  <CMDKAction.Callback display={{label: t('Resolve Issue')}} onAction={handleResolve} />
-</CommandPaletteSlot>
+  <CMDKAction.Callback display={{label: t('Resolve issue')}} onAction={resolveIssue} />
+</CommandPaletteSlot>;
 ```
 
-Global actions are registered once in `GlobalCommandPaletteActions` — add to that component rather than creating a new global slot consumer.
+Add global actions inside `GlobalCommandPaletteActions`. Do not mount a second
+`global` slot consumer: the navigation shell has one outlet for each slot, and
+competing consumers do not merge into that outlet.
 
----
+Child components that split a task or page action tree inherit the enclosing
+slot. Only the owning component should wrap the tree in `CommandPaletteSlot`.
 
-## `CMDKAction` API
+## Variants
 
-```ts
-<CMDKAction.Group>{children}</CMDKAction.Group>
-<CMDKAction.Link to="/issues/" />
-<CMDKAction.Callback onAction={handleAction} />
-<CMDKAction.Resource resource={resource} />
-<CMDKAction.TextInput input={{ariaLabel, onSubmit}} />
-<CMDKAction.Target target="stable-action-id" />
-```
+### Link
 
-All variants require `display` and share metadata such as `id`, `keywords`,
-`order`, `actionContext`, and `actionPanel`. Variants expose only the behavior
-they implement, so links cannot accidentally receive callbacks and groups cannot
-receive navigation props.
-
-Groups use `mount="eager" | "on-open"` and
-`initialFocus="search" | "first-action"`. Contextual panel configuration uses
-`placement="palette-and-panel" | "panel-only"` and
-`execution="navigate" | "preserve-view"`; do not introduce boolean mode props.
-
----
-
-## Action Patterns
-
-### 1. Navigation link
+Use `Link` for navigation. Use `onNavigate` for analytics or another synchronous
+side effect associated with following the link; do not model navigation as a
+callback.
 
 ```tsx
-import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import {IconIssues} from 'sentry/icons';
-
 <CMDKAction.Link
-  display={{
-    label: t('Go to Issues'),
-    icon: <IconIssues />,
-  }}
+  display={{label: t('Go to Issues'), icon: <IconIssues />}}
   keywords={['bugs', 'errors', 'problems']}
-  to={`/organizations/${org.slug}/issues/`}
-/>;
-```
-
-### 2. Callback action
-
-```tsx
-<CMDKAction.Callback
-  display={{label: t('Resolve Issue'), details: t('Mark as resolved')}}
-  onAction={() => handleResolve(group.id)}
+  to={`/organizations/${organization.slug}/issues/`}
+  onNavigate={() => trackAnalytics('command_palette.navigate', {organization})}
 />
 ```
 
-For a chained picker that supports Shift+Enter without leaving the current step,
-provide `onMultiSelect`. Its presence is the capability signal; do not add a
-separate boolean flag.
+### Callback
+
+Use `Callback` for an operation that does not primarily navigate.
+
+```tsx
+<CMDKAction.Callback
+  display={{label: t('Resolve issue'), details: t('Mark as resolved')}}
+  onAction={handleResolve}
+/>
+```
+
+For multi-select, `onMultiSelect` is the Shift+Enter capability signal. The
+palette supplies the checkbox; control it with `isSelected`.
 
 ```tsx
 <CMDKAction.Callback
@@ -106,681 +120,252 @@ separate boolean flag.
 />
 ```
 
-Actions with `onMultiSelect` automatically render a checkbox. Pass `isSelected`
-to control its checked state; do not add checkbox or checkmark icons manually.
+Use `onReorder` for Shift+Arrow reordering and `order` for the explicit sibling
+position. Do not encode checkboxes, selection marks, or reorder controls in the
+display icon.
 
-### Chained workflows
+### Group
 
-Wrap related editing actions in `CMDKChainedActionScope` to keep the palette open
-and return to the enclosing action after a callback. If a terminal action inside
-that workflow must close the palette, wrap only that action in
-`CMDKTerminalActionScope`. The component structure defines the behavior; do not
-add close/stay-open boolean props to actions.
+Use `Group` for static children. Its display should identify the context because
+the label is used as a breadcrumb during search.
 
 ```tsx
-<CMDKChainedActionScope>
-  <CMDKAction.Group display={{label: t('Commands')}}>
-    <CMDKTerminalActionScope>
-      <CMDKAction.Callback
-        display={{label: t('Apply Changes')}}
-        onAction={applyChanges}
-      />
-    </CMDKTerminalActionScope>
-    <CMDKAction.Group display={{label: t('Edit Filter')}}>
-      {/* editing actions */}
-    </CMDKAction.Group>
-  </CMDKAction.Group>
-</CMDKChainedActionScope>
-```
-
-### 3. Static group
-
-Nest `CMDKAction` children to create a drillable group. The parent label appears as a breadcrumb prefix in search results (e.g. `Priority > High`), so use a label that identifies the context.
-
-**Group icon as current-state indicator**: set the group's own icon to reflect the current value so the user can see the state before drilling in. Both the priority and assignee selectors do this:
-
-```tsx
-// Icon reflects current priority — user sees state at a glance
 <CMDKAction.Group
-  display={{
-    label: t('Priority'),
-    icon: <IconCellSignal bars={PRIORITY_BARS[group.priority ?? PriorityLevel.MEDIUM]} />,
-  }}
+  display={{label: t('Priority'), icon: priorityIcon}}
+  prompt={t('Select a priority')}
 >
   <CMDKAction.Callback
-    display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+    display={{label: t('High')}}
     onAction={() => setPriority('high')}
   />
-  <CMDKAction.Callback
-    display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
-    onAction={() => setPriority('medium')}
-  />
-  <CMDKAction.Callback
-    display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
-    onAction={() => setPriority('low')}
-  />
-</CMDKAction.Group>;
-
-// Icon reflects current assignee — avatar when assigned, generic icon when not
-const assigneeIcon = group.assignedTo ? (
-  <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
-) : (
-  <IconUser />
-);
-
-<CMDKAction.Group display={{label: t('Assign to'), icon: assigneeIcon}}>
-  {/* children */}
-</CMDKAction.Group>;
-```
-
-### Deferred static children
-
-Use `mount="on-open"` on a prompt action when its static picker tree is expensive
-to build and is only needed after drill-in. The parent action remains visible,
-but its children do not mount or register until the action is selected.
-
-```tsx
-<CMDKAction.Group
-  mount="on-open"
-  display={{label: t('Source')}}
-  prompt={t('Search for sources')}
->
-  <ExpensiveSourceActions />
+  <CMDKAction.Callback display={{label: t('Low')}} onAction={() => setPriority('low')} />
 </CMDKAction.Group>
 ```
 
-Use this only with `prompt`. Deferred children do not participate in top-level
-fuzzy search until the user opens their parent, so keep small or broadly useful
-action trees eager.
+Group controls:
 
-### 4. Async resource picker
+- `mount="eager"` (default): children mount immediately and participate in
+  top-level fuzzy search.
+- `mount="on-open"`: expensive children mount only after drill-in. Use this
+  when losing top-level child search is acceptable.
+- `initialFocus="search"` (default): focus remains in the search input.
+- `initialFocus="first-action"`: focus the first child when the group opens.
 
-Use `resource` + `cmdkQueryOptions` to load items from an API. The user types to filter. The loading spinner activates automatically while the query is in flight.
+Prefer a group icon or summary label that reflects current state. Use Scraps
+primitives for custom display content.
 
-Note: when the user drills into a resource node the palette clears the query. Your `resource` function will initially receive an empty string — design your query params accordingly.
+### Resource
+
+Use `Resource` for large or server-filtered datasets. Every resource must return
+`cmdkQueryOptions(...)`; its metadata drives the palette loading indicator.
 
 ```tsx
-import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
 <CMDKAction.Resource
-  display={{label: t('Switch Project')}}
-  prompt={t('Select a project...')}
+  display={{label: t('Switch project')}}
+  prompt={t('Search for projects')}
   limit={5}
   resource={(query, context) =>
     cmdkQueryOptions({
       ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: org.slug},
+        path: {organizationIdOrSlug: organization.slug},
         query: {query, per_page: 20},
-        staleTime: 30_000,
       }),
-      // Only fetch once the user has drilled into this node
       enabled: context.state === 'selected',
+      staleTime: 30_000,
       select: projects =>
         projects.map(project => ({
           display: {
             label: project.slug,
             icon: <ProjectAvatar project={project} size={16} />,
           },
-          to: `/organizations/${org.slug}/projects/${project.slug}/`,
+          to: `/organizations/${organization.slug}/projects/${project.slug}/`,
         })),
     })
   }
-/>;
+/>
 ```
 
-**Rules for `resource`:**
+Resource invariants:
 
-- **Always** wrap with `cmdkQueryOptions(...)` — this injects `meta: { cmdk: true }` so the palette's loading spinner tracks the request via `useIsFetching`.
-- Use `enabled: context.state === 'selected'` to defer fetching until the user actually drills in.
-- The `select` field must transform the API response into `CommandPaletteAction[]`.
-- `query` is the live search input value (not debounced) — pass it through as a search param.
-- Use `staleTime: Infinity` for data that rarely changes (project lists, settings nav items). Use `staleTime: 30_000` for user/session data.
+- The first query after drill-in is empty. The endpoint must support that state.
+- Set `enabled: context.state === 'selected'` unless the resource intentionally
+  participates at another level, such as query-shape-gated lookup.
+- Pass the live `query` to server-side search; it is not debounced.
+- `select` returns `CommandPaletteAction[]`.
+- Stable data may use `staleTime: Infinity`; dynamic user/session data should
+  use a bounded stale time such as 30 seconds.
+- A default `limit` of 4 applies only to a resource with render-prop children.
+  Auto-rendered resources need an explicit limit when the result set is large.
 
-### 5. Resource with render-prop children
-
-Use a render-prop when you need custom rendering or want to mix static and async items.
-
-`CommandPaletteAction` is a union that includes groups (which have `actions`, not
-`children`). When manually rendering results, type-narrow before spreading them
-into `CMDKAction`:
+Resources can auto-render links, callbacks, and nested action groups returned by
+`select`. Prefer auto-rendering. Use render-prop children only to combine static
+and async entries or provide genuinely custom composition:
 
 ```tsx
-// Type-safe helper for a custom flat result layout.
-function renderAsyncResult(item: CommandPaletteAction, index: number) {
-  if ('to' in item) return <CMDKAction.Group key={index} {...item} />;
-  if ('onAction' in item) return <CMDKAction.Group key={index} {...item} />;
-  return null;
+function renderResult(action: CommandPaletteAction, index: number) {
+  if ('actions' in action) {
+    const {actions, ...props} = action;
+    return (
+      <CMDKAction.Group key={index} {...props}>
+        {actions.map(renderResult)}
+      </CMDKAction.Group>
+    );
+  }
+  if ('to' in action) {
+    return <CMDKAction.Link key={index} {...action} />;
+  }
+  return <CMDKAction.Callback key={index} {...action} />;
 }
 
 <CMDKAction.Resource
   display={{label: t('Assign to')}}
-  prompt={t('Search teammates...')}
-  resource={(query, context) =>
-    cmdkQueryOptions({
-      queryKey: ['members', org.slug, query],
-      queryFn: () => fetchMembers(org.slug, query),
-      enabled: context.state === 'selected',
-      select: members =>
-        members.map(m => ({
-          display: {label: m.name, details: m.email},
-          onAction: () => assignTo(m.id),
-        })),
-    })
-  }
+  prompt={t('Search members')}
+  resource={memberResource}
 >
   {members => (
     <>
-      {/* Static first entry */}
       <CMDKAction.Callback display={{label: t('Assign to me')}} onAction={assignToMe} />
-      {/* Dynamic entries from resource */}
-      {members.map(renderAsyncResult)}
+      {members.map(renderResult)}
     </>
   )}
 </CMDKAction.Resource>;
 ```
 
-When no render-prop is provided, resource results are rendered automatically.
-This includes nested `CommandPaletteActionGroup` results, so prefer returning a
-group from `select` when async results need a section label. Use a render-prop
-only for a genuinely custom mixture of static and dynamic content.
+For a small bounded dataset already loaded by a cached hook, render static
+children under `Group` and let the palette fuzzy-filter them client-side.
 
-### 6. Static async children via hook
+### TextInput
 
-When a dataset is small and already cached, fetch it with a hook and render it as static JSX children. The palette's built-in fuzzy search handles filtering client-side — no `resource` prop needed:
-
-```tsx
-// useProjectMembers fetches once and caches; palette fuzzy-searches the results
-const {data: members = []} = useProjectMembers(project.id);
-const assignableUsers = members.filter(m => m.id !== currentUser.id);
-
-<CMDKAction.Group display={{label: t('Assign to'), icon: assigneeIcon}}>
-  <CMDKAction.Callback
-    display={{label: t('Assign to me')}}
-    onAction={() => handleAssign(currentUser)}
-  />
-  {assignableUsers.map(member => (
-    <CMDKAction.Callback
-      key={`member-${member.id}`}
-      display={{
-        label: member.name || member.email,
-        icon: (
-          <ActorAvatar
-            actor={{id: member.id, name: member.name, type: 'user'}}
-            size={16}
-            hasTooltip={false}
-          />
-        ),
-      }}
-      onAction={() => handleAssign(member)}
-    />
-  ))}
-  {teams.map(team => (
-    <CMDKAction.Callback
-      key={`team-${team.id}`}
-      display={{
-        label: `#${team.slug}`,
-        icon: <TeamAvatar team={team} size={16} hasTooltip={false} />,
-      }}
-      onAction={() => handleAssign(team)}
-    />
-  ))}
-</CMDKAction.Group>;
-```
-
-**When to use static children vs `resource`:**
-
-|               | Static children via hook   | `resource` prop         |
-| ------------- | -------------------------- | ----------------------- |
-| Dataset size  | Small, bounded             | Large or unbounded      |
-| Filtering     | Client-side fuzzy search   | Server-side search      |
-| Fetch timing  | Eager (on component mount) | Deferred (on drill-in)  |
-| Query updates | Fixed at render            | Responds to typed query |
-
-**Key naming for mixed entity lists**: prefix keys with the entity type to prevent collisions — `member-${id}`, `team-${id}`, `${owner.type}-${owner.id}`, `coding-agent:${id}`.
-
-### 7. `trailingItem` — marking the active item
-
-Use `trailingItem` with a `"Current"` badge only for **entity selections** where the user is switching between distinct objects — projects, organizations, users, environments, and similar. The badge answers the question "which one am I on right now?" when the items are otherwise indistinguishable.
-
-**Do not** use `"Current"` for settings or modes (sort order, theme, display density, etc.). Those have a single correct value at any time, and the group's own label or icon already reflects it (see the group-icon-as-state-indicator pattern above). A `"Current"` badge on a settings option duplicates information without adding clarity.
+Use `TextInput` for a free-text editing step. `initialValue` seeds the editor,
+`ariaLabel` names it, `onSubmit` receives the raw value, and `footer` can provide
+brief help.
 
 ```tsx
-import {Tag} from '@sentry/scraps/badge';
-
-// ✅ Entity selection — badge makes sense: user sees which project they're on
-<CMDKAction.Resource
-  display={{label: t('Switch Project')}}
-  prompt={t('Select a project...')}
-  resource={(query, context) => cmdkQueryOptions({...})}
->
-  {/* Current project rendered statically so it always appears first */}
-  <CMDKAction.Link
-    display={{
-      label: currentProject.slug,
-      icon: <ProjectAvatar project={currentProject} size={16} />,
-      trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
-    }}
-    to={`/organizations/${org.slug}/projects/${currentProject.slug}/`}
-  />
-</CMDKAction.Resource>
-
-// ❌ Settings/mode — do not use a badge; the group label already shows the active value
-<CMDKAction.Group
-  display={{
-    label: t('Sort by: %s', getSortLabel(sort)), // label reflects current state
-    icon: <IconSort />,
+<CMDKAction.TextInput
+  display={{label: t('Edit query')}}
+  input={{
+    ariaLabel: t('Query'),
+    initialValue: query,
+    onSubmit: setQuery,
   }}
->
-  {sortKeys.map(key => (
-    <CMDKAction.Callback
-      key={key}
-      display={{
-        label: getSortLabel(key),
-        // trailingItem: key === sort ? <Tag variant="muted">{t('Current')}</Tag> : undefined
-        // ❌ Don't do this — the group label already communicates the active sort
-      }}
-      onAction={() => onSortChange(key)}
-    />
-  ))}
-</CMDKAction.Group>
-```
-
-### 7. Query-content-gated resource
-
-A resource can activate based on what the user has typed, not just drill-in state. Use this for contextual lookup tools that only make sense for a specific query shape:
-
-```tsx
-const DSN_PATTERN = /^https?:\/\/.+@.+\/.+/;
-
-<CMDKAction.Resource
-  display={{label: t('DSN Lookup')}}
-  prompt={t('Paste a DSN...')}
-  resource={(query, context) =>
-    cmdkQueryOptions({
-      ...apiOptions.as<DsnLookupResponse>()(/* ... */),
-      // Only fetch when the query looks like a DSN
-      enabled: context.state === 'selected' && DSN_PATTERN.test(query),
-      select: result => result.navTargets.map(/* ... */),
-    })
-  }
-/>;
-```
-
-### 8. State-conditional actions
-
-Render different actions based on current entity state — not just feature flags. Actions that don't apply to the current state should simply not render:
-
-```tsx
-<CommandPaletteSlot name="page">
-  <CMDKAction.Group display={{label: issueTitle}} icon={<ProjectAvatar ... />}>
-    {!isResolved && !isArchived && (
-      <CMDKAction.Callback display={{label: t('Resolve')}} onAction={handleResolve} />
-    )}
-    {!isResolved && !isArchived && (
-      <CMDKAction.Callback display={{label: t('Archive')}} onAction={handleArchive} />
-    )}
-    {isResolved && (
-      <CMDKAction.Callback display={{label: t('Unresolve')}} onAction={handleUnresolve} />
-    )}
-    {isArchived && (
-      <CMDKAction.Callback display={{label: t('Unarchive')}} onAction={handleUnarchive} />
-    )}
-  </CMDKAction>
-</CommandPaletteSlot>
-```
-
-### 9. Supplementary (always-last) section
-
-Prefix `id` with `cmdk:supplementary:` to sort the section after all other results, regardless of search score. Reserved for content like Help links that should never surface above real actions.
-
-```tsx
-<CMDKAction.Resource
-  id="cmdk:supplementary:help"
-  display={{label: t('Help')}}
-  resource={helpResource}
 />
 ```
 
----
+### Target
 
-## Splitting Actions Across Components
-
-When a page's action set is complex, split it across multiple components. Child components that register actions **do not need their own slot** — they inherit the slot context from the parent that established it. Just emit `CMDKAction.*` variants directly:
-
-```tsx
-// views/issueDetails/groupPriorityActions.tsx
-// No slot here — registers under whatever parent mounts this
-function GroupPriorityActions({group}: {group: Group}) {
-  return (
-    <CMDKAction.Group display={{label: t('Priority')}}>
-      <CMDKAction.Callback
-        display={{label: t('High')}}
-        onAction={() => setPriority('high')}
-      />
-      <CMDKAction.Callback
-        display={{label: t('Medium')}}
-        onAction={() => setPriority('medium')}
-      />
-      <CMDKAction.Callback
-        display={{label: t('Low')}}
-        onAction={() => setPriority('low')}
-      />
-    </CMDKAction.Group>
-  );
-}
-
-// views/issueDetails/seerActions.tsx
-// Returns a Fragment of siblings — adds actions into the parent group without
-// creating an extra nesting level
-function SeerActions({group}: {group: Group}) {
-  if (!canShowSeer) return null;
-  return (
-    <Fragment>
-      <CMDKAction.Callback
-        display={{label: t('Fix with Seer'), icon: <IconSeer />}}
-        onAction={startAutofix}
-      />
-    </Fragment>
-  );
-}
-
-// views/issueDetails/issueCommandPaletteActions.tsx
-// Only this component owns the slot
-function IssueCommandPaletteActions({group, issue}: Props) {
-  return (
-    <CommandPaletteSlot name="page">
-      <CMDKAction.Group
-        display={{
-          label: issue.title,
-          icon: <ProjectAvatar project={project} size={16} />,
-        }}
-      >
-        <GroupPriorityActions group={group} />
-        <SeerActions group={group} />
-      </CMDKAction.Group>
-    </CommandPaletteSlot>
-  );
-}
-```
-
-Use `<Fragment>` (not a wrapping `<CMDKAction.Group>`) when a child component contributes flat siblings into an existing parent group.
-
----
-
-## Registering Global Actions
-
-Add to `GlobalCommandPaletteActions` in `commandPaletteGlobalActions.tsx`. Don't create a second `global` slot consumer — there is one slot outlet in the navigation shell, so a second consumer would compete with it rather than extend it. It's a JSX component — just insert a new `CMDKAction` in the relevant group or create a new named group:
+Use `Target` for a summary row that opens an action registered elsewhere by a
+stable `id`. This avoids registering expensive picker children twice.
 
 ```tsx
-// Inside GlobalCommandPaletteActions render:
-<CMDKAction.Group display={{label: t('Go to')}}>
-  {/* existing actions... */}
-  <CMDKAction.Link
-    display={{label: t('Monitors'), icon: <IconTimer />}}
-    to={`/organizations/${organization.slug}/crons/`}
-  />
+<CMDKAction.Group id="add-filter" display={{label: t('Add filter')}} prompt={...}>
+  <FilterActions />
 </CMDKAction.Group>
+
+<CMDKAction.Target display={{label: t('Filter by')}} target="add-filter" />
 ```
 
----
+The target must resolve to a mounted action. Stable IDs must be unique within
+the registered collection.
 
-## Registering Page-Level Actions
+## Chained Editing Workflows
 
-Create a component that wraps actions in `<CommandPaletteSlot name="page">` and mount it inside the relevant page component. The actions register and deregister automatically with the page's mount/unmount lifecycle.
+Wrap draft-editing actions in `CMDKChainedActionScope`. Callback actions return
+to the enclosing group instead of closing the palette. Wrap only terminal
+actions in `CMDKTerminalActionScope`.
 
 ```tsx
-// views/myFeature/myFeatureCommandPaletteActions.tsx
-function MyFeatureCommandPaletteActions({item}: {item: MyItem}) {
-  return (
-    <CommandPaletteSlot name="page">
+<CMDKChainedActionScope>
+  <CMDKAction.Group display={{label: t('Edit query')}}>
+    <CMDKAction.Callback display={{label: t('Add filter')}} onAction={addFilter} />
+    <CMDKTerminalActionScope>
       <CMDKAction.Callback
-        display={{label: t('Archive'), details: item.name}}
-        onAction={() => archiveItem(item.id)}
+        display={{label: t('Apply changes')}}
+        onAction={applyChanges}
       />
-    </CommandPaletteSlot>
-  );
-}
-
-// views/myFeature/myFeaturePage.tsx
-function MyFeaturePage() {
-  return (
-    <div>
-      <MyFeatureCommandPaletteActions item={item} />
-      {/* rest of page */}
-    </div>
-  );
-}
+    </CMDKTerminalActionScope>
+  </CMDKAction.Group>
+</CMDKChainedActionScope>
 ```
 
----
+Component structure defines whether an action stays open or closes. Do not add
+`close`, `stayOpen`, or similar boolean props.
 
-## Feature Flag and Permission Gates
+## Contextual More Actions
 
-Gate on additional flags or permissions inline:
-
-```tsx
-{
-  organization.features.includes('my-feature') && (
-    <CMDKAction.Callback display={{label: t('My New Action')}} onAction={doThing} />
-  );
-}
-
-{
-  user.isStaff && <CMDKAction.Link display={{label: t('Admin Panel')}} to="/admin/" />;
-}
-```
-
-**Gate the entire slot when a page is disabled** — don't render individual disabled actions; don't render the slot at all:
+`actionContext` identifies the highlighted row. `actionPanel.context` exposes an
+existing action in the Ctrl+Shift+Enter More Actions panel.
 
 ```tsx
-// ✅ Gate at the slot level
-{
-  !disabled && (
-    <CommandPaletteSlot name="page">
-      <CMDKAction.Group display={{label: entity.title}}>
-        {/* all actions */}
-      </CMDKAction.Group>
-    </CommandPaletteSlot>
-  );
-}
-```
-
----
-
-## Capability Config
-
-When an entity type determines which actions are available, derive that from a config object rather than inline conditionals. `getConfigForIssueType(group, project)` returns per-action capability flags:
-
-```tsx
-const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-const {
-  actions: {resolve: resolveCap, delete: deleteCap},
-} = config;
-
-// Only render actions the issue type supports
-{
-  resolveCap.enabled && (
-    <CMDKAction.Callback display={{label: t('Resolve')}} onAction={handleResolve} />
-  );
-}
-```
-
-For new entity types, follow the same pattern: define a config shape that carries capability flags, then gate rendering on those flags rather than scattered `group.type === '...'` checks.
-
----
-
-## Workflow / Sequential State Machine
-
-When actions represent steps in a multi-stage workflow, show only the _next valid action_ — not all possible steps at once. Gate each step on the previous step being complete and the next not yet started:
-
-```tsx
-// Extract state into a dedicated hook in the same file
-function useSeerState(group: Group, project: Project) {
-  const autofix = useExplorerAutofix(group.id);
-  const sections = getOrderedAutofixSections(autofix.runState);
-
-  return {
-    autofix,
-    completedRootCause: sections.some(
-      s => isRootCauseSection(s) && s.status === 'completed'
-    ),
-    completedSolution: sections.some(
-      s => isSolutionSection(s) && s.status === 'completed'
-    ),
-    completedCodeChanges: sections.some(
-      s => isCodeChangesSection(s) && s.status === 'completed'
-    ),
-    hasPR: sections.some(isPullRequestsSection),
-    runId: autofix.runState?.run_id,
-    isPolling: autofix.isPolling,
-  };
-}
-
-function WorkflowActions({group, project}: Props) {
-  const {
-    autofix,
-    completedRootCause,
-    completedSolution,
-    completedCodeChanges,
-    hasPR,
-    runId,
-    isPolling,
-  } = useSeerState(group, project);
-
-  // Guard: can only advance the workflow when not mid-operation and run exists
-  const canContinue = !isPolling && defined(runId);
-
-  return (
-    <Fragment>
-      {(!autofix.runState || autofix.runState.status === 'error') && (
-        <CMDKAction.Callback display={{label: t('Fix with Seer')}} onAction={startFix} />
-      )}
-      {canContinue && completedRootCause && !completedSolution && (
-        <CMDKAction.Callback
-          display={{label: t('Generate solution')}}
-          onAction={() => nextStep('solution', runId)}
-        />
-      )}
-      {canContinue && completedSolution && !completedCodeChanges && (
-        <CMDKAction.Callback
-          display={{label: t('Generate code changes')}}
-          onAction={() => nextStep('code_changes', runId)}
-        />
-      )}
-      {canContinue && completedCodeChanges && !hasPR && (
-        <CMDKAction.Callback
-          display={{label: t('Open pull request')}}
-          onAction={() => createPR(runId)}
-        />
-      )}
-    </Fragment>
-  );
-}
-```
-
-Key points:
-
-- Extract the state logic into a dedicated `use*State` hook within the action component file — keeps the JSX clean.
-- Use a `canContinue` guard to prevent showing progress actions while an async operation is in flight.
-- Return `null` early at the top of the component when the feature isn't applicable:
-
-```tsx
-// Guard clause — return null before any hooks if possible, else after
-if (!aiConfig.areAiFeaturesAllowed || !isExplorer || !issueTypeSupportsSeer || !event) {
-  return null;
-}
-```
-
----
-
-## Dynamic Labels
-
-Embed the current value in an action label to give context without requiring the user to drill in first:
-
-```tsx
-// Shows who is currently assigned
 <CMDKAction.Callback
-  display={{label: t('Unassign from %s', currentAssigneeName)}}
-  onAction={() => handleAssigneeChange(null)}
+  actionContext="issue-selection"
+  display={{label: issue.title}}
+  onAction={() => openIssue(issue)}
 />
 
-// Shows the current value being changed
 <CMDKAction.Callback
-  display={{label: t('Change theme: %s', currentTheme)}}
-  onAction={openThemePicker}
+  actionPanel={{
+    context: 'issue-selection',
+    label: t('Resolve'),
+    placement: 'panel-only',
+  }}
+  display={{label: t('Resolve issue')}}
+  onAction={resolveIssue}
 />
 ```
 
-Use `t('... %s', value)` (printf-style) rather than template literals so strings remain translatable.
+Contexts are hierarchical: `chart:3` matches panel context `chart` and
+`chart:3`. Use stable semantic strings, never translated display labels.
 
----
+Panel controls:
 
-## Contextual Actions Panel
+- `placement="palette-and-panel"` (default): show in normal browsing/search and
+  in the panel.
+- `placement="panel-only"`: hide from normal browsing/search.
+- `execution="navigate"` (default): perform normal palette navigation/action
+  behavior.
+- `execution="preserve-view"`: run a callback without changing the current
+  palette step.
+- `order`: lower values appear first when actions come from separate branches.
+- `label`: panel-specific label; use it when the regular display label contains
+  state or needs different wording in the panel.
 
-`actionContext` on a selectable row and `actionPanel.context` on an existing
-action to expose it in the compact More Actions panel opened with
-Ctrl+Shift+Enter. The panel is disabled when the highlighted row has no matching
-contextual actions.
+Reuse the existing action through `actionPanel` or `Target`; do not duplicate
+business logic solely for the panel.
 
-Contexts may be hierarchical. For example, a row with `actionContext="chart:3"`
-matches panel actions registered for `context="chart"` as well as actions
-registered specifically for `context="chart:3"`. Prefer stable semantic contexts
-over translated labels or component-local selection state.
+## Display, State, and Keys
 
-Use a separate overlay label when the regular action label reflects current state:
-
-```tsx
-<CMDKAction.Group
-  actionContext="filter"
-  display={{label: t('Add Filter By')}}
-  actionPanel={{context: 'filter', label: t('Add Filter By')}}
-  prompt={t('Search for attribute')}
->
-  {/* filter picker actions */}
-</CMDKAction.Group>
-```
-
-Selecting the overlay entry drills into the same action and preserves its prompt,
-children, and chained-action behavior. Do not register a duplicate callback solely
-for the panel. Set `placement: 'panel-only'` to move an action into the panel and hide it from
-normal palette browsing and search. Set `order` when actions registered in different
-branches need an explicit order in the panel; lower values appear first.
-
-Use `CMDKAction.Target` when a separate summary row should open an existing picker
-without registering the picker's children a second time:
-
-```tsx
-<CMDKAction.Group id="add-filter" display={{label: t('Add Filter By')}} prompt={...}>
-  {/* expensive picker registered once */}
-</CMDKAction.Group>
-<CMDKAction.Target display={{label: t('Filter By')}} target="add-filter" />
-```
-
----
+- Use default icon sizing for section/group icons. Use `size={16}` for entity
+  avatars.
+- Use `keywords` for useful synonyms that are not already in the label/details.
+- Use `labelSuffix` or `trailingItem` only when it communicates state not already
+  conveyed by the label, icon, or checkbox. Derive selection markers from the
+  state currently being edited; distinguish persisted state explicitly if both
+  are shown.
+- Hide actions that are inapplicable because of feature flags, permissions, or
+  entity state. Use `disabled` when an applicable action is temporarily
+  unavailable and `display.details` can explain why.
+- Prefix keys in mixed entity lists (`member-${id}`, `team-${id}`) to prevent
+  cross-type collisions.
+- Use `t('... %s', value)`, not template literals, for translated dynamic labels.
+- Prefix `id` with `cmdk:supplementary:` only for sections such as Help that must
+  always sort after normal results.
 
 ## Checklist
 
-- [ ] Wrap page-level actions in `<CommandPaletteSlot name="page">`; add global actions to `GlobalCommandPaletteActions`
-- [ ] Child components that split a page action set do **not** add their own slot — they inherit from the parent
-- [ ] All `resource` functions use `cmdkQueryOptions(...)`
-- [ ] `resource` functions set `enabled: context.state === 'selected'` to defer fetching (or a query-content check for contextual resources)
-- [ ] `select` in resource options returns `CommandPaletteAction[]`
-- [ ] `prompt` is set on any drill-target that replaces the search placeholder
-- [ ] Expensive static prompt trees use `mount="on-open"`; small trees remain eager so their children participate in top-level search
-- [ ] `limit` is set on resource nodes to avoid overwhelming the list (default 4 only applies when `resource` AND `children` is a render-prop function; auto-render mode has no default)
-- [ ] `staleTime: Infinity` for stable lists (projects, nav items); `staleTime: 30_000` for dynamic data
-- [ ] `id="cmdk:supplementary:..."` on any section that should always sort last
-- [ ] `keywords` added for non-obvious actions to improve search recall
-- [ ] Section/group icons use default size; avatar icons (`ProjectAvatar`, `ActorAvatar`, `TeamAvatar`) use `size={16}`
-- [ ] State-conditional actions (resolved, archived, etc.) are rendered conditionally rather than disabled
-- [ ] `disabled` state gates the entire `<CommandPaletteSlot>`, not individual actions
-- [ ] Group icon reflects the current value of the setting it controls (priority, assignee, theme)
-- [ ] Dynamic action labels use `t('... %s', value)` not template literals, so strings stay translatable
-- [ ] Contextual panel actions reuse an existing action via `actionPanel`; they do not duplicate callback logic
-- [ ] More Actions uses stable `actionContext`/`actionPanel.context` values rather than matching display labels
-- [ ] Workflow action components extract state logic into a dedicated `use*State` hook and use a `canContinue` guard
-- [ ] Components that are not applicable return `null` early via a guard clause before rendering any JSX
-- [ ] Entity capability config (e.g. `getConfigForIssueType`) drives action availability rather than scattered type checks
-- [ ] Dynamic list keys use `type-id` format (`member-${id}`, `team-${id}`) to prevent cross-type collisions
+- [ ] Choose the correct `CMDKAction.*` variant.
+- [ ] Register transient task actions in `task`, page-owned actions in `page`,
+      and global actions inside `GlobalCommandPaletteActions`.
+- [ ] Mount task actions only while their task state is active.
+- [ ] Keep one slot owner; split child components inherit it.
+- [ ] Wrap every resource with `cmdkQueryOptions` and set an intentional
+      `enabled`, `staleTime`, `select`, and `limit` policy.
+- [ ] Use `mount="on-open"` only when deferred mounting is worth losing
+      top-level child search.
+- [ ] Use chained and terminal scopes for draft workflows.
+- [ ] Use stable IDs for `Target` and supplementary sections.
+- [ ] Use stable semantic contexts for More Actions.
+- [ ] Render inapplicable actions conditionally; explain temporary disabled
+      states.
+- [ ] Derive current/selected indicators from the state being edited.
+- [ ] Add or update colocated interaction tests for registration, visibility,
+      keyboard behavior, and execution.
