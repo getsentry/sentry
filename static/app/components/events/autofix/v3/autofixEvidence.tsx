@@ -18,6 +18,7 @@ import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getSessionDetailUrl} from 'sentry/views/explore/usersessions/sessionLink';
 import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 
@@ -111,6 +112,21 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
+  const {question} = parseArgs(toolCall);
+
+  // When the agent scoped a telemetry query to a user session (session.id:<id>), surface it as
+  // a link to that session's timeline rather than a generic dataset query. This is what ties
+  // Autofix's investigation back to the Sessions explorer.
+  const sessionId = extractSessionId(typeof question === 'string' ? question : '');
+  if (sessionId) {
+    return {
+      to: getSessionDetailUrl(organization, sessionId),
+      icon: <IconCompass />,
+      label: t('Session: %s', getShortEventId(sessionId)),
+      tooltip: typeof question === 'string' ? question : undefined,
+    };
+  }
+
   const target = resolveLink(subjectFromToolLink(toolLink), {
     organization,
     projects,
@@ -119,7 +135,6 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const {question} = parseArgs(toolCall);
   const {dataset} = toolLink.params ?? {};
   const label = getTelemetryEvidenceLabel(
     typeof dataset === 'string' ? dataset : undefined
@@ -374,12 +389,28 @@ function getGitSearchEvidenceProps({
   return null;
 }
 
+function getSessionTimelineEvidenceProps({
+  organization,
+  toolCall,
+}: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  const {session_id} = parseArgs(toolCall);
+  if (typeof session_id !== 'string' || !session_id) {
+    return null;
+  }
+  return {
+    to: getSessionDetailUrl(organization, session_id),
+    icon: <IconCompass />,
+    label: t('Session: %s', getShortEventId(session_id)),
+  };
+}
+
 export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   string,
   (payload: GetEvidencePropsPayload) => EvidenceButtonProps | null
 > = {
   telemetry_live_search: getTelemetryEvidenceProps,
   get_trace_waterfall: getTraceWaterfallEvidenceProps,
+  get_session_timeline: getSessionTimelineEvidenceProps,
   get_issue_details: getIssueDetailsEvidenceProps,
   get_event_details: getIssueDetailsEvidenceProps,
   get_replay_details: getReplayDetailsEvidenceProps,
@@ -395,6 +426,12 @@ function parseArgs(toolCall: ToolCall): any {
   } catch {
     return {};
   }
+}
+
+/** Pull the session id out of a telemetry query like `session.id:<id> all errors and logs`. */
+function extractSessionId(question: string): string | undefined {
+  const match = question.match(/session\.id:\s*"?([0-9a-fA-F-]{8,})"?/);
+  return match?.[1];
 }
 
 function extractFileName(filePath: string): string | undefined {
