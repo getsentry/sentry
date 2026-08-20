@@ -1,110 +1,90 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 
-# POC constants for a simple wall-time energy model.
-# Not inventory-grade carbon accounting — relative comparison only.
+# These fixed values keep the POC deterministic without requiring hardware experiments or
+# location-aware grid data. 15 W represents the single CPU assumed by the model. The grid
+# intensity rounds EPA's ~394 gCO2e/kWh estimate to avoid false precision in a rough model.
 ACTIVE_CPU_WATTS = 15.0
-# EPA eGRID2022 US national average for electricity used is ~394 gCO2/kWh
-# (823.1 lb CO2/MWh + T&D losses). Rounded for the POC.
 GRID_INTENSITY_GCO2E_PER_KWH = 400.0
-# W·s -> kWh: divide by 1000 W/kW * 3600 s/h
-_WATT_SECONDS_PER_KWH = 3_600_000.0
+_GCO2E_PER_MILLISECOND = (
+    ACTIVE_CPU_WATTS * GRID_INTENSITY_GCO2E_PER_KWH / 3_600_000_000
+)
 
 
 def estimate_gco2e_from_duration_ms(duration_ms: float) -> float:
-    """Estimate grams CO₂e from duration milliseconds.
-
-    Model: duration is treated as active CPU time on one fixed CPU.
-    gCO₂e = (watts * seconds / 3_600_000) * gCO₂e/kWh
-    """
-    seconds = duration_ms / 1000.0
-    kilowatt_hours = (ACTIVE_CPU_WATTS * seconds) / _WATT_SECONDS_PER_KWH
-    return kilowatt_hours * GRID_INTENSITY_GCO2E_PER_KWH
+    return duration_ms * _GCO2E_PER_MILLISECOND
 
 
-def _coerce_duration_ms(value: Any) -> float | None:
-    if value is None or isinstance(value, bool):
+def _duration_ms_from_attributes(attributes: Any) -> float | None:
+    if not isinstance(attributes, list):
         return None
-    try:
-        duration_ms = float(value)
-    except (TypeError, ValueError):
-        return None
-    if duration_ms < 0:
-        return None
-    return duration_ms
 
-
-def duration_ms_from_span(span: Mapping[str, Any]) -> float | None:
-    """Best-effort duration extraction across trace API payload shapes."""
-    for key in ("duration", "span.duration", "duration_ms"):
-        duration_ms = _coerce_duration_ms(span.get(key))
-        if duration_ms is not None:
-            return duration_ms
-
-    attributes = span.get("attributes")
-    if isinstance(attributes, Sequence) and not isinstance(attributes, (str, bytes)):
-        for attribute in attributes:
-            if not isinstance(attribute, Mapping):
-                continue
-            name = attribute.get("name")
-            if name in ("span.duration", "duration", "duration_ms", "span.self_time"):
-                duration_ms = _coerce_duration_ms(attribute.get("value"))
-                if duration_ms is not None:
-                    return duration_ms
-
-    start = span.get("start_timestamp")
-    end = span.get("end_timestamp")
-    try:
-        if start is not None and end is not None:
-            # Trace tree timestamps are epoch seconds.
-            return max(float(end) - float(start), 0.0) * 1000.0
-    except (TypeError, ValueError):
-        pass
+    for attribute in attributes:
+        if not isinstance(attribute, dict) or attribute.get("name") != "span.duration":
+            continue
+        try:
+            return float(attribute["value"])
+        except (KeyError, TypeError, ValueError):
+            return None
 
     return None
 
 
-def estimate_span_climate_impact(span: Mapping[str, Any]) -> float | None:
-    """Estimate climate impact in grams of CO₂ equivalent, or None if unknown."""
-    duration_ms = duration_ms_from_span(span)
+def _duration_ms_from_span(span: Mapping[str, Any]) -> float | None:
+    duration_ms = span.get("duration")
     if duration_ms is None:
+        # Trace item details serializes duration inside its attribute list instead of at the
+        # top level, so both API response shapes need explicit support.
+        return _duration_ms_from_attributes(span.get("attributes"))
+
+    try:
+        return float(duration_ms)
+    except (TypeError, ValueError):
+        return None
+
+
+def estimate_span_climate_impact(span: Mapping[str, Any]) -> float | None:
+    # The span schema has no CPU-time field. Wall duration is the closest existing proxy and
+    # lets this POC ship without SDK or schema changes.
+    duration_ms = _duration_ms_from_span(span)
+    if duration_ms is None or duration_ms < 0:
         return None
     return estimate_gco2e_from_duration_ms(duration_ms)
 
 
+def _annotate_span(span: dict[str, Any], field: str) -> None:
+    estimate = estimate_span_climate_impact(span)
+    if estimate is None:
+        # The frontend uses field presence as the availability signal. Omitting unknown values
+        # avoids presenting missing measurements as a measured zero-carbon operation.
+        return
+    span[field] = estimate
+
+
 def annotate_trace_tree(events: Any) -> None:
-    """Walk children of event list; stamp only event_type == 'span' when estimable."""
     if not isinstance(events, list):
         return
+
     for event in events:
-        if isinstance(event, dict) and event.get("event_type") == "span":
-            estimate = estimate_span_climate_impact(event)
-            if estimate is not None:
-                event["estimated_climate_impact_co2e_grams"] = estimate
-        children = event.get("children") if isinstance(event, dict) else None
-        if children is not None:
-            annotate_trace_tree(children)
+        if not isinstance(event, dict):
+            continue
+        if event.get("event_type") == "span":
+            _annotate_span(event, "estimated_climate_impact_co2e_grams")
+        annotate_trace_tree(event.get("children"))
 
 
 def annotate_trace_summaries(traces: Any) -> None:
-    """Annotate /traces/ rows from trace wall duration when present."""
-    if not isinstance(traces, dict):
+    if not isinstance(traces, dict) or not isinstance(traces.get("data"), list):
         return
-    data = traces.get("data")
-    if not isinstance(data, list):
-        return
-    for row in data:
-        if not isinstance(row, dict):
+
+    for trace in traces["data"]:
+        if not isinstance(trace, dict):
             continue
-        estimate = estimate_span_climate_impact(row)
-        if estimate is not None:
-            row["estimatedClimateImpactCo2eGrams"] = estimate
+        # The summary endpoint does not return every span, so trace wall duration provides
+        # a stable estimate without an extra query or a misleading partial sum.
+        _annotate_span(trace, "estimatedClimateImpactCo2eGrams")
 
 
 def annotate_trace_item(item: Any) -> None:
-    """Stamp span item responses when duration can be read from the payload."""
-    if not isinstance(item, dict):
-        return
-    estimate = estimate_span_climate_impact(item)
-    if estimate is not None:
-        item["estimatedClimateImpactCo2eGrams"] = estimate
+    if isinstance(item, dict):
+        _annotate_span(item, "estimatedClimateImpactCo2eGrams")

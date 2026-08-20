@@ -1022,14 +1022,12 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
         assert response.status_code == 200, response.content
         data = response.data
 
-        # Check that spans have the climate impact field
         for event in data:
             if event.get("event_type") == "span":
                 assert "estimated_climate_impact_co2e_grams" in event
                 assert event["estimated_climate_impact_co2e_grams"] == pytest.approx(
                     estimate_gco2e_from_duration_ms(event["duration"])
                 )
-            # Check children recursively
             if "children" in event:
                 self._check_children_for_climate_impact(event["children"])
 
@@ -1052,7 +1050,6 @@ class OrganizationEventsTraceClimateImpactEndpointTest(OrganizationEventsTraceEn
         assert response.status_code == 200, response.content
         data = response.data
 
-        # Check that spans do not have the climate impact field
         for event in data:
             assert "estimated_climate_impact_co2e_grams" not in event
             if "children" in event:

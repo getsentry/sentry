@@ -2592,7 +2592,6 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
         data = response.data["data"]
         assert len(data) == 1
 
-        # Trace wall duration is the POC input for /traces/ summaries.
         trace = data[0]
         assert "estimatedClimateImpactCo2eGrams" in trace
         assert trace["estimatedClimateImpactCo2eGrams"] == pytest.approx(
@@ -2629,6 +2628,5 @@ class OrganizationTracesClimateImpactTest(BaseSpansTestCase, APITestCase):
         data = response.data["data"]
         assert len(data) == 1
 
-        # Check that the trace does not have climate impact field
         trace = data[0]
         assert "estimatedClimateImpactCo2eGrams" not in trace
