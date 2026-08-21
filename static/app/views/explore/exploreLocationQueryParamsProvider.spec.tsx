@@ -55,14 +55,16 @@ function TestComponent() {
       <button onClick={() => setQuery(query)}>set same</button>
       <button
         onClick={() =>
-          setQueryParams({
-            pageFilters: {
-              datetime: {end: null, period: '7d', start: null, utc: null},
-              environments: ['production'],
-              projects: [1, 2],
-            },
-            query: 'scoped',
-          })
+          setQueryParams(
+            {query: 'scoped'},
+            {
+              pageFilters: {
+                datetime: {end: null, period: '7d', start: null, utc: null},
+                environments: ['production'],
+                projects: [1, 2],
+              },
+            }
+          )
         }
       >
         set query and scope

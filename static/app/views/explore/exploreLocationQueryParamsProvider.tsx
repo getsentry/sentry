@@ -6,7 +6,10 @@ import {getNewQueryParams} from 'sentry/components/pageFilters/actions';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import {
+  QueryParamsContextProvider,
+  type SetQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/context';
 import type {
   ReadableQueryParams,
   ReadableQueryParamsOptions,
@@ -49,12 +52,13 @@ export function ExploreLocationQueryParamsProvider({
   );
 
   const setWritableQueryParams = useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (
+      writableQueryParams: WritableQueryParams,
+      {pageFilters}: SetQueryParamsOptions = {}
+    ) => {
       onSetWritableQueryParams?.(writableQueryParams);
 
-      const {pageFilters, ...exploreQueryParams} = writableQueryParams;
-
-      let target = getTargetWithReadableQueryParams(location, exploreQueryParams);
+      let target = getTargetWithReadableQueryParams(location, writableQueryParams);
 
       if (pageFilters) {
         target = {

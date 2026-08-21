@@ -1600,17 +1600,19 @@ function QueryClauseActionsEditor() {
     updateDateTime(latestDraftPageFilters.datetime, undefined, undefined, {
       save: true,
     });
-    setQueryParams({
-      aggregateFields: [
-        ...draftGroupBys.map(groupBy => ({groupBy})),
-        ...draftVisualizes.map(visualize => visualize.serialize()),
-      ],
-      aggregateSortBys: draftAggregateSortBys,
-      mode: draftMode,
-      pageFilters: latestDraftPageFilters,
-      query: draftQuery,
-      sortBys: draftSampleSortBys,
-    });
+    setQueryParams(
+      {
+        aggregateFields: [
+          ...draftGroupBys.map(groupBy => ({groupBy})),
+          ...draftVisualizes.map(visualize => visualize.serialize()),
+        ],
+        aggregateSortBys: draftAggregateSortBys,
+        mode: draftMode,
+        query: draftQuery,
+        sortBys: draftSampleSortBys,
+      },
+      {pageFilters: latestDraftPageFilters}
+    );
   };
   return (
     <CMDKChainedActionScope>
