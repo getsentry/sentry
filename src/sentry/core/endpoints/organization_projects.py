@@ -58,6 +58,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.utils import tokenize_query
+from sentry.seer.agent_token import is_agent_auth
 from sentry.signals import project_created, team_created
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.users.models.user import User
@@ -176,7 +177,11 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         dataset = get_dataset(datasetName)
 
         queryset: QuerySet[Project]
-        if request.auth and not request.user.is_authenticated:
+        if is_agent_auth(request.auth):
+            queryset = Project.objects.filter(organization=organization)
+            if not request.access.has_global_access:
+                queryset = queryset.filter(id__in=request.access.accessible_project_ids)
+        elif request.auth and not request.user.is_authenticated:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)

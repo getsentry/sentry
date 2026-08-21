@@ -35,7 +35,6 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
 
 export function FirstLastSeenSection({event, group}: {group: Group; event?: Event}) {
   const organization = useOrganization();
-  const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const shouldReserveReleaseSpace = !!event?.release;
 
@@ -77,9 +76,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={lastSeen}
             dateGlobal={lastSeenGlobal}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>
@@ -97,9 +93,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={group.firstSeen}
             dateGlobal={allEnvsGroupData?.firstSeen ?? group.firstSeen}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>
