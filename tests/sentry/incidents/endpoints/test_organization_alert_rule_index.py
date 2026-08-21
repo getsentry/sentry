@@ -189,8 +189,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         ProjectTeam.objects.create(project=self.project, team=team)
 
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
+        resp = self.get_success_response(self.organization.slug)
 
         assert resp.data[0] == serialize(
             self.detector, self.user, WorkflowEngineDetectorSerializer()
@@ -202,7 +201,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         self.login_as(self.user)
 
         with (
-            self.feature("organizations:incidents"),
             self.feature("organizations:workflow-engine-rule-serializers"),
         ):
             resp = self.get_success_response(self.organization.slug)
@@ -220,7 +218,6 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         self.login_as(self.user)
 
         with (
-            self.feature("organizations:incidents"),
             self.feature("organizations:workflow-engine-rule-serializers"),
         ):
             resp = self.get_success_response(org.slug)
@@ -232,8 +229,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         ProjectTeam.objects.create(project=self.project, team=team)
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug)
+        resp = self.get_response(self.organization.slug)
 
         assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
@@ -253,8 +249,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         self.alert_rule.snuba_query.save()
 
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug)
+        resp = self.get_success_response(self.organization.slug)
 
         rule = next(rule for rule in resp.data if rule["id"] == str(self.alert_rule.id))
 
@@ -268,9 +263,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         self.detector.update(enabled=False)
         self.login_as(self.user)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         assert resp.data[0]["snooze"] is True
@@ -280,9 +273,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         ProjectTeam.objects.create(project=self.project, team=team)
         self.login_as(self.user)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         assert "snooze" not in resp.data[0]
@@ -306,9 +297,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         data_source.detectors.add(single_written_detector)
 
         self.login_as(self.user)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         assert len(resp.data) == 2
@@ -335,9 +324,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         data_source.detectors.add(single_written_detector)
 
         self.login_as(self.user)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         assert resp[ALERT_RULES_COUNT_HEADER] == "2"
@@ -355,9 +342,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
         )
 
         self.login_as(self.user)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         assert len(resp.data) == 1
@@ -395,9 +380,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
             )
 
         self.login_as(self.user)
-        with self.feature(
-            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
-        ):
+        with self.feature(["organizations:workflow-engine-rule-serializers"]):
             resp = self.get_success_response(self.organization.slug)
 
         results_by_name = {item["name"]: item for item in resp.data}
@@ -425,7 +408,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     def test_simple(self) -> None:
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -461,7 +444,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -491,7 +474,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -515,7 +498,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_error_response(
                 self.organization.slug,
@@ -530,7 +513,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     def test_create_alert_rule_aci(self) -> None:
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             self.alert_rule_dict["resolveThreshold"] = 50
             resp = self.get_success_response(
@@ -553,7 +536,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert_alert_rule_trigger_action_migrated(actions[0], Action.Type.EMAIL)
         assert_alert_rule_trigger_action_migrated(actions[1], Action.Type.EMAIL)
 
-    @with_feature("organizations:incidents")
     def test_invalid_threshold_type(self) -> None:
         """
         Test that a comparison alert (percent based) can't use the above and below threshold type
@@ -579,7 +561,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -626,7 +607,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -660,7 +640,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:ourlogs-enabled")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -695,7 +674,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:tracemetrics-enabled")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -746,7 +724,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
             with (
                 outbox_runner(),
-                self.feature(["organizations:incidents", "organizations:performance-view"]),
+                self.feature("organizations:performance-view"),
             ):
                 with patch.object(
                     _snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen
@@ -787,7 +765,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:ourlogs-enabled",
                 ]
@@ -836,7 +813,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 {
-                    "organizations:incidents": True,
                     "organizations:performance-view": True,
                     "organizations:tracemetrics-enabled": False,
                 },
@@ -866,7 +842,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:tracemetrics-enabled",
                 ]
@@ -906,7 +881,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:tracemetrics-enabled",
                 ]
@@ -961,7 +935,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -979,7 +952,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -999,7 +971,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -1023,7 +994,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:incidents")
     def test_anomaly_detection_alert_validation_error(self) -> None:
         data = self.dynamic_alert_rule_dict
         data["time_window"] = 10
@@ -1039,7 +1009,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     def test_multiple_projects(self) -> None:
         new_project = self.create_project()
         data = {**self.alert_rule_dict, "projects": [self.project.slug, new_project.slug]}
-        with outbox_runner(), self.feature(["organizations:incidents"]):
+        with outbox_runner():
             response_data = self.get_error_response(
                 self.organization.slug,
                 method=responses.POST,
@@ -1053,7 +1023,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                 ]
             ),
@@ -1076,7 +1045,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:dynamic-sampling",
                 ]
@@ -1129,17 +1097,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self) -> None:
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **self.alert_rule_dict
-            )
+        resp = self.get_success_response(
+            self.organization.slug, status_code=201, **self.alert_rule_dict
+        )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
         assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
-            assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
+        resp = self.get_error_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.data[0] == "You may not exceed 1 metric alerts per organization"
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions_with_override(self) -> None:
@@ -1149,39 +1115,35 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 "metric_alerts.extended_max_subscriptions": 3,
             }
         ):
-            with self.feature("organizations:incidents"):
-                resp = self.get_success_response(
-                    self.organization.slug, status_code=201, **self.alert_rule_dict
-                )
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **self.alert_rule_dict
+            )
             alert_rule = AlertRule.objects.get(id=resp.data["id"])
             detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
             assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_2 = self.alert_rule_dict.copy()
             alert_rule_dict_2["name"] = "Test Rule 2"
-            with self.feature("organizations:incidents"):
-                resp = self.get_success_response(
-                    self.organization.slug, status_code=201, **alert_rule_dict_2
-                )
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **alert_rule_dict_2
+            )
             alert_rule_2 = AlertRule.objects.get(id=resp.data["id"])
             detector_2 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule_2.id)
             assert resp.data == serialize(detector_2, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_3 = self.alert_rule_dict.copy()
             alert_rule_dict_3["name"] = "Test Rule 3"
-            with self.feature("organizations:incidents"):
-                resp = self.get_success_response(
-                    self.organization.slug, status_code=201, **alert_rule_dict_3
-                )
+            resp = self.get_success_response(
+                self.organization.slug, status_code=201, **alert_rule_dict_3
+            )
             alert_rule_3 = AlertRule.objects.get(id=resp.data["id"])
             detector_3 = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule_3.id)
             assert resp.data == serialize(detector_3, self.user, WorkflowEngineDetectorSerializer())
 
             alert_rule_dict_4 = self.alert_rule_dict.copy()
             alert_rule_dict_4["name"] = "Test Rule 4"
-            with self.feature("organizations:incidents"):
-                resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
-                assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
+            resp = self.get_error_response(self.organization.slug, **alert_rule_dict_4)
+            assert resp.data[0] == "You may not exceed 3 metric alerts per organization"
 
     def test_sentry_app(self) -> None:
         other_org = self.create_organization(owner=self.user)
@@ -1201,10 +1163,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **valid_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, status_code=201, **valid_alert_rule
+        )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
@@ -1229,8 +1190,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "sentryAppId": sentry_app.id,
         }
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
+        self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_invalid_sentry_app(self) -> None:
         valid_alert_rule = deepcopy(self.alert_rule_dict)
@@ -1242,8 +1202,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "sentryAppId": "invalid",
         }
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
+        self.get_error_response(self.organization.slug, status_code=400, **valid_alert_rule)
 
     def test_no_config_sentry_app(self) -> None:
         sentry_app = self.create_sentry_app(is_alertable=True)
@@ -1267,7 +1226,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 }
             ],
         }
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             self.get_success_response(self.organization.slug, status_code=201, **alert_rule)
 
     @responses.activate
@@ -1317,7 +1276,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             self.get_success_response(self.organization.slug, status_code=201, **alert_rule)
 
     @responses.activate
@@ -1377,7 +1336,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             assert (
                 self.get_error_response(
                     self.organization.slug, status_code=400, **alert_rule
@@ -1434,7 +1393,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_response(self.organization.slug, **alert_rule)
 
         assert resp.status_code == 500
@@ -1460,10 +1419,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature("organizations:incidents"):
-            self.get_error_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_no_label
-            )
+        self.get_error_response(
+            self.organization.slug, status_code=400, **rule_one_trigger_no_label
+        )
 
     def test_only_critical_trigger(self) -> None:
         rule_one_trigger_only_critical = {
@@ -1485,10 +1443,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 }
             ],
         }
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **rule_one_trigger_only_critical
-            )
+        resp = self.get_success_response(
+            self.organization.slug, status_code=201, **rule_one_trigger_only_critical
+        )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
@@ -1505,11 +1462,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "owner": self.user.id,
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, status_code=400, **rule_no_triggers
-            )
-            assert resp.data == {"triggers": ["This field is required."]}
+        resp = self.get_error_response(self.organization.slug, status_code=400, **rule_no_triggers)
+        assert resp.data == {"triggers": ["This field is required."]}
 
     def test_no_critical_trigger(self) -> None:
         rule_one_trigger_only_warning = {
@@ -1532,11 +1486,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_only_warning
-            )
-            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
+        resp = self.get_error_response(
+            self.organization.slug, status_code=400, **rule_one_trigger_only_warning
+        )
+        assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self) -> None:
         rule_one_trigger_only_critical_no_action = {
@@ -1551,10 +1504,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "triggers": [{"label": "critical", "alertThreshold": 75}],
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
-            )
+        resp = self.get_error_response(
+            self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
+        )
         assert resp.data == {
             "nonFieldErrors": [
                 "Each trigger must have an associated action for this alert to fire."
@@ -1580,46 +1532,44 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
-            )
+        resp = self.get_error_response(
+            self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
+        )
         assert resp.data[0] == ErrorDetail(
             string="One or more of your actions is missing a target identifier.", code="invalid"
         )
 
     def test_invalid_projects(self) -> None:
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug,
-                status_code=400,
-                projects=[
-                    self.project.slug,
-                    self.create_project(organization=self.create_organization()).slug,
-                ],
-                name="an alert",
-                owner=self.user.id,
-                thresholdType=1,
-                query="hi",
-                aggregate="count()",
-                timeWindow=10,
-                alertThreshold=1000,
-                resolveThreshold=100,
-                triggers=[
-                    {
-                        "label": "critical",
-                        "alertThreshold": 200,
-                        "actions": [
-                            {
-                                "type": "email",
-                                "targetType": "team",
-                                "targetIdentifier": self.team.id,
-                            }
-                        ],
-                    }
-                ],
-            )
-            assert resp.json() == {"projects": ["Invalid project"]}
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            projects=[
+                self.project.slug,
+                self.create_project(organization=self.create_organization()).slug,
+            ],
+            name="an alert",
+            owner=self.user.id,
+            thresholdType=1,
+            query="hi",
+            aggregate="count()",
+            timeWindow=10,
+            alertThreshold=1000,
+            resolveThreshold=100,
+            triggers=[
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "email",
+                            "targetType": "team",
+                            "targetIdentifier": self.team.id,
+                        }
+                    ],
+                }
+            ],
+        )
+        assert resp.json() == {"projects": ["Invalid project"]}
 
     def test_no_perms(self) -> None:
         with (
@@ -1627,8 +1577,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 201
 
         member_user = self.create_user()
@@ -1660,41 +1609,39 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(team_admin_user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 201
 
         # verify that a team admin cannot create an alert for a project their team doesn't own
-        with self.feature("organizations:incidents"):
-            resp = self.get_error_response(
-                self.organization.slug,
-                status_code=400,
-                projects=[
-                    self.create_project(organization=self.create_organization()).slug,
-                ],
-                name="an alert",
-                owner=team_admin_user.id,
-                thresholdType=1,
-                query="hi",
-                aggregate="count()",
-                timeWindow=10,
-                alertThreshold=1000,
-                resolveThreshold=100,
-                triggers=[
-                    {
-                        "label": "critical",
-                        "alertThreshold": 200,
-                        "actions": [
-                            {
-                                "type": "email",
-                                "targetType": "team",
-                                "targetIdentifier": self.team.id,
-                            }
-                        ],
-                    }
-                ],
-            )
-            assert resp.json() == {"projects": ["Invalid project"]}
+        resp = self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+            projects=[
+                self.create_project(organization=self.create_organization()).slug,
+            ],
+            name="an alert",
+            owner=team_admin_user.id,
+            thresholdType=1,
+            query="hi",
+            aggregate="count()",
+            timeWindow=10,
+            alertThreshold=1000,
+            resolveThreshold=100,
+            triggers=[
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "actions": [
+                        {
+                            "type": "email",
+                            "targetType": "team",
+                            "targetIdentifier": self.team.id,
+                        }
+                    ],
+                }
+            ],
+        )
+        assert resp.json() == {"projects": ["Invalid project"]}
 
         # verify that a regular team member cannot create an alert
         self.login_as(member_user)
@@ -1708,8 +1655,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
         self.organization.update_option("sentry:alerts_member_write", True)
         self.login_as(member_user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 201
 
     def test_no_owner(self) -> None:
@@ -1733,8 +1679,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, status_code=201, **rule_data)
+        resp = self.get_success_response(self.organization.slug, status_code=201, **rule_data)
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
@@ -1760,10 +1705,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 },
             ],
         }
-        with self.feature(["organizations:incidents"]):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=202, **valid_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, status_code=202, **valid_alert_rule
+        )
         assert resp.data["uuid"] == "abc123"
         assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
         kwargs = {
@@ -1801,7 +1745,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ],
         }
 
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, **test_params)
         assert resp.data["uuid"] == "abc123"
         assert mock_get_channel_id.call_count == 1
@@ -1835,7 +1779,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 ],
             },
         ]
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, **test_params)
         assert resp.data["uuid"] == "abc123"
         assert (
@@ -1868,7 +1812,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 ],
             },
         ]
-        with self.feature("organizations:incidents"), self.tasks():
+        with self.tasks():
             resp = self.get_response(self.organization.slug, **test_params)
         assert resp.status_code == 400
         # Did not increment from the last assertion because we early out on the validation error
@@ -1877,7 +1821,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     def test_performance_dataset(self) -> None:
         with self.feature(
             [
-                "organizations:incidents",
                 "organizations:performance-view",
                 "organizations:dynamic-sampling",
             ]
@@ -1908,7 +1851,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     def test_alert_with_metrics_layer(self) -> None:
         with self.feature(
             [
-                "organizations:incidents",
                 "organizations:performance-view",
                 "organizations:dynamic-sampling",
             ]
@@ -1945,7 +1887,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule_dict["name"] = char_256_name
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -1961,7 +1903,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         alert_rule_dict["name"] = char_257_name
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **alert_rule_dict
@@ -1976,11 +1918,10 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "dataset": "transactions",
             "eventTypes": ["transaction"],
         }
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
 
-    @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_alert_limit(self, mock_get_limit: MagicMock) -> None:
@@ -2022,7 +1963,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             **data,
         )
 
-    @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @patch("sentry.quotas.backend.get_metric_detector_limit")
     @patch("sentry.incidents.endpoints.organization_alert_rule_index.log_alerting_quota_hit")
@@ -2034,7 +1974,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         self.get_error_response(self.organization.slug, status_code=400, **data)
         mock_log.assert_called_once()
 
-    @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     def test_metric_alert_limit_unlimited_plan(self) -> None:
         # create orphaned metric alert
@@ -2065,13 +2004,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         # Below the 5-minute floor
         data["timeWindow"] = 1
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
 
         # Above the floor but not a valid granularity (7 minutes = 420 seconds)
         data["timeWindow"] = 7
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert "Invalid Time Window" in resp.data["nonFieldErrors"][0]
 
@@ -2080,9 +2019,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data["dataset"] = "transactions"
         data["alertType"] = "performance"
 
-        with self.feature(
-            ["organizations:incidents", "organizations:discover-saved-queries-deprecation"]
-        ):
+        with self.feature(["organizations:discover-saved-queries-deprecation"]):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
             resp.data[0]
@@ -2097,7 +2034,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with self.feature(
             [
-                "organizations:incidents",
                 "organizations:discover-saved-queries-deprecation",
                 "organizations:performance-view",
             ]
@@ -2115,7 +2051,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             resp = self.get_success_response(self.organization.slug, status_code=201, **data)
         assert "id" in resp.data
@@ -2135,7 +2071,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
                 resp = self.get_success_response(self.organization.slug, status_code=201, **data)
@@ -2163,7 +2099,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         data["dataset"] = "events_analytics_platform"
         data["alertType"] = "eap_metrics"
         data["extrapolation_mode"] = "server_weighted"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert (
             resp.data[0]
@@ -2191,7 +2127,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         data = deepcopy(self.alert_rule_dict)
         data["owner"] = f"team:{other_team.id}"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(self.organization.slug, status_code=400, **data)
         assert resp.data == {"owner": ["You can only assign teams you are a member of"]}
 
@@ -2210,7 +2146,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         data = deepcopy(self.alert_rule_dict)
         data["owner"] = f"team:{self.team.id}"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(self.organization.slug, status_code=201, **data)
         assert resp.data["owner"] == f"team:{self.team.id}"
 
@@ -2231,7 +2167,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         data = deepcopy(self.alert_rule_dict)
         data["owner"] = f"team:{other_team.id}"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(self.organization.slug, status_code=201, **data)
         assert resp.data["owner"] == f"team:{other_team.id}"
 
@@ -2255,7 +2191,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
         data = deepcopy(self.alert_rule_dict)
         data["owner"] = f"team:{other_team.id}"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(self.organization.slug, status_code=201, **data)
         assert resp.data["owner"] == f"team:{other_team.id}"
 
@@ -2285,7 +2221,7 @@ class AlertRuleCreateDeltaTest(AlertRuleIndexBase, SnubaTestCase):
         old_dict["name"] = "OldSerializerRule"
         with (
             outbox_runner(),
-            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.feature("organizations:performance-view"),
         ):
             old_resp = self.get_success_response(
                 self.organization.slug, status_code=201, **old_dict
@@ -2299,7 +2235,6 @@ class AlertRuleCreateDeltaTest(AlertRuleIndexBase, SnubaTestCase):
             outbox_runner(),
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:workflow-engine-rule-serializers",
                 ]
@@ -2367,7 +2302,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         }
 
     def test_simple_crash_rate_alerts_for_sessions(self) -> None:
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(
                 self.organization.slug, status_code=201, **self.valid_alert_rule
             )
@@ -2382,7 +2317,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
                 "aggregate": "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
             }
         )
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(
                 self.organization.slug, status_code=201, **self.valid_alert_rule
             )
@@ -2393,7 +2328,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
 
     def test_simple_crash_rate_alerts_for_sessions_drops_event_types(self) -> None:
         self.valid_alert_rule["eventTypes"] = ["error"]
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_success_response(
                 self.organization.slug, status_code=201, **self.valid_alert_rule
             )
@@ -2404,7 +2339,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
 
     def test_simple_crash_rate_alerts_for_sessions_with_invalid_time_window(self) -> None:
         self.valid_alert_rule["timeWindow"] = "90"
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **self.valid_alert_rule
             )
@@ -2416,7 +2351,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
 
     def test_simple_crash_rate_alerts_for_non_supported_aggregate(self) -> None:
         self.valid_alert_rule.update({"aggregate": "count(sessions)"})
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature("organizations:performance-view"):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **self.valid_alert_rule
             )
@@ -2442,10 +2377,9 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
                 "actions": self.slack_action,
             },
         ]
-        with self.feature(["organizations:incidents"]):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=202, **self.valid_alert_rule
-            )
+        resp = self.get_success_response(
+            self.organization.slug, status_code=202, **self.valid_alert_rule
+        )
         assert resp.data["uuid"] == "abc123"
         assert not AlertRule.objects.filter(name="JustAValidTestRule").exists()
         kwargs = {
