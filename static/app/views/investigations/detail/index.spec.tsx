@@ -16,6 +16,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
   getInvestigationDetailQueryOptions,
+  investigationExecutionDetailQueryOptions,
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
@@ -205,6 +206,47 @@ describe('Investigation detail', () => {
     expect(
       await screen.findByText('Errors are concentrated in checkout.')
     ).toBeInTheDocument();
+  });
+
+  it('does not render stale streamed text after a text cell completes', async () => {
+    const queryClient = makeTestQueryClient();
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks[0] = {
+      ...investigation.blocks[0]!,
+      outputStatus: 'available',
+      output: {schemaVersion: 1, markdown: 'Final persisted analysis'},
+      currentExecution: {
+        id: 'execution-1',
+        status: 'completed',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: '2026-08-18T20:01:00Z',
+        error: null,
+      },
+    };
+    const executionOptions = investigationExecutionDetailQueryOptions({
+      organizationSlug: organization.slug,
+      investigationId: investigation.id,
+      blockId: 'block-1',
+      executionId: 'execution-1',
+    });
+    queryClient.setQueryData(executionOptions.queryKey, {
+      headers: {},
+      json: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: 'Thinking…',
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView(organization, queryClient);
+
+    expect(await screen.findByText('Final persisted analysis')).toBeInTheDocument();
+    expect(screen.queryByText('Thinking…')).not.toBeInTheDocument();
   });
 
   it('renders the streamed investigation title preview', async () => {
@@ -409,7 +451,9 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(await screen.findByText('This cell failed to run.')).toBeInTheDocument();
+    expect(await screen.findByTestId('cell-execution-failed')).toHaveTextContent(
+      'Query failed'
+    );
   });
 
   it('keeps the refinement composer expanded while editing', async () => {
