@@ -27,8 +27,6 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 logger = logging.getLogger(__name__)
 
-_FILESTORE_DOWNLOAD_ATTEMPTS = 3
-
 
 def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
@@ -151,8 +149,7 @@ def _spool_and_validate_with_retry(
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
         test_function=lambda attempt_number, error: (
-            isinstance(error, FilestoreIntegrityError)
-            and attempt_number < _FILESTORE_DOWNLOAD_ATTEMPTS
+            isinstance(error, FilestoreIntegrityError) and attempt_number < 3
         ),
         delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
@@ -227,7 +224,6 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={
                 "debug_file_id": debug_file.id,
                 "file_id": file.id,
-                "attempts": _FILESTORE_DOWNLOAD_ATTEMPTS,
                 "checksum": error.checksum,
                 "expected_checksum": error.expected_checksum,
                 "size": error.size,
