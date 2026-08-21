@@ -650,6 +650,30 @@ class CursoredSchedulerTest(TestCase):
 
         assert all_dispatched == [oi.pk for oi in reversed(ois)]
 
+    def test_preserve_queryset_order_with_prevalidate_batch(self):
+        """Prevalidation runs by PK range, but the snapshot still follows the queryset order."""
+        ois = self._create_org_integrations(5)
+        even_pks = {oi.pk for oi in ois if oi.pk % 2 == 0}
+        queryset = OrganizationIntegration.objects.filter(
+            integration__provider="github",
+            status=ObjectStatus.ACTIVE,
+        ).order_by("-pk")
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=queryset,
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            prevalidate_batch=lambda rows: [oi.pk for oi in rows if oi.pk in even_pks],
+            preserve_queryset_order=True,
+        )
+
+        with patch(f"{CURSORED_SCHEDULER}.PREVALIDATE_CHUNK_SIZE", 2):
+            scheduler.tick()
+
+        snapshot = [int(pk) for pk in self.redis_client.lrange(self.pk_list_key, 0, -1)]
+        assert snapshot == sorted(even_pks, reverse=True)
+
     def test_interval_decrease_halves_batch_size(self):
         """When tick interval is halved, batch size is halved for remaining items."""
         self._create_org_integrations(30)

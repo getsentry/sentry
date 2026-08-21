@@ -15,6 +15,7 @@ persists across invocations. A distributed lock prevents overlapping ticks.
 Usage:
 
     from datetime import timedelta
+from typing import Any
     from sentry.utils.cursored_scheduler import CursoredScheduler
 
     # my_module/tasks.py
@@ -89,6 +90,7 @@ import random
 import time
 from collections.abc import Callable, Sequence
 from datetime import timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -99,6 +101,7 @@ from sentry.locks import locks
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -269,17 +272,24 @@ class CursoredScheduler[M: Model]:
     def _prevalidated_pks(self, queryset: QuerySet[M]) -> list[int]:
         """
         Apply the batch prevalidation function to the queryset, one chunk at a time.
-        If no prevalidation function is provided, return the PKs in queryset order.
+        Chunks are fetched by PK range (RangeQuerySetWrapper) because server-side
+        cursors from QuerySet.iterator() do not work through pgbouncer.
+        The returned PKs follow the queryset order.
         """
         if self.prevalidate_batch is None:
             return list(queryset.values_list("pk", flat=True))
 
-        prevalidated_pks: list[int] = []
-        for rows in chunked(
-            queryset.iterator(chunk_size=PREVALIDATE_CHUNK_SIZE), PREVALIDATE_CHUNK_SIZE
-        ):
-            prevalidated_pks.extend(self.prevalidate_batch(rows))
-        return prevalidated_pks
+        unordered: QuerySet[Any] = queryset.order_by()
+        rows_by_pk = RangeQuerySetWrapper[M](unordered, step=PREVALIDATE_CHUNK_SIZE)
+        kept_pks: list[int] = []
+        for rows in chunked(rows_by_pk, PREVALIDATE_CHUNK_SIZE):
+            kept_pks.extend(self.prevalidate_batch(rows))
+
+        if not self.preserve_queryset_order:
+            return kept_pks
+
+        kept = set(kept_pks)
+        return [pk for pk in queryset.values_list("pk", flat=True) if pk in kept]
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()
