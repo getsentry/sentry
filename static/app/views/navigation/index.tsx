@@ -9,6 +9,11 @@ import {useModal} from '@sentry/scraps/modal';
 import {GlobalCommandPaletteActions} from 'sentry/components/commandPalette/ui/commandPaletteGlobalActions';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {TOGGLE_NAVIGATION_SHORTCUT} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
+import {
+  KeyboardShortcutsHotkeys,
+  useKeyboardShortcutsDrawer,
+} from 'sentry/components/keyboardShortcuts/useKeyboardShortcutsDrawer';
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,17 +42,17 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
  */
 function CommandPaletteSlotOutlets() {
   return (
-    <div style={{display: 'none'}}>
+    <Container display="none">
       <CommandPaletteSlot.Outlet name="task">
-        {p => <div {...p} />}
+        {p => <Container {...p} />}
       </CommandPaletteSlot.Outlet>
       <CommandPaletteSlot.Outlet name="page">
-        {p => <div {...p} />}
+        {p => <Container {...p} />}
       </CommandPaletteSlot.Outlet>
       <CommandPaletteSlot.Outlet name="global">
-        {p => <div {...p} />}
+        {p => <Container {...p} />}
       </CommandPaletteSlot.Outlet>
-    </div>
+    </Container>
   );
 }
 
@@ -55,13 +60,15 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
+  const {openKeyboardShortcutsDrawer, toggleKeyboardShortcutsDrawer} =
+    useKeyboardShortcutsDrawer();
 
   useHotkeys(
     visible
       ? []
       : [
           {
-            match: 'mod+b',
+            match: TOGGLE_NAVIGATION_SHORTCUT,
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
@@ -70,8 +77,13 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   return (
     <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
+      <KeyboardShortcutsHotkeys
+        toggleKeyboardShortcutsDrawer={toggleKeyboardShortcutsDrawer}
+      />
       <CommandPaletteSlotOutlets />
-      <GlobalCommandPaletteActions />
+      <GlobalCommandPaletteActions
+        openKeyboardShortcutsDrawer={openKeyboardShortcutsDrawer}
+      />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
           <MobileNavigation />

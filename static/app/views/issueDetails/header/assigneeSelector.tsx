@@ -200,7 +200,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     : null;
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{
         label: t('Assign to'),
         icon: currentAssigneeIcon,
@@ -208,12 +208,16 @@ export function GroupHeaderAssigneeCommandPaletteAction({
       limit={4}
     >
       {user && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{
             label: t('Assign to me'),
             icon: (
               <ActorAvatar
-                actor={{id: user.id, name: user.name || user.email, type: 'user'}}
+                actor={{
+                  id: user.id,
+                  name: user.name || user.email,
+                  type: 'user',
+                }}
                 size={16}
                 hasTooltip={false}
               />
@@ -229,7 +233,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         />
       )}
       {group.assignedTo && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{
             label: t('Unassign from %s', currentAssigneeLabel),
             icon: <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />,
@@ -238,13 +242,17 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         />
       )}
       {assignableUsers.map(member => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={`member-${member.id}`}
           display={{
             label: member.name || member.email,
             icon: (
               <ActorAvatar
-                actor={{id: member.id, name: member.name || member.email, type: 'user'}}
+                actor={{
+                  id: member.id,
+                  name: member.name || member.email,
+                  type: 'user',
+                }}
                 size={16}
                 hasTooltip={false}
               />
@@ -260,7 +268,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         />
       ))}
       {assignableTeams.map(team => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={`team-${team.id}`}
           display={{
             label: `#${team.slug}`,
@@ -268,7 +276,11 @@ export function GroupHeaderAssigneeCommandPaletteAction({
           }}
           onAction={() =>
             handleAssigneeChange({
-              assignee: {id: buildTeamId(team.id), name: team.slug, type: 'team'},
+              assignee: {
+                id: buildTeamId(team.id),
+                name: team.slug,
+                type: 'team',
+              },
               id: team.id,
               type: 'team',
             })
@@ -276,7 +288,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
         />
       ))}
       {additionalOwners.map(owner => (
-        <CMDKAction
+        <CMDKAction.Callback
           key={`${owner.type}-${owner.id}`}
           display={{
             label: owner.type === 'team' ? `#${owner.name}` : owner.name,
@@ -301,6 +313,6 @@ export function GroupHeaderAssigneeCommandPaletteAction({
           }
         />
       ))}
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }

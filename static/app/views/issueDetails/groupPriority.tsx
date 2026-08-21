@@ -108,24 +108,24 @@ export function GroupPriorityCommandPaletteAction({
   const priority = group.priority ?? PriorityLevel.MEDIUM;
 
   return (
-    <CMDKAction
+    <CMDKAction.Group
       display={{
         label: t('Set Priority'),
         icon: <IconCellSignal bars={PRIORITY_BARS[priority]} />,
       }}
     >
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
         onAction={() => onChangePriority(PriorityLevel.HIGH)}
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
         onAction={() => onChangePriority(PriorityLevel.MEDIUM)}
       />
-      <CMDKAction
+      <CMDKAction.Callback
         display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
         onAction={() => onChangePriority(PriorityLevel.LOW)}
       />
-    </CMDKAction>
+    </CMDKAction.Group>
   );
 }

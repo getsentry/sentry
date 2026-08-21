@@ -13,18 +13,19 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {
-  CMDKCollection,
-  CommandPaletteProvider,
-  type CMDKActionData,
-} from 'sentry/components/commandPalette/ui/cmdk';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk/collection';
+import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk/types';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {GroupStatus} from 'sentry/types/group';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
-import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
+import {
+  IssueListCommandPaletteActionId,
+  IssueListCommandPaletteActions,
+} from 'sentry/views/issueList/issueListCommandPaletteActions';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
@@ -138,13 +139,29 @@ describe('IssueListBulkCommandPaletteActions', () => {
     });
 
     const issueFeedNode = treeRef.current.find(
-      node => node.display.label === 'Issues Feed'
+      node => node.key === IssueListCommandPaletteActionId.ISSUES_FEED
     );
     expect(issueFeedNode).toBeDefined();
 
     const issueFeedLabels = issueFeedNode!.children.map(child => child.display.label);
     expect(issueFeedLabels).toContain('Filter by');
     expect(issueFeedLabels).toContain('Mark all issues as');
+
+    const filterByNode = issueFeedNode!.children.find(
+      child => child.key === IssueListCommandPaletteActionId.FILTER_BY
+    );
+    const issueFiltersNode = filterByNode?.children.find(
+      child => child.key === IssueListCommandPaletteActionId.ISSUE_FILTERS
+    );
+    expect(issueFiltersNode).toBeDefined();
+    if (
+      issueFiltersNode &&
+      'resource' in issueFiltersNode &&
+      typeof issueFiltersNode.resource === 'function'
+    ) {
+      expect(issueFiltersNode.resource('', {state: undefined}).enabled).toBe(false);
+      expect(issueFiltersNode.resource('', {state: 'selected'}).enabled).toBe(true);
+    }
 
     const markAllNode = issueFeedNode!.children.find(
       child => child.display.label === 'Mark all issues as'

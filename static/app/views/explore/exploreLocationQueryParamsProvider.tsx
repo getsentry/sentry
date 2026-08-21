@@ -1,11 +1,15 @@
 import type {ReactNode} from 'react';
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
+import {getNewQueryParams} from 'sentry/components/pageFilters/actions';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import {
+  QueryParamsContextProvider,
+  type SetQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/context';
 import type {
   ReadableQueryParams,
   ReadableQueryParamsOptions,
@@ -36,12 +40,6 @@ export function ExploreLocationQueryParamsProvider({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Store location in a ref so we can access the latest value without including
-  // it in the dependency array. This makes setWritableQueryParams stable and
-  // prevents unnecessary context updates.
-  const locationRef = useRef(location);
-  locationRef.current = location;
-
   const _readableQueryParams = useMemo(
     () => getReadableQueryParamsFromLocation(location),
     [getReadableQueryParamsFromLocation, location]
@@ -54,17 +52,31 @@ export function ExploreLocationQueryParamsProvider({
   );
 
   const setWritableQueryParams = useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (
+      writableQueryParams: WritableQueryParams,
+      {pageFilters}: SetQueryParamsOptions = {}
+    ) => {
       onSetWritableQueryParams?.(writableQueryParams);
 
-      const target = getTargetWithReadableQueryParams(
-        locationRef.current,
-        writableQueryParams
-      );
+      let target = getTargetWithReadableQueryParams(location, writableQueryParams);
 
-      navigateIfQueryChanged(navigate, locationRef.current, target);
+      if (pageFilters) {
+        target = {
+          ...target,
+          query: getNewQueryParams(
+            {
+              project: pageFilters.projects,
+              environment: pageFilters.environments,
+              ...pageFilters.datetime,
+            },
+            target.query
+          ),
+        };
+      }
+
+      navigateIfQueryChanged(navigate, location, target);
     },
-    [navigate, getTargetWithReadableQueryParams, onSetWritableQueryParams]
+    [location, navigate, getTargetWithReadableQueryParams, onSetWritableQueryParams]
   );
 
   const isUsingDefaultFields = isDefaultFields(location);

@@ -91,7 +91,9 @@ export function SeerCommandPaletteActions({
     }
     if (integration.requires_identity && !integration.has_identity) {
       const currentUrl = window.location.href;
-      window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+      window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(
+        currentUrl
+      )}`;
       return;
     }
     openSeerDrawer();
@@ -101,7 +103,7 @@ export function SeerCommandPaletteActions({
   return (
     <Fragment>
       {(!runState || runState.status === 'error') && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Fix with Seer'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'fix']}
           onAction={() => {
@@ -112,7 +114,7 @@ export function SeerCommandPaletteActions({
       )}
 
       {canContinue && nextStep?.action === 'solution' && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Seer: Generate solution'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'solution']}
           onAction={() => {
@@ -123,8 +125,11 @@ export function SeerCommandPaletteActions({
       )}
 
       {canContinue && nextStep?.action === 'code_changes' && (
-        <CMDKAction
-          display={{label: t('Seer: Generate code changes'), icon: <IconSeer />}}
+        <CMDKAction.Callback
+          display={{
+            label: t('Seer: Generate code changes'),
+            icon: <IconSeer />,
+          }}
           keywords={['autofix', 'seer', 'ai', 'code', 'changes']}
           onAction={() => {
             openSeerDrawer();
@@ -134,7 +139,7 @@ export function SeerCommandPaletteActions({
       )}
 
       {canContinue && nextStep?.action === 'create_pr' && (
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: t('Seer: Open pull request'), icon: <IconSeer />}}
           keywords={['autofix', 'seer', 'ai', 'pr', 'pull request', 'open pr']}
           onAction={() => {
@@ -146,7 +151,7 @@ export function SeerCommandPaletteActions({
 
       {canHandOff &&
         codingAgentIntegrations?.map(integration => (
-          <CMDKAction
+          <CMDKAction.Callback
             key={`coding-agent:${integration.id ?? integration.provider}`}
             display={{
               label: t('Send to %s', integration.name),

@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -31,11 +32,18 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
+export interface SetQueryParamsOptions {
+  pageFilters?: PageFilters;
+}
+
 interface QueryParamsContextValue {
   managedFields: Set<string>;
   queryParams: ReadableQueryParams;
   setManagedFields: (managedFields: Set<string>) => void;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (
+    queryParams: WritableQueryParams,
+    options?: SetQueryParamsOptions
+  ) => void;
 }
 
 const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
@@ -54,7 +62,10 @@ interface QueryParamsContextProps {
   children: ReactNode;
   isUsingDefaultFields: boolean;
   queryParams: ReadableQueryParams;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (
+    queryParams: WritableQueryParams,
+    options?: SetQueryParamsOptions
+  ) => void;
   shouldManageFields: boolean;
 }
 
@@ -105,7 +116,7 @@ export function useSetQueryParams() {
   } = useQueryParamsContext();
 
   return useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (writableQueryParams: WritableQueryParams, options?: SetQueryParamsOptions) => {
       const {updatedFields, updatedManagedFields} = deriveUpdatedManagedFields(
         managedFields,
         readableQueryParams,
@@ -129,7 +140,7 @@ export function useSetQueryParams() {
         writableQueryParams.breakdownCursor = null;
       }
 
-      setQueryParams(writableQueryParams);
+      setQueryParams(writableQueryParams, options);
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
   );

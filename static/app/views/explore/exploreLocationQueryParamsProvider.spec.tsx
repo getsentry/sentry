@@ -8,6 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
 import {
   useQueryParamsQuery,
+  useSetQueryParams,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -46,11 +47,28 @@ function isDefaultFields(): boolean {
 function TestComponent() {
   const query = useQueryParamsQuery();
   const setQuery = useSetQueryParamsQuery();
+  const setQueryParams = useSetQueryParams();
   return (
     <div>
       <div>query: {query}</div>
       <button onClick={() => setQuery('changed')}>set changed</button>
       <button onClick={() => setQuery(query)}>set same</button>
+      <button
+        onClick={() =>
+          setQueryParams(
+            {query: 'scoped'},
+            {
+              pageFilters: {
+                datetime: {end: null, period: '7d', start: null, utc: null},
+                environments: ['production'],
+                projects: [1, 2],
+              },
+            }
+          )
+        }
+      >
+        set query and scope
+      </button>
     </div>
   );
 }
@@ -99,6 +117,32 @@ describe('ExploreLocationQueryParamsProvider', () => {
 
     // A single back returns to the original query, proving the same-value set
     // did not push a duplicate 'changed' entry.
+    router.navigate(-1);
+    await waitFor(() => expect(router.location.query.q).toBe('start'));
+  });
+
+  it('updates Explore and page-filter params in one navigation', async () => {
+    const {router} = render(
+      <Wrapper>
+        <TestComponent />
+      </Wrapper>,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/traces/', query: {cursor: 'next', q: 'start'}},
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'set query and scope'}));
+
+    await waitFor(() => expect(router.location.query.q).toBe('scoped'));
+    expect(router.location.query).toEqual({
+      environment: 'production',
+      project: ['1', '2'],
+      q: 'scoped',
+      statsPeriod: '7d',
+    });
+
     router.navigate(-1);
     await waitFor(() => expect(router.location.query.q).toBe('start'));
   });

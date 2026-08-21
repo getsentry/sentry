@@ -35,6 +35,8 @@ type Hotkey = {
   skipPreventDefault?: boolean;
 };
 
+type HotkeyEventPhase = 'bubble' | 'capture';
+
 /**
  * Pass in the hotkey combinations under match and the corresponding callback
  * function to be called. Separate key names with +. For example,
@@ -44,8 +46,9 @@ type Hotkey = {
  *
  * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
-export function useHotkeys(hotkeys: Hotkey[]): void {
+function useHotkeysForPhase(hotkeys: Hotkey[], phase: HotkeyEventPhase): void {
   const hotkeysRef = useRef(hotkeys);
+  const capture = phase === 'capture';
 
   useEffect(() => {
     hotkeysRef.current = hotkeys;
@@ -91,10 +94,22 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
       }
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDown, capture);
 
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, capture);
     };
-  }, []);
+  }, [capture]);
+}
+
+export function useHotkeys(hotkeys: Hotkey[]): void {
+  useHotkeysForPhase(hotkeys, 'bubble');
+}
+
+/**
+ * Registers application-wide shortcuts during event capture so focused widgets
+ * cannot prevent them from reaching the global handler.
+ */
+export function useGlobalHotkeys(hotkeys: Hotkey[]): void {
+  useHotkeysForPhase(hotkeys, 'capture');
 }

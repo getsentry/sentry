@@ -67,12 +67,15 @@ describe('QueryParamsContext', () => {
         {additionalWrapper: Wrapper}
       );
 
-      expect(mockSetQueryParams).toHaveBeenCalledWith({
-        query: 'span.op:db',
-        cursor: null,
-        aggregateCursor: null,
-        breakdownCursor: null,
-      });
+      expect(mockSetQueryParams).toHaveBeenCalledWith(
+        {
+          query: 'span.op:db',
+          cursor: null,
+          aggregateCursor: null,
+          breakdownCursor: null,
+        },
+        undefined
+      );
     });
   });
 
@@ -99,9 +102,10 @@ describe('QueryParamsContext', () => {
         );
 
         expect(mockSetQueryParams).toHaveBeenCalled();
-        expect(mockSetQueryParams).toHaveBeenCalledWith({
-          crossEvents: [{query: 'bar', type: 'logs'}],
-        });
+        expect(mockSetQueryParams).toHaveBeenCalledWith(
+          {crossEvents: [{query: 'bar', type: 'logs'}]},
+          undefined
+        );
       });
 
       it('should clear the crossEvents when setting an empty array', () => {
@@ -114,7 +118,7 @@ describe('QueryParamsContext', () => {
           {additionalWrapper: Wrapper}
         );
 
-        expect(mockSetQueryParams).toHaveBeenCalledWith({crossEvents: null});
+        expect(mockSetQueryParams).toHaveBeenCalledWith({crossEvents: null}, undefined);
       });
     });
   });

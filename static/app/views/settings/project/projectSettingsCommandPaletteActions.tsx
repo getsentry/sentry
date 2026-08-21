@@ -186,32 +186,35 @@ export function ProjectSettingsCommandPaletteActions({
   organization: Organization;
   project: Project;
 }) {
-  const sections = getProjectSettingsCommandPaletteSections({organization, project});
+  const sections = getProjectSettingsCommandPaletteSections({
+    organization,
+    project,
+  });
 
   return (
     <Fragment>
       {sections.map(section => {
         return (
-          <CommandPaletteSlot key={section.label} name="page">
-            <CMDKAction display={{label: section.label, icon: section.icon}}>
+          <CommandPaletteSlot.Root key={section.label} name="page">
+            <CMDKAction.Group display={{label: section.label, icon: section.icon}}>
               {section.items.map(item => {
                 if ('items' in item) {
                   return (
-                    <CMDKAction
+                    <CMDKAction.Group
                       key={item.label}
                       display={{label: item.label, icon: item.icon}}
                     >
                       {item.items.map(action => (
-                        <CMDKAction key={action.to} {...action} />
+                        <CMDKAction.Link key={action.to} {...action} />
                       ))}
-                    </CMDKAction>
+                    </CMDKAction.Group>
                   );
                 }
 
-                return <CMDKAction key={item.to} {...item} />;
+                return <CMDKAction.Link key={item.to} {...item} />;
               })}
-            </CMDKAction>
-          </CommandPaletteSlot>
+            </CMDKAction.Group>
+          </CommandPaletteSlot.Root>
         );
       })}
     </Fragment>

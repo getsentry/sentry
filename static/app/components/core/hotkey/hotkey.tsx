@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {toArray} from 'sentry/utils/array/toArray';
 
 import {Kbd} from './kbd';
-import {resolveKeyGlyph} from './keyMappings';
+import {canonicalize, resolveKeyGlyph} from './keyMappings';
 
 interface HotkeyProps {
   /**
@@ -36,22 +36,26 @@ export function Hotkey({value, variant}: HotkeyProps) {
   // (With auto platform mapping, a single string works cross-platform,
   // so the array form is only for truly different key combos.)
   const finalKeys = resolved[0];
+  const finalKeyNames = keySets[0];
 
-  if (!finalKeys || finalKeys.length === 0) {
+  if (!finalKeys || !finalKeyNames || finalKeys.length === 0) {
     return null;
   }
 
   return (
     <WrapperKbd variant={variant}>
-      {finalKeys.map((glyph, i) =>
-        'icon' in glyph ? (
-          <StyledKbd key={i} aria-label={glyph.label}>
+      {finalKeys.map((glyph, i) => {
+        const Key =
+          canonicalize(finalKeyNames[i] ?? '') === 'backspace' ? BackspaceKbd : StyledKbd;
+
+        return 'icon' in glyph ? (
+          <Key key={i} aria-label={glyph.label}>
             {glyph.icon}
-          </StyledKbd>
+          </Key>
         ) : (
-          <StyledKbd key={i}>{glyph.label}</StyledKbd>
-        )
-      )}
+          <Key key={i}>{glyph.label}</Key>
+        );
+      })}
     </WrapperKbd>
   );
 }
@@ -75,4 +79,10 @@ const StyledKbd = styled('kbd')`
   border: 0;
   border-radius: 0;
   box-shadow: none;
+`;
+
+const BackspaceKbd = styled(StyledKbd)`
+  scale: 1;
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

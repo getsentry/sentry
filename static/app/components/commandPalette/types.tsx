@@ -10,11 +10,15 @@ interface Action {
     details?: string;
     /** Icon to render for this action */
     icon?: ReactNode;
+    /** Content rendered immediately after the primary text */
+    labelSuffix?: ReactNode;
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
   /** Max results shown before a "See all" expansion item appears */
   limit?: number;
+  /** Explicit sibling position for reorderable action lists. */
+  order?: number;
 }
 
 type BaseCMDKQueryOptions<TData = unknown> = Omit<
@@ -46,9 +50,26 @@ interface CommandPaletteActionCallback extends Action {
   onAction: () => void;
 }
 
+interface CommandPaletteActionMultiSelect extends Action {
+  /** Whether this action is currently included in its multi-select value. */
+  isSelected: boolean;
+  onAction: () => void;
+  /** Callback used for Shift+Enter while remaining in a multi-select picker. */
+  onMultiSelect: () => void;
+}
+
+interface CommandPaletteActionReorderable extends Action {
+  /** Callback used for Shift+Arrow while reordering an item. */
+  onReorder: (direction: 'up' | 'down') => void;
+  order: number;
+  onAction?: () => void;
+}
+
 export type CommandPaletteAction =
   | CommandPaletteActionLink
   | CommandPaletteActionCallback
+  | CommandPaletteActionMultiSelect
+  | CommandPaletteActionReorderable
   | CommandPaletteActionGroup;
 
 interface CommandPaletteActionGroup extends Action {

@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useGlobalHotkeys, useHotkeys} from '@sentry/scraps/hotkey';
 
 jest.mock('@react-aria/utils', () => ({
   ...jest.requireActual('@react-aria/utils'),
@@ -173,6 +173,18 @@ describe('useHotkeys', () => {
     events.keydown!(makeKeyEventFixture('/', {target: document.createElement('input')}));
 
     expect(callback).toHaveBeenCalled();
+  });
+
+  it('registers global hotkeys during the capture phase', () => {
+    const callback = jest.fn();
+
+    renderHook(() => useGlobalHotkeys([{match: 'mod+k', callback, includeInputs: true}]));
+
+    expect(document.addEventListener).toHaveBeenCalledWith(
+      'keydown',
+      expect.any(Function),
+      true
+    );
   });
 
   it('skips preventDefault', () => {

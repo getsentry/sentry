@@ -1,8 +1,10 @@
 import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
-import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useGlobalHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import type {CMDKChainedActionAnchor} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
+import {OPEN_COMMAND_PALETTE_SHORTCUTS} from 'sentry/components/keyboardShortcuts/keyboardShortcuts';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,7 +18,14 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
  */
 export type CMDKNavStack = {
   previous: CMDKNavStack | null;
-  value: {key: string; label: string; query: string; prompt?: string};
+  value: {
+    key: string;
+    label: string;
+    query: string;
+    prompt?: string;
+    // Result row to restore when this stack entry is popped.
+    returnFocusKey?: string | number;
+  };
 };
 
 export type CommandPaletteState = {
@@ -50,8 +59,10 @@ type CommandPaletteAction =
       type: 'push action';
       prompt?: string;
       query?: string;
+      returnFocusKey?: string | number;
     }
   | {type: 'trigger action'}
+  | {anchor: CMDKChainedActionAnchor; type: 'return to anchor'}
   | {type: 'pop action'}
   | {type: 'reset on open'}
   | {type: 'freeze list'};
@@ -59,6 +70,38 @@ type CommandPaletteAction =
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
   createContext<React.Dispatch<CommandPaletteAction> | null>(null);
+
+function findActionInStack(stack: CMDKNavStack | null, key: string): CMDKNavStack | null {
+  if (!stack || stack.value.key === key) {
+    return stack;
+  }
+  return findActionInStack(stack.previous, key);
+}
+
+/**
+ * Returns the existing workflow anchor when it is already in the navigation
+ * path. Deferred action trees may register an anchor after navigation starts,
+ * so reconstruct it under the nearest known parent when it is absent.
+ */
+function makeChainedActionAnchorStack(
+  stack: CMDKNavStack | null,
+  anchor: CMDKChainedActionAnchor
+): CMDKNavStack {
+  const existingAnchor = findActionInStack(stack, anchor.key);
+  if (existingAnchor) {
+    return existingAnchor;
+  }
+
+  return {
+    previous: anchor.parentKey ? findActionInStack(stack, anchor.parentKey) : null,
+    value: {
+      key: anchor.key,
+      label: anchor.label,
+      prompt: anchor.prompt,
+      query: '',
+    },
+  };
+}
 
 function commandPaletteReducer(
   state: CommandPaletteState,
@@ -69,7 +112,9 @@ function commandPaletteReducer(
     case 'freeze list':
       return {...state, list: 'frozen'};
     case 'toggle modal':
-      if (!state.open && state.resetOnOpen) {
+      // Terminal actions keep their final view mounted during the close animation.
+      // Clear that deferred state only when the palette is opened again.
+      if (!state.open && (state.resetOnOpen || state.pendingReset)) {
         return {
           ...state,
           open: true,
@@ -106,7 +151,9 @@ function commandPaletteReducer(
             key: action.key,
             label: action.label,
             prompt: action.prompt,
+            // Preserve this level's search so Back restores the same view.
             query: state.query,
+            returnFocusKey: action.returnFocusKey,
           },
           previous: state.action,
         },
@@ -122,6 +169,16 @@ function commandPaletteReducer(
       };
     case 'trigger action':
       return {...state, pendingReset: true, list: 'active'};
+    case 'return to anchor':
+      // Chained callbacks continue editing instead of consuming pendingReset and
+      // closing like terminal actions.
+      return {
+        ...state,
+        action: makeChainedActionAnchorStack(state.action, action.anchor),
+        query: '',
+        pendingReset: false,
+        list: 'active',
+      };
     default:
       unreachable(type);
       return state;
@@ -195,9 +252,10 @@ export function CommandPaletteHotkeys() {
     dispatch({type: 'reset on open'});
   }, [location.pathname, dispatch]);
 
-  useHotkeys([
+  // Register during capture so focused widgets cannot swallow this app-level shortcut.
+  useGlobalHotkeys([
     {
-      match: ['mod+shift+p', 'mod+k'],
+      match: [...OPEN_COMMAND_PALETTE_SHORTCUTS],
       includeInputs: true,
       callback: () => {
         if (!organization) {

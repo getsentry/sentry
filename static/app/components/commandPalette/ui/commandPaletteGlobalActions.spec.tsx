@@ -20,9 +20,11 @@ jest.mock('@tanstack/react-virtual', () => ({
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {
   makeCloseButton,
   makeClosableHeader,
@@ -30,10 +32,13 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {
@@ -114,6 +119,28 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     // The search query is cleared when drilling in; wait for project options to appear.
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
+
+  it('opens the keyboard shortcuts drawer', async () => {
+    render(
+      <GlobalDrawer>
+        <CommandPaletteProvider>
+          <GlobalCommandPaletteActions />
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      </GlobalDrawer>,
+      {organization}
+    );
+
+    expect(await screen.findByText('Help')).toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'View Keyboard Shortcuts'})
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Keyboard Shortcuts'})
+    ).toBeInTheDocument();
+  });
 
   it.isKnownFlake(
     'shows a "Current Project" tag on the active project entry',
@@ -316,8 +343,8 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     });
   });
 
-  function renderPalette() {
-    render(
+  function renderPalette(projectIds?: string | string[]) {
+    return render(
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
@@ -326,7 +353,10 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: projectIds ? {project: projectIds} : undefined,
+          },
         },
       }
     );
@@ -366,6 +396,102 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         await screen.findByRole('option', {name: expectedOption})
       ).toBeInTheDocument();
     }
+  });
+
+  it('opens a project picker before copying a DSN without a project scope', async () => {
+    const projectKey = ProjectKeysFixture()[0];
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [projectKey],
+    });
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {writeText},
+    });
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(await screen.findByRole('option', {name: /DSN/}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: new RegExp(project.slug)})
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(projectKey.dsn.public));
+  });
+
+  it('copies the DSN directly with a single project selected', async () => {
+    const projectKey = ProjectKeysFixture()[0];
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [projectKey],
+    });
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {writeText},
+    });
+    renderPalette(project.id);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Copy DSN - project-a/})
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(projectKey.dsn.public));
+  });
+
+  it('shows an error when the selected project has no client keys', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      body: [],
+    });
+    renderPalette(project.id);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Copy DSN - project-a/})
+    );
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith('This project has no client keys')
+    );
+  });
+
+  it('shows an error when loading the selected project client keys fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
+      statusCode: 500,
+    });
+    renderPalette(project.id);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Copy DSN - project-a/})
+    );
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith('Unable to load the project DSN')
+    );
+  });
+
+  it('limits the DSN project picker to the selected projects', async () => {
+    const projectB = ProjectFixture({id: '2', slug: 'project-b', organization});
+    const projectC = ProjectFixture({id: '3', slug: 'project-c', organization});
+    ProjectsStore.loadInitialData([project, projectB, projectC]);
+    renderPalette([project.id, projectB.id]);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'copy dsn');
+    await userEvent.click(await screen.findByRole('option', {name: /Copy project DSN/}));
+
+    expect(await screen.findByRole('option', {name: project.slug})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: projectB.slug})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: projectC.slug})).not.toBeInTheDocument();
   });
 
   it.each([
@@ -423,9 +549,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, query);
 
-      expect(
-        await screen.findByRole('option', {name: expectedOption})
-      ).toBeInTheDocument();
+      expect(await screen.findByText(expectedOption)).toBeInTheDocument();
     }
   );
 

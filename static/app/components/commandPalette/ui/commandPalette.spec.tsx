@@ -1,8 +1,15 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -40,6 +47,10 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {
+  CMDKChainedActionScope,
+  CMDKTerminalActionScope,
+} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
@@ -71,7 +82,7 @@ function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
 /**
  * Renders the slot outlets that live outside CommandPalette in the real app
  * (they are mounted in navigation/index.tsx). Tests that use
- * <CommandPaletteSlot name="…"> must include this component so slot consumers
+ * <CommandPaletteSlot.Root name="…"> must include this component so slot consumers
  * have a registered outlet element to portal into.
  */
 function SlotOutlets() {
@@ -95,13 +106,13 @@ const onChild = jest.fn();
 function AllActions() {
   return (
     <Fragment>
-      <CMDKAction to="/target/" display={{label: 'Go to route'}} />
-      <CMDKAction to="/other/" display={{label: 'Other'}} />
-      <CMDKAction display={{label: 'Parent Label'}}>
-        <CMDKAction display={{label: 'Parent Group Action'}}>
-          <CMDKAction onAction={onChild} display={{label: 'Child Action'}} />
-        </CMDKAction>
-      </CMDKAction>
+      <CMDKAction.Link to="/target/" display={{label: 'Go to route'}} />
+      <CMDKAction.Link to="/other/" display={{label: 'Other'}} />
+      <CMDKAction.Group display={{label: 'Parent Label'}}>
+        <CMDKAction.Group display={{label: 'Parent Group Action'}}>
+          <CMDKAction.Callback onAction={onChild} display={{label: 'Child Action'}} />
+        </CMDKAction.Group>
+      </CMDKAction.Group>
     </Fragment>
   );
 }
@@ -137,6 +148,45 @@ describe('CommandPalette', () => {
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates automatic focus when a higher-priority action registers', async () => {
+    const firstAction = jest.fn();
+    const secondAction = jest.fn();
+    const {rerender} = render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          id="second-action"
+          display={{label: 'Second action'}}
+          onAction={secondAction}
+          order={1}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Second action'});
+    rerender(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          id="first-action"
+          display={{label: 'First action'}}
+          onAction={firstAction}
+          order={0}
+        />
+        <CMDKAction.Callback
+          id="second-action"
+          display={{label: 'Second action'}}
+          onAction={secondAction}
+          order={1}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'First action'});
+    await userEvent.keyboard('{Enter}');
+
+    expect(firstAction).toHaveBeenCalledTimes(1);
+    expect(secondAction).not.toHaveBeenCalled();
   });
 
   it('does not reset focus to the first item after mouse leave', async () => {
@@ -192,7 +242,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction to="/target/" display={{label: 'Go to route'}} />
+        <CMDKAction.Link to="/target/" display={{label: 'Go to route'}} />
       </GlobalActionsComponent>
     );
 
@@ -209,22 +259,44 @@ describe('CommandPalette', () => {
     openSpy.mockRestore();
   });
 
-  it('shows internal and external trailing link indicators for link actions', async () => {
+  it('runs link side effects before navigating', async () => {
+    const onNavigate = jest.fn();
+    const {router} = render(
+      <GlobalActionsComponent>
+        <CMDKAction.Link
+          display={{label: 'Tracked route'}}
+          onNavigate={onNavigate}
+          to="/target/"
+        />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(router.location.pathname).toBe('/target/'));
+  });
+
+  it('shows a trailing indicator only for external link actions', async () => {
     render(
       <GlobalActionsComponent>
         <Fragment>
-          <CMDKAction to="/target/" display={{label: 'Internal'}} />
-          <CMDKAction to="https://docs.sentry.io" display={{label: 'External'}} />
+          <CMDKAction.Link to="/target/" display={{label: 'Internal'}} />
+          <CMDKAction.Link to="https://docs.sentry.io" display={{label: 'External'}} />
         </Fragment>
       </GlobalActionsComponent>
     );
 
-    const internalAction = await screen.findByRole('option', {name: 'Internal'});
-    const externalAction = await screen.findByRole('option', {name: 'External'});
+    const internalAction = await screen.findByRole('option', {
+      name: 'Internal',
+    });
+    const externalAction = await screen.findByRole('option', {
+      name: 'External',
+    });
 
     expect(
       internalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
-    ).toHaveAttribute('data-link-type', 'internal');
+    ).not.toBeInTheDocument();
     expect(
       externalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
     ).toHaveAttribute('data-link-type', 'external');
@@ -233,8 +305,8 @@ describe('CommandPalette', () => {
   it('renders both a custom trailingItem and the link indicator for a link action', async () => {
     render(
       <GlobalActionsComponent>
-        <CMDKAction
-          to="/target/"
+        <CMDKAction.Link
+          to="https://docs.sentry.io/target/"
           display={{
             label: 'Action with trailing',
             trailingItem: <span data-testid="custom-trailing">Badge</span>,
@@ -243,7 +315,9 @@ describe('CommandPalette', () => {
       </GlobalActionsComponent>
     );
 
-    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    const option = await screen.findByRole('option', {
+      name: 'Action with trailing',
+    });
     expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
     expect(
       option.querySelector('[data-test-id="command-palette-link-indicator"]')
@@ -263,11 +337,11 @@ describe('CommandPalette', () => {
       await screen.findByRole('option', {name: 'Parent Group Action'})
     );
 
-    // Textbox changes placeholder to parent Label label
+    // Textbox keeps the generic command-search placeholder
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
         'placeholder',
-        'Search inside Parent Group Action...'
+        'Type a command or search'
       );
     });
 
@@ -280,7 +354,7 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{Backspace}');
 
     // // Back to main actions
-    expect(await screen.findByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
+    expect(await screen.findByText('Parent Label')).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Child Action'})).not.toBeInTheDocument();
 
     expect(closeSpy).not.toHaveBeenCalled();
@@ -302,6 +376,911 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the palette open and returns to the anchor after a chained action', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const onChainedAction = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction.Group display={{label: 'Visualize'}}>
+              <CMDKAction.Callback
+                display={{label: 'Count spans'}}
+                onAction={onChainedAction}
+              />
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Callback
+                display={{label: 'Span operation'}}
+                onAction={() => {}}
+              />
+            </CMDKAction.Group>
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    expect(await screen.findByText('Query clauses')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Visualize'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Count spans'}));
+
+    expect(onChainedAction).toHaveBeenCalledTimes(1);
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByText('Visualize')).toBeInTheDocument();
+    expect(screen.getByText('Group by')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Type a command or search'
+    );
+  });
+
+  it('restores the aggregate function row after selecting a value', async () => {
+    function AggregateActions() {
+      const [aggregate, setAggregate] = useState('count');
+
+      return (
+        <CommandPaletteSlot.Root name="page">
+          <CMDKAction.Group display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback display={{label: 'Add Chart'}} onAction={() => {}} />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Chart A'}}>
+                <CMDKAction.Group
+                  display={{
+                    label: 'Aggregate function',
+                    trailingItem: aggregate,
+                  }}
+                >
+                  <CMDKAction.Callback
+                    display={{
+                      label: 'avg',
+                      labelSuffix: aggregate === 'avg' ? 'Current' : undefined,
+                    }}
+                    onAction={() => setAggregate('avg')}
+                  />
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+            </CMDKChainedActionScope>
+          </CMDKAction.Group>
+        </CommandPaletteSlot.Root>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <AggregateActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Aggregate function/})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'avg'}));
+
+    expect(
+      await screen.findByRole('option', {name: /Aggregate function/})
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: /avg/})).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
+  it('shows updated chained action values immediately after returning to the anchor', async () => {
+    function ScopeActions() {
+      const [projects, setProjects] = useState([1, 2]);
+      const [groupBys, setGroupBys] = useState<string[]>([]);
+
+      return (
+        <CommandPaletteSlot.Root name="page">
+          <CMDKAction.Group display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction.Group display={{label: 'Global'}}>
+                <CMDKAction.Group
+                  display={{
+                    label: 'Projects',
+                    trailingItem: `${projects.length} projects`,
+                  }}
+                >
+                  {[1, 2, 3].map(project => (
+                    <CMDKAction.MultiSelect
+                      key={project}
+                      display={{label: `Project ${project}`}}
+                      isSelected={projects.includes(project)}
+                      onAction={() =>
+                        setProjects(current =>
+                          current.includes(project) ? current : [...current, project]
+                        )
+                      }
+                      onMultiSelect={() => {}}
+                    />
+                  ))}
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Group
+                  id="add-group-by"
+                  display={{label: 'Add Group By'}}
+                  prompt="Search for attribute"
+                >
+                  <CMDKAction.Callback
+                    display={{label: 'environment'}}
+                    onAction={() =>
+                      setGroupBys(current =>
+                        current.includes('environment')
+                          ? current
+                          : [...current, 'environment']
+                      )
+                    }
+                  />
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
+                {(groupBys.length > 0 ? groupBys : ['']).map((groupBy, index) => (
+                  <CMDKAction.Target
+                    key={index}
+                    id={`group-by-${index}`}
+                    display={{label: 'Group By', trailingItem: groupBy}}
+                    target="add-group-by"
+                  />
+                ))}
+              </CMDKAction.Group>
+            </CMDKChainedActionScope>
+          </CMDKAction.Group>
+        </CommandPaletteSlot.Root>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <ScopeActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Projects'});
+    await userEvent.keyboard('{Enter}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}');
+
+    expect(await screen.findByText('3 projects')).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(
+      within(await screen.findByRole('option', {name: 'Project 3'})).getByRole(
+        'checkbox',
+        {hidden: true}
+      )
+    ).toBeChecked();
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await screen.findByRole('option', {name: 'Group By'}));
+    await screen.findByRole('option', {name: 'environment'});
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(await screen.findAllByRole('option', {name: 'Group By'})).toHaveLength(1);
+    expect(screen.getByText('environment')).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+  });
+
+  it('keeps the suffix accessible for long labels', () => {
+    const longLabel = `gen_ai.input.messages.${'nested-value.'.repeat(20)}`;
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Group By'}}>
+          <CMDKAction.Callback
+            display={{label: longLabel, labelSuffix: 'Current'}}
+            onAction={() => {}}
+          />
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    expect(
+      screen.getByRole('option', {name: `${longLabel} Current`})
+    ).toBeInTheDocument();
+    expect(screen.getByText('Current')).toBeVisible();
+  });
+
+  it('keeps the action label visible with a long trailing value', () => {
+    const longValue = `gen_ai.input.messages.${'nested-value.'.repeat(20)}`;
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          display={{
+            label: 'Filter By',
+            trailingItem: <span>{longValue}</span>,
+          }}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    expect(screen.getByRole('option', {name: 'Filter By'})).toBeInTheDocument();
+    expect(screen.getByText(longValue)).toBeVisible();
+  });
+
+  it.each([
+    ['Group By', 'group-by'],
+    ['Filter By', 'filter-by'],
+  ])('restores the %s row after its pending value is completed', async (label, id) => {
+    function DynamicQueryRowActions() {
+      const [value, setValue] = useState('');
+      const targetId = `add-${id}`;
+      const rowId = `${id}-row-0`;
+
+      return (
+        <CommandPaletteSlot.Root name="page">
+          <CMDKAction.Group display={{label: 'Traces'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback display={{label: 'Add Chart'}} onAction={() => {}} />
+                <CMDKAction.Group
+                  id={targetId}
+                  display={{label: `Add ${label}`}}
+                  prompt="Search for attribute"
+                >
+                  <CMDKAction.Callback
+                    display={{label: 'environment'}}
+                    onAction={() => setValue('environment')}
+                  />
+                </CMDKAction.Group>
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
+                <CMDKAction.Target
+                  key={value || `pending-${id}`}
+                  id={rowId}
+                  display={{label, trailingItem: value}}
+                  target={targetId}
+                />
+              </CMDKAction.Group>
+            </CMDKChainedActionScope>
+          </CMDKAction.Group>
+        </CommandPaletteSlot.Root>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicQueryRowActions />
+        <SlotOutlets />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: label}));
+    await userEvent.click(await screen.findByRole('option', {name: 'environment'}));
+
+    expect(await screen.findByRole('option', {name: label})).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+  });
+
+  it('keeps a multi-select chained action picker open on shift-enter', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const onAction = jest.fn();
+    const onMultiSelect = jest.fn();
+
+    function MultiSelectActions() {
+      const [isEnvironmentSelected, setIsEnvironmentSelected] = useState(true);
+
+      return (
+        <CMDKAction.Group display={{label: 'Commands'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Group display={{label: 'Attribute'}}>
+                <CMDKAction.MultiSelect
+                  display={{label: 'Environment', labelSuffix: 'Current'}}
+                  isSelected={isEnvironmentSelected}
+                  onAction={onAction}
+                  onMultiSelect={() => {
+                    onMultiSelect();
+                    setIsEnvironmentSelected(selected => !selected);
+                  }}
+                />
+                <CMDKAction.MultiSelect
+                  display={{label: 'Release'}}
+                  isSelected={false}
+                  onAction={() => {}}
+                  onMultiSelect={() => {}}
+                />
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <MultiSelectActions />
+      </GlobalActionsComponent>
+    );
+
+    expect(await screen.findByText('Commands')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+    const checkboxes = screen.getAllByRole('checkbox', {hidden: true});
+    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
+    await userEvent.keyboard('{ArrowDown}');
+    const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+    expect(scrollContainer).toBeInTheDocument();
+    scrollContainer!.scrollTop = 200;
+
+    await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
+
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(scrollContainer).toHaveProperty('scrollTop', 200);
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('checkbox', {hidden: true})[0]).not.toBeChecked();
+    expect(screen.getByText('Current')).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Environment/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Release'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+  });
+
+  it('shows only the action matching the highlighted command', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          actionContext="add-chart"
+          actionPanel={{context: 'add-chart', label: 'Add Chart'}}
+          display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionContext="add-equation"
+          actionPanel={{context: 'add-equation', label: 'Add Equation'}}
+          display={{label: 'Add Equation'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionContext="chart:7"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart:7',
+            label: 'Delete Chart',
+            placement: 'panel-only',
+          }}
+          display={{label: 'Delete Chart'}}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    let overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
+    expect(within(overlay).getByRole('option', {name: 'Add Chart'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
+    expect(
+      within(overlay).getByRole('option', {name: 'Add Equation'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(within(overlay).getAllByRole('option')).toHaveLength(1);
+    expect(
+      within(overlay).getByRole('option', {name: 'Delete Chart'})
+    ).toBeInTheDocument();
+  });
+
+  it('orders More Actions independently of registration order', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          actionContext="chart:0"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Filter',
+            placement: 'panel-only',
+            order: 30,
+          }}
+          display={{label: 'Add Filter'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Reorder Charts',
+            placement: 'panel-only',
+            order: 40,
+          }}
+          display={{label: 'Reorder Charts'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            placement: 'panel-only',
+            order: 20,
+          }}
+          display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    const overlay = screen.getByRole('dialog', {name: 'More Actions'});
+    expect(
+      within(overlay)
+        .getAllByRole('option')
+        .map(option => option.textContent)
+    ).toEqual(['Add Chart', 'Add Filter', 'Reorder Charts']);
+  });
+
+  it('disables More Actions when the highlighted row has no action context', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback display={{label: 'Apply Changes'}} onAction={() => {}} />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            placement: 'panel-only',
+          }}
+          display={{label: 'Add Chart'}}
+          onAction={() => {}}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Apply Changes'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+  });
+
+  it('navigates More Actions with the arrow keys', async () => {
+    const onAddChart = jest.fn();
+    const onAddFilter = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Callback
+          actionContext="chart:0"
+          display={{label: 'Chart A'}}
+          onAction={() => {}}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Chart',
+            placement: 'panel-only',
+          }}
+          display={{label: 'Add Chart'}}
+          onAction={onAddChart}
+        />
+        <CMDKAction.Callback
+          actionPanel={{
+            context: 'chart',
+            label: 'Add Filter',
+            placement: 'panel-only',
+          }}
+          display={{label: 'Add Filter'}}
+          onAction={onAddFilter}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(onAddFilter).toHaveBeenCalledTimes(1);
+    expect(onAddChart).not.toHaveBeenCalled();
+  });
+
+  it('preserves the focused row after a panel action changes the collection', async () => {
+    const onEditChart = jest.fn();
+
+    function DynamicChartActions() {
+      const [charts, setCharts] = useState(['Chart A']);
+
+      return (
+        <Fragment>
+          <CMDKAction.Callback
+            actionPanel={{
+              context: 'chart',
+              label: 'Add Chart',
+              placement: 'panel-only',
+            }}
+            display={{label: 'Add Chart'}}
+            onAction={() => setCharts(current => [...current, 'Chart B'])}
+          />
+          {charts.map((chart, index) => (
+            <CMDKAction.Callback
+              key={chart}
+              actionContext={`chart:${index}`}
+              display={{label: chart}}
+              onAction={onEditChart}
+            />
+          ))}
+        </Fragment>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Traces'}} prompt="Search traces">
+          <DynamicChartActions />
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Traces'}));
+    const input = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
+    await screen.findByRole('option', {name: 'Chart A'});
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.click(
+      within(screen.getByRole('dialog', {name: 'More Actions'})).getByRole('option', {
+        name: 'Add Chart',
+      })
+    );
+    expect(await screen.findByText('Chart B')).toBeInTheDocument();
+    expect(input).toHaveFocus();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(onEditChart).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a chained action selected from the contextual root', async () => {
+    function DynamicTraceActions() {
+      const [charts, setCharts] = useState(['Chart A']);
+
+      return (
+        <CMDKAction.Group display={{label: 'Traces'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction.Callback
+              display={{label: 'Add Chart'}}
+              onAction={() =>
+                setCharts(current => [
+                  ...current,
+                  `Chart ${String.fromCharCode(65 + current.length)}`,
+                ])
+              }
+            />
+            {charts.map(chart => (
+              <CMDKAction.Callback
+                key={chart}
+                display={{label: chart}}
+                onAction={() => {}}
+              />
+            ))}
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicTraceActions />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Chart'}));
+    expect(await screen.findByRole('option', {name: 'Chart B'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'Chart C'})).toBeInTheDocument();
+  });
+
+  it('keeps dynamically registered actions in explicit order', async () => {
+    function DynamicQueryActions() {
+      const [hasGroupBy, setHasGroupBy] = useState(false);
+
+      return (
+        <Fragment>
+          <CMDKAction.Callback
+            actionPanel={{
+              context: 'query',
+              label: 'Add Group By',
+              placement: 'panel-only',
+            }}
+            display={{label: 'Add Group By'}}
+            onAction={() => setHasGroupBy(true)}
+          />
+          <CMDKAction.Callback
+            actionContext="query"
+            display={{label: 'Filter By'}}
+            order={200}
+            onAction={() => {}}
+          />
+          {hasGroupBy && (
+            <CMDKAction.Callback
+              actionContext="query"
+              display={{label: 'Group By'}}
+              order={100}
+              onAction={() => {}}
+            />
+          )}
+        </Fragment>
+      );
+    }
+
+    render(
+      <GlobalActionsComponent>
+        <DynamicQueryActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Filter By'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+      'Group By',
+      'Filter By',
+    ]);
+  });
+
+  it('closes More Actions with escape without closing the palette', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group
+          actionContext="filter:0"
+          display={{label: 'Filter by'}}
+          actionPanel={{context: 'filter', label: 'Add Filter'}}
+          prompt="Search for attribute"
+        />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+    expect(screen.getByRole('dialog', {name: 'More Actions'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveFocus();
+    expect(closeSpy).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search for attribute'
+    );
+  });
+
+  it('disables More Actions while showing the no-results state', async () => {
+    const queryClient = makeTestQueryClient();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <GlobalActionsComponent>
+          <CMDKAction.Callback
+            actionContext="filter:0"
+            actionPanel={{context: 'filter', label: 'Add Filter'}}
+            display={{label: 'Filter'}}
+            onAction={() => {}}
+          />
+        </GlobalActionsComponent>
+      </QueryClientProvider>
+    );
+
+    const input = await screen.findByRole('textbox', {
+      name: 'Search commands',
+    });
+    await userEvent.type(input, 'does-not-match');
+    await waitFor(() => {
+      expect(screen.queryByText('More Actions')).not.toBeInTheDocument();
+    });
+
+    await userEvent.keyboard('{Control>}{Shift>}{Enter}{/Shift}{/Control}');
+
+    expect(screen.queryByRole('dialog', {name: 'More Actions'})).not.toBeInTheDocument();
+  });
+
+  it('supports selecting and then reordering a chained action', async () => {
+    const onAction = jest.fn();
+    const onMultiSelect = jest.fn();
+    const onReorder = jest.fn();
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Commands'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction.Group display={{label: 'Group by'}}>
+              <CMDKAction.Group display={{label: 'Attribute'}}>
+                <CMDKAction.MultiSelect
+                  display={{label: 'Environment'}}
+                  isSelected
+                  onAction={onAction}
+                  onMultiSelect={onMultiSelect}
+                >
+                  <CMDKAction.Group display={{label: 'Order by'}}>
+                    <CMDKAction.Reorderable
+                      display={{label: 'Environment'}}
+                      order={0}
+                      onReorder={onReorder}
+                    />
+                    <CMDKAction.Reorderable
+                      display={{label: 'Project'}}
+                      order={1}
+                      onReorder={onReorder}
+                    />
+                  </CMDKAction.Group>
+                </CMDKAction.MultiSelect>
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+    await userEvent.keyboard('{ArrowDown}{Shift>}{Enter}{/Shift}');
+
+    expect(onMultiSelect).toHaveBeenCalledTimes(1);
+    expect(onAction).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('{Enter}');
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Order by')).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Environment'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Project'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}');
+    expect(onReorder).toHaveBeenCalledWith('down');
+
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+  });
+
+  it('shows filter attributes immediately under their section heading', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group
+          display={{label: 'Add Filter by'}}
+          prompt="Search for attribute"
+        >
+          <CMDKAction.Group display={{label: 'Attribute'}}>
+            <CMDKAction.Group
+              display={{label: 'environment'}}
+              prompt="Search for operator"
+            >
+              <CMDKAction.Callback display={{label: 'is'}} onAction={() => {}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Add Filter by'}));
+
+    expect(screen.getByText('Attribute')).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search for attribute'
+    );
+  });
+
+  it('opens a shared picker from a lightweight row with Enter', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Commands'}}>
+          <CMDKAction.Group
+            id="add-filter"
+            display={{label: 'Add Filter By'}}
+            prompt="Search for attribute"
+          >
+            <CMDKAction.Group display={{label: 'Attribute'}}>
+              <CMDKAction.Callback display={{label: 'environment'}} onAction={() => {}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </CMDKAction.Group>
+        <CMDKAction.Group display={{label: 'Query'}}>
+          <CMDKAction.Target display={{label: 'Filter By'}} target="add-filter" />
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('option', {name: 'Add Filter By'});
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
+
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+      'placeholder',
+      'Search for attribute'
+    );
+  });
+
+  it('returns to the outer anchor from an action nested under a section', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
+          <CMDKChainedActionScope>
+            <CMDKAction.Group display={{label: 'Commands'}}>
+              <CMDKAction.Group display={{label: 'Edit Sort By'}}>
+                <CMDKAction.Callback
+                  display={{label: 'Descending'}}
+                  onAction={() => {}}
+                />
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Series A'}}>
+              <CMDKAction.Callback display={{label: 'Edit Source'}} onAction={() => {}} />
+            </CMDKAction.Group>
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Commands'}));
+    expect(await screen.findByText('Edit Sort By')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Descending'}));
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByText('Commands')).toBeInTheDocument();
+    expect(screen.getByText('Series A')).toBeInTheDocument();
+  });
+
+  it('closes for a terminal action inside a chained scope', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction.Group display={{label: 'Query clauses'}}>
+          <CMDKChainedActionScope>
+            <CMDKTerminalActionScope>
+              <CMDKAction.Callback
+                display={{label: 'Apply Changes'}}
+                onAction={() => {}}
+              />
+            </CMDKTerminalActionScope>
+          </CMDKChainedActionScope>
+        </CMDKAction.Group>
+      </GlobalActionsComponent>
+    );
+
+    expect(await screen.findByText('Query clauses')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('option', {name: 'Apply Changes'}));
+
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('onAction that opens a modal leaves the new modal open', async () => {
     // ModalStore is single-slot: openModal() replaces whatever renderer is set.
     // The palette must close itself before invoking onAction so that a subsequent
@@ -311,7 +1290,7 @@ describe('CommandPalette', () => {
 
     render(
       <GlobalActionsComponent>
-        <CMDKAction
+        <CMDKAction.Callback
           display={{label: 'Open a modal'}}
           onAction={() => modalActions.openModal(() => <div>modal content</div>)}
         />
@@ -337,7 +1316,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'route');
 
       expect(
@@ -355,7 +1336,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'xyzzy');
 
       expect(screen.queryAllByRole('option')).toHaveLength(0);
@@ -367,7 +1350,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'route');
       expect(
         await screen.findByRole('option', {name: 'Go to route'})
@@ -379,7 +1364,7 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Go to route'})
       ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Other'})).toBeInTheDocument();
-      expect(screen.getByRole('option', {name: 'Parent Label'})).toBeInTheDocument();
+      expect(screen.getByText('Parent Label')).toBeInTheDocument();
     });
 
     it('child actions are not shown when query is empty', async () => {
@@ -401,7 +1386,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'child');
 
       // The item now renders with its parent group as a prefix, so match by regex
@@ -410,13 +1397,81 @@ describe('CommandPalette', () => {
       ).toBeInTheDocument();
     });
 
+    it('does not expand unrelated children when only a group matches', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Group display={{label: 'Go to...'}}>
+            <CMDKAction.Group display={{label: 'Settings'}} limit={1}>
+              <CMDKAction.Link display={{label: 'Auth'}} to="/settings/auth/" />
+              <CMDKAction.Link
+                display={{label: 'Integrations'}}
+                to="/settings/integrations/"
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(await screen.findByRole('option', {name: 'Settings'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Go to...'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /Auth/})).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: /See all/})).not.toBeInTheDocument();
+    });
+
+    it('does not repeat a matching group below its own results section', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Group display={{label: 'Go to...'}}>
+            <CMDKAction.Link display={{label: 'Outgoing API Calls'}} to="/outgoing/" />
+          </CMDKAction.Group>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Outgoing API Calls'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Go to...'})).not.toBeInTheDocument();
+      expect(screen.getByText('Go to...')).toBeInTheDocument();
+    });
+
+    it('requires contiguous matches for very short queries', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Link display={{label: 'Godot'}} to="/projects/godot/" />
+          <CMDKAction.Link display={{label: 'Issue Grouping'}} to="/settings/grouping/" />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Search commands'}),
+        'go'
+      );
+
+      expect(await screen.findByRole('option', {name: 'Godot'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Issue Grouping'})
+      ).not.toBeInTheDocument();
+    });
+
     it('preserves spaces in typed query', async () => {
       render(
         <GlobalActionsComponent>
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'test query');
 
       expect(input).toHaveValue('test query');
@@ -428,7 +1483,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'ROUTE');
 
       expect(
@@ -439,11 +1496,13 @@ describe('CommandPalette', () => {
     it('actions are ranked by match quality — better matches appear first', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction to="/a/" display={{label: 'Something with issues buried'}} />
-          <CMDKAction to="/b/" display={{label: 'Issues'}} />
+          <CMDKAction.Link to="/a/" display={{label: 'Something with issues buried'}} />
+          <CMDKAction.Link to="/b/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -456,13 +1515,15 @@ describe('CommandPalette', () => {
     it('top-level actions rank before child actions when both match the query', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Group'}}>
-            <CMDKAction to="/child/" display={{label: 'Issues child'}} />
-          </CMDKAction>
-          <CMDKAction to="/top/" display={{label: 'Issues'}} />
+          <CMDKAction.Group display={{label: 'Group'}}>
+            <CMDKAction.Link to="/child/" display={{label: 'Issues child'}} />
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/top/" display={{label: 'Issues'}} />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'issues');
 
       const options = (await screen.findAllByRole('option')).filter(
@@ -475,14 +1536,16 @@ describe('CommandPalette', () => {
     it('actions with matching keywords are included in results', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Link
             to="/shortcuts/"
             display={{label: 'Keyboard shortcuts'}}
             keywords={['hotkeys', 'keybindings']}
           />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'hotkeys');
 
       expect(
@@ -493,10 +1556,12 @@ describe('CommandPalette', () => {
     it("searching within a drilled-in group filters that group's children", async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Theme'}}>
-            <CMDKAction onAction={jest.fn()} display={{label: 'Light'}} />
-            <CMDKAction onAction={jest.fn()} display={{label: 'Dark'}} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Settings'}}>
+            <CMDKAction.Group display={{label: 'Theme'}}>
+              <CMDKAction.Callback onAction={jest.fn()} display={{label: 'Light'}} />
+              <CMDKAction.Callback onAction={jest.fn()} display={{label: 'Dark'}} />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -512,23 +1577,26 @@ describe('CommandPalette', () => {
       expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
     });
 
-    it('shows a group preview when the group label matches but its children do not', async () => {
+    it('shows a compact preview when a top-level group matches', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Help'}}>
-            <CMDKAction to="/docs/" display={{label: 'Open Documentation'}} />
-            <CMDKAction to="/discord/" display={{label: 'Join Discord'}} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Help'}}>
+            <CMDKAction.Link to="/docs/" display={{label: 'Open Documentation'}} />
+            <CMDKAction.Link to="/discord/" display={{label: 'Join Discord'}} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'help');
 
       expect(
         await screen.findByRole('option', {name: 'Open Documentation'})
       ).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'Join Discord'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Help'})).not.toBeInTheDocument();
     });
   });
 
@@ -542,14 +1610,17 @@ describe('CommandPalette', () => {
       // must be a child item — matching how "Parent Group Action" works in allActions.
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Outer Group'}}>
-            <CMDKAction display={{label: 'Primary Action'}} onAction={primaryCallback}>
-              <CMDKAction
+          <CMDKAction.Group display={{label: 'Outer Group'}}>
+            <CMDKAction.Callback
+              display={{label: 'Primary Action'}}
+              onAction={primaryCallback}
+            >
+              <CMDKAction.Callback
                 display={{label: 'Secondary Action'}}
                 onAction={secondaryCallback}
               />
-            </CMDKAction>
-          </CMDKAction>
+            </CMDKAction.Callback>
+          </CMDKAction.Group>
           <CommandPalette {...makeRenderProps(closeModal)} />
         </CommandPaletteProvider>
       );
@@ -585,12 +1656,41 @@ describe('CommandPalette', () => {
         to: `/action-${i + 1}/`,
       }));
 
+    it('auto-renders composed groups returned by a resource', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Resource
+            display={{label: 'Async Group'}}
+            resource={() =>
+              cmdkQueryOptions({
+                queryKey: ['test-resource-group'],
+                queryFn: (): CommandPaletteAction[] => [
+                  {
+                    display: {label: 'Values'},
+                    actions: [
+                      {display: {label: 'Alpha'}, onAction: jest.fn()},
+                      {display: {label: 'Beta'}, onAction: jest.fn()},
+                    ],
+                  },
+                ],
+              })
+            }
+          />
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Values'}));
+
+      expect(await screen.findByRole('option', {name: 'Alpha'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Beta'})).toBeInTheDocument();
+    });
+
     it('limits async resource results to 4 by default', async () => {
       const actions = makeActions(6);
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             resource={() =>
               cmdkQueryOptions({
@@ -602,7 +1702,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -610,7 +1710,7 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
@@ -627,12 +1727,12 @@ describe('CommandPalette', () => {
     it('limits static children when limit prop is set', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -649,13 +1749,13 @@ describe('CommandPalette', () => {
     it('does not limit static children when limit prop is not set', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 5'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 5'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -669,12 +1769,12 @@ describe('CommandPalette', () => {
     it('items beyond the limit are still searchable', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Alpha 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Alpha 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Beta 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Beta 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Alpha 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Alpha 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Beta 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Beta 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -695,16 +1795,18 @@ describe('CommandPalette', () => {
     it('limit is applied after search — only top matches up to the limit are shown', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
 
       expect(await screen.findByRole('option', {name: 'Item 1'})).toBeInTheDocument();
@@ -720,18 +1822,32 @@ describe('CommandPalette', () => {
       // flat items in search results with no limit applied.
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'DSN'}}>
-            <CMDKAction display={{label: 'Project Keys'}} limit={2}>
-              <CMDKAction display={{label: 'Project Alpha'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Beta'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Gamma'}} onAction={jest.fn()} />
-              <CMDKAction display={{label: 'Project Delta'}} onAction={jest.fn()} />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'DSN'}}>
+            <CMDKAction.Group display={{label: 'Project Keys'}} limit={2}>
+              <CMDKAction.Callback
+                display={{label: 'Project Alpha'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Beta'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Gamma'}}
+                onAction={jest.fn()}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Project Delta'}}
+                onAction={jest.fn()}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       // "Project" matches both the nested group label "Project Keys" and all four items.
       await userEvent.type(input, 'Project');
 
@@ -761,7 +1877,7 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             limit={2}
             resource={() =>
@@ -774,7 +1890,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -782,11 +1898,13 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Action');
 
       expect(await screen.findByRole('option', {name: 'Action 1'})).toBeInTheDocument();
@@ -800,7 +1918,7 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Resource
             display={{label: 'Async Group'}}
             limit={2}
             resource={() =>
@@ -813,7 +1931,7 @@ describe('CommandPalette', () => {
             {data =>
               data.map(action =>
                 'to' in action ? (
-                  <CMDKAction
+                  <CMDKAction.Link
                     key={action.display.label}
                     display={action.display}
                     to={action.to}
@@ -821,7 +1939,7 @@ describe('CommandPalette', () => {
                 ) : null
               )
             }
-          </CMDKAction>
+          </CMDKAction.Resource>
         </GlobalActionsComponent>
       );
 
@@ -836,12 +1954,12 @@ describe('CommandPalette', () => {
     it('clicking see more drills into the full limited group in browse mode', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -855,16 +1973,18 @@ describe('CommandPalette', () => {
     it('clicking see more drills into the full limited group in search mode', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -876,16 +1996,18 @@ describe('CommandPalette', () => {
     it('clicking see more preserves the active query in the expanded group', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2}>
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 4'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Static Group'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 4'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'Item');
       await userEvent.click(await screen.findByRole('option', {name: 'See all'}));
 
@@ -899,15 +2021,15 @@ describe('CommandPalette', () => {
 
       render(
         <GlobalActionsComponent>
-          <CMDKAction
+          <CMDKAction.Callback
             display={{label: 'Static Group'}}
             limit={2}
             onAction={parentCallback}
           >
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-          </CMDKAction>
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction.Callback>
         </GlobalActionsComponent>
       );
 
@@ -920,11 +2042,11 @@ describe('CommandPalette', () => {
     it('clicking see more does not inherit the parent link indicator', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Static Group'}} limit={2} to="/group/">
-            <CMDKAction display={{label: 'Item 1'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 2'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Item 3'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Link display={{label: 'Static Group'}} limit={2} to="/group/">
+            <CMDKAction.Callback display={{label: 'Item 1'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 2'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Item 3'}} onAction={jest.fn()} />
+          </CMDKAction.Link>
         </GlobalActionsComponent>
       );
 
@@ -937,16 +2059,30 @@ describe('CommandPalette', () => {
     it('keeps expanded search results sorted by match quality after clicking see more', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'SDKs'}} limit={2}>
-            <CMDKAction display={{label: 'gkojavascript-nextjs'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'gkojavascript-astro'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'java-spring-boot'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'java-spring-boot-test'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'SDKs'}} limit={2}>
+            <CMDKAction.Callback
+              display={{label: 'gkojavascript-nextjs'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'gkojavascript-astro'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'java-spring-boot'}}
+              onAction={jest.fn()}
+            />
+            <CMDKAction.Callback
+              display={{label: 'java-spring-boot-test'}}
+              onAction={jest.fn()}
+            />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'java');
 
       const previewOptions = screen
@@ -975,15 +2111,17 @@ describe('CommandPalette', () => {
     it('breaks equal search scores by shorter label length', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Paths'}} limit={2}>
-            <CMDKAction display={{label: 'path-cccccc'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'path-aaa'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'path-b'}} onAction={jest.fn()} />
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Paths'}} limit={2}>
+            <CMDKAction.Callback display={{label: 'path-cccccc'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'path-aaa'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'path-b'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'path');
 
       const options = screen
@@ -1004,8 +2142,8 @@ describe('CommandPalette', () => {
       render(
         <QueryClientProvider client={queryClient}>
           <GlobalActionsComponent>
-            <CMDKAction display={{label: 'Resource Group'}}>
-              <CMDKAction
+            <CMDKAction.Group display={{label: 'Resource Group'}}>
+              <CMDKAction.Resource
                 display={{label: 'Lazy Resource'}}
                 prompt="Enter a value..."
                 resource={(_query, {state}) =>
@@ -1016,7 +2154,7 @@ describe('CommandPalette', () => {
                   })
                 }
               />
-            </CMDKAction>
+            </CMDKAction.Group>
           </GlobalActionsComponent>
         </QueryClientProvider>
       );
@@ -1029,13 +2167,109 @@ describe('CommandPalette', () => {
       await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
       expect(queryClient.getQueryCache().find({queryKey})).toBeDefined();
     });
+
+    it('keeps an async resource mounted while navigating its descendants', async () => {
+      const queryClient = makeTestQueryClient();
+      const operatorQueries: string[] = [];
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GlobalActionsComponent>
+            <CMDKAction.Resource
+              display={{label: 'Project'}}
+              prompt="Search for operator"
+              resource={(query, {state}) => {
+                operatorQueries.push(query);
+                return cmdkQueryOptions({
+                  queryKey: ['test-filter-operators', query],
+                  queryFn: () => [{display: {label: 'is'}, onAction: () => {}}],
+                  enabled: state === 'selected',
+                });
+              }}
+            >
+              {() => (
+                <CMDKAction.Resource
+                  display={{label: 'is'}}
+                  prompt="Search for value"
+                  resource={(_query, {state}) =>
+                    cmdkQueryOptions({
+                      queryKey: ['test-filter-values'],
+                      queryFn: () => [
+                        {
+                          display: {label: 'project-one'},
+                          onAction: () => {},
+                        },
+                      ],
+                      enabled: state === 'selected',
+                    })
+                  }
+                >
+                  {values => (
+                    <CMDKAction.Group display={{label: 'Value'}}>
+                      {values.map((value, index) =>
+                        'onAction' in value &&
+                        !('onMultiSelect' in value) &&
+                        !('onReorder' in value) ? (
+                          <CMDKAction.Callback key={index} {...value} />
+                        ) : null
+                      )}
+                    </CMDKAction.Group>
+                  )}
+                </CMDKAction.Resource>
+              )}
+            </CMDKAction.Resource>
+          </GlobalActionsComponent>
+        </QueryClientProvider>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Project'}));
+      await userEvent.type(screen.getByPlaceholderText('Search for operator'), 'is');
+      await userEvent.click(await screen.findByRole('option', {name: 'is'}));
+
+      expect(await screen.findByText('Value')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'project-one'})).toBeInTheDocument();
+      expect(operatorQueries.at(-1)).toBe('is');
+    });
   });
 
   describe('prompt actions', () => {
+    it('defers expensive static children until the prompt is selected', async () => {
+      const renderChildren = jest.fn();
+
+      function ExpensiveChildren() {
+        renderChildren();
+        return (
+          <CMDKAction.Callback display={{label: 'span.duration'}} onAction={() => {}} />
+        );
+      }
+
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Group
+            mount="on-open"
+            display={{label: 'Source'}}
+            prompt="Search for sources"
+          >
+            <ExpensiveChildren />
+          </CMDKAction.Group>
+        </GlobalActionsComponent>
+      );
+
+      await screen.findByRole('option', {name: 'Source'});
+      expect(renderChildren).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Source'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'span.duration'})
+      ).toBeInTheDocument();
+      expect(renderChildren).toHaveBeenCalled();
+    });
+
     function PromptAction() {
       return (
-        <CMDKAction display={{label: 'DSN Tools'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'DSN Tools'}}>
+          <CMDKAction.Resource
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
             resource={() =>
@@ -1046,14 +2280,17 @@ describe('CommandPalette', () => {
               })
             }
           />
-        </CMDKAction>
+        </CMDKAction.Group>
       );
     }
 
     it('a top-level prompt action is not filtered out in browse mode', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
+          <CMDKAction.Group
+            display={{label: 'Reverse DSN lookup'}}
+            prompt="Paste a DSN..."
+          />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1065,11 +2302,14 @@ describe('CommandPalette', () => {
     it('a prompt action appearing as a direct top-level child after drilling into its parent group is visible', async () => {
       render(
         <GlobalActionsComponent>
-          <CMDKAction display={{label: 'Outer'}}>
-            <CMDKAction display={{label: 'Inner Group'}}>
-              <CMDKAction display={{label: 'Prompt Child'}} prompt="Enter value..." />
-            </CMDKAction>
-          </CMDKAction>
+          <CMDKAction.Group display={{label: 'Outer'}}>
+            <CMDKAction.Group display={{label: 'Inner Group'}}>
+              <CMDKAction.Group
+                display={{label: 'Prompt Child'}}
+                prompt="Enter value..."
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
         </GlobalActionsComponent>
       );
 
@@ -1123,7 +2363,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1139,7 +2381,9 @@ describe('CommandPalette', () => {
         </GlobalActionsComponent>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'reverse');
       await userEvent.click(
         await screen.findByRole('option', {name: 'Reverse DSN lookup'})
@@ -1153,13 +2397,85 @@ describe('CommandPalette', () => {
   });
 
   describe('query restoration', () => {
+    it('does not focus a partial result while picker options are loading', async () => {
+      function ProgressiveGroup({loaded}: {loaded: boolean}) {
+        return (
+          <GlobalActionsComponent>
+            <CMDKAction.Group id="progressive-section" display={{label: 'Section'}}>
+              <CMDKAction.Group id="progressive-group" display={{label: 'Group by'}}>
+                {loaded && (
+                  <CMDKAction.Callback
+                    id="progressive-first"
+                    display={{label: 'First Attribute'}}
+                    onAction={() => {}}
+                  />
+                )}
+                <CMDKAction.Callback
+                  id="progressive-current"
+                  display={{label: 'Current Attribute'}}
+                  onAction={() => {}}
+                />
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+          </GlobalActionsComponent>
+        );
+      }
+
+      const {rerender} = render(<ProgressiveGroup loaded={false} />);
+      await userEvent.click(await screen.findByRole('option', {name: 'Group by'}));
+      expect(
+        await screen.findByRole('option', {name: 'Current Attribute'})
+      ).toBeInTheDocument();
+      const input = screen.getByRole('textbox', {name: 'Search commands'});
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+      const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+      expect(scrollContainer).toBeInTheDocument();
+      expect(scrollContainer).toHaveProperty('scrollTop', 0);
+
+      rerender(<ProgressiveGroup loaded />);
+
+      expect(
+        await screen.findByRole('option', {name: 'First Attribute'})
+      ).toBeInTheDocument();
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+      expect(scrollContainer).toHaveProperty('scrollTop', 0);
+    });
+
+    it('resets the results scroll position when drilling into a group', async () => {
+      render(
+        <GlobalActionsComponent>
+          <AllActions />
+        </GlobalActionsComponent>
+      );
+
+      const group = await screen.findByRole('option', {
+        name: 'Parent Group Action',
+      });
+      const scrollContainer = screen.getByRole('listbox').parentElement?.parentElement;
+      expect(scrollContainer).toBeInTheDocument();
+      scrollContainer!.scrollTop = 200;
+
+      await userEvent.click(group);
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      const nextScrollContainer =
+        screen.getByRole('listbox').parentElement?.parentElement;
+      expect(nextScrollContainer).toBeInTheDocument();
+      expect(nextScrollContainer).not.toBe(scrollContainer);
+      expect(nextScrollContainer).toHaveProperty('scrollTop', 0);
+    });
+
     it('drilling into a group clears the active query', async () => {
       render(
         <GlobalActionsComponent>
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query that shows the group in search results
       await userEvent.type(input, 'parent');
@@ -1177,7 +2493,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1198,7 +2516,9 @@ describe('CommandPalette', () => {
           <AllActions />
         </GlobalActionsComponent>
       );
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
 
       // Type a query, then drill into the group that appears in search results
       await userEvent.type(input, 'parent');
@@ -1214,6 +2534,34 @@ describe('CommandPalette', () => {
 
       await waitFor(() => expect(input).toHaveValue('parent'));
     });
+
+    it('restores the previously focused root action after navigating back', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'First Group'}}>
+              <CMDKAction.Callback display={{label: 'First Child'}} onAction={() => {}} />
+            </CMDKAction.Group>
+            <CMDKAction.Group display={{label: 'Second Group'}}>
+              <CMDKAction.Callback
+                display={{label: 'Second Child'}}
+                onAction={() => {}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+        </GlobalActionsComponent>
+      );
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Second Group'}));
+      await screen.findByRole('option', {name: 'Second Child'});
+      await userEvent.keyboard('{Backspace}');
+      await screen.findByRole('option', {name: 'Second Group'});
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByRole('option', {name: 'Second Child'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('deferred reset on close', () => {
@@ -1224,12 +2572,15 @@ describe('CommandPalette', () => {
     function ToggleablePalette({showPalette}: {showPalette: boolean}) {
       return (
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Section'}}>
-            <CMDKAction display={{label: 'Drillable Group'}}>
-              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'Drillable Group'}}>
+              <CMDKAction.Callback
+                onAction={jest.fn()}
+                display={{label: 'Child Action'}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/root/" display={{label: 'Root Action'}} />
           {showPalette && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </CommandPaletteProvider>
       );
@@ -1302,12 +2653,15 @@ describe('CommandPalette', () => {
       const state = useCommandPaletteState();
       return (
         <Fragment>
-          <CMDKAction display={{label: 'Section'}}>
-            <CMDKAction display={{label: 'Drillable Group'}}>
-              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          <CMDKAction.Group display={{label: 'Section'}}>
+            <CMDKAction.Group display={{label: 'Drillable Group'}}>
+              <CMDKAction.Callback
+                onAction={jest.fn()}
+                display={{label: 'Child Action'}}
+              />
+            </CMDKAction.Group>
+          </CMDKAction.Group>
+          <CMDKAction.Link to="/root/" display={{label: 'Root Action'}} />
           {state.open && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </Fragment>
       );
@@ -1322,6 +2676,19 @@ describe('CommandPalette', () => {
         </CommandPaletteProvider>
       );
     }
+
+    it('focuses the first result whenever the palette opens', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await screen.findByRole('option', {name: 'Drillable Group'});
+      await userEvent.keyboard('{Enter}');
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+    });
 
     it('preserves state when toggled closed and open without navigating', async () => {
       render(<Wrapper />);
@@ -1365,12 +2732,72 @@ describe('CommandPalette', () => {
   });
 
   describe('slot rendering', () => {
+    it('shows query controls and every series field in the page overview', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Group display={{label: 'Traces'}}>
+              <CMDKAction.Group display={{label: 'Commands'}}>
+                <CMDKAction.Callback
+                  display={{label: 'Apply Changes'}}
+                  onAction={jest.fn()}
+                />
+                <CMDKAction.Callback
+                  display={{label: 'Add Series'}}
+                  onAction={jest.fn()}
+                />
+                <CMDKAction.Callback
+                  display={{label: 'Add Equation'}}
+                  onAction={jest.fn()}
+                />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Query'}}>
+                <CMDKAction.Callback display={{label: 'Group by'}} onAction={jest.fn()} />
+                <CMDKAction.Callback display={{label: 'Sort by'}} onAction={jest.fn()} />
+              </CMDKAction.Group>
+              <CMDKAction.Group display={{label: 'Series A'}}>
+                <CMDKAction.Callback display={{label: 'Source'}} onAction={jest.fn()} />
+                <CMDKAction.Callback
+                  display={{label: 'Aggregate function'}}
+                  onAction={jest.fn()}
+                />
+              </CMDKAction.Group>
+            </CMDKAction.Group>
+          </CommandPaletteSlot.Root>
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      const commandsSection = await screen.findByText('Commands');
+      const querySection = screen.getByText('Query');
+      const seriesSection = screen.getByText('Series A');
+
+      expect(
+        commandsSection.compareDocumentPosition(querySection) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(
+        querySection.compareDocumentPosition(seriesSection) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(screen.getByRole('option', {name: 'Apply Changes'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Add Series'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Add Equation'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Group by'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Sort by'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Source'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', {name: 'Aggregate function'})
+      ).toBeInTheDocument();
+    });
+
     it('task slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="task">
+            <CMDKAction.Callback display={{label: 'Task Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -1386,9 +2813,9 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="task">
+            <CMDKAction.Callback display={{label: 'Task Action'}} onAction={onAction} />
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -1401,9 +2828,9 @@ describe('CommandPalette', () => {
     it('page slot action is displayed in the palette', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -1419,9 +2846,9 @@ describe('CommandPalette', () => {
       const onAction = jest.fn();
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={onAction} />
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
@@ -1431,67 +2858,114 @@ describe('CommandPalette', () => {
       expect(onAction).toHaveBeenCalledTimes(1);
     });
 
-    it('page slot actions are rendered before global actions', async () => {
-      // This test mirrors the real app structure:
-      //   - Global actions are registered directly in CMDKCollection (e.g. from the nav sidebar)
-      //   - Page-specific actions are registered via <CommandPaletteSlot name="page">
-      //
-      // Expected: page slot actions appear first in the list, global actions second.
-      // The "page" outlet is rendered above the "global" outlet inside CommandPalette,
-      // so page slot actions should always take priority in the list order.
+    it('shows contextual actions before global actions for an empty query', async () => {
       render(
         <CommandPaletteProvider>
-          {/* Global action registered directly — simulates e.g. GlobalCommandPaletteActions */}
-          <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
-          {/* Page-specific action portaled via the page slot */}
-          <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="global">
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
+          </CommandPaletteSlot.Root>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
-      const options = await screen.findAllByRole('option');
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveAccessibleName('Page Action');
-      expect(options[1]).toHaveAccessibleName('Global Action');
+      expect(
+        await screen.findByRole('option', {name: 'Page Action'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Global Action'})).toBeInTheDocument();
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'Page Action',
+        'Global Action',
+      ]);
     });
 
-    it('task < page < global ordering when all three slots are populated', async () => {
+    it('omits redundant section headings for contextual actions', async () => {
       render(
         <CommandPaletteProvider>
-          <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Global Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
-          <CommandPaletteSlot name="page">
-            <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
-          <CommandPaletteSlot name="task">
-            <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Group display={{label: 'Current Page'}}>
+              <CMDKAction.Callback
+                display={{label: 'Page Action'}}
+                onAction={jest.fn()}
+              />
+            </CMDKAction.Group>
+          </CommandPaletteSlot.Root>
           <SlotOutlets />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
-      const options = await screen.findAllByRole('option');
-      expect(options).toHaveLength(3);
-      expect(options[0]).toHaveAccessibleName('Task Action');
-      expect(options[1]).toHaveAccessibleName('Page Action');
-      expect(options[2]).toHaveAccessibleName('Global Action');
+      expect(
+        await screen.findByRole('option', {name: 'Page Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Current Page'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('includes matching global actions when searching from a contextual page', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot.Root name="global">
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
+          </CommandPaletteSlot.Root>
+          <CommandPaletteSlot.Root name="page">
+            <CMDKAction.Callback display={{label: 'Page Action'}} onAction={jest.fn()} />
+          </CommandPaletteSlot.Root>
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Page Action'});
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search commands'}),
+        'Global'
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Global Action'})
+      ).toBeInTheDocument();
+    });
+
+    it('shows global actions when no contextual actions are registered', async () => {
+      render(
+        <CommandPaletteProvider>
+          <CommandPaletteSlot.Root name="global">
+            <CMDKAction.Callback
+              display={{label: 'Global Action'}}
+              onAction={jest.fn()}
+            />
+          </CommandPaletteSlot.Root>
+          <SlotOutlets />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
+        </CommandPaletteProvider>
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'Global Action'})
+      ).toBeInTheDocument();
     });
 
     it('actions registered via a slot consumer are not duplicated', async () => {
-      // GlobalCommandPaletteActions uses <CommandPaletteSlot name="global"> internally.
+      // GlobalCommandPaletteActions uses <CommandPaletteSlot.Root name="global"> internally.
       // The slot consumer portals children into the outlet element. Registration must be
       // idempotent so the slot→portal transition never yields duplicates.
       function ActionsViaGlobalSlot() {
         return (
-          <CommandPaletteSlot name="global">
-            <CMDKAction display={{label: 'Action A'}} onAction={jest.fn()} />
-            <CMDKAction display={{label: 'Action B'}} onAction={jest.fn()} />
-          </CommandPaletteSlot>
+          <CommandPaletteSlot.Root name="global">
+            <CMDKAction.Callback display={{label: 'Action A'}} onAction={jest.fn()} />
+            <CMDKAction.Callback display={{label: 'Action B'}} onAction={jest.fn()} />
+          </CommandPaletteSlot.Root>
         );
       }
 
@@ -1514,8 +2988,8 @@ describe('CommandPalette', () => {
     it('a group with no children is omitted from the list', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Empty Group'}} />
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          <CMDKAction.Group display={{label: 'Empty Group'}} />
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1529,7 +3003,7 @@ describe('CommandPalette', () => {
     it('direct CMDKAction registrations outside slots are not duplicated', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Direct Action'}} onAction={jest.fn()} />
+          <CMDKAction.Callback display={{label: 'Direct Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1551,14 +3025,17 @@ describe('CommandPalette', () => {
     it('is omitted from browse mode at the top level', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Resource
+            display={{label: 'Async Resource'}}
+            resource={emptyResource}
+          >
             {data =>
               data.map((_, i) => (
-                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
               ))
             }
-          </CMDKAction>
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+          </CMDKAction.Resource>
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1572,16 +3049,19 @@ describe('CommandPalette', () => {
     it('is omitted from browse mode when nested inside a group', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Group'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'Group'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-            <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          </CMDKAction>
+            </CMDKAction.Resource>
+            <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
+          </CMDKAction.Group>
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1598,16 +3078,19 @@ describe('CommandPalette', () => {
       // skipped, an orphaned, non-selectable section header was left in the list.
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'All Empty Group'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'All Empty Group'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
+            </CMDKAction.Resource>
+          </CMDKAction.Group>
+          <CMDKAction.Callback display={{label: 'Real Action'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
@@ -1622,21 +3105,26 @@ describe('CommandPalette', () => {
     it('is omitted from search mode when nested inside a group whose label matches the query', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Navigate'}}>
-            <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Group display={{label: 'Navigate'}}>
+            <CMDKAction.Resource
+              display={{label: 'Async Resource'}}
+              resource={emptyResource}
+            >
               {data =>
                 data.map((_, i) => (
-                  <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                  <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
                 ))
               }
-            </CMDKAction>
-          </CMDKAction>
-          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+            </CMDKAction.Resource>
+          </CMDKAction.Group>
+          <CMDKAction.Callback display={{label: 'Other'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'navigate');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match
@@ -1651,19 +3139,24 @@ describe('CommandPalette', () => {
     it('is omitted from search mode even when the label matches the query', async () => {
       render(
         <CommandPaletteProvider>
-          <CMDKAction display={{label: 'Async Resource'}} resource={emptyResource}>
+          <CMDKAction.Resource
+            display={{label: 'Async Resource'}}
+            resource={emptyResource}
+          >
             {data =>
               data.map((_, i) => (
-                <CMDKAction key={i} to="/x/" display={{label: 'Result'}} />
+                <CMDKAction.Link key={i} to="/x/" display={{label: 'Result'}} />
               ))
             }
-          </CMDKAction>
-          <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
+          </CMDKAction.Resource>
+          <CMDKAction.Callback display={{label: 'Other'}} onAction={jest.fn()} />
           <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('textbox', {
+        name: 'Search commands',
+      });
       await userEvent.type(input, 'async');
 
       // Wait for search to take effect — 'Other' should be filtered out since it doesn't match

@@ -33,6 +33,7 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKChainedActionScope} from 'sentry/components/commandPalette/ui/cmdkChainedActionScope';
 import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
@@ -53,7 +54,7 @@ function makeRenderProps(closeModal: jest.Mock) {
 /**
  * Renders the slot outlets that live outside CommandPalette in the real app
  * (they are mounted in navigation/index.tsx). Tests that use
- * <CommandPaletteSlot name="…"> must include this component so slot consumers
+ * <CommandPaletteSlot.Root name="…"> must include this component so slot consumers
  * have a registered outlet element to portal into.
  */
 function SlotOutlets() {
@@ -87,9 +88,9 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <CommandPaletteSlot name="task">
-          <CMDKAction display={{label: 'Leaf Action'}} onAction={onActionSpy} />
-        </CommandPaletteSlot>
+        <CommandPaletteSlot.Root name="task">
+          <CMDKAction.Callback display={{label: 'Leaf Action'}} onAction={onActionSpy} />
+        </CommandPaletteSlot.Root>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
@@ -105,13 +106,40 @@ describe('CommandPaletteModal', () => {
     expect(closeModalSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps disabled actions visible but prevents selection', async () => {
+    const closeModalSpy = jest.fn();
+    const disabledActionSpy = jest.fn();
+
+    render(
+      <CommandPaletteProvider>
+        <CommandPaletteSlot.Root name="task">
+          <CMDKAction.Callback
+            disabled
+            display={{label: 'Delete Series'}}
+            onAction={disabledActionSpy}
+          />
+        </CommandPaletteSlot.Root>
+        <SlotOutlets />
+        <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
+      </CommandPaletteProvider>
+    );
+
+    const action = await screen.findByRole('option', {name: 'Delete Series'});
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.click(action);
+
+    expect(disabledActionSpy).not.toHaveBeenCalled();
+    expect(closeModalSpy).not.toHaveBeenCalled();
+  });
+
   it('keeps the modal open when a prompt action is selected', async () => {
     const closeModalSpy = jest.fn();
 
     render(
       <CommandPaletteProvider>
-        <CMDKAction display={{label: 'DSN Tools'}}>
-          <CMDKAction
+        <CMDKAction.Group display={{label: 'DSN Tools'}}>
+          <CMDKAction.Resource
             display={{label: 'Reverse DSN lookup'}}
             prompt="Paste a DSN..."
             resource={() =>
@@ -122,7 +150,7 @@ describe('CommandPaletteModal', () => {
               })
             }
           />
-        </CMDKAction>
+        </CMDKAction.Group>
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
     );
@@ -138,20 +166,26 @@ describe('CommandPaletteModal', () => {
     );
   });
 
-  it('invokes an expandable action callback once and keeps the modal open', async () => {
-    // Actions with children push into secondary actions — the modal stays open.
+  it('invokes a chained action callback once and keeps the modal open', async () => {
     const closeModalSpy = jest.fn();
     const onActionSpy = jest.fn();
 
     render(
       <CommandPaletteProvider>
-        <CommandPaletteSlot name="task">
-          <CMDKAction display={{label: 'Outer Group'}}>
-            <CMDKAction display={{label: 'Parent Action'}} onAction={onActionSpy}>
-              <CMDKAction display={{label: 'Child Action'}} onAction={jest.fn()} />
-            </CMDKAction>
-          </CMDKAction>
-        </CommandPaletteSlot>
+        <CommandPaletteSlot.Root name="task">
+          <CMDKAction.Group display={{label: 'Outer Group'}}>
+            <CMDKChainedActionScope>
+              <CMDKAction.Callback
+                display={{label: 'Parent Action'}}
+                onAction={onActionSpy}
+              />
+              <CMDKAction.Callback
+                display={{label: 'Child Action'}}
+                onAction={jest.fn()}
+              />
+            </CMDKChainedActionScope>
+          </CMDKAction.Group>
+        </CommandPaletteSlot.Root>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
@@ -172,9 +206,12 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <CommandPaletteSlot name="task">
-          <CMDKAction to="https://docs.sentry.io" display={{label: 'External Link'}} />
-        </CommandPaletteSlot>
+        <CommandPaletteSlot.Root name="task">
+          <CMDKAction.Link
+            to="https://docs.sentry.io"
+            display={{label: 'External Link'}}
+          />
+        </CommandPaletteSlot.Root>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>
@@ -197,9 +234,9 @@ describe('CommandPaletteModal', () => {
 
     render(
       <CommandPaletteProvider>
-        <CommandPaletteSlot name="task">
-          <CMDKAction to="/target/" display={{label: 'Internal Link'}} />
-        </CommandPaletteSlot>
+        <CommandPaletteSlot.Root name="task">
+          <CMDKAction.Link to="/target/" display={{label: 'Internal Link'}} />
+        </CommandPaletteSlot.Root>
         <SlotOutlets />
         <CommandPaletteModal {...makeRenderProps(closeModalSpy)} />
       </CommandPaletteProvider>

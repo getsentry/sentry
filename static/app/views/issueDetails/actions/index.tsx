@@ -391,8 +391,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   return (
     <Fragment>
       {!disabled && (
-        <CommandPaletteSlot name="page">
-          <CMDKAction
+        <CommandPaletteSlot.Root name="page">
+          <CMDKAction.Group
             display={{
               label: issueCommandLabel,
               icon: (
@@ -401,7 +401,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             }}
           >
             {resolveCap.enabled && !isResolved && !isIgnored && (
-              <CMDKAction
+              <CMDKAction.Callback
                 display={{
                   label: t('Resolve'),
                   icon: <IconCheckmark />,
@@ -416,7 +416,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               />
             )}
             {!isResolved && !isIgnored && (
-              <CMDKAction
+              <CMDKAction.Callback
                 display={{label: t('Archive'), icon: <IconClock />}}
                 onAction={() =>
                   onUpdate({
@@ -428,7 +428,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               />
             )}
             {isResolved && resolveCap.enabled && (
-              <CMDKAction
+              <CMDKAction.Callback
                 display={{label: t('Unresolve'), icon: <IconCheckmark />}}
                 onAction={() =>
                   onUpdate({
@@ -440,7 +440,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               />
             )}
             {isIgnored && (
-              <CMDKAction
+              <CMDKAction.Callback
                 display={{label: t('Unarchive'), icon: <IconClock />}}
                 onAction={() =>
                   onUpdate({
@@ -452,7 +452,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               />
             )}
             {stacktraceBody && (
-              <CMDKAction
+              <CMDKAction.Callback
                 display={{
                   label: t('Copy Stack Trace'),
                   icon: <IconCopy />,
@@ -468,8 +468,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               project={project}
             />
             <SeerCommandPaletteActions event={event} group={group} project={project} />
-          </CMDKAction>
-        </CommandPaletteSlot>
+          </CMDKAction.Group>
+        </CommandPaletteSlot.Root>
       )}
       <Flex align="center" gap="xs">
         {isResolved || isIgnored ? (
