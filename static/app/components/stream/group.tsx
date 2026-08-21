@@ -7,6 +7,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {RELATIVE_TIME_TOOLTIP_PROPS, RelativeTime} from '@sentry/scraps/relativeTime';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -169,7 +170,15 @@ function GroupLastSeen({group}: {group: Group}) {
       suffix="ago"
       unitStyle="short"
       aria-label={t('Last Seen')}
-      tooltipPrefix={t('Last Seen')}
+      {...RELATIVE_TIME_TOOLTIP_PROPS}
+      tooltipBody={
+        <RelativeTime
+          date={group.lifetime.lastSeen}
+          label={t('Last Seen')}
+          suffix="ago"
+          unitStyle="short"
+        />
+      }
     />
   );
 }
@@ -189,7 +198,15 @@ function GroupFirstSeen({group}: {group: Group}) {
       unitStyle="short"
       suffix=""
       aria-label={t('First Seen')}
-      tooltipPrefix={t('First Seen')}
+      {...RELATIVE_TIME_TOOLTIP_PROPS}
+      tooltipBody={
+        <RelativeTime
+          date={group.lifetime.firstSeen}
+          label={t('First Seen')}
+          unitStyle="short"
+          suffix=""
+        />
+      }
     />
   );
 }

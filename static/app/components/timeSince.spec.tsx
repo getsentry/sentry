@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TimeSince} from 'sentry/components/timeSince';
+import {getRelativeDate, TimeSince} from 'sentry/components/timeSince';
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 
 describe('TimeSince', () => {
@@ -56,6 +56,13 @@ describe('TimeSince', () => {
   it('renders a custom suffix with shortened', () => {
     render(<TimeSince unitStyle="extraShort" date={pastTenMin} suffix="atrás" />);
     expect(screen.getByText('10m atrás')).toBeInTheDocument();
+  });
+
+  it('omits the affix that does not apply rather than printing it', () => {
+    // Only one of prefix/suffix is ever used, so a caller that supplies just
+    // one must not leak `undefined` when the other direction is taken.
+    expect(getRelativeDate(futureTenMin, 'ago')).toBe('10 minutes');
+    expect(getRelativeDate(pastTenMin, undefined, 'in')).toBe('10 minutes');
   });
 
   it('respects timezone in tooltip', async () => {
