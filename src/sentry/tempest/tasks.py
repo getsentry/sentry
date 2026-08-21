@@ -120,6 +120,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
             tags=tags,
         )
 
+        response.raise_for_status()
         result = response.json()
 
         if "latest_id" in result:
@@ -337,6 +338,7 @@ def _poll_tempest_crashes_impl(credentials_id: int) -> None:
             tags=tags,
         )
 
+        response.raise_for_status()
         result = response.json()
 
         # Update state FIRST before any non-critical operations (like metrics)
