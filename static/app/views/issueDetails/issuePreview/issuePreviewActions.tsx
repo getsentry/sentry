@@ -1,11 +1,9 @@
 import {Fragment, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
-import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
@@ -13,22 +11,17 @@ import {
   getOrderedAutofixSections,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  CodingAgentMenuFooter,
+  useCodingAgentMenuItems,
+} from 'sentry/components/events/autofix/v3/codingAgentMenu';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  IconAdd,
-  IconChevron,
-  IconGithub,
-  IconOpen,
-  IconRefresh,
-  IconSeer,
-} from 'sentry/icons';
-import {PluginIcon} from 'sentry/icons/pluginIcon';
+import {IconChevron, IconGithub, IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -105,7 +98,6 @@ function StartAutofixAction({
   variant?: 'primary' | 'secondary';
   waiting?: boolean;
 }) {
-  const organization = useOrganization();
   const [isStartingAction, setIsStartingAction] = useState(false);
   const runId = autofix.runState?.run_id;
   const isProcessing = autofix.isPolling || isStartingAction;
@@ -131,23 +123,10 @@ function StartAutofixAction({
     }
   };
 
-  const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
-    const actionLabel =
-      integration.requires_identity && !integration.has_identity
-        ? t('Setup %s', integration.name)
-        : t('Send to %s', integration.name);
-
-    return {
-      key: `agent:${integration.id ?? integration.provider}`,
-      textValue: actionLabel,
-      label: (
-        <Flex gap="md" align="center">
-          <PluginIcon pluginId={integration.provider} size={16} />
-          <span>{actionLabel}</span>
-        </Flex>
-      ),
-      onAction: () => handleCodingAgentHandoff(integration),
-    };
+  const codingAgentOptions = useCodingAgentMenuItems({
+    codingAgentIntegrations,
+    codingAgentDisabledReason,
+    onCodingAgentHandoff: handleCodingAgentHandoff,
   });
 
   const primaryButton = (
@@ -193,16 +172,7 @@ function StartAutofixAction({
         )}
         position="bottom-end"
         shouldCloseOnBlur={false}
-        menuFooter={
-          <DropdownMenuFooter>
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
-            >
-              {t('Add Integration')}
-            </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
-        }
+        menuFooter={<CodingAgentMenuFooter />}
       />
     </ButtonBar>
   );
