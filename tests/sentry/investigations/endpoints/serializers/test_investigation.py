@@ -32,6 +32,7 @@ class InvestigationSerializerTest(TestCase):
             "summaryDescription": None,
             "status": self.investigation.status,
             "sourceType": "manual",
+            "mode": "manual",
             "createdBy": str(self.user.id),
             "dateCreated": self.investigation.date_added,
             "dateUpdated": self.investigation.date_updated,

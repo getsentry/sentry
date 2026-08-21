@@ -23,6 +23,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
@@ -58,6 +59,7 @@ class InvestigationSerializerResponse(TypedDict):
     summaryDescription: str | None
     status: str
     sourceType: str
+    mode: str
     createdBy: str | None
     dateCreated: datetime
     dateUpdated: datetime
@@ -109,11 +111,24 @@ class InvestigationSerializer(Serializer):
             else set()
         )
 
+        agentic_ids = set(
+            InvestigationOrchestrationRun.objects.filter(investigation__in=item_list).values_list(
+                "investigation_id", flat=True
+            )
+        )
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
                 "summary_visible": investigation.id in summary_visible_ids,
+                "mode": (
+                    "agentic"
+                    if investigation.id in agentic_ids
+                    else "template"
+                    if investigation.template_key is not None
+                    else "manual"
+                ),
             }
             for investigation in item_list
         }
@@ -135,6 +150,7 @@ class InvestigationSerializer(Serializer):
             "summaryDescription": obj.summary_description if summary_visible else None,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
+            "mode": attrs["mode"],
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,

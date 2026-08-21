@@ -29,6 +29,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services import (
+    create_agentic_investigation,
     create_manual_investigation,
     create_template_investigation,
 )
@@ -88,7 +89,30 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         values = validator.validated_data
         project_ids = request.access.accessible_project_ids
         try:
-            if "template_key" in values:
+            if values.get("mode") == "agentic":
+                source_project_ids = (
+                    values["source"].get("projectIds", [])
+                    if values["source"]["type"] == "breached_metric"
+                    else []
+                )
+                requested_project_ids = sorted(
+                    set(values.get("project_ids", [])) | set(source_project_ids)
+                )
+                if not set(requested_project_ids).issubset(project_ids):
+                    return Response(
+                        {"detail": "One or more projects are inaccessible."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                created = True
+                investigation, _ = create_agentic_investigation(
+                    organization=organization,
+                    user_id=user_id(request),
+                    title=values.get("title"),
+                    source=values["source"],
+                    project_ids=requested_project_ids,
+                    filters=values.get("filters", {}),
+                )
+            elif "template_key" in values:
                 with transaction.atomic(using=router.db_for_write(Investigation)):
                     investigation, created = create_template_investigation(
                         organization=organization,

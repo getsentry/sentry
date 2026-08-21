@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from copy import deepcopy
+from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationOrchestrationCommand,
     InvestigationSourceType,
     InvestigationStatus,
 )
@@ -59,6 +63,263 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert [item["title"] for item in response.data] == ["Checkout follow-up"]
         assert response.data[0]["blockCount"] == 0
         assert response.data[0]["isFavorited"] is False
+        assert response.data[0]["mode"] == "manual"
+
+    def test_create_agentic_investigation_and_get_orchestration(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "mode": "agentic",
+                "source": {"type": "manual", "seed": {"query": "is:unresolved"}},
+                "projectIds": [self.project.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "Untitled investigation"
+        assert response.data["mode"] == "agentic"
+        assert response.data["source"]["type"] == "manual"
+        assert response.data["blocks"] == []
+
+        orchestration_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": response.data["id"],
+            },
+        )
+        orchestration = self.client.get(orchestration_url)
+
+        assert orchestration.status_code == 200, orchestration.data
+        assert orchestration.data["runId"] is None
+        assert orchestration.data["investigationId"] == response.data["id"]
+        assert orchestration.data["workflowVersion"] == 1
+        assert orchestration.data["phase"] == "intake"
+        assert orchestration.data["status"] == "awaiting_input"
+        assert orchestration.data["broadScan"]["status"] == "blocked"
+        assert orchestration.data["pendingInput"]["missingFields"] == [
+            "prompt",
+            "time_range",
+        ]
+        assert orchestration.data["notebookRevision"] == 0
+        assert orchestration.data["report"]["notebookRevision"] == 0
+        assert orchestration.data["updatedAt"] is not None
+
+    def test_agentic_creation_uses_complete_manual_context(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "mode": "agentic",
+                "title": "API latency",
+                "source": {
+                    "type": "manual",
+                    "prompt": "Investigate the API latency regression",
+                    "timeRange": {
+                        "start": "2025-01-01T00:00:00Z",
+                        "end": "2025-01-01T01:00:00Z",
+                    },
+                    "seed": {"futureField": {"isAllowed": True}},
+                },
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+
+        orchestration_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": response.data["id"],
+            },
+        )
+        orchestration = self.client.get(orchestration_url)
+        assert orchestration.data["phase"] == "broad_scan"
+        assert orchestration.data["status"] == "pending"
+        assert orchestration.data["broadScan"]["status"] == "queued"
+        assert orchestration.data["pendingInput"] is None
+
+    def test_agentic_creation_rejects_inaccessible_source_project(self) -> None:
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "mode": "agentic",
+                "source": {
+                    "type": "breached_metric",
+                    "projectIds": [other_project.id],
+                    "seed": {},
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not Investigation.objects.filter(source__type="breached_metric").exists()
+
+    def test_agentic_creation_rejects_oversized_prompt_context(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "mode": "agentic",
+                "source": {"type": "manual", "prompt": "x" * 20_001, "seed": {}},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not Investigation.objects.filter(source__type="manual").exists()
+
+    def test_orchestration_get_is_scoped_and_legacy_is_not_found(self) -> None:
+        legacy = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Legacy"
+        )
+        legacy_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": legacy.id,
+            },
+        )
+        assert self.client.get(legacy_url).status_code == 404
+
+        other_organization = self.create_organization(owner=self.user)
+        foreign = self.create_investigation(
+            organization=other_organization, created_by=self.user, title="Foreign"
+        )
+        self.create_investigation_orchestration_run(
+            investigation=foreign, source={"type": "manual"}
+        )
+        foreign_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": foreign.id,
+            },
+        )
+        assert self.client.get(foreign_url).status_code == 404
+
+    def test_accept_agentic_command_is_idempotent_and_versioned(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"mode": "agentic", "source": {"type": "manual", "seed": {}}},
+            format="json",
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+        request_id = str(uuid4())
+        command: dict[str, Any] = {
+            "requestId": request_id,
+            "expectedWorkflowVersion": 1,
+            "command": {
+                "type": "add_hypothesis",
+                "statement": "A recent release caused the regression",
+                "rationale": "The timing overlaps",
+            },
+        }
+
+        response = self.client.post(command_url, data=command, format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["requestId"] == request_id
+        assert response.data["accepted"] is True
+        assert response.data["duplicate"] is False
+        assert response.data["workflowVersion"] == 2
+        assert response.data["projection"]["workflowVersion"] == 2
+        stored = InvestigationOrchestrationCommand.objects.get(request_id=request_id)
+        assert stored.actor_id == self.user.id
+        assert stored.type == "add_hypothesis"
+        assert stored.payload == {
+            "statement": "A recent release caused the regression",
+            "rationale": "The timing overlaps",
+        }
+        assert stored.resulting_workflow_version == 2
+
+        duplicate = self.client.post(command_url, data=command, format="json")
+        assert duplicate.status_code == 200, duplicate.data
+        assert duplicate.data["duplicate"] is True
+        assert duplicate.data["workflowVersion"] == 2
+        assert InvestigationOrchestrationCommand.objects.filter(request_id=request_id).count() == 1
+
+        changed = deepcopy(command)
+        changed["command"]["statement"] = "A database lock caused the regression"
+        conflict = self.client.post(command_url, data=changed, format="json")
+        assert conflict.status_code == 409
+
+        stale = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+        assert stale.status_code == 409
+        assert InvestigationOrchestrationCommand.objects.count() == 1
+
+    def test_rejects_invalid_agentic_command_without_mutating_version(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"mode": "agentic", "source": {"type": "manual", "seed": {}}},
+            format="json",
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "steer", "target": "hypothesis"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        orchestration_url = command_url.removesuffix("commands/")
+        assert self.client.get(orchestration_url).data["workflowVersion"] == 1
+        assert not InvestigationOrchestrationCommand.objects.exists()
+
+    def test_rejects_oversized_hypothesis_command(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"mode": "agentic", "source": {"type": "manual", "seed": {}}},
+            format="json",
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "add_hypothesis", "statement": "x" * 301},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not InvestigationOrchestrationCommand.objects.exists()
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
         investigation = self.create_investigation(
