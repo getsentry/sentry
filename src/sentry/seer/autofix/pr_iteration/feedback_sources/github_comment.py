@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Literal
 from pydantic import BaseModel, root_validator
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import FeedbackSourceBase
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision, FeedbackSourceBase
 from sentry.seer.webhooks import SentryIterateCommand, sentry_command
 
 GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
@@ -103,13 +103,19 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     def text(self) -> str:
         return self.comment_feedback
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
+    @property
+    def external_id(self) -> int | None:
+        return self.comment.id
+
+    def should_consume(self, run_state: SeerRunState) -> Decision:
         comment_id = self.comment.id
         if comment_id is None:
-            return True
+            return Decision(ok=True, reason="no_comment_id")
         # Dedupe against prior feedback of the same concrete source type so a
         # repeated comment webhook can't re-trigger an iteration.
-        return comment_id not in _processed_github_comment_ids(run_state, type(self))
+        if comment_id in _processed_github_comment_ids(run_state, type(self)):
+            return Decision(ok=False, reason="already_processed")
+        return Decision(ok=True, reason="not_yet_processed")
 
 
 class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
@@ -236,10 +242,17 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return self.author_is_bot
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
+    @property
+    def external_id(self) -> int | None:
+        # The review, not a comment: a body has no id of its own.
+        return self.review_id
+
+    def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:
-            return True
-        return self.review_id not in _processed_github_review_ids(run_state)
+            return Decision(ok=True, reason="no_review_id")
+        if self.review_id in _processed_github_review_ids(run_state):
+            return Decision(ok=False, reason="already_processed")
+        return Decision(ok=True, reason="not_yet_processed")
 
 
 __all__ = (

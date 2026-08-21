@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -35,6 +35,33 @@ ConsumeTask.Now = _ConsumeNow()
 ConsumeTask.Later = _ConsumeLater
 
 
+@dataclass(frozen=True)
+class Decision:
+    """A yes/no gate on one feedback item, and the input that settled it.
+
+    ``reason`` names what the gate actually read -- ``stale_head``,
+    ``already_processed`` -- on the allow path as much as the deny path, so a
+    caller logging the decision records why it went either way rather than only
+    that it did. Values are drawn from a small fixed vocabulary per method so they
+    are safe to use as a metric tag.
+    """
+
+    ok: bool
+    reason: str
+
+
+@dataclass(frozen=True)
+class TriggerDecision:
+    """When to run the consume task for a feedback item, and what settled it.
+
+    ``task`` of ``None`` means not at all: the run has hit a limit, not that it is
+    being deferred.
+    """
+
+    task: ConsumeTask | None
+    reason: str
+
+
 class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"
@@ -60,11 +87,38 @@ class FeedbackSourceBase(BaseModel):
         """
         return False
 
-    def should_queue(self, run_state: SeerRunState) -> bool:
-        return True
+    @property
+    def external_id(self) -> int | None:
+        """The provider's id for this one item, or ``None`` where it issues none.
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
-        return True
+        The same id the dedupe gates key on, so an item named in a log can be
+        found on the provider it came from. Callers do not read this directly:
+        it is composed into :attr:`Feedback.feedback_id`, which qualifies it with
+        the source type.
+        """
+        return None
 
-    def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        return ConsumeTask.Now
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """The inputs this source's gates read, for the caller logging a decision.
+
+        Takes ``run_state`` because a gate is a *comparison*: recording only the
+        incoming half leaves a reader unable to re-derive the verdict, so a source
+        that checks itself against the run returns both operands.
+
+        The feedback payload itself is deliberately absent. Sources wrapping a
+        webhook keep the whole raw body (``Config.extra = "allow"``), which is tens
+        of kilobytes and no more identifying than the ids already here.
+        """
+        return {}
+
+    # A source that overrides none of these has nothing to check: its feedback is
+    # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,
+    # which is worth distinguishing in a log from a gate that ran and passed.
+    def should_queue(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
+
+    def should_consume(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
+
+    def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
+        return TriggerDecision(task=ConsumeTask.Now, reason="no_gate")

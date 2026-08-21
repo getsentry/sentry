@@ -221,13 +221,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
             username="octocat",
             external_id="1234",
         )
-        mock_consume.assert_called_once_with(
-            kwargs={
-                "run_id": 67890,
-                "organization_id": self.organization.id,
-            },
-            countdown=None,
-        )
+        mock_consume.assert_called_once()
+        _, consume_kwargs = mock_consume.call_args
+        assert consume_kwargs["kwargs"]["run_id"] == 67890
+        assert consume_kwargs["kwargs"]["organization_id"] == self.organization.id
+        assert consume_kwargs["countdown"] is None
         mock_reaction.assert_called_once_with(
             mock_make_scm.return_value,
             source_type="github-pr-comment",

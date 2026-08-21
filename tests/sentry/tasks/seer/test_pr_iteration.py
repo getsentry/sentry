@@ -12,7 +12,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, TriggerDecision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
@@ -22,6 +22,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
@@ -38,6 +39,15 @@ from sentry.testutils.cases import TestCase
 
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+
+
+def log_lines(mock_logger: MagicMock, name: str, *, level: str = "info") -> list[dict[str, Any]]:
+    """The ``extra`` of every line emitted under ``name``, in the order emitted."""
+    return [
+        call.kwargs["extra"]
+        for call in getattr(mock_logger, level).call_args_list
+        if call.args and call.args[0] == name
+    ]
 
 
 class TriggerPrIterationFromCommentTest(TestCase):
@@ -823,6 +833,278 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         self._call()
 
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_drain_reports_what_it_handed_over(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        self._call()
+
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["outcome"] == "drained"
+        assert drain["reason"] == "ok"
+        assert drain["queued_count"] == 1
+        assert drain["consumable_count"] == 1
+        assert drain["dropped"] == []
+        # UI feedback has no provider id, so the type stands in for one.
+        assert drain["feedback_ids"] == ["user-ui"]
+        # Same identity as the queue and trigger lines, so one search finds all
+        # three sections of the same iteration.
+        assert drain["run_id"] == 67890
+        assert drain["sentry_group_id"] == self.group.id
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_run_still_processing_says_so_and_what_it_left_behind(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_count: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(status="processing")
+
+        self._call()
+
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["outcome"] == "skipped"
+        assert drain["reason"] == "run_processing"
+        assert drain["run_status"] == "processing"
+        # The one exit that leaves the queue standing, so the depth is what says
+        # whether work is owed to whoever comes back for it.
+        assert drain["left_queued_count"] == 3
+        mock_pop.assert_not_called()
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback", return_value=[])
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_already_drained_queue_says_so_rather_than_returning_silently(
+        self, mock_fetch: MagicMock, _mock_pop: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        # Two consume tasks can land for one run; the second finds nothing left.
+        # Silently, that is indistinguishable from the task never having run.
+        mock_fetch.return_value = self._state()
+
+        self._call()
+
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["outcome"] == "skipped"
+        assert drain["reason"] == "empty_queue"
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_dropped_item_is_named_by_its_own_id_and_not_by_its_payload(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        # Which comment went missing, not just that one did. The id is qualified
+        # by its source because GitHub draws issue-comment and review-comment ids
+        # from separate namespaces, so 555 alone would not say what it refers to.
+        stale = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry stale"})
+        )
+        block = MemoryBlock(
+            id="b1",
+            message=Message(role="assistant", metadata={"feedback": serialize_feedback([stale])}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [self._queued(stale)]
+
+        self._call()
+
+        mock_trigger.assert_not_called()
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["outcome"] == "skipped"
+        assert drain["reason"] == "no_consumable_feedback"
+        assert drain["dropped"] == [{"id": "github-pr-comment:555", "reason": "already_processed"}]
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_duplicate_collapsed_within_the_batch_is_reported_as_dropped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        # Collapsing was a bare ``continue``, so the copy thrown away left no
+        # trace at all -- the counts did not even add up.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(self._review_feedback(888)),
+            self._queued(self._review_feedback(888)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["queued_count"] == 2
+        assert drain["consumable_count"] == 1
+        assert drain["dropped"] == [
+            {"id": "github-pr-review-comment:888", "reason": "duplicate_comment"}
+        ]
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_the_call_to_seer_closes_the_bracket_the_drain_line_opened(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        # Nothing between the drain line and the call can fail, so a drain with no
+        # line after it means the call never came back.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        self._call()
+
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        (started,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.trigger_agent")
+        assert drain["feedback_ids"] == ["user-ui"]
+        assert started["outcome"] == "started"
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=PrIterationNoPullRequestException())
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_expected_agent_refusal_closes_the_bracket_as_skipped(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        self._call()
+
+        (closing,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.trigger_agent")
+        assert closing["outcome"] == "skipped"
+        assert closing["reason"] == "PrIterationNoPullRequestException"
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_the_drain_names_the_trigger_that_scheduled_it(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        # The id is minted by the trigger and handed down, because `apply_async`
+        # returns None -- the activation id it generates never reaches the caller.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        consume_queued_autofix_feedback(
+            run_id=67890, organization_id=self.organization.id, trigger_id="abc123"
+        )
+
+        (started,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.started")
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert started["trigger_id"] == "abc123"
+        assert drain["trigger_id"] == "abc123"
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_activation_queued_before_trigger_ids_existed_still_drains(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        (drain,) = log_lines(mock_logger, "autofix.pr_iteration.consume_feedback.drain")
+        assert drain["trigger_id"] is None
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_missing_group_is_an_error_carrying_the_run(
+        self, mock_fetch: MagicMock, mock_pop: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        mock_fetch.return_value = self._state(metadata={})
+
+        self._call()
+
+        (missing,) = log_lines(
+            mock_logger, "autofix.pr_iteration.consume_feedback.group_not_found", level="error"
+        )
+        assert missing["run_id"] == 67890
+        mock_pop.assert_not_called()
+
+    @patch(f"{TASK_PATH}.logger")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=RuntimeError("seer is down"))
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_unexpected_failure_names_the_run_and_is_re_raised(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        # Re-raised so the worker still records a failed task and reports it once;
+        # the line only adds the run identity that report has no way to know.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")))
+        ]
+
+        with pytest.raises(RuntimeError):
+            self._call()
+
+        (failed,) = log_lines(
+            mock_logger, "autofix.pr_iteration.consume_feedback.failed", level="error"
+        )
+        assert failed["run_id"] == 67890
+        assert failed["error_type"] == "RuntimeError"
+
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
@@ -945,6 +1227,15 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.log = MagicMock()
+
+    def _log_ctx(self) -> PrIterationLogContext:
+        return PrIterationLogContext(
+            self.log, run_state=self._state(), organization_id=self.organization.id
+        )
+
     def _feedback(self) -> Feedback:
         return Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
 
@@ -959,22 +1250,69 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_triggers_when_should_trigger_true(self, mock_apply: MagicMock) -> None:
         trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
             run_id=67890,
             organization_id=self.organization.id,
             feedback=self._feedback(),
             run_state=self._state(),
         )
 
-        mock_apply.assert_called_once_with(
-            kwargs={"run_id": 67890, "organization_id": self.organization.id},
-            countdown=None,
+        mock_apply.assert_called_once()
+        assert mock_apply.call_args.kwargs["countdown"] is None
+        task_kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert task_kwargs["run_id"] == 67890
+        assert task_kwargs["organization_id"] == self.organization.id
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_the_task_is_scheduled_with_the_id_the_trigger_logged(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # The one link between the two sections: `apply_async` returns None, so
+        # the activation id it mints never reaches the caller and the id has to
+        # travel down instead of back up.
+        trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=self._feedback(),
+            run_state=self._state(),
         )
+
+        (logged,) = log_lines(self.log, "autofix.pr_iteration.feedback.trigger")
+        assert logged["trigger_id"]
+        assert mock_apply.call_args.kwargs["kwargs"]["trigger_id"] == logged["trigger_id"]
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_no_task_scheduled_means_no_trigger_id_to_report(self, mock_apply: MagicMock) -> None:
+        # The id names a task, so a decision that queued none has nothing to name.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_apply.assert_not_called()
+        (logged,) = log_lines(self.log, "autofix.pr_iteration.feedback.trigger")
+        assert logged["trigger_id"] is None
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_skips_when_no_consume_task(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=None):
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
@@ -989,25 +1327,31 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         with patch.object(
             type(feedback.source),
             "should_trigger",
-            return_value=ConsumeTask.Later(timedelta(hours=1)),
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
         ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
                 run_state=self._state(),
             )
 
-        mock_apply.assert_called_once_with(
-            kwargs={"run_id": 67890, "organization_id": self.organization.id},
-            countdown=3600,
-        )
+        mock_apply.assert_called_once()
+        assert mock_apply.call_args.kwargs["countdown"] == 3600
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=None):
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
             trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
                 feedback=feedback,
@@ -1020,6 +1364,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_passes_delay_as_countdown(self, mock_apply: MagicMock) -> None:
         trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
             run_id=67890,
             organization_id=self.organization.id,
             feedback=self._feedback(),
@@ -1029,6 +1374,183 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         _, kwargs = mock_apply.call_args
         assert kwargs["countdown"] == 30
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_logs_the_trigger_with_the_countdown_the_task_actually_got(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # ``delay`` overrides what the source asked for, so the line has to report
+        # the scheduled countdown rather than the requested one.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                delay=30,
+            )
+
+        assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.trigger"
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "delayed"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 30
+        assert extra["delay"] == 30
+        assert extra["bypass"] is False
+        assert extra["run_id"] == 67890
+        assert extra["sentry_organization_id"] == self.organization.id
+        assert extra["feedback_source"] == "user-ui"
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_deferred_consume_reads_as_delayed_rather_than_triggered(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # A source that defers still schedules a task, so ``triggered`` would read
+        # as "consuming now" and leave ``countdown`` as the only correction.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "delayed"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 3600
+        mock_apply.assert_called_once()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_immediate_consume_stays_triggered_with_no_countdown(
+        self, mock_apply: MagicMock
+    ) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "sweep_complete"
+        assert extra["countdown"] is None
+        mock_apply.assert_called_once()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_explicit_zero_delay_is_triggered_not_delayed(self, mock_apply: MagicMock) -> None:
+        # ``delay=0`` overrides a deferring source and runs immediately, so the
+        # outcome follows the countdown the task got rather than what was asked for.
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(
+                task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
+            ),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                delay=0,
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "sweep_incomplete"
+        assert extra["countdown"] == 0
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_run_at_its_cap_says_why_no_task_was_queued(self, mock_apply: MagicMock) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "not_triggered"
+        assert extra["reason"] == "hard_cap_reached"
+        assert extra["countdown"] is None
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_bypass_is_recorded_as_the_reason_rather_than_the_gate_it_skipped(
+        self, mock_apply: MagicMock
+    ) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=TriggerDecision(task=None, reason="hard_cap_reached"),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+                bypass=True,
+            )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "triggered"
+        assert extra["reason"] == "bypass"
+        assert extra["bypass"] is True
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_an_arriving_item_is_named_apart_from_the_completion_hooks_hand_back(
+        self, mock_apply: MagicMock
+    ) -> None:
+        # Both producers write this line; the completion hook's hand-back says
+        # ``completion_hook``. Without the field, telling them apart means knowing
+        # which reasons belong to which side.
+        trigger_consume_pr_iteration_feedback(
+            log_ctx=self._log_ctx(),
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=self._feedback(),
+            run_state=self._state(),
+        )
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["triggered_by"] == "feedback"
+        assert extra["feedback_id"] == "user-ui"
 
 
 class _ReactionScmProtocols:

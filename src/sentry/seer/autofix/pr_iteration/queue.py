@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,9 @@ def _feedback_queue_key(run_id: int) -> str:
 
 def try_enqueue_autofix_feedback(
     *,
+    # Built by the caller and shared with ``trigger_consume_pr_iteration_feedback``,
+    # so one arrival of feedback logs both its decisions under one identity.
+    log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
     group_id: int,
@@ -37,31 +41,37 @@ def try_enqueue_autofix_feedback(
     run_state: SeerRunState,
     actor_user_id: int | None = None,
 ) -> bool:
-    if not feedback.source.should_queue(run_state):
-        logger.info(
-            "autofix.feedback_queue.skipped_stale_feedback",
-            extra={
-                "organization_id": organization_id,
-                "group_id": group_id,
-                "run_id": run_id,
-            },
-        )
-        return False
+    decision = feedback.source.should_queue(run_state)
 
-    redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _feedback_queue_key(run_id)
-    redis.rpush(
-        key,
-        QueuedAutofixFeedback(
-            organization_id=organization_id,
-            group_id=group_id,
-            feedback=feedback,
-            referrer=referrer,
-            actor_user_id=actor_user_id,
-        ).json(),
+    if decision.ok:
+        redis = redis_clusters.get(_REDIS_CLUSTER)
+        key = _feedback_queue_key(run_id)
+        redis.rpush(
+            key,
+            QueuedAutofixFeedback(
+                organization_id=organization_id,
+                group_id=group_id,
+                feedback=feedback,
+                referrer=referrer,
+                actor_user_id=actor_user_id,
+            ).json(),
+        )
+        redis.expire(key, _QUEUE_TTL_SECONDS)
+
+    # One log name for both branches, emitted after the push so ``queued`` means
+    # the feedback is actually in Redis: ``outcome`` says which way it went and
+    # ``reason`` says what the gate read to get there.
+    log_ctx.info(
+        "autofix.pr_iteration.feedback.queue",
+        outcome="queued" if decision.ok else "not_queued",
+        reason=decision.reason,
+        feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
+        referrer=referrer.value,
+        actor_user_id=actor_user_id,
+        **feedback.source.log_fields(run_state),
     )
-    redis.expire(key, _QUEUE_TTL_SECONDS)
-    return True
+    return decision.ok
 
 
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
@@ -70,6 +80,16 @@ def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     except (ValidationError, ValueError):
         logger.warning("autofix.feedback_queue.skipped_unparseable_item")
         return None
+
+
+def count_queued_autofix_feedback(run_id: int) -> int:
+    """How many items are on this run's queue, without reading or removing them.
+
+    For the drain that declines to pop: what it leaves behind is the difference
+    between "nothing was waiting" and "work is still owed to whoever comes back
+    for it", and neither is visible from a line that only says it skipped.
+    """
+    return redis_clusters.get(_REDIS_CLUSTER).llen(_feedback_queue_key(run_id))
 
 
 def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
