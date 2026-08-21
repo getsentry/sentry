@@ -1,5 +1,6 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
@@ -15,6 +16,55 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
+    def test_get_many_by_user_and_organization_ids_rpc_round_trip(self) -> None:
+        organization = self.organization
+        member_mapping = OrganizationMemberMapping.objects.get(
+            organization_id=organization.id,
+            user_id=self.user.id,
+        )
+
+        response = dispatch_to_local_service(
+            organizationmember_mapping_service.key,
+            "get_many_by_user_and_organization_ids",
+            {
+                "user_id": self.user.id,
+                "organization_ids": [organization.id],
+            },
+        )
+
+        mappings = response["value"]
+        assert len(mappings) == 1
+        assert mappings[0]["organizationmember_id"] == member_mapping.organizationmember_id
+        assert mappings[0]["organization_id"] == organization.id
+        assert mappings[0]["user_id"] == self.user.id
+        assert mappings[0]["role"] == member_mapping.role
+        assert mappings[0]["invite_status"] == member_mapping.invite_status
+
+    def test_get_many_by_user_and_organization_ids(self) -> None:
+        organization = self.organization
+        second_organization = self.create_organization(owner=self.user)
+        other_user = self.create_user("other@example.com")
+        other_organization = self.create_organization(owner=other_user)
+
+        with self.assertNumQueries(1, using=router.db_for_read(OrganizationMemberMapping)):
+            mappings = organizationmember_mapping_service.get_many_by_user_and_organization_ids(
+                user_id=self.user.id,
+                organization_ids=[organization.id, other_organization.id],
+            )
+
+        assert len(mappings) == 1
+        assert mappings[0].organization_id == organization.id
+        assert mappings[0].user_id == self.user.id
+
+        mappings = organizationmember_mapping_service.get_many_by_user_and_organization_ids(
+            user_id=self.user.id,
+            organization_ids=[organization.id, second_organization.id],
+        )
+        assert {mapping.organization_id for mapping in mappings} == {
+            organization.id,
+            second_organization.id,
+        }
+
     def test_upsert_stale_user_id(self) -> None:
         organizationmember_mapping_service.upsert_mapping(
             organization_id=self.organization.id,
