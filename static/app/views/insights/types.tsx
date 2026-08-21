@@ -113,6 +113,8 @@ export enum SpanFields {
   GEN_AI_COST_TOTAL_TOKENS = 'gen_ai.cost.total_tokens',
   GEN_AI_USAGE_INPUT_TOKENS = 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_INPUT_TOKENS_CACHED = 'gen_ai.usage.input_tokens.cached',
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS = 'gen_ai.usage.cache_read.input_tokens',
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS = 'gen_ai.usage.cache_creation.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS = 'gen_ai.usage.output_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS_REASONING = 'gen_ai.usage.output_tokens.reasoning',
   GEN_AI_USAGE_TOTAL_TOKENS = 'gen_ai.usage.total_tokens',
@@ -261,6 +263,8 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED
+  | SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS
+  | SpanFields.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING
   | SpanFields.TOTAL_SCORE
   | SpanFields.INP_SCORE

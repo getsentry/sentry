@@ -1,0 +1,132 @@
+import {useTheme} from '@emotion/react';
+
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {t} from 'sentry/locale';
+
+import {formatTokens} from './utils';
+
+interface LlmCacheTokenBarProps {
+  cacheCreationTokens: number | null;
+  cacheReadTokens: number | null;
+  inputTokens: number | null;
+}
+
+/**
+ * Whole-percent shares that add up to exactly 100.
+ *
+ * Rounding each share on its own lets the labels read 37/59/5 under a bar that
+ * visibly fills its track, so the leftover percent goes to whichever share was
+ * cut by the most.
+ */
+function toWholePercentages(values: number[], total: number): number[] {
+  const exact = values.map(value => (value / total) * 100);
+  const percentages = exact.map(Math.floor);
+  const leftover = 100 - percentages.reduce((sum, value) => sum + value, 0);
+
+  const byLargestRemainder = exact
+    .map((value, index) => ({index, remainder: value - Math.floor(value)}))
+    .sort((a, b) => b.remainder - a.remainder);
+
+  for (const {index} of byLargestRemainder.slice(0, leftover)) {
+    percentages[index]! += 1;
+  }
+
+  return percentages;
+}
+
+/**
+ * The window's input tokens split by how they were billed.
+ *
+ * This is the finding in one picture: a call site that never caches is almost
+ * entirely uncached, and one that thrashes is a fat write band next to a sliver
+ * of reads.
+ */
+export function LlmCacheTokenBar({
+  inputTokens,
+  cacheReadTokens,
+  cacheCreationTokens,
+}: LlmCacheTokenBarProps) {
+  const theme = useTheme();
+
+  if (inputTokens === null) {
+    return null;
+  }
+
+  const reads = cacheReadTokens ?? 0;
+  const writes = cacheCreationTokens ?? 0;
+  // Providers that report input exclusive of cached tokens would drive this
+  // negative; the detector clamps it the same way.
+  const uncached = Math.max(inputTokens - reads - writes, 0);
+  const total = reads + writes + uncached;
+
+  if (total <= 0) {
+    return null;
+  }
+
+  const segments = [
+    {
+      key: 'uncached',
+      label: t('Uncached'),
+      value: uncached,
+      color: theme.tokens.graphics.neutral.moderate,
+    },
+    {
+      key: 'writes',
+      label: t('Cache writes'),
+      value: writes,
+      color: theme.tokens.graphics.promotion.vibrant,
+    },
+    {
+      key: 'reads',
+      label: t('Cache reads'),
+      value: reads,
+      color: theme.tokens.graphics.success.vibrant,
+    },
+  ].filter(segment => segment.value > 0);
+
+  const percentages = toWholePercentages(
+    segments.map(segment => segment.value),
+    total
+  );
+  const bands = segments.map((segment, index) => ({
+    ...segment,
+    percentage: percentages[index]!,
+  }));
+
+  return (
+    <Stack gap="sm">
+      <Flex height="12px" radius="sm" overflow="hidden">
+        {bands.map(band => (
+          <Container
+            key={band.key}
+            minWidth="2px"
+            style={{flexGrow: band.value, background: band.color}}
+          />
+        ))}
+      </Flex>
+      <Flex gap="lg" wrap="wrap">
+        {bands.map(band => (
+          <Flex key={band.key} align="center" gap="xs">
+            <Container
+              width="10px"
+              height="10px"
+              radius="2xs"
+              flexShrink={0}
+              style={{background: band.color}}
+            />
+            <Text size="sm" variant="muted">
+              {t(
+                '%s %s (%s)',
+                band.label,
+                formatTokens(band.value),
+                `${band.percentage}%`
+              )}
+            </Text>
+          </Flex>
+        ))}
+      </Flex>
+    </Stack>
+  );
+}
