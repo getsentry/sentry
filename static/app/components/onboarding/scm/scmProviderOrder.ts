@@ -5,7 +5,12 @@ import type {IntegrationProvider} from 'sentry/types/integrations';
  * render as top-level pill buttons; everything else follows in its original
  * order (grouped into the "More" dropdown there).
  */
-const PRIMARY_PROVIDER_KEYS: readonly string[] = ['github', 'gitlab', 'bitbucket'];
+const PRIMARY_PROVIDER_KEYS: readonly string[] = [
+  'github',
+  'gitlab',
+  'bitbucket',
+  'cursor_origin',
+];
 
 /** Sort rank for a provider key: primaries by their index, everything else after. */
 function providerOrderRank(key: string): number {
