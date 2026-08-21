@@ -10,6 +10,8 @@ SeerSCMProvider = Literal[
     "github",
     "github_enterprise",
     "gitlab",
+    "integrations:cursor_origin",
+    "cursor_origin",
 ]
 
 # GitHub providers (bare and `integrations:`-prefixed); mirrors frontend `isGitHubProvider`.
@@ -25,4 +27,12 @@ SEER_SUPPORTED_SCM_PROVIDERS = [*SEER_GITHUB_SCM_PROVIDERS]
 SEER_GITLAB_SCM_PROVIDERS = [
     "integrations:gitlab",
     IntegrationProviderSlug.GITLAB.value,
+]
+
+# WIP. Feature-gated like GitLab was, because Seer's own support is still
+# landing: Origin has no inline review comments, so a review there is one prose
+# comment rather than diff-anchored ones.
+SEER_CURSOR_ORIGIN_SCM_PROVIDERS = [
+    "integrations:cursor_origin",
+    IntegrationProviderSlug.CURSOR_ORIGIN.value,
 ]
