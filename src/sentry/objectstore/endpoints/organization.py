@@ -95,7 +95,11 @@ class ObjectstoreEndpoint(Endpoint):
 
         content_encoding = response.headers.get("Content-Encoding", "").strip().lower()
         accepted_encodings = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
-        decode_content = bool(content_encoding) and content_encoding not in accepted_encodings
+        decode_content = (
+            response.status_code != 206
+            and bool(content_encoding)
+            and content_encoding not in accepted_encodings
+        )
 
         return stream_response(response, decode_content=decode_content)
 

@@ -9,8 +9,10 @@ from django.db import connections
 from django.urls import reverse
 from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
-from sentry.objectstore.endpoints.organization import stream_response
+from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint, stream_response
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
@@ -328,6 +330,38 @@ class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
             ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
 
         assert mock_request.call_args.kwargs["params"] == query
+
+    def test_partial_response_preserves_content_encoding(self) -> None:
+        compressed = b"compressed range bytes"
+        upstream_response = requests.Response()
+        upstream_response.status_code = 206
+        upstream_response.headers = requests.structures.CaseInsensitiveDict(
+            {
+                "Content-Encoding": "zstd",
+                "Content-Length": str(len(compressed)),
+                "Content-Range": "bytes 0-21/100",
+            }
+        )
+        upstream_response.raw = MagicMock()
+        upstream_response.raw.read.side_effect = [compressed, b""]
+
+        request = APIRequestFactory().get(
+            "/v1/objects/test/org=1/key",
+            HTTP_ACCEPT_ENCODING="identity",
+            HTTP_RANGE="bytes=0-21",
+        )
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=upstream_response,
+        ):
+            response = ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        assert response["Content-Encoding"] == "zstd"
+        assert response["Content-Length"] == str(len(compressed))
+        assert response["Content-Range"] == "bytes 0-21/100"
+        assert close_streaming_response(response) == compressed
+        assert upstream_response.raw.decode_content is False
 
 
 class ObjectstoreProxyStreamCloseTest(TransactionTestCase):
