@@ -2513,6 +2513,16 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Remove the rows a claim-bounded drain finishes with — delivered, attempts
+# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
+# stays inside a claim reserved for its whole run, so deferring deletes cannot
+# hand rows to a concurrent drain; a crashed worker reprocesses at most one
+# unflushed batch, which redelivers the delivered rows and re-discards the rest.
+register(
+    "hybridcloud.webhookpayload.drain_batch_deletes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
