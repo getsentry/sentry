@@ -15,6 +15,14 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 logger = logging.getLogger(__name__)
 
+# A first release has no previous sha to compare against, so associate a recent
+# slice of history rather than walking back forever.
+RECENT_COMMIT_LIMIT = 20
+
+# Each commit in the range costs an extra request for its changed files, since
+# Origin has no endpoint giving files across a range. Bound the work.
+MAX_COMPARE_COMMITS = 100
+
 
 class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginIntegration]):
     name = "Cursor Origin"
@@ -70,8 +78,81 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
     ) -> Sequence[Mapping[str, Any]]:
-        """Not implemented yet -- commit tracking arrives with webhook support."""
-        return []
+        """Commits to associate with a release.
+
+        No start sha means this is the first release for the repository, so fall
+        back to recent history rather than walking to the beginning of time.
+        """
+        installation = self._installation_for(repo)
+        client = installation.get_client()
+        # config["name"] is the one kept in sync, matching how GitHub does it.
+        name = repo.config.get("name") or repo.name
+
+        try:
+            if start_sha is None:
+                commits = client.get_commits(name, sha=end_sha, limit=RECENT_COMMIT_LIMIT)
+            else:
+                commits = client.compare_commits(
+                    name, start_sha, end_sha, limit=MAX_COMPARE_COMMITS
+                )
+            return self._format_commits(client, name, commits)
+        except Exception as e:
+            installation.raise_error(e)
+
+    def _installation_for(self, repo: Repository) -> CursorOriginIntegration:
+        if repo.integration_id is None:
+            raise IntegrationError("Cursor Origin repositories require an integration id.")
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
+        assert isinstance(installation, CursorOriginIntegration)
+        return installation
+
+    def _format_commits(
+        self, client: Any, repo_name: str, commits: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, Any]]:
+        """Convert Origin commits into Sentry's internal shape.
+
+        Origin's commit payload matches GitHub's, but the changed files live on a
+        separate route, so each commit costs one extra request. See
+        sentry.models.Release.set_commits.
+        """
+        return [
+            {
+                "id": commit["sha"],
+                "repository": repo_name,
+                "author_email": commit["commit"]["author"].get("email"),
+                "author_name": commit["commit"]["author"].get("name"),
+                "message": commit["commit"]["message"],
+                "timestamp": self.format_date(commit["commit"]["author"].get("date")),
+                "patch_set": self._transform_patchset(
+                    client.get_commit_files(repo_name, commit["sha"])
+                ),
+            }
+            for commit in commits
+        ]
+
+    def _transform_patchset(
+        self, files: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, Any]]:
+        changes: list[dict[str, str]] = []
+        for change in files:
+            status = change.get("status")
+            filename = change.get("filename")
+            if not filename:
+                continue
+            if status == "modified":
+                changes.append({"path": filename, "type": "M"})
+            elif status == "added":
+                changes.append({"path": filename, "type": "A"})
+            elif status == "removed":
+                changes.append({"path": filename, "type": "D"})
+            elif status == "renamed":
+                # A rename is recorded as a delete plus an add.
+                if previous := change.get("previous_filename"):
+                    changes.append({"path": previous, "type": "D"})
+                changes.append({"path": filename, "type": "A"})
+        return changes
 
     def pull_request_url(self, repo: Repository, pull_request: Any) -> str:
-        return f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/pulls/{pull_request.key}"
+        # `/pull/{n}`, not `/pulls/` -- confirmed against Origin's web UI. The
+        # REST route is `/pulls`, which makes this easy to get wrong.
+        return f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/pull/{pull_request.key}"
