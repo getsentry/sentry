@@ -158,6 +158,20 @@ export const SEER_EMBED_SCHEMAS = {
       {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
     ],
   },
+  actor: {
+    description:
+      'Backward-compatible alias for the `user` embed. Mention a Sentry user or team inline using the actor type, ID, and display name.',
+    level: ['inline'],
+    schema: z.object({
+      id: z.string().min(1),
+      type: z.enum(['user', 'team']),
+      name: z.string().min(1),
+    }),
+    examples: [
+      {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
+      {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
+    ],
+  },
   issue: {
     description:
       'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
@@ -194,6 +208,23 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  event: {
+    description:
+      'Display one immutable Sentry event as evidence. Prefer event_id. If only issue_id is available, the UI explicitly resolves and labels the latest event for that issue.',
+    level: ['block'],
+    schema: z
+      .object({
+        event_id: z.string().min(1).optional(),
+        issue_id: z.string().min(1).optional(),
+      })
+      .refine(value => value.event_id || value.issue_id, {
+        message: 'event_id or issue_id is required',
+      }),
+    examples: [
+      {label: 'Event', data: {event_id: 'a'.repeat(32)}},
+      {label: 'Latest issue event', data: {issue_id: '123456789'}},
+    ],
+  },
   replay: {
     description:
       'The ONLY way to reference a Sentry Session Replay. ' +
@@ -204,12 +235,17 @@ export const SEER_EMBED_SCHEMAS = {
       'Block: renders a standalone replay reference. ' +
       'Never use a markdown link for replay references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      id: z.string().min(1),
-      eventTimestamp: isoTimestampSchema
-        .describe('ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)')
-        .optional(),
-    }),
+    schema: z.union([
+      z.object({
+        id: z.string().min(1),
+        eventTimestamp: isoTimestampSchema
+          .describe(
+            'ISO 8601 timestamp with a timezone offset (for example, Z or +00:00)'
+          )
+          .optional(),
+      }),
+      z.object({replay_id: z.string().min(1)}),
+    ]),
     examples: [
       {
         label: 'Inline',
@@ -413,11 +449,17 @@ export const SEER_EMBED_SCHEMAS = {
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
       'Never use a markdown link for trace references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      traceId: z.string().min(1),
-      timestamp: isoTimestampSchema.optional(),
-      spanId: z.string().min(1).optional(),
-    }),
+    schema: z.union([
+      z.object({
+        traceId: z.string().min(1),
+        timestamp: isoTimestampSchema.optional(),
+        spanId: z.string().min(1).optional(),
+      }),
+      z.object({
+        trace_id: z.string().min(1),
+        span_id: z.string().min(1).optional(),
+      }),
+    ]),
     examples: [
       {
         label: 'Trace',
@@ -434,10 +476,16 @@ export const SEER_EMBED_SCHEMAS = {
       'Requires both the profile ID and the slug of the project it belongs to. ' +
       'Never use a markdown link for profile references.',
     level: ['inline', 'block'],
-    schema: z.object({
-      projectSlug: z.string().min(1),
-      profileId: z.string().min(1),
-    }),
+    schema: z.union([
+      z.object({
+        projectSlug: z.string().min(1),
+        profileId: z.string().min(1),
+      }),
+      z.object({
+        profile_id: z.string().min(1),
+        project_slug: z.string().min(1).optional(),
+      }),
+    ]),
     examples: [
       {
         label: 'Profile',

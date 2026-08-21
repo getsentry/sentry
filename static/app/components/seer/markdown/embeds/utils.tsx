@@ -1,7 +1,10 @@
 import type {ReactNode} from 'react';
 import type {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {NODE_ENV} from 'sentry/constants/env';
+import {t} from 'sentry/locale';
 
 import type {SeerEmbedProps} from './registry';
 import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
@@ -28,7 +31,11 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
         // eslint-disable-next-line no-console
         console.warn(`[SeerEmbed] ${name}: invalid props`, parsed.error.issues);
       }
-      return null;
+      return level === 'block' ? (
+        <Alert variant="warning" showIcon>
+          {t('This evidence reference is invalid and could not be displayed.')}
+        </Alert>
+      ) : null;
     }
     return render(parsed.data as EmbedOutput<N>, level);
   }

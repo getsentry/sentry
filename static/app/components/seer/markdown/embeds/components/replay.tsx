@@ -1,13 +1,22 @@
-import {lazy} from 'react';
+import {lazy, useMemo} from 'react';
 import queryString from 'query-string';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
+import {
+  ReplayCountErrorsColumn,
+  ReplayCountRageClicksColumn,
+  ReplayDurationColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   defineSeerEmbed,
@@ -16,8 +25,12 @@ import {
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getShortEventId} from 'sentry/utils/events';
+import {replayRecordApiOptions} from 'sentry/utils/replays/hooks/useReplayData';
+import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+import {EvidenceBoundary, EvidenceFrame, LazyEvidence} from './evidenceFrame';
 
 const CLIP_OFFSETS = {
   durationAfterMs: 5_000,
@@ -28,7 +41,9 @@ const ReplayClipPreview = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
 );
 
-function ReplayLink({id, eventTimestamp}: EmbedOutput<'replay'>) {
+type ReplayLinkOutput = Extract<EmbedOutput<'replay'>, {id: string}>;
+
+function ReplayLink({id, eventTimestamp}: ReplayLinkOutput) {
   const organization = useOrganization();
   const pathname = makeReplaysPathname({path: `/${id}/`, organization});
   const href = eventTimestamp
@@ -44,7 +59,7 @@ function ReplayLink({id, eventTimestamp}: EmbedOutput<'replay'>) {
   );
 }
 
-function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
+function ReplayBlockPreview({id, eventTimestamp}: ReplayLinkOutput) {
   const organization = useOrganization();
 
   if (!eventTimestamp) {
@@ -87,12 +102,74 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
   );
 }
 
+function ReplayEvidenceContent({replayId}: {replayId: string}) {
+  const organization = useOrganization();
+  const query = useQuery({
+    ...replayRecordApiOptions({
+      organizationIdOrSlug: organization.slug,
+      replayId,
+    }),
+    retry: false,
+  });
+  const replay = useMemo(
+    () => (query.data?.data ? mapResponseToReplayRecord(query.data.data) : undefined),
+    [query.data?.data]
+  );
+  const href = makeReplaysPathname({path: `/${replayId}/`, organization});
+
+  return (
+    <EvidenceFrame
+      title={t('Replay %s', replayId)}
+      icon={IconPlay}
+      href={href}
+      isLoading={query.isPending}
+      error={query.error}
+      onRetry={() => query.refetch()}
+    >
+      {replay ? (
+        <ReplayTable
+          columns={[
+            ReplaySessionColumn,
+            ReplayDurationColumn,
+            ReplayCountErrorsColumn,
+            ReplayCountRageClicksColumn,
+          ]}
+          error={null}
+          isPending={false}
+          replays={[replay]}
+          showDropdownFilters={false}
+        />
+      ) : null}
+    </EvidenceFrame>
+  );
+}
+
+function ReplayUnavailable() {
+  return (
+    <EvidenceFrame title={t('Replay evidence')} icon={IconPlay}>
+      <Text variant="muted">{t('Replay is not available for this organization.')}</Text>
+    </EvidenceFrame>
+  );
+}
+
 export const Replay = defineSeerEmbed({
   name: 'replay',
   render(props, level) {
-    if (level === 'block') {
-      return <ReplayBlockPreview {...props} />;
+    if ('id' in props) {
+      return level === 'block' ? (
+        <ReplayBlockPreview {...props} />
+      ) : (
+        <ReplayLink {...props} />
+      );
     }
-    return <ReplayLink {...props} />;
+    return (
+      <EvidenceBoundary>
+        <ReplayAccess fallback={<ReplayUnavailable />}>
+          <LazyEvidence>
+            <ReplayEvidenceContent replayId={props.replay_id} />
+          </LazyEvidence>
+        </ReplayAccess>
+      </EvidenceBoundary>
+    );
   },
 });

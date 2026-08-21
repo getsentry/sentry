@@ -5,6 +5,7 @@ import {Chart} from './components/chart';
 import {Dashboard} from './components/dashboard';
 import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
+import {EventEvidence} from './components/event';
 import {ErrorsQuery} from './components/errorsQuery';
 import {Issue, Issues} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
@@ -19,17 +20,19 @@ import {SavedQuery} from './components/savedQuery';
 import {SpansQuery} from './components/spansQuery';
 import {Timestamp} from './components/timestamp';
 import {Trace} from './components/trace';
-import {User} from './components/user';
+import {Actor, User} from './components/user';
 import {SeerEmbedRegistry} from './registry';
 
 const embeds = [
   AgentWriteApprovalEmbed,
   Alert,
+  Actor,
   Autofix,
   Chart,
   Dashboard,
   Docs,
   Dsn,
+  EventEvidence,
   ErrorsQuery,
   Issue,
   Issues,
