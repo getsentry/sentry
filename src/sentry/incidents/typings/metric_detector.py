@@ -250,8 +250,11 @@ class MetricIssueContext:
         snuba_query = subscription.snuba_query
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
-        else:
+        elif isinstance(evidence_data.value, dict):
             metric_value = evidence_data.value["value"]
+        else:
+            # Evidence can be missing a metric value (e.g. incomplete packets).
+            metric_value = None
 
         return cls(
             id=group.id,
