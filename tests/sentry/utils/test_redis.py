@@ -12,6 +12,7 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _shared_pool,
+    add_transaction_checks,
     check_cluster_versions,
     get_cluster_from_options,
 )
@@ -41,8 +42,13 @@ class ClusterManagerTestCase(TestCase):
         with pytest.raises(KeyError):
             manager.get("invalid")
 
+    @mock.patch("sentry.utils.redis.add_transaction_checks", side_effect=lambda client: client)
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
-    def test_specific_cluster(self, RetryingRedisCluster: mock.MagicMock) -> None:
+    def test_specific_cluster(
+        self,
+        RetryingRedisCluster: mock.MagicMock,
+        add_transaction_checks: mock.MagicMock,
+    ) -> None:
         manager = RedisClusterManager(_options_manager())
 
         # We wrap the cluster in a Simple Lazy Object, force creation of the
@@ -52,6 +58,7 @@ class ClusterManagerTestCase(TestCase):
         assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[union-attr]
         # baz works becasue it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[union-attr]
+        assert add_transaction_checks.call_count == 2
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster
@@ -68,6 +75,60 @@ class ClusterManagerTestCase(TestCase):
         manager.get("baz")
         # repeated retrieval should not trigger call to setupfunc
         manager.get("baz")
+
+    def test_redis_client_checks_transaction_before_command(self) -> None:
+        client = FailoverRedis()
+
+        with (
+            mock.patch("sentry.utils.redis.in_test_assert_no_transaction") as assert_no_transaction,
+            mock.patch.object(
+                client, "execute_command", return_value=mock.sentinel.result
+            ) as execute_command,
+        ):
+            guarded_client = add_transaction_checks(client)
+            result = guarded_client.execute_command("GET", "key")
+
+        assert result is mock.sentinel.result
+        assert_no_transaction.assert_called_once_with(
+            "Redis commands must run outside database transactions"
+        )
+        execute_command.assert_called_once_with("GET", "key")
+
+    def test_redis_client_checks_transaction_when_pipeline_executes(self) -> None:
+        client = FailoverRedis()
+        pipeline = mock.Mock()
+        pipeline.execute.return_value = mock.sentinel.result
+
+        with (
+            mock.patch("sentry.utils.redis.in_test_assert_no_transaction") as assert_no_transaction,
+            mock.patch.object(client, "pipeline", return_value=pipeline),
+        ):
+            guarded_client = add_transaction_checks(client)
+            guarded_pipeline = guarded_client.pipeline()
+            assert_no_transaction.assert_not_called()
+            result = guarded_pipeline.execute()
+
+        assert result is mock.sentinel.result
+        assert_no_transaction.assert_called_once_with(
+            "Redis pipeline commands must run outside database transactions"
+        )
+
+    def test_redis_cluster_checks_transaction_before_command(self) -> None:
+        client = mock.Mock()
+        execute_command = client.execute_command
+        execute_command.return_value = mock.sentinel.result
+
+        with mock.patch(
+            "sentry.utils.redis.in_test_assert_no_transaction"
+        ) as assert_no_transaction:
+            guarded_client = add_transaction_checks(client)
+            result = guarded_client.execute_command("GET", "key")
+
+        assert result is mock.sentinel.result
+        assert_no_transaction.assert_called_once_with(
+            "Redis commands must run outside database transactions"
+        )
+        execute_command.assert_called_once_with("GET", "key")
 
 
 def test_get_cluster_from_options_cluster_provided() -> None:
