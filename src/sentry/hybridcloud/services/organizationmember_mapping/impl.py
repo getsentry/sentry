@@ -21,6 +21,18 @@ from sentry.users.models.user import User
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
+    def get_many_by_user_and_organization_ids(
+        self,
+        *,
+        user_id: int,
+        organization_ids: list[int],
+    ) -> list[RpcOrganizationMemberMapping]:
+        mappings = OrganizationMemberMapping.objects.filter(
+            organization_id__in=organization_ids,
+            user_id=user_id,
+        )
+        return [serialize_org_member_mapping(mapping) for mapping in mappings]
+
     def upsert_mapping(
         self,
         *,

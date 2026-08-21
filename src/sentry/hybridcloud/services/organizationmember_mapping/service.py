@@ -38,6 +38,16 @@ class OrganizationMemberMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_many_by_user_and_organization_ids(
+        self,
+        *,
+        user_id: int,
+        organization_ids: list[int],
+    ) -> list[RpcOrganizationMemberMapping]:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def delete(
         self,
         *,
